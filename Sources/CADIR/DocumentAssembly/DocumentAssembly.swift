@@ -1,6 +1,6 @@
 import CADCore
 
-public struct DocumentAssembly: Codable, Equatable, Sendable {
+public struct DocumentAssembly: Equatable, Sendable {
     public var products: [AssemblyProduct]
     public var formations: [AssemblyProductFormation]
     public var definitions: [AssemblyDefinition]
@@ -14,7 +14,10 @@ public struct DocumentAssembly: Codable, Equatable, Sendable {
             var d = $0; d.features.sort(); d.children.sort { $0.id < $1.id }; return d
         }, roots: roots.sorted { $0.id < $1.id })
     }
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case products, formations, definitions, roots }
+#endif
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.products, .formations, .definitions, .roots], in: decoder)
@@ -23,4 +26,9 @@ public struct DocumentAssembly: Codable, Equatable, Sendable {
         definitions = try c.decode([AssemblyDefinition].self, forKey: .definitions)
         roots = try c.decode([AssemblyOccurrence].self, forKey: .roots)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension DocumentAssembly: Codable {}
+#endif

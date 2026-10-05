@@ -62,7 +62,7 @@ only to original tensor admission and does not replace interval jet arithmetic.
 | Clamped original axes, exact separability and original endpoint controls | Exact closed endpoint values for the two univariate coordinate maps |
 | All-owning closed-domain Jacobian gives a finite derivative interval strictly of one sign on each axis | Continuous strictly monotone coordinate maps on the entire original domain |
 | Positive original source weights and every original source coordinate control lies inside the corresponding closed endpoint-value interval | Every source parameter has exactly one inverse on each original target axis by the closed-interval IVT |
-| Source coordinate controls are not all equal on either selected axis | This route does not authorize a curve continuously confined to an intrinsic chart face |
+| At least one selected source coordinate varies; a constant coordinate requires the original stationary-axis identity below | Constant native-knot or endpoint incidence retains an exact axis parameter; other constant-coordinate inverses remain unsupported |
 
 `OverlapRegularGraphClosedDomainAuthority` owns this original-geometry existence
 certificate. It retains the original source and target, selected Cartesian pair,
@@ -131,8 +131,8 @@ The certificate stores fixed metadata and immutable original geometry references
 with no control-net copies, new decomposition, cover array or private allowance.
 The original degree, storage and subdivision limits remain unchanged.
 Nonseparable maps, nonfactorable weight tensors, multiple source spans, periodic axes,
-constant-axis incidence, unresolved monotonicity/rank and general endpoint
-coincidence remain outside this bounded authority and fail explicitly. No failed
+constant-axis incidence without the original stationary-axis identity below,
+unresolved monotonicity/rank and general endpoint coincidence remain outside this bounded authority and fail explicitly. No failed
 certificate authorizes an empty intersection result or a sampled correspondence.
 The public native-isocurve trial route precedes regular-graph admission. Its
 endpoint inverse projection may propagate `ambiguousSelection` for a
@@ -226,7 +226,7 @@ unpaid comparisons. Direct closed-certificate calls remain self-contained and
 retain their exact established work thresholds (unit 39/38 and rational 61/60
 fixtures). Reuse accounts only for work already paid by the same invocation.
 Unit and single-span routes retain their obligations. Strict K inclusion,
-determinant/contraction, every affected knot's transverse passage, whole-span
+determinant/contraction, every varying affected knot's transverse passage, whole-span
 residual, original geometry/coordinates, global uniqueness, clipping,
 iteration/depth/storage limits and cancellation remain required. This authority
 cannot promote a first-order collar to a smooth chart or replace projected
@@ -546,10 +546,10 @@ cumulative integration remain open.
 
 A collar never assumes second/third derivative continuity and never exposes a
 Taylor derivative certificate. Each axis whose closed box contains a C0/C1 knot
-must have a first UV derivative interval excluding zero, establishing a
-transverse, monotone passage through every native knot on that axis. Checking
-only one axis at a tensor corner cannot authorize the other axis. A knot may
-lie in the tube without lying on the graph; this conservative admission still
+must either have a first UV derivative interval excluding zero, establishing a
+transverse, monotone passage, or retain the exact original stationary-axis
+identity below. Checking only one axis at a tensor corner cannot authorize the
+other axis. Without that stationary identity, a knot lying in the tube still
 requires the affected axis to be transverse.
 Uniform contraction and bounded source derivatives establish Lipschitz graph
 continuity; the one-sided derivative bounds then support complete chart-boundary
@@ -620,8 +620,8 @@ the existing caller budget. Smooth cells and collar cells form one gapless
 cover whose maximum deviation decides complete original-span admission.
 
 A minor whose all-owning union contains zero, failed uniform contraction or
-global uniqueness, and continuous/non-transverse knot coincidence on either
-affected axis remain explicit refusals. This family does not complete general
+global uniqueness, and continuous/non-transverse knot coincidence without the
+exact original stationary-axis identity remain explicit refusals. This family does not complete general
 knot atlases or G4: it requires one defining Cartesian pair and the existing
 whole-span membership, monotone boundary isolation and finite arithmetic proofs.
 All atlas state belongs to immutable original graph owners; no decomposition,
@@ -1188,3 +1188,121 @@ Z perturbation, exact higher-order fee/fee-minus-one, degree refusal and
 cancellation provide behavioral evidence. This closes higher-order affine-UV
 composition only; non-affine predictors, arbitrary source/target atlases,
 periodic graphs and contacts remain required full-G4 work.
+
+### Original Interior Affine-UV Predictors
+
+The residual owner also accepts an affine predictor joining two finite UV
+values inside the complete original native rectangle. The public graph resolver
+first retains the existing exact-corner route and its charges. Only when that
+route supplies no certificate does it obtain predictor endpoints from the
+original source endpoint stations using the existing paid Newton seed operation.
+These values are candidates: convergence, proximity or endpoint agreement
+provides neither membership nor root existence.
+
+For each native axis, the owner outward-normalizes the represented UV endpoints
+against the original knot-domain endpoints. It composes every original Bernstein
+basis with the degree-one predictor through complete outward Bernstein products,
+then contracts every original positive homogeneous tensor coefficient. The
+original source/target cross-products and strictly positive denominator lower
+bound cover the full original source domain, including reversal, constant-axis
+predictors and interior endpoints. No rounded extracted control net, fitting,
+point-only proof or reconstructed source is used.
+
+| Boundary | Required authority | Result |
+|---|---|---|
+| Predictor construction | Finite endpoints contained in the original rectangle | Candidate only |
+| Whole residual | All original homogeneous coefficients and positive weights | Complete affine-predictor Cartesian error |
+| Graph transfer | Existing strict-K or closed-root proof, complete Jacobian contraction and original root image | Error at the already owned root |
+| Publication | Global uniqueness, complete source cover, joins, original clipping and forward correspondence | Directed overlap result |
+
+The new route prepays all basis powers, products, binomial arrays, normalization
+and scratch using the same invocation work budget. It retains the original
+polynomial ceiling, depth, storage, iteration, tolerance and cancellation
+contracts. The existing corner route remains unchanged; a failed predictor does
+not replace a proof failure with success. Behavioral verification is deferred
+during the implementation phase. Non-affine predictors, general source/target
+atlases, periodic regular graphs and contacts remain full-G4 gaps.
+
+### Original Stationary Native-Knot Incidence
+
+A regular graph may remain continuously on one original target C0 knot axis
+while crossing the other axis. This route requires the existing complete
+original rank-one positive weight identity, Cartesian coordinate independence
+and strictly monotone whole-axis quotient jet. Every original source control
+for the independent selected coordinate must equal the same represented value.
+An original degree-fold target knot selects exactly one original control on
+that native axis; its coordinate must equal that source constant exactly.
+Original clamped endpoints use the same exact control-selection identity.
+The unique inverse is therefore the represented original knot (or endpoint)
+for every source station, not an approximately stationary projected sample.
+
+The closed-domain owner retains that constant native parameter in its separable
+axis certificate. At least one selected source coordinate must still vary. A
+strict root or the existing closed-IVT owner must establish every graph root.
+Only then may the exact constant-coordinate identity intersect the existing
+root enclosure and first derivative with the constant value and zero. The
+remaining axis retains all affected-knot transversality obligations. Collars
+continue to use complete original first-order jets and Lipschitz residuals;
+stationary incidence never supplies a smooth-chart or higher-order claim.
+
+| Consumer | Original authority | Action |
+|---|---|---|
+| Closed inverse | Original constant controls, exact native control-selection, positive factorization and whole-axis monotonicity | Retain a unique constant native coordinate |
+| Root and join | Existing strict/closed root and all-owning original jets | Intersect the same root with the exact coordinate and zero first derivative |
+| Boundary clipping | Retained complete-cell constant-coordinate identity | Classify the entire boundary incidence without isolated-root division |
+| Correspondence | Owned cell plus reproduced original root | Return the represented original constant coordinate and checked varying coordinate |
+
+Every original scan remains charged before work through the existing invocation
+ledger. No knot extraction, tolerance equality, private allowance, new sampling
+rule or dropped transverse requirement on a varying axis supplies this proof.
+The whole-source residual, global uniqueness, gapless cover, common-root joins,
+maximal component merge and forward residual checks remain mandatory. General
+non-transverse contacts and nonfactorable stationary axes remain explicit
+unsupported gaps. This implementation phase does not establish runtime evidence.
+
+## Periodic Interior Isocurve Discovery
+
+Periodic original same-basis isocurves enumerate both fixed endpoints and
+interior fixed-axis native spans. Each interior seed is refined by a bounded
+Gauss-Newton step on the original complete homogeneous control rows. Numerical
+refinement produces only a candidate fixed parameter. Publication still requires
+the existing outward whole-control rational residual on all original varying
+controls, with the original common cycle/origin/reversal and seam-cut authority.
+Every candidate, basis recurrence, original control accumulation and residual
+probe debits the invocation's `OverlapProofBudget`; iteration count comes from
+`maximumIterations`. No projection helper or independent search budget is used.
+A common positive homogeneous scaling of the source weights is admitted by an
+outward scale interval and is included in the residual bound.
+
+## Nontransverse Interior Native-Knot Contacts
+
+C0/C1 collars retain the complete original closed native-span Jacobian hull.
+The same strict Krawczyk inclusion and uniform preconditioned contraction prove
+a unique Lipschitz inverse over the entire collar, including contact with a
+knot where an inverse-coordinate derivative contains zero. The piecewise
+chain rule is valid almost everywhere and the inverse is absolutely continuous;
+its complete first-derivative hull supplies the existing integral Lipschitz
+residual bound. Transversality is therefore a clipping-root classification
+requirement rather than a prerequisite for this already-proved interior root
+cover. No second/third derivative is inferred at a contacted knot. Exact
+stationary-axis evidence remains optional tighter authority, retaining identity
+and caller accounting. General requested-boundary contact isolation remains
+owned by the boundary resolver.
+
+### Caller-Admitted Original Native Plane Sectors
+
+The bounded richer result consumes the [original native plane contact producer](../OriginalNativePlaneContacts/DESIGN.md) using one curve-surface invocation. Each positive clipped sector retains exact authored or algebraic endpoints and its original native owner. A prepared sector supplies exact rational position and plane UV quotients, with only the final numerical bounds converted outward. `CurveSurfaceOverlap.originalTraversal` exposes the normalized original law; `curveRange` and published endpoint coordinates are numerical representatives or containing localization bounds.
+
+One retained prepared plane is shared by isolated contacts and overlap correspondence. A normalized fraction evaluates the original endpoint expression, not a rounded native station. Publication refines under existing iteration and algebra limits until the original position box and original plane singleton box establish the unchanged physical residual and representative error. Later correspondence queries reuse the same invocation callbacks and preparations. Legacy native-parameter correspondence cannot invert nonrepresentable sector endpoints by silently using numerical range endpoints; its selected sector branch directs callers to normalized correspondence and fails explicitly.
+
+The bounded protocol witness includes independent source/subdivision/algebra admission and optional bytes. Other conformers must implement the actual witness. General continuous procedural/rational surface graphs remain explicit unsupported branches until their own shared-admission complete sector producer is connected; finite isolated queries still use the actual selected intersector.
+
+Maximal native-plane components compose exact adjacent sector receipts in source
+order. Shared cut ordinals are scoped to one immutable clipping owner; native
+joins require original knot equality and homogeneous endpoint identity. A
+compound correspondence retains each original homogeneous owner law. Point
+suppression uses original sector endpoint incidence, and isolated same-knot
+compaction uses exact sided contact identity. Approximate ranges, point proximity
+and numerical sorting do not authorize assembly. Component preparation shares
+the invocation; repeated whole-native preparation is a retained allocation and
+performance limitation until the prepared-owner constructor is available.

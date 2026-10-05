@@ -1,7 +1,7 @@
 import CADCore
 import Foundation
 
-public struct OffsetSurface3D: Codable, Hashable, Sendable {
+public struct OffsetSurface3D: Hashable, Sendable {
   public let source: Surface3D
   public let distance: Double
 
@@ -191,11 +191,44 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
 
   func intervalJet(
     fromValidatedSourceJet sourceJet: SurfaceIntervalVectorJet,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    consumeWork: () throws -> Void = {},
+    consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> SurfaceIntervalVectorJet {
-    let tangentU = sourceJet.differentiatedUThroughSecondOrder()
-    let tangentV = sourceJet.differentiatedVThroughSecondOrder()
-    guard let normal = tangentU.cross(tangentV).normalized() else {
+    // The original coefficient jet is already admitted. Each scalar-jet action
+    // below uses fixed value fields; no retained or temporary array is allocated.
+    func derivativeU(_ value: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+      try consumeWork(); return value.differentiatedUThroughSecondOrder()
+    }
+    func derivativeV(_ value: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+      try consumeWork(); return value.differentiatedVThroughSecondOrder()
+    }
+    func product(_ first: SurfaceIntervalJet, _ second: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+      try consumeWork(); return first * second
+    }
+    func sum(_ first: SurfaceIntervalJet, _ second: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+      try consumeWork(); return first + second
+    }
+    func difference(_ first: SurfaceIntervalJet, _ second: SurfaceIntervalJet) throws -> SurfaceIntervalJet {
+      try consumeWork(); return first - second
+    }
+    let tangentU = try SurfaceIntervalVectorJet(x: derivativeU(sourceJet.x),
+      y: derivativeU(sourceJet.y), z: derivativeU(sourceJet.z))
+    let tangentV = try SurfaceIntervalVectorJet(x: derivativeV(sourceJet.x),
+      y: derivativeV(sourceJet.y), z: derivativeV(sourceJet.z))
+    let cross = try SurfaceIntervalVectorJet(
+      x: difference(product(tangentU.y, tangentV.z), product(tangentU.z, tangentV.y)),
+      y: difference(product(tangentU.z, tangentV.x), product(tangentU.x, tangentV.z)),
+      z: difference(product(tangentU.x, tangentV.y), product(tangentU.y, tangentV.x)))
+    let squaredLength = try sum(sum(product(cross.x, cross.x), product(cross.y, cross.y)),
+      product(cross.z, cross.z))
+    try consumeWork()
+    guard let length = squaredLength.squareRoot() else {
+      throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
+        message: "The source surface interval does not certify a regular offset normal.")
+    }
+    try consumeWork()
+    guard let inverseLength = length.reciprocal() else {
       throw KernelError(
         phase: .geometry,
         code: .singularSystem,
@@ -203,7 +236,11 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
         message: "The source surface interval does not certify a regular offset normal."
       )
     }
-    return sourceJet + normal * .constant(distance)
+    let normal = try SurfaceIntervalVectorJet(x: product(cross.x, inverseLength),
+      y: product(cross.y, inverseLength), z: product(cross.z, inverseLength))
+    let amount = SurfaceIntervalJet.constant(distance)
+    return try SurfaceIntervalVectorJet(x: sum(sourceJet.x, product(normal.x, amount)),
+      y: sum(sourceJet.y, product(normal.y, amount)), z: sum(sourceJet.z, product(normal.z, amount)))
   }
 
   package func exactChartPreservingSurface(
@@ -293,3 +330,7 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
     }
   }
 }
+
+#if !hasFeature(Embedded)
+extension OffsetSurface3D: Codable {}
+#endif

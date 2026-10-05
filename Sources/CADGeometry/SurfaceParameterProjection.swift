@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceParameterProjection: Codable, Hashable, Sendable {
+public struct SurfaceParameterProjection: Hashable, Sendable {
     public let u: Double
     public let v: Double
     public let point: Point3D
@@ -35,6 +35,7 @@ public struct SurfaceParameterProjection: Codable, Hashable, Sendable {
         self.iterations = iterations
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case u
         case v
@@ -42,7 +43,9 @@ public struct SurfaceParameterProjection: Codable, Hashable, Sendable {
         case residual
         case iterations
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -57,7 +60,9 @@ public struct SurfaceParameterProjection: Codable, Hashable, Sendable {
             iterations: container.decode(Int.self, forKey: .iterations)
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         _ = try SurfaceParameterProjection(
             u: u,
@@ -73,4 +78,9 @@ public struct SurfaceParameterProjection: Codable, Hashable, Sendable {
         try container.encode(residual, forKey: .residual)
         try container.encode(iterations, forKey: .iterations)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceParameterProjection: Codable {}
+#endif

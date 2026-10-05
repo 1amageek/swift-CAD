@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceTrimFeature: Codable, Hashable, Sendable {
+public struct SurfaceTrimFeature: Hashable, Sendable {
     public let target: SurfaceOperationTargetReference
     public let loops: [SurfaceTrimLoop]
 
@@ -50,11 +50,14 @@ public struct SurfaceTrimFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case loops
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .loops], in: decoder)
@@ -65,11 +68,18 @@ public struct SurfaceTrimFeature: Codable, Hashable, Sendable {
         loops = try container.decode([SurfaceTrimLoop].self, forKey: .loops)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(target, forKey: .target)
         try container.encode(loops, forKey: .loops)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceTrimFeature: Codable {}
+#endif

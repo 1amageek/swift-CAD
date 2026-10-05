@@ -11,8 +11,8 @@ public struct SurfaceParameterTopology: Hashable, Sendable {
     public let uSingularVValues: [Double]
 
     public init(surface: Surface3D) {
-        self.uPeriod = Self.period(of: surface.uDomain)
-        self.vPeriod = Self.period(of: surface.vDomain)
+        let periods = Self.periods(on: surface)
+        self.uPeriod = periods.u; self.vPeriod = periods.v
         self.uSingularVValues = Self.uSingularVValues(on: surface)
     }
 
@@ -22,6 +22,18 @@ public struct SurfaceParameterTopology: Hashable, Sendable {
     ) -> Bool {
         uSingularVValues.contains {
             abs(parameter.v - $0) <= max(tolerance.distance, tolerance.angle)
+        }
+    }
+
+    private static func periods(on surface:Surface3D)->(u:Double?,v:Double?) {
+        switch surface {
+        case .procedural(.originalRevolution(let revolution)): return (revolution.originalAngularPeriod,nil)
+        case .procedural(.originalImage(let image)):
+            let original = periods(on:image.source)
+            return (image.swapAxes ? original.v.map { $0 / abs(image.uGain) } : original.u.map { $0 / abs(image.uGain) },
+                    image.swapAxes ? original.u.map { $0 / abs(image.vGain) } : original.v.map { $0 / abs(image.vGain) })
+        case .procedural(.offset(let offset)): return periods(on:offset.source)
+        default: return (period(of:surface.uDomain),period(of:surface.vDomain))
         }
     }
 
@@ -41,9 +53,19 @@ public struct SurfaceParameterTopology: Hashable, Sendable {
             case .plane, .cylinder, .torus:
                 return []
             }
+        case let .procedural(.originalAngularTransport(image)):
+            return image.vTransport.isIntrinsic ? uSingularVValues(on: image.source) : []
+        case let .procedural(.originalAffineWord(image)):
+            return uSingularVValues(on: image.source)
+        case let .procedural(.originalImage(image)):
+            guard !image.swapAxes else { return [] }
+            return uSingularVValues(on: image.source).map { ($0 - image.vOffset) / image.vGain }
         case let .procedural(.offset(offset)):
             return uSingularVValues(on: offset.source)
-        case .plane, .cylinder, .bSpline, .procedural(.ruled), .procedural(.rollingBall):
+        case .procedural(.originalRevolution(let revolution)):
+            return (revolution.hasOriginalAxisEndpoint(atEnd:false) ? [0] : [])
+                + (revolution.hasOriginalAxisEndpoint(atEnd:true) ? [1] : [])
+        case .plane, .cylinder, .bSpline, .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             return []
         }
     }

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct RadialPatternFeature: Codable, Hashable, Sendable {
+public struct RadialPatternFeature: Hashable, Sendable {
     public let target: PatternTargetReference
     public let axisOrigin: Point3D
     public let axisDirection: Vector3D
@@ -40,6 +40,7 @@ public struct RadialPatternFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case axisOrigin
@@ -47,7 +48,9 @@ public struct RadialPatternFeature: Codable, Hashable, Sendable {
         case angularSpacing
         case count
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -61,7 +64,9 @@ public struct RadialPatternFeature: Codable, Hashable, Sendable {
         count = try container.decode(Int.self, forKey: .count)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -71,4 +76,9 @@ public struct RadialPatternFeature: Codable, Hashable, Sendable {
         try container.encode(angularSpacing, forKey: .angularSpacing)
         try container.encode(count, forKey: .count)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension RadialPatternFeature: Codable {}
+#endif

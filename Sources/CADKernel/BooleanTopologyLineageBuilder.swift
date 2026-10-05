@@ -12,65 +12,161 @@ struct BooleanTopologyLineageBuilder {
         inputSubshapes: [SubshapeID: TopologyReference],
         outputSubshapes: [SubshapeID: TopologyReference],
         inputLineage: [SubshapeID: TopologyLineage],
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        retainedLineage: [SubshapeID: TopologyLineage] = [:],
+        admission: GeometryConversionAdmission? = nil
     ) throws -> [SubshapeID: TopologyLineage] {
         try tolerance.validate()
-        let operandSet = Set(operandBodyIDs)
-        let inputReferences = inputSubshapes.compactMap { subshapeID, reference -> InputReference? in
-            guard belongs(reference, toAny: operandSet, in: inputModel),
-                  inputLineage[subshapeID] != nil else {
-                return nil
+        var result: [SubshapeID: TopologyLineage] = [:]
+        // Issued sewing provenance is authoritative; geometry cannot replace it.
+        for (output, entry) in retainedLineage {
+            try visit(admission)
+            guard output.featureID == featureID, outputSubshapes[output] != nil,
+                  entry.output == output, output.isValid else {
+                throw invalidLineage(featureID: featureID, output: output, tolerance: tolerance)
             }
-            return InputReference(subshapeID: subshapeID, reference: reference)
+            var previous: SubshapeID?
+            for parent in entry.parents {
+                try visit(admission)
+                guard parent.isValid, parent != output,
+                      previous.map({ $0 < parent }) ?? true else {
+                    throw invalidLineage(featureID: featureID, output: output, tolerance: tolerance)
+                }
+                previous = parent
+            }
+            let validCount: Bool
+            switch entry.relation {
+            case .generated: validCount = entry.parents.isEmpty
+            case .preserved, .split: validCount = entry.parents.count == 1
+            case .merged: validCount = entry.parents.count > 1
+            }
+            guard validCount else {
+                throw invalidLineage(featureID: featureID, output: output, tolerance: tolerance)
+            }
+            try reserve(1, of: (SubshapeID, TopologyLineage).self, admission: admission)
+            result[output] = entry
+        }
+        var missingOutputs: [SubshapeID] = []
+        for output in outputSubshapes.keys {
+            try visit(admission)
+            guard output.featureID == featureID else {
+                throw invalidLineage(featureID: featureID, output: output, tolerance: tolerance)
+            }
+            if result[output] == nil {
+                try reserve(1, of: SubshapeID.self, admission: admission)
+                missingOutputs.append(output)
+            }
+        }
+        guard !missingOutputs.isEmpty else { return result }
+        try reserve(missingOutputs.count, of: SubshapeID.self, admission: admission)
+        missingOutputs = try missingOutputs.sorted {
+            try visit(admission)
+            return $0 < $1
+        }
+        var inputReferences: [InputReference] = []
+        for (id, reference) in inputSubshapes {
+            try visit(admission)
+            guard try belongs(reference, toAny: operandBodyIDs, in: inputModel,
+                              admission: admission) else { continue }
+            try reserve(1, of: InputReference.self, admission: admission)
+            inputReferences.append(InputReference(subshapeID: id, reference: reference))
         }
         var drafts: [Draft] = []
-        for output in outputSubshapes.keys.sorted() {
-            guard output.featureID == featureID,
-                  let reference = outputSubshapes[output] else {
-                throw KernelError(
-                    phase: .topology,
-                    code: .topologyFailure,
-                    featureID: featureID,
-                    subshapeID: output,
-                    tolerance: tolerance,
-                    message: "Boolean output subshape identity does not belong to its feature."
-                )
+        for output in missingOutputs {
+            try visit(admission)
+            guard let reference = outputSubshapes[output] else {
+                throw invalidLineage(featureID: featureID, output: output, tolerance: tolerance)
             }
-            let parents = try inputReferences.compactMap { candidate -> SubshapeID? in
-                try matches(
-                    output: reference,
-                    input: candidate.reference,
-                    inputModel: inputModel,
-                    resultModel: resultModel,
-                    tolerance: tolerance
-                ) ? candidate.subshapeID : nil
-            }.sorted()
-            drafts.append(Draft(output: output, parents: Array(Set(parents)).sorted()))
+            var parents: [SubshapeID] = []
+            // Only the unchanged-tool producer may issue preservation from a
+            // retained reference. Equal IDs in arbitrary result/input models do
+            // not prove that their reachable original geometry stayed unchanged.
+            if parents.isEmpty {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): BooleanPipeline invokes this
+                // compatibility branch only for generated outputs lacking issued
+                // provenance. General original finite-face and partial-span
+                // correspondence must share the selected admission before bounded
+                // history can publish; legacy matching is not that producer.
+                guard admission == nil else {
+                    throw KernelError(phase: .topology, code: .unsupportedCapability,
+                        featureID: featureID, subshapeID: output, tolerance: tolerance,
+                        message: "Bounded Boolean history requires original generated-output correspondence.")
+                }
+                for candidate in inputReferences {
+                    try visit(nil)
+                    if try matches(output: reference, input: candidate.reference,
+                        inputModel: inputModel, resultModel: resultModel, tolerance: tolerance) {
+                        parents.append(candidate.subshapeID)
+                    }
+                }
+            }
+            try reserve(parents.count, of: SubshapeID.self, admission: admission)
+            parents = try parents.sorted { try visit(admission); return $0 < $1 }
+            try reserve(1, of: Draft.self, admission: admission)
+            drafts.append(Draft(output: output, parents: parents))
         }
         var parentUseCount: [SubshapeID: Int] = [:]
-        for draft in drafts {
-            for parent in draft.parents {
-                parentUseCount[parent, default: 0] += 1
+        for entry in result.values {
+            for parent in entry.parents {
+                try visit(admission)
+                try reserve(1, of: (SubshapeID, Int).self, admission: admission)
+                let increment = parentUseCount[parent, default: 0].addingReportingOverflow(1)
+                guard !increment.overflow else {
+                    throw GeometryConversionError.resourceLimitExceeded("Boolean lineage parent-use count overflowed.")
+                }
+                parentUseCount[parent] = increment.partialValue
             }
         }
-        return Dictionary(uniqueKeysWithValues: drafts.map { draft in
-            let relation: TopologyLineageRelation
-            if draft.parents.isEmpty {
-                relation = .generated
-            } else if draft.parents.count > 1 {
-                relation = .merged
-            } else if parentUseCount[draft.parents[0], default: 0] > 1 {
-                relation = .split
-            } else {
-                relation = .preserved
+        for draft in drafts {
+            for parent in draft.parents {
+                try visit(admission)
+                try reserve(1, of: (SubshapeID, Int).self, admission: admission)
+                let increment = parentUseCount[parent, default: 0].addingReportingOverflow(1)
+                guard !increment.overflow else {
+                    throw GeometryConversionError.resourceLimitExceeded("Boolean lineage parent-use count overflowed.")
+                }
+                parentUseCount[parent] = increment.partialValue
             }
-            let lineage = TopologyLineage(
-                output: draft.output,
-                parents: draft.parents,
-                relation: relation
-            )
-            return (draft.output, lineage)
-        })
+        }
+        for draft in drafts {
+            try visit(admission)
+            let relation: TopologyLineageRelation
+            if draft.parents.isEmpty { relation = .generated }
+            else if draft.parents.count > 1 { relation = .merged }
+            else if parentUseCount[draft.parents[0], default: 0] > 1 { relation = .split }
+            else { relation = .preserved }
+            // Canonicalization retains a new parent buffer at publication.
+            try reserve(draft.parents.count, of: SubshapeID.self, admission: admission)
+            try reserve(1, of: (SubshapeID, TopologyLineage).self, admission: admission)
+            result[draft.output] = TopologyLineage(output: draft.output,
+                parents: draft.parents, relation: relation)
+        }
+        return result
+    }
+
+    private func visit(_ admission: GeometryConversionAdmission?) throws {
+        try CurrentTaskCancellationChecker().checkCancellation()
+        try admission?.chargeWork()
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The public lineage-only admission meters
+    // requested typed entries before use. Dictionary growth, canonicalization
+    // scratch and physical allocator retention still require actual lower storage
+    // owners before this phase can claim a complete cumulative byte guarantee.
+    private func reserve<T>(_ count: Int, of type: T.Type,
+                            admission: GeometryConversionAdmission?) throws {
+        let bytes = count.multipliedReportingOverflow(by: MemoryLayout<T>.stride)
+        guard count >= 0, !bytes.overflow else {
+            throw GeometryConversionError.resourceLimitExceeded("Boolean lineage storage request overflowed.")
+        }
+        try admission?.chargeStorage(bytes: bytes.partialValue)
+    }
+
+    private func invalidLineage(featureID: FeatureID, output: SubshapeID,
+                                tolerance: ModelingTolerance) -> KernelError {
+        KernelError(phase: .topology, code: .topologyFailure, featureID: featureID,
+            subshapeID: output, tolerance: tolerance,
+            message: "Boolean provenance is not structurally bound to its published output.")
     }
 
     private func matches(
@@ -388,7 +484,11 @@ struct BooleanTopologyLineageBuilder {
                 return nil
             }
             return try cylinder(equivalent, tolerance: tolerance)
-        case .procedural(.ruled), .procedural(.rollingBall):
+        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalImage),
+             .procedural(.originalRevolution), .procedural(.originalAffineWord),
+             .procedural(.originalAngularTransport), .procedural(.originalCoons),
+             .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative),
+             .procedural(.originalDrafted):
             return nil
         case .plane, .analytic, .bSpline:
             return nil
@@ -404,45 +504,34 @@ struct BooleanTopologyLineageBuilder {
         return (apex, axis, halfAngle)
     }
 
-    private func belongs(
-        _ reference: TopologyReference,
-        toAny bodyIDs: Set<BodyID>,
-        in model: BRepModel
-    ) -> Bool {
-        bodyIDs.contains { belongs(reference, to: $0, in: model) }
-    }
-
-    private func belongs(
-        _ reference: TopologyReference,
-        to bodyID: BodyID,
-        in model: BRepModel
-    ) -> Bool {
-        guard let body = model.bodies[bodyID] else { return false }
-        switch reference {
-        case let .body(referenceBodyID):
-            return referenceBodyID == bodyID
-        case let .face(faceID):
-            return body.shellIDs.contains { model.shells[$0]?.faceIDs.contains(faceID) == true }
-        case let .edge(edgeID):
-            return body.shellIDs.contains { shellID in
-                model.shells[shellID]?.faceIDs.contains { faceID in
-                    model.faces[faceID]?.loops.contains { loopID in
-                        model.loops[loopID]?.coedges.contains { $0.edgeID == edgeID } == true
-                    } == true
-                } == true
-            }
-        case let .vertex(vertexID):
-            return body.shellIDs.contains { shellID in
-                model.shells[shellID]?.faceIDs.contains { faceID in
-                    model.faces[faceID]?.loops.contains { loopID in
-                        model.loops[loopID]?.coedges.contains { coedge in
-                            guard let edge = model.edges[coedge.edgeID] else { return false }
-                            return edge.startVertexID == vertexID || edge.endVertexID == vertexID
-                        } == true
-                    } == true
-                } == true
+    private func belongs(_ reference: TopologyReference, toAny bodyIDs: [BodyID],
+                         in model: BRepModel, admission: GeometryConversionAdmission?) throws -> Bool {
+        for bodyID in bodyIDs {
+            try visit(admission)
+            guard let body = model.bodies[bodyID] else { continue }
+            if case let .body(id) = reference { if id == bodyID { return true }; continue }
+            for shellID in body.shellIDs {
+                try visit(admission)
+                guard let shell = model.shells[shellID] else { continue }
+                for faceID in shell.faceIDs {
+                    try visit(admission)
+                    if case let .face(id) = reference { if id == faceID { return true }; continue }
+                    guard let face = model.faces[faceID] else { continue }
+                    for loopID in face.loops {
+                        try visit(admission)
+                        guard let loop = model.loops[loopID] else { continue }
+                        for coedge in loop.coedges {
+                            try visit(admission)
+                            if case let .edge(id) = reference, id == coedge.edgeID { return true }
+                            if case let .vertex(id) = reference,
+                               let edge = model.edges[coedge.edgeID],
+                               edge.startVertexID == id || edge.endVertexID == id { return true }
+                        }
+                    }
+                }
             }
         }
+        return false
     }
 
     private struct InputReference {

@@ -3,7 +3,7 @@ import CADCore
 
 /// The control structure a surface is refitted to: its degree and number of spans along U and V
 /// (Rebuild Face's explicit method, Align Surface's Degree and Spans).
-public struct SurfaceControlLayout: Codable, Hashable, Sendable {
+public struct SurfaceControlLayout: Hashable, Sendable {
     public static let degrees = 1...9
     public static let spans = 1...128
 
@@ -28,10 +28,13 @@ public struct SurfaceControlLayout: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case uDegree, vDegree, uSpans, vSpans
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.uDegree, .vDegree, .uSpans, .vSpans], in: decoder)
@@ -41,7 +44,9 @@ public struct SurfaceControlLayout: Codable, Hashable, Sendable {
         vSpans = try container.decode(Int.self, forKey: .vSpans)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -50,4 +55,9 @@ public struct SurfaceControlLayout: Codable, Hashable, Sendable {
         try container.encode(uSpans, forKey: .uSpans)
         try container.encode(vSpans, forKey: .vSpans)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceControlLayout: Codable {}
+#endif

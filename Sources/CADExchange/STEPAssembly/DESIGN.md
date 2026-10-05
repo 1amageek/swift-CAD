@@ -55,6 +55,15 @@ flowchart LR
 
 ## Contracts and Invariants
 
+- Occurrence-only layers retain the exact transferred representation of an empty
+  local subassembly when no identity geometry carrier exists. The attribute
+  writer proves the original definition has no local features and uses the
+  complete relationship path; assembly export keeps the same definitions,
+  child axes, placements and shared geometry. This representation authority is
+  exclusive to null layer selection and does not extend nonleaf direct-usage
+  appearance or manufacture a local body. Interpretation and cumulative
+  attribute admission remain owned by [STEP Attributes](../STEPAttributes/DESIGN.md#usage-and-complete-path-layer-authority).
+
 - The attribute transfer retains CDSR entity identity and its unique validated
   NAUO counterpart only after the existing exact placement, parent/child PD,
   representation and frame checks succeed. Writers retain the actual CDSR they
@@ -64,6 +73,15 @@ flowchart LR
   paths or value equality. [STEP Attributes](../STEPAttributes/DESIGN.md) owns
   leaf/context admission and property interpretation. No new source UUID,
   topology, schema field or synthetic assembly occurrence is created.
+
+- Source identity decoding is performed once by the assembly reader. Product,
+  formation, and definition identities retain product-source authority. A
+  material-designation identity is attribute metadata only: when the remaining
+  source is the ordinary CIWR route, the reader returns that bounded
+  designation-to-identity map to the facade without constructing an assembly.
+  The facade passes the map into STEP Attributes' existing transfer object;
+  identity text is never decoded a second time and material identity never
+  promotes a canonical ordinary product into an assembly source.
 - A definition-qualified geometry style or layer consumes the same proved
   identity whole-part carrier as part appearance. The carrier is one standard
   MAPPED_ITEM uniquely associated with that PD, and its inner exact geometry
@@ -83,17 +101,39 @@ flowchart LR
   the child reference frame and item_2 its placed frame in the parent. The local
   transform is frame_2 composed with inverse(frame_1); nested world placement is
   parent-world composed with local. Nonorigin reference frames are supported.
+- Ingress retains this operation as the original placement word
+  `forward(frame_2), inverse(frame_1)`, including an exactly identity reference
+  frame. Reversing the relationship retains the two original frames in the
+  opposite order. No rounded inverse matrix or composed columns become source
+  authority. Native stores flat forward/inverse factors and rejects nested
+  words before recursive decoding. The placement owner supplies inverse-law
+  evaluation independently of source transport.
+- Original AXIS2 and Cartesian placement factors retain `AssemblyPlacement.step`
+  with raw direction ratios, omitted fields, location model unit, original scale
+  and ordered world adjustments. Geometry evaluates its normalized law through
+  the caller-paid exact affine word; the derived numeric frame is not authority.
+- Standard egress of this two-factor word emits the original reference item
+  in the child representation and target item in the parent representation,
+  connected by ITEM_DEFINED_TRANSFORMATION. Direct uniform orthogonal
+  Cartesian operators can retain scale and reflection. The merged AP242
+  [3D operator](https://www.steptools.com/stds/stp_aim/html/t_cartesian_transformation_operator_3d.html)
+  has no nonuniform subtype, and its
+  [base_axis](https://www.steptools.com/stds/stp_aim/html/t_base_axis.html)
+  derives orthogonal axes. Native shear or nonuniform columns therefore need
+  an explicit unrepresentable-source loss rather than an invented STEP entity.
+  Arbitrary original words require a proved legal chain carrier; flattening
+  does not preserve that source contract.
 - Representation contexts on a transformed relationship have distinct entity
   identities, even when they use the same units. Referenced transformation axes
   belong to the matching representation items. Writers generate a distinct geometric
   context for each definition; equal unit values do not imply equal contexts.
 - Assembly rigid placements have scale one and positive determinant. Unsupported
-  scaling, reflection, external definitions, missing placement, conflicting
+  external definitions, missing placement, conflicting
   representation associations, cyclic products, and alternative flattened
   assembly geometry fail explicitly. No default identity transform is inferred
   for a missing occurrence placement.
 - Admitted standard assembly syntax includes transformed representation
-  relationships with item-defined axis frames and proper-rigid Cartesian
+  relationships with item-defined axis frames and uniform orthogonal Cartesian
   transformation operators. Representation-map/mapped-item structure must be
   resolved with its standard origin/target semantics when admitted; unsupported
   or ambiguous variants are explicitly refused and never silently flattened.
@@ -209,12 +249,21 @@ flowchart LR
   placement and attribute admissions succeed.
 - A whole-part styling carrier is structural transport for one real product
   definition. Its product-associated outer representation contains exactly one
-  MAPPED_ITEM plus its frame. The representation map refers to an unassociated
-  inner representation containing the complete retained local geometry and its
-  origin. Equal declared units and explicitly resolved identity origin/target
-  transformation are required. The inner representation has no nested mapped
-  usage, competing geometry association, or cycle. These conditions are checked
-  before classifying ordinary mapped items as assembly occurrences.
+  distinct MAPPED_ITEM plus its origin frame and any actual child-placement
+  AXIS2_PLACEMENT_3D support items. Support items are validated against the
+  retained entity table; a child MAPPED_ITEM or any non-AXIS2 entry is refused.
+  The representation map refers to an unassociated inner representation
+  containing the complete retained local geometry and its origin. Child
+  placement support items are never members of the inner geometry
+  representation. A shared geometry group retains a distinct outer
+  representation whenever its definition is written, including when its
+  current placement support list is empty. Each noncarrier shared definition
+  retains the original body item IDs, origin, and only its own current support
+  list; a previous definition's support items are never reused. Equal
+  declared units and explicitly resolved identity origin/target transformation
+  are required. The inner representation has no nested mapped usage, competing
+  geometry association, or cycle. These conditions are checked before
+  classifying ordinary mapped items as assembly occurrences.
 - An admitted carrier retains the existing definition and ImportedBRepFeature;
   it creates no additional feature, definition, occurrence, or semantic name.
   The carrier entity maps to the part attribute target, while inner geometry
@@ -223,8 +272,39 @@ flowchart LR
   Overriding face styles retain their explicit predecessor relationship.
 - Carrier export is admitted for definitions with real local geometry. Empty
   subassemblies and mixed local-geometry/child definitions keep their existing
-  admission contracts. Unsupported or ambiguous carrier structures fail before
-  publication; they are not flattened or assigned guessed identity placement.
+  admission contracts. A mixed definition is admitted only when its local
+  representation and every child usage retain separate standard ownership:
+  local geometry remains in the definition's own representation, while each
+  child retains its NEXT_ASSEMBLY_USAGE_OCCURRENCE,
+  CONTEXT_DEPENDENT_SHAPE_REPRESENTATION, and placement frame. The local
+  representation may carry the child-placement AXIS2 items required by the
+  admitted outer representation, but it must not turn a child into a local
+  feature or copy child topology. When the same outer representation also
+  carries a whole-part MAPPED_ITEM identity carrier, that carrier remains one
+  distinct item and the AXIS2 items remain placement support items; they are
+  never interpreted as carrier geometry. Reader and writer preserve this distinction
+  and reject missing, ambiguous, cyclic, or competing representation links.
+  Unsupported or ambiguous carrier structures fail before publication; they
+  are not flattened or assigned guessed identity placement.
+- A nested occurrence path is admitted only when every prefix has one retained
+  NAUO, one CDSR, one child PDS, and one resolved placement frame. A nested
+  presentation or physical target uses that complete prefix as its source
+  selector; it does not infer a parent from equal geometry or entity order.
+  Mixed local geometry in an intermediate definition does not invalidate the
+  prefix, provided the local representation and child usage remain separately
+  addressable. Sibling paths remain distinct and share only their immutable
+  leaf definition and exact local geometry.
+- Material identity is a separate standard source identity from product,
+  formation, and definition identity. A material UUID is admitted only through
+  an AP242 material carrier such as MATERIAL_DESIGNATION with an
+  APPLIED_EXTERNAL_IDENTIFICATION_ASSIGNMENT whose item is that designation;
+  the assignment's source and role remain the external-identification
+  namespace. A product or occurrence UUID assignment cannot be retargeted to a
+  material entity. The assembly component preserves this identity link and
+  rejects a duplicate, foreign, or role/target-mismatched assignment.
+  Material designation applicability to a product or occurrence is owned by
+  STEP Attributes and Product Attribute Resolution; this component only retains
+  the validated entity correspondence and does not invent a material role.
 - Local geometry and placement translations are normalized using their declared
   representation length units. Multiple contexts declaring the same unit are
   not mistaken for conflicting units. Conflicting or unsupported unit contexts
@@ -324,3 +404,29 @@ owner per item, two STEP generations, Native persistence and new-PD fan-out.
 Global CIWR and qualified GISU/style/layer scopes retain actual membership.
 Conflicting units/topology, mixed families, unsupported output grouping,
 resource/cancellation and atomic failure are separate refusal evidence.
+
+### Independent representation associations
+The real product reader may retain an actual PD selected by an independent SDR, including a single product with no Body. It supplies its actual PD-to-AssemblyDefinitionID table to IndependentShapeExchange, which retains original representation graph membership in productAssociations. Body members continue to use their own feature correspondence. Product/source transport must account for every associated representation; source-only authoring is not behavioral evidence. Egress appends the independent graph into the existing bounded table using the actual written definition entity correspondence before publication.
+
+The bounded native source identity profile includes representationCarrier on actual SHAPE_REPRESENTATION entities created solely for assembly placement transport. The explicit assignment distinguishes these emitted transport axes from a genuinely authored frame-only independent representation; member type or equal pose alone never decides this boundary. The carrier identifies the actual retained definition owner UUID. A fresh output table emits the assignment again from the actual product producer; it is not an additional source shape.
+
+Actual map selection borrows the [Independent Shape Exchange map-partition contract](../IndependentShapeExchange/DESIGN.md). Only maps whose original source graph contains Body geometry participate in mapped assembly/whole-part ownership. Independent source maps are consumed by their actual representation graph and may coexist with NAUO Body occurrences. A product association alone never classifies a geometric independent map as a Body occurrence.
+
+Metadata MAPPED_ITEM values, such as an annotation's DRAUGHTING_MODEL placement, do not create Body occurrences. Every actual represented product definition retains product source, except an admitted explicit document framing carrier. Actual original Body membership partitions map occurrence versus independent ownership; the same classification result and paid record/work allowance are reused by later dispatch.
+
+### Heterogeneous representation composition
+Product import forwards its original item-to-feature selector map and DesignGraph to the independent representation producer. Egress derives selector-to-entity correspondence from the same exact local artifact and emitted feature geometry, retains the actual emitted length unit, and forwards its source graph. This joins a Body member with independent members without allocating another geometry owner. The child checks actual source context versus emitted coordinates before publication. Distinct-context Body authoring remains a marked producer gap until the actual parent emits those units faithfully.
+
+### Explicit document framing authority
+An ordinary CADDocument with no assembly emits its existing DocumentID as APPLIED_EXTERNAL_IDENTIFICATION_ASSIGNMENT.assigned_id, role IDENTIFICATION_ROLE('documentCarrier',$), source EXTERNAL_SOURCE(IDENTIFIER('urn:swiftcad:assembly-source-id')), with the sole actual framing PRODUCT_DEFINITION as its target. This uses the legal [external identification assignment](https://downloads.steptools.com/docs/stp_aim/html/t_applied_external_identification_assignment.html), whose [external identification item](https://www.steptools.com/stds/stp_aim/html/t_external_identification_item.html) includes product_definition; [identification role](https://www.steptools.com/stds/stp_aim/html/t_identification_role.html) has a label name and optional description. It defines a bounded native interpretation, not another STEP entity or a product identity.
+
+The reader requires exactly one framing PD, one base formation and one product, no NAUO usages, no Body-bearing maps, no competing real product identity, and exactly one PDS/SDR framing association selecting its actual Body representation. It verifies the producer's neutral formation/definition descriptors; the product name retains the document name. Duplicate roles, missing targets, foreign UUIDs, competing associations, nonneutral product attributes and ambiguous carriers fail before publication. The explicit carrier authorizes assembly absence and DocumentID restoration. Without it, user-authored product PDs are retained regardless of labels; SWIFTCAD text alone is not authority. The carrier receipt forwards actual paid lexical/classification work and records into the ordinary Body plus independent composition.
+
+### Mixed mapped membership and usage reconciliation
+A mixed original MAPPED_ITEM remains in the independent representation source. If the same transport also contains NAUO placements, the product reader admits that map only when its original source representation has a sole actual product association, its complete original Body membership selects the actual child definition subtree feature set, its outer representation has one actual parent association, and its composed original rigid placement equals an unused NAUO child placement. The map does not add a second evaluated occurrence. Matching uses original PD associations and immutable frame values, never labels or inferred product IDs; unmatched or competing placements fail. Original maps, contexts, selectors and independent members remain published through the child graph. Child feature selection recursively follows actual original definition children with cycle/depth/work admission in the same invocation. General affine assembly placement and mixed unassociated whole-part carriers remain explicit producer gaps.
+
+When composed by certified exchange, the writer borrows the original conversion invocation processing deadline. Standalone assembly export creates its own boundary deadline. Passing remaining resource counts never extends elapsed-time authority.
+
+### Independent caller depth authorities
+
+STEP assembly composition forwards maximumNesting to structural AssemblyResourceLimits.maximumDepth and ProductAttributeLimits.maximumDepth. The independent maximumAlgebraicDepth is forwarded separately to AssemblyResourceLimits.maximumAlgebraicDepth and exact original-word operations. A caller algebra ceiling of zero does not make a nonempty structural graph invalid; source recursion, curve subdivision and exact field ancestry never substitute for each other. Reader and writer use the same explicit caller values.

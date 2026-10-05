@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceMatchFeature: Codable, Hashable, Sendable {
+public struct SurfaceMatchFeature: Hashable, Sendable {
     public let source: SurfaceOperationTargetReference
     public let target: SurfaceOperationTargetReference
     public let sourceParameter: SurfaceParameter
@@ -48,6 +48,7 @@ public struct SurfaceMatchFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source
         case target
@@ -56,7 +57,9 @@ public struct SurfaceMatchFeature: Codable, Hashable, Sendable {
         case normalAlignment
         case continuity
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -71,7 +74,9 @@ public struct SurfaceMatchFeature: Codable, Hashable, Sendable {
         continuity = try container.decode(SurfaceContinuityLevel.self, forKey: .continuity)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -82,4 +87,9 @@ public struct SurfaceMatchFeature: Codable, Hashable, Sendable {
         try container.encode(normalAlignment, forKey: .normalAlignment)
         try container.encode(continuity, forKey: .continuity)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceMatchFeature: Codable {}
+#endif

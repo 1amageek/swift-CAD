@@ -1,7 +1,15 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADIR numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
-public struct ParameterTable: Codable, Equatable, Sendable {
+public struct ParameterTable: Equatable, Sendable {
     public var parameters: [ParameterID: Parameter]
     public var revision: DocumentRevision
 
@@ -10,23 +18,29 @@ public struct ParameterTable: Codable, Equatable, Sendable {
         self.revision = revision
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case parameters
         case revision
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.parameters, .revision], in: decoder)
         parameters = try container.decode([ParameterID: Parameter].self, forKey: .parameters)
         revision = try container.decode(DocumentRevision.self, forKey: .revision)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(parameters, forKey: .parameters)
         try container.encode(revision, forKey: .revision)
     }
+#endif
 
     public func validate() throws {
         try revision.validate()
@@ -62,7 +76,7 @@ public struct ParameterTable: Codable, Equatable, Sendable {
     }
 }
 
-public struct Parameter: Codable, Sendable, Hashable {
+public struct Parameter: Sendable, Hashable {
     public var id: ParameterID
     public var name: String
     public var expression: CADExpression
@@ -75,13 +89,16 @@ public struct Parameter: Codable, Sendable, Hashable {
         self.kind = kind
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id
         case name
         case expression
         case kind
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.id, .name, .expression, .kind], in: decoder)
@@ -90,7 +107,9 @@ public struct Parameter: Codable, Sendable, Hashable {
         expression = try container.decode(CADExpression.self, forKey: .expression)
         kind = try container.decode(QuantityKind.self, forKey: .kind)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -98,6 +117,7 @@ public struct Parameter: Codable, Sendable, Hashable {
         try container.encode(expression, forKey: .expression)
         try container.encode(kind, forKey: .kind)
     }
+#endif
 }
 
 private struct ParameterValidationState {
@@ -323,7 +343,7 @@ private struct ParameterValueValidationState {
     }
 }
 
-public struct ResolvedParameterTable: Codable, Sendable {
+public struct ResolvedParameterTable: Sendable {
     public var values: [ParameterID: Quantity]
     public var names: [String: ParameterID]
 
@@ -339,3 +359,9 @@ public struct ResolvedParameterTable: Codable, Sendable {
         return value
     }
 }
+
+#if !hasFeature(Embedded)
+extension ParameterTable: Codable {}
+extension Parameter: Codable {}
+extension ResolvedParameterTable: Codable {}
+#endif

@@ -31,7 +31,8 @@ package struct FaceSurfaceOffsetter: Sendable {
         switch surface {
         case let .plane(plane):
             let unit = try plane.normal.normalized(tolerance: tolerance.distance)
-            result = .plane(Plane3D(origin: plane.origin + unit * along * (unit.dot(normal) > 0 ? 1 : -1), normal: plane.normal))
+            result = .plane(Plane3D(origin: plane.origin + unit * along * (unit.dot(normal) > 0 ? 1 : -1),
+                normal: plane.normal, uDirection: plane.uDirection))
         case let .analytic(.plane(origin, planeNormal)):
             let unit = try planeNormal.normalized(tolerance: tolerance.distance)
             result = .analytic(.plane(origin: origin + unit * along * (unit.dot(normal) > 0 ? 1 : -1), normal: planeNormal))

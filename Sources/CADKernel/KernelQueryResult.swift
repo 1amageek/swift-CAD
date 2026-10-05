@@ -1,14 +1,16 @@
 import CADCore
 
-public enum KernelQueryResult: Codable, Sendable {
+public enum KernelQueryResult: Sendable {
     case evaluatedDocument(EvaluatedDocument)
     case lineage(TopologyLineage?)
     case diagnostics(EvaluationReport)
     case snap(SnapQueryResult)
     case measurement(MeasurementQueryResult)
+    case massProperties(MassPropertyMeasurement)
     case selectionDimensionEvaluation(SelectionDimensionEvaluation)
     case projection(ProjectionQueryResult)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case evaluatedDocument
@@ -16,20 +18,26 @@ public enum KernelQueryResult: Codable, Sendable {
         case diagnostics
         case snap
         case measurement
+        case massProperties
         case selectionDimensionEvaluation
         case projection
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case evaluatedDocument
         case lineage
         case diagnostics
         case snap
         case measurement
+        case massProperties
         case selectionDimensionEvaluation
         case projection
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -59,6 +67,9 @@ public enum KernelQueryResult: Codable, Sendable {
                 MeasurementQueryResult.self,
                 forKey: .measurement
             ))
+        case .massProperties:
+            try container.validateOnlyExpectedKeys([.kind, .massProperties], in: decoder)
+            self = .massProperties(try container.decode(MassPropertyMeasurement.self, forKey: .massProperties))
         case .selectionDimensionEvaluation:
             try container.validateOnlyExpectedKeys(
                 [.kind, .selectionDimensionEvaluation],
@@ -77,7 +88,9 @@ public enum KernelQueryResult: Codable, Sendable {
         }
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -98,6 +111,9 @@ public enum KernelQueryResult: Codable, Sendable {
         case let .measurement(result):
             try container.encode(Kind.measurement, forKey: .kind)
             try container.encode(result, forKey: .measurement)
+        case let .massProperties(result):
+            try container.encode(Kind.massProperties, forKey: .kind)
+            try container.encode(result, forKey: .massProperties)
         case let .selectionDimensionEvaluation(result):
             try container.encode(Kind.selectionDimensionEvaluation, forKey: .kind)
             try container.encode(result, forKey: .selectionDimensionEvaluation)
@@ -106,4 +122,9 @@ public enum KernelQueryResult: Codable, Sendable {
             try container.encode(result, forKey: .projection)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension KernelQueryResult: Codable {}
+#endif

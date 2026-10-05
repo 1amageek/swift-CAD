@@ -1,17 +1,17 @@
-public struct PolySplineMeshAnalysisResult: Codable, Sendable, Hashable {
-    public enum PatchCandidateKind: String, Codable, Sendable, Hashable {
+public struct PolySplineMeshAnalysisResult: Sendable, Hashable {
+    public enum PatchCandidateKind: String, Sendable, Hashable {
         case singleQuad
         case quadPatchGraph
     }
 
-    public struct Diagnostic: Codable, Sendable, Hashable {
-        public enum Severity: String, Codable, Sendable, Hashable {
+    public struct Diagnostic: Sendable, Hashable {
+        public enum Severity: String, Sendable, Hashable {
             case info
             case warning
             case error
         }
 
-        public enum Code: String, Codable, Sendable, Hashable {
+        public enum Code: String, Sendable, Hashable {
             case invalidMesh
             case unsupportedPatchNetwork
             case nonManifoldEdges
@@ -113,3 +113,11 @@ public struct PolySplineMeshAnalysisResult: Codable, Sendable, Hashable {
         return messages.joined(separator: " ")
     }
 }
+
+#if !hasFeature(Embedded)
+extension PolySplineMeshAnalysisResult: Codable {}
+extension PolySplineMeshAnalysisResult.PatchCandidateKind: Codable {}
+extension PolySplineMeshAnalysisResult.Diagnostic: Codable {}
+extension PolySplineMeshAnalysisResult.Diagnostic.Severity: Codable {}
+extension PolySplineMeshAnalysisResult.Diagnostic.Code: Codable {}
+#endif

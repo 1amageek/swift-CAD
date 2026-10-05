@@ -22,6 +22,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             throw ProductAttributeError.resourceLimitExceeded("Product source records.")
         }
         try budget.charge(work: attributes.materials.count + attributes.assignments.count + attributes.layers.count + attributes.itemCharacterizations.count + attributes.shapeElementDescriptions.count)
+        try validateMetadata(attributes, in: document, budget: &budget)
         var materials: [PhysicalMaterialID: PhysicalMaterialDescriptor] = [:]
         for material in attributes.materials {
             try budget.charge(textBytes: material.name.utf8.count)
@@ -85,6 +86,8 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
                 throw ProductAttributeError.invalidSource("Duplicate physical characterization target.")
             }
         }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Standalone shape-element descriptions now have a source and standard egress owner.
+        // Native and public STEP success/failure behavior must be verified before this source-first change is reported complete.
         var described = Set<ShapeElementKey>()
         for record in attributes.shapeElementDescriptions {
             guard (record.target.kind == .body || record.target.kind == .face), let definition = record.target.definitionID,
@@ -96,16 +99,7 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             guard described.insert(ShapeElementKey(definitionID: definition, kind: record.target.kind, subshapeID: geometry.subshapeID)).inserted else {
                 throw ProductAttributeError.invalidSource("Duplicate shape element description target.")
             }
-            var attached = false
-            for assignment in attributes.assignments {
-                try budget.charge(work: 1)
-                guard assignment.target == record.target else { continue }
-                if case let .name(label) = assignment.value, !label.utf8.isEmpty, assignment.overrides == nil { attached = true }
-                if assignment.value.property == .material || assignment.value.property == .density { attached = true }
-            }
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Native and public STEP cannot retain standalone shape-element metadata without an existing name or physical attachment.
-            // An independent source lifetime and equivalent standard egress are required before metadata-only shape aspects can succeed.
-            guard attached else { throw ProductAttributeError.unsupportedSemantics("Standalone shape element description requires a name or physical attachment.") }
+
         }
         // Exact same-target conflicts are structural and do not require evaluated topology.
         for assignment in attributes.assignments {
@@ -143,6 +137,143 @@ public struct ProductAttributesValidator: ProductAttributesValidating {
             for member in layer.members {
                 try validateTarget(member, in: document, budget: &budget)
                 guard members.insert(member).inserted else { throw ProductAttributeError.invalidSource("Duplicate layer membership.") }
+            }
+        }
+    }
+
+    private func validateMetadata(_ attributes: ProductAttributes, in document: CADDocument,
+                                  budget: inout ProductAttributeBudget) throws {
+        let pmi = attributes.manufacturingInformation, metadata = attributes.viewMetadata
+        let counts = [pmi.datums.count, pmi.dimensions.count, pmi.tolerances.count, pmi.annotations.count,
+                      metadata.views.count, metadata.validationProperties.count]
+        var records = attributes.materials.count + attributes.assignments.count + attributes.layers.count
+            + attributes.itemCharacterizations.count + attributes.shapeElementDescriptions.count
+        for count in counts {
+            guard count <= budget.limits.maximumRecords - records else {
+                throw ProductAttributeError.resourceLimitExceeded("Product metadata records.")
+            }
+            records += count
+        }
+        var identities = Set<ProductMetadataID>()
+        func text(_ value: String, _ budget: inout ProductAttributeBudget) throws {
+            try budget.charge(work: 1, textBytes: value.utf8.count)
+        }
+        func identity(_ id: ProductMetadataID) throws {
+            guard identities.insert(id).inserted else { throw ProductAttributeError.invalidSource("Duplicate product metadata identity.") }
+        }
+        try budget.charge(work: counts.reduce(0, +), targets: counts.reduce(0, +))
+        let datums = Set(pmi.datums.map(\.id)), dimensions = Set(pmi.dimensions.map(\.id))
+        let tolerances = Set(pmi.tolerances.map(\.id)), annotations = Set(pmi.annotations.map(\.id))
+        for datum in pmi.datums {
+            try identity(datum.id); try validateTarget(datum.target, in: document, budget: &budget)
+            try text(datum.name, &budget); try text(datum.description, &budget); try text(datum.identification, &budget)
+            guard !datum.identification.isEmpty else { throw ProductAttributeError.invalidSource("Empty datum identification.") }
+        }
+        for dimension in pmi.dimensions {
+            try identity(dimension.id); try dimension.validate()
+            try text(dimension.name, &budget); try text(dimension.description, &budget)
+            try validateTarget(dimension.target, in: document, budget: &budget)
+            if let reference = dimension.referenceTarget { try validateTarget(reference, in: document, budget: &budget) }
+        }
+        for tolerance in pmi.tolerances {
+            try identity(tolerance.id); try tolerance.validate()
+            try text(tolerance.name, &budget); try text(tolerance.description, &budget)
+            try validateTarget(tolerance.target, in: document, budget: &budget)
+            try budget.charge(work: tolerance.datumIDs.count + tolerance.modifiers.count)
+            guard tolerance.datumIDs.allSatisfy({ datums.contains($0) }) else {
+                throw ProductAttributeError.missingTarget("Geometric tolerance datum.")
+            }
+        }
+        for annotation in pmi.annotations {
+            try identity(annotation.id); try text(annotation.name, &budget); try text(annotation.text, &budget)
+            guard annotation.textLiterals.count <= budget.limits.maximumRecords - records else { throw ProductAttributeError.resourceLimitExceeded("Annotation literal records.") }
+            records += annotation.textLiterals.count
+            var combined = ""
+            for literal in annotation.textLiterals {
+                try identity(literal.id)
+                for value in [literal.literalName,literal.occurrenceName,literal.text,literal.alignment,literal.fontName] { try text(value,&budget) }
+                try budget.charge(work:32,targets:1)
+                guard literal.origin.isFinite, literal.direction.isFinite, literal.up.isFinite,
+                    abs(literal.direction.length-1) <= 1e-12, abs(literal.up.length-1) <= 1e-12,
+                    abs(literal.direction.dot(literal.up)) <= 1e-12 else { throw ProductAttributeError.invalidSource("Invalid annotation literal frame.") }
+                if literal.placement == .twoDimensional {
+                    guard literal.origin.z == 0, literal.direction == .unitZ, literal.up.z == 0 else { throw ProductAttributeError.invalidSource("Annotation 2D literal has nonplanar placement values.") }
+                }
+                combined += literal.text
+            }
+            guard combined == annotation.text, !annotation.textLiterals.isEmpty || !annotation.polylines.isEmpty else { throw ProductAttributeError.invalidSource("Annotation plain text differs from its original literal content or has no drawing content.") }
+            switch annotation.meaning {
+            case .note:
+                guard annotation.semanticID == nil else { throw ProductAttributeError.invalidSource("A note has no semantic record reference.") }
+            case .dimension:
+                guard let id = annotation.semanticID, dimensions.contains(id) else { throw ProductAttributeError.missingTarget("Annotation dimension.") }
+            case .tolerance:
+                guard let id = annotation.semanticID, tolerances.contains(id) else { throw ProductAttributeError.missingTarget("Annotation tolerance.") }
+            case .datum:
+                guard let id = annotation.semanticID, datums.contains(id) else { throw ProductAttributeError.missingTarget("Annotation datum.") }
+            }
+            for target in annotation.targets { try validateTarget(target, in: document, budget: &budget) }
+            for line in annotation.polylines {
+                try budget.charge(work: line.count, targets: line.count)
+                guard line.count >= 2, line.allSatisfy(\.isFinite) else { throw ProductAttributeError.invalidSource("Invalid annotation polyline.") }
+            }
+        }
+        func frame(_ origin: Point3D, _ direction: Vector3D, _ up: Vector3D) throws {
+            guard origin.isFinite, direction.isFinite, up.isFinite,
+                  abs(direction.length - 1) <= 1e-12, abs(up.length - 1) <= 1e-12,
+                  abs(direction.dot(up)) <= 1e-12 else { throw ProductAttributeError.invalidSource("Invalid orthonormal metadata frame.") }
+        }
+        func clipping(_ expression: ProductClippingExpression, depth: Int, budget: inout ProductAttributeBudget) throws {
+            guard depth < budget.limits.maximumDepth else { throw ProductAttributeError.resourceLimitExceeded("Saved-view clipping depth.") }
+            try budget.charge(work: 1, targets: 1)
+            switch expression {
+            case .plane(let plane):
+                guard plane.origin.isFinite, plane.normal.isFinite, abs(plane.normal.length - 1) <= 1e-12 else { throw ProductAttributeError.invalidSource("Invalid clipping halfspace.") }
+            case .union(let operands), .intersection(let operands):
+                guard operands.count >= 2 else { throw ProductAttributeError.invalidSource("A clipping Boolean operation requires two operands.") }
+                for operand in operands {
+                    if case .union = expression, case .union = operand { throw ProductAttributeError.invalidSource("Clipping unions alternate with intersections.") }
+                    if case .intersection = expression, case .intersection = operand { throw ProductAttributeError.invalidSource("Clipping intersections alternate with unions.") }
+                    try clipping(operand, depth: depth + 1, budget: &budget)
+                }
+            }
+        }
+        for view in metadata.views {
+            try identity(view.id); try text(view.name, &budget); try frame(view.origin, view.direction, view.up)
+            guard view.horizontalSize.isFinite, view.verticalSize.isFinite, view.focalDistance.isFinite,
+                  view.nearDistance.isFinite, view.farDistance.isFinite,
+                  view.horizontalSize > 0, view.verticalSize > 0 else {
+                throw ProductAttributeError.invalidSource("Invalid saved-view volume.")
+            }
+            try frame(view.windowOrigin, view.windowDirection, view.windowUp)
+            guard view.projectionPoint.isFinite, view.windowPlacement != .twoDimensional || (view.windowOrigin.z == 0 && view.windowDirection == .unitZ) else { throw ProductAttributeError.invalidSource("Saved-view window and projection point conflict with the view plane.") }
+            if let expression = view.clippingExpression { try clipping(expression, depth: 0, budget: &budget) }
+            for plane in view.clippingPlanes {
+                try budget.charge(work: 1, targets: 1)
+                guard plane.origin.isFinite, plane.normal.isFinite, abs(plane.normal.length - 1) <= 1e-12 else {
+                    throw ProductAttributeError.invalidSource("Invalid saved-view clipping plane.")
+                }
+            }
+            for placement in view.annotationPlacements {
+                try budget.charge(work: 1, targets: 1); try frame(placement.origin, placement.direction, placement.up)
+                try frame(placement.mappingOrigin, placement.mappingDirection, placement.mappingUp)
+                guard placement.basisX.isFinite, abs(placement.basisX.length - 1) <= 1e-12,
+                      abs(placement.basisX.dot(placement.up)) <= 1e-12,
+                      abs(placement.basisX.dot(placement.direction)) <= 1e-12 else { throw ProductAttributeError.invalidSource("Invalid independent annotation transform axis.") }
+                guard annotations.contains(placement.annotationID),
+                      placement.scale.isFinite, placement.scale > 0 else {
+                    throw ProductAttributeError.invalidSource("Invalid saved-view annotation placement.")
+                }
+            }
+        }
+        for property in metadata.validationProperties {
+            try identity(property.id); try text(property.name, &budget); try text(property.description, &budget)
+            try validateTarget(property.target, in: document, budget: &budget)
+            switch property.value {
+            case let .area(value), let .volume(value), let .length(value):
+                guard value.isFinite, value >= 0 else { throw ProductAttributeError.invalidSource("Invalid physical validation measure.") }
+            case let .centroid(point):
+                guard point.isFinite else { throw ProductAttributeError.invalidSource("Invalid validation centroid.") }
             }
         }
     }

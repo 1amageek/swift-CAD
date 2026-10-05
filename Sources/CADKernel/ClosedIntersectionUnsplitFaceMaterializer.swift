@@ -18,12 +18,16 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         toolBodyID: BodyID,
         splitFaceIDs: Set<FaceID>,
         forcedActions: [FaceID: BooleanRegionSelectionAction] = [:],
+        splitPatches: [BRepSewingFacePatch] = [],
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> [BRepSewingFacePatch] {
         try tolerance.validate()
+        let junctionPoints = splitPatches.flatMap { patch in
+            patch.loops.flatMap { loop in loop.edges.flatMap { [$0.startPoint, $0.endPoint] } }
+        }
         guard targetBodyIDs.isEmpty == false,
               Set(targetBodyIDs).count == targetBodyIDs.count,
               targetBodyIDs.contains(toolBodyID) == false else {
@@ -80,6 +84,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             operation: operation,
             stablePrefix: "closed-intersection:carried:target",
             forcedActions: forcedActions,
+            junctionPoints: junctionPoints,
             model: model,
             sourceSubshapes: sourceSubshapes,
             classificationSessions: classificationSessions,
@@ -94,6 +99,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             operation: operation,
             stablePrefix: "closed-intersection:carried:tool",
             forcedActions: forcedActions,
+            junctionPoints: junctionPoints,
             model: model,
             sourceSubshapes: sourceSubshapes,
             classificationSessions: classificationSessions,
@@ -111,6 +117,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         operation: BooleanOperation,
         stablePrefix: String,
         forcedActions: [FaceID: BooleanRegionSelectionAction],
+        junctionPoints: [Point3D],
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         classificationSessions: SolidPointClassificationSessionSet?,
@@ -178,13 +185,14 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                 )
             }
             let stableID = "\(stablePrefix):face:\(faceIndex)"
-            let source = try SourceBRepFacePatchBuilder().build(
+            let original = try SourceBRepFacePatchBuilder().build(
                 faceID: faceID,
                 stableID: stableID,
                 from: model,
                 sourceSubshapes: sourceSubshapes,
                 tolerance: tolerance
             ).patch
+            let source = try cutAtJunctions(original, junctionPoints: junctionPoints, tolerance: tolerance)
             let orientation = action == .keepReversed
                 ? reversed(face.orientation)
                 : face.orientation
@@ -195,6 +203,32 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             ))
         }
         return patches
+    }
+
+    private func cutAtJunctions(_ patch: BRepSewingFacePatch, junctionPoints: [Point3D],
+        tolerance: ModelingTolerance) throws -> BRepSewingFacePatch {
+        guard !junctionPoints.isEmpty else { return patch }
+        let subdivider = BRepSewingEdgeSubdivider()
+        var changed = false
+        let loops = try patch.loops.map { loop in
+            try Task.checkCancellation()
+            return BRepSewingLoop(stableID: loop.stableID, role: loop.role,
+                edges: try loop.edges.flatMap { edge -> [BRepSewingEdge] in
+                    try Task.checkCancellation()
+                    let interior = junctionPoints.filter {
+                        ($0 - edge.startPoint).length > tolerance.distance
+                            && ($0 - edge.endPoint).length > tolerance.distance
+                    }
+                    guard !interior.isEmpty else { return [edge] }
+                    let contained = try subdivider.containedPoints(from: interior, on: edge, tolerance: tolerance)
+                    guard !contained.isEmpty else { return [edge] }
+                    changed = true
+                    return try subdivider.subdivide(edge, at: contained, tolerance: tolerance)
+                })
+        }
+        guard changed else { return patch }
+        return BRepSewingFacePatch(stableID: patch.stableID, surface: patch.surface,
+            orientation: patch.orientation, loops: loops, parentSubshapeIDs: patch.parentSubshapeIDs)
     }
 
     private func faceIDs(

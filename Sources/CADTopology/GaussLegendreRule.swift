@@ -1,4 +1,12 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// Gauss–Legendre nodes and weights on [−1, 1]. With `count` nodes the rule integrates every
 /// polynomial of degree below `2 · count` exactly.

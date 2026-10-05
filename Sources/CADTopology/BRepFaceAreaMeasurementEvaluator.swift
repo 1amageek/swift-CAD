@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// The area of one face and the centroid of that area.
 public struct FaceAreaMeasurement: Sendable, Equatable {

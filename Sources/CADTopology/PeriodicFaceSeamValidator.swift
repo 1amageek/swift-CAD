@@ -7,6 +7,41 @@ import CADGeometry
 package struct PeriodicFaceSeamValidator {
     package init() {}
 
+    package func validateRepeatedEdgeUses(in loop: Loop, on surface: Surface3D,
+        tolerance: ModelingTolerance, maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int, consumeWork: @Sendable (Int) throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws {
+        try tolerance.validate()
+        for index in loop.coedges.indices {
+            try Task.checkCancellation(); try consumeWork(0)
+            let first = loop.coedges[index]
+            var appearedEarlier = false
+            for earlier in 0..<index {
+                try Task.checkCancellation(); try consumeWork(0)
+                if loop.coedges[earlier].edgeID == first.edgeID { appearedEarlier = true; break }
+            }
+            if appearedEarlier { continue }
+            var second: Coedge?
+            var count = 1
+            for later in (index + 1)..<loop.coedges.count {
+                try Task.checkCancellation(); try consumeWork(0)
+                if loop.coedges[later].edgeID == first.edgeID {
+                    count += 1; second = loop.coedges[later]
+                }
+            }
+            if count == 1 { continue }
+            guard count == 2, let second, first.orientation != second.orientation,
+                let a = first.surfaceParameterCurve, let b = second.surfaceParameterCurve,
+                try OriginalPeriodicSeamProof.proves(first: a, second: b, on: surface,
+                    tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+                    maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
+                    consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth) else {
+                throw TopologyError.duplicateTopologyReference(
+                    "Loop \(loop.id) contains repeated edge \(first.edgeID) that is not an original periodic seam.")
+            }
+        }
+    }
+
     package func validateRepeatedEdgeUses(
         in loop: Loop,
         on surface: Surface3D,
@@ -106,6 +141,18 @@ package struct PeriodicFaceSeamValidator {
             vShift: vShift
         ).materializingPeriodicTranslation()
         return firstCurve.materializingPeriodicTranslation() == translatedSecond
+    }
+
+    package func certifiesOppositeSeamCurves(_ firstCurve: SurfaceParameterCurve,
+        _ secondCurve: SurfaceParameterCurve, on surface: Surface3D,
+        tolerance: ModelingTolerance, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        consumeWork: @Sendable (Int) throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
+        maximumAlgebraicDepth: Int? = nil) throws -> Bool {
+        try OriginalPeriodicSeamProof.proves(first: firstCurve, second: secondCurve,
+            on: surface, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
+            consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
     }
 
     private func certifiedShift(

@@ -8,7 +8,7 @@ import CADCore
 /// produced it. This type owns the byte model: `CADKernel` charges an in-flight
 /// invocation with the same constants, so a recorded usage and a charged budget
 /// are admitted or refused by the same ceilings.
-public struct TessellationUsage: Codable, Hashable, Sendable {
+public struct TessellationUsage: Hashable, Sendable {
     /// The bytes one emitted vertex accounts for: its position and its normal.
     public static let bytesPerVertex =
         MemoryLayout<Point3D>.stride + MemoryLayout<Vector3D>.stride
@@ -113,3 +113,7 @@ public struct TessellationUsage: Codable, Hashable, Sendable {
         return result.partialValue
     }
 }
+
+#if !hasFeature(Embedded)
+extension TessellationUsage: Codable {}
+#endif

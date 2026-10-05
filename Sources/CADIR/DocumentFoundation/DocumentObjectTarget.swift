@@ -1,11 +1,12 @@
 import CADCore
 
-public enum DocumentObjectTarget: Hashable, Sendable, Codable {
+public enum DocumentObjectTarget: Hashable, Sendable {
     case document
     case feature(FeatureID)
     case parameter(ParameterID)
     case attribute(DocumentAttributeID)
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case kind, featureID, parameterID, attributeID }
     private enum Kind: String, Codable { case document, feature, parameter, attribute }
 
@@ -36,4 +37,9 @@ public enum DocumentObjectTarget: Hashable, Sendable, Codable {
         case .attribute(let id): try c.encode(Kind.attribute, forKey: .kind); try c.encode(id, forKey: .attributeID)
         }
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension DocumentObjectTarget: Codable {}
+#endif

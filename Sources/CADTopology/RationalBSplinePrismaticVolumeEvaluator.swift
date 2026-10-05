@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// Evaluates an axis-aligned rational B-spline prism after proving that every
 /// side control net is an exact translation between two planar caps.

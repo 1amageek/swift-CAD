@@ -36,6 +36,9 @@ Curve3D/ValidatedCurve3D -> point and parameter derivatives -> caller
 - Positive finite weights and repeated controls/weights define one homogeneous cycle.
 - Translated knots agree within floating arithmetic resolution, not modeling distance.
 - Seam multiplicity m is at most p; the guaranteed seam continuity is C^(p-m).
+- The bounded tensor seam-continuity query visits each original knot through
+  the caller callback, checks cancellation before each visit and retains no
+  filtered knot array. It uses the same exact knot equality as the legacy query.
 - Public domain is periodic. The stored base interval remains available for bounded algorithms.
 - Normalization rejects nonfinite inputs or an unrepresentable representative interval.
 - Choosing another fundamental origin preserves every C(u) and its derivatives.
@@ -257,3 +260,14 @@ tests own face transport of exact cycles and malformed source rejection.
 CADGeometryWASMSmoke owns matching normal-WASM execution of tensor evaluation,
 editing, queries, transport and typed failures. Embedded and all downstream
 representation closure remain PARI/G5, independently of this evidence.
+
+## Original Periodic Curve Jet Ownership
+
+Prepared periodic curve enclosures retain original homogeneous native span
+coefficients, rather than rounded Cartesian restriction/extraction. Closed
+queries enumerate all incident original period lifts with outward translation
+arithmetic, including both seam sides. A query spanning a whole cycle uses the
+complete fundamental-span hull. Each receipt owns the original curve, requested
+interval, tolerance and separate native one-sided jets; unions establish bounds
+without implying knot smoothness. Native span scans and retained output are
+charged through the supplied caller work owner.

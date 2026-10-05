@@ -1,7 +1,7 @@
 import CADCore
 import CADTopology
 
-public struct RevolveFeature: Codable, Hashable, Sendable {
+public struct RevolveFeature: Hashable, Sendable {
     public var section: SectionReference
     public var axis: RevolveAxis
     public var angle: CADExpression
@@ -43,10 +43,13 @@ public struct RevolveFeature: Codable, Hashable, Sendable {
         self.thickness = thickness
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case section, axis, angle, operation, targets, keepTools, resultKind, thickness
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -62,7 +65,9 @@ public struct RevolveFeature: Codable, Hashable, Sendable {
         thickness = try container.decodeIfPresent(CADExpression.self, forKey: .thickness)
         try validateSection()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validateSection()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -75,6 +80,7 @@ public struct RevolveFeature: Codable, Hashable, Sendable {
         try container.encode(resultKind, forKey: .resultKind)
         try container.encodeIfPresent(thickness, forKey: .thickness)
     }
+#endif
 
     /// A curve revolves into a sheet, or into a solid when both its ends lie on the axis; which
     /// one holds is known only once the curve is evaluated, so a solid curve revolve is admitted
@@ -108,7 +114,7 @@ public struct RevolveFeature: Codable, Hashable, Sendable {
     }
 }
 
-public struct RevolveAxis: Codable, Hashable, Sendable {
+public struct RevolveAxis: Hashable, Sendable {
     public var origin: Point3D
     public var direction: Vector3D
 
@@ -127,3 +133,8 @@ public struct RevolveAxis: Codable, Hashable, Sendable {
         try direction.normalized(tolerance: tolerance.distance)
     }
 }
+
+#if !hasFeature(Embedded)
+extension RevolveFeature: Codable {}
+extension RevolveAxis: Codable {}
+#endif

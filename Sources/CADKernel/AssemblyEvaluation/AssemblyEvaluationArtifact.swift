@@ -1,7 +1,7 @@
 import CADIR
 
 /// Snapshot-owned local base and complete typed occurrence correspondence index.
-public struct AssemblyEvaluationArtifact: Codable, Sendable, Equatable {
+public struct AssemblyEvaluationArtifact: Sendable, Equatable {
     public let limits: AssemblyResourceLimits
     public let local: AssemblyLocalEvaluationBase
     public let occurrences: [AssemblyOccurrenceCorrespondence]
@@ -10,3 +10,7 @@ public struct AssemblyEvaluationArtifact: Codable, Sendable, Equatable {
         self.local = local; self.occurrences = occurrences
     }
 }
+
+#if !hasFeature(Embedded)
+extension AssemblyEvaluationArtifact: Codable {}
+#endif

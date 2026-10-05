@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceIntersectionParameterPair: Codable, Sendable, Hashable {
+public struct SurfaceIntersectionParameterPair: Sendable, Hashable {
     public let first: SurfaceParameter
     public let second: SurfaceParameter
 
@@ -30,3 +30,7 @@ public struct SurfaceIntersectionParameterPair: Codable, Sendable, Hashable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceIntersectionParameterPair: Codable {}
+#endif

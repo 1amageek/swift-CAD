@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// Certifies divergence-theorem volume for shells containing trimmed parametric faces.
 ///
@@ -265,6 +273,14 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
     case .procedural(.offset): "offset"
     case .procedural(.ruled): "ruled"
     case .procedural(.rollingBall): "rolling-ball"
+    case .procedural(.originalImage): "original-image"
+    case .procedural(.originalRevolution): "original-revolution"
+    case .procedural(.originalCoons): "original-Coons"
+    case .procedural(.originalBoundaryCorrected): "original-boundary-corrected"
+    case .procedural(.originalPlaneDerivative): "original-plane-derivative"
+    case .procedural(.originalDrafted): "original-drafted"
+    case .procedural(.originalAngularTransport): "original-angular-transport"
+    case .procedural(.originalAffineWord): "original-affine-word"
     }
   }
 
@@ -1346,10 +1362,12 @@ struct TrimmedParametricSurfaceVolumeEvaluator {
         start: image.transform.inverted().applying(to: start),
         end: image.transform.inverted().applying(to: end)
       )
-    case .affineImage:
+    case .parameterImage(let image):
+      return curveIsCertifiedStraight(image.source, start: start, end: end)
+    case .affineImage, .originalAffineWord:
       return curve.hasExactLinearParameterization
     case .circle, .analytic, .implicit, .surfaceLift,
-      .certifiedIntersection:
+      .certifiedIntersection, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
       return false
     }
   }

@@ -1,6 +1,6 @@
 import CADCore
 
-public enum CADCommand: Codable, Hashable, Sendable {
+public enum CADCommand: Hashable, Sendable {
     case appendFeature(FeatureRequest)
     case replaceFeature(FeatureRequest)
     case upsertParameter(Parameter)
@@ -10,6 +10,7 @@ public enum CADCommand: Codable, Hashable, Sendable {
     case setDocumentAttribute(DocumentAttribute)
     case removeDocumentAttribute(DocumentAttributeID)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case appendFeature
@@ -21,7 +22,9 @@ public enum CADCommand: Codable, Hashable, Sendable {
         case setDocumentAttribute
         case removeDocumentAttribute
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case appendFeature
         case replaceFeature
@@ -32,12 +35,16 @@ public enum CADCommand: Codable, Hashable, Sendable {
         case setDocumentAttribute
         case removeDocumentAttribute
     }
+#endif
 
+#if !hasFeature(Embedded)
     private struct SuppressFeaturePayload: Codable, Hashable, Sendable {
         let featureID: FeatureID
         let suppressed: Bool
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -71,7 +78,9 @@ public enum CADCommand: Codable, Hashable, Sendable {
             self = .removeFeature(try container.decode(FeatureID.self, forKey: .removeFeature))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -104,4 +113,9 @@ public enum CADCommand: Codable, Hashable, Sendable {
             try container.encode(featureID, forKey: .removeFeature)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CADCommand: Codable {}
+#endif

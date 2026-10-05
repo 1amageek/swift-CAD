@@ -1,23 +1,28 @@
 import CADCore
 
-public enum SketchPlane: Codable, Sendable, Hashable {
+public enum SketchPlane: Sendable, Hashable {
     case xy
     case yz
     case zx
     case plane(Plane3D)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case plane
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case xy
         case yz
         case zx
         case plane
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -36,7 +41,9 @@ public enum SketchPlane: Codable, Sendable, Hashable {
             self = .plane(try container.decode(Plane3D.self, forKey: .plane))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -51,4 +58,9 @@ public enum SketchPlane: Codable, Sendable, Hashable {
             try container.encode(plane, forKey: .plane)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SketchPlane: Codable {}
+#endif

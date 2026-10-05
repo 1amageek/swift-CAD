@@ -1,7 +1,7 @@
 import CADCore
 
 /// A certified enclosure of a curve's arc length over a bounded parameter interval.
-public struct CurveArcLengthEnclosure: Codable, Hashable, Sendable {
+public struct CurveArcLengthEnclosure: Hashable, Sendable {
     public let lowerBound: Double
     public let upperBound: Double
 
@@ -29,7 +29,7 @@ public struct CurveArcLengthEnclosure: Codable, Hashable, Sendable {
 }
 
 /// A certified parameter interval containing the requested arc-length fraction.
-public struct CurveArcLengthParameterEnclosure: Codable, Hashable, Sendable {
+public struct CurveArcLengthParameterEnclosure: Hashable, Sendable {
     public let parameterRange: ScalarInterval
     public let spatialErrorUpperBound: Double
 
@@ -50,7 +50,7 @@ public struct CurveArcLengthParameterEnclosure: Codable, Hashable, Sendable {
     }
 }
 
-public struct CurveArcLengthOptions: Codable, Hashable, Sendable {
+public struct CurveArcLengthOptions: Hashable, Sendable {
     public var absoluteAccuracy: Double?
     public var relativeAccuracy: Double
     public var maximumSubdivisionDepth: Int
@@ -89,3 +89,9 @@ public struct CurveArcLengthOptions: Codable, Hashable, Sendable {
         return accuracy
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveArcLengthEnclosure: Codable {}
+extension CurveArcLengthParameterEnclosure: Codable {}
+extension CurveArcLengthOptions: Codable {}
+#endif

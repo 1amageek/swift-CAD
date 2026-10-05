@@ -1,7 +1,7 @@
 import CADCore
 
 /// The exact model-space lift of a face-local parameter curve.
-public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
+public struct SurfaceLiftCurve3D: Hashable, Sendable {
     public struct DifferentialGeometry: Hashable, Sendable {
         public let position: Point3D
         public let firstDerivative: Vector3D
@@ -36,11 +36,14 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         )
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case surface
         case parameterCurve
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -55,12 +58,15 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         exactBSplineImage = nil
         exactDerivativeCertificate = nil
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(surface, forKey: .surface)
         try container.encode(parameterCurve, forKey: .parameterCurve)
     }
+#endif
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -108,6 +114,12 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             ).position
+        }
+        if case let .originalAffineWord(curve) = parameterCurve {
+            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance).position
+        }
+        if case let .originalImage(curve) = parameterCurve {
+            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance).position
         }
         if case let .rigidImage(curve) = parameterCurve {
             return try curve.modelSpaceDifferential(
@@ -173,6 +185,12 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
                 firstDerivative: source.firstDerivative,
                 secondDerivative: source.secondDerivative
             )
+        }
+        if case let .originalAffineWord(curve) = parameterCurve {
+            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance)
+        }
+        if case let .originalImage(curve) = parameterCurve {
+            return try curve.modelSpaceDifferential(atNormalizedFraction: fraction, tolerance: tolerance)
         }
         if case let .rigidImage(curve) = parameterCurve {
             return try curve.modelSpaceDifferential(
@@ -261,3 +279,7 @@ public struct SurfaceLiftCurve3D: Codable, Hashable, Sendable {
         hasher.combine(parameterCurve)
     }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceLiftCurve3D: Codable {}
+#endif

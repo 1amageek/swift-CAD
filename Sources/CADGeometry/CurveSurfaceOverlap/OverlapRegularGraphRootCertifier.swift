@@ -56,6 +56,10 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let firstResidualDerivative: Interval?
         let sourcePositionWidthLowerBound: Double
         let closedDomain: OverlapRegularGraphClosedDomainAuthority?
+
+        var stationaryParameters: (u: Double?, v: Double?) {
+            closedDomain?.stationaryParameters ?? (nil, nil)
+        }
     }
 
     /// Minted only after strict K inclusion or exact closed-domain IVT existence.
@@ -369,22 +373,49 @@ struct OverlapRegularGraphRootCertifier: Sendable {
             derivatives = try graphDerivatives(source: source, target: target, pair: pair, determinant: determinant,
                 thirdOrder: authority.isSmooth)
         }
+        var retainedClosed = closedDomain ?? existingRoot?.initial.closedDomain
         if case .collar(let uKnots, let vKnots) = authority {
-            if !transverse(derivatives, uKnots: uKnots, vKnots: vKnots) {
-                derivatives = try refinedCollarDerivatives(range: range, source: source, target: target,
-                    pair: pair, determinant: determinant, initial: derivatives,
-                    uKnots: uKnots, vKnots: vKnots, budget: &budget)
+            if !transverse(derivatives, uKnots: uKnots, vKnots: vKnots), retainedClosed == nil {
+                // The strict K image already owns these roots. A separate paid
+                // original-coefficient identity may now prove that one unique
+                // inverse axis remains exactly on an original native knot.
+                retainedClosed = try closedAuthority(range: range, pair: pair, budget: &budget)
             }
-            // FIXME(INCOMPLETE_IMPLEMENTATION): continuous or non-transverse native
-            // knot coincidence lacks complete atlas classification. The public graph
-            // route must refuse until all boundary intervals and root identities can
-            // be certified without a higher-derivative continuity assumption.
-            guard transverse(derivatives, uKnots: uKnots, vKnots: vKnots) else {
-                throw failure(.unsupportedCapability, "Every affected knot axis requires a proved transverse native-knot passage.")
+            let stationary = retainedClosed?.stationaryParameters ?? (nil, nil)
+            func stationaryDerivative(_ original: [Interval], parameter: Double?,
+                                      box: ScalarInterval) throws -> [Interval] {
+                guard let parameter else { return original }
+                guard box.contains(parameter), let zero = original[0].intersection(with: .exact(0)) else {
+                    throw failure(.intersectionFailure, "An exact stationary native axis contradicts its original root or derivative enclosure.")
+                }
+                return [zero]
+            }
+            derivatives = (try stationaryDerivative(derivatives.u, parameter: stationary.0, box: rootBox.u),
+                try stationaryDerivative(derivatives.v, parameter: stationary.1, box: rootBox.v))
+            // Strict K inclusion plus the same uniform contraction on the
+            // complete C0/C1 native Jacobian hull gives a unique Lipschitz inverse.
+            // Its derivatives exist almost everywhere even at a stationary knot
+            // contact. The retained first hull bounds the absolute-continuity
+            // residual; transversality is needed only when isolating clipping cuts.
+            guard derivatives.u.count == 1, derivatives.v.count == 1,
+                  derivatives.u[0].isFinite, derivatives.v[0].isFinite else {
+                throw failure(.intersectionFailure, "An original native contact lost its whole Lipschitz inverse derivative hull.")
             }
         }
         try budget.work(jetWork)
-        let imageTarget = try targetJet(over: rootBox)
+        let imageTarget: SurfaceIntervalVectorJet
+        let stationary = retainedClosed?.stationaryParameters ?? (nil, nil)
+        if stationary.0 != nil || stationary.1 != nil {
+            guard stationary.0.map({ rootBox.u.contains($0) }) ?? true,
+                  stationary.1.map({ rootBox.v.contains($0) }) ?? true else {
+                throw failure(.intersectionFailure, "An original stationary parameter left its retained root image.")
+            }
+            let image = SurfaceParameterBox(
+                u: try stationary.0.map { try ScalarInterval(lower: $0, upper: $0) } ?? rootBox.u,
+                v: try stationary.1.map { try ScalarInterval(lower: $0, upper: $0) } ?? rootBox.v)
+            let original = try surface.intervalJet(overClosedBox: image, tolerance: tolerance)
+            imageTarget = try coordinateIndependence.map { try $0.intersecting(original, tolerance: tolerance) } ?? original
+        } else { imageTarget = try targetJet(over: rootBox) }
         // Strict inclusion, or the retained interval-root authority, puts every
         // relevant root in this image. Only the residual value uses imageTarget;
         // derivative bounds retain the evaluated chart and its positive minor.
@@ -414,7 +445,7 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         return Proof(range: range, pair: pair, box: rootBox, authority: authority, u: derivatives.u, v: derivatives.v,
             residual: residual, firstResidualDerivative: firstResidualDerivative,
             sourcePositionWidthLowerBound: sourceWidth.lower,
-            closedDomain: closedDomain ?? existingRoot?.initial.closedDomain)
+            closedDomain: retainedClosed)
     }
 
     /// The original proof and complete coefficient transfer own every retained root.

@@ -1,6 +1,6 @@
 import CADCore
 
-public enum SelectionDimensionKind: String, Codable, Sendable, Hashable {
+public enum SelectionDimensionKind: String, Sendable, Hashable {
     case distance
     case angle
 
@@ -13,3 +13,7 @@ public enum SelectionDimensionKind: String, Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SelectionDimensionKind: Codable {}
+#endif

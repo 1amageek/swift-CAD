@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// Certifies analytic surface-flux volume over exact rectangular pcurve domains
 /// and certified Green-integral pcurve loops. Unsupported intersection-backed
@@ -655,7 +663,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       .certifiedAnalyticImplicit,
       .certifiedAnalyticPair,
       .projectedAnalytic,
-      .rigidImage:
+      .rigidImage, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return nil
     case .offsetSurfaceImage(let image):
       return try coordinateVerticalSegments(
@@ -927,7 +935,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
           tolerance: tolerance
         )
         return
-      case .procedural(.ruled), .procedural(.rollingBall):
+      case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalAngularTransport), .procedural(.originalAffineWord), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
         return nil
       }
       let sampleV = if case .cone = kind { 1.0 } else { 0.0 }

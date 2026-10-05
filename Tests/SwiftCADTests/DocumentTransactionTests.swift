@@ -48,6 +48,7 @@ struct DocumentTransactionTests {
         #expect(actual.curves == expected.curves)
         #expect(actual.configuration == expected.configuration)
         #expect(actual.evaluationMetrics == expected.evaluationMetrics)
+        #expect(actual.assembly == expected.assembly)
         // Native exact evaluations deliberately own no materialized mesh/cache artifacts.
         #expect(actual.meshes.isEmpty && expected.meshes.isEmpty)
         #expect(actual.caches.brep == nil && expected.caches.brep == nil)
@@ -121,6 +122,15 @@ struct DocumentTransactionTests {
         let oldReference = DocumentAttribute(name: "selected", owner: .init(documentID: source.id),
             value: .reference(.init(documentID: source.id, target: .feature(firstExtrude))))
         source = try DocumentEditor().apply(.setDocumentAttribute(oldReference), to: source, tolerance: .standard)
+        let curveID = CurveID()
+        let item = IndependentShapeItem(name: "Original independent line",
+            geometry: .curve(curveID, trim: CurveTrim(startParameter: 0, endParameter: 1)))
+        let independent = IndependentShapeSource(geometry: GeometryStore(curves: [curveID:
+            .line(Line3D(origin: .origin, direction: Vector3D(x: 1, y: 0, z: 0)))]),
+            items: [item], roots: [.item(item.id)])
+        _ = try DefaultIndependentShapeSourceValidator().validate(independent, tolerance: .standard)
+        source.independentShapes = independent
+        try source.validate(tolerance: .standard)
         let session = try session(source, editor: MetadataUpdatingEditor())
         let before = await session.snapshot()
         let token = try await session.begin(expectedEpoch: 0)
@@ -133,6 +143,8 @@ struct DocumentTransactionTests {
         reference.value = .reference(.init(documentID: source.id, target: .feature(secondID)))
         _ = try await session.stage([.upsertParameter(width), .appendFeature(second), .setDocumentAttribute(reference)], in: token)
         let after = try await session.commit(token)
+        #expect(before.sourceDocument.independentShapes == independent)
+        #expect(after.sourceDocument.independentShapes == independent)
         #expect(after.sourceDocument.designGraph.dependencies.count == source.designGraph.dependencies.count + 1)
         #expect(after.sourceDocument.documentFoundation.attribute(id: reference.id) == reference)
         #expect(after.sourceDocument.metadata.updatedAt == Date(timeIntervalSince1970: 23))
@@ -318,6 +330,40 @@ struct DocumentTransactionTests {
         let status = await session.status()
         #expect(status.epoch == 0 && status.undoCount == 0)
         try await session.rollback(token)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func preCancelledPublicOperationsPreserveCompleteStateAndTokenLifetime() async throws {
+        let source = try boxDocument()
+        let session = try session(source)
+        let before = await session.snapshot()
+        try await expectCancelled { _ = try await session.begin(expectedEpoch: 0) }
+        let token = try await session.begin(expectedEpoch: 0)
+        let command = CADCommand.setDocumentAttribute(attribute(source, "Retained"))
+        try await expectCancelled { _ = try await session.stage([command], in: token) }
+        #expect((try await session.preview(token)).commandCount == 0)
+        _ = try await session.stage([command], in: token)
+        try await expectCancelled { _ = try await session.preview(token) }
+        try await expectCancelled { _ = try await session.commit(token) }
+        try await expectCancelled { try await session.rollback(token) }
+        let unchanged = await session.snapshot()
+        expectSameEvaluation(unchanged.evaluatedDocument, before.evaluatedDocument)
+        #expect(unchanged.status.epoch == 0 && unchanged.status.activeTransaction == token)
+        let committed = try await session.commit(token)
+        try await expectCancelled { _ = try await session.undo(expectedEpoch: 1) }
+        expectSameEvaluation((await session.snapshot()).evaluatedDocument, committed.evaluatedDocument)
+        let undone = try await session.undo(expectedEpoch: 1)
+        try await expectCancelled { _ = try await session.redo(expectedEpoch: 2) }
+        expectSameEvaluation((await session.snapshot()).evaluatedDocument, undone.evaluatedDocument)
+    }
+
+    private func expectCancelled(_ operation: @Sendable @escaping () async throws -> Void) async throws {
+        let task = Task {
+            withUnsafeCurrentTask { $0?.cancel() }
+            try await operation()
+        }
+        do { try await task.value; Issue.record("A pre-cancelled operation succeeded.") }
+        catch is CancellationError {}
     }
 }
 

@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-public struct CertifiedQuadraticTangencyIntersectionCurve: Codable, Hashable, Sendable {
+public struct CertifiedQuadraticTangencyIntersectionCurve: Hashable, Sendable {
     private struct BuiltComponent {
         let curve: Curve3D
         let firstParameterCurve: SurfaceParameterCurve
@@ -85,13 +85,16 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Codable, Hashable, Se
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case firstSurface
         case secondSurface
         case componentIndex
         case certificationTolerance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -105,7 +108,9 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Codable, Hashable, Se
             tolerance: container.decode(ModelingTolerance.self, forKey: .certificationTolerance)
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -114,6 +119,7 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Codable, Hashable, Se
         try container.encode(componentIndex, forKey: .componentIndex)
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
     }
+#endif
 
     static func componentCount(
         firstSurface: BSplineSurface3D,
@@ -326,3 +332,7 @@ public struct CertifiedQuadraticTangencyIntersectionCurve: Codable, Hashable, Se
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedQuadraticTangencyIntersectionCurve: Codable {}
+#endif

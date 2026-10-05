@@ -1,7 +1,7 @@
 import CADCore
 
-public struct InvoluteGearFeature: Codable, Hashable, Sendable {
-    public enum Dimension: String, Codable, CaseIterable, Sendable {
+public struct InvoluteGearFeature: Hashable, Sendable {
+    public enum Dimension: String, CaseIterable, Sendable {
         case baseRadius, pitchRadius, tipRadius, rootRadius, filletRadius
         case pitchToothAngle, width, twistAngle, profileError, sweepError
 
@@ -59,8 +59,11 @@ public struct InvoluteGearFeature: Codable, Hashable, Sendable {
         return result
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case toothCount, dimensions, doubleHelical, maximumSegments, origin }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         try values.validateOnlyExpectedKeys([.toothCount, .dimensions, .doubleHelical, .maximumSegments, .origin], in: decoder)
@@ -78,7 +81,9 @@ public struct InvoluteGearFeature: Codable, Hashable, Sendable {
             origin: try values.decode(Point3D.self, forKey: .origin))
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var values = encoder.container(keyedBy: CodingKeys.self)
@@ -89,4 +94,10 @@ public struct InvoluteGearFeature: Codable, Hashable, Sendable {
         try values.encode(maximumSegments, forKey: .maximumSegments)
         try values.encode(origin, forKey: .origin)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension InvoluteGearFeature: Codable {}
+extension InvoluteGearFeature.Dimension: Codable {}
+#endif

@@ -89,15 +89,53 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
             guard definitions[occurrence.definitionID] != nil else {
                 throw AssemblyError.missingDefinition(occurrence.definitionID)
             }
-            try occurrence.placement.validate(tolerance: tolerance)
-            guard !occurrence.placement.reversesOrientation else { throw AssemblyError.invalidPlacement }
+            let directFactorCount: Int
+            if case .word(let word) = occurrence.placement { directFactorCount = word.factors.count }
+            else { directFactorCount = 1 }
+            guard directFactorCount <= limits.maximumRecords - records,
+                  directFactorCount <= (limits.maximumWork - sourceWork) / 14 else {
+                throw AssemblyError.resourceLimitExceeded("original placement source records")
+            }
+            records += directFactorCount; sourceWork += directFactorCount * 14
+            func stepSource(_ source: OriginalSTEPPlacementSource) throws {
+                func element(_ value: OriginalSTEPPlacementElement?) throws {
+                    guard let value else { return }
+                    guard records < limits.maximumRecords, sourceWork < limits.maximumWork else {
+                        throw AssemblyError.resourceLimitExceeded("original STEP placement records")
+                    }
+                    records += 1; sourceWork += 1
+                    try text(value.name)
+                }
+                switch source {
+                case .axis2(let value):
+                    try element(value.location); try element(value.axis); try element(value.referenceDirection)
+                case .cartesian(let value):
+                    try element(value.location); try element(value.axis1); try element(value.axis2); try element(value.axis3)
+                }
+                guard source.adjustments.count <= limits.maximumRecords - records,
+                      source.adjustments.count <= limits.maximumWork - sourceWork else {
+                    throw AssemblyError.resourceLimitExceeded("original STEP adjustment records")
+                }
+                records += source.adjustments.count; sourceWork += source.adjustments.count
+            }
+            if case .step(let source) = occurrence.placement { try stepSource(source) }
+            else if case .word(let word) = occurrence.placement {
+                for factor in word.factors {
+                    if case .step(let source) = factor.originalPlacement { try stepSource(source) }
+                }
+            }
+            try occurrence.placement.validate(tolerance: tolerance, maximumAlgebraicDepth: limits.maximumAlgebraicDepth, maximumSourceDepth: limits.maximumDepth) {
+                try Task.checkCancellation()
+                guard sourceWork < limits.maximumWork else { throw AssemblyError.resourceLimitExceeded("original placement validation") }
+                sourceWork += 1
+            }
         }
         var result: [ExpandedAssemblyOccurrence] = []
         var reached = Set<AssemblyDefinitionID>()
         var work = sourceWork
         var stack = assembly.roots.sorted { $1.id < $0.id }.map {
             (occurrence: $0, path: [AssemblyOccurrenceID](), ancestors: Set<AssemblyDefinitionID>(),
-             parent: RigidTransform3D.translated(by: .zero))
+             parent: [AssemblyPlacementFactor]())
         }
         while let item = stack.popLast() {
             try Task.checkCancellation()
@@ -110,10 +148,22 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
             }
             work += item.path.count + 1
             let path = item.path + [item.occurrence.id]
-            let local = item.occurrence.placement
-            let frame = try RigidTransform3D(basisX: item.parent.applying(to: local.basisX),
-                basisY: item.parent.applying(to: local.basisY), basisZ: item.parent.applying(to: local.basisZ),
-                translation: item.parent.applying(to: local.translation) + item.parent.translation, tolerance: tolerance)
+            // Retain the original source word instead of rounded composed columns.
+            // Fourteen scalar/operation records per factor are admitted before its array copy.
+            let directFactorCount: Int
+            if case .word(let word) = item.occurrence.placement { directFactorCount = word.factors.count }
+            else { directFactorCount = 1 }
+            let factorCount = item.parent.count.addingReportingOverflow(directFactorCount)
+            let retention = factorCount.partialValue.multipliedReportingOverflow(by: 14)
+            guard !factorCount.overflow, !retention.overflow, retention.partialValue <= limits.maximumWork - work else {
+                throw AssemblyError.resourceLimitExceeded("original placement word storage")
+            }
+            work += retention.partialValue
+            var factors = item.parent
+            factors.reserveCapacity(factorCount.partialValue)
+            if case .word(let word) = item.occurrence.placement { factors.append(contentsOf: word.factors) }
+            else { factors.append(.forward(item.occurrence.placement)) }
+            let frame = try AssemblyPlacementWord(factors: factors)
             result.append(ExpandedAssemblyOccurrence(path: AssemblyOccurrencePath(path),
                 definitionID: item.occurrence.definitionID, placement: frame))
             reached.insert(item.occurrence.definitionID)
@@ -125,7 +175,7 @@ public struct DocumentAssemblyValidator: DocumentAssemblyValidating {
             }
             var ancestors = item.ancestors; ancestors.insert(definition.id)
             for child in definition.children.sorted(by: { $1.id < $0.id }) {
-                stack.append((child, path, ancestors, frame))
+                stack.append((child, path, ancestors, factors))
             }
         }
         guard reached.count == definitions.count else {

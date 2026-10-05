@@ -23,6 +23,49 @@ face loops -> continuous UV chains -> signed fan squares
 ```
 
 ## Contracts and Invariants
+Original polyline rails retain their exact adjacent-point clock and original
+point count admission. Their complete continuity is C0 unless an owning lower
+producer proves more; array adjacency cannot certify a smooth normalized join.
+- Original loop winding queries accept an optional cumulative byte admission
+  callback. Requested typed capacities for pending ranges, accepted boxes,
+  ordering copies and homotopy vertices are admitted before allocation. The
+  authored and validated-loop views retain immutable source buffers without
+  duplicating curves. A missing callback preserves historical work/depth policy;
+  it does not establish bounded storage. Lower chart/enclosure scratch must use
+  the same callback before a whole-query byte guarantee can be claimed.
+- Exact authored UV closure permits a separate strict winding query without a
+  modeling-tolerance corridor. Literal axis endpoints, polyline endpoints and
+  clamped positive-weight native UV spline controls prove each exact junction;
+  unchanged-UV full word traversals preserve that authority. Complete original
+  boxes must exclude the query with zero added clearance before the homotopy
+  is formed from their actual intersections. Unsupported endpoint relations
+  retain the existing conservative classification rather than inferring closure
+  from overlapping endpoint boxes. This does not change modeling tolerance or
+  original proof depth/work limits.
+- Retained normalized curve construction charts remain original Geometry
+  sources. Admission traverses their original child controls under the existing
+  nesting/dimension policy; analytic prism shortcuts defer to original generic
+  integration. Construction-chart labels never become replacement curve data.
+- Affine and constant-axis UV boundary boxes evaluate the original endpoint
+  difference and normalized interval with outward operations. Numeric midpoint
+  evaluation and a fixed roundoff multiplier do not authorize these boxes.
+- Polyline boxes use Geometry's exact original Euclidean arc-length prefix
+  chart and every intersected authored segment. Original owning values are
+  unioned at joins; an integer segment ordinal or rounded normalized cut never
+  becomes the source parameter law.
+- A predicate with no periodic chart shifts does not reevaluate a numeric
+  start point for alignment. Original boxes already occupy its authored chart;
+  only periodic chart selection needs a separate reference receipt. The legacy
+  periodic reference branch remains a bounded-source completion dependency.
+- Native UV splines and continuations consume Geometry's original order-zero
+  value facade. Original owning values are unioned at joins without a C3
+  continuity assumption; all lower preparation/coefficients and query bytes use
+  the same caller admission. Harmonic values use that facade as well, retaining
+  explicit failure when a selected byte ceiling has no lower scratch producer.
+- Original image and affine-word UV carriers use that same value facade. They
+  forward the selected storage callback into original source validation and
+  coefficient transport; missing image scratch admission cannot silently bypass
+  a caller-selected byte ceiling.
 - Original C0 rolling-ball measurements consume Geometry's opaque native
   rolling domains and closed center-curve receipts. Surface preparation and
   every lower owning-span evaluation advance the existing query work counter.
@@ -294,6 +337,13 @@ orders. Behavioral ownership is
 Native, normal WASM and Embedded proof remain distinct; source changes alone
 do not establish the runtime contract.
 
+The original native centered-fan range/midpoint and affine endpoint correction
+calls also forward this same
+nonescaping callback. It cannot create an independent work allowance while
+consuming original homogeneous span receipts. The existing T/R cell, reference,
+signed-loop measure and final four-field acceptance remain the upper owner.
+This newly connected source path has not yet been verified.
+
 Original offset translation authority may return complete physical rectangle
 area and all three reference-relative moments after its original monotone
 straight-rail proof. The shared query owner pays this invocation and its
@@ -303,3 +353,75 @@ fields are explicit classification failures; they do not select another algorith
 Finite intervals wider than the unchanged goals, and other rectangles, retain
 the existing adaptive path. The geometry [child contract](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md)
 owns the exact whole-law and monotonicity proof, rather than this caller.
+
+Original parameter-image and endpoint-continuation UV orientation integrals consume Geometry-owned original flux intervals and closed-root midpoint/second derivative bounds. Smooth spans use the integral midpoint Taylor remainder; native joins retain full value intervals. The complete signed gain and axis swap remain original chart authority. No sampled derivative, rounded inverse gain or unbounded refinement authorizes orientation.
+
+Original native rectangle and radial fan partition producers receive this invocation’s subdivision ceiling and synchronous work callback. Every original owner scan, exact cut, coverage comparison and retained partition visit advances the same counter before integration; depth-zero partition work never receives an independent allowance.
+
+### Immutable Original Loop Predicate Admission
+
+A loop predicate can consume one loop directly from an exact or volumetric
+`ValidatedBRepModel`. The receipt supplies both original pcurves and tolerance;
+caller-admitted copying visits every coedge, and finite chart shifts plus the existing
+48-depth ceiling are retained. Its constructor does not repeat opaque curve endpoint
+validation because the unchanged original source has already passed that contract.
+This entry does not accept independently copied or modified patch curves by assertion;
+new patch curves still require their own complete bounded source admission. Signed
+winding and exclusion consume the same caller work/depth policy afterward.
+
+Receipt-bound loop predicates retain a read-only collection over the immutable
+original coedge buffer. Construction validates each optional pcurve before retaining
+that buffer; subsequent collection access cannot observe mutation or absence. It
+allocates no copied parameter-curve array. Equality and hashing retain the preceding
+curve-sequence semantics. Query enclosure/workspace allocations belong to their actual
+lower producers and require separate caller storage admission.
+
+A bounded authored-chart loop constructor receives its original owning support and caller source/subdivision caps. Each retained curve consumes Geometry's original continuous-chart lift with endpoint boxes under the same callback; sampled endpoint candidates are not admission authority. The resulting immutable authored view retains the original curves without a second source array. This path composes translated original volume trim loops, while the validated-loop constructor borrows unchanged original topology directly.
+
+Endpoint-corrected connector boundaries retain their original construction spline and both retained section root spans. Area admission traverses all three sources under the existing control-point and nesting policy before the generic original closed-jet integrand is prepared. Construction endpoints alone are not geometric endpoint authority.
+
+Bounded loop preparation passes the caller-selected optional byte callback directly
+into Geometry's continuous chart lift. Source validation, original UV value bounds
+and retained sample/box buffers use that same choice; an absent ceiling stays nil
+through the lower producer rather than becoming a no-op byte receipt.
+
+### Original Euclidean Polyline Chart Admission
+
+Normalized polyline fractions follow the original Euclidean prefix/total length
+law. Integer segment indices are not normalized parameter authority. The generic
+parameter encloser consumes Geometry's exact prefix producer under an explicit
+independent algebra depth (default 32, caller range 0...32); source nesting and
+geometric subdivision do not choose that cap. The same work and optional requested-byte callbacks cover prefix/root
+preparation and value hulls. A missing algebra capability refuses the exact route;
+no index-uniform or sampled prefix surrogate may publish a certified enclosure.
+
+Directed homotopy crossing signs consume Geometry's bounded original rational
+orientation producer under the same work and optional byte callback. Exact source
+coordinate differences and determinant sign remain authoritative even when a
+rounded product underflows; a floating expansion scratch call outside admission
+cannot publish signed winding accounting.
+
+Original chart enclosure and loop preparation retain the caller's independent
+source-depth ceiling (at most the historical 16) through every D0 query. Lower
+subdivision receives only its remaining geometric depth; algebra remains its
+independent default 32. Receipt-bound loops skip repeated source authority
+validation but do not reset query source traversal to a larger ceiling.
+
+Signed UV flux integration accepts optional caller byte admission alongside its
+existing work/depth policy. The owned depth-first frontier reserves its actual
+typed capacity before allocation and reuses it across subdivision. Selected byte
+admission must also reach Geometry original chart preparation, endpoint and flux
+queries; opaque legacy chart buffers cannot authorize a complete bounded result.
+Nil preserves historical allocation policy without asserting a byte guarantee.
+
+Affine, constant-axis and authored polyline signed UV flux has an exact original
+rational Green-integral path. It integrates each directed line as
+(uStart+uEnd)*(vEnd-vStart)/2, summing exact original coefficients before outward
+publication. The polyline integral is independent of its Euclidean speed clock;
+no approximate prefix parameter enters this geometric line integral. Exact
+coefficient work and limb bytes use the same invocation admission. Original
+support-bound validation precedes this path, and finite result width must meet
+the unchanged requested accuracy. Other chart families retain their generic
+signed-flux issuer and its concrete byte/depth completion dependency.
+
+The support-bound UV flux route consumes Geometry’s bounded original chart constructor and forwards the same selected BYTE callback through closed endpoints and signed-flux queries. Native numeric charts retain one-sided original knot owners; actual implicit root preparation and advances keep their original state on this ledger. General inverse images, implicit certification admission and specialized source charts remain explicit lower dependencies. Surface-area flux preparation receives the composing subdivision ceiling and independent source/algebra policies rather than legacy opaque source preparation.

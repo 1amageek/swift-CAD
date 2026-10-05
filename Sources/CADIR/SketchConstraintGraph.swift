@@ -34,7 +34,7 @@ public struct SketchConstraintGraph: Sendable, Equatable {
     }
 }
 
-public struct SketchConstraintNode: Sendable, Codable, Hashable {
+public struct SketchConstraintNode: Sendable, Hashable {
     public var reference: SketchReference
     public var degreeOfFreedom: SketchDegreeOfFreedom
 
@@ -44,7 +44,7 @@ public struct SketchConstraintNode: Sendable, Codable, Hashable {
     }
 }
 
-public enum SketchDegreeOfFreedom: String, Codable, Sendable, Hashable {
+public enum SketchDegreeOfFreedom: String, Sendable, Hashable {
     case x
     case y
     case radius
@@ -52,7 +52,7 @@ public enum SketchDegreeOfFreedom: String, Codable, Sendable, Hashable {
     case length
 }
 
-public struct SketchConstraintEquation: Sendable, Codable, Hashable {
+public struct SketchConstraintEquation: Sendable, Hashable {
     public var kind: SketchConstraintEquationKind
     public var nodes: [SketchConstraintNode]
     public var target: CADExpression?
@@ -68,7 +68,7 @@ public struct SketchConstraintEquation: Sendable, Codable, Hashable {
     }
 }
 
-public enum SketchConstraintEquationKind: String, Codable, Sendable, Hashable {
+public enum SketchConstraintEquationKind: String, Sendable, Hashable {
     case coincident
     case horizontal
     case vertical
@@ -328,3 +328,10 @@ public extension Sketch {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SketchConstraintNode: Codable {}
+extension SketchDegreeOfFreedom: Codable {}
+extension SketchConstraintEquation: Codable {}
+extension SketchConstraintEquationKind: Codable {}
+#endif

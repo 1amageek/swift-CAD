@@ -1,6 +1,27 @@
 import CADCore
 
 struct RationalBezierSurfaceJetEncloser: Sendable {
+    struct FirstOrderEnclosure: Sendable {
+        let value: IntervalVector3DBounds
+        let derivativeU: IntervalVector3DBounds
+        let derivativeV: IntervalVector3DBounds
+    }
+
+    fileprivate struct FirstOrderControls: Sendable {
+        let value: [[IntervalHomogeneousSurfaceControl]]
+        let derivativeU: [[IntervalHomogeneousSurfaceControl]]
+        let derivativeV: [[IntervalHomogeneousSurfaceControl]]
+    }
+
+    struct PreparedFirstOrderRow: Sendable {
+        fileprivate let patch: PreparedPatch
+        fileprivate let u: Double
+        fileprivate let pointControls: FirstOrderControls
+        fileprivate let closedControls: FirstOrderControls
+        fileprivate let pointPolynomials: [FirstOrderControls?]
+        fileprivate let closedPolynomials: [FirstOrderControls?]
+    }
+
     fileprivate struct HomogeneousJetControls: Sendable {
         let value: [[IntervalHomogeneousSurfaceControl]]
         let derivativeU: [[IntervalHomogeneousSurfaceControl]]
@@ -62,24 +83,31 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     }
 
     func prepare(_ patch: RationalBezierSurfacePatch3D,
-                 tolerance: ModelingTolerance) throws -> PreparedPatch {
+                 tolerance: ModelingTolerance,
+                 consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                 consumeStorage: ((Int) throws -> Void)? = nil) throws -> PreparedPatch {
         guard patch.controlPoints.isEmpty == false,
               patch.controlPoints.count == patch.weights.count,
               let uCount = patch.controlPoints.first?.count,
               uCount > 0,
-              patch.controlPoints.indices.allSatisfy({
-                  patch.controlPoints[$0].count == uCount
+              try patch.controlPoints.indices.allSatisfy({
+                  try consumeWork()
+                  return patch.controlPoints[$0].count == uCount
                       && patch.weights[$0].count == uCount
               }) else {
             throw invalidPatchError(tolerance: tolerance)
         }
         var controls: [[IntervalHomogeneousSurfaceControl]] = []
         let origin = patch.controlPoints[0][0]
+        try OriginalCoefficientAllocation.reserve(count: patch.controlPoints.count, of: [IntervalHomogeneousSurfaceControl].self, consumeStorage: consumeStorage)
         controls.reserveCapacity(patch.controlPoints.count)
         for vIndex in patch.controlPoints.indices {
             var row: [IntervalHomogeneousSurfaceControl] = []
+            try consumeWork()
+            try OriginalCoefficientAllocation.reserve(count: uCount, of: IntervalHomogeneousSurfaceControl.self, consumeStorage: consumeStorage)
             row.reserveCapacity(uCount)
             for uIndex in patch.controlPoints[vIndex].indices {
+                try consumeWork()
                 let point = patch.controlPoints[vIndex][uIndex]
                 let weight = patch.weights[vIndex][uIndex]
                 guard weight.isFinite, weight > 0.0 else {
@@ -104,52 +132,71 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 controls,
                 uSpan: .exact(patch.uUpper) - .exact(patch.uLower),
                 vSpan: .exact(patch.vUpper) - .exact(patch.vLower),
-                tolerance: tolerance
+                tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
             ),
-            polynomialX: polynomialCoordinate(\.x, origin: origin.x, patch: patch, tolerance: tolerance),
-            polynomialY: polynomialCoordinate(\.y, origin: origin.y, patch: patch, tolerance: tolerance),
-            polynomialZ: polynomialCoordinate(\.z, origin: origin.z, patch: patch, tolerance: tolerance),
+            polynomialX: polynomialCoordinate(\.x, origin: origin.x, patch: patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
+            polynomialY: polynomialCoordinate(\.y, origin: origin.y, patch: patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
+            polynomialZ: polynomialCoordinate(\.z, origin: origin.z, patch: patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
             originalCommonWeight: nil
         )
     }
 
     func prepare(original patch: BSplineSurfaceBezierDecomposer.OriginalHomogeneousPatch,
-                 tolerance: ModelingTolerance) throws -> PreparedPatch {
+                 tolerance: ModelingTolerance,
+                 consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                 consumeStorage: ((Int) throws -> Void)? = nil) throws -> PreparedPatch {
         try Task.checkCancellation()
         return try PreparedPatch(uLower: patch.uBounds.lower, uUpper: patch.uBounds.upper,
             vLower: patch.vBounds.lower, vUpper: patch.vBounds.upper, origin: patch.origin,
             controls: derivativeJetControls(patch.controls,
                 uSpan: .exact(patch.uBounds.upper) - .exact(patch.uBounds.lower),
-                vSpan: .exact(patch.vBounds.upper) - .exact(patch.vBounds.lower), tolerance: tolerance),
+                vSpan: .exact(patch.vBounds.upper) - .exact(patch.vBounds.lower), tolerance: tolerance,
+                consumeWork: consumeWork, consumeStorage: consumeStorage),
             polynomialX: nil, polynomialY: nil, polynomialZ: nil,
             originalCommonWeight: patch.commonWeight)
     }
 
     private func polynomialCoordinate(_ coordinate: KeyPath<Point3D, Double>, origin: Double,
                                       patch: RationalBezierSurfacePatch3D,
-                                      tolerance: ModelingTolerance) throws -> HomogeneousJetControls? {
-        guard !patch.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }) else { return nil }
+                                      tolerance: ModelingTolerance,
+                                      consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                                      consumeStorage: ((Int) throws -> Void)? = nil) throws -> HomogeneousJetControls? {
+        guard !(try patch.weights.allSatisfy({ row in try row.allSatisfy { try consumeWork(); return $0 == 1 } })) else { return nil }
         let points: [[Point3D]]
-        if patch.weights.allSatisfy({ $0 == patch.weights[0] }),
-           patch.controlPoints.allSatisfy({ row in
-               row.allSatisfy { $0[keyPath: coordinate] == row[0][keyPath: coordinate] }
+        if try patch.weights.allSatisfy({ row in
+            guard row.count == patch.weights[0].count else { return false }
+            for index in row.indices { try consumeWork(); if row[index] != patch.weights[0][index] { return false } }
+            return true
+        }),
+           try patch.controlPoints.allSatisfy({ row in
+               try row.allSatisfy { try consumeWork(); return $0[keyPath: coordinate] == row[0][keyPath: coordinate] }
            }) {
-            points = patch.controlPoints.map { [$0[0]] }
-        } else if patch.weights.allSatisfy({ row in row.allSatisfy { $0 == row[0] } }),
-                  patch.controlPoints.allSatisfy({ row in
-                      row.indices.allSatisfy { row[$0][keyPath: coordinate] == patch.controlPoints[0][$0][keyPath: coordinate] }
+            try OriginalCoefficientAllocation.reserve(count: patch.controlPoints.count, of: [Point3D].self, consumeStorage: consumeStorage)
+            points = try patch.controlPoints.map { row in
+                try consumeWork()
+                try OriginalCoefficientAllocation.reserve(count: 1, of: Point3D.self, consumeStorage: consumeStorage)
+                return [row[0]]
+            }
+        } else if try patch.weights.allSatisfy({ row in try row.allSatisfy { try consumeWork(); return $0 == row[0] } }),
+                  try patch.controlPoints.allSatisfy({ row in
+                      try row.indices.allSatisfy { try consumeWork(); return row[$0][keyPath: coordinate] == patch.controlPoints[0][$0][keyPath: coordinate] }
                   }) {
+            try OriginalCoefficientAllocation.reserve(count: 1, of: [Point3D].self, consumeStorage: consumeStorage)
             points = [patch.controlPoints[0]]
         } else { return nil }
-        let controls = points.map { row in row.map { point in
-            IntervalHomogeneousSurfaceControl(
+        try OriginalCoefficientAllocation.reserve(count: points.count, of: [IntervalHomogeneousSurfaceControl].self, consumeStorage: consumeStorage)
+        let controls = try points.map { row in
+            try OriginalCoefficientAllocation.reserve(count: row.count, of: IntervalHomogeneousSurfaceControl.self, consumeStorage: consumeStorage)
+            return try row.map { point in
+            try consumeWork()
+            return IntervalHomogeneousSurfaceControl(
                 x: .exact(point[keyPath: coordinate]) - .exact(origin),
                 y: .exact(0), z: .exact(0), weight: .exact(1))
         } }
         return try derivativeJetControls(controls,
             uSpan: .exact(patch.uUpper) - .exact(patch.uLower),
             vSpan: .exact(patch.vUpper) - .exact(patch.vLower),
-            tolerance: tolerance)
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
     }
 
     func enclosure(of patch: PreparedPatch, u: ScalarInterval, v: ScalarInterval,
@@ -165,6 +212,166 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 targetU: u, targetV: v, tolerance: tolerance)
         }
         return try resolvedJet(of: patch, localize: localize, tolerance: tolerance)
+    }
+
+    /// Requests only original value and tangent nets, with no synthetic higher jet.
+    func firstOrderEnclosure(of patch: PreparedPatch, u: ScalarInterval, v: ScalarInterval,
+                             tolerance: ModelingTolerance) throws -> FirstOrderEnclosure {
+        try Task.checkCancellation()
+        guard u.lower.isFinite, u.upper.isFinite, v.lower.isFinite, v.upper.isFinite,
+              u.lower <= u.upper, v.lower <= v.upper,
+              u.lower >= patch.uLower, u.upper <= patch.uUpper,
+              v.lower >= patch.vLower, v.upper <= patch.vUpper else {
+            throw invalidPatchError(tolerance: tolerance)
+        }
+        func localize(_ values: [[IntervalHomogeneousSurfaceControl]]) throws
+          -> [[IntervalHomogeneousSurfaceControl]] {
+            if u.lower == u.upper, v.lower == v.upper {
+                let parameters = try normalizedPointParameters(of: patch, u: u.lower, v: v.lower,
+                                                               tolerance: tolerance)
+                return try evaluatePointControls(values, localU: parameters.u, localV: parameters.v,
+                                                 tolerance: tolerance)
+            }
+            return try trimmedControls(values, sourceULower: patch.uLower, sourceUUpper: patch.uUpper,
+                sourceVLower: patch.vLower, sourceVUpper: patch.vUpper,
+                targetU: u, targetV: v, tolerance: tolerance)
+        }
+        return try resolvedFirstOrder(of: patch, controls: firstOrderControls(patch.controls),
+            polynomials: [patch.polynomialX.map(firstOrderControls), patch.polynomialY.map(firstOrderControls),
+                          patch.polynomialZ.map(firstOrderControls)], tolerance: tolerance) { controls in
+                try FirstOrderControls(value: localize(controls.value), derivativeU: localize(controls.derivativeU),
+                                       derivativeV: localize(controls.derivativeV))
+            }
+    }
+
+    private func firstOrderControls(_ controls: HomogeneousJetControls) -> FirstOrderControls {
+        FirstOrderControls(value: controls.value, derivativeU: controls.derivativeU,
+                           derivativeV: controls.derivativeV)
+    }
+
+    private func resolvedFirstOrder(of patch: PreparedPatch, controls: FirstOrderControls,
+        polynomials: [FirstOrderControls?], tolerance: ModelingTolerance,
+        localize: (FirstOrderControls) throws -> FirstOrderControls) throws -> FirstOrderEnclosure {
+        let original = try localize(controls)
+        let value = original.value
+        let du = original.derivativeU
+        let dv = original.derivativeV
+        let weight = patch.originalCommonWeight.map(OutwardScalarInterval.exact)
+            ?? scalarValue(value, component: \.weight)
+        let reciprocal = try positiveValueReciprocal(weight, tolerance: tolerance)
+        let weightU = patch.originalCommonWeight == nil ? scalarValue(du, component: \.weight) : .exact(0)
+        let weightV = patch.originalCommonWeight == nil ? scalarValue(dv, component: \.weight) : .exact(0)
+        func coordinate(_ polynomial: FirstOrderControls?,
+                        component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>,
+                        origin: Double) throws -> (OutwardScalarInterval, OutwardScalarInterval, OutwardScalarInterval) {
+            let relative: OutwardScalarInterval
+            let firstU: OutwardScalarInterval
+            let firstV: OutwardScalarInterval
+            if let polynomial {
+                let localized = try localize(polynomial)
+                relative = scalarValue(localized.value, component: \.x)
+                firstU = scalarValue(localized.derivativeU, component: \.x)
+                firstV = scalarValue(localized.derivativeV, component: \.x)
+            } else {
+                relative = scalarValue(value, component: component) * reciprocal
+                firstU = (scalarValue(du, component: component) - relative * weightU) * reciprocal
+                firstV = (scalarValue(dv, component: component) - relative * weightV) * reciprocal
+            }
+            let position = relative + .exact(origin)
+            guard position.isFinite, firstU.isFinite, firstV.isFinite else {
+                throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
+                    message: "Original first-order surface enclosure requires finite Cartesian bounds.")
+            }
+            return (position, firstU, firstV)
+        }
+        let x = try coordinate(polynomials[0], component: \.x, origin: patch.origin.x)
+        let y = try coordinate(polynomials[1], component: \.y, origin: patch.origin.y)
+        let z = try coordinate(polynomials[2], component: \.z, origin: patch.origin.z)
+        try Task.checkCancellation()
+        return FirstOrderEnclosure(value: .init(x: x.0, y: y.0, z: z.0),
+            derivativeU: .init(x: x.1, y: y.1, z: z.1), derivativeV: .init(x: x.2, y: y.2, z: z.2))
+    }
+
+    func prepareFirstOrderRow(of patch: PreparedPatch, u: Double, tolerance: ModelingTolerance,
+                               consumeWork: () throws -> Void) throws -> PreparedFirstOrderRow {
+        try consumeWork()
+        let normalized = try normalizedPointParameters(of: patch, u: u, v: patch.vLower, tolerance: tolerance).u
+        let singletonU = try ScalarInterval(lower: u, upper: u)
+        let wholeV = try ScalarInterval(lower: patch.vLower, upper: patch.vUpper)
+        func prepare(_ controls: FirstOrderControls) throws -> (point: FirstOrderControls, closed: FirstOrderControls) {
+            func net(_ values: [[IntervalHomogeneousSurfaceControl]]) throws
+              -> (point: [[IntervalHomogeneousSurfaceControl]], closed: [[IntervalHomogeneousSurfaceControl]]) {
+                // Prepay closed and singleton retained slots and each bounded
+                // original U de Casteljau preparation before execution/allocation.
+                try consumeWork(); try consumeWork()
+                for row in values {
+                    try consumeWork(); try consumeWork()
+                    for _ in row {
+                        for _ in 0..<9 { try consumeWork() }
+                    }
+                    for _ in 0..<9 { try consumeWork() }
+                    for level in row.indices {
+                        for _ in 0...level {
+                            try consumeWork(); try consumeWork(); try consumeWork()
+                        }
+                    }
+                }
+                let point = try values.map { [try evaluatePointControlAxis($0, parameter: normalized,
+                                                                           tolerance: tolerance)] }
+                let closed = try trimmedControls(values, sourceULower: patch.uLower, sourceUUpper: patch.uUpper,
+                    sourceVLower: patch.vLower, sourceVUpper: patch.vUpper,
+                    targetU: singletonU, targetV: wholeV, tolerance: tolerance)
+                return (point, closed)
+            }
+            let value = try net(controls.value)
+            let du = try net(controls.derivativeU)
+            let dv = try net(controls.derivativeV)
+            return (FirstOrderControls(value: value.point, derivativeU: du.point, derivativeV: dv.point),
+                    FirstOrderControls(value: value.closed, derivativeU: du.closed, derivativeV: dv.closed))
+        }
+        for _ in 0..<16 { try consumeWork() }
+        let original = try prepare(firstOrderControls(patch.controls))
+        var pointPolynomials: [FirstOrderControls?] = []
+        var closedPolynomials: [FirstOrderControls?] = []
+        for polynomial in [patch.polynomialX, patch.polynomialY, patch.polynomialZ] {
+            if let polynomial {
+                let prepared = try prepare(firstOrderControls(polynomial))
+                pointPolynomials.append(prepared.point); closedPolynomials.append(prepared.closed)
+            } else {
+                pointPolynomials.append(nil); closedPolynomials.append(nil)
+            }
+        }
+        try Task.checkCancellation()
+        return PreparedFirstOrderRow(patch: patch, u: u, pointControls: original.point,
+            closedControls: original.closed, pointPolynomials: pointPolynomials, closedPolynomials: closedPolynomials)
+    }
+
+    func firstOrderEnclosure(row: PreparedFirstOrderRow, overClosedV v: ScalarInterval,
+                             tolerance: ModelingTolerance) throws -> FirstOrderEnclosure {
+        let patch = row.patch
+        guard v.lower.isFinite, v.upper.isFinite, v.lower <= v.upper,
+              v.lower >= patch.vLower, v.upper <= patch.vUpper else {
+            throw invalidPatchError(tolerance: tolerance)
+        }
+        try Task.checkCancellation()
+        let singleton = v.lower == v.upper
+        let controls = singleton ? row.pointControls : row.closedControls
+        let polynomials = singleton ? row.pointPolynomials : row.closedPolynomials
+        func localize(_ values: [[IntervalHomogeneousSurfaceControl]]) throws -> [[IntervalHomogeneousSurfaceControl]] {
+            if singleton {
+                let localV = try normalizedPointParameters(of: patch, u: row.u, v: v.lower,
+                                                          tolerance: tolerance).v
+                return try evaluatePointControls(values, localU: .exact(0), localV: localV, tolerance: tolerance)
+            }
+            return try trimmedControls(values, sourceULower: row.u, sourceUUpper: row.u,
+                sourceVLower: patch.vLower, sourceVUpper: patch.vUpper,
+                targetU: ScalarInterval(lower: row.u, upper: row.u), targetV: v, tolerance: tolerance)
+        }
+        return try resolvedFirstOrder(of: patch, controls: controls, polynomials: polynomials,
+                                     tolerance: tolerance) { controls in
+            try FirstOrderControls(value: localize(controls.value), derivativeU: localize(controls.derivativeU),
+                                   derivativeV: localize(controls.derivativeV))
+        }
     }
 
     /// Evaluates the original differentiated nets without dividing by a
@@ -271,34 +478,36 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     private func evaluatePointControls(_ values: [[IntervalHomogeneousSurfaceControl]],
         localU: OutwardScalarInterval, localV: OutwardScalarInterval, tolerance: ModelingTolerance)
         throws -> [[IntervalHomogeneousSurfaceControl]] {
-        func axis(_ values: [IntervalHomogeneousSurfaceControl],
-                  parameter: OutwardScalarInterval) throws -> IntervalHomogeneousSurfaceControl {
-            if parameter.lower == 0, parameter.upper == 0 { return values[0] }
-            if parameter.lower == 1, parameter.upper == 1 { return values[values.count-1] }
-            var level = values
-            while level.count > 1 {
-                level = (0..<(level.count-1)).map {
-                    level[$0].interpolated(to:level[$0+1],parameter:parameter)
-                }
-            }
-            // Original normalized parameters lie in [0,1], so both the
-            // outward evaluation and each coefficient convex hull contain
-            // the scalar value, including already differentiated nets.
-            func intersect(_ component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>)
-                throws -> OutwardScalarInterval {
-                let hull = OutwardScalarInterval.enclosing(values.map { $0[keyPath: component] })
-                guard let result = level[0][keyPath: component].intersection(with: hull) else {
-                    throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
-                        message: "Surface point Bernstein evaluation and its certified coefficient hull are disjoint.")
-                }
-                return result
-            }
-            return try IntervalHomogeneousSurfaceControl(x: intersect(\.x), y: intersect(\.y),
-                z: intersect(\.z), weight: intersect(\.weight))
-        }
-        let rows = try values.map { try axis($0,parameter:localU) }
-        return [[try axis(rows,parameter:localV)]]
+        let rows = try values.map { try evaluatePointControlAxis($0, parameter: localU, tolerance: tolerance) }
+        return [[try evaluatePointControlAxis(rows, parameter: localV, tolerance: tolerance)]]
     }
+
+    private func evaluatePointControlAxis(_ values: [IntervalHomogeneousSurfaceControl],
+                  parameter: OutwardScalarInterval, tolerance: ModelingTolerance) throws -> IntervalHomogeneousSurfaceControl {
+        if parameter.lower == 0, parameter.upper == 0 { return values[0] }
+        if parameter.lower == 1, parameter.upper == 1 { return values[values.count-1] }
+        var level = values
+        while level.count > 1 {
+            level = (0..<(level.count-1)).map {
+                level[$0].interpolated(to:level[$0+1],parameter:parameter)
+            }
+        }
+        // Original normalized parameters lie in [0,1], so both the
+        // outward evaluation and each coefficient convex hull contain
+        // the scalar value, including already differentiated nets.
+        func intersect(_ component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>)
+            throws -> OutwardScalarInterval {
+            let hull = OutwardScalarInterval.enclosing(values.map { $0[keyPath: component] })
+            guard let result = level[0][keyPath: component].intersection(with: hull) else {
+                throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
+                    message: "Surface point Bernstein evaluation and its certified coefficient hull are disjoint.")
+            }
+            return result
+        }
+        return try IntervalHomogeneousSurfaceControl(x: intersect(\.x), y: intersect(\.y),
+            z: intersect(\.z), weight: intersect(\.weight))
+    }
+
 
     private func resolvedValue(of patch: PreparedPatch, tolerance: ModelingTolerance,
         localize: ([[IntervalHomogeneousSurfaceControl]]) throws -> [[IntervalHomogeneousSurfaceControl]])
@@ -416,7 +625,9 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         _ controls: [[IntervalHomogeneousSurfaceControl]],
         uSpan: OutwardScalarInterval,
         vSpan: OutwardScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeStorage: ((Int) throws -> Void)? = nil
     ) throws -> HomogeneousJetControls {
         guard uSpan.isFinite, uSpan.lower > 0.0,
               vSpan.isFinite, vSpan.lower > 0.0 else {
@@ -425,47 +636,47 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         let derivativeU = try differentiatedU(
             controls,
             span: uSpan,
-            tolerance: tolerance
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
         )
         let derivativeV = try differentiatedV(
             controls,
             span: vSpan,
-            tolerance: tolerance
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
         )
         let secondDerivativeUU = try differentiatedU(
             derivativeU,
             span: uSpan,
-            tolerance: tolerance
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
         )
         let secondDerivativeUV = try differentiatedV(
             derivativeU,
             span: vSpan,
-            tolerance: tolerance
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
         )
         let secondDerivativeVV = try differentiatedV(
             derivativeV,
             span: vSpan,
-            tolerance: tolerance
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
         )
         let thirdDerivativeUUU = try differentiatedU(
             secondDerivativeUU,
             span: uSpan,
-            tolerance: tolerance
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
         )
         let thirdDerivativeUUV = try differentiatedV(
             secondDerivativeUU,
             span: vSpan,
-            tolerance: tolerance
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
         )
         let thirdDerivativeUVV = try differentiatedV(
             secondDerivativeUV,
             span: vSpan,
-            tolerance: tolerance
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
         )
         let thirdDerivativeVVV = try differentiatedV(
             secondDerivativeVV,
             span: vSpan,
-            tolerance: tolerance
+            tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
         )
         return HomogeneousJetControls(
             value: controls,
@@ -482,49 +693,69 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     }
 
     private func differentiatedU(
-        _ controls: [[IntervalHomogeneousSurfaceControl]],
-        span: OutwardScalarInterval,
-        tolerance: ModelingTolerance
+        _ controls: [[IntervalHomogeneousSurfaceControl]], span: OutwardScalarInterval,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeStorage: ((Int) throws -> Void)? = nil
     ) throws -> [[IntervalHomogeneousSurfaceControl]] {
-        guard let count = controls.first?.count, count > 1 else {
-            return controls.map { _ in [.zero] }
+        let count = controls.first?.count ?? 0
+        try OriginalCoefficientAllocation.reserve(count: controls.count, of: [IntervalHomogeneousSurfaceControl].self, consumeStorage: consumeStorage)
+        var result: [[IntervalHomogeneousSurfaceControl]] = []
+        result.reserveCapacity(controls.count)
+        if count <= 1 {
+            for _ in controls {
+                try consumeWork()
+                try OriginalCoefficientAllocation.reserve(count: 1, of: IntervalHomogeneousSurfaceControl.self, consumeStorage: consumeStorage)
+                result.append([.zero])
+            }
+            return result
         }
-        guard let scale = OutwardScalarInterval.exact(Double(count - 1)).divided(
-            by: span
-        ) else {
+        guard let scale = OutwardScalarInterval.exact(Double(count - 1)).divided(by: span) else {
             throw invalidPatchError(tolerance: tolerance)
         }
-        return controls.map { row in
-            (0..<(count - 1)).map { index in
-                row[index + 1].subtracting(row[index]).scaled(by: scale)
+        for row in controls {
+            try consumeWork()
+            try OriginalCoefficientAllocation.reserve(count: count - 1, of: IntervalHomogeneousSurfaceControl.self, consumeStorage: consumeStorage)
+            var values: [IntervalHomogeneousSurfaceControl] = []
+            values.reserveCapacity(count - 1)
+            for index in 0..<(count - 1) {
+                try consumeWork()
+                values.append(row[index + 1].subtracting(row[index]).scaled(by: scale))
             }
+            result.append(values)
         }
+        return result
     }
 
     private func differentiatedV(
-        _ controls: [[IntervalHomogeneousSurfaceControl]],
-        span: OutwardScalarInterval,
-        tolerance: ModelingTolerance
+        _ controls: [[IntervalHomogeneousSurfaceControl]], span: OutwardScalarInterval,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeStorage: ((Int) throws -> Void)? = nil
     ) throws -> [[IntervalHomogeneousSurfaceControl]] {
-        guard controls.count > 1,
-              let count = controls.first?.count else {
-            return [Array(
-                repeating: .zero,
-                count: controls.first?.count ?? 1
-            )]
+        let count = controls.first?.count ?? 1
+        if controls.count <= 1 {
+            try consumeWork()
+            try OriginalCoefficientAllocation.reserve(count: 1, of: [IntervalHomogeneousSurfaceControl].self, consumeStorage: consumeStorage)
+            try OriginalCoefficientAllocation.reserve(count: count, of: IntervalHomogeneousSurfaceControl.self, consumeStorage: consumeStorage)
+            return [Array(repeating: .zero, count: count)]
         }
-        guard let scale = OutwardScalarInterval.exact(
-            Double(controls.count - 1)
-        ).divided(by: span) else {
+        guard let scale = OutwardScalarInterval.exact(Double(controls.count - 1)).divided(by: span) else {
             throw invalidPatchError(tolerance: tolerance)
         }
-        return (0..<(controls.count - 1)).map { rowIndex in
-            (0..<count).map { columnIndex in
-                controls[rowIndex + 1][columnIndex]
-                    .subtracting(controls[rowIndex][columnIndex])
-                    .scaled(by: scale)
+        try OriginalCoefficientAllocation.reserve(count: controls.count - 1, of: [IntervalHomogeneousSurfaceControl].self, consumeStorage: consumeStorage)
+        var result: [[IntervalHomogeneousSurfaceControl]] = []
+        result.reserveCapacity(controls.count - 1)
+        for rowIndex in 0..<(controls.count - 1) {
+            try consumeWork()
+            try OriginalCoefficientAllocation.reserve(count: count, of: IntervalHomogeneousSurfaceControl.self, consumeStorage: consumeStorage)
+            var row: [IntervalHomogeneousSurfaceControl] = []
+            row.reserveCapacity(count)
+            for columnIndex in 0..<count {
+                try consumeWork()
+                row.append(controls[rowIndex + 1][columnIndex].subtracting(controls[rowIndex][columnIndex]).scaled(by: scale))
             }
+            result.append(row)
         }
+        return result
     }
 
     private func localizedJetControls(

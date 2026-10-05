@@ -1,7 +1,7 @@
 import CADCore
 import Foundation
 
-public struct Parabola3D: Codable, Hashable, Sendable {
+public struct Parabola3D: Hashable, Sendable {
     public let vertex: Point3D
     public let normal: Vector3D
     public let axis: Vector3D
@@ -78,3 +78,7 @@ public struct Parabola3D: Codable, Hashable, Sendable {
         return (point - vertex).dot(transverseAxis)
     }
 }
+
+#if !hasFeature(Embedded)
+extension Parabola3D: Codable {}
+#endif

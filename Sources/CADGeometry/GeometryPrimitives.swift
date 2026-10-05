@@ -1,6 +1,6 @@
 import CADCore
 
-public struct Line3D: Codable, Sendable, Hashable {
+public struct Line3D: Sendable, Hashable {
     public var origin: Point3D
     public var direction: Vector3D
 
@@ -16,7 +16,7 @@ public struct Line3D: Codable, Sendable, Hashable {
     }
 }
 
-public struct Circle3D: Codable, Sendable, Hashable {
+public struct Circle3D: Sendable, Hashable {
     public var center: Point3D
     public var normal: Vector3D
     public var radius: Double
@@ -37,7 +37,7 @@ public struct Circle3D: Codable, Sendable, Hashable {
     }
 }
 
-public struct Plane3D: Codable, Sendable, Hashable {
+public struct Plane3D: Sendable, Hashable {
     public var origin: Point3D
     public var normal: Vector3D
     /// An authored native U direction; nil retains the legacy parameter basis.
@@ -80,7 +80,7 @@ extension Plane3D {
     }
 }
 
-public struct Cylinder3D: Codable, Sendable, Hashable {
+public struct Cylinder3D: Sendable, Hashable {
     public var origin: Point3D
     public var axis: Vector3D
     public var radius: Double
@@ -100,3 +100,10 @@ public struct Cylinder3D: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension Line3D: Codable {}
+extension Circle3D: Codable {}
+extension Plane3D: Codable {}
+extension Cylinder3D: Codable {}
+#endif

@@ -16,10 +16,13 @@ struct OverlapRegularGraphCell: Sendable {
     let derivativeV: OutwardScalarInterval
     let maximumDeviation: Double
     let authority: OverlapRegularGraphAtlas
+    let stationaryU: Double?
+    let stationaryV: Double?
 
     init(range: ScalarInterval, box: SurfaceParameterBox, pair: Pair,
          derivativeU: OutwardScalarInterval, derivativeV: OutwardScalarInterval,
-         maximumDeviation: Double, authority: OverlapRegularGraphAtlas = .smooth) {
+         maximumDeviation: Double, authority: OverlapRegularGraphAtlas = .smooth,
+         stationaryU: Double? = nil, stationaryV: Double? = nil) {
         self.range = range
         self.box = box
         self.pair = pair
@@ -27,6 +30,7 @@ struct OverlapRegularGraphCell: Sendable {
         self.derivativeV = derivativeV
         self.maximumDeviation = maximumDeviation
         self.authority = authority
+        self.stationaryU = stationaryU; self.stationaryV = stationaryV
     }
 
     static func component(_ jet: SurfaceIntervalVectorJet, _ index: Int) -> SurfaceIntervalJet {

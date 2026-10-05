@@ -52,6 +52,60 @@ package struct GeometryStructuralComparisonWork {
         case let .rigidImage(curve):
             try charge(2)
             try Self.charge(curve: curve.source, using: charge)
+        case let .parameterImage(curve):
+            try charge(2)
+            try Self.charge(gain: curve.parameterGain, using: charge)
+            try Self.charge(curve: curve.source, using: charge)
+        case .originalConstructionChart(let image):
+            try charge(2)
+            switch image.chart {
+            case .traversal(let traversal):
+                try Self.charge(traversal: traversal, using: charge)
+            case .parameterLaw(let source):
+                try charge(3)
+                try Self.charge(curve: source.source, using: charge)
+                for value in [source.firstFraction, source.lastFraction] {
+                    try charge(1)
+                    try chargeArray(value.canonicalNumeratorWords.count, using: charge)
+                    try chargeArray(value.canonicalDenominatorWords.count, using: charge)
+                }
+            }
+        case .originalPolyline(let original):
+            try charge(3)
+            try chargeArray(original.points.count, using: charge)
+            for _ in original.points { try charge(3) }
+        case .originalGuideEndpointConnector(let original):
+            try charge(6)
+            try Self.charge(traversal: original.source, using: charge)
+            try Self.charge(traversal: original.startBoundary, using: charge)
+            try Self.charge(traversal: original.endBoundary, using: charge)
+        case .originalGuideTraversalChain(let original):
+            try charge(4)
+            for traversal in original.traversals { try Self.charge(traversal: traversal, using: charge) }
+            for station in original.stations {
+                try charge(1)
+                try chargeArray(station.canonicalNumeratorWords.count, using: charge)
+                try chargeArray(station.canonicalDenominatorWords.count, using: charge)
+            }
+            try chargeArray(original.sourceSegmentOrdinals.count, using: charge)
+        case .originalDrafted(let original):
+            try charge(11)
+            try Self.charge(traversal: original.generator, using: charge)
+        case .originalPlaneDerivative(let original):
+            try Self.charge(traversal: original.source, using: charge)
+            try Self.charge(planeConstraints: original.startConstraints, using: charge)
+            try Self.charge(planeConstraints: original.endConstraints, using: charge)
+        case .originalEndpointConnector(let connector):
+            try charge(3)
+            try Self.charge(curve: .bSpline(connector.construction), using: charge)
+            try Self.charge(traversal: connector.startBoundary, using: charge)
+            try Self.charge(traversal: connector.endBoundary, using: charge)
+        case .originalAngularTransport(let image):
+            try Self.charge(curve: image.source, using: charge)
+            try Self.charge(angularTransport: image.transport, using: charge)
+        case let .originalAffineWord(curve):
+            try Self.charge(word: curve.operationWord, using: charge)
+            try Self.charge(curve: curve.source, using: charge)
         case let .affineImage(curve):
             try charge(2)
             try Self.charge(curve: curve.source, using: charge)
@@ -88,6 +142,38 @@ package struct GeometryStructuralComparisonWork {
         case let .procedural(surface):
             try charge(1)
             switch surface {
+            case let .originalAngularTransport(image):
+                try Self.charge(surface: image.source, using: charge)
+                try Self.charge(angularTransport: image.uTransport, using: charge)
+                try Self.charge(angularTransport: image.vTransport, using: charge)
+            case let .originalAffineWord(image):
+                try Self.charge(word: image.operationWord, using: charge)
+                try Self.charge(surface: image.source, using: charge)
+            case let .originalImage(image):
+                try charge(16)
+                try Self.charge(gain: image.uParameterGain, using: charge)
+                try Self.charge(gain: image.vParameterGain, using: charge)
+                try Self.charge(surface: image.source, using: charge)
+            case let .originalRevolution(original):
+                try charge(8)
+                try Self.charge(traversal: original.generator, using: charge)
+            case let .originalDrafted(original):
+                try charge(1)
+                try Self.charge(curve: .originalDrafted(original.start), using: charge)
+            case let .originalPlaneDerivative(original):
+                try Self.charge(surface: .procedural(.originalBoundaryCorrected(original.construction)), using: charge)
+                try Self.charge(surface: .procedural(.originalCoons(original.boundaries)), using: charge)
+                try Self.charge(planeConstraints: original.startConstraints, using: charge)
+                try Self.charge(planeConstraints: original.endConstraints, using: charge)
+            case let .originalBoundaryCorrected(original):
+                try Self.charge(surface: original.construction, using: charge)
+                try Self.charge(surface: .procedural(.originalCoons(original.boundaries)), using: charge)
+            case let .originalCoons(original):
+                try charge(4)
+                try Self.charge(traversal: original.vMinimumBoundary, using: charge)
+                try Self.charge(traversal: original.vMaximumBoundary, using: charge)
+                try Self.charge(traversal: original.uMinimumBoundary, using: charge)
+                try Self.charge(traversal: original.uMaximumBoundary, using: charge)
             case let .offset(surface):
                 try charge(1)
                 try Self.charge(surface: surface.source, using: charge)
@@ -104,6 +190,14 @@ package struct GeometryStructuralComparisonWork {
                 try Self.charge(curve: surface.secondContact, using: charge)
                 try charge(2)
             }
+        }
+    }
+
+    private static func charge(planeConstraints: [OriginalPlaneDerivativeConstraint], using charge: Charge) throws {
+        try chargeArray(planeConstraints.count, using: charge)
+        for constraint in planeConstraints {
+            try checkCancellation(); try charge(1)
+            try Self.charge(surface: constraint.surface, using: charge)
         }
     }
 
@@ -139,10 +233,21 @@ package struct GeometryStructuralComparisonWork {
         case let .certifiedAnalyticPair(curve):
             try Self.charge(analyticIntersection: curve.intersection, using: charge)
             try charge(3)
+        case let .originalBSplineContinuation(curve):
+            try charge(4)
+            try Self.charge(curve: curve.original, using: charge)
         case let .projectedAnalytic(curve):
             try charge(5)
             try Self.charge(curve: curve.curve, using: charge)
             try Self.charge(surface: curve.surface, using: charge)
+        case let .originalAffineWord(curve):
+            try charge(2)
+            try Self.charge(curve: .surfaceLift(curve.source), using: charge)
+            try Self.charge(surface: .procedural(.originalAffineWord(curve.target)), using: charge)
+        case let .originalImage(curve):
+            try charge(2)
+            try Self.charge(curve: .surfaceLift(curve.source), using: charge)
+            try Self.charge(surface: .procedural(.originalImage(curve.targetImage)), using: charge)
         case let .rigidImage(curve):
             try charge(5)
             try Self.charge(surface: curve.source.surface, using: charge)
@@ -156,6 +261,78 @@ package struct GeometryStructuralComparisonWork {
         case let .periodicTranslation(base, _, _):
             try charge(2)
             try Self.charge(parameterCurve: base, using: charge)
+        }
+    }
+
+    private static func charge(word: OriginalAffineOperationWord, using charge: Charge) throws {
+        try chargeArray(word.factors.count, using: charge)
+        for factor in word.factors {
+            try checkCancellation(); try charge(1)
+            switch factor {
+            case .forward, .inverse: try charge(12)
+            case .rationalForward(let source), .rationalInverse(let source):
+                try chargeArray(source.coefficients.count, using: charge)
+                for coefficient in source.coefficients {
+                    try checkCancellation(); try charge(1)
+                    try chargeArray(coefficient.canonicalNumeratorWords.count, using: charge)
+                    try chargeArray(coefficient.canonicalDenominatorWords.count, using: charge)
+                }
+            case .normalizedForward(let source), .normalizedInverse(let source):
+                try charge(14)
+                for coefficient in [source.lengthGain, source.linearGain] {
+                    try chargeArray(coefficient.canonicalNumeratorWords.count, using: charge)
+                    try chargeArray(coefficient.canonicalDenominatorWords.count, using: charge)
+                }
+                try chargeArray(source.adjustments.count, using: charge)
+                for _ in source.adjustments { try checkCancellation(); try charge(4) }
+            }
+        }
+    }
+
+    package static func charge(traversal: OriginalCurveRootSpan3D, using charge: Charge) throws {
+        try checkCancellation(); try charge(3)
+        try Self.charge(curve: traversal.source, using: charge)
+        try Self.charge(endpoint: traversal.start, using: charge)
+        try Self.charge(endpoint: traversal.end, using: charge)
+    }
+
+    private static func charge(endpoint: OriginalCurveRootEndpoint, using charge: Charge) throws {
+        try checkCancellation(); try charge(1)
+        switch endpoint {
+        case .authored: try charge(1)
+        case .algebraic(let boundary):
+            try charge(9)
+            try Self.charge(curve: .bSpline(boundary.source), using: charge)
+            for value in [boundary.isolationLower, boundary.isolationUpper] {
+                try charge(1)
+                try chargeArray(value.canonicalNumeratorWords.count, using: charge)
+                try chargeArray(value.canonicalDenominatorWords.count, using: charge)
+            }
+            switch boundary.constraint {
+            case .axis, .plane: try charge(6)
+            case .parameterPolynomial(let polynomial):
+                try chargeArray(polynomial.coefficients.count, using: charge)
+                for (power, value) in polynomial.coefficients {
+                    _ = power
+                    try charge(2)
+                    try chargeArray(value.canonicalNumeratorWords.count, using: charge)
+                    try chargeArray(value.canonicalDenominatorWords.count, using: charge)
+                }
+            }
+        }
+    }
+
+    private static func charge(gain: OriginalParameterGain, using charge: Charge) throws {
+        try checkCancellation(); try charge(1)
+        switch gain {
+        case .binary: try charge(1)
+        case .ratio: try charge(2)
+        case .product(let value):
+            try chargeArray(value.factors.count, using: charge)
+            for factor in value.factors { try Self.charge(gain: factor, using: charge) }
+        case .difference(let value):
+            try charge(4)
+            try Self.charge(gain: value.periodicTranslation.parameterGain, using: charge)
         }
     }
 
@@ -462,4 +639,17 @@ package struct GeometryStructuralComparisonWork {
     private static func checkCancellation() throws {
         try Task.checkCancellation()
     }
+    private static func charge(angularTransport: OriginalAngularParameterTransport, using charge: Charge) throws {
+        try charge(1)
+        func coefficient(_ value: ExactRationalCoefficient) throws {
+            try chargeArray(value.canonicalNumeratorWords.count, using: charge)
+            try chargeArray(value.canonicalDenominatorWords.count, using: charge)
+        }
+        switch angularTransport {
+        case .intrinsic: break
+        case .physicalRadians(let gain, let offset): try coefficient(gain); try coefficient(offset)
+        case .physicalRadianArc(let start, let end, _): try coefficient(start); try coefficient(end); try charge(1)
+        }
+    }
+
 }

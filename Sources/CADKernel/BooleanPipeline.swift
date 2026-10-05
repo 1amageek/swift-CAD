@@ -4,7 +4,7 @@ import CADModeling
 import CADTopology
 import CADGeometry
 
-public enum BooleanPipelinePhase: String, Codable, Hashable, Sendable, CaseIterable {
+public enum BooleanPipelinePhase: String, Hashable, Sendable, CaseIterable {
     case operandValidation
     case facePairBroadPhase
     case faceIntersection
@@ -20,6 +20,7 @@ public enum BooleanPipelinePhase: String, Codable, Hashable, Sendable, CaseItera
 /// The concrete evaluator may reject a phase when its declared capability is incomplete,
 /// but it cannot silently bypass validation or return an unvalidated B-rep.
 public struct BooleanPipeline: Sendable {
+    let preparationOwner: BooleanPreparationOwner
     private struct BoundaryContactCacheKey: Hashable {
         let edgeID: EdgeID
         let surfaceID: SurfaceID
@@ -47,6 +48,7 @@ public struct BooleanPipeline: Sendable {
         regionClassifier: any BooleanRegionClassifying = DefaultBooleanRegionClassifier(),
         regionSelector: any BooleanResultRegionSelecting = DefaultBooleanResultRegionSelector()
     ) {
+        preparationOwner = BooleanPreparationOwner()
         self.evaluator = evaluator
         self.intersector = intersector
         self.surfaceIntersector = surfaceIntersector
@@ -67,9 +69,14 @@ public struct BooleanPipeline: Sendable {
         toolSubshapes: [SubshapeID: TopologyReference],
         inputLineage: [SubshapeID: TopologyLineage] = [:],
         materials: BooleanMaterials = .default,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        prepared: PreparedBooleanIntersection? = nil,
+        lineageAdmission: GeometryConversionAdmission? = nil
     ) throws -> EvaluationResult {
         do {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            try prepared?.validateBinding(model: model, targetBodyIDs: targetBodyIDs,
+                toolBodyID: toolBodyID, tolerance: tolerance, owner: preparationOwner)
             let operands = BooleanOperandContext(
                 targetBodyIDs: targetBodyIDs,
                 toolBodyID: toolBodyID,
@@ -83,7 +90,7 @@ public struct BooleanPipeline: Sendable {
             )
             let intersectionGraph: BooleanIntersectionGraph
             do {
-                intersectionGraph = try self.intersectionGraph(
+                intersectionGraph = try prepared?.intersectionGraph ?? self.intersectionGraph(
                     targetBodyIDs: targetBodyIDs,
                     toolBodyID: toolBodyID,
                     operation: operation,
@@ -100,7 +107,7 @@ public struct BooleanPipeline: Sendable {
             }
             let uvSplitGraph: BooleanUVSplitGraph
             do {
-                uvSplitGraph = try self.uvSplitGraph(
+                uvSplitGraph = try prepared?.uvSplitGraph ?? self.uvSplitGraph(
                     intersectionGraph: intersectionGraph,
                     model: model,
                     tolerance: tolerance
@@ -194,15 +201,49 @@ public struct BooleanPipeline: Sendable {
             }
             let topologyLineage: [SubshapeID: TopologyLineage]
             do {
+                // This admission owns lineage only, not preceding Boolean phases.
+                var lineageInputs = subshapes
+                if let lineageAdmission {
+                    for _ in subshapes.keys {
+                        try lineageAdmission.chargeWork()
+                    }
+                    let retainedBytes = subshapes.count.multipliedReportingOverflow(
+                        by: MemoryLayout<(SubshapeID, TopologyReference)>.stride)
+                    guard !retainedBytes.overflow else {
+                        throw GeometryConversionError.resourceLimitExceeded("Boolean lineage input storage overflowed.")
+                    }
+                    try lineageAdmission.chargeStorage(bytes: retainedBytes.partialValue)
+                }
+                for (id, reference) in toolSubshapes {
+                    try CurrentTaskCancellationChecker().checkCancellation()
+                    try lineageAdmission?.chargeWork()
+                    if lineageInputs[id] == nil {
+                        try lineageAdmission?.chargeStorage(bytes: MemoryLayout<(SubshapeID, TopologyReference)>.stride)
+                        lineageInputs[id] = reference
+                    }
+                }
+                var lineageOperands = targetBodyIDs
+                if let lineageAdmission {
+                    for _ in targetBodyIDs { try lineageAdmission.chargeWork() }
+                    let count = targetBodyIDs.count.addingReportingOverflow(1)
+                    let bytes = count.partialValue.multipliedReportingOverflow(by: MemoryLayout<BodyID>.stride)
+                    guard !count.overflow, !bytes.overflow else {
+                        throw GeometryConversionError.resourceLimitExceeded("Boolean lineage operand storage overflowed.")
+                    }
+                    try lineageAdmission.chargeStorage(bytes: bytes.partialValue)
+                }
+                lineageOperands.append(toolBodyID)
                 topologyLineage = try BooleanTopologyLineageBuilder().build(
                     featureID: featureID,
-                    operandBodyIDs: targetBodyIDs + [toolBodyID],
+                    operandBodyIDs: lineageOperands,
                     inputModel: model,
                     resultModel: result.brep,
-                    inputSubshapes: subshapes.merging(toolSubshapes) { current, _ in current },
+                    inputSubshapes: lineageInputs,
                     outputSubshapes: result.subshapes,
                     inputLineage: inputLineage,
-                    tolerance: tolerance
+                    tolerance: tolerance,
+                    retainedLineage: result.lineage,
+                    admission: lineageAdmission
                 )
             } catch {
                 throw contextualized(
@@ -211,9 +252,8 @@ public struct BooleanPipeline: Sendable {
                     tolerance: tolerance
                 )
             }
-            for (subshapeID, entry) in topologyLineage where result.lineage[subshapeID] == nil {
-                result.lineage[subshapeID] = entry
-            }
+            result.lineage = topologyLineage
+            try CurrentTaskCancellationChecker().checkCancellation()
             return result
         } catch {
             throw KernelError.wrapping(
@@ -294,6 +334,53 @@ public struct BooleanPipeline: Sendable {
 
     /// Builds the complete geometric intersection graph without accepting an
     /// evaluator-specific empty-intersection shortcut.
+    // FIXME(INCOMPLETE_IMPLEMENTATION): This caller-admitted graph route meters
+    // original graph/bounds/contact visits and forwards bounded SSI admission.
+    // Geometry's retained coefficient allocation accounting and complete critical,
+    // coincident and unbounded SSI producers remain required before whole Q2/B2
+    // resource/completeness guarantees can be claimed. No legacy producer fallback
+    // is permitted in this route.
+    public func completeIntersectionGraph(
+        targetBodyIDs: [BodyID], toolBodyID: BodyID, operation: BooleanOperation,
+        validatedModel: ValidatedBRepModel,
+        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable (Int) throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int = 32
+    ) throws -> BooleanIntersectionGraph {
+        let tolerance = validatedModel.tolerance
+        let admission = try BooleanGraphAdmission(maximumSpanCount: maximumSpanCount,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+            consumeWork: consumeWork, consumeStorage: consumeStorage, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth)
+        try admission.step()
+        guard validatedModel.validationLevel != .modeling, !targetBodyIDs.isEmpty else {
+            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
+                message: "Original graph construction requires an exact immutable model and target operands.")
+        }
+        let model = validatedModel.model
+        var operands: Set<BodyID> = [toolBodyID]
+        for bodyID in targetBodyIDs {
+            try admission.step()
+            guard operands.insert(bodyID).inserted else {
+                throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
+                    message: "Original graph operands must be distinct.")
+            }
+        }
+        for bodyID in operands {
+            try admission.step()
+            guard model.bodies[bodyID] != nil else {
+                throw KernelError(phase: .validation, code: .missingReference, tolerance: tolerance,
+                    message: "An original graph operand is missing from its immutable model.")
+            }
+        }
+        let pairs = try facePairBroadPhase(targetBodyIDs: targetBodyIDs, toolBodyID: toolBodyID,
+            operation: operation, in: model, tolerance: tolerance, admission: admission)
+        let graph = try faceIntersection(facePairs: pairs, in: model,
+            tolerance: tolerance, admission: admission)
+        try graph.validate(in: model, tolerance: tolerance, consumeWork: consumeWork)
+        try admission.step()
+        return graph
+    }
+
     func completeIntersectionGraph(
         targetBodyIDs: [BodyID],
         toolBodyID: BodyID,
@@ -320,6 +407,84 @@ public struct BooleanPipeline: Sendable {
             tolerance: tolerance
         )
         try graph.validate(in: model, tolerance: tolerance)
+        return graph
+    }
+
+    /// Prepares complete original intersections for explicitly selected finite faces.
+    /// Incident faces may share a body; their original ownership and topology are retained.
+    public func completeIntersectionGraph(
+        facePairs: [BooleanFacePairCandidate],
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> BooleanIntersectionGraph {
+        try CurrentTaskCancellationChecker().checkCancellation()
+        try tolerance.validate()
+        try model.validate(tolerance: tolerance)
+        guard Set(facePairs).count == facePairs.count,
+              facePairs.allSatisfy({ $0.targetFaceID != $0.toolFaceID }) else {
+            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
+                message: "Complete finite-face preparation requires distinct unique face pairs.")
+        }
+        for pair in facePairs {
+            guard model.faces[pair.targetFaceID] != nil, model.faces[pair.toolFaceID] != nil else {
+                throw KernelError(phase: .validation, code: .missingReference, tolerance: tolerance,
+                    message: "A requested original intersection face is missing.")
+            }
+        }
+        let ordered = facePairs.sorted {
+            $0.targetFaceID == $1.targetFaceID ? $0.toolFaceID < $1.toolFaceID : $0.targetFaceID < $1.targetFaceID
+        }
+        let graph = try faceIntersection(facePairs: ordered, in: model, tolerance: tolerance)
+        try graph.validate(in: model, tolerance: tolerance)
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return graph
+    }
+
+    /// Complete authored finite-face graph bound to one immutable admitted source.
+    public func completeIntersectionGraph(
+        facePairs: [BooleanFacePairCandidate], validatedModel: ValidatedBRepModel,
+        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable (Int) throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int = 32
+    ) throws -> BooleanIntersectionGraph {
+        let tolerance = validatedModel.tolerance
+        let admission = try BooleanGraphAdmission(maximumSpanCount: maximumSpanCount,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+            consumeWork: consumeWork, consumeStorage: consumeStorage, tolerance: tolerance, maximumAlgebraicDepth: maximumAlgebraicDepth)
+        try admission.step()
+        guard validatedModel.validationLevel != .modeling else {
+            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
+                message: "Finite-face preparation requires the immutable exact original source.")
+        }
+        let model = validatedModel.model
+        var seen: Set<BooleanFacePairCandidate> = []
+        for pair in facePairs {
+            try admission.reserve(count: 1, stride: MemoryLayout<BooleanFacePairCandidate>.stride)
+            guard pair.targetFaceID != pair.toolFaceID, seen.insert(pair).inserted else {
+                throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
+                    message: "Finite-face preparation requires distinct unique original face pairs.")
+            }
+            try admission.step()
+            guard model.faces[pair.targetFaceID] != nil, model.faces[pair.toolFaceID] != nil else {
+                throw KernelError(phase: .validation, code: .missingReference, tolerance: tolerance,
+                    message: "A finite-face source pair is absent from its immutable original model.")
+            }
+        }
+        try admission.reserve(count: facePairs.count, stride: MemoryLayout<BooleanFacePairCandidate>.stride)
+        var ordered = facePairs
+        try ordered.sort { first, second in
+            try admission.step()
+            return first.targetFaceID == second.targetFaceID
+                ? first.toolFaceID < second.toolFaceID : first.targetFaceID < second.targetFaceID
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): This finite-face factory forwards
+        // actual original graph/SSI callbacks and reuses the exact source receipt.
+        // Complete lower SSI critical/coincident/unbounded coverage and its
+        // temporary byte producers remain required for the whole query guarantee.
+        let graph = try faceIntersection(facePairs: ordered, in: model,
+            tolerance: tolerance, admission: admission)
+        try graph.validate(in: model, tolerance: tolerance, consumeWork: consumeWork)
+        try admission.step()
         return graph
     }
 
@@ -404,26 +569,41 @@ public struct BooleanPipeline: Sendable {
         toolBodyID: BodyID,
         operation: BooleanOperation,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: BooleanGraphAdmission? = nil
     ) throws -> [BooleanFacePairCandidate] {
-        let toolFaceIDs = try faceIDs(for: toolBodyID, in: model, tolerance: tolerance)
+        let toolFaceIDs = try faceIDs(for: toolBodyID, in: model, tolerance: tolerance, admission: admission)
+        var preparedToolBounds: [FaceID: BoundingBox3D] = [:]
+        if let admission {
+            for faceID in toolFaceIDs {
+                try admission.reserve(count: 1, stride: MemoryLayout<FaceID>.stride + MemoryLayout<BoundingBox3D>.stride)
+                preparedToolBounds[faceID] = try bounds(for: faceID, in: model,
+                    tolerance: tolerance, admission: admission)
+            }
+        }
         var candidates: [BooleanFacePairCandidate] = []
         for targetBodyID in targetBodyIDs {
+            try admission?.step()
             for targetFaceID in try faceIDs(
                 for: targetBodyID,
                 in: model,
-                tolerance: tolerance
+                tolerance: tolerance,
+                admission: admission
             ) {
+                try admission?.step()
                 let targetBounds = try bounds(
                     for: targetFaceID,
                     in: model,
-                    tolerance: tolerance
+                    tolerance: tolerance,
+                    admission: admission
                 )
                 for toolFaceID in toolFaceIDs {
-                    let toolBounds = try bounds(
+                    try admission?.step()
+                    let toolBounds = try preparedToolBounds[toolFaceID] ?? bounds(
                         for: toolFaceID,
                         in: model,
-                        tolerance: tolerance
+                        tolerance: tolerance,
+                        admission: admission
                     )
                     guard targetBounds.intersects(
                         toolBounds,
@@ -431,6 +611,7 @@ public struct BooleanPipeline: Sendable {
                     ) else {
                         continue
                     }
+                    try admission?.reserve(count: 1, stride: MemoryLayout<BooleanFacePairCandidate>.stride)
                     candidates.append(BooleanFacePairCandidate(
                         targetFaceID: targetFaceID,
                         toolFaceID: toolFaceID
@@ -438,7 +619,9 @@ public struct BooleanPipeline: Sendable {
                 }
             }
         }
-        return candidates.sorted {
+        try admission?.reserve(count: candidates.count, stride: MemoryLayout<BooleanFacePairCandidate>.stride)
+        return try candidates.sorted {
+            try admission?.step()
             if $0.targetFaceID != $1.targetFaceID {
                 return $0.targetFaceID < $1.targetFaceID
             }
@@ -449,7 +632,8 @@ public struct BooleanPipeline: Sendable {
     private func faceIntersection(
         facePairs: [BooleanFacePairCandidate],
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: BooleanGraphAdmission? = nil
     ) throws -> BooleanIntersectionGraph {
         var contacts: [BooleanBoundaryContact] = []
         var faceIntersections: [BooleanFaceSurfaceIntersection] = []
@@ -459,21 +643,27 @@ public struct BooleanPipeline: Sendable {
         var surfaceIntersectionCache: [
             Surface3D: [Surface3D: [SurfaceSurfaceIntersection]]
         ] = [:]
+        var admittedSurfaceCache: [SurfaceID: [SurfaceID: [SurfaceSurfaceIntersection]]] = [:]
         for pair in facePairs {
+            try admission?.step()
             let targetBoundaryContacts = try boundaryContacts(
                 curveFaceID: pair.targetFaceID,
                 surfaceFaceID: pair.toolFaceID,
                 in: model,
                 cache: &boundaryContactCache,
-                tolerance: tolerance
+                tolerance: tolerance,
+                admission: admission
             )
             let toolBoundaryContacts = try boundaryContacts(
                 curveFaceID: pair.toolFaceID,
                 surfaceFaceID: pair.targetFaceID,
                 in: model,
                 cache: &boundaryContactCache,
-                tolerance: tolerance
+                tolerance: tolerance,
+                admission: admission
             )
+            try admission?.reserve(count: targetBoundaryContacts.count, stride: MemoryLayout<BooleanBoundaryContact>.stride)
+            try admission?.reserve(count: toolBoundaryContacts.count, stride: MemoryLayout<BooleanBoundaryContact>.stride)
             contacts.append(contentsOf: targetBoundaryContacts)
             contacts.append(contentsOf: toolBoundaryContacts)
             guard let targetFace = model.faces[pair.targetFaceID],
@@ -488,13 +678,40 @@ public struct BooleanPipeline: Sendable {
                 )
             }
             let intersections: [SurfaceSurfaceIntersection]
-            let boundaryPoints = (targetBoundaryContacts + toolBoundaryContacts).flatMap {
-                contact -> [Point3D] in
-                guard case let .points(values) = contact.geometry else { return [] }
-                return values.map(\.point)
+            var boundaryPoints: [Point3D] = []
+            try admission?.reserve(count: targetBoundaryContacts.count + toolBoundaryContacts.count,
+                stride: MemoryLayout<BooleanBoundaryContact>.stride)
+            for contact in targetBoundaryContacts + toolBoundaryContacts {
+                try admission?.step()
+                guard case let .points(values) = contact.geometry else { continue }
+                for value in values {
+                    try admission?.reserve(count: 1, stride: MemoryLayout<Point3D>.stride)
+                    boundaryPoints.append(value.point)
+                }
             }
             do {
-                if let boundedIntersections = try boundedSurfaceIntersector.intersections(
+                if let admission {
+                    if let bounded = try boundedSurfaceIntersector.intersections(first: targetSurface,
+                        second: toolSurface, boundaryPoints: boundaryPoints, options: .init(),
+                        tolerance: tolerance, maximumSpanCount: admission.maximumSpanCount,
+                        maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+                        remainingSourceDepth: admission.remainingSourceDepth,
+                        consumeWork: { try admission.step() }, consumeStorage: admission.consumeStorage, maximumAlgebraicDepth: admission.maximumAlgebraicDepth) {
+                        intersections = bounded
+                    } else if let cached = admittedSurfaceCache[targetFace.surfaceID]?[toolFace.surfaceID] {
+                        intersections = cached
+                    } else {
+                        intersections = try surfaceIntersector.intersections(first: targetSurface,
+                            second: toolSurface, options: .init(), tolerance: tolerance,
+                            maximumSpanCount: admission.maximumSpanCount,
+                            maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+                            remainingSourceDepth: admission.remainingSourceDepth,
+                            consumeWork: { try admission.step() }, consumeStorage: admission.consumeStorage, maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+                        try admission.reserve(count: intersections.count, stride: MemoryLayout<SurfaceSurfaceIntersection>.stride)
+                        try admission.reserve(count: 2, stride: MemoryLayout<SurfaceID>.stride)
+                        admittedSurfaceCache[targetFace.surfaceID, default: [:]][toolFace.surfaceID] = intersections
+                    }
+                } else if let boundedIntersections = try boundedSurfaceIntersector.intersections(
                     first: targetSurface,
                     second: toolSurface,
                     boundaryPoints: boundaryPoints,
@@ -530,11 +747,14 @@ public struct BooleanPipeline: Sendable {
                     message: "Boolean face-pair intersection failed for target face \(pair.targetFaceID) on surface \(targetFace.surfaceID) and tool face \(pair.toolFaceID) on surface \(toolFace.surfaceID): \(wrapped.message)"
                 )
             }
-            faceIntersections.append(contentsOf: intersections.map {
-                BooleanFaceSurfaceIntersection(facePair: pair, geometry: $0)
-            })
+            for intersection in intersections {
+                try admission?.reserve(count: 1, stride: MemoryLayout<BooleanFaceSurfaceIntersection>.stride)
+                faceIntersections.append(BooleanFaceSurfaceIntersection(facePair: pair, geometry: intersection))
+            }
         }
-        let orderedContacts = contacts.sorted {
+        try admission?.reserve(count: contacts.count, stride: MemoryLayout<BooleanBoundaryContact>.stride)
+        let orderedContacts = try contacts.sorted {
+            try admission?.step()
             if $0.curveFaceID != $1.curveFaceID { return $0.curveFaceID < $1.curveFaceID }
             if $0.surfaceFaceID != $1.surfaceFaceID { return $0.surfaceFaceID < $1.surfaceFaceID }
             return $0.edgeID < $1.edgeID
@@ -551,7 +771,8 @@ public struct BooleanPipeline: Sendable {
         surfaceFaceID: FaceID,
         in model: BRepModel,
         cache: inout [BoundaryContactCacheKey: BoundaryContactCacheEntry],
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: BooleanGraphAdmission? = nil
     ) throws -> [BooleanBoundaryContact] {
         guard let curveFace = model.faces[curveFaceID],
               let surfaceFace = model.faces[surfaceFaceID],
@@ -564,6 +785,7 @@ public struct BooleanPipeline: Sendable {
             )
         }
         let edgeIDs = try Set(curveFace.loops.flatMap { loopID -> [EdgeID] in
+            try admission?.step()
             guard let loop = model.loops[loopID] else {
                 throw KernelError(
                     phase: .topology,
@@ -572,16 +794,24 @@ public struct BooleanPipeline: Sendable {
                     message: "Boolean face-pair intersection references a missing loop."
                 )
             }
-            return loop.coedges.map(\.edgeID)
-        }).sorted()
+            return try loop.coedges.map { coedge in
+                try admission?.step()
+                return coedge.edgeID
+            }
+        }).sorted { first, second in
+            try admission?.step()
+            return first < second
+        }
         var contacts: [BooleanBoundaryContact] = []
         for edgeID in edgeIDs {
+            try admission?.step()
             let key = BoundaryContactCacheKey(
                 edgeID: edgeID,
                 surfaceID: surfaceFace.surfaceID
             )
             if let cached = cache[key] {
                 if case let .geometry(geometry) = cached {
+                    try admission?.reserve(count: 1, stride: MemoryLayout<BooleanBoundaryContact>.stride)
                     contacts.append(BooleanBoundaryContact(
                         edgeID: edgeID,
                         curveFaceID: curveFaceID,
@@ -604,15 +834,26 @@ public struct BooleanPipeline: Sendable {
                 curveRange: try curveRange(for: edge, curve: curve, in: model, tolerance: tolerance)
             )
             do {
-                let intersections = try intersector.intersections(
+                let intersections: [CurveSurfaceIntersection]
+                if let admission {
+                    intersections = try intersector.intersections(curve: curve, surface: surface,
+                        options: options, tolerance: tolerance,
+                        maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+                        consumeWork: admission.consumeWork)
+                } else {
+                    intersections = try intersector.intersections(
                     curve: curve,
                     surface: surface,
                     options: options,
                     tolerance: tolerance
                 )
+                }
                 if intersections.isEmpty == false {
                     let geometry = BooleanBoundaryContactGeometry.points(intersections)
+                    try admission?.reserve(count: 1, stride: MemoryLayout<BoundaryContactCacheKey>.stride + MemoryLayout<BoundaryContactCacheEntry>.stride)
+                    try admission?.reserve(count: intersections.count, stride: MemoryLayout<CurveSurfaceIntersection>.stride)
                     cache[key] = .geometry(geometry)
+                    try admission?.reserve(count: 1, stride: MemoryLayout<BooleanBoundaryContact>.stride)
                     contacts.append(BooleanBoundaryContact(
                         edgeID: edgeID,
                         curveFaceID: curveFaceID,
@@ -620,10 +861,13 @@ public struct BooleanPipeline: Sendable {
                         geometry: geometry
                     ))
                 } else {
+                    try admission?.reserve(count: 1, stride: MemoryLayout<BoundaryContactCacheKey>.stride + MemoryLayout<BoundaryContactCacheEntry>.stride)
                     cache[key] = .empty
                 }
             } catch let error as KernelError where error.code == .nonDiscreteIntersection {
+                try admission?.reserve(count: 1, stride: MemoryLayout<BoundaryContactCacheKey>.stride + MemoryLayout<BoundaryContactCacheEntry>.stride)
                 cache[key] = .geometry(.coincident)
+                try admission?.reserve(count: 1, stride: MemoryLayout<BooleanBoundaryContact>.stride)
                 contacts.append(BooleanBoundaryContact(
                     edgeID: edgeID,
                     curveFaceID: curveFaceID,
@@ -697,7 +941,7 @@ public struct BooleanPipeline: Sendable {
                 direction: image.transform.applying(to: source.direction)
             )
         case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .parameterImage:
             return nil
         }
     }
@@ -705,7 +949,8 @@ public struct BooleanPipeline: Sendable {
     private func faceIDs(
         for bodyID: BodyID,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: BooleanGraphAdmission? = nil
     ) throws -> [FaceID] {
         guard let body = model.bodies[bodyID] else {
             throw KernelError(
@@ -717,6 +962,7 @@ public struct BooleanPipeline: Sendable {
         }
         var faceIDs: [FaceID] = []
         for shellID in body.shellIDs {
+            try admission?.step()
             guard let shell = model.shells[shellID] else {
                 throw KernelError(
                     phase: .topology,
@@ -725,20 +971,38 @@ public struct BooleanPipeline: Sendable {
                     message: "Boolean body references a missing shell."
                 )
             }
-            faceIDs.append(contentsOf: shell.faceIDs)
+            for faceID in shell.faceIDs {
+                try admission?.reserve(count: 1, stride: MemoryLayout<FaceID>.stride)
+                faceIDs.append(faceID)
+            }
         }
-        return faceIDs.sorted()
+        try admission?.reserve(count: faceIDs.count, stride: MemoryLayout<FaceID>.stride)
+        return try faceIDs.sorted { first, second in
+            try admission?.step()
+            return first < second
+        }
     }
 
     private func bounds(
         for faceID: FaceID,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: BooleanGraphAdmission? = nil
     ) throws -> BoundingBox3D {
-        try BRepFaceBoundingBoxBuilder().bounds(
+        if let admission {
+            return try BRepFaceBoundingBoxBuilder().bounds(for: faceID, in: model, tolerance: tolerance,
+                maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+                remainingSourceDepth: admission.remainingSourceDepth, maximumAlgebraicDepth: admission.maximumAlgebraicDepth,
+                consumeWork: admission.consumeWork, consumeStorage: admission.consumeStorage)
+        }
+        return try BRepFaceBoundingBoxBuilder().bounds(
             for: faceID,
             in: model,
             tolerance: tolerance
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanPipelinePhase: Codable {}
+#endif

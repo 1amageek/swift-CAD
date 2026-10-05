@@ -40,6 +40,10 @@ and the invocation's preparation tolerance. Topology supplies a synchronous,
 non-escaping work callback; geometry retains no callback or independent budget.
 
 ## Contracts and Invariants
+Original polyline source rails are admitted by raw point count and visits while
+retaining their exact Euclidean clock. Whole-rail derivative order is zero
+without an original join theorem; no fitted tensor or numeric prefix becomes
+their source authority.
 - Higher-order offset composition consumes an immutable
   `SurfaceAreaOriginalCoefficientReceipt` issued by the original native-span
   owner. That owner validates original source, exact preparation tolerance,
@@ -642,11 +646,11 @@ consumer gaps; it does not add adjacent intersection-generation features.
 
 | Required input family | Existing consumer evidence | Remaining public completion evidence |
 |---|---|---|
-| B-spline, including rational, nonclamped, periodic and C0 native spans | Polynomial, periodic and C0 rectangle/fan/hole fixtures exist; ordinary `.spline` still prepares Cartesian decomposed patches | Route the ordinary partition through original coefficient authority; one independent rational nonclamped area/XYZ case and affected existing native-domain cases |
+| B-spline, including rational, nonclamped, periodic and C0 native spans | Polynomial, periodic and C0 rectangle/fan/hole fixtures exist; ordinary `.spline` now has an original homogeneous coefficient source path, awaiting verification | One independent rational nonclamped area/XYZ case and affected existing native-domain cases on the new original-owner route |
 | Genuine and nested B-spline offsets | Native19 proves original requested-order derivatives, rational nested and curved forward/reverse public area/XYZ under unchanged tolerances and shared work; existing single polynomial offset integrals | Periodic lift and C0 owning-span public area/XYZ cases |
 | Ruled surfaces | Smooth direct rails and original same-basis/denominator C0 tensor fixtures | Original piecewise unequal denominator or basis rails with independent area/XYZ; current explicit admission marker remains open |
 | Rolling-ball surfaces | Smooth rails and original C0 constant-radial same-basis quarter-cylinder proof | Original piecewise varying radial or unequal denominator rails with independent area/XYZ; current explicit admission marker remains open |
-| Required trim/support domains | Numeric trims, holes/reversal/rigid fractions, affine and open original implicit graph family proofs | Periodic/multispan, mixed-coordinate/direction, closed and procedural implicit chart admission remains explicitly incomplete; public integrals must consume original supplied charts |
+| Required trim/support domains | Numeric trims, holes/reversal/rigid fractions, affine and open original implicit graph family proofs; C0/C1 numeric spline trims now have an original one-sided/value-only source route awaiting runtime evidence | New piecewise numeric chart public area/XYZ evidence; periodic/multispan, mixed-coordinate/direction, closed and procedural implicit chart admission remains explicitly incomplete; public integrals must consume original supplied charts |
 | Failure and target authority | Shared query work, control admission, depth and cancellation proofs; immutable retained coefficient state | Preserve typed failures and source/tolerance/side/lift ownership; Native, normal WASM, Embedded and main integration are separate terminal obligations |
 
 Native verification of this higher-offset snapshot passes 14 declarations and
@@ -655,3 +659,247 @@ and XYZ centroid oracles, and an original rational nonclamped translation law.
 The original 262144 query-work ceiling, precision, cancellation and resource
 assertions are unchanged. The public nested-offset cases now publish certified
 measurements; this evidence does not close the remaining rows or other targets.
+
+### Original Coefficient Authority for Ordinary Spline Integrands
+
+Ordinary B-spline and structurally exact ruled-tensor preparation retain the
+existing original homogeneous native-span owner rather than Cartesian extracted
+patches. This applies to rational, nonclamped and periodic sources as well as
+clamped sources. The existing preparation admission runs before lower allocation;
+the original closed native cover and each requested-order Taylor provider use
+the same caller work callback. Order-three providers consume immutable original
+coefficient receipts, including their one-sided span and exact periodic lift.
+
+Selected rectangle and fan domains retain their original source and span index.
+Unselected boxes crossing a non-C1 knot publish value-only density bounds;
+smooth pieces retain their original derivatives. Closed knot values may include
+both one-sided owners, and a periodic seam is never replaced by a rounded patch.
+The physical surface and supplied trim are unchanged. Centered fan evaluation
+passes the same nonescaping work owner into both source evaluations and their
+fallback path. No local budget, tolerance, depth limit or cancellation policy is
+introduced. Source implementation alone is not public integration evidence;
+affected original rational/nonclamped, periodic, C0, trim/hole/orientation and
+area/XYZ centroid paths still require later target-specific verification.
+
+### Piecewise Original Numeric Trim Charts
+
+C0 and C1 B-spline parameter curves retain their original degree, knots,
+positive weights and XY coefficients. Their integral-only constant-V tensor
+lift uses two identical original rows, so partition of unity proves that its
+XY value and every U derivative are exactly those of the supplied trim. No
+fit, knot insertion, Cartesian extraction or geometry replacement is used.
+The lift's actual scalar/control ownership and original native preparation are
+admitted through the query's existing callback before allocation.
+
+The original normalized fraction maps to the complete native U interval with
+closed endpoints retained exactly. Each positive-width owning native span
+provides a one-sided smooth jet. A box intersecting multiple original spans
+publishes only the union of UV values and first tangents, never a Taylor jet
+across a knot. Singleton joins retain both one-sided owners. These proof kinds
+feed the existing signed fan and area/XYZ first-moment algebra; hasNativeJoins
+routes aggregate uncertainty to the same topology adaptive owner. Every original
+fraction remains in the integration measure, with original hole/orientation,
+absolute/relative/centroid goals, work, depth and cancellation unchanged.
+Rigid affine, reversed and translated wrappers compose the retained proof kind
+without converting the source curve. Discontinuous or invalid original knots
+remain typed input failures. General projected/non-affine mapped charts remain
+explicitly incomplete. Build and public runtime evidence are deferred.
+
+## Independent Original Ruled Rail Partitions
+
+Ruled rails with different original degrees, knot vectors or positive rational
+weights retain separate prepared curve owners. `SurfaceAreaNativeRuledPartition`
+forms the common native U partition from both original rail knots and evaluates
+`A(u)+(B(u)-A(u))*v` with each original one-sided jet. It does not author a
+same-denominator tensor or change the rail parameterization. Rectangle and
+exact constant-U fan domains expose the same partition to the area owner.
+On an owning U cell the complete third-order product rule is valid; an interval
+crossing a join reports value-only density bounds. Preparation, native knot
+lifts, curve queries and every output owner use the caller's existing work
+counter. Periodic rails enumerate all lifted knots incident to the ruled
+surface's finite actual U domain; seam sides remain separate owners.
+
+## Independent Original Rolling-Ball Rails
+
+General piecewise rolling-ball area preparation partitions U by the union of
+all three original rail knot boundaries. Each rail retains its own homogeneous
+coefficients and denominator. Every positive native cell obtains its complete
+one-sided closed jets before composing the original minor-arc rational section.
+The RollingBall owner's explicit-jet contract proves normalized radials, positive
+section denominator and complete finite third derivatives. Across unresolved
+joins, only density/moment value hulls are exposed; within an owning cell, the
+original derivatives authorize density gradients and Hessians. No constant
+radial, common basis or shared rail denominator is assumed by this route.
+
+The caller's cumulative work callback owns preparation, span visits and section
+composition. Original rectangle and exact constant-U fan partition coverage is
+retained. Other fans use complete piecewise value hulls, not a fabricated smooth
+jet. Source failure and cancellation propagate to the area integrator.
+
+## Original Monomial Volume Flux
+
+Prepared original surface jets also bound the ten divergence-theorem volume
+moment fluxes about a supplied reference point. Exponent order is volume, X, Y,
+Z, XX, YY, ZZ, XY, XZ, YZ. Each field is
+`(x-reference.x)^(a+1) * (y-reference.y)^b * (z-reference.z)^c *
+ (Su cross Sv).x / (a+1)`.
+Rectangle and signed boundary-fan pullbacks retain the existing original native
+cell and chart authority. Source third derivatives establish flux Hessians;
+lower-order/join receipts publish only the derivatives they actually own.
+The shared caller work callback pays algebra before composition. No sampled
+surface normal, fitted chart or unsigned area density supplies volume authority.
+
+### Original volume fan measure ownership
+
+Volume fan bounds consume the same geometry-issued native fan domain as area
+bounds. The retained original pcurve, anchor and radial subinterval must match
+before evaluating any flux. Issuance proves that the complete fan measure lies
+in the owning native rectangle; the exact radial cuts form the whole original
+fan without overlaps or gaps. Owning-jet restrictions only choose its original
+one-sided polynomial and never shorten or reinterpret the integration measure.
+A general fan without this receipt uses the complete piecewise value enclosure
+and receives no smooth Taylor authority across native joins.
+
+### Requested original offset Taylor order
+
+Offset Taylor composition accepts a requested result order of at least three.
+The retained original source must provide exactly that order plus one genuine
+normal differentiation per retained offset layer. Every layer reduces the
+actual Taylor order by one; no omitted source derivative is padded. Existing
+area callers retain the default order three. Silhouette callers supply order
+four and the same cumulative work owner.
+
+### Original higher-jet value port
+
+Package Taylor scalar/vector values expose immutable coefficient reads and their
+original tolerance/order to sibling lower algorithms. Coefficient storage and
+construction remain owned here; visibility does not introduce a new budget or
+a numeric source authority.
+
+Original image parameter charts prepare their original child chart once, retain
+its root restrictions and derivative-join authority, and apply exact inverse
+ratio/axis mapping to that child proof. Value-only original joins stay value-only;
+spatial image coefficients never supply a pcurve authority by sampled inversion.
+
+### Original Signed Flux Integration Port
+
+`SurfaceAreaParameterChartEncloser.signedFluxIntegrationBounds` exposes the
+original value interval of `u*v'`, its same-owner closed midpoint interval,
+and its second derivative `u''*v' + 2*u'*v'' + u*v'''`. Smooth original
+chart cells permit midpoint quadrature with a whole second-order remainder.
+Native joins publish value-only bounds and no midpoint derivative authority.
+The caller owns interval subdivision, depth and cumulative work; this port
+retains no separate allowance and all nested image source admission recurses
+through the original pcurve and support values.
+
+### Caller-Admitted Original Native Partitions
+
+Native rectangle and fan domain producers accept the composing depth ceiling and
+one original visit callback. Fixed native-owner scans, exact radial cut checks,
+allocation publication, sorting comparisons and gap-free coverage comparisons
+admit a depth-zero visit before work. They introduce no subdivision or new
+allowance. Retained owner/domain/radial receipts and existing maximumCount are
+unchanged; facade remapping to the original trim is charged per retained domain.
+Legacy convenience entries retain their existing cancellation-only policy.
+
+### Original Unique Pole Offset Normal
+
+Offset Taylor composition may consume an explicit first source normal Taylor
+jet only after the caller has admitted the whole original collapsed boundary's
+unique oriented normal authority. Its order is exactly one less than the raw
+source order. That jet replaces the first cross-product normalization alone;
+subsequent offset layers must establish their own original normal regularity.
+A nonzero quotient on one selected panel does not establish uniqueness or
+authorize a cone-like apex offset. All coefficient work uses the same callback.
+
+
+### Selected Native Taylor Byte Admission
+
+The original coefficient Taylor encloser forwards an optional synchronous byte
+callback through derivative-net retention, Bernstein restriction scratch/output,
+scalar Taylor result construction and quotient arithmetic. The checked reservation
+precedes each concrete array allocation/COW scratch copy; work and bytes are
+separate units. Legacy nil callbacks preserve the previous contract. Selected
+native closed-jet callers may provide a nonescaping byte callback borrowed only
+for the synchronous query, without storing it in immutable source receipts.
+These ports do not establish complete allocation accounting for unrelated
+implicit, image or general surface-composition queries.
+
+Vector Taylor arithmetic accepts the same optional byte callback as scalar arithmetic. Every allocating scalar result in addition, scaling, multiplication, cross products, normalization, truncation and differentiation forwards that callback before allocation; vector wrappers retain no independent byte policy.
+
+Retagging a Taylor field changes only validated tolerance metadata and shares the existing immutable coefficient array. It performs no coefficient transformation, allocation, or geometric acceptance. A spatial image retags transported fields with target physical tolerance after evaluating the source with its local calculation policy. Subsequent allocating arithmetic retains its normal byte admission.
+
+Offset Taylor composition accepts the composing optional BYTE callback and forwards it to every scalar coefficient constant, differentiated tangent, cross product, normal normalization, truncation and scaled sum allocation. Supported original higher providers remain responsible for their own preparation and query bytes. This allocation contract changes no offset distance, translation premise, unique-pole normal authority or requested source order.
+
+Taylor constant-term replacement admits the actual retained coefficient count and visits before COW mutation. The immutable input backing remains shared until that mutation; the replacement allocation is charged through the composing optional byte callback. Metadata retagging remains a shared immutable operation.
+
+### Bounded Area Preparation and Native Chart Storage
+
+Prepared area and UV-chart producers compose independent source, algebra and subdivision ceilings and optional original BYTE requests. Native chart preparation retains one-sided original coefficient owners; no derived tensor is promoted to authored support authority. Conversion rows, native-span buffers and retained Taylor providers reserve their concrete typed payload before allocation. Query Taylor scratch forwards the same BYTE callback, while callbacks remain invocation arguments rather than retained geometric identity. Generic implicit and inverse-chart producers remain responsible for their original root localization and source admission; unsupported lower policies cannot become successful integration receipts.
+
+### Original Translation Preparation Admission
+
+Selected integration preparation proves common control displacements with exact
+rational original coordinates. Each coefficient operation and retained limb
+allocation borrows the composing work and optional BYTE callbacks. Source
+recursion and algebra depth are separate; a proof cannot inherit an algebra
+ceiling from spatial subdivision. Weight, knot and control comparisons visit
+the original buffers without manufacturing translated row arrays. A successful
+translation receipt changes neither original rails nor physical tolerances.
+
+Original plane-derivative supports use the generic corrected closed-jet path.
+Their raw construction, final boundary root spans and constraint supports remain
+part of dimension admission. Adding the smooth correction never certifies a
+smooth raw native join; the original rail continuity remains the prerequisite.
+
+Original drafted curves and walls retain the directed generator, raw normal,
+axis, pull, physical angle and authored heights. Generic original closed jets
+are their geometry authority; analytic and native construction shortcuts
+decline this family. Source dimension admission visits the generator under the
+existing nesting ceiling. Area smoothness uses the original drafted first-order
+continuity issuer over the complete query and never infers higher continuity
+from a derivative hull or a fitted native candidate.
+
+General rolling-ball fixed jet composition receives the same invocation work
+and optional BYTE callback as its original owning-rail queries. Its composition
+scratch consists of fixed value fields; no dimension-derived nominal work or
+allocation fee substitutes for the lower operation visits. Original rail-query
+buffers and returned partition records remain separately caller-admitted.
+
+The ordinary fan-bound entry accepts optional BYTE admission and forwards it
+through chart proof, original surface ownership and returned four-field buffers.
+Value-only native joins use fixed component expressions rather than temporary
+coordinate arrays. Returned and merged field payloads are admitted before
+allocation; this is requested typed storage, not allocator-capacity evidence.
+
+Native rectangle/fan partition methods receive optional BYTE admission through
+the prepared integration facade; original domain outputs and chart-bound
+remappings are separately admitted. Nested offset preparation visits every
+source layer, including zero-distance layers, and applies the existing source
+nesting ceiling independently of its retained exact algebra capability.
+
+Original guide traversal chains retain their exact station partition and every
+raw directed root traversal in area preparation. Dimension admission traverses
+the raw sources under the existing nesting/work policy. Derivative-order
+selection consumes only the constructor-retained exact continuity order; a hull
+across distinct pieces does not improve that order.
+
+Iso-image endpoint corrections and exact rectangular translation elimination
+forward the composing work and optional BYTE callback into every original
+surface query. Endpoint choices are fixed fields rather than temporary arrays;
+returned four-moment and union buffers are admitted before allocation. This
+retains the original fan measure and translation authority and does not certify
+physical allocator capacity or unresolved chart/source-family accounting.
+
+Original guide endpoint corrections retain their raw guide RootSpan and both
+section endpoint RootSpans in area preparation. Their smooth correction basis
+does not improve continuity across a guide join. Dimension admission descends
+each original source rather than a candidate native construction.
+
+The exact affine implicit-chart solver retains its three dependent columns and
+cross products as fixed value fields. It computes selected U/V coefficient pairs
+without dynamic column/index/coefficient arrays. Each original subtraction,
+product, sum, quotient and coordinate read invokes the composing work owner
+before evaluation; the fixed value composition has no dynamic scratch BYTE
+request. Original graph/source admission and complete non-affine, closed or
+mixed-coordinate graph charts remain separate producer obligations.

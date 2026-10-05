@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceParameterBox: Codable, Equatable, Hashable, Sendable {
+public struct SurfaceParameterBox: Equatable, Hashable, Sendable {
   public let u: ScalarInterval
   public let v: ScalarInterval
 
@@ -59,3 +59,7 @@ public struct SurfaceParameterBox: Codable, Equatable, Hashable, Sendable {
     }
   }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceParameterBox: Codable {}
+#endif

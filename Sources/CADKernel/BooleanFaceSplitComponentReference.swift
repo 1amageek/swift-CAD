@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BooleanFaceSplitComponentReference: Codable, Hashable, Sendable, Comparable {
+public struct BooleanFaceSplitComponentReference: Hashable, Sendable, Comparable {
     public let facePair: BooleanFacePairCandidate
     public let componentID: BooleanFaceSplitComponentID
 
@@ -25,3 +25,7 @@ public struct BooleanFaceSplitComponentReference: Codable, Hashable, Sendable, C
         return lhs.componentID < rhs.componentID
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanFaceSplitComponentReference: Codable {}
+#endif

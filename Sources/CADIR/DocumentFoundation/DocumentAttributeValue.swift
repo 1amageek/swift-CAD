@@ -1,7 +1,9 @@
+#if !hasFeature(Embedded)
 import Foundation
+#endif
 import CADCore
 
-public enum DocumentAttributeValue: Codable, Hashable, Sendable {
+public enum DocumentAttributeValue: Hashable, Sendable {
     case boolean(Bool)
     case integer(Int64)
     case real(Double)
@@ -10,15 +12,18 @@ public enum DocumentAttributeValue: Codable, Hashable, Sendable {
     case integers([Int64])
     case reals([Double])
     case texts([String])
-    case bytes(Data)
+    case bytes([UInt8])
     case reference(DocumentObjectReference)
     case references([DocumentObjectReference])
+    case subshapeReference(StableSubshapeReference)
+    case subshapeReferences([StableSubshapeReference])
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
-        case kind, boolean, integer, real, text, quantity, integers, reals, texts, bytes, reference, references
+        case kind, boolean, integer, real, text, quantity, integers, reals, texts, bytes, reference, references, subshapeReference, subshapeReferences
     }
     private enum Kind: String, Codable {
-        case boolean, integer, real, text, quantity, integers, reals, texts, bytes, reference, references
+        case boolean, integer, real, text, quantity, integers, reals, texts, bytes, reference, references, subshapeReference, subshapeReferences
     }
 
     public init(from decoder: any Decoder) throws {
@@ -37,9 +42,11 @@ public enum DocumentAttributeValue: Codable, Hashable, Sendable {
         case .integers: self = .integers(try c.decode([Int64].self, forKey: .integers))
         case .reals: self = .reals(try c.decode([Double].self, forKey: .reals))
         case .texts: self = .texts(try c.decode([String].self, forKey: .texts))
-        case .bytes: self = .bytes(try c.decode(Data.self, forKey: .bytes))
+        case .bytes: self = .bytes(Array(try c.decode(Data.self, forKey: .bytes)))
         case .reference: self = .reference(try c.decode(DocumentObjectReference.self, forKey: .reference))
         case .references: self = .references(try c.decode([DocumentObjectReference].self, forKey: .references))
+        case .subshapeReference: self = .subshapeReference(try c.decode(StableSubshapeReference.self, forKey: .subshapeReference))
+        case .subshapeReferences: self = .subshapeReferences(try c.decode([StableSubshapeReference].self, forKey: .subshapeReferences))
         }
         try validate()
     }
@@ -56,11 +63,15 @@ public enum DocumentAttributeValue: Codable, Hashable, Sendable {
         case .integers(let v): try c.encode(Kind.integers, forKey: .kind); try c.encode(v, forKey: .integers)
         case .reals(let v): try c.encode(Kind.reals, forKey: .kind); try c.encode(v, forKey: .reals)
         case .texts(let v): try c.encode(Kind.texts, forKey: .kind); try c.encode(v, forKey: .texts)
-        case .bytes(let v): try c.encode(Kind.bytes, forKey: .kind); try c.encode(v, forKey: .bytes)
+        case .bytes(let v): try c.encode(Kind.bytes, forKey: .kind); try c.encode(Data(v), forKey: .bytes)
         case .reference(let v): try c.encode(Kind.reference, forKey: .kind); try c.encode(v, forKey: .reference)
         case .references(let v): try c.encode(Kind.references, forKey: .kind); try c.encode(v, forKey: .references)
+        case .subshapeReference(let v): try c.encode(Kind.subshapeReference, forKey: .kind); try c.encode(v, forKey: .subshapeReference)
+        case .subshapeReferences(let v): try c.encode(Kind.subshapeReferences, forKey: .kind); try c.encode(v, forKey: .subshapeReferences)
         }
     }
+
+    #endif
 
     public func validate() throws {
         switch self {
@@ -73,6 +84,12 @@ public enum DocumentAttributeValue: Codable, Hashable, Sendable {
             }
         case .quantity(let quantity):
             guard quantity.value.isFinite else { throw DocumentFoundationError.invalidValue("Quantity attribute must be finite.") }
+        case .subshapeReference(let reference): try reference.validate()
+        case .subshapeReferences(let references):
+            for reference in references {
+                try Task.checkCancellation()
+                try reference.validate()
+            }
         default: break
         }
     }
@@ -86,6 +103,7 @@ public enum DocumentAttributeValue: Codable, Hashable, Sendable {
     }
 }
 
+#if !hasFeature(Embedded)
 private struct StrictAttributeQuantity: Decodable {
     let value: Quantity
     private enum CodingKeys: String, CodingKey { case value, kind }
@@ -96,3 +114,9 @@ private struct StrictAttributeQuantity: Decodable {
                          kind: try c.decode(QuantityKind.self, forKey: .kind))
     }
 }
+
+#endif
+
+#if !hasFeature(Embedded)
+extension DocumentAttributeValue: Codable {}
+#endif

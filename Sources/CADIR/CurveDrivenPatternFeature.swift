@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveDrivenPatternFeature: Codable, Hashable, Sendable {
+public struct CurveDrivenPatternFeature: Hashable, Sendable {
     public let target: PatternTargetReference
     public let path: CurveDrivenPatternPathReference
     public let anchor: Point3D
@@ -48,6 +48,7 @@ public struct CurveDrivenPatternFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case path
@@ -55,7 +56,9 @@ public struct CurveDrivenPatternFeature: Codable, Hashable, Sendable {
         case referenceDirection
         case count
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -69,7 +72,9 @@ public struct CurveDrivenPatternFeature: Codable, Hashable, Sendable {
         count = try container.decode(Int.self, forKey: .count)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -79,4 +84,9 @@ public struct CurveDrivenPatternFeature: Codable, Hashable, Sendable {
         try container.encode(referenceDirection, forKey: .referenceDirection)
         try container.encode(count, forKey: .count)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CurveDrivenPatternFeature: Codable {}
+#endif

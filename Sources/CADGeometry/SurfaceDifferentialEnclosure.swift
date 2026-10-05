@@ -1,4 +1,4 @@
-public struct SurfaceDifferentialEnclosure: Codable, Equatable, Hashable, Sendable {
+public struct SurfaceDifferentialEnclosure: Equatable, Hashable, Sendable {
     public let position: CoordinateEnclosure3D
     public let tangentU: CoordinateEnclosure3D
     public let tangentV: CoordinateEnclosure3D
@@ -22,3 +22,7 @@ public struct SurfaceDifferentialEnclosure: Codable, Equatable, Hashable, Sendab
         self.secondDerivativeVV = secondDerivativeVV
     }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceDifferentialEnclosure: Codable {}
+#endif

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceSurfaceIntersectionDerivedRepresentation: Codable, Hashable, Sendable {
+public struct SurfaceSurfaceIntersectionDerivedRepresentation: Hashable, Sendable {
   public let curve: Curve3D
   public let firstSurfaceParameterCurve: SurfaceParameterCurve
   public let secondSurfaceParameterCurve: SurfaceParameterCurve
@@ -84,6 +84,7 @@ public struct SurfaceSurfaceIntersectionDerivedRepresentation: Codable, Hashable
     }
   }
 
+#if !hasFeature(Embedded)
   private enum CodingKeys: String, CodingKey {
     case curve
     case firstSurfaceParameterCurve
@@ -91,7 +92,9 @@ public struct SurfaceSurfaceIntersectionDerivedRepresentation: Codable, Hashable
     case maximumResidualUpperBound
     case certificationTolerance
   }
+#endif
 
+#if !hasFeature(Embedded)
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     try container.validateOnlyExpectedKeys(
@@ -124,7 +127,9 @@ public struct SurfaceSurfaceIntersectionDerivedRepresentation: Codable, Hashable
       )
     )
   }
+#endif
 
+#if !hasFeature(Embedded)
   public func encode(to encoder: Encoder) throws {
     try validate(tolerance: certificationTolerance)
     var container = encoder.container(keyedBy: CodingKeys.self)
@@ -134,4 +139,9 @@ public struct SurfaceSurfaceIntersectionDerivedRepresentation: Codable, Hashable
     try container.encode(maximumResidualUpperBound, forKey: .maximumResidualUpperBound)
     try container.encode(certificationTolerance, forKey: .certificationTolerance)
   }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceSurfaceIntersectionDerivedRepresentation: Codable {}
+#endif

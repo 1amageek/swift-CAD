@@ -1,6 +1,6 @@
 import CADCore
 
-public struct ProjectCurveFeature: Codable, Hashable, Sendable {
+public struct ProjectCurveFeature: Hashable, Sendable {
     public let source: CurveOutputReference
     public let planeOrigin: Point3D
     public let planeNormal: Vector3D
@@ -44,13 +44,16 @@ public struct ProjectCurveFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source
         case planeOrigin
         case planeNormal
         case direction
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -63,7 +66,9 @@ public struct ProjectCurveFeature: Codable, Hashable, Sendable {
         direction = try container.decodeIfPresent(Vector3D.self, forKey: .direction)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -72,4 +77,9 @@ public struct ProjectCurveFeature: Codable, Hashable, Sendable {
         try container.encode(planeNormal, forKey: .planeNormal)
         try container.encodeIfPresent(direction, forKey: .direction)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension ProjectCurveFeature: Codable {}
+#endif

@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 package struct CertifiedSurfaceParameterCurveEncloser {
   private struct ImplicitWorkItem {
@@ -25,10 +33,24 @@ package struct CertifiedSurfaceParameterCurveEncloser {
     let depth: Int
   }
 
-  private let maximumDepth = 48
+  private let maximumDepth: Int
+  private let maximumAlgebraicDepth: Int
+  private let remainingSourceDepth: Int
   private let maximumCellCount = 131_072
 
-  package init() {}
+  private let consumeWork: (@Sendable (Int) throws -> Void)?
+  private let consumeStorage: (@Sendable (Int) throws -> Void)?
+
+  package init(maximumSubdivisionDepth: Int = 48,
+    consumeWork: (@Sendable (Int) throws -> Void)? = nil,
+    consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
+    maximumAlgebraicDepth: Int = 32, remainingSourceDepth: Int = 16) {
+    self.maximumAlgebraicDepth = maximumAlgebraicDepth
+    self.remainingSourceDepth = min(16, remainingSourceDepth)
+    self.maximumDepth = min(48, maximumSubdivisionDepth)
+    self.consumeWork = consumeWork
+    self.consumeStorage = consumeStorage
+  }
 
   package func enclosures(
     for curve: SurfaceParameterCurve,
@@ -55,8 +77,9 @@ package struct CertifiedSurfaceParameterCurveEncloser {
     maximumWidth: Double,
     tolerance: ModelingTolerance
   ) throws -> [SurfaceParameterCurveEnclosure] {
+    try consumeWork?(0)
     try tolerance.validate()
-    guard lowerFraction.isFinite,
+    guard maximumDepth >= 0, remainingSourceDepth >= 0, (0...32).contains(maximumAlgebraicDepth), lowerFraction.isFinite,
       upperFraction.isFinite,
       lowerFraction >= -tolerance.relative,
       upperFraction <= 1.0 + tolerance.relative,
@@ -82,6 +105,12 @@ package struct CertifiedSurfaceParameterCurveEncloser {
       )
     }
     switch curve {
+    case .originalAffineWord, .originalImage:
+      return try originalNumericChartEnclosures(for: curve, lowerFraction: boundedLower,
+        upperFraction: boundedUpper, maximumWidth: maximumWidth, tolerance: tolerance)
+    case .originalBSplineContinuation:
+      return try originalNumericChartEnclosures(for: curve, lowerFraction: boundedLower,
+        upperFraction: boundedUpper, maximumWidth: maximumWidth, tolerance: tolerance)
     case .certifiedImplicit(let certified):
       return try implicitEnclosures(
         for: certified,
@@ -99,7 +128,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
         tolerance: tolerance
       )
     case .sphericalGreatCircle, .projectedAnalytic:
-      return try CertifiedAnalyticPcurveFluxIntegrator()
+      return try CertifiedAnalyticPcurveFluxIntegrator(maximumDepth: maximumDepth, consumeWork: consumeWork)
         .parameterEnclosures(
           for: curve,
           fromNormalizedFraction: boundedLower,
@@ -108,7 +137,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           tolerance: tolerance
         )
     case .certifiedAnalyticPair(let certified):
-      return try CertifiedAnalyticPairPcurveAreaIntegrator()
+      return try CertifiedAnalyticPairPcurveAreaIntegrator(maximumSubdivisionDepth: maximumDepth, consumeWork: consumeWork)
         .parameterEnclosures(
           for: certified,
           fromNormalizedFraction: boundedLower,
@@ -116,8 +145,40 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           maximumWidth: maximumWidth,
           tolerance: tolerance
         )
-    case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
-      return try directlyEvaluableEnclosures(
+    case .affine, .constantU, .constantV:
+      return try originalChartEnclosures(lowerFraction: boundedLower, upperFraction: boundedUpper,
+        maximumWidth: maximumWidth, tolerance: tolerance) { range, depth in
+        try consumeWork?(depth)
+        let fraction = OutwardScalarInterval(lower: range.lower, upper: range.upper)
+        func coordinate(_ start: Double, _ end: Double) -> OutwardScalarInterval {
+          .exact(start) + (.exact(end) - .exact(start)) * fraction
+        }
+        let u: OutwardScalarInterval, v: OutwardScalarInterval
+        switch curve {
+        case .affine(let origin, let direction, let start, let end):
+          let parameter = coordinate(start, end)
+          u = .exact(origin.x) + .exact(direction.x) * parameter
+          v = .exact(origin.y) + .exact(direction.y) * parameter
+        case .constantU(let fixed, let start, let end):
+          u = .exact(fixed); v = coordinate(start, end)
+        case .constantV(let fixed, let start, let end):
+          u = coordinate(start, end); v = .exact(fixed)
+        default:
+          throw failure(.invalidInput, tolerance: tolerance,
+            "Original affine chart dispatch requires its retained source law.")
+        }
+        guard u.isFinite, v.isFinite else {
+          throw failure(.resourceLimitExceeded, tolerance: tolerance,
+            "Original affine chart bounds exceeded finite interval arithmetic.")
+        }
+        return try SurfaceParameterBox(u: ScalarInterval(lower: u.lower, upper: u.upper),
+          v: ScalarInterval(lower: v.lower, upper: v.upper))
+      }
+    case .polyline:
+      return try originalNumericChartEnclosures(for: curve, lowerFraction: boundedLower,
+        upperFraction: boundedUpper, maximumWidth: maximumWidth, tolerance: tolerance)
+    case .harmonic, .bSpline:
+      return try originalNumericChartEnclosures(
         for: curve,
         lowerFraction: boundedLower,
         upperFraction: boundedUpper,
@@ -153,13 +214,15 @@ package struct CertifiedSurfaceParameterCurveEncloser {
         + sourceSpan * boundedUpper
       let sourceLower = min(firstSourceFraction, secondSourceFraction)
       let sourceUpper = max(firstSourceFraction, secondSourceFraction)
-      return try enclosures(
+      let originalEnclosures = try enclosures(
         for: sourceCurve,
         fromNormalizedFraction: sourceLower,
         toNormalizedFraction: sourceUpper,
         maximumWidth: maximumWidth / scale,
         tolerance: tolerance
-      ).map { enclosure in
+      )
+      var mappedEnclosures = try OriginalParameterQueryStorage.map(originalEnclosures,
+        consumeWork: consumeWork, consumeStorage: consumeStorage) { enclosure in
         let mapped = try mapping.applying(
           u: enclosure.u,
           v: enclosure.v
@@ -172,7 +235,9 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           u: mapped.u,
           v: mapped.v
         )
-      }.sorted { $0.lowerFraction < $1.lowerFraction }
+      }
+      try OriginalParameterQueryStorage.sort(&mappedEnclosures, consumeWork: consumeWork) { $0.lowerFraction < $1.lowerFraction }
+      return mappedEnclosures
     case .offsetSurfaceImage(let image):
       return try enclosures(
         for: image.source,
@@ -182,13 +247,15 @@ package struct CertifiedSurfaceParameterCurveEncloser {
         tolerance: tolerance
       )
     case .periodicTranslation(let base, let uShift, let vShift):
-      return try enclosures(
+      let originalEnclosures = try enclosures(
         for: base,
         fromNormalizedFraction: boundedLower,
         toNormalizedFraction: boundedUpper,
         maximumWidth: maximumWidth,
         tolerance: tolerance
-      ).map { enclosure in
+      )
+      return try OriginalParameterQueryStorage.map(originalEnclosures, consumeWork: consumeWork,
+        consumeStorage: consumeStorage) { enclosure in
         SurfaceParameterCurveEnclosure(
           lowerFraction: enclosure.lowerFraction,
           upperFraction: enclosure.upperFraction,
@@ -217,7 +284,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
   ) throws -> [SurfaceParameterCurveEnclosure] {
     switch curve {
     case .certifiedAnalyticPair(let certified):
-      return try CertifiedAnalyticPairPcurveAreaIntegrator()
+      return try CertifiedAnalyticPairPcurveAreaIntegrator(maximumSubdivisionDepth: maximumDepth, consumeWork: consumeWork)
         .vParameterEnclosures(
           for: certified,
           fromNormalizedFraction: lowerFraction,
@@ -234,13 +301,15 @@ package struct CertifiedSurfaceParameterCurveEncloser {
         tolerance: tolerance
       )
     case .periodicTranslation(let base, let uShift, let vShift):
-      return try vEnclosures(
+      let originalEnclosures = try vEnclosures(
         for: base,
         fromNormalizedFraction: lowerFraction,
         toNormalizedFraction: upperFraction,
         maximumWidth: maximumWidth,
         tolerance: tolerance
-      ).map { enclosure in
+      )
+      return try OriginalParameterQueryStorage.map(originalEnclosures, consumeWork: consumeWork,
+        consumeStorage: consumeStorage) { enclosure in
         SurfaceParameterCurveEnclosure(
           lowerFraction: enclosure.lowerFraction,
           upperFraction: enclosure.upperFraction,
@@ -256,7 +325,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
       }
     case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle,
       .polyline, .bSpline, .certifiedImplicit, .certifiedAnalyticImplicit,
-      .projectedAnalytic, .rigidImage:
+      .projectedAnalytic, .rigidImage, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return try enclosures(
         for: curve,
         fromNormalizedFraction: lowerFraction,
@@ -267,6 +336,58 @@ package struct CertifiedSurfaceParameterCurveEncloser {
     }
   }
 
+  private func originalChartEnclosures(lowerFraction: Double, upperFraction: Double,
+    maximumWidth: Double, tolerance: ModelingTolerance,
+    bounds: (ScalarInterval, Int) throws -> SurfaceParameterBox) throws -> [SurfaceParameterCurveEnclosure] {
+    var pending: [ParameterWorkItem] = []
+    try OriginalParameterQueryStorage.append(ParameterWorkItem(lowerFraction: lowerFraction,
+      upperFraction: upperFraction, depth: 0), to: &pending, consumeStorage: consumeStorage)
+    var result: [SurfaceParameterCurveEnclosure] = []
+    var visited = 0
+    while let item = pending.popLast() {
+      try consumeWork?(item.depth)
+      try Task.checkCancellation()
+      guard visited < maximumCellCount else {
+        throw failure(.resourceLimitExceeded, tolerance: tolerance, "Original pcurve chart exhausted its cell allowance.")
+      }
+      visited += 1
+      let range = try ScalarInterval(lower: item.lowerFraction, upper: item.upperFraction)
+      var refine = false
+      do {
+        let box = try bounds(range, item.depth)
+        if max(box.u.width, box.v.width) <= maximumWidth {
+          try OriginalParameterQueryStorage.append(.init(lowerFraction: item.lowerFraction, upperFraction: item.upperFraction, u: box.u, v: box.v), to: &result, consumeStorage: consumeStorage)
+        } else { refine = true }
+      } catch is SurfaceAreaEnclosureRefinementRequired { refine = true }
+      if refine {
+        let middle = range.midpoint
+        guard item.depth < maximumDepth, middle > range.lower, middle < range.upper else {
+          throw failure(.resourceLimitExceeded, tolerance: tolerance, "Original pcurve chart did not resolve before its depth allowance.")
+        }
+        try OriginalParameterQueryStorage.append(.init(lowerFraction: middle, upperFraction: range.upper, depth: item.depth+1), to: &pending, consumeStorage: consumeStorage)
+        try OriginalParameterQueryStorage.append(.init(lowerFraction: range.lower, upperFraction: middle, depth: item.depth+1), to: &pending, consumeStorage: consumeStorage)
+      }
+    }
+    return result
+  }
+
+  private func originalNumericChartEnclosures(for curve: SurfaceParameterCurve,
+    lowerFraction: Double, upperFraction: Double, maximumWidth: Double,
+    tolerance: ModelingTolerance) throws -> [SurfaceParameterCurveEnclosure] {
+    try originalChartEnclosures(lowerFraction: lowerFraction, upperFraction: upperFraction,
+      maximumWidth: maximumWidth, tolerance: tolerance) { range, depth in
+      try curve.originalParameterBounds(over: range, tolerance: tolerance,
+        maximumSpanCount: maximumCellCount, maximumSubdivisionDepth: min(32,maximumDepth-depth),
+        remainingSourceDepth: remainingSourceDepth, consumeWork: { try consumeWork?(depth) },
+        consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+    }
+  }
+
+  // FIXME(INCOMPLETE_IMPLEMENTATION): This deprecated numeric midpoint/roundoff
+  // helper is retained only until final behavior verification of the original
+  // order-zero route. Production dispatch uses originalNumericChartEnclosures;
+  // this helper has no caller priority and must be removed after that verification.
+  @available(*, deprecated, message: "Use originalNumericChartEnclosures for original D0 authority.")
   private func directlyEvaluableEnclosures(
     for curve: SurfaceParameterCurve,
     lowerFraction: Double,
@@ -279,6 +400,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
       tolerance: tolerance
     )
     var remainingCells = maximumCellCount
+    try consumeStorage?(MemoryLayout<ParameterWorkItem>.stride)
     var stack = [
       ParameterWorkItem(
         lowerFraction: lowerFraction,
@@ -288,6 +410,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
     ]
     var result: [SurfaceParameterCurveEnclosure] = []
     while let item = stack.popLast() {
+      try consumeWork?(item.depth)
       guard remainingCells > 0 else {
         throw failure(
           .resourceLimitExceeded,
@@ -325,7 +448,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
         )
       )
       if enclosure.maximumWidth <= maximumWidth {
-        result.append(enclosure)
+        try OriginalParameterQueryStorage.append(enclosure, to: &result, consumeStorage: consumeStorage)
         continue
       }
       guard item.depth < maximumDepth else {
@@ -336,18 +459,18 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           "Direct pcurve enclosure exceeded its subdivision depth."
         )
       }
-      stack.append(
+      try OriginalParameterQueryStorage.append(
         ParameterWorkItem(
           lowerFraction: midpoint,
           upperFraction: item.upperFraction,
           depth: item.depth + 1
-        ))
-      stack.append(
+        ), to: &stack, consumeStorage: consumeStorage)
+      try OriginalParameterQueryStorage.append(
         ParameterWorkItem(
           lowerFraction: item.lowerFraction,
           upperFraction: midpoint,
           depth: item.depth + 1
-        ))
+        ), to: &stack, consumeStorage: consumeStorage)
     }
     return result
   }
@@ -440,7 +563,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
     case .sphericalGreatCircle, .certifiedImplicit,
       .certifiedAnalyticImplicit, .certifiedAnalyticPair,
       .projectedAnalytic, .rigidImage, .offsetSurfaceImage,
-      .periodicTranslation:
+      .periodicTranslation, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       throw failure(
         .invalidInput,
         tolerance: tolerance,
@@ -464,6 +587,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
       )
     }
     var remainingCells = maximumCellCount
+    try consumeStorage?(MemoryLayout<RigidSphereWorkItem>.stride)
     var stack = [
       RigidSphereWorkItem(
         lowerFraction: lowerFraction,
@@ -473,6 +597,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
     ]
     var result: [SurfaceParameterCurveEnclosure] = []
     while let item = stack.popLast() {
+      try consumeWork?(item.depth)
       guard remainingCells > 0 else {
         throw failure(
           .resourceLimitExceeded,
@@ -528,13 +653,13 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           )
         )
         if max(u.width, v.width) <= maximumWidth {
-          result.append(
+          try OriginalParameterQueryStorage.append(
             SurfaceParameterCurveEnclosure(
               lowerFraction: item.lowerFraction,
               upperFraction: item.upperFraction,
               u: u,
               v: v
-            ))
+            ), to: &result, consumeStorage: consumeStorage)
           continue
         }
       }
@@ -546,18 +671,18 @@ package struct CertifiedSurfaceParameterCurveEncloser {
         )
       }
       let split = midpoint
-      stack.append(
+      try OriginalParameterQueryStorage.append(
         RigidSphereWorkItem(
           lowerFraction: split,
           upperFraction: item.upperFraction,
           depth: item.depth + 1
-        ))
-      stack.append(
+        ), to: &stack, consumeStorage: consumeStorage)
+      try OriginalParameterQueryStorage.append(
         RigidSphereWorkItem(
           lowerFraction: item.lowerFraction,
           upperFraction: split,
           depth: item.depth + 1
-        ))
+        ), to: &stack, consumeStorage: consumeStorage)
     }
     return result
   }
@@ -709,6 +834,10 @@ package struct CertifiedSurfaceParameterCurveEncloser {
     // Every restricted subcell inherits the derivative certificate from
     // its parent full-graph cell. Compute that certificate once per parent
     // instead of rebuilding the surface interval proof after every split.
+    // FIXME(INCOMPLETE_IMPLEMENTATION): The original graph derivative producer
+    // remains reachable from bounded trim queries without its temporary-byte
+    // callback. Owned frontier/output admission does not certify whole-query
+    // storage until the original lower derivative/preparation ports are bound.
     let parentDerivativeBounds = try cells.map { cell in
       try cell.parameterDerivativeBounds(
         firstSurface: firstSurface,
@@ -759,7 +888,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
             cellLower
             + (curveRange.upper - selectedCurveLower) / curveSpan * cellSpan
         }
-        pending.append(
+        try OriginalParameterQueryStorage.append(
           ImplicitWorkItem(
             cell: cell,
             parentDerivativeBounds: parentDerivativeBounds[index],
@@ -768,12 +897,13 @@ package struct CertifiedSurfaceParameterCurveEncloser {
             curveLowerFraction: selectedCurveLower,
             curveUpperFraction: selectedCurveUpper,
             depth: 0
-          ))
+          ), to: &pending, consumeStorage: consumeStorage)
       }
     }
     var result: [SurfaceParameterCurveEnclosure] = []
     var processedCount = 0
     while let item = pending.popLast() {
+      try consumeWork?(item.depth)
       processedCount += 1
       guard processedCount <= maximumCellCount else {
         throw failure(
@@ -795,7 +925,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
         item.curveUpperFraction
       )
       if enclosure.maximumWidth <= maximumWidth {
-        result.append(enclosure)
+        try OriginalParameterQueryStorage.append(enclosure, to: &result, consumeStorage: consumeStorage)
         continue
       }
       guard item.depth < maximumDepth else {
@@ -823,7 +953,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           "Certified pcurve enclosure reached floating-point subdivision resolution."
         )
       }
-      pending.append(
+      try OriginalParameterQueryStorage.append(
         ImplicitWorkItem(
           cell: item.cell,
           parentDerivativeBounds: item.parentDerivativeBounds,
@@ -832,8 +962,8 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           curveLowerFraction: middle,
           curveUpperFraction: item.curveUpperFraction,
           depth: item.depth + 1
-        ))
-      pending.append(
+        ), to: &pending, consumeStorage: consumeStorage)
+      try OriginalParameterQueryStorage.append(
         ImplicitWorkItem(
           cell: item.cell,
           parentDerivativeBounds: item.parentDerivativeBounds,
@@ -842,7 +972,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
           curveLowerFraction: item.curveLowerFraction,
           curveUpperFraction: middle,
           depth: item.depth + 1
-        ))
+        ), to: &pending, consumeStorage: consumeStorage)
     }
     guard result.isEmpty == false else {
       throw failure(
@@ -851,7 +981,8 @@ package struct CertifiedSurfaceParameterCurveEncloser {
         "Certified pcurve enclosure produced no covered cells."
       )
     }
-    return result.sorted { $0.lowerFraction < $1.lowerFraction }
+    try OriginalParameterQueryStorage.sort(&result, consumeWork: consumeWork) { $0.lowerFraction < $1.lowerFraction }
+    return result
   }
 
   private func restrictedBounds(

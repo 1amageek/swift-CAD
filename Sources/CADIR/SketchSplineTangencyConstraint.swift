@@ -1,11 +1,11 @@
 import CADCore
 
-public enum SketchTangentOrientation: String, Codable, CaseIterable, Hashable, Sendable {
+public enum SketchTangentOrientation: String, CaseIterable, Hashable, Sendable {
     case aligned
     case opposed
 }
 
-public struct SketchSplineLineTangencyConstraint: Codable, Hashable, Sendable {
+public struct SketchSplineLineTangencyConstraint: Hashable, Sendable {
     public var splineEndpoint: SketchSplineEndpointReference
     public var line: SketchEntityID
     public var orientation: SketchTangentOrientation
@@ -28,12 +28,15 @@ public struct SketchSplineLineTangencyConstraint: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case splineEndpoint
         case line
         case orientation
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -48,7 +51,9 @@ public struct SketchSplineLineTangencyConstraint: Codable, Hashable, Sendable {
         orientation = try container.decode(SketchTangentOrientation.self, forKey: .orientation)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -56,9 +61,10 @@ public struct SketchSplineLineTangencyConstraint: Codable, Hashable, Sendable {
         try container.encode(line, forKey: .line)
         try container.encode(orientation, forKey: .orientation)
     }
+#endif
 }
 
-public struct SketchSplineEndpointTangencyConstraint: Codable, Hashable, Sendable {
+public struct SketchSplineEndpointTangencyConstraint: Hashable, Sendable {
     public var first: SketchSplineEndpointReference
     public var second: SketchSplineEndpointReference
     public var orientation: SketchTangentOrientation
@@ -81,12 +87,15 @@ public struct SketchSplineEndpointTangencyConstraint: Codable, Hashable, Sendabl
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case first
         case second
         case orientation
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.first, .second, .orientation], in: decoder)
@@ -95,7 +104,9 @@ public struct SketchSplineEndpointTangencyConstraint: Codable, Hashable, Sendabl
         orientation = try container.decode(SketchTangentOrientation.self, forKey: .orientation)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -103,4 +114,11 @@ public struct SketchSplineEndpointTangencyConstraint: Codable, Hashable, Sendabl
         try container.encode(second, forKey: .second)
         try container.encode(orientation, forKey: .orientation)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SketchTangentOrientation: Codable {}
+extension SketchSplineLineTangencyConstraint: Codable {}
+extension SketchSplineEndpointTangencyConstraint: Codable {}
+#endif

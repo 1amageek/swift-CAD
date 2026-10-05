@@ -1,7 +1,7 @@
 import CADCore
 
 /// A trimmed exact 3D curve bounded by two vertices.
-public struct Edge: Codable, Equatable, Sendable {
+public struct Edge: Equatable, Sendable {
     public var id: EdgeID
     public var curveID: CurveID
     public var startVertexID: VertexID
@@ -22,6 +22,7 @@ public struct Edge: Codable, Equatable, Sendable {
         self.trim = trim
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id
         case curveID
@@ -29,7 +30,9 @@ public struct Edge: Codable, Equatable, Sendable {
         case endVertexID
         case trim
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -48,7 +51,9 @@ public struct Edge: Codable, Equatable, Sendable {
         endVertexID = try container.decode(VertexID.self, forKey: .endVertexID)
         trim = try container.decodeIfPresent(CurveTrim.self, forKey: .trim)
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -57,4 +62,9 @@ public struct Edge: Codable, Equatable, Sendable {
         try container.encode(endVertexID, forKey: .endVertexID)
         try container.encodeIfPresent(trim, forKey: .trim)
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension Edge: Codable {}
+#endif

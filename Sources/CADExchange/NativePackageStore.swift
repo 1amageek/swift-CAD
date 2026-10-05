@@ -1,17 +1,24 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 
 public struct NativePackageStore: Sendable {
     private let tolerance: ModelingTolerance
+    private let limits: ExchangeResourceLimits
 
-    public init(tolerance: ModelingTolerance) {
+    public init(tolerance: ModelingTolerance, limits: ExchangeResourceLimits = .standard) {
         self.tolerance = tolerance
+        self.limits = limits
     }
 
     public func writePackage(for document: CADDocument, to sink: any ByteSink) throws {
-        try document.validate(tolerance: tolerance)
-        let encoder = nativePackageJSONEncoder()
+        try limits.validate()
+        let budget = ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration)
+        let validation = try validateSource(document, budget: budget)
+        let resources = try SharedExchangeResourceAccountant(limits: limits, format: .swiftCAD, processingBudget: budget)
+        if let validation { try resources.charge(entities: validation.consumedRecords, work: validation.consumedWork) }
+        let encoder = NativeBoundedJSONEncoder()
 
         let manifest = NativePackageManifest(
             format: "swiftcad.package",
@@ -21,18 +28,39 @@ public struct NativePackageStore: Sendable {
             updatedAt: document.metadata.updatedAt
         )
 
-        let manifestData = try encoder.encode(manifest)
-        let documentData = try canonicalNativeDocumentJSONData(from: encoder.encode(document))
+        let manifestData = try encoder.encode(manifest, resources: resources)
+        let documentData = try encoder.encode(document, canonicalDocument: true, resources: resources)
+        let bytes = manifestData.count.addingReportingOverflow(documentData.count)
+        guard !bytes.overflow, bytes.partialValue <= limits.maximumBytes else {
+            throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Native package output exceeds the original caller source-byte allowance.")
+        }
+        try budget.check(format: .swiftCAD)
+        let output = DataByteSink()
+        let bounded = try ExchangeBoundedByteSink(downstream: output, limits: limits, format: .swiftCAD, processingBudget: budget)
         try StoredZipArchive.write(entries: [
             StoredZipArchive.Entry(path: "manifest.json", data: manifestData),
             StoredZipArchive.Entry(path: "document.json", data: documentData)
-        ], to: sink)
+        ], to: bounded, consumeWork: { try resources.recordIterations($0) })
+        try budget.check(format: .swiftCAD)
+        try resources.checkTime()
+        try sink.write(output.bytes)
     }
 
     public func loadDocument(from source: any ByteSource) throws -> CADDocument {
+        try limits.validate()
+        let budget = ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration)
+        let resources = try SharedExchangeResourceAccountant(limits: limits, format: .swiftCAD, processingBudget: budget)
+        try budget.check(format: .swiftCAD)
+        guard source.count >= 0, source.count <= limits.maximumBytes else {
+            throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Native archive input exceeds the original caller byte allowance.")
+        }
         do {
-            return try StoredZipArchive.withBorrowedEntries(from: source) { entries in
-                try loadDocument(fromPackageEntries: entries)
+            return try StoredZipArchive.withBorrowedEntries(from: source,
+                maximumEntryCount: limits.maximumEntities,
+                maximumTotalUncompressedBytes: limits.maximumBytes, consumeWork: { try resources.recordIterations($0) }) { entries in
+                try loadDocument(fromPackageEntries: entries, budget: budget, resources: resources)
             }
         } catch let error as ZipArchiveError {
             throw SchemaError.invalidPackage("Invalid native ZIP package: \(error).")
@@ -41,15 +69,22 @@ public struct NativePackageStore: Sendable {
         }
     }
 
-    private func loadDocument(fromPackageEntries entries: [String: Data]) throws -> CADDocument {
+    private func loadDocument(fromPackageEntries entries: [String: Data], budget: ExchangeProcessingBudget, resources: SharedExchangeResourceAccountant) throws -> CADDocument {
+        try budget.check(format: .swiftCAD)
+        try limits.validate()
         try validateNativePackageEntries(entries)
         guard let manifestData = entries["manifest.json"],
               let documentData = entries["document.json"] else {
             throw SchemaError.invalidPackage("Missing manifest.json or document.json.")
         }
-        try validateNativePackageJSONShape(manifestData: manifestData, documentData: documentData)
-
-        let decoder = nativePackageJSONDecoder()
+        let combinedBytes = manifestData.count.addingReportingOverflow(documentData.count)
+        guard !combinedBytes.overflow, combinedBytes.partialValue <= limits.maximumBytes else {
+            throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Native package source exceeds the caller byte allowance.")
+        }
+        try budget.check(format: .swiftCAD)
+        try validateNativePackageJSONShape(manifestData: manifestData, documentData: documentData, resources: resources)
+        let decoder = try nativePackageJSONDecoder(limits: limits, budget: budget, tolerance: tolerance, resources: resources)
         let manifest: NativePackageManifest
         do {
             manifest = try decoder.decode(NativePackageManifest.self, from: manifestData)
@@ -66,6 +101,12 @@ public struct NativePackageStore: Sendable {
         do {
             let decodableDocumentData = try canonicalNativeDocumentJSONData(from: documentData)
             decodedDocument = try decoder.decode(CADDocument.self, from: decodableDocumentData)
+        } catch let error as KernelError {
+            throw error
+        } catch let error as CancellationError {
+            throw error
+        } catch let error as NativeRationalSourceDecodingError {
+            throw error
         } catch {
             throw SchemaError.invalidPackage("Document JSON is invalid: \(error).")
         }
@@ -73,9 +114,39 @@ public struct NativePackageStore: Sendable {
         guard manifest.schemaVersion == document.schemaVersion else {
             throw SchemaError.invalidPackage("Manifest schema version does not match document schema version.")
         }
-        try document.validate(tolerance: tolerance)
+        try validateDecodedSource(document, decoder: decoder, budget: budget)
         try validateManifest(manifest, matches: document)
         return document
+    }
+
+    private func validateDecodedSource(_ document: CADDocument, decoder: JSONDecoder,
+        budget: ExchangeProcessingBudget) throws {
+        // Decoder and its nested values have finished their invocation; ownership
+        // passes once to complete source validation before publication.
+        if #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *),
+           let allowance = decoder.userInfo[NativeRationalSourceDecodingContext.key] as? NativeRationalSourceAllowance {
+            let paid = try allowance.snapshot()
+            let bytes = paid.storage.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
+            guard !bytes.overflow, bytes.partialValue <= limits.maximumBytes else {
+                throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Native exact source storage exceeds the original caller byte allowance.")
+            }
+            let remaining = IndependentShapeSourceLimits(maximumRecords: paid.remainingCells,
+                maximumTextBytes: limits.maximumBytes - bytes.partialValue, maximumDepth: limits.maximumNesting,
+                maximumWork: paid.remainingWork, maximumCurveSubdivisionDepth: limits.maximumCurveSubdivisionDepth, maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
+            _ = try document.validate(tolerance: tolerance, independentShapeLimits: remaining,
+                check: { try budget.check(format: .swiftCAD) })
+            return
+        }
+        _ = try validateSource(document, budget: budget)
+    }
+
+    private func validateSource(_ document: CADDocument, budget: ExchangeProcessingBudget) throws -> IndependentShapeSourceValidation? {
+        let sourceLimits = IndependentShapeSourceLimits(maximumRecords: limits.maximumEntities,
+            maximumTextBytes: limits.maximumBytes, maximumDepth: limits.maximumNesting,
+            maximumWork: limits.maximumIterations, maximumCurveSubdivisionDepth: limits.maximumCurveSubdivisionDepth, maximumAlgebraicDepth: limits.maximumAlgebraicDepth)
+        return try document.validate(tolerance: tolerance, independentShapeLimits: sourceLimits,
+            check: { try budget.check(format: .swiftCAD) })
     }
 
     public func save(_ document: CADDocument, to url: URL) throws {
@@ -107,18 +178,20 @@ private struct NativePackageManifest: Codable, Sendable {
     var updatedAt: Date
 }
 
-private func nativePackageJSONEncoder() -> JSONEncoder {
-    let encoder = JSONEncoder()
-    encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-    encoder.dateEncodingStrategy = .custom { date, encoder in
-        var container = encoder.singleValueContainer()
-        try container.encode(date.timeIntervalSinceReferenceDate)
-    }
-    return encoder
-}
-
-private func nativePackageJSONDecoder() -> JSONDecoder {
+private func nativePackageJSONDecoder(limits: ExchangeResourceLimits, budget: ExchangeProcessingBudget, tolerance: ModelingTolerance, resources: SharedExchangeResourceAccountant) throws -> JSONDecoder {
     let decoder = JSONDecoder()
+    decoder.userInfo[OriginalAffineWordDecodingContext.toleranceKey] = tolerance
+    decoder.userInfo[OriginalAffineWordDecodingContext.maximumCurveSubdivisionDepthKey] = limits.maximumCurveSubdivisionDepth
+    decoder.userInfo[OriginalAffineWordDecodingContext.maximumAlgebraicDepthKey] = limits.maximumAlgebraicDepth
+    decoder.userInfo[OriginalAffineWordDecodingContext.maximumSourceDepthKey] = limits.maximumNesting
+    if #available(macOS 15.0, iOS 18.0, visionOS 2.0, watchOS 11.0, tvOS 18.0, *) {
+        decoder.userInfo[NativeRationalSourceDecodingContext.key] = try NativeRationalSourceAllowance(
+            maximumWork: limits.maximumIterations - resources.iterationCount, maximumCells: limits.maximumEntities - resources.entityCount,
+            maximumStorage: limits.maximumBytes / MemoryLayout<UInt32>.stride,
+            maximumDepth: limits.maximumAlgebraicDepth, operationCheck: {
+                try budget.check(format: .swiftCAD)
+            })
+    }
     decoder.dateDecodingStrategy = .custom { decoder in
         try decodeNativePackageDate(from: decoder)
     }
@@ -271,6 +344,7 @@ private let supportedNativeDocumentKeys: Set<String> = [
     "selectionDimensions",
     "documentFoundation",
     "assembly",
+    "independentShapes",
     "productAttributes",
     "metadata"
 ]
@@ -303,11 +377,11 @@ private func validateNativePackageEntries(_ entries: [String: Data]) throws {
     }
 }
 
-private func validateNativePackageJSONShape(manifestData: Data, documentData: Data) throws {
-    let manifest = try nativeJSONObject(from: manifestData, name: "Manifest")
+private func validateNativePackageJSONShape(manifestData: Data, documentData: Data, resources: SharedExchangeResourceAccountant) throws {
+    let manifest = try nativeJSONObject(from: manifestData, name: "Manifest", resources: resources)
     try validateNativeManifestObject(manifest)
 
-    let document = try nativeJSONObject(from: documentData, name: "Document")
+    let document = try nativeJSONObject(from: documentData, name: "Document", resources: resources)
     try validateNativeDocumentObject(document)
 }
 
@@ -335,7 +409,183 @@ private func validateNativeDocumentObject(_ object: [String: Any]) throws {
     try validateObjectField("assembly", in: object, path: "document.assembly", using: validateNativeAssemblyObject)
     try validateObjectField("documentFoundation", in: object, path: "document.documentFoundation", using: validateNativeDocumentFoundationObject)
     try validateObjectField("productAttributes", in: object, path: "document.productAttributes", using: validateNativeProductAttributesObject)
+    try validateObjectField("independentShapes", in: object, path: "document.independentShapes", using: validateIndependentShapeSourceObject)
     try validateObjectField("metadata", in: object, path: "document.metadata", using: validateDocumentMetadataObject)
+}
+
+private func validateIndependentShapeSourceObject(_ object: [String: Any], path: String) throws {
+    let fields: Set<String> = ["geometry", "items", "geometricSets", "contexts", "ambientContexts", "representations", "frames", "definitions",
+        "curveNames", "surfaceNames", "curvePositionFrames", "surfacePositionFrames", "surfaceAngularMeasures", "curveLinearSources", "curveSplineSources", "surfaceSplineSources", "groups", "originalSTEPGroups", "instances", "productAssociations", "ambientOriginalAngularSource", "ambientOriginalLengthSource", "roots"]
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: fields, objectName: path)
+    for key in fields {
+        guard object[key] != nil else { throw SchemaError.invalidPackage("Required native \(path).\(key) is absent.") }
+    }
+    try validateArrayField("items", in: object, path: "\(path).items") { item, childPath in
+        try rejectUnsupportedNativeKeys(in: item, supportedKeys: ["id", "name", "geometry", "trimmingSource", "traversalSource"], objectName: childPath)
+        guard item["trimmingSource"] != nil, let traversal = item["traversalSource"],
+              traversal is NSNull || traversal is [String: Any] else {
+            throw SchemaError.invalidPackage("Native selected curve requires explicit nullable original selectors and traversal source.")
+        }
+        // Geometry's strict native source decoder owns the complete nested curve family and exact allowance.
+    }
+    func validateReference(_ reference: [String: Any], _ childPath: String) throws {
+        try rejectUnsupportedNativeKeys(in: reference, supportedKeys: ["kind", "id"], objectName: childPath)
+        guard let kind = reference["kind"] as? String,
+              ["body", "item", "geometricSet", "frame", "representation", "group", "instance"].contains(kind), reference["id"] != nil else {
+            throw SchemaError.invalidPackage("Native original graph reference is malformed.")
+        }
+        if kind == "body" {
+            guard let selector = reference["id"] as? [String: Any] else { throw SchemaError.invalidPackage("Native Body member must retain its complete original selector.") }
+            try rejectUnsupportedNativeKeys(in: selector, supportedKeys: ["featureID", "role", "ordinal"], objectName: "\(childPath).id")
+            guard selector["featureID"] != nil, selector["role"] != nil, selector["ordinal"] != nil else {
+                throw SchemaError.invalidPackage("Native Body selector lacks required source identity fields.")
+            }
+        }
+    }
+    try validateArrayField("geometricSets", in: object, path: "\(path).geometricSets") { value, childPath in
+        try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["id", "name", "family", "members"], objectName: childPath)
+        guard let family = value["family"] as? String, IndependentShapeGeometricSetFamily(rawValue: family) != nil else {
+            throw SchemaError.invalidPackage("Native geometric set requires its original standard family.")
+        }
+    }
+    try validateArrayField("roots", in: object, path: "\(path).roots", using: validateReference)
+    try validateArrayField("definitions", in: object, path: "\(path).definitions") { value, childPath in
+        try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["id", "representationID", "originFrameID", "originalIGES"], objectName: childPath)
+        guard let original = value["originalIGES"], value["originFrameID"] != nil else {
+            throw SchemaError.invalidPackage("Native definition requires explicit nullable original source families.")
+        }
+        if !(original is NSNull) {
+            guard let source = original as? [String: Any] else { throw SchemaError.invalidPackage("Native original IGES definition source is malformed.") }
+            try rejectUnsupportedNativeKeys(in: source, supportedKeys: ["directoryLabel", "definingFrameID", "adjustments"], objectName: "\(childPath).originalIGES")
+            try validateOriginalIGESAdjustments(source, path: "\(childPath).originalIGES")
+            guard source["directoryLabel"] is String, source["definingFrameID"] != nil else {
+                throw SchemaError.invalidPackage("Native original IGES definition source lacks required label/nullable forward frame.")
+            }
+        }
+    }
+    try validateArrayField("originalSTEPGroups", in: object, path: "\(path).originalSTEPGroups") { owner, childPath in
+        try rejectUnsupportedNativeKeys(in: owner, supportedKeys: ["id", "name", "description"], objectName: childPath)
+        guard owner["id"] is String, owner["name"] is String, let description = owner["description"],
+            description is NSNull || description is String else {
+            throw SchemaError.invalidPackage("Native original GROUP declaration is malformed or lacks nullable description.")
+        }
+    }
+    for key in ["representations", "groups"] {
+        try validateArrayField(key, in: object, path: "\(path).\(key)") { value, childPath in
+            if key == "representations" {
+                try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["id", "name", "contextID", "family", "members"], objectName: childPath)
+                guard let family = value["family"] as? String, IndependentShapeRepresentationFamily(rawValue: family) != nil else {
+                    throw SchemaError.invalidPackage("Native representation requires its original standard family.")
+                }
+            } else {
+                try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["id", "name", "description", "members", "family", "backPointerMembers", "originalSTEPGroupID"], objectName: childPath)
+                guard let family = value["family"] as? String, IndependentShapeGroupFamily(rawValue: family) != nil else {
+                    throw SchemaError.invalidPackage("Native group requires its original ordering and inverse family.")
+                }
+                try validateArrayField("backPointerMembers", in: value, path: "\(childPath).backPointerMembers", using: validateReference)
+                guard let owner = value["originalSTEPGroupID"] else {
+                    throw SchemaError.invalidPackage("Native group lacks required nullable original STEP owner.")
+                }
+                if !(owner is NSNull) {
+                    guard owner is String else { throw SchemaError.invalidPackage("Native original STEP group owner identity is malformed.") }
+                }
+            }
+            try validateArrayField("members", in: value, path: "\(childPath).members", using: validateReference)
+        }
+    }
+    for key in ["contexts", "ambientContexts"] {
+        try validateArrayField(key, in: object, path: "\(path).\(key)") { context, childPath in
+            try rejectUnsupportedNativeKeys(in: context, supportedKeys: ["id", "identifier", "type", "units", "originalAngularSource", "originalLengthSource"], objectName: childPath)
+            guard context["originalAngularSource"] != nil, context["originalLengthSource"] != nil else { throw SchemaError.invalidPackage("Native context requires nullable original angular source.") }
+        }
+    }
+    for key in ["frames", "instances"] {
+        try validateArrayField(key, in: object, path: "\(path).\(key)") { value, childPath in
+            let keys: Set<String> = key == "frames"
+                ? ["id", "name", "placement", "originalSTEPPlacement", "originalIGES"]
+                : ["id", "name", "placementName", "target", "placement", "originalSTEPPlacement", "originalIGES"]
+            try rejectUnsupportedNativeKeys(in: value, supportedKeys: keys, objectName: childPath)
+            guard let witness = value["originalSTEPPlacement"], witness is NSNull || witness is [String: Any] else {
+                throw SchemaError.invalidPackage("Native original frame requires explicit nullable STEP placement source.")
+            }
+            guard let iges = value["originalIGES"], iges is NSNull || iges is [String: Any] else {
+                throw SchemaError.invalidPackage("Native placement requires explicit nullable IGES source.")
+            }
+            if let source = iges as? [String: Any] {
+                let sourceKeys: Set<String> = key == "frames" ? ["coefficients", "form", "lengthUnit", "adjustments"]
+                    : ["matrixFrameID", "scale", "translation", "lengthUnit", "adjustments"]
+                try rejectUnsupportedNativeKeys(in: source, supportedKeys: sourceKeys, objectName: "\(childPath).originalIGES")
+                guard sourceKeys.allSatisfy({ source[$0] != nil }) else { throw SchemaError.invalidPackage("Native IGES source requires every original field.") }
+                try validateOriginalIGESAdjustments(source, path: "\(childPath).originalIGES")
+            }
+            // Source-owned codecs validate every original literal/unit/reference field.
+        }
+    }
+    for key in ["curvePositionFrames", "surfacePositionFrames"] {
+        guard let pairs = object[key] as? [Any] else { throw SchemaError.invalidPackage("Native original position map must contain canonical key/value pairs.") }
+        try validateDynamicObjectPairs(pairs, path: "\(path).\(key)", using: validateIndependentPositionFrameObject)
+    }
+    guard let linearSources = object["curveLinearSources"] as? [Any] else {
+        throw SchemaError.invalidPackage("Native original LINE sources require canonical key/value pairs.")
+    }
+    try validateDynamicObjectPairs(linearSources, path: "\(path).curveLinearSources") { value, childPath in
+        let keys: Set<String> = ["location", "direction", "vectorID", "vectorName", "magnitude", "lengthUnit", "originalLengthSource", "adjustments"]
+        try rejectUnsupportedNativeKeys(in: value, supportedKeys: keys, objectName: childPath)
+        guard keys.allSatisfy({ value[$0] != nil }) else {
+            throw SchemaError.invalidPackage("Native original LINE source requires every original field.")
+        }
+        // The source-owned Native decoder validates exact nested records and explicit nullable length law.
+    }
+    for (key, keys) in [
+        ("curveSplineSources", Set(["controlPoints", "curveForm", "closed", "selfIntersect", "knotSpecification", "isRational"])),
+        ("surfaceSplineSources", Set(["controlPointRows", "surfaceForm", "uClosed", "vClosed", "selfIntersect", "knotSpecification", "isRational"]))
+    ] {
+        guard let pairs = object[key] as? [Any] else { throw SchemaError.invalidPackage("Native original spline sources require canonical key/value pairs.") }
+        try validateDynamicObjectPairs(pairs, path: "\(path).\(key)") { value, childPath in
+            try rejectUnsupportedNativeKeys(in: value, supportedKeys: keys, objectName: childPath)
+            guard keys.allSatisfy({ value[$0] != nil }) else { throw SchemaError.invalidPackage("Native original spline source requires every original field.") }
+            // Source-owned strict adapters validate nested point records and original enumeration values under the shared allowance.
+        }
+    }
+    guard let angularMeasures = object["surfaceAngularMeasures"] as? [Any] else {
+        throw SchemaError.invalidPackage("Native original surface angular measures require canonical key/value pairs.")
+    }
+    try validateDynamicObjectPairs(angularMeasures, path: "\(path).surfaceAngularMeasures") { value, childPath in
+        try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["kind", "value"], objectName: childPath)
+        guard value["kind"] as? String == "coneSemiAngle", value["value"] != nil else {
+            throw SchemaError.invalidPackage("Native original surface angular measure is malformed.")
+        }
+    }
+    guard let associations = object["productAssociations"] as? [Any], associations.allSatisfy({ $0 is [String: Any] }) else {
+        throw SchemaError.invalidPackage("Native product associations must be original identity-pair objects.")
+    }
+    try validateArrayField("productAssociations", in: object, path: "\(path).productAssociations") { value, childPath in
+        try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["representationID", "definitionID"], objectName: childPath)
+        guard value["representationID"] != nil, value["definitionID"] != nil else {
+            throw SchemaError.invalidPackage("Native product association requires original representation and definition identities.")
+        }
+    }
+    // Original geometry Codable owns each family. Preserve the shared strict plane
+    // nested-vector admission for independent geometry as well as feature geometry.
+    if let geometry = object["geometry"] as? [String: Any], let surfaces = geometry["surfaces"] as? [Any] {
+        guard surfaces.count.isMultiple(of: 2) else { throw SchemaError.invalidPackage("Native original surface map has incomplete pairs.") }
+        var index = 1
+        while index < surfaces.count {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            if let surface = surfaces[index] as? [String: Any], surface["kind"] as? String == "plane" {
+                try validateObjectField("plane", in: surface, path: "\(path).geometry.surfaces[\(index)].plane", using: validatePlane3DObject)
+            }
+            index += 2
+        }
+    }
+}
+
+private func validateIndependentPositionFrameObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["frameID", "parameterLengthUnit", "originalIGESAdjustments"], objectName: path)
+    guard object["frameID"] != nil, object["parameterLengthUnit"] != nil, object["originalIGESAdjustments"] != nil else {
+        throw SchemaError.invalidPackage("Native original position requires frameID, nullable parameterLengthUnit and original IGES scoped adjustments.")
+    }
+    try validateOriginalIGESAdjustments(["adjustments": object["originalIGESAdjustments"]!], path: path)
 }
 
 private func validateSchemaVersionObject(_ object: [String: Any], path: String) throws {
@@ -1047,7 +1297,7 @@ private func validateSurfaceReferenceObject(_ object: [String: Any], path: Strin
     )
 }
 
-private func validateStableSubshapeReferenceObject(_ object: [String: Any], path: String) throws {
+func validateStableSubshapeReferenceObject(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(
         in: object,
         supportedKeys: ["subshapeID", "geometrySignature"],
@@ -1440,11 +1690,49 @@ private func validateSurfaceParameterCurveObject(_ object: [String: Any], path: 
             path: "\(path).projectedAnalytic",
             using: validateProjectedAnalyticSurfaceParameterCurveObject
         )
+    case "originalBSplineContinuation":
+        try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "originalBSplineContinuation"], objectName: path)
+        try validateObjectField("originalBSplineContinuation", in: object, path: "\(path).originalBSplineContinuation") { value, valuePath in
+            try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["original", "startParameter", "endParameter", "certificationTolerance"], objectName: valuePath)
+            try validateObjectField("original", in: value, path: "\(valuePath).original", using: validateBSplineCurve2DObject)
+        }
+    case "originalAffineWord":
+        try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "originalAffineWord"], objectName: path)
+        try validateObjectField("originalAffineWord", in: object, path: "\(path).originalAffineWord") { value, valuePath in
+            try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["source", "target", "startFraction", "endFraction"], objectName: valuePath)
+            try validateObjectField("source", in: value, path: "\(valuePath).source", using: validateSurfaceLiftSourceObject)
+        }
+    case "originalImage":
+        try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "originalImage"], objectName: path)
+        try validateObjectField("originalImage", in: object, path: "\(path).originalImage") { value, valuePath in
+            try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["source", "targetImage", "startFraction", "endFraction"], objectName: valuePath)
+            try validateObjectField("source", in: value, path: "\(valuePath).source", using: validateSurfaceLiftSourceObject)
+        }
+    case "rigidImage":
+        try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "rigidImage"], objectName: path)
+        try validateObjectField("rigidImage", in: object, path: "\(path).rigidImage") { value, valuePath in
+            try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["source", "targetSurface", "transform", "startFraction", "endFraction"], objectName: valuePath)
+            try validateObjectField("source", in: value, path: "\(valuePath).source", using: validateSurfaceLiftSourceObject)
+        }
+    case "offsetSurfaceImage":
+        try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "offsetSurfaceImage"], objectName: path)
+        try validateObjectField("offsetSurfaceImage", in: object, path: "\(path).offsetSurfaceImage") { value, valuePath in
+            try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["source", "offset", "isPullback"], objectName: valuePath)
+            try validateObjectField("source", in: value, path: "\(valuePath).source", using: validateSurfaceParameterCurveObject)
+        }
+    case "periodicTranslation":
+        try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "base", "uShift", "vShift"], objectName: path)
+        try validateObjectField("base", in: object, path: "\(path).base", using: validateSurfaceParameterCurveObject)
     default:
         throw SchemaError.invalidPackage(
             "Native \(path).kind \(kind) is not a supported surface-parameter curve representation."
         )
     }
+}
+
+private func validateSurfaceLiftSourceObject(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["surface", "parameterCurve"], objectName: path)
+    try validateObjectField("parameterCurve", in: object, path: "\(path).parameterCurve", using: validateSurfaceParameterCurveObject)
 }
 
 private func validateBSplineCurve2DObject(_ object: [String: Any], path: String) throws {
@@ -2502,9 +2790,10 @@ private func validateExtrudeDirectionObject(_ object: [String: Any], path: Strin
 }
 
 private func validatePlane3DObject(_ object: [String: Any], path: String) throws {
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["origin", "normal"], objectName: path)
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["origin", "normal", "uDirection"], objectName: path)
     try validateObjectField("origin", in: object, path: "\(path).origin", using: validatePoint3DObject)
     try validateObjectField("normal", in: object, path: "\(path).normal", using: validateVector3DObject)
+    try validateObjectField("uDirection", in: object, path: "\(path).uDirection", using: validateVector3DObject)
 }
 
 private func validatePoint3DObject(_ object: [String: Any], path: String) throws {
@@ -2515,14 +2804,18 @@ private func validateVector3DObject(_ object: [String: Any], path: String) throw
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["x", "y", "z"], objectName: path)
 }
 
-private func nativeJSONObject(from data: Data, name: String) throws -> [String: Any] {
+private func nativeJSONObject(from data: Data, name: String, resources: SharedExchangeResourceAccountant) throws -> [String: Any] {
     do {
-        try rejectDuplicateJSONKeys(in: data, name: name)
+        try rejectDuplicateJSONKeys(in: data, name: name, resources: resources)
         guard let object = try JSONSerialization.jsonObject(with: data) as? [String: Any] else {
             throw SchemaError.invalidPackage("\(name) JSON must be an object.")
         }
         return object
     } catch let error as SchemaError {
+        throw error
+    } catch let error as KernelError {
+        throw error
+    } catch let error as CancellationError {
         throw error
     } catch {
         throw SchemaError.invalidPackage("\(name) JSON is invalid: \(error).")
@@ -2661,14 +2954,18 @@ private func validateArrayField(
     }
 }
 
-private func rejectDuplicateJSONKeys(in data: Data, name: String) throws {
+private func rejectDuplicateJSONKeys(in data: Data, name: String, resources: SharedExchangeResourceAccountant) throws {
     guard let text = String(data: data, encoding: .utf8) else {
         throw SchemaError.invalidPackage("\(name) JSON is not UTF-8.")
     }
     do {
-        var scanner = JSONDuplicateKeyScanner(text: text)
+        var scanner = JSONDuplicateKeyScanner(text: text, resources: resources)
         try scanner.validate()
     } catch let error as SchemaError {
+        throw error
+    } catch let error as KernelError {
+        throw error
+    } catch let error as CancellationError {
         throw error
     } catch {
         throw SchemaError.invalidPackage("\(name) JSON is invalid: \(error).")
@@ -2676,57 +2973,61 @@ private func rejectDuplicateJSONKeys(in data: Data, name: String) throws {
 }
 
 private struct JSONDuplicateKeyScanner {
+    let resources: SharedExchangeResourceAccountant
     var text: String
     var index: String.Index
 
-    init(text: String) {
+    init(text: String, resources: SharedExchangeResourceAccountant) {
+        self.resources = resources
         self.text = text
         self.index = text.startIndex
     }
 
     mutating func validate() throws {
-        skipWhitespace()
+        try skipWhitespace()
         try parseValue()
-        skipWhitespace()
+        try skipWhitespace()
         guard index == text.endIndex else {
             throw SchemaError.invalidPackage("JSON contains trailing content.")
         }
     }
 
-    private mutating func parseValue() throws {
-        skipWhitespace()
+    private mutating func parseValue(depth: Int = 0) throws {
+        try resources.validateNestingDepth(depth)
+        try resources.charge(entities: 1, work: 1)
+        try skipWhitespace()
         guard index < text.endIndex else {
             throw SchemaError.invalidPackage("JSON value is missing.")
         }
         let character = text[index]
         if character == "{" {
-            try parseObject()
+            try parseObject(depth: depth)
         } else if character == "[" {
-            try parseArray()
+            try parseArray(depth: depth)
         } else if character == "\"" {
             _ = try parseString()
         } else if character == "-" || character.isNumber {
             try parseNumber()
         } else if text[index...].hasPrefix("true") {
-            advance(count: 4)
+            try advance(count: 4)
         } else if text[index...].hasPrefix("false") {
-            advance(count: 5)
+            try advance(count: 5)
         } else if text[index...].hasPrefix("null") {
-            advance(count: 4)
+            try advance(count: 4)
         } else {
             throw SchemaError.invalidPackage("JSON value is invalid.")
         }
     }
 
-    private mutating func parseObject() throws {
+    private mutating func parseObject(depth: Int) throws {
         try consume("{")
-        skipWhitespace()
-        if consumeIfPresent("}") {
+        try skipWhitespace()
+        if try consumeIfPresent("}") {
             return
         }
         var keys: Set<String> = []
         while true {
-            skipWhitespace()
+            try skipWhitespace()
             guard index < text.endIndex, text[index] == "\"" else {
                 throw SchemaError.invalidPackage("JSON object key is missing.")
             }
@@ -2734,27 +3035,27 @@ private struct JSONDuplicateKeyScanner {
             guard keys.insert(key).inserted else {
                 throw SchemaError.invalidPackage("Duplicate JSON key \(key).")
             }
-            skipWhitespace()
+            try skipWhitespace()
             try consume(":")
-            try parseValue()
-            skipWhitespace()
-            if consumeIfPresent("}") {
+            try parseValue(depth: depth + 1)
+            try skipWhitespace()
+            if try consumeIfPresent("}") {
                 return
             }
             try consume(",")
         }
     }
 
-    private mutating func parseArray() throws {
+    private mutating func parseArray(depth: Int) throws {
         try consume("[")
-        skipWhitespace()
-        if consumeIfPresent("]") {
+        try skipWhitespace()
+        if try consumeIfPresent("]") {
             return
         }
         while true {
-            try parseValue()
-            skipWhitespace()
-            if consumeIfPresent("]") {
+            try parseValue(depth: depth + 1)
+            try skipWhitespace()
+            if try consumeIfPresent("]") {
                 return
             }
             try consume(",")
@@ -2766,6 +3067,7 @@ private struct JSONDuplicateKeyScanner {
         var output = ""
         while index < text.endIndex {
             let character = text[index]
+            try resources.recordIterations()
             index = text.index(after: index)
             if character == "\"" {
                 return output
@@ -2784,6 +3086,7 @@ private struct JSONDuplicateKeyScanner {
             throw SchemaError.invalidPackage("JSON escape is unterminated.")
         }
         let character = text[index]
+        try resources.recordIterations()
         index = text.index(after: index)
         switch character {
         case "\"":
@@ -2835,23 +3138,24 @@ private struct JSONDuplicateKeyScanner {
                 throw SchemaError.invalidPackage("JSON unicode escape is invalid.")
             }
             value = value * 16 + UInt32(digit)
+            try resources.recordIterations()
             index = text.index(after: index)
         }
         return value
     }
 
     private mutating func parseNumber() throws {
-        if consumeIfPresent("-") {
+        if try consumeIfPresent("-") {
             guard index < text.endIndex else {
                 throw SchemaError.invalidPackage("JSON number is invalid.")
             }
         }
         try parseIntegerPart()
-        if consumeIfPresent(".") {
+        if try consumeIfPresent(".") {
             try parseRequiredDigits()
         }
-        if consumeIfPresent("e") || consumeIfPresent("E") {
-            _ = consumeIfPresent("+") || consumeIfPresent("-")
+        if try consumeIfPresent("e") || consumeIfPresent("E") {
+            _ = try consumeIfPresent("+") || consumeIfPresent("-")
             try parseRequiredDigits()
         }
     }
@@ -2861,6 +3165,7 @@ private struct JSONDuplicateKeyScanner {
             throw SchemaError.invalidPackage("JSON number is invalid.")
         }
         if text[index] == "0" {
+            try resources.recordIterations()
             index = text.index(after: index)
             return
         }
@@ -2868,6 +3173,7 @@ private struct JSONDuplicateKeyScanner {
             throw SchemaError.invalidPackage("JSON number is invalid.")
         }
         while index < text.endIndex, text[index].isNumber {
+            try resources.recordIterations()
             index = text.index(after: index)
         }
     }
@@ -2876,6 +3182,7 @@ private struct JSONDuplicateKeyScanner {
         var hasDigit = false
         while index < text.endIndex, text[index].isNumber {
             hasDigit = true
+            try resources.recordIterations()
             index = text.index(after: index)
         }
         guard hasDigit else {
@@ -2883,8 +3190,9 @@ private struct JSONDuplicateKeyScanner {
         }
     }
 
-    private mutating func skipWhitespace() {
+    private mutating func skipWhitespace() throws {
         while index < text.endIndex, text[index].isWhitespace {
+            try resources.recordIterations()
             index = text.index(after: index)
         }
     }
@@ -2893,19 +3201,22 @@ private struct JSONDuplicateKeyScanner {
         guard index < text.endIndex, text[index] == expected else {
             throw SchemaError.invalidPackage("JSON expected \(expected).")
         }
+        try resources.recordIterations()
         index = text.index(after: index)
     }
 
-    private mutating func consumeIfPresent(_ expected: Character) -> Bool {
+    private mutating func consumeIfPresent(_ expected: Character) throws -> Bool {
         guard index < text.endIndex, text[index] == expected else {
             return false
         }
+        try resources.recordIterations()
         index = text.index(after: index)
         return true
     }
 
-    private mutating func advance(count: Int) {
+    private mutating func advance(count: Int) throws {
         for _ in 0..<count {
+            try resources.recordIterations()
             index = text.index(after: index)
         }
     }
@@ -2943,15 +3254,64 @@ private func validateNativeAssemblyObject(_ object: [String: Any], path: String)
 
 private func validateNativeAssemblyOccurrence(_ object: [String: Any], path: String) throws {
     try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["id", "name", "definitionID", "placement"], objectName: path)
-    try validateObjectField("placement", in: object, path: "\(path).placement") { frame, path in
-        try rejectUnsupportedNativeKeys(in: frame, supportedKeys: ["basisX", "basisY", "basisZ", "translation"], objectName: path)
-        for key in ["basisX", "basisY", "basisZ", "translation"] {
-            try validateObjectField(key, in: frame, path: "\(path).\(key)", using: validateVector3DObject)
+    try validateObjectField("placement", in: object, path: "\(path).placement", using: validateNativeAssemblyPlacement)
+}
+
+private func validateNativeAssemblyPlacement(_ object: [String: Any], path: String) throws {
+    if let kind = object["kind"] {
+        guard let name = kind as? String else {
+            throw ImportError.invalidData("Unknown Native assembly placement family at \(path).")
         }
+        switch name {
+        case "step":
+            try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "source"], objectName: path)
+            try validateObjectField("source", in: object, path: "\(path).source") { _, _ in
+                // The original source decoder validates its strict nested keys on the same allowance.
+            }
+        case "affine":
+            try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "transform"], objectName: path)
+            try validateObjectField("transform", in: object, path: "\(path).transform", using: validateNativeAssemblyFrame)
+        case "word":
+            try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["kind", "factors"], objectName: path)
+            try validateArrayField("factors", in: object, path: "\(path).factors") { factor, factorPath in
+                try rejectUnsupportedNativeKeys(in: factor, supportedKeys: ["operation", "placement"], objectName: factorPath)
+                guard let operation = factor["operation"] as? String,
+                      operation == "forward" || operation == "inverse" else {
+                    throw ImportError.invalidData("Unknown original placement operation at \(factorPath).")
+                }
+                try validateObjectField("placement", in: factor, path: "\(factorPath).placement") { source, sourcePath in
+                    guard source["kind"] as? String != "word" else {
+                        throw ImportError.invalidData("A Native placement factor cannot contain a nested word at \(sourcePath).")
+                    }
+                    try validateNativeAssemblyPlacement(source, path: sourcePath)
+                }
+            }
+        default:
+            throw ImportError.invalidData("Unknown Native assembly placement family at \(path).")
+        }
+    } else {
+        try validateNativeAssemblyFrame(object, path: path)
+    }
+}
+
+private func validateNativeAssemblyFrame(_ object: [String: Any], path: String) throws {
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["basisX", "basisY", "basisZ", "translation"], objectName: path)
+    for key in ["basisX", "basisY", "basisZ", "translation"] {
+        try validateObjectField(key, in: object, path: "\(path).\(key)", using: validateVector3DObject)
     }
 }
 
 private func validateNativeProductAttributesObject(_ object: [String: Any], path: String) throws {
     // Typed decoding owns the nested strict discriminators and density/target payload admission.
-    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["materials", "assignments", "layers", "itemCharacterizations", "shapeElementDescriptions"], objectName: path)
+    try rejectUnsupportedNativeKeys(in: object, supportedKeys: ["materials", "assignments", "layers", "itemCharacterizations", "shapeElementDescriptions", "manufacturingInformation", "viewMetadata"], objectName: path)
+}
+
+private func validateOriginalIGESAdjustments(_ source: [String: Any], path: String) throws {
+    try validateArrayField("adjustments", in: source, path: "\(path).adjustments") { value, childPath in
+        try rejectUnsupportedNativeKeys(in: value, supportedKeys: ["displacement", "conjugates"], objectName: childPath)
+        try validateObjectField("displacement", in: value, path: "\(childPath).displacement", using: validateVector3DObject)
+        guard value["conjugates"] is Bool else {
+            throw SchemaError.invalidPackage("Native original IGES adjustment requires displacement and conjugation law.")
+        }
+    }
 }

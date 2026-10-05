@@ -34,6 +34,11 @@ Domain failure -> KernelError.wrapping -> immutable code and diagnostic context
 
 - Resource exhaustion is classified as resourceLimitExceeded, not invalidInput.
 - Explicit unsupported-domain failures retain unsupportedCapability.
+- A certified fillet radius exceeding original material thickness reports
+  filletThicknessExceeded. Certified blend self-intersection and disappearance
+  of a required face report filletSelfIntersection and filletFaceDisappeared.
+  These causes require the corresponding original geometry witness; resource
+  exhaustion or an inconclusive geometric search cannot be relabeled as them.
 - Cancellation, missing references, invalid topology, I/O, unavailable dependencies,
   security refusal and unclassified failures have distinct codes.
 - An unknown error is unclassifiedFailure; it is never blamed on input validity.
@@ -41,6 +46,9 @@ Domain failure -> KernelError.wrapping -> immutable code and diagnostic context
 - Every KernelErrorCode has one explicit cause category. Non-discrete results
   remain distinct from numerical indeterminacy and unsupported domains.
 - Classification operates on typed causes. Diagnostic wording is not a predicate.
+- Portable source encoding exhaustion retains resourceLimitExceeded; malformed
+  limits, nonfinite scalars and canonical key collisions retain invalidInput.
+  Embedded presents each original encoding cause explicitly without reflection.
 - User-facing descriptions return the diagnostic message; debug descriptions
   retain phase, code and context. Callers inspect codes rather than parsing text.
 

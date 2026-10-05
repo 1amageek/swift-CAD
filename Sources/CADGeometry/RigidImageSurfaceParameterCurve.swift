@@ -2,7 +2,7 @@ import CADCore
 import Foundation
 
 /// A parameter-preserving face-local curve image under a rigid transform.
-public struct RigidImageSurfaceParameterCurve: Codable, Hashable, Sendable {
+public struct RigidImageSurfaceParameterCurve: Hashable, Sendable {
     public let source: SurfaceLiftCurve3D
     public let targetSurface: Surface3D
     public let transform: RigidTransform3D
@@ -441,3 +441,7 @@ public struct RigidImageSurfaceParameterCurve: Codable, Hashable, Sendable {
         lower + (upper - lower) * fraction
     }
 }
+
+#if !hasFeature(Embedded)
+extension RigidImageSurfaceParameterCurve: Codable {}
+#endif

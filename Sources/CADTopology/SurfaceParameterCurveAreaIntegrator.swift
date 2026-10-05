@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 package struct SurfaceParameterCurveAreaIntegrator {
   private struct WorkItem {
@@ -16,11 +24,41 @@ package struct SurfaceParameterCurveAreaIntegrator {
     let depth: Int
   }
 
-  private let maximumSubdivisionDepth = 40
+  private let maximumSubdivisionDepth: Int
+  private let consumeWork: (@Sendable (Int) throws -> Void)?
+  private let consumeStorage: (@Sendable (Int) throws -> Void)?
+  private let remainingSourceDepth: Int
+  private let maximumAlgebraicDepth: Int
   private let maximumImplicitSubdivisionDepthBeforeToleranceFloor = 8
   private let maximumCellCount = 131_072
 
-  package init() {}
+  package init(maximumSubdivisionDepth: Int = 40,
+    consumeWork: (@Sendable (Int) throws -> Void)? = nil,
+    consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
+    remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int = 32) {
+    self.maximumSubdivisionDepth = min(40, maximumSubdivisionDepth)
+    self.consumeWork = consumeWork
+    self.consumeStorage = consumeStorage
+    self.remainingSourceDepth = min(16, remainingSourceDepth)
+    self.maximumAlgebraicDepth = maximumAlgebraicDepth
+  }
+
+  package func bounds(for curve: SurfaceParameterCurve, on surface: Surface3D,
+    uShift: Double, requestedWidth: Double, tolerance: ModelingTolerance) throws -> SurfaceParameterAreaBounds {
+    guard maximumSubdivisionDepth >= 0, remainingSourceDepth > 0, (0...32).contains(maximumAlgebraicDepth), uShift.isFinite, requestedWidth.isFinite, requestedWidth > 0 else {
+      throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
+        message: "Original bounded UV area requires valid caller depth and finite integral width.")
+    }
+    try curve.validate(on: surface, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+      maximumSubdivisionDepth: maximumSubdivisionDepth,
+      consumeWork: { try consumeWork?($0) }, consumeStorage: consumeStorage,
+      maximumAlgebraicDepth: maximumAlgebraicDepth)
+    if let linear = try OriginalLinearPcurveFluxIntegrator().bounds(for: curve, uShift: uShift,
+      requestedWidth: requestedWidth, tolerance: tolerance, consumeWork: consumeWork,
+      consumeStorage: consumeStorage) { return linear }
+    return try originalChartBounds(for: curve, on: surface, uShift: uShift,
+      requestedWidth: requestedWidth, tolerance: tolerance)
+  }
 
   package func bounds(
     for curve: SurfaceParameterCurve,
@@ -29,7 +67,8 @@ package struct SurfaceParameterCurveAreaIntegrator {
     tolerance: ModelingTolerance
   ) throws -> SurfaceParameterAreaBounds {
     try tolerance.validate()
-    guard uShift.isFinite,
+    guard maximumSubdivisionDepth >= 0, remainingSourceDepth > 0,
+      (0...32).contains(maximumAlgebraicDepth), uShift.isFinite,
       requestedWidth.isFinite,
       requestedWidth > 0.0
     else {
@@ -40,7 +79,26 @@ package struct SurfaceParameterCurveAreaIntegrator {
         message: "Surface-parameter area integration requires finite positive options."
       )
     }
+    if consumeStorage != nil {
+      // FIXME(INCOMPLETE_IMPLEMENTATION): The no-support UV area compatibility
+      // route retains legacy specialized producers without complete byte ports.
+      // Selected-byte consumers require the original support-bound chart issuer;
+      // legacy polynomial/analytic buffers cannot masquerade as that receipt.
+      throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+        message: "Selected-byte UV area requires its original support-bound producer.")
+    }
     switch curve {
+    case .originalAffineWord(let image):
+      return try originalChartBounds(for: curve, on: .procedural(.originalAffineWord(image.target)),
+        uShift: uShift, requestedWidth: requestedWidth, tolerance: tolerance)
+    case .originalImage(let image):
+      return try originalChartBounds(for: curve, on: .parameterImage(image.targetImage),
+        uShift: uShift, requestedWidth: requestedWidth, tolerance: tolerance)
+    case .originalBSplineContinuation:
+      // A numeric UV law needs no physical support metric. The canonical plane
+      // binds its two source coordinates for the original chart producer.
+      return try originalChartBounds(for: curve, on: .plane(Plane3D(origin: .zero, normal: .unitZ)),
+        uShift: uShift, requestedWidth: requestedWidth, tolerance: tolerance)
     case .affine(let origin, let direction, let startParameter, let endParameter):
       let start = SurfaceParameter(
         u: origin.x + direction.x * startParameter + uShift,
@@ -164,6 +222,86 @@ package struct SurfaceParameterCurveAreaIntegrator {
         tolerance: tolerance
       )
     }
+  }
+
+  private func originalChartBounds(for curve: SurfaceParameterCurve, on surface: Surface3D,
+    uShift: Double, requestedWidth: Double, tolerance: ModelingTolerance) throws -> SurfaceParameterAreaBounds {
+    var consumed = 0
+    var currentDepth = 0
+    func charge() throws {
+      try Task.checkCancellation()
+      guard consumed < maximumCellCount else {
+        throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+          message: "Original UV flux exhausted its complete operation allowance.")
+      }
+      try consumeWork?(currentDepth)
+      consumed += 1
+    }
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Original numeric/native UV flux now
+    // shares bounded preparation and query admission. Implicit/inverse chart
+    // root producers still require their complete supported-family callbacks
+    // before this production loop-area route can claim all-family closure.
+    let chart = try SurfaceAreaParameterChartEncloser(curve: curve, on: surface,
+      tolerance: tolerance, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth, maximumAlgebraicDepth: maximumAlgebraicDepth,
+      consumeWork: { _ in try charge() }, consumeStorage: consumeStorage)
+    let first = try chart.endpointBounds(atEnd: false, tolerance: tolerance, consumeWork: charge, consumeStorage: consumeStorage)
+    let last = try chart.endpointBounds(atEnd: true, tolerance: tolerance, consumeWork: charge, consumeStorage: consumeStorage)
+    let correction = OutwardScalarInterval.exact(uShift)
+      * (OutwardScalarInterval(lower: last.v.lower, upper: last.v.upper)
+        - OutwardScalarInterval(lower: first.v.lower, upper: first.v.upper))
+    guard correction.isFinite, correction.width < requestedWidth else {
+      throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+        message: "Original UV endpoint uncertainty exceeds the requested integral accuracy.")
+    }
+    var pending: [(range: ScalarInterval, target: Double, depth: Int)] = []
+    try OriginalParameterQueryStorage.reserve(maximumSubdivisionDepth + 1, in: &pending,
+      consumeStorage: consumeStorage)
+    pending.append((try ScalarInterval(lower: 0, upper: 1),
+      ((requestedWidth-correction.width)/2).nextDown, 0))
+    var integral = OutwardScalarInterval.exact(0)
+    while let item = pending.popLast() {
+      currentDepth = item.depth
+      try charge()
+      var accepted: OutwardScalarInterval?
+      do {
+        let bounds = try chart.signedFluxIntegrationBounds(over: item.range,
+          tolerance: tolerance, consumeWork: charge, consumeStorage: consumeStorage)
+        let span = OutwardScalarInterval.exact(item.range.upper) - .exact(item.range.lower)
+        var value = bounds.value * span
+        if let midpoint = bounds.midpoint, let second = bounds.secondDerivative {
+          let secondMagnitude = max(abs(second.lower), abs(second.upper)).nextUp
+          let remainder = OutwardScalarInterval.exact(secondMagnitude) * span * span * span
+            * OutwardScalarInterval(1.0/24)
+          let taylor = midpoint * span + OutwardScalarInterval(lower: -remainder.upper, upper: remainder.upper)
+          guard let combined = value.intersection(with: taylor) else {
+            throw KernelError(phase: .topology, code: .classificationFailure, tolerance: tolerance,
+              message: "Original UV flux value and Taylor enclosures disagree.")
+          }
+          value = combined
+        }
+        guard value.isFinite else {
+          throw KernelError(phase: .topology, code: .classificationFailure, tolerance: tolerance,
+            message: "Original UV flux has nonfinite integral arithmetic.")
+        }
+        if value.width <= item.target { accepted = value }
+      } catch is SurfaceAreaEnclosureRefinementRequired {}
+      if let accepted { integral = integral + accepted; continue }
+      let middle = item.range.midpoint
+      guard item.depth < maximumSubdivisionDepth, middle > item.range.lower, middle < item.range.upper,
+        item.target/2 > 0 else {
+        throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+          message: "Original UV flux did not resolve within its original depth and accuracy allowance.")
+      }
+      pending.append((try ScalarInterval(lower: middle, upper: item.range.upper), item.target/2, item.depth+1))
+      pending.append((try ScalarInterval(lower: item.range.lower, upper: middle), item.target/2, item.depth+1))
+    }
+    let result = integral + correction
+    guard result.isFinite, result.width <= requestedWidth else {
+      throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+        message: "Original UV flux summation did not achieve the requested complete error width.")
+    }
+    return SurfaceParameterAreaBounds(lower: result.lower, upper: result.upper)
   }
 
   /// Integrates the periodic cone area gauge `-v du`.

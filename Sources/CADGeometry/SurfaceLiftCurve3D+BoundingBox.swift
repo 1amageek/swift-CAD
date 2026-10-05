@@ -20,11 +20,39 @@ extension SurfaceLiftCurve3D {
                 message: "A surface-lift bounding interval must lie in the normalized curve domain."
             )
         }
+        if case .originalAffineWord(let image) = parameterCurve {
+            let original = try image.source.boundingBox(over: image.mappedRange(interval), tolerance: tolerance)
+            let sourceBounds = IntervalVector3DBounds(
+                x: .init(lower: original.minimum.x, upper: original.maximum.x),
+                y: .init(lower: original.minimum.y, upper: original.maximum.y),
+                z: .init(lower: original.minimum.z, upper: original.maximum.z))
+            let bounds = try OriginalAffineWordJetTransport.position(image.target.preparedWord,
+                bounds: sourceBounds, consumeWork: { try Task.checkCancellation() })
+            return try .init(minimum: .init(x: bounds.x.lower, y: bounds.y.lower, z: bounds.z.lower),
+                maximum: .init(x: bounds.x.upper, y: bounds.y.upper, z: bounds.z.upper))
+        }
+        if case .originalImage(let image) = parameterCurve {
+            let original = try image.source.boundingBox(over: image.mappedRange(interval), tolerance: tolerance)
+            let points = [original.minimum, original.maximum,
+                Point3D(x: original.minimum.x, y: original.minimum.y, z: original.maximum.z),
+                Point3D(x: original.minimum.x, y: original.maximum.y, z: original.minimum.z),
+                Point3D(x: original.maximum.x, y: original.minimum.y, z: original.minimum.z),
+                Point3D(x: original.maximum.x, y: original.maximum.y, z: original.minimum.z),
+                Point3D(x: original.maximum.x, y: original.minimum.y, z: original.maximum.z),
+                Point3D(x: original.minimum.x, y: original.maximum.y, z: original.maximum.z)]
+            return try BoundingBox3D(points: points.map(image.targetImage.transform.applying(to:)))
+                .expanded(by: tolerance.distance)
+        }
         let bounder = SurfaceLiftDifferentialBounder()
         if supportsIntervalLocalParameterBounds(parameterCurve) {
-            let containingInterval = try bounder.certificationInterval(
-                containing: interval, tolerance: tolerance
-            )
+            let minimumWidth = (4.0 * tolerance.relative).nextUp
+            let containingInterval: ScalarInterval
+            if interval.width >= minimumWidth {
+                containingInterval = interval
+            } else {
+                let upper = min(1.0, max(interval.midpoint + minimumWidth * 0.5, minimumWidth))
+                containingInterval = try ScalarInterval(lower: upper - minimumWidth, upper: upper)
+            }
             let localCurve = try parameterCurve.subcurveForParameterBounds(
                 fromNormalizedFraction: containingInterval.lower,
                 toNormalizedFraction: containingInterval.upper,
@@ -121,13 +149,13 @@ extension SurfaceLiftCurve3D {
         _ curve: SurfaceParameterCurve
     ) -> Bool {
         switch curve {
-        case .affine, .constantU, .constantV, .polyline, .bSpline, .certifiedImplicit:
+        case .affine, .constantU, .constantV, .polyline, .bSpline, .originalBSplineContinuation, .certifiedImplicit:
             return true
         case let .offsetSurfaceImage(image):
             return supportsIntervalLocalParameterBounds(image.source)
         case let .periodicTranslation(base, _, _):
             return supportsIntervalLocalParameterBounds(base)
-        case .harmonic, .sphericalGreatCircle,
+        case .originalImage, .originalAffineWord, .harmonic, .sphericalGreatCircle,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage:
             return false

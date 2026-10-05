@@ -131,8 +131,22 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
         }
         for i in joins.indices {
             for j in joins.indices where j > i {
-                guard joins[i].box.u.upper <= joins[j].box.u.lower
-                    || joins[j].box.u.upper <= joins[i].box.u.lower else {
+                try proofUsage.consume(depth: 0, tolerance: tolerance)
+                let a = joins[i]
+                let b = joins[j]
+                if a.box.u.upper <= b.box.u.lower || b.box.u.upper <= a.box.u.lower {
+                    continue
+                }
+                // Each chain retains its own connector over the common U range.
+                // Strict separation of the full closed V boxes leaves the entire
+                // strip available to the unchanged original reference-cell proof.
+                let oppositeConnectors =
+                    (a.lowerConnector != nil && a.upperConnector == nil
+                        && b.lowerConnector == nil && b.upperConnector != nil)
+                    || (a.lowerConnector == nil && a.upperConnector != nil
+                        && b.lowerConnector != nil && b.upperConnector == nil)
+                let separatedV = a.box.v.upper < b.box.v.lower || b.box.v.upper < a.box.v.lower
+                guard a.isTip == false, b.isTip == false, oppositeConnectors, separatedV else {
                     throw unsupported(tolerance, "Original graph join uncertainty ranges are not separated.")
                 }
             }
@@ -162,6 +176,7 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
         switch curve {
         case let .constantV(v, start, end):
             try proofUsage.consume(depth: 0, tolerance: tolerance)
+            try Piece.chargeDerivativePreparation(degree: 1, tolerance: tolerance, proofUsage: &proofUsage)
             return [try Piece(boundaryIndex: boundaryIndex, nativeIndex: 0,
                 nativeParameters: ScalarInterval(lower: 0, upper: 1),
                 points: [Point2D(x: start, y: v), Point2D(x: end, y: v)],
@@ -196,6 +211,8 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
                         .allSatisfy({ $0 == a }) else {
                     throw unsupported(tolerance, "Original graph interior knots must retain full native Bezier multiplicity.")
                 }
+                try Piece.chargeDerivativePreparation(degree: source.degree, tolerance: tolerance,
+                                                      proofUsage: &proofUsage)
                 let range = (index * source.degree)...(index * source.degree + source.degree)
                 result.append(try Piece(boundaryIndex: boundaryIndex, nativeIndex: index,
                     nativeParameters: ScalarInterval(lower: a, upper: b),
@@ -329,24 +346,31 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
     private func joinReceipt(box: SurfaceParameterBox, vertex: Point3D,
                              entry: SurfaceParameterBox, exit: SurfaceParameterBox,
                              input: OriginalGraphBandInput, panels: [Panel],
-                             tolerance: ModelingTolerance) throws -> Receipt.JoinCell {
+                             tolerance: ModelingTolerance,
+                             proofUsage: inout OriginalTessellationProofUsage) throws -> Receipt.JoinCell {
         let selected = try retainedPanels(box, panels: panels, tolerance: tolerance)
         var error = 0.0
+        var originalJets: [SurfaceIntervalVectorJet] = []
         for panel in selected {
-            try Task.checkCancellation()
+            // Pay one preparation operation, sixty original scalar endpoints
+            // (three coordinates, ten interval fields), and one retained entry
+            // before work or storage, using the caller's unchanged shared ledger.
+            for _ in 0..<62 { try proofUsage.consume(depth: 0, tolerance: tolerance) }
             // The full closed jet retains every original parameter and owning side.
             let jet = try panel.span.intervalJet(overClosedBox: panel.parameters,
                                                  on: input.surface, tolerance: tolerance)
             let distance = IntervalVector3DBounds(x: jet.x.value - .exact(vertex.x),
                 y: jet.y.value - .exact(vertex.y), z: jet.z.value - .exact(vertex.z)).lengthUpperBound
             error = max(error, distance)
+            originalJets.append(jet)
         }
         guard error.isFinite else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                               message: "Original join uncertainty exceeded finite position arithmetic.")
         }
         return Receipt.JoinCell(parameters: box, sourceVertex: vertex,
-            originalPositionErrorUpperBound: error, panels: selected, entry: entry, exit: exit)
+            originalPositionErrorUpperBound: error, panels: selected, originalPanelJets: originalJets,
+            entry: entry, exit: exit)
     }
 
     private func inversePoint(_ piece: Piece, u: Double, tolerance: ModelingTolerance,
@@ -383,7 +407,8 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
             let entry = try inversePoint(a, u: lower, tolerance: tolerance, proofUsage: &proofUsage)
             let exit = try inversePoint(b, u: upper, tolerance: tolerance, proofUsage: &proofUsage)
             let receipt = try joinReceipt(box: box, vertex: vertex, entry: entry, exit: exit,
-                                          input: input, panels: panels, tolerance: tolerance)
+                                          input: input, panels: panels, tolerance: tolerance,
+                                          proofUsage: &proofUsage)
             let error = (Interval.exact(2) * .exact(receipt.originalPositionErrorUpperBound)).upper
             let tangentV = receipt.panels.map { $0.bounds.tangentVMagnitudeUpperBound }.max()!
             let stripUncertainty = (Interval.exact(tangentV)
@@ -438,7 +463,8 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
             let entry = try inversePoint(a, u: station, tolerance: tolerance, proofUsage: &proofUsage)
             let exit = try inversePoint(b, u: station, tolerance: tolerance, proofUsage: &proofUsage)
             let receipt = try joinReceipt(box: box, vertex: vertex, entry: entry, exit: exit,
-                                          input: input, panels: panels, tolerance: tolerance)
+                                          input: input, panels: panels, tolerance: tolerance,
+                                          proofUsage: &proofUsage)
             let error = (Interval.exact(2) * .exact(receipt.originalPositionErrorUpperBound)).upper
             if entry.v.upper < exit.v.lower, error < fidelity.linearTolerance {
                 return Join(box: box, vertex: vertex, lowerConnector: nil, upperConnector: nil,

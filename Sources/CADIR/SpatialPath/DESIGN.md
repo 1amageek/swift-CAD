@@ -7,7 +7,10 @@ cubic Bezier source values. Planar Sketch and its constraints remain unchanged.
 
 ## Responsibilities and Boundaries
 
-Knots own stable UUIDs, XYZ positions and incoming/outgoing tangent vectors.
+Knots own stable `SpatialPathKnotID` values backed by the common portable
+128-bit identity, XYZ positions and incoming/outgoing tangent vectors.
+Native persistence retains the same canonical UUID text and identity bits;
+source edits and source fingerprinting require no Foundation UUID metadata.
 Source edits return validated values; rendering, picking, transactions and Undo
 belong to Rupa. A path produces curves, never an implicit planar profile.
 

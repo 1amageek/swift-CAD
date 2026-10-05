@@ -1,7 +1,7 @@
 import CADCore
 import Foundation
 
-public struct Hyperbola3D: Codable, Hashable, Sendable {
+public struct Hyperbola3D: Hashable, Sendable {
     public let center: Point3D
     public let normal: Vector3D
     public let transverseAxis: Vector3D
@@ -100,3 +100,7 @@ public struct Hyperbola3D: Codable, Hashable, Sendable {
         return parameter
     }
 }
+
+#if !hasFeature(Embedded)
+extension Hyperbola3D: Codable {}
+#endif

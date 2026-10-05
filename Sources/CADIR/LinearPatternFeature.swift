@@ -1,6 +1,6 @@
 import CADCore
 
-public struct LinearPatternFeature: Codable, Hashable, Sendable {
+public struct LinearPatternFeature: Hashable, Sendable {
     public let target: PatternTargetReference
     public let direction: Vector3D
     public let spacing: CADExpression
@@ -36,13 +36,16 @@ public struct LinearPatternFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case direction
         case spacing
         case count
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .direction, .spacing, .count], in: decoder)
@@ -52,7 +55,9 @@ public struct LinearPatternFeature: Codable, Hashable, Sendable {
         count = try container.decode(Int.self, forKey: .count)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -61,4 +66,9 @@ public struct LinearPatternFeature: Codable, Hashable, Sendable {
         try container.encode(spacing, forKey: .spacing)
         try container.encode(count, forKey: .count)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension LinearPatternFeature: Codable {}
+#endif

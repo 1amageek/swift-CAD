@@ -62,10 +62,28 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
     of surface: Surface3D,
     u: SurfaceIntervalJet,
     v: SurfaceIntervalJet,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    consumeWork: () throws -> Void = { try Task.checkCancellation() }
   ) throws -> SurfaceIntervalVectorJet? {
     switch surface {
     case .plane(let plane):
+      if let direction = plane.uDirection {
+        func exact(_ value: Double) -> SurfaceIntervalJet { .constant(value) }
+        func originalCross(_ a: Double, _ b: Double, _ c: Double, _ d: Double) throws -> SurfaceIntervalJet {
+          try consumeWork()
+          let value = OutwardScalarInterval.exact(a) * .exact(b) - .exact(c) * .exact(d)
+          return .init(value: value, derivativeU: .exact(0), derivativeV: .exact(0),
+            secondDerivativeUU: .exact(0), secondDerivativeUV: .exact(0), secondDerivativeVV: .exact(0),
+            thirdDerivativeUUU: .exact(0), thirdDerivativeUUV: .exact(0), thirdDerivativeUVV: .exact(0), thirdDerivativeVVV: .exact(0))
+        }
+        let n = plane.normal
+        let vx = try originalCross(n.y, direction.z, n.z, direction.y)
+        let vy = try originalCross(n.z, direction.x, n.x, direction.z)
+        let vz = try originalCross(n.x, direction.y, n.y, direction.x)
+        return .init(x: exact(plane.origin.x) + exact(direction.x) * u + vx * v,
+          y: exact(plane.origin.y) + exact(direction.y) * u + vy * v,
+          z: exact(plane.origin.z) + exact(direction.z) * u + vz * v)
+      }
       let basis = try plane.parameterBasis(tolerance: tolerance)
       return affinePlane(
         origin: plane.origin,
@@ -136,22 +154,24 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
         + radial * (v * .constant(sin(halfAngle)))
     case .sphere(let center, let radius):
       let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
-      let radial = radialJet(basis: basis, parameter: u)
-      let direction =
-        radial * .cosine(of: v)
-        + SurfaceIntervalVectorJet.constant(Vector3D.unitZ) * .sine(of: v)
-      return SurfaceIntervalVectorJet.constant(center)
-        + direction * .constant(radius)
+      let radial = SurfaceIntervalVectorJet.constant(basis.u)
+        * CanonicalSphereAngularPhase.harmonic(of: u, cosine: true)
+        + SurfaceIntervalVectorJet.constant(basis.v)
+        * CanonicalSphereAngularPhase.harmonic(of: u, cosine: false)
+      let direction = radial * CanonicalSphereAngularPhase.harmonic(of: v, cosine: true)
+        + SurfaceIntervalVectorJet.constant(Vector3D.unitZ)
+        * CanonicalSphereAngularPhase.harmonic(of: v, cosine: false)
+      return SurfaceIntervalVectorJet.constant(center) + direction * .constant(radius)
     case .torus(let center, let axis, let majorRadius, let minorRadius):
       let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
       let radial = radialJet(basis: basis, parameter: u)
       let radialDistance =
         SurfaceIntervalJet.constant(majorRadius)
-        + .constant(minorRadius) * .cosine(of: v)
+        + .constant(minorRadius) * CanonicalSphereAngularPhase.harmonic(of: v, cosine: true)
       return SurfaceIntervalVectorJet.constant(center)
         + radial * radialDistance
         + SurfaceIntervalVectorJet.constant(axis)
-        * (.constant(minorRadius) * .sine(of: v))
+        * (.constant(minorRadius) * CanonicalSphereAngularPhase.harmonic(of: v, cosine: false))
     }
   }
 
@@ -192,8 +212,8 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
     basis: (u: Vector3D, v: Vector3D),
     parameter: SurfaceIntervalJet
   ) -> SurfaceIntervalVectorJet {
-    SurfaceIntervalVectorJet.constant(basis.u) * .cosine(of: parameter)
-      + SurfaceIntervalVectorJet.constant(basis.v) * .sine(of: parameter)
+    SurfaceIntervalVectorJet.constant(basis.u) * CanonicalSphereAngularPhase.harmonic(of: parameter, cosine: true)
+      + SurfaceIntervalVectorJet.constant(basis.v) * CanonicalSphereAngularPhase.harmonic(of: parameter, cosine: false)
   }
 
   private func bSplineJet(

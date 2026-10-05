@@ -42,7 +42,8 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     upperAnchor: SurfaceIntersectionParameterPair,
     firstSurface preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
     secondSurface preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws {
     self.parameterBox = parameterBox
     self.freeParameter = freeParameter
@@ -53,7 +54,7 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     try validate(
       firstSurface: preparedFirstSurface,
       secondSurface: preparedSecondSurface,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission
     )
   }
 
@@ -106,27 +107,31 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
   package func validate(
     firstSurface preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
     secondSurface preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws {
     try tolerance.validate()
     try validateStructure(
       firstSurface: preparedFirstSurface.surface,
       secondSurface: preparedSecondSurface.surface,
-      tolerance: tolerance
+      preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface,
+      tolerance: tolerance, admission: admission
     )
     try validateGraphProof(
       firstSurface: preparedFirstSurface.surface,
       secondSurface: preparedSecondSurface.surface,
       preparedFirstSurface: preparedFirstSurface,
       preparedSecondSurface: preparedSecondSurface,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission
     )
   }
 
   private func validateStructure(
     firstSurface: Surface3D,
     secondSurface: Surface3D,
-    tolerance: ModelingTolerance
+    preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
+    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil,
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws {
     try parameterBox.validate(
       first: firstSurface,
@@ -162,11 +167,13 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       )
     }
     for anchor in [lowerAnchor, midpointAnchor, upperAnchor] {
+      try admission.step()
       _ = try verifiedPoint(
         parameters: anchor,
         firstSurface: firstSurface,
         secondSurface: secondSurface,
-        tolerance: tolerance
+        tolerance: tolerance, admission: admission,
+        preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
       )
     }
   }
@@ -189,6 +196,15 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     secondSurface: Surface3D,
     tolerance: ModelingTolerance
   ) throws -> SurfaceIntersectionParameterPair {
+    try boundedParameterPair(atNormalizedFraction: fraction, firstSurface: firstSurface,
+      secondSurface: secondSurface, tolerance: tolerance, admission: .legacy)
+  }
+
+  package func boundedParameterPair(atNormalizedFraction fraction: Double,
+    firstSurface: Surface3D, secondSurface: Surface3D, tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission,
+    preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
+    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil) throws -> SurfaceIntersectionParameterPair {
     try tolerance.validate()
     guard fraction.isFinite,
       fraction >= -tolerance.relative,
@@ -201,30 +217,38 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       direction == .forward
       ? clampedFraction
       : 1.0 - clampedFraction
-    let freeInterval = parameterBox.interval(for: freeParameter)
+    let preparedFirst = try preparedFirstSurface ?? admission.prepare(firstSurface, tolerance: tolerance)
+    let preparedSecond = try preparedSecondSurface ?? admission.prepare(secondSurface, tolerance: tolerance)
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    let intervals = parameterBox.intervals
+    let freeInterval = intervals[freeParameter.rawValue]
     let freeValue = freeInterval.lower + freeInterval.width * directedFraction
+    try admission.reserve(count: 12, stride: MemoryLayout<Double>.stride)
     var values = initialValues(atNormalizedFraction: directedFraction)
     values[freeParameter.rawValue] = freeValue
-    let dependentIndexes = SurfaceIntersectionParameterCoordinate.allCases
-      .map(\.rawValue)
-      .filter { $0 != freeParameter.rawValue }
+    try admission.reserve(count: 3, stride: MemoryLayout<Int>.stride)
+    let dependentIndexes = (0..<4).filter { $0 != freeParameter.rawValue }
     func isAccurate(_ residual: Double, correction: [Double]) -> Bool {
       residual <= tolerance.distance && dependentIndexes.indices.allSatisfy { index in
         abs(correction[index]) <= tolerance.relative
-          * parameterBox.intervals[dependentIndexes[index]].width
+          * intervals[dependentIndexes[index]].width
       }
     }
     for _ in 0..<32 {
+      try admission.step()
       let currentSample = try sample(
         values: values,
         firstSurface: firstSurface,
         secondSurface: secondSurface,
-        tolerance: tolerance
+        tolerance: tolerance, admission: admission,
+        preparedFirstSurface: preparedFirst, preparedSecondSurface: preparedSecond
       )
       if currentSample.residual == 0 {
         return try SurfaceIntersectionParameterPair(values: values)
       }
+      try admission.reserve(count: 3, stride: MemoryLayout<Vector3D>.stride)
       let dependentColumns = dependentIndexes.map { currentSample.columns[$0] }
+      try admission.reserve(count: 6, stride: MemoryLayout<Double>.stride)
       guard
         let delta = Self.solve(
           columns: dependentColumns,
@@ -241,10 +265,12 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       var acceptedValues: [Double]?
       var scale = 1.0
       for _ in 0..<12 {
+        try admission.step()
+        try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
         var candidate = values
         for index in dependentIndexes.indices {
           let parameterIndex = dependentIndexes[index]
-          let interval = parameterBox.intervals[parameterIndex]
+          let interval = intervals[parameterIndex]
           candidate[parameterIndex] = min(
             max(values[parameterIndex] + delta[index] * scale, interval.lower),
             interval.upper
@@ -252,9 +278,10 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
         }
         candidate[freeParameter.rawValue] = freeValue
         if candidate == values { break }
-        let firstPoint = try firstSurface.point(u: candidate[0], v: candidate[1], tolerance: tolerance)
-        let secondPoint = try secondSurface.point(u: candidate[2], v: candidate[3], tolerance: tolerance)
-        if (firstPoint - secondPoint).length < currentSample.residual {
+        let candidateSample = try sample(values: candidate, firstSurface: firstSurface,
+          secondSurface: secondSurface, tolerance: tolerance, admission: admission,
+          preparedFirstSurface: preparedFirst, preparedSecondSurface: preparedSecond)
+        if candidateSample.residual < currentSample.residual {
           acceptedValues = candidate
           break
         }
@@ -276,8 +303,11 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       values: values,
       firstSurface: firstSurface,
       secondSurface: secondSurface,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission,
+      preparedFirstSurface: preparedFirst, preparedSecondSurface: preparedSecond
     )
+    try admission.reserve(count: 3, stride: MemoryLayout<Vector3D>.stride)
+    try admission.reserve(count: 6, stride: MemoryLayout<Double>.stride)
     guard let correction = Self.solve(
       columns: dependentIndexes.map { finalSample.columns[$0] },
       rightHandSide: finalSample.difference * -1.0
@@ -310,6 +340,19 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       secondSurface: secondSurface,
       tolerance: tolerance
     )
+  }
+
+  package func point(atNormalizedFraction fraction: Double,
+    firstSurface first: PreparedSurfaceDifferentialEncloser,
+    secondSurface second: PreparedSurfaceDifferentialEncloser,
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission) throws -> Point3D {
+    let parameters = try boundedParameterPair(atNormalizedFraction: fraction,
+      firstSurface: first.surface, secondSurface: second.surface,
+      tolerance: tolerance, admission: admission,
+      preparedFirstSurface: first, preparedSecondSurface: second)
+    return try verifiedPoint(parameters: parameters, firstSurface: first.surface,
+      secondSurface: second.surface, tolerance: tolerance, admission: admission,
+      preparedFirstSurface: first, preparedSecondSurface: second)
   }
 
   public func differential(
@@ -580,28 +623,30 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
   package func parameterDerivativeBounds(
     firstSurface: Surface3D,
     secondSurface: Surface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws -> [ScalarInterval] {
     try resolvedParameterDerivativeBounds(
       firstSurface: firstSurface,
       secondSurface: secondSurface,
       preparedFirstSurface: nil,
       preparedSecondSurface: nil,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission
     )
   }
 
   package func parameterDerivativeBounds(
     firstSurface preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
     secondSurface preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws -> [ScalarInterval] {
     try resolvedParameterDerivativeBounds(
       firstSurface: preparedFirstSurface.surface,
       secondSurface: preparedSecondSurface.surface,
       preparedFirstSurface: preparedFirstSurface,
       preparedSecondSurface: preparedSecondSurface,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission
     )
   }
 
@@ -610,14 +655,15 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     secondSurface: Surface3D,
     preparedFirstSurface: PreparedSurfaceDifferentialEncloser?,
     preparedSecondSurface: PreparedSurfaceDifferentialEncloser?,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws -> [ScalarInterval] {
-    try tolerance.validate()
+    try tolerance.validate(); try admission.step()
     // Structural certificates own their derivative contract. Resolving one
     // before constructing the generic difference patch avoids rebuilding
     // and decomposing both source surfaces for every restricted subcell.
     let normalizedBounds: [ScalarInterval]?
-    if case .bSpline(let firstBSpline) = firstSurface,
+    if !admission.usesCallerAccounting, case .bSpline(let firstBSpline) = firstSurface,
       case .bSpline(let secondBSpline) = secondSurface
     {
       if let exactGraph = try ExactIsoparametricPlanarIntersectionGraph.certified(
@@ -653,14 +699,14 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
           firstSurface: preparedFirstSurface,
           secondSurface: preparedSecondSurface,
           parameterBox: parameterBox,
-          tolerance: tolerance
+          tolerance: tolerance, admission: admission
         )
       } else {
         prover = try ParametricSurfaceIntersectionGraphProver(
           firstSurface: firstSurface,
           secondSurface: secondSurface,
           parameterBox: parameterBox,
-          tolerance: tolerance
+          tolerance: tolerance, admission: admission
         )
       }
       normalizedBounds = try prover.normalizedGraphParameterDerivativeBounds(
@@ -674,26 +720,23 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
           "An implicit intersection graph has no finite interval parameter derivative enclosure."
       )
     }
-    let traversalSign = direction == .forward ? 1.0 : -1.0
-    return try zip(normalizedBounds, parameterBox.intervals).map {
-      normalized, parameterInterval in
-      let scale = parameterInterval.width * traversalSign
-      let products = [normalized.lower * scale, normalized.upper * scale]
-      guard let lower = products.min(),
-        let upper = products.max(),
-        lower.isFinite,
-        upper.isFinite
-      else {
-        throw certificateFailure(
-          tolerance: tolerance,
-          message:
-            "An implicit intersection parameter derivative exceeded finite interval arithmetic."
-        )
+    let traversalSign = OutwardScalarInterval.exact(direction == .forward ? 1.0 : -1.0)
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    let intervals = parameterBox.intervals
+    guard normalizedBounds.count == intervals.count else {
+      throw certificateFailure(tolerance: tolerance, message: "Original graph derivative coordinate count is invalid.")
+    }
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    return try zip(normalizedBounds, intervals).map { normalized, parameterInterval in
+      try admission.step()
+      let width = OutwardScalarInterval.exact(parameterInterval.upper) - .exact(parameterInterval.lower)
+      let result = OutwardScalarInterval(lower: normalized.lower, upper: normalized.upper)
+        * width * traversalSign
+      guard result.isFinite else {
+        throw certificateFailure(tolerance: tolerance,
+          message: "Original intersection parameter derivative has no finite outward enclosure.")
       }
-      return try ScalarInterval(
-        lower: lower.nextDown,
-        upper: upper.nextUp
-      )
+      return try ScalarInterval(lower: result.lower, upper: result.upper)
     }
   }
 
@@ -702,9 +745,10 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     secondSurface: Surface3D,
     preparedFirstSurface: PreparedSurfaceDifferentialEncloser?,
     preparedSecondSurface: PreparedSurfaceDifferentialEncloser?,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws {
-    if case .bSpline(let firstBSpline) = firstSurface,
+    try admission.step()
+    if !admission.usesCallerAccounting, case .bSpline(let firstBSpline) = firstSurface,
       case .bSpline(let secondBSpline) = secondSurface
     {
       if let exactGraph = try ExactAffineBilinearIntersectionGraph.certified(
@@ -789,14 +833,14 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
         firstSurface: preparedFirstSurface,
         secondSurface: preparedSecondSurface,
         parameterBox: parameterBox,
-        tolerance: tolerance
+        tolerance: tolerance, admission: admission
       )
     } else {
       prover = try ParametricSurfaceIntersectionGraphProver(
         firstSurface: firstSurface,
         secondSurface: secondSurface,
         parameterBox: parameterBox,
-        tolerance: tolerance
+        tolerance: tolerance, admission: admission
       )
     }
     if case .fullGraph = try prover.parameterizedGraphCertificate(
@@ -883,31 +927,29 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     parameters: SurfaceIntersectionParameterPair,
     firstSurface: Surface3D,
     secondSurface: Surface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy,
+    preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
+    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil
   ) throws -> Point3D {
-    let firstPoint = try firstSurface.point(
-      u: parameters.first.u,
-      v: parameters.first.v,
-      tolerance: tolerance
-    )
-    let secondPoint = try secondSurface.point(
-      u: parameters.second.u,
-      v: parameters.second.v,
-      tolerance: tolerance
-    )
-    let residual = (firstPoint - secondPoint).length
-    guard residual <= tolerance.distance else {
-      throw certificateFailure(
-        tolerance: tolerance,
-        residual: residual,
-        message: "An implicit intersection graph point failed dual-surface residual verification."
-      )
+    let first = try admission.positionBounds(preparedFirstSurface ?? admission.prepare(firstSurface, tolerance: tolerance),
+      at: parameters.first, tolerance: tolerance)
+    let second = try admission.positionBounds(preparedSecondSurface ?? admission.prepare(secondSurface, tolerance: tolerance),
+      at: parameters.second, tolerance: tolerance)
+    func midpoint(_ a: OutwardScalarInterval, _ b: OutwardScalarInterval) -> Double {
+      ScalarInterval(lower: min(a.lower, b.lower), upper: max(a.upper, b.upper)).midpoint
     }
-    return Point3D(
-      x: (firstPoint.x + secondPoint.x) * 0.5,
-      y: (firstPoint.y + secondPoint.y) * 0.5,
-      z: (firstPoint.z + secondPoint.z) * 0.5
-    )
+    let candidate = Point3D(x: midpoint(first.x, second.x),
+      y: midpoint(first.y, second.y), z: midpoint(first.z, second.z))
+    try candidate.validate()
+    let original = IntervalVector3DBounds(x: .exact(candidate.x),
+      y: .exact(candidate.y), z: .exact(candidate.z))
+    let residual = max((first - second).lengthUpperBound,
+      (first - original).lengthUpperBound, (second - original).lengthUpperBound)
+    guard residual.isFinite, residual <= tolerance.distance else {
+      throw certificateFailure(tolerance: tolerance, residual: residual,
+        message: "Original closed support positions cannot certify the implicit point residual.")
+    }
+    return candidate
   }
 
   private func initialValues(atNormalizedFraction fraction: Double) -> [Double] {
@@ -929,31 +971,78 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     values: [Double],
     firstSurface: Surface3D,
     secondSurface: Surface3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy,
+    preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
+    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil
   ) throws -> (difference: Vector3D, residual: Double, columns: [Vector3D]) {
-    let firstGeometry = try firstSurface.taylorJet(
-      u: values[0],
-      v: values[1],
-      throughOrder: 1,
-      tolerance: tolerance
-    )
-    let secondGeometry = try secondSurface.taylorJet(
-      u: values[2],
-      v: values[3],
-      throughOrder: 1,
-      tolerance: tolerance
-    )
-    let difference = firstGeometry.value - secondGeometry.value
-    return (
-      difference,
-      difference.length,
-      [
-        firstGeometry.derivative(uOrder: 1, vOrder: 0),
-        firstGeometry.derivative(uOrder: 0, vOrder: 1),
-        secondGeometry.derivative(uOrder: 1, vOrder: 0) * -1.0,
-        secondGeometry.derivative(uOrder: 0, vOrder: 1) * -1.0,
-      ]
-    )
+    let firstGeometry = try admission.numericalSample(preparedFirstSurface ?? admission.prepare(firstSurface, tolerance: tolerance),
+      at: SurfaceParameter(u: values[0], v: values[1]), tolerance: tolerance)
+    let secondGeometry = try admission.numericalSample(preparedSecondSurface ?? admission.prepare(secondSurface, tolerance: tolerance),
+      at: SurfaceParameter(u: values[2], v: values[3]), tolerance: tolerance)
+    let difference = firstGeometry.position - secondGeometry.position
+    try admission.reserve(count: 4, stride: MemoryLayout<Vector3D>.stride)
+    return (difference, difference.length, [firstGeometry.derivativeU, firstGeometry.derivativeV,
+      secondGeometry.derivativeU * -1, secondGeometry.derivativeV * -1])
+  }
+
+  package func connectionSource(atEnd: Bool, first: PreparedSurfaceDifferentialEncloser,
+    second: PreparedSurfaceDifferentialEncloser, tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission) throws -> (first: IntervalVector3DBounds,
+      second: IntervalVector3DBounds, tangent: IntervalVector3DBounds,
+      parameters: [ScalarInterval]) {
+    try admission.step()
+    let prover = try ParametricSurfaceIntersectionGraphProver(firstSurface: first,
+      secondSurface: second, parameterBox: parameterBox, tolerance: tolerance, admission: admission)
+    let fraction = (atEnd == (direction == .forward)) ? 1.0 : 0.0
+    guard let root = try prover.gaugeParameterBounds(freeParameter: freeParameter,
+      atNormalizedFraction: fraction, tolerance: tolerance) else {
+      throw certificateFailure(tolerance: tolerance,
+        message: "Original graph endpoint requires its unique closed gauge root enclosure.")
+    }
+    let a = try admission.intervalJet(first,
+      over: .init(u: root[0], v: root[1]), tolerance: tolerance)
+    let b = try admission.intervalJet(second,
+      over: .init(u: root[2], v: root[3]), tolerance: tolerance)
+    let endpointProver = ParametricSurfaceIntersectionGraphProver(firstSurface: first.surface,
+      secondSurface: second.surface, parameterBox: parameterBox, firstJet: a, secondJet: b,
+      admission: admission, preparedFirstSurface: first, preparedSecondSurface: second)
+    guard let velocity = try endpointProver.normalizedGraphParameterDerivativeBounds(freeParameter: freeParameter) else {
+      throw certificateFailure(tolerance: tolerance,
+        message: "Original graph endpoint tangent has no regular closed derivative enclosure.")
+    }
+    func component(_ jet: SurfaceIntervalVectorJet,
+      _ key: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>) -> IntervalVector3DBounds {
+      .init(x: jet.x[keyPath: key], y: jet.y[keyPath: key], z: jet.z[keyPath: key])
+    }
+    let sign = OutwardScalarInterval.exact(direction == .forward ? 1 : -1)
+    let uScale = (OutwardScalarInterval.exact(parameterBox.firstU.upper) - .exact(parameterBox.firstU.lower)) * sign
+    let vScale = (OutwardScalarInterval.exact(parameterBox.firstV.upper) - .exact(parameterBox.firstV.lower)) * sign
+    let du = OutwardScalarInterval(lower: velocity[0].lower, upper: velocity[0].upper) * uScale
+    let dv = OutwardScalarInterval(lower: velocity[1].lower, upper: velocity[1].upper) * vScale
+    return (component(a, \SurfaceIntervalJet.value), component(b, \SurfaceIntervalJet.value),
+      component(a, \SurfaceIntervalJet.derivativeU) * du + component(a, \SurfaceIntervalJet.derivativeV) * dv,
+      root)
+  }
+
+  package func connectionTangent(atEnd: Bool, first: PreparedSurfaceDifferentialEncloser,
+    second: PreparedSurfaceDifferentialEncloser, tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission) throws -> Vector3D {
+    let parameters = try boundedParameterPair(atNormalizedFraction: atEnd ? 1 : 0,
+      firstSurface: first.surface, secondSurface: second.surface, tolerance: tolerance,
+      admission: admission, preparedFirstSurface: first, preparedSecondSurface: second)
+    let source = try sample(values: parameters.values, firstSurface: first.surface,
+      secondSurface: second.surface, tolerance: tolerance, admission: admission,
+      preparedFirstSurface: first, preparedSecondSurface: second)
+    let free = freeParameter.rawValue
+    let dependent = (0..<4).filter { $0 != free }
+    guard let solution = Self.solve(columns: dependent.map { source.columns[$0] },
+      rightHandSide: source.columns[free] * -1) else {
+      throw certificateFailure(tolerance: tolerance, message: "Original graph connection has a singular candidate derivative system.")
+    }
+    var velocities = Array(repeating: 0.0, count: 4); velocities[free] = 1
+    for index in dependent.indices { try admission.step(); velocities[dependent[index]] = solution[index] }
+    return (source.columns[0] * velocities[0] + source.columns[1] * velocities[1])
+      * (parameterBox.interval(for: freeParameter).width * (direction == .forward ? 1 : -1))
   }
 
   private static func solve(

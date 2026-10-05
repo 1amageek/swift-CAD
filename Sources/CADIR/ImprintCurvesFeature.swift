@@ -5,7 +5,7 @@ import CADTopology
 /// Edges on a target where curves project onto it (Imprint Curve Body): each curve, placed in the
 /// target's frame, is projected onto the target's faces, which are split along the projection,
 /// both sides kept.
-public struct ImprintCurvesFeature: Codable, Hashable, Sendable {
+public struct ImprintCurvesFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var curves: [ImprintCurveReference]
     public var projection: ImprintProjection
@@ -41,10 +41,13 @@ public struct ImprintCurvesFeature: Codable, Hashable, Sendable {
         return curves.compactMap { seen.insert($0.curve.featureID).inserted ? FeatureInput(featureID: $0.curve.featureID, role: .curve) : nil }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, curves, projection, completion
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .curves, .projection, .completion], in: decoder)
@@ -54,7 +57,9 @@ public struct ImprintCurvesFeature: Codable, Hashable, Sendable {
         completion = try container.decode(ImprintCompletion.self, forKey: .completion)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -63,6 +68,7 @@ public struct ImprintCurvesFeature: Codable, Hashable, Sendable {
         try container.encode(projection, forKey: .projection)
         try container.encode(completion, forKey: .completion)
     }
+#endif
 }
 
 /// How a curve reaches the target it is imprinted on.
@@ -82,15 +88,21 @@ public enum ImprintProjection: Hashable, Sendable {
     }
 }
 
+#if !hasFeature(Embedded)
 extension ImprintProjection: Codable {
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind, direction, bidirectional, hidesOcclusion
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case normal, vector
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -106,7 +118,9 @@ extension ImprintProjection: Codable {
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -119,10 +133,12 @@ extension ImprintProjection: Codable {
             try container.encode(hidesOcclusion, forKey: .hidesOcclusion)
         }
     }
+#endif
 }
+#endif
 
 /// One curve to imprint, where `placement` puts it in the target's frame (where it is, when nil).
-public struct ImprintCurveReference: Codable, Hashable, Sendable {
+public struct ImprintCurveReference: Hashable, Sendable {
     public var curve: CurveOutputReference
     public var placement: RigidTransform3D?
 
@@ -131,20 +147,35 @@ public struct ImprintCurveReference: Codable, Hashable, Sendable {
         self.placement = placement
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case curve, placement
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.curve, .placement], in: decoder)
         curve = try container.decode(CurveOutputReference.self, forKey: .curve)
         placement = try container.decodeIfPresent(RigidTransform3D.self, forKey: .placement)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(curve, forKey: .curve)
         try container.encodeIfPresent(placement, forKey: .placement)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+#if !hasFeature(Embedded)
+extension ImprintCurvesFeature: Codable {}
+#endif
+#if !hasFeature(Embedded)
+extension ImprintCurveReference: Codable {}
+#endif
+#endif

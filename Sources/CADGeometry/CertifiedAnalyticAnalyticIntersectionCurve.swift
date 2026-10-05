@@ -1,7 +1,7 @@
 import CADCore
 
-public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sendable {
-    public enum Definition: Codable, Hashable, Sendable {
+public struct CertifiedAnalyticAnalyticIntersectionCurve: Hashable, Sendable {
+    public enum Definition: Hashable, Sendable {
         case planeTorus(CertifiedPlaneTorusIntersectionCurve)
         case coneCone(CertifiedConeConeIntersectionCurve)
         case cylinderCylinder(CertifiedCylinderCylinderIntersectionCurve)
@@ -17,6 +17,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         case generalTorusTorus(CertifiedGeneralTorusTorusIntersectionCurve)
         case boundedPlaneCone(CertifiedBoundedPlaneConeIntersectionCurve)
 
+#if !hasFeature(Embedded)
         private enum CodingKeys: String, CodingKey {
             case kind
             case planeTorus
@@ -34,7 +35,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case generalTorusTorus
             case boundedPlaneCone
         }
+#endif
 
+#if !hasFeature(Embedded)
         private enum Kind: String, Codable {
             case planeTorus
             case coneCone
@@ -51,7 +54,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             case generalTorusTorus
             case boundedPlaneCone
         }
+#endif
 
+#if !hasFeature(Embedded)
         public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             switch try container.decode(Kind.self, forKey: .kind) {
@@ -177,7 +182,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 ))
             }
         }
+#endif
 
+#if !hasFeature(Embedded)
         public func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             switch self {
@@ -225,6 +232,7 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
                 try container.encode(curve, forKey: .boundedPlaneCone)
             }
         }
+#endif
     }
 
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -1363,12 +1371,15 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             && (firstCone.axis == secondCone.axis || firstCone.axis == -secondCone.axis)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case definition
         case firstSurface
         case secondSurface
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -1479,7 +1490,9 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -1487,4 +1500,10 @@ public struct CertifiedAnalyticAnalyticIntersectionCurve: Codable, Hashable, Sen
         try container.encode(firstSurface, forKey: .firstSurface)
         try container.encode(secondSurface, forKey: .secondSurface)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedAnalyticAnalyticIntersectionCurve: Codable {}
+extension CertifiedAnalyticAnalyticIntersectionCurve.Definition: Codable {}
+#endif

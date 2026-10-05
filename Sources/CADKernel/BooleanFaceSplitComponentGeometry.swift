@@ -1,4 +1,4 @@
-public enum BooleanFaceSplitComponentGeometry: Codable, Hashable, Sendable {
+public enum BooleanFaceSplitComponentGeometry: Hashable, Sendable {
     case transverseSegment(start: BooleanUVPoint, end: BooleanUVPoint)
     case closedCurve(BooleanClosedFaceIntersection)
     case trimmedCurve(BooleanTrimmedFaceIntersectionChain)
@@ -56,3 +56,7 @@ extension BooleanFaceSplitComponentGeometry {
         return l == r
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanFaceSplitComponentGeometry: Codable {}
+#endif

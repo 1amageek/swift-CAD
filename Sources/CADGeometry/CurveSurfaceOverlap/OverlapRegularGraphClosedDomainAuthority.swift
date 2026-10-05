@@ -123,8 +123,18 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
         let parameters: ScalarInterval
         let lowerValue: Double
         let upperValue: Double
+        let constantParameter: Double?
+
+        init(coordinate: Int, variesU: Bool, parameters: ScalarInterval,
+             lowerValue: Double, upperValue: Double, constantParameter: Double? = nil) {
+            self.coordinate = coordinate; self.variesU = variesU; self.parameters = parameters
+            self.lowerValue = lowerValue; self.upperValue = upperValue
+            self.constantParameter = constantParameter
+        }
 
         func endpoint(for value: Double) -> Double? {
+            // This axis belongs to a complete constant original-source identity.
+            if let constantParameter { return constantParameter }
             if value == lowerValue { return parameters.lower }
             if value == upperValue { return parameters.upper }
             return nil
@@ -159,6 +169,13 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
     }
 
     let mapping: Mapping
+
+    var stationaryParameters: (u: Double?, v: Double?) {
+        guard let axes = mapping.separableAxes else { return (nil, nil) }
+        return axes.0.variesU
+            ? (axes.0.constantParameter, axes.1.constantParameter)
+            : (axes.1.constantParameter, axes.0.constantParameter)
+    }
 
     static func certificate(curve: Curve3D, surface: BSplineSurface3D,
                             range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
@@ -209,7 +226,8 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
            let second = axis(coordinate: pair.second, surface: surface, box: box),
            first.variesU != second.variesU,
            monotone(first, target: target), monotone(second, target: target) {
-            return admittedSource(source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+            return try admittedSource(source, surface: surface, range: range, pair: pair, box: box,
+                first: first, second: second, budget: &budget)
         }
         return try admittedTriangular(source, surface: surface, range: range, pair: pair, box: box, budget: &budget)
     }
@@ -228,7 +246,8 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
         if let first = independence.axis(coordinate: pair.first, box: box),
            let second = independence.axis(coordinate: pair.second, box: box), first.variesU != second.variesU,
            monotone(first, target: target), monotone(second, target: target) {
-            return admittedSource(source, surface: surface, range: range, pair: pair, box: box, first: first, second: second)
+            return try admittedSource(source, surface: surface, range: range, pair: pair, box: box,
+                first: first, second: second, budget: &budget)
         }
         return try admittedTriangular(source, surface: surface, range: range, pair: pair, box: box, budget: &budget)
     }
@@ -262,7 +281,8 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
 
     private static func admittedSource(_ source: BSplineCurve3D, surface: BSplineSurface3D,
                                        range: ScalarInterval, pair: OverlapRegularGraphCell.Pair,
-                                       box: SurfaceParameterBox, first: Axis, second: Axis) -> Self? {
+                                       box: SurfaceParameterBox, first: Axis, second: Axis,
+                                       budget: inout OverlapProofBudget) throws -> Self? {
         var firstMinimum = Double.infinity, firstMaximum = -Double.infinity
         var secondMinimum = Double.infinity, secondMaximum = -Double.infinity
         for index in 0..<source.controlPointCount {
@@ -275,8 +295,50 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
             firstMinimum = min(firstMinimum, a); firstMaximum = max(firstMaximum, a)
             secondMinimum = min(secondMinimum, b); secondMaximum = max(secondMaximum, b)
         }
-        guard firstMinimum < firstMaximum, secondMinimum < secondMaximum else { return nil }
-        return Self(curve: source, surface: surface, range: range, pair: pair, box: box, mapping: .separable(first, second))
+        guard firstMinimum < firstMaximum || secondMinimum < secondMaximum else { return nil }
+        func retained(_ axis: Axis, minimum: Double, maximum: Double) throws -> Axis? {
+            if minimum < maximum { return axis }
+            let knots = axis.variesU ? surface.uKnots : surface.vKnots
+            let degree = axis.variesU ? surface.uDegree : surface.vDegree
+            let count = axis.variesU ? surface.uControlPointCount : surface.vControlPointCount
+            let fee = knots.count.addingReportingOverflow(4)
+            guard !fee.overflow else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: budget.tolerance,
+                    message: "An original stationary-axis scan count overflowed.")
+            }
+            try budget.work(fee.partialValue)
+            let parameter: Double?
+            if minimum == axis.lowerValue { parameter = axis.parameters.lower }
+            else if minimum == axis.upperValue { parameter = axis.parameters.upper }
+            else {
+                var found: Double?
+                var index = degree + 1
+                while index < count {
+                    let knot = knots[index]
+                    var end = index + 1
+                    while end < count, knots[end] == knot { end += 1 }
+                    if end - index == degree {
+                        // At an original degree-fold knot the native basis selects
+                        // original control index (first knot index - 1) exactly.
+                        // Rank-one weights cancel their positive non-owning factor.
+                        let control = axis.variesU ? surface.controlPoints[0][index - 1]
+                            : surface.controlPoints[index - 1][0]
+                        if OverlapRegularGraphCell.coordinate(control, axis.coordinate) == minimum {
+                            found = knot; break
+                        }
+                    }
+                    index = end
+                }
+                parameter = found
+            }
+            guard let parameter else { return nil }
+            return Axis(coordinate: axis.coordinate, variesU: axis.variesU, parameters: axis.parameters,
+                lowerValue: axis.lowerValue, upperValue: axis.upperValue, constantParameter: parameter)
+        }
+        guard let retainedFirst = try retained(first, minimum: firstMinimum, maximum: firstMaximum),
+              let retainedSecond = try retained(second, minimum: secondMinimum, maximum: secondMaximum) else { return nil }
+        return Self(curve: source, surface: surface, range: range, pair: pair, box: box,
+            mapping: .separable(retainedFirst, retainedSecond))
     }
 
     func exactEndpoint(at parameter: Double) -> SurfaceParameter? {

@@ -1,7 +1,7 @@
 import CADCore
 import Foundation
 
-public struct CertifiedBoundedPlaneConeIntersectionCurve: Codable, Hashable, Sendable {
+public struct CertifiedBoundedPlaneConeIntersectionCurve: Hashable, Sendable {
     public struct DifferentialGeometry: Hashable, Sendable {
         public let position: Point3D
         public let firstDerivative: Vector3D
@@ -339,6 +339,7 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Codable, Hashable, Sen
         return angle + ((reference - angle) / period).rounded() * period
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case planeSurface
         case coneSurface
@@ -348,7 +349,9 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Codable, Hashable, Sen
         case certificationTolerance
         case maximumResidualUpperBound
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -389,7 +392,9 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Codable, Hashable, Sen
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -401,4 +406,9 @@ public struct CertifiedBoundedPlaneConeIntersectionCurve: Codable, Hashable, Sen
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
         try container.encode(maximumResidualUpperBound, forKey: .maximumResidualUpperBound)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedBoundedPlaneConeIntersectionCurve: Codable {}
+#endif

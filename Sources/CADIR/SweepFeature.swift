@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SweepFeature: Codable, Hashable, Sendable {
+public struct SweepFeature: Hashable, Sendable {
     public var sections: [SectionReference]
     public var path: SweepPathReference
     public var guides: [SweepGuideReference]
@@ -21,6 +21,7 @@ public struct SweepFeature: Codable, Hashable, Sendable {
         self.options = options
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case sections
         case path
@@ -28,7 +29,9 @@ public struct SweepFeature: Codable, Hashable, Sendable {
         case targets
         case options
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
@@ -44,7 +47,9 @@ public struct SweepFeature: Codable, Hashable, Sendable {
         targets = try container.decode([SweepTargetReference].self, forKey: .targets)
         options = try container.decode(SweepOptions.self, forKey: .options)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(sections, forKey: .sections)
@@ -53,6 +58,7 @@ public struct SweepFeature: Codable, Hashable, Sendable {
         try container.encode(targets, forKey: .targets)
         try container.encode(options, forKey: .options)
     }
+#endif
 
     public func validate() throws {
         guard sections.isEmpty == false else {
@@ -112,67 +118,79 @@ public struct SweepFeature: Codable, Hashable, Sendable {
     }
 }
 
-public struct SweepPathReference: Codable, Hashable, Sendable {
+public struct SweepPathReference: Hashable, Sendable {
     public var featureID: FeatureID
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
     }
+#endif
 
     public init(featureID: FeatureID) {
         self.featureID = featureID
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID], in: decoder)
         featureID = try container.decode(FeatureID.self, forKey: .featureID)
     }
+#endif
 
     public func validate() throws {}
 }
 
-public struct SweepGuideReference: Codable, Hashable, Sendable {
+public struct SweepGuideReference: Hashable, Sendable {
     public var featureID: FeatureID
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
     }
+#endif
 
     public init(featureID: FeatureID) {
         self.featureID = featureID
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID], in: decoder)
         featureID = try container.decode(FeatureID.self, forKey: .featureID)
     }
+#endif
 
     public func validate() throws {}
 }
 
-public struct SweepTargetReference: Codable, Hashable, Sendable {
+public struct SweepTargetReference: Hashable, Sendable {
     public var featureID: FeatureID
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
     }
+#endif
 
     public init(featureID: FeatureID) {
         self.featureID = featureID
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID], in: decoder)
         featureID = try container.decode(FeatureID.self, forKey: .featureID)
     }
+#endif
 
     public func validate() throws {}
 }
 
-public struct SweepOptions: Codable, Hashable, Sendable {
+public struct SweepOptions: Hashable, Sendable {
     public var approximationTolerance: CADExpression?
     public var twistLaw: [SweepTwistKnot]?
     public var twistAngle: CADExpression
@@ -186,6 +204,7 @@ public struct SweepOptions: Codable, Hashable, Sendable {
     public var simplify: Bool
     public var resultKind: SweepResultKind
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case twistAngle
         case approximationTolerance
@@ -200,6 +219,7 @@ public struct SweepOptions: Codable, Hashable, Sendable {
         case simplify
         case resultKind
     }
+#endif
 
     public init(
         twistAngle: CADExpression = .constant(.angle(0.0, unit: .degree)),
@@ -229,6 +249,7 @@ public struct SweepOptions: Codable, Hashable, Sendable {
         self.resultKind = resultKind
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
@@ -258,6 +279,7 @@ public struct SweepOptions: Codable, Hashable, Sendable {
         simplify = try container.decode(Bool.self, forKey: .simplify)
         resultKind = try container.decode(SweepResultKind.self, forKey: .resultKind)
     }
+#endif
 
     public func validate() throws {
         try twistAngle.validateLiteralQuantities()
@@ -277,23 +299,23 @@ public struct SweepOptions: Codable, Hashable, Sendable {
     }
 }
 
-public enum SweepAlignment: String, Codable, Hashable, Sendable {
+public enum SweepAlignment: String, Hashable, Sendable {
     case parallel
     case normal
 }
 
-public enum SweepCornerStyle: String, Codable, Hashable, Sendable {
+public enum SweepCornerStyle: String, Hashable, Sendable {
     case mitre
     case round
 }
 
-public enum SweepGuideMethod: String, Codable, Hashable, Sendable {
+public enum SweepGuideMethod: String, Hashable, Sendable {
     case point
     case chord
     case curve
 }
 
-public enum SweepBooleanOperation: String, Codable, Hashable, Sendable {
+public enum SweepBooleanOperation: String, Hashable, Sendable {
     case newBody
     case union
     case difference
@@ -301,7 +323,20 @@ public enum SweepBooleanOperation: String, Codable, Hashable, Sendable {
     case slice
 }
 
-public enum SweepResultKind: String, Codable, Hashable, Sendable {
+public enum SweepResultKind: String, Hashable, Sendable {
     case solid
     case sheet
 }
+
+#if !hasFeature(Embedded)
+extension SweepFeature: Codable {}
+extension SweepPathReference: Codable {}
+extension SweepGuideReference: Codable {}
+extension SweepTargetReference: Codable {}
+extension SweepOptions: Codable {}
+extension SweepAlignment: Codable {}
+extension SweepCornerStyle: Codable {}
+extension SweepGuideMethod: Codable {}
+extension SweepBooleanOperation: Codable {}
+extension SweepResultKind: Codable {}
+#endif

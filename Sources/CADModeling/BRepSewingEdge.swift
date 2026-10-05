@@ -1,6 +1,7 @@
 import CADCore
 import CADGeometry
 import CADIR
+import CADTopology
 
 /// One exact oriented boundary edge in a sewing request.
 /// The pcurve uses normalized fraction f. Correspondence validation starts from
@@ -44,6 +45,34 @@ public struct BRepSewingEdge: Sendable {
     self.endVertexParentSubshapeIDs = Array(Set(endVertexParentSubshapeIDs)).sorted()
   }
 
+  package init(
+    stableID: String, curve: Curve3D,
+    startParameter: Double, endParameter: Double,
+    startPoint: Point3D, endPoint: Point3D,
+    surfaceParameterCurve: SurfaceParameterCurve,
+    parentSubshapeIDs: [SubshapeID] = [],
+    startVertexParentSubshapeIDs: [SubshapeID] = [],
+    endVertexParentSubshapeIDs: [SubshapeID] = [],
+    consumeWork: @Sendable (Int) throws -> Void,
+    consumeStorage: (@Sendable (Int) throws -> Void)?
+  ) throws {
+    try Task.checkCancellation()
+    try consumeWork(0)
+    self.stableID = stableID
+    self.curve = curve
+    self.startParameter = startParameter
+    self.endParameter = endParameter
+    self.startPoint = startPoint
+    self.endPoint = endPoint
+    self.surfaceParameterCurve = surfaceParameterCurve
+    self.parentSubshapeIDs = try AdmittedSewingProvenance.canonical(parentSubshapeIDs,
+      consumeWork: consumeWork, consumeStorage: consumeStorage)
+    self.startVertexParentSubshapeIDs = try AdmittedSewingProvenance.canonical(startVertexParentSubshapeIDs,
+      consumeWork: consumeWork, consumeStorage: consumeStorage)
+    self.endVertexParentSubshapeIDs = try AdmittedSewingProvenance.canonical(endVertexParentSubshapeIDs,
+      consumeWork: consumeWork, consumeStorage: consumeStorage)
+  }
+
   public func validate(
     on surface: Surface3D,
     tolerance: ModelingTolerance
@@ -53,7 +82,6 @@ public struct BRepSewingEdge: Sendable {
       startParameter.isFinite,
       endParameter.isFinite,
       abs(endParameter - startParameter) > max(tolerance.angle, Double.ulpOfOne),
-      startPoint.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance) == false,
       parentSubshapeIDs.allSatisfy(\.isValid),
       startVertexParentSubshapeIDs.allSatisfy(\.isValid),
       endVertexParentSubshapeIDs.allSatisfy(\.isValid)
@@ -64,6 +92,12 @@ public struct BRepSewingEdge: Sendable {
         tolerance: tolerance,
         message: "Sewing edge identity, trim, endpoints, or provenance is invalid."
       )
+    }
+    let kind = try BRepEdgeGeometryClassifier().kind(
+      curve: curve, from: startParameter, to: endParameter, tolerance: tolerance)
+    if startPoint.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance), kind == .open {
+      throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
+        message: "A sewing boundary may have coincident endpoints only for a proved closed or singular original span.")
     }
     let validatedCurve = try ValidatedCurve3D(
       curve,
@@ -99,18 +133,9 @@ public struct BRepSewingEdge: Sendable {
       )
     }
     try surfaceParameterCurve.validate(on: surface, tolerance: tolerance)
-    let parameterStart = try surfaceParameterCurve.startParameter(tolerance: tolerance)
-    let parameterEnd = try surfaceParameterCurve.endParameter(tolerance: tolerance)
-    let surfaceStart = try surface.point(
-      u: parameterStart.u,
-      v: parameterStart.v,
-      tolerance: tolerance
-    )
-    let surfaceEnd = try surface.point(
-      u: parameterEnd.u,
-      v: parameterEnd.v,
-      tolerance: tolerance
-    )
+    let surfaceLift = SurfaceLiftCurve3D(surface: surface, parameterCurve: surfaceParameterCurve)
+    let surfaceStart = try surfaceLift.point(atNormalizedFraction: 0, tolerance: tolerance)
+    let surfaceEnd = try surfaceLift.point(atNormalizedFraction: 1, tolerance: tolerance)
     guard surfaceStart.isApproximatelyEqual(to: startPoint, tolerance: tolerance.distance),
       surfaceEnd.isApproximatelyEqual(to: endPoint, tolerance: tolerance.distance)
     else {

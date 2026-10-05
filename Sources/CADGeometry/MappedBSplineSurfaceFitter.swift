@@ -102,121 +102,271 @@ package struct MappedBSplineSurfaceFitter: Sendable {
         u: ScalarInterval,
         v: ScalarInterval,
         tolerance: ModelingTolerance,
+        admission: GeometryConversionAdmission? = nil,
         point: (Double, Double) throws -> Point3D
     ) throws -> Result {
-        guard layout.uDegree >= 1, layout.vDegree >= 1, layout.uSpans >= 1, layout.vSpans >= 1 else {
-            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
-                message: "A surface fit's layout needs degrees and spans of at least one.")
+        guard layout.uDegree >= 1, layout.vDegree >= 1, layout.uSpans >= 1, layout.vSpans >= 1,
+            u.lower.isFinite, u.upper.isFinite, u.width.isFinite, u.width > 0,
+            v.lower.isFinite, v.upper.isFinite, v.width.isFinite, v.width > 0 else {
+            throw GeometryConversionError.invalidInput("A surface fit requires finite positive parameter spans, degrees and layout counts.")
         }
-        guard u.width > 0, v.width > 0, u.lower.isFinite, u.upper.isFinite, v.lower.isFinite, v.upper.isFinite else {
-            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
-                message: "A surface fit needs a finite parameter rectangle of positive extent.")
+        let uCount = try sum(layout.uSpans, layout.uDegree)
+        let vCount = try sum(layout.vSpans, layout.vDegree)
+        if let admission {
+            let spans = try GeometryConversionBudget.product(layout.uSpans, layout.vSpans)
+            guard spans <= admission.maximumSpanCount else {
+                throw GeometryConversionError.resourceLimitExceeded("Surface construction exceeds caller span admission.")
+            }
         }
-        let (uSpans, vSpans) = (layout.uSpans, layout.vSpans)
-        let knotsU = clampedUniformKnots(spans: uSpans, on: u, degree: layout.uDegree)
-        let knotsV = clampedUniformKnots(spans: vSpans, on: v, degree: layout.vDegree)
-        let uCount = uSpans + layout.uDegree, vCount = vSpans + layout.vDegree
-        let grevilleU = greville(knotsU, degree: layout.uDegree, count: uCount)
-        let grevilleV = greville(knotsV, degree: layout.vDegree, count: vCount)
-        let solverU = try BandedCollocation(knots: knotsU, degree: layout.uDegree, abscissae: grevilleU)
-        let solverV = try BandedCollocation(knots: knotsV, degree: layout.vDegree, abscissae: grevilleV)
-        // samples[j][i] = map at (grevilleU[i], grevilleV[j]).
-        let samples = try grevilleV.map { t in try grevilleU.map { s in try point(s, t) } }
-        // Along u for each v row, then along v for each u column.
-        let rows = try samples.map { try solverU.solve($0) }
-        var controlPoints = Array(repeating: Array(repeating: Point3D.origin, count: uCount), count: vCount)
+        let knotsU = try clampedUniformKnots(spans: layout.uSpans, on: u, degree: layout.uDegree, admission: admission)
+        let knotsV = try clampedUniformKnots(spans: layout.vSpans, on: v, degree: layout.vDegree, admission: admission)
+        let grevilleU = try greville(knotsU, degree: layout.uDegree, count: uCount, admission: admission)
+        let grevilleV = try greville(knotsV, degree: layout.vDegree, count: vCount, admission: admission)
+        let solverU = try BandedCollocation(knots: knotsU, degree: layout.uDegree, abscissae: grevilleU, admission: admission)
+        let solverV = try BandedCollocation(knots: knotsV, degree: layout.vDegree, abscissae: grevilleV, admission: admission)
+        try reserve(vCount, of: [Point3D].self, admission: admission)
+        var rows: [[Point3D]] = []; rows.reserveCapacity(vCount)
+        for t in grevilleV {
+            try reserve(uCount, of: Point3D.self, admission: admission)
+            var samples: [Point3D] = []; samples.reserveCapacity(uCount)
+            for s in grevilleU {
+                try admission?.chargeWork()
+                let sample = try point(s, t)
+                guard sample.isFinite else { throw GeometryConversionError.invalidInput("A surface construction sample is nonfinite.") }
+                samples.append(sample)
+            }
+            rows.append(try solverU.solve(samples, admission: admission))
+        }
+        try reserve(vCount, of: [Point3D].self, admission: admission)
+        var controlPoints: [[Point3D]] = []; controlPoints.reserveCapacity(vCount)
+        for _ in 0..<vCount {
+            try reserve(uCount, of: Point3D.self, admission: admission)
+            controlPoints.append(Array(repeating: .origin, count: uCount))
+        }
         for i in 0..<uCount {
-            let column = try solverV.solve(rows.map { $0[i] })
-            for j in 0..<vCount { controlPoints[j][i] = column[j] }
+            try reserve(vCount, of: Point3D.self, admission: admission)
+            var column: [Point3D] = []; column.reserveCapacity(vCount)
+            for row in rows { try admission?.chargeWork(); column.append(row[i]) }
+            let solved = try solverV.solve(column, admission: admission)
+            for j in 0..<vCount { try admission?.chargeWork(); controlPoints[j][i] = solved[j] }
         }
-        let surface = BSplineSurface3D(uDegree: layout.uDegree, vDegree: layout.vDegree, uKnots: knotsU, vKnots: knotsV, controlPoints: controlPoints)
+        try reserve(vCount, of: [Double].self, admission: admission)
+        var weights: [[Double]] = []; weights.reserveCapacity(vCount)
+        for _ in 0..<vCount {
+            try reserve(uCount, of: Double.self, admission: admission)
+            weights.append(Array(repeating: 1, count: uCount))
+        }
+        let surface = BSplineSurface3D(uDegree: layout.uDegree, vDegree: layout.vDegree,
+            uKnots: knotsU, vKnots: knotsV, controlPoints: controlPoints, weights: weights)
+        func check(_ s: Double, _ t: Double) throws -> Double {
+            try admission?.chargeWork()
+            let bu = try candidateBasis(parameter: s, degree: layout.uDegree, knots: knotsU, count: uCount, admission: admission)
+            let bv = try candidateBasis(parameter: t, degree: layout.vDegree, knots: knotsV, count: vCount, admission: admission)
+            var value = Vector3D.zero
+            for j in bv.values.indices {
+                for i in bu.values.indices {
+                    try admission?.chargeWork()
+                    let p = controlPoints[bv.start + j][bu.start + i]
+                    value = value + Vector3D(x: p.x, y: p.y, z: p.z) * (bu.values[i] * bv.values[j])
+                }
+            }
+            let reference = try point(s, t)
+            let distance = (Point3D(x: value.x, y: value.y, z: value.z) - reference).length
+            guard distance.isFinite else { throw GeometryConversionError.resourceLimitExceeded("Surface candidate arithmetic is nonfinite.") }
+            return distance
+        }
         var maximum = 0.0
-        let fractions = [0.0, 0.25, 0.5, 0.75]
-        for cellV in 0..<vSpans {
-            for cellU in 0..<uSpans {
-                for a in fractions {
-                    for b in fractions {
-                        let s = u.lower + u.width * (Double(cellU) + a) / Double(uSpans)
-                        let t = v.lower + v.width * (Double(cellV) + b) / Double(vSpans)
-                        let distance = (try surface.point(u: s, v: t, tolerance: tolerance) - (try point(s, t))).length
-                        maximum = max(maximum, distance)
+        for cellV in 0..<layout.vSpans {
+            for cellU in 0..<layout.uSpans {
+                for a in 0..<4 {
+                    for b in 0..<4 {
+                        let s = u.lower + u.width * (Double(cellU) + Double(a) * 0.25) / Double(layout.uSpans)
+                        let t = v.lower + v.width * (Double(cellV) + Double(b) * 0.25) / Double(layout.vSpans)
+                        maximum = max(maximum, try check(s, t))
                     }
                 }
             }
         }
-        // The far edges, which the cells' lower quarter points do not reach.
-        for index in 0...(4 * vSpans) {
-            let t = v.lower + v.width * Double(index) / Double(4 * vSpans)
-            maximum = max(maximum, (try surface.point(u: u.upper, v: t, tolerance: tolerance) - (try point(u.upper, t))).length)
+        let farV = try GeometryConversionBudget.product(4, layout.vSpans)
+        let farU = try GeometryConversionBudget.product(4, layout.uSpans)
+        for index in 0...farV {
+            maximum = max(maximum, try check(u.upper, v.lower + v.width * Double(index) / Double(farV)))
         }
-        for index in 0...(4 * uSpans) {
-            let s = u.lower + u.width * Double(index) / Double(4 * uSpans)
-            maximum = max(maximum, (try surface.point(u: s, v: v.upper, tolerance: tolerance) - (try point(s, v.upper))).length)
+        for index in 0...farU {
+            maximum = max(maximum, try check(u.lower + u.width * Double(index) / Double(farU), v.upper))
         }
         return Result(surface: surface, maximumDeviation: maximum)
     }
 
-    private static func clampedUniformKnots(spans: Int, on interval: ScalarInterval, degree: Int) -> [Double] {
-        Array(repeating: interval.lower, count: degree + 1)
-            + (1..<max(spans, 1)).map { interval.lower + interval.width * Double($0) / Double(spans) }
-            + Array(repeating: interval.upper, count: degree + 1)
+    fileprivate static func reserve<T>(_ count: Int, of: T.Type, admission: GeometryConversionAdmission?) throws {
+        try Task.checkCancellation()
+        guard count >= 0 else { throw GeometryConversionError.resourceLimitExceeded("Candidate storage count is negative.") }
+        try admission?.chargeStorage(bytes: GeometryConversionBudget.product(count, MemoryLayout<T>.stride))
     }
 
-    private static func greville(_ knots: [Double], degree: Int, count: Int) -> [Double] {
-        (0..<count).map { index in
-            knots[(index + 1)...(index + degree)].reduce(0, +) / Double(degree)
+    private static func sum(_ a: Int, _ b: Int) throws -> Int {
+        let result = a.addingReportingOverflow(b)
+        guard a >= 0, b >= 0, !result.overflow else {
+            throw GeometryConversionError.resourceLimitExceeded("Surface candidate dimensions overflowed.")
         }
+        return result.partialValue
+    }
+
+    private static func clampedUniformKnots(spans: Int, on interval: ScalarInterval, degree: Int,
+        admission: GeometryConversionAdmission?) throws -> [Double] {
+        let count = try sum(try sum(spans, degree), try sum(degree, 1))
+        try reserve(count, of: Double.self, admission: admission)
+        var knots: [Double] = []; knots.reserveCapacity(count)
+        for _ in 0...degree { try admission?.chargeWork(); knots.append(interval.lower) }
+        if spans > 1 {
+            for i in 1..<spans {
+                try admission?.chargeWork()
+                let f = Double(i) / Double(spans)
+                let value = (1 - f) * interval.lower + f * interval.upper
+                guard value.isFinite else { throw GeometryConversionError.resourceLimitExceeded("A candidate knot is nonfinite.") }
+                knots.append(value)
+            }
+        }
+        for _ in 0...degree { try admission?.chargeWork(); knots.append(interval.upper) }
+        return knots
+    }
+
+    private static func greville(_ knots: [Double], degree: Int, count: Int,
+        admission: GeometryConversionAdmission?) throws -> [Double] {
+        try reserve(count, of: Double.self, admission: admission)
+        var values: [Double] = []; values.reserveCapacity(count)
+        for index in 0..<count {
+            try admission?.chargeWork()
+            var average = knots[index + 1]
+            for offset in 2...max(2, degree) where offset <= degree {
+                try admission?.chargeWork()
+                // Candidate-only running means preserve constant endpoint knots.
+                let f = 1 / Double(offset)
+                average = (1 - f) * average + f * knots[index + offset]
+            }
+            average = min(max(average, knots[degree]), knots[count])
+            guard average.isFinite else { throw GeometryConversionError.resourceLimitExceeded("A Greville construction station is nonfinite.") }
+            values.append(average)
+        }
+        return values
+    }
+
+    /// Candidate arithmetic has no source-proof authority; its final whole
+    /// certificate remains mandatory. This owner admits all recurrence buffers.
+    fileprivate static func candidateBasis(parameter: Double, degree: Int, knots: [Double], count: Int,
+        admission: GeometryConversionAdmission?) throws -> (start: Int, values: [Double]) {
+        guard parameter.isFinite, parameter >= knots[degree], parameter <= knots[count] else {
+            throw GeometryConversionError.invalidInput("A construction station lies outside its candidate basis.")
+        }
+        var span = count - 1
+        if parameter < knots[count] {
+            var lower = degree, upper = count
+            while lower + 1 < upper {
+                try admission?.chargeWork()
+                let mid = lower + (upper - lower) / 2
+                if parameter < knots[mid] { upper = mid } else { lower = mid }
+            }
+            span = lower
+        }
+        for _ in 0..<3 { try reserve(degree + 1, of: Double.self, admission: admission) }
+        var values = Array(repeating: 0.0, count: degree + 1)
+        var left = Array(repeating: 0.0, count: degree + 1)
+        var right = Array(repeating: 0.0, count: degree + 1)
+        values[0] = 1
+        for j in 1...degree {
+            try admission?.chargeWork()
+            left[j] = parameter - knots[span + 1 - j]
+            right[j] = knots[span + j] - parameter
+            var saved = 0.0
+            for r in 0..<j {
+                try admission?.chargeWork()
+                let divisor = right[r + 1] + left[j - r]
+                guard divisor.isFinite, divisor > 0 else {
+                    throw GeometryConversionError.invalidInput("The candidate basis has a collapsed owning span.")
+                }
+                let temporary = values[r] / divisor
+                values[r] = saved + right[r + 1] * temporary
+                saved = left[j - r] * temporary
+            }
+            values[j] = saved
+        }
+        return (span - degree, values)
     }
 }
 
-/// Interpolation of values at abscissae by a B-spline of the given knots: the collocation matrix
-/// factored once (Gaussian elimination, which a B-spline collocation matrix at Greville abscissae
-/// admits without pivoting), then solved for each set of values.
+/// Candidate collocation factors retain flat owned buffers to avoid row COW
+/// allocations during elimination. They never replace original source proof.
 private struct BandedCollocation {
-    private var lower: [[Double]]
-    private var upper: [[Double]]
+    private var lower: [Double]
+    private var upper: [Double]
     private let count: Int
 
-    init(knots: [Double], degree: Int, abscissae: [Double]) throws {
+    init(knots: [Double], degree: Int, abscissae: [Double], admission: GeometryConversionAdmission?) throws {
         count = abscissae.count
-        var matrix = Array(repeating: Array(repeating: 0.0, count: count), count: count)
-        for (row, parameter) in abscissae.enumerated() {
-            let basis = BSplineBasis.nonzeroValues(parameter: parameter, degree: degree, knots: knots, count: count)
-            for (offset, value) in basis.values.enumerated() where basis.startIndex + offset < count {
-                matrix[row][basis.startIndex + offset] = value
+        let cells = try GeometryConversionBudget.product(count, count)
+        try MappedBSplineSurfaceFitter.reserve(cells, of: Double.self, admission: admission)
+        lower = Array(repeating: 0, count: cells)
+        try MappedBSplineSurfaceFitter.reserve(cells, of: Double.self, admission: admission)
+        upper = Array(repeating: 0, count: cells)
+        for row in abscissae.indices {
+            let basis = try MappedBSplineSurfaceFitter.candidateBasis(parameter: abscissae[row],
+                degree: degree, knots: knots, count: count, admission: admission)
+            for offset in basis.values.indices {
+                try admission?.chargeWork()
+                upper[row * count + basis.start + offset] = basis.values[offset]
             }
         }
-        lower = Array(repeating: Array(repeating: 0.0, count: count), count: count)
-        upper = matrix
         for pivot in 0..<count {
-            guard abs(upper[pivot][pivot]) > 1e-14 else {
-                throw KernelError(phase: .geometry, code: .singularGeometry, tolerance: nil,
-                    message: "A surface fit's collocation matrix is singular.")
+            try admission?.chargeWork()
+            guard upper[pivot * count + pivot].isFinite, abs(upper[pivot * count + pivot]) > 1e-14 else {
+                throw GeometryConversionError.invalidInput("A surface candidate collocation matrix is singular.")
             }
-            lower[pivot][pivot] = 1
-            for row in (pivot + 1)..<count where upper[row][pivot] != 0 {
-                let factor = upper[row][pivot] / upper[pivot][pivot]
-                lower[row][pivot] = factor
-                for column in pivot..<count { upper[row][column] -= factor * upper[pivot][column] }
+            lower[pivot * count + pivot] = 1
+            for row in (pivot + 1)..<count {
+                try admission?.chargeWork()
+                guard upper[row * count + pivot] != 0 else { continue }
+                let factor = upper[row * count + pivot] / upper[pivot * count + pivot]
+                lower[row * count + pivot] = factor
+                for column in pivot..<count {
+                    try admission?.chargeWork()
+                    upper[row * count + column] -= factor * upper[pivot * count + column]
+                }
             }
         }
     }
 
-    func solve(_ values: [Point3D]) throws -> [Point3D] {
-        var forward = values.map { Vector3D(x: $0.x, y: $0.y, z: $0.z) }
+    func solve(_ values: [Point3D], admission: GeometryConversionAdmission?) throws -> [Point3D] {
+        guard values.count == count else { throw GeometryConversionError.invalidInput("Candidate collocation input count differs from its factors.") }
+        try MappedBSplineSurfaceFitter.reserve(count, of: Vector3D.self, admission: admission)
+        var forward: [Vector3D] = []; forward.reserveCapacity(count)
+        for value in values { try admission?.chargeWork(); forward.append(.init(x: value.x, y: value.y, z: value.z)) }
         for row in 0..<count {
-            for column in 0..<row where lower[row][column] != 0 {
-                forward[row] = forward[row] - forward[column] * lower[row][column]
+            for column in 0..<row {
+                try admission?.chargeWork()
+                guard lower[row * count + column] != 0 else { continue }
+                forward[row] = forward[row] - forward[column] * lower[row * count + column]
             }
         }
+        try MappedBSplineSurfaceFitter.reserve(count, of: Vector3D.self, admission: admission)
         var solution = forward
         for row in stride(from: count - 1, through: 0, by: -1) {
+            try admission?.chargeWork()
             var value = forward[row]
-            for column in (row + 1)..<count where upper[row][column] != 0 {
-                value = value - solution[column] * upper[row][column]
+            for column in (row + 1)..<count {
+                try admission?.chargeWork()
+                guard upper[row * count + column] != 0 else { continue }
+                value = value - solution[column] * upper[row * count + column]
             }
-            solution[row] = value * (1 / upper[row][row])
+            solution[row] = value * (1 / upper[row * count + row])
         }
-        return solution.map { Point3D(x: $0.x, y: $0.y, z: $0.z) }
+        try MappedBSplineSurfaceFitter.reserve(count, of: Point3D.self, admission: admission)
+        var result: [Point3D] = []; result.reserveCapacity(count)
+        for value in solution {
+            try admission?.chargeWork()
+            let point = Point3D(x: value.x, y: value.y, z: value.z)
+            guard point.isFinite else { throw GeometryConversionError.resourceLimitExceeded("Candidate interpolation coefficients are nonfinite.") }
+            result.append(point)
+        }
+        return result
     }
 }

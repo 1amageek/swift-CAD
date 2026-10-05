@@ -13,7 +13,7 @@ dependency scheduling belong to A4.
 ## Responsibilities and Boundaries
 
 `CADDocument.documentFoundation` owns attribute records as source value data.
-Each record has a persistent UUID-backed `DocumentAttributeID`, a descriptive
+Each record has a persistent portable 128-bit `DocumentAttributeID`, a descriptive
 name, a local owner, and one typed value. Records retain identity through edits
 and serialization. Attribute removal ends that identity's lifetime; any local
 owner or value reference that would dangle prevents the removal from publishing.
@@ -123,3 +123,27 @@ foundation refusal, and existing-file preservation on failed saves.
 The schema baseline fixture in StrictCurrentTopologySchemaTests is updated
 together with SchemaVersion.current. Changes require rechecking CADIR full
 document validation, DocumentEditor, NativePackageStore, and public inventory.
+
+### Portable value ownership
+
+Native, normal WASM and Embedded own the same attribute/reference values and
+validation path. The byte payload is owned `[UInt8]` on every target. Native
+Codable adapters encode/decode that payload through Foundation `Data` at the
+serialization boundary, preserving the native base64 wire representation;
+Foundation is not imported by the common value graph. Codable requirements and
+decoding helpers are platform adapters only. Nonempty names use the Swift
+character whitespace predicate without allocating a trimmed copy. Complete
+transaction snapshots retain the same bytes and symbolic IDs on every target.
+This component introduces no target-dependent state or synchronization.
+
+### Persisted subshape attributes
+
+Typed `subshapeReference` and `subshapeReferences` values retain complete original
+stable identity/signature witnesses as source attributes. Validation checks the
+witness structure; a reference to deleted or split topology remains symbolic
+source data until explicit current evaluated resolution. CADKernel resolves it
+through the existing provenance-first resolver and returns typed missing or
+ambiguous outcomes. Source editing, transaction snapshots and native reload
+preserve the records without reevaluating or replacing them by nearest geometry.
+The record's containing document is the reference namespace; an inter-document
+lookup must select that document snapshot explicitly before this operation.

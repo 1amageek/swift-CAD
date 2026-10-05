@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-public struct BooleanClosedFaceIntersection: Codable, Hashable, Sendable {
+public struct BooleanClosedFaceIntersection: Hashable, Sendable {
   public let intersection: SurfaceSurfaceIntersectionCurve
   public let samples: [BooleanCurveUVSample]
 
@@ -134,6 +134,7 @@ public struct BooleanClosedFaceIntersection: Codable, Hashable, Sendable {
     }
   }
 
+#if !hasFeature(Embedded)
   private enum CodingKeys: String, CodingKey {
     case intersection
     case samples
@@ -169,4 +170,9 @@ public struct BooleanClosedFaceIntersection: Codable, Hashable, Sendable {
     try container.encode(intersection, forKey: .intersection)
     try container.encode(samples, forKey: .samples)
   }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension BooleanClosedFaceIntersection: Codable {}
+#endif

@@ -1,8 +1,8 @@
 import Foundation
 import CADCore
 
-public struct BSplineCurve3D: Codable, Sendable, Hashable {
-    public struct DifferentialGeometry: Codable, Sendable, Hashable {
+public struct BSplineCurve3D: Sendable, Hashable {
+    public struct DifferentialGeometry: Sendable, Hashable {
         public var position: Point3D
         public var firstDerivative: Vector3D
         public var secondDerivative: Vector3D
@@ -51,6 +51,7 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         self.periodicOrigin = periodicOrigin
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -67,7 +68,9 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
             periodicOrigin: try container.decodeIfPresent(Double.self, forKey: .periodicOrigin)
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(degree, forKey: .degree)
@@ -77,6 +80,7 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         try container.encode(isPeriodic, forKey: .isPeriodic)
         try container.encodeIfPresent(periodicOrigin, forKey: .periodicOrigin)
     }
+#endif
 
     public var order: Int {
         degree + 1
@@ -224,18 +228,23 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        guard degree >= 1,
-              degree < controlPoints.count else {
+        try validate(tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+    }
+
+    /// The composing caller owns admission for every original source visit.
+    package func validate(tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws {
+        try consumeWork(); try tolerance.validate()
+        guard degree >= 1, degree < controlPoints.count else {
             throw GeometryError.invalidDistance(0.0)
         }
         for point in controlPoints {
+            try consumeWork(); try consumeWork(); try consumeWork()
             try point.validate()
         }
-        try validateWeights()
-        try validateKnots()
-        try domain.validate(tolerance: tolerance)
-        try validatePeriodicity(tolerance: tolerance)
+        try validateWeights(consumeWork: consumeWork)
+        try validateKnots(consumeWork: consumeWork)
+        try consumeWork(); try domain.validate(tolerance: tolerance)
+        try validatePeriodicity(tolerance: tolerance, consumeWork: consumeWork)
     }
 
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
@@ -407,6 +416,7 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         )
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case degree
         case knots
@@ -415,6 +425,7 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         case isPeriodic
         case periodicOrigin
     }
+#endif
 
     private struct WeightedVector {
         var point: Vector3D
@@ -465,11 +476,12 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         var second: Vector3D
     }
 
-    private func validateWeights() throws {
+    private func validateWeights(consumeWork: () throws -> Void) throws {
         guard weights.count == controlPointCount else {
             throw GeometryError.invalidDistance(Double(weights.count))
         }
         for weight in weights {
+            try consumeWork()
             guard weight.isFinite else {
                 throw GeometryError.invalidCoordinate(weight)
             }
@@ -479,16 +491,19 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         }
     }
 
-    private func validateKnots() throws {
-        guard knots.count == controlPointCount + degree + 1 else {
+    private func validateKnots(consumeWork: () throws -> Void) throws {
+        let total = controlPointCount.addingReportingOverflow(degree)
+        guard !total.overflow, total.partialValue < Int.max, knots.count == total.partialValue + 1 else {
             throw GeometryError.invalidDistance(Double(knots.count))
         }
         for knot in knots {
+            try consumeWork()
             guard knot.isFinite else {
                 throw GeometryError.invalidCoordinate(knot)
             }
         }
         for index in 1..<knots.count {
+            try consumeWork()
             guard knots[index] >= knots[index - 1] else {
                 throw GeometryError.invalidDistance(knots[index] - knots[index - 1])
             }
@@ -500,18 +515,23 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         }
         try validateKnotMultiplicities(
             lowerBound: lowerBound,
-            upperBound: upperBound
+            upperBound: upperBound,
+            consumeWork: consumeWork
         )
     }
 
     private func validateKnotMultiplicities(
         lowerBound: Double,
-        upperBound: Double
+        upperBound: Double,
+        consumeWork: () throws -> Void
     ) throws {
         var runStart = 0
         while runStart < knots.count {
+            try consumeWork()
             var runEnd = runStart + 1
-            while runEnd < knots.count, knots[runEnd] == knots[runStart] {
+            while runEnd < knots.count {
+                try consumeWork()
+                guard knots[runEnd] == knots[runStart] else { break }
                 runEnd += 1
             }
             let multiplicity = runEnd - runStart
@@ -636,3 +656,8 @@ public struct BSplineCurve3D: Codable, Sendable, Hashable {
         Vector3D(x: point.x, y: point.y, z: point.z)
     }
 }
+
+#if !hasFeature(Embedded)
+extension BSplineCurve3D: Codable {}
+extension BSplineCurve3D.DifferentialGeometry: Codable {}
+#endif

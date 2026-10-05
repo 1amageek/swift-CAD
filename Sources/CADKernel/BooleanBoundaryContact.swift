@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BooleanBoundaryContact: Codable, Hashable, Sendable {
+public struct BooleanBoundaryContact: Hashable, Sendable {
     public let edgeID: EdgeID
     public let curveFaceID: FaceID
     public let surfaceFaceID: FaceID
@@ -18,3 +18,7 @@ public struct BooleanBoundaryContact: Codable, Hashable, Sendable {
         self.geometry = geometry
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanBoundaryContact: Codable {}
+#endif

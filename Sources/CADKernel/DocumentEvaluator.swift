@@ -109,7 +109,7 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
     ) -> EvaluationReport {
         let document = validatedDocument.document
         var states: [FeatureID: FeatureEvaluationState] = [:]
-        for featureID in document.designGraph.order {
+        for featureID in document.designGraph.nodes.keys {
             states[featureID] = .unevaluated
         }
         do {
@@ -148,7 +148,7 @@ public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
     private func failedValidationReport(document: CADDocument, error: Error) -> EvaluationReport {
         var states: [FeatureID: FeatureEvaluationState] = [:]
         states.reserveCapacity(document.designGraph.order.count)
-        for featureID in document.designGraph.order {
+        for featureID in document.designGraph.nodes.keys {
             states[featureID] = .unevaluated
         }
         return EvaluationReport(

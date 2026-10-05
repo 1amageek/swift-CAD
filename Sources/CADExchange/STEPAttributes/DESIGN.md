@@ -26,6 +26,51 @@ be assigned to an arbitrary generated feature or first shape found in a product.
 Physical name/description/density properties remain independent of presentation
 colors and the existing PBR Material model.
 
+Material identity is carried by the standard material model, not by a private
+property name or by reusing a product identity assignment. An admitted
+material descriptor is a `MATERIAL_DESIGNATION` (or an explicitly admitted
+AP242 material subtype) whose stable identifier is an
+`APPLIED_EXTERNAL_IDENTIFICATION_ASSIGNMENT` targeting that designation. The
+assignment source and role remain the external-identification namespace; its
+`items` correspondence is the authority for the descriptor UUID. The
+descriptor's applicability is then proved through the standard
+`characterized_definition` / `characterized_product_definition` /
+`shape_definition` select chain appropriate to the target. A descriptor UUID
+without that chain is a typed missing-target or unsupported-semantics failure,
+never a material identity inferred from a product, occurrence, name, or entity
+order.
+
+This component interprets the admitted material carrier and preserves its
+target scope. STEP Assembly retains the entity and source-identity
+correspondence; Product Attribute Resolution owns effective-value precedence.
+The source identity reader admits the `material` role only for a
+`MATERIAL_DESIGNATION` target. The writer's physical target forms are all legal
+`characterized_definition` alternatives: occurrence targets use
+`PRODUCT_DEFINITION_SHAPE` (`shape_definition`), part targets use
+`PRODUCT_DEFINITION` (`characterized_product_definition`), direct usages use
+`NEXT_ASSEMBLY_USAGE_OCCURRENCE` (`product_definition_relationship` inside
+`characterized_product_definition`), body/face targets use `SHAPE_ASPECT`
+(`shape_definition`), and global CIWR targets use
+`CHARACTERIZED_ITEM_WITHIN_REPRESENTATION` (`characterized_object`). End-to-end
+material UUID round-trip still requires focused runtime evidence; unproved
+material targets remain typed failures. No private UUID carrier or arbitrary
+`GENERIC_PROPERTY_RELATIONSHIP` priority is authorized.
+
+The SELECT memberships are defined by the AP242 merged AIM schema:
+[`material_designation`](https://www.steptools.com/docs/stp_aim/html/t_material_designation.html),
+[`characterized_definition`](https://www.steptools.com/docs/stp_aim/html/t_characterized_definition.html),
+[`characterized_product_definition`](https://www.steptools.com/docs/stp_aim/html/t_characterized_product_definition.html),
+[`shape_definition`](https://www.steptools.com/docs/stp_aim/html/t_shape_definition.html),
+[`characterized_item_within_representation`](https://www.steptools.com/docs/stp_aim/html/t_characterized_item_within_representation.html),
+and [`next_assembly_usage_occurrence`](https://www.steptools.com/docs/stp_aim/html/t_next_assembly_usage_occurrence.html).
+
+An explicit occurrence-path physical target is characterized by the
+`PRODUCT_DEFINITION_SHAPE` owned by that path's validated NAUO. The source
+path remains a `ProductAttributeTarget` occurrence selector; shared child
+geometry is never copied or flattened. Import accepts only a unique
+`PRODUCT_DEFINITION_SHAPE` to NAUO to evaluated occurrence correspondence.
+Foreign or ambiguous owners fail with a typed error.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -71,6 +116,10 @@ flowchart LR
   predecessor applicability and property-specific ambiguity; no scope rank is
   inferred. Lookup, context scans, style/member records and growth consume the
   existing cumulative caller budget and duration before publication.
+  When a contextual relationship list is resolved, an evaluated complete
+  occurrence path is preferred over a suffix match; the suffix form is
+  admitted only when no complete path matches. Multiple matches at either
+  precedence level are an ambiguity, never a path selection heuristic.
 - Definition-qualified Body/Face names are Shape_element labels: the standard
   ShapeAspect.name owns the label, of_shape selects the real PD, and one GISU
   identifies the existing exact Body/Face in its proved singleton view. The
@@ -93,7 +142,10 @@ flowchart LR
   target uses PRESENTATION_STYLE_BY_CONTEXT with standard NULL_STYLE(.NULL.)
   and the proved carrier; this adds no native color, opacity or predecessor.
   Global appearance and provenance remain unchanged. Layers are sets, not
-  override relationships. Unsupported visibility/context interpretations fail.
+  override relationships. Complete occurrence layers use the explicit full-path
+  null style contract in [Usage and Complete-Path Layer Authority](#usage-and-complete-path-layer-authority);
+  a one-component path does not collapse into a direct-usage selector. Unsupported
+  visibility/context interpretations fail.
   Reader/writer checks, context/member scans, source-name lookup and derived
   records use the same caller work/record/text/duration budget before growth.
 - A PD-qualified physical target is exported with one unassociated singleton
@@ -230,13 +282,39 @@ flowchart LR
   explicit density assignment authorizes it. Competing assignments without
   an explicit ordering relationship fail as typed ambiguity. No implied
   body/face/occurrence material rank is introduced.
+- Material descriptor identity and material applicability are separate proofs.
+  The descriptor UUID must round-trip through the standard material designation
+  external-identification assignment, while the property target must round-trip
+  through its admitted product, NAUO/PDS, ShapeAspect/GISU, or CIWR owner.
+  A material designation that is identified but not linked to the selected
+  target is unattached and fails; a target with a material name but no admitted
+  descriptor identity fails without silently generating a new UUID. Material
+  identity does not establish precedence between material and density
+  assignments.
+  The reader first records every designation target, then requires each recorded
+  target to have an admitted `PROPERTY_DEFINITION` carrying the material-name
+  value before publishing a material descriptor. A designation that has only a
+  density property, an orphaned descriptor identity, or no attached property
+  fails with `ProductAttributeError.missingTarget`; the reader charges this
+  target-attachment scan against the caller's existing cumulative budget. The
+  independent-shape route has no ProductAttributes composition owner and is
+  refused by its parent route before document publication.
+- A physical assignment on an explicit occurrence path uses the occurrence's
+  validated NAUO `PRODUCT_DEFINITION_SHAPE` owner. It remains distinct from a
+  directUsage selector and preserves nested path identity through the existing
+  assembly transfer and resolver.
+- A directUsage physical assignment uses the same validated nonempty leaf
+  definition selected by its NAUO/CDSR usage as directUsage appearance. The
+  writer resolves that definition's transferred product before producing the
+  `PROPERTY_DEFINITION` target; local geometry lookup is not a substitute for
+  the usage owner.
 - A NEXT_ASSEMBLY_USAGE_OCCURRENCE target means its actual direct source usage;
   it is not substituted for an arbitrarily selected complete nested path. A
-  complete path-specific physical assignment requires a standard-equivalent
-  contextual association. If the implemented standard representation cannot
-  express that meaning, export returns typed unsupported semantics rather than
-  expanding shared definitions, flattening placement, or using private STEP
-  property names to fake equivalence. Import retains the actual declared scope.
+  complete path-specific physical assignment uses the validated occurrence's
+  PRODUCT_DEFINITION_SHAPE owner, preserving the complete path without
+  expanding shared definitions or flattening placement. Import retains the
+  declared owner only when the PDS points to one validated NAUO and evaluated
+  occurrence path; foreign or ambiguous contextual owners remain typed refusals.
 - Density measures have mass/volume dimensions (mass exponent +1, length
   exponent -3). SI prefixes, conversion-based units, and derived-unit factors
   are resolved with finite positive checked values into kilograms per cubic
@@ -328,6 +406,41 @@ signatures, malformed/foreign/unit/GISU targets, exhausted shared limits,
 cancellation and atomic failure retain typed refusal. Verification must include
 the causal existing qualified-description fixture and source schema consumers;
 the bounded design retains separate full-X3 gaps.
+
+### Usage and Complete-Path Layer Authority
+
+A `NULL_STYLE` item with a producer-validated CDSR and the child definition's
+identity carrier retains the direct source usage. One usage may expand beneath
+several parents; that expansion is neither a competing source selector nor
+permission to choose one occurrence. Color/opacity and layer-only direct usages
+consume the same validated nonempty leaf and carrier admission.
+
+An occurrence-only layer instead emits a contextual overriding styled item
+whose relationship list records every component of the complete source path,
+including a one-component root path. Its null predecessor is a supporting style,
+not a fabricated source assignment or precedence edge. Exact path admission
+continues to reject competing paths and mismatched child definitions. The
+contextual null override carries layer selection only, never invisibility. A new
+one-component null override requires an explicit layer membership and empty
+predecessor properties; other null visibility interpretations stay refused.
+
+[AP242 styled_item_target](https://www.steptools.com/stds/stp_aim/html/t_styled_item_target.html)
+admits a representation, while
+[layered_item](https://www.steptools.com/stds/stp_aim/html/t_layered_item.html)
+admits the styled representation item. For a source-owned subassembly with no
+local features and no whole-part carrier, the layer-only writer targets its
+actual transferred representation. It proves source emptiness and the matching
+PD/representation before emitting that view; this does not fabricate geometry,
+flatten children, or admit nonleaf direct-usage appearance. Ordinary appearance
+continues to require its existing whole-part carrier. Supporting parent null
+styles retain the validated CDSR usage but create no source properties. All
+path comparisons, scans, retained selections and writer records consume the
+existing cumulative work/target/text/duration/cancellation budget.
+
+The original four direct-usage and root occurrence-only layer failures own the
+causal later verification, together with nested paths, sharing, true ambiguity,
+precedence, physical/global CIWR and atomic/resource refusal regressions. This
+source implementation alone does not establish full X3/X7 completion.
 
 ## Runtime Flows
 
@@ -450,3 +563,11 @@ smaller exact consumed-work allowance. Eight strict current-topology cases and
 42 capability cases pass. The broad313-case IR run has one existing unrelated
 ExtrudeResultKindSchema expectation failure; the312 passing cases include the
 affected product source contracts. This does not establish fullX3 or portable parity.
+
+### Manufacturing and View Metadata Composition
+
+[STEP Product Metadata](../STEPProductMetadata/DESIGN.md) composes typed X4/X5 source records into the same paid Builder/entity/publication path. Source targets use the same current geometry transfer map. Standard datum/dimensional/tolerance/presentation/camera/validation graphs are emitted before the existing atomic publication boundary. Metadata-specific shape aspects are resolved by that child and do not create duplicated physical material/name sources. The new native external identity namespace is consumed by the metadata owner; it does not authorize arbitrary unknown namespaces.
+
+
+### Styling and metadata representation composition
+The appearance reader selects presentation containers from their actual membership in the transferred STYLED_ITEM graph. Camera, annotation and measured-value representations are not appearance containers merely because their entity subtype is DRAUGHTING_MODEL. Appearance admission still proves complete style membership, ownership and visibility; metadata containers are consumed by the metadata owner under the same enclosing caller budgets. This composition allows saved views and PMI alongside original appearance without choosing an arbitrary unrelated representation.

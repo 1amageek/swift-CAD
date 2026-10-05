@@ -38,19 +38,39 @@ struct GeometryConversionCertification {
 
     func curve(source: any GeometryCurveConversionSource, target: any GeometryCurveConversionSource,
                parameters: ScalarInterval, requirements r: GeometryConversionRequirements,
-               tolerance: ModelingTolerance, targetCost: GeometryConversionTargetCost, budget: inout GeometryConversionBudget) throws -> GeometryConversionGuarantee {
-        var stack = [parameters]
+               tolerance: ModelingTolerance, targetCost: GeometryConversionTargetCost?, budget: inout GeometryConversionBudget) throws -> GeometryConversionGuarantee {
+        struct Cell { let parameters: ScalarInterval; let depth: Int }
+        if let admission = budget.admission {
+            let capacity = admission.maximumSubdivisionDepth.addingReportingOverflow(1)
+            let bytes = capacity.partialValue.multipliedReportingOverflow(by: MemoryLayout<Cell>.stride)
+            guard !capacity.overflow, !bytes.overflow else {
+                throw GeometryConversionError.resourceLimitExceeded("Conversion refinement stack accounting overflowed.")
+            }
+            try admission.chargeStorage(bytes: bytes.partialValue)
+        }
+        var stack: [Cell] = []
+        if let admission = budget.admission { stack.reserveCapacity(admission.maximumSubdivisionDepth + 1) }
+        stack.append(.init(parameters: parameters, depth: 0))
         var position = 0.0, tangent = 0.0, curvature = 0.0
         let initial = budget.visited
-        while let box = stack.popLast() {
+        let callerAdmission = budget.admission
+        func enclosure(_ value: any GeometryCurveConversionSource, over box: ScalarInterval) throws -> CurveDifferentialEnclosure {
+            if let admission = callerAdmission {
+                return try value.enclosure(over: box, tolerance: tolerance, admission: admission)
+            }
+            return try value.enclosure(over: box, tolerance: tolerance)
+        }
+        while let cell = stack.popLast() {
+            let box = cell.parameters
+            try budget.admission?.visit(depth: cell.depth)
             try budget.visit()
-            let a = try source.enclosure(over: box, tolerance: tolerance)
-            try targetCost.chargeProbe(over: box, tolerance: tolerance, budget: &budget)
-            let b = try target.enclosure(over: box, tolerance: tolerance)
+            let a = try enclosure(source, over: box)
+            try targetCost?.chargeProbe(over: box, tolerance: tolerance, budget: &budget)
+            let b = try enclosure(target, over: box)
             let center = try centeredInterval(box)
-            let ca = try source.enclosure(over: center, tolerance: tolerance)
-            try targetCost.chargeProbe(over: center, tolerance: tolerance, budget: &budget)
-            let cb = try target.enclosure(over: center, tolerance: tolerance)
+            let ca = try enclosure(source, over: center)
+            try targetCost?.chargeProbe(over: center, tolerance: tolerance, budget: &budget)
+            let cb = try enclosure(target, over: center)
             try rejectDefiniteDifference(position: VectorBounds(ca.position) - VectorBounds(cb.position),
                 curvature: curveCurvature(ca).flatMap { first in curveCurvature(cb).map { first - $0 } }, requirements: r)
             let delta = outwardOffset(box, center: box.midpoint)
@@ -66,8 +86,15 @@ struct GeometryConversionCertification {
             }
             let mid = box.midpoint
             guard mid > box.lower, mid < box.upper else { throw GeometryConversionAdmissionRejection.candidate }
-            stack.append(try ScalarInterval(lower: mid, upper: box.upper))
-            stack.append(try ScalarInterval(lower: box.lower, upper: mid))
+            let next = cell.depth.addingReportingOverflow(1)
+            guard !next.overflow else {
+                throw GeometryConversionError.resourceLimitExceeded("Conversion refinement depth overflowed.")
+            }
+            if let admission = budget.admission, next.partialValue > admission.maximumSubdivisionDepth {
+                throw GeometryConversionError.resourceLimitExceeded("Conversion exhausted caller refinement depth before allocating children.")
+            }
+            stack.append(.init(parameters: try ScalarInterval(lower: mid, upper: box.upper), depth: next.partialValue))
+            stack.append(.init(parameters: try ScalarInterval(lower: box.lower, upper: mid), depth: next.partialValue))
         }
         try Task.checkCancellation()
         return GeometryConversionGuarantee(positionErrorUpperBound: position, tangentAngleUpperBound: tangent,
@@ -77,18 +104,37 @@ struct GeometryConversionCertification {
     func surface(source: any GeometrySurfaceConversionSource, target: any GeometrySurfaceConversionSource,
                  parameters: SurfaceParameterBox, requirements r: GeometryConversionRequirements,
                  tolerance: ModelingTolerance, targetCost: GeometryConversionTargetCost, budget: inout GeometryConversionBudget) throws -> GeometryConversionGuarantee {
-        var stack = [parameters]
+        struct Cell { let parameters: SurfaceParameterBox; let depth: Int }
+        let callerAdmission = budget.admission
+        var stack: [Cell] = []
+        if let admission = callerAdmission {
+            let capacity = admission.maximumSubdivisionDepth.addingReportingOverflow(1)
+            guard !capacity.overflow else {
+                throw GeometryConversionError.resourceLimitExceeded("Surface refinement capacity overflowed.")
+            }
+            try admission.chargeStorage(bytes: GeometryConversionBudget.product(capacity.partialValue, MemoryLayout<Cell>.stride))
+            stack.reserveCapacity(capacity.partialValue)
+        }
+        stack.append(.init(parameters: parameters, depth: 0))
+        func enclosure(_ value: any GeometrySurfaceConversionSource, over box: SurfaceParameterBox) throws -> SurfaceDifferentialEnclosure {
+            if let admission = callerAdmission {
+                return try value.enclosure(over: box, tolerance: tolerance, admission: admission)
+            }
+            return try value.enclosure(over: box, tolerance: tolerance)
+        }
         var position = 0.0, tangent = 0.0, curvature = 0.0
         let initial = budget.visited
-        while let box = stack.popLast() {
+        while let cell = stack.popLast() {
+            let box = cell.parameters
+            try callerAdmission?.visit(depth: cell.depth)
             try budget.visit()
-            let a = try source.enclosure(over: box, tolerance: tolerance)
+            let a = try enclosure(source, over: box)
             try targetCost.chargeProbe(over: box, tolerance: tolerance, budget: &budget)
-            let b = try target.enclosure(over: box, tolerance: tolerance)
+            let b = try enclosure(target, over: box)
             let center = try SurfaceParameterBox(u: centeredInterval(box.u), v: centeredInterval(box.v))
-            let ca = try source.enclosure(over: center, tolerance: tolerance)
+            let ca = try enclosure(source, over: center)
             try targetCost.chargeProbe(over: center, tolerance: tolerance, budget: &budget)
-            let cb = try target.enclosure(over: center, tolerance: tolerance)
+            let cb = try enclosure(target, over: center)
             let centerDifference = VectorBounds(ca.position) - VectorBounds(cb.position)
             let centerCurvature: OutwardScalarInterval?
             if let ka = principalCurvatures(ca), let kb = principalCurvatures(cb) {
@@ -112,16 +158,21 @@ struct GeometryConversionCertification {
             let refineU = contributionU.norm.upper > contributionV.norm.upper
                 || (contributionU.norm.upper == contributionV.norm.upper
                     && box.u.width / parameters.u.width >= box.v.width / parameters.v.width)
+            let next = cell.depth.addingReportingOverflow(1)
+            guard !next.overflow else { throw GeometryConversionError.resourceLimitExceeded("Surface refinement depth overflowed.") }
+            if let admission = callerAdmission, next.partialValue > admission.maximumSubdivisionDepth {
+                throw GeometryConversionError.resourceLimitExceeded("Surface conversion exhausted caller refinement depth before allocating children.")
+            }
             if refineU {
                 let mid = box.u.midpoint
                 guard mid > box.u.lower, mid < box.u.upper else { throw GeometryConversionAdmissionRejection.candidate }
-                stack.append(try SurfaceParameterBox(u: ScalarInterval(lower: mid, upper: box.u.upper), v: box.v))
-                stack.append(try SurfaceParameterBox(u: ScalarInterval(lower: box.u.lower, upper: mid), v: box.v))
+                stack.append(.init(parameters: try SurfaceParameterBox(u: ScalarInterval(lower: mid, upper: box.u.upper), v: box.v), depth: next.partialValue))
+                stack.append(.init(parameters: try SurfaceParameterBox(u: ScalarInterval(lower: box.u.lower, upper: mid), v: box.v), depth: next.partialValue))
             } else {
                 let mid = box.v.midpoint
                 guard mid > box.v.lower, mid < box.v.upper else { throw GeometryConversionAdmissionRejection.candidate }
-                stack.append(try SurfaceParameterBox(u: box.u, v: ScalarInterval(lower: mid, upper: box.v.upper)))
-                stack.append(try SurfaceParameterBox(u: box.u, v: ScalarInterval(lower: box.v.lower, upper: mid)))
+                stack.append(.init(parameters: try SurfaceParameterBox(u: box.u, v: ScalarInterval(lower: mid, upper: box.v.upper)), depth: next.partialValue))
+                stack.append(.init(parameters: try SurfaceParameterBox(u: box.u, v: ScalarInterval(lower: box.v.lower, upper: mid)), depth: next.partialValue))
             }
         }
         try Task.checkCancellation()

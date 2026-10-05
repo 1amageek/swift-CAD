@@ -5,8 +5,10 @@ import CADCore
 package enum CertifiedRotationTrigonometry {
     package static func inverseTangent(
         _ value: OutwardScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = { try Task.checkCancellation() }
     ) throws -> OutwardScalarInterval {
+        try consumeWork()
         guard value.isFinite, value.lower >= 0, value.upper <= 16 else {
             throw KernelError(phase: .geometry, code: .invalidInput,
                 tolerance: tolerance, message: "Certified inverse tangent requires an interval in [0, 16].")
@@ -14,6 +16,7 @@ package enum CertifiedRotationTrigonometry {
         if value.upper == 0 { return .exact(0) }
         var x = value
         for _ in 0..<5 {
+            try consumeWork()
             let squared = .exact(1) + x * x
             let root = OutwardScalarInterval(lower: squared.lower.squareRoot().nextDown,
                 upper: squared.upper.squareRoot().nextUp)
@@ -31,6 +34,7 @@ package enum CertifiedRotationTrigonometry {
         var power = x
         var sum = x
         for index in 1..<20 {
+            try consumeWork()
             power = power * negativeSquare
             guard let term = power.divided(by: .exact(Double(2 * index + 1))) else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
@@ -43,8 +47,10 @@ package enum CertifiedRotationTrigonometry {
 
     package static func evaluate(
         _ angle: OutwardScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = { try Task.checkCancellation() }
     ) throws -> (cosine: OutwardScalarInterval, sine: OutwardScalarInterval) {
+        try consumeWork()
         guard angle.isFinite, angle.lower >= -16, angle.upper <= 16 else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability,
                 tolerance: tolerance, message: "Certified rotation supports absolute source angles up to 16 radians.")
@@ -57,6 +63,7 @@ package enum CertifiedRotationTrigonometry {
         var sine = sineTerm
         var cosine = cosineTerm
         for index in 1..<20 {
+            try consumeWork()
             // Positive integer denominators cannot contain zero.
             guard let nextSine = (sineTerm * negativeSquare).divided(by: .exact(Double((2 * index) * (2 * index + 1)))),
                   let nextCosine = (cosineTerm * negativeSquare).divided(by: .exact(Double((2 * index - 1) * (2 * index)))) else {
@@ -73,6 +80,7 @@ package enum CertifiedRotationTrigonometry {
         sine = sine + remainder
         cosine = cosine + remainder
         for _ in 0..<4 {
+            try consumeWork()
             let nextSine = .exact(2) * sine * cosine
             cosine = cosine * cosine - sine * sine
             sine = nextSine

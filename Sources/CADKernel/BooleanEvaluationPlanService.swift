@@ -3,7 +3,7 @@ import CADIR
 import CADTopology
 
 public enum BooleanEvaluationCapabilities {
-    public enum OperandKind: String, Codable, Equatable, Sendable {
+    public enum OperandKind: String, Equatable, Sendable {
         case axisAlignedBoxSolids
         case orthogonalCellUnionSolids
         case planarAndRevolvedSolids
@@ -12,7 +12,7 @@ public enum BooleanEvaluationCapabilities {
         case generalExactBRepSolids
     }
 
-    public enum OutputTopologyKind: String, Codable, Equatable, Sendable {
+    public enum OutputTopologyKind: String, Equatable, Sendable {
         case singleBox
         case separatedBoxes
         case orthogonalCellUnion
@@ -33,7 +33,7 @@ public enum BooleanEvaluationCapabilities {
         case generalExactBRepResult
     }
 
-    public enum TopologyNameScheme: String, Codable, Equatable, Sendable {
+    public enum TopologyNameScheme: String, Equatable, Sendable {
         case body
         case orthogonalBoundaryTopology
         case curvedBoundaryTopology
@@ -42,7 +42,7 @@ public enum BooleanEvaluationCapabilities {
         case exactIntersectionBoundaryTopology
     }
 
-    public enum UnsupportedCode: String, Codable, Equatable, Sendable {
+    public enum UnsupportedCode: String, Equatable, Sendable {
         case invalidRequest
         case missingBody
         case unsupportedOperandTopology
@@ -52,8 +52,8 @@ public enum BooleanEvaluationCapabilities {
     }
 }
 
-public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
-    public enum Status: String, Codable, Equatable, Sendable {
+public struct BooleanEvaluationPlanResult: Equatable, Sendable {
+    public enum Status: String, Equatable, Sendable {
         case supported
         case unsupported
     }
@@ -122,15 +122,15 @@ public struct BooleanEvaluationPlanResult: Codable, Equatable, Sendable {
     }
 }
 
-public struct BooleanEvaluationPreflightCheck: Codable, Equatable, Sendable {
-    public enum Kind: String, Codable, Equatable, Sendable {
+public struct BooleanEvaluationPreflightCheck: Equatable, Sendable {
+    public enum Kind: String, Equatable, Sendable {
         case requestContract
         case sourceBodies
         case operandTopology
         case capabilityDecision
     }
 
-    public enum Status: String, Codable, Equatable, Sendable {
+    public enum Status: String, Equatable, Sendable {
         case passed
         case unsupported
     }
@@ -569,7 +569,7 @@ public struct BooleanEvaluationPlanService: Sendable {
     }
 }
 
-public struct BooleanEvaluationTopologyCounts: Codable, Equatable, Sendable {
+public struct BooleanEvaluationTopologyCounts: Equatable, Sendable {
     public var bodyCount: Int
     public var shellCount: Int
     public var faceCount: Int
@@ -594,7 +594,7 @@ public struct BooleanEvaluationTopologyCounts: Codable, Equatable, Sendable {
     }
 }
 
-public struct BooleanEvaluationTopologySlot: Codable, Equatable, Sendable {
+public struct BooleanEvaluationTopologySlot: Equatable, Sendable {
     public var role: GeneratedSubshapeRole
     public var subshape: String?
 
@@ -615,3 +615,17 @@ struct BRepBooleanPlan: Sendable {
     var toolCellCount: Int
     var resultPrimitiveCount: Int
 }
+
+#if !hasFeature(Embedded)
+extension BooleanEvaluationCapabilities.OperandKind: Codable {}
+extension BooleanEvaluationCapabilities.OutputTopologyKind: Codable {}
+extension BooleanEvaluationCapabilities.TopologyNameScheme: Codable {}
+extension BooleanEvaluationCapabilities.UnsupportedCode: Codable {}
+extension BooleanEvaluationPlanResult.Status: Codable {}
+extension BooleanEvaluationPlanResult: Codable {}
+extension BooleanEvaluationPreflightCheck.Kind: Codable {}
+extension BooleanEvaluationPreflightCheck.Status: Codable {}
+extension BooleanEvaluationPreflightCheck: Codable {}
+extension BooleanEvaluationTopologyCounts: Codable {}
+extension BooleanEvaluationTopologySlot: Codable {}
+#endif

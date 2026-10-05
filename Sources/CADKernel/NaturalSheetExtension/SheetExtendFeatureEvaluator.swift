@@ -1,0 +1,862 @@
+import Foundation
+import CADCore
+import CADGeometry
+import CADIR
+import CADModeling
+import CADTopology
+
+/// Extend Sheet: each chosen open edge of a sheet gets a strip carrying the sheet on past it by the
+/// distance, sewn to the sheet when the feature modifies it, or sewn into a sheet of its own
+/// beside it otherwise. A negative distance moves the edges back into the sheet instead, which it
+/// always modifies: a straight edge of a planar face by cutting the sheet at the plane square to
+/// the face that far inside it, an edge along a parameter boundary of a one-face B-spline sheet by
+/// trimming the surface's domain to where that length across it ends.
+///
+/// On a planar face a straight edge's strip is the rectangle beside it and an arc's the ring
+/// sector around it, every shape alike. On a B-spline face an edge along a parameter boundary is
+/// continued past that boundary (`BSplineSurfaceBoundaryExtender`), the distance measured along
+/// the surface across the edge's middle. Other faces and edges, and chosen edges meeting at a
+/// corner, are refused.
+public struct SheetExtendFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
+    private let sewer: any BRepSewing
+    private let resolver: ParameterResolving
+    private let subshapeResolver: any StableSubshapeResolving
+    /// Cuts the sheet back at a plane for a negative distance.
+    private let cutter: (any BodyHalfSpaceCutting)?
+    private let naturalSheetExtensionLimits: NaturalSheetExtensionLimits
+    private let invocation: NaturalSheetExtensionInvocation?
+
+    private var extensionBuilder: NaturalSheetExtensionBuilder {
+        NaturalSheetExtensionBuilder(invocation: invocation)
+    }
+
+    public init(
+        sewer: any BRepSewing = DefaultBRepSewer(),
+        resolver: ParameterResolving = ParameterResolver(),
+        subshapeResolver: any StableSubshapeResolving = StableSubshapeResolver(),
+        naturalSheetExtensionLimits: NaturalSheetExtensionLimits = NaturalSheetExtensionLimits()
+    ) {
+        self.init(sewer: sewer, resolver: resolver, subshapeResolver: subshapeResolver, cutter: nil,
+            naturalSheetExtensionLimits: naturalSheetExtensionLimits)
+    }
+
+    package init(
+        sewer: any BRepSewing, resolver: ParameterResolving, subshapeResolver: any StableSubshapeResolving,
+        cutter: (any BodyHalfSpaceCutting)?,
+        naturalSheetExtensionLimits: NaturalSheetExtensionLimits = NaturalSheetExtensionLimits()
+    ) {
+        self.sewer = sewer
+        self.resolver = resolver
+        self.subshapeResolver = subshapeResolver
+        self.cutter = cutter
+        self.naturalSheetExtensionLimits = naturalSheetExtensionLimits
+        self.invocation = nil
+    }
+
+    private init(original: Self, invocation: NaturalSheetExtensionInvocation) {
+        sewer = original.sewer
+        resolver = original.resolver
+        subshapeResolver = original.subshapeResolver
+        cutter = original.cutter
+        naturalSheetExtensionLimits = original.naturalSheetExtensionLimits
+        self.invocation = invocation
+    }
+
+    public func evaluate(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        try evaluateValidated(feature: feature, context: context).result
+    }
+
+    package func evaluateValidated(feature: FeatureNode, context: EvaluationContext) throws -> ValidatedFeatureEvaluation {
+        try FeatureEvaluationBoundary.evaluateValidated(featureID: feature.id, tolerance: context.tolerance) {
+            try evaluateExtension(feature: feature, context: context)
+        }
+    }
+
+    private func evaluateExtension(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        let admitted = try NaturalSheetExtensionInvocation(limits: naturalSheetExtensionLimits,
+            tolerance: context.tolerance)
+        return try Self(original: self, invocation: admitted).evaluateAdmittedExtension(
+            feature: feature, context: context)
+    }
+
+    private func evaluateAdmittedExtension(feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+        guard case let .sheetExtend(extend) = feature.operation else {
+            throw failure(.invalidInput, feature.id, context.tolerance, "Extend Sheet evaluator requires a sheetExtend feature.")
+        }
+        try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
+            try extend.validate()
+        }
+        try FeatureEvaluationBoundary.validateExactInput(context, featureID: feature.id, tolerance: context.tolerance)
+        let tolerance = context.tolerance
+        let quantity = try resolver.evaluate(extend.distance, parameters: context.parameters, variables: [:])
+        guard quantity.kind == .length, quantity.value.isFinite, abs(quantity.value) > tolerance.distance else {
+            throw failure(.invalidInput, feature.id, tolerance, "Extend Sheet distance must be a nonzero length.")
+        }
+        let distance = quantity.value
+        let bodyID = try context.bodyID(generatedBy: extend.target.featureID)
+        guard context.brep.bodies[bodyID]?.kind == .sheet else {
+            throw failure(.unsupportedCapability, feature.id, tolerance, "Extend Sheet extends a sheet.")
+        }
+        let model = context.brep
+        let scope = try BodyTopologyScope(bodyID: bodyID, model: model)
+        var coedgeOfEdge: [EdgeID: [(face: FaceID, coedge: Coedge)]] = [:]
+        for case let .face(faceID) in scope.references {
+            for loopID in model.faces[faceID]?.loops ?? [] {
+                for coedge in model.loops[loopID]?.coedges ?? [] { coedgeOfEdge[coedge.edgeID, default: []].append((faceID, coedge)) }
+            }
+        }
+        var chosen: [EdgeID] = []
+        for reference in extend.edges {
+            let resolved = try subshapeResolver.topologyReference(
+                for: reference, model: model, subshapes: context.subshapes, lineage: context.lineage, tolerance: tolerance
+            )
+            guard case let .edge(edgeID) = resolved, let uses = coedgeOfEdge[edgeID] else {
+                throw KernelError(phase: .evaluation, code: .missingReference, featureID: feature.id, subshapeID: reference.subshapeID,
+                                  tolerance: tolerance, message: "An Extend Sheet edge is not an edge of the sheet.")
+            }
+            guard uses.count == 1 else {
+                throw failure(.invalidInput, feature.id, tolerance, "Extend Sheet extends the sheet's open edges only.")
+            }
+            chosen.append(edgeID)
+        }
+        if distance < 0 {
+            guard extend.limit == nil else {
+                throw failure(.invalidInput, feature.id, tolerance, "Extend Sheet moves edges back by a distance, not to a limit.")
+            }
+            return try shortened(bodyID: bodyID, edges: chosen.compactMap { edgeID in coedgeOfEdge[edgeID]?.first.map { (edgeID, $0.face, $0.coedge) } },
+                                 by: -distance, scope: scope, featureID: feature.id, context: context)
+        }
+        if extend.modifies, extend.shape == .natural, extend.limit == nil,
+           let patches = try NaturalRectangularSheetResizer(builder: extensionBuilder).patches(
+               selections: chosen.compactMap { edgeID in
+                   coedgeOfEdge[edgeID]?.first.map { (edgeID, $0.face, $0.coedge) }
+               }, scope: scope, distance: distance, outward: true, context: context) {
+            let shells = try BRepSewingPatchShellPartitioner().shells(patches: patches,
+                stablePrefix: "sheet-extend:resized", tolerance: tolerance)
+            let sewn = try sewer.sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet,
+                shells: shells, bodyParentSubshapeIDs: context.subshapeIDs(for: .body(bodyID))),
+                tolerance: tolerance)
+            let replaced = try BRepBodyModelReplacer().replacing(bodyIDs: [bodyID],
+                with: sewn.brep, in: model)
+            try replaced.validate(level: .exact, tolerance: tolerance)
+            return EvaluationResult(brep: replaced, subshapes: sewn.subshapes,
+                removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes)
+                    .union(context.subshapes.entries.filter { $0.value == .body(bodyID) }.map(\.key)),
+                lineage: sewn.lineage)
+        }
+        var reaches: [EdgeID: Double] = [:]
+        for edgeID in chosen {
+            guard let use = coedgeOfEdge[edgeID]?.first else { continue }
+            let reach = try extend.limit.map { limit in
+                try limitedDistance(edgeID: edgeID, faceID: use.face, coedge: use.coedge, shape: extend.shape, limit: limit,
+                                    featureID: feature.id, context: context)
+            } ?? distance
+            reaches[edgeID] = reach
+        }
+        if extend.modifies, let whole = try wholeSurfaceExtension(
+            bodyID: bodyID, scope: scope, edges: chosen, coedgeOfEdge: coedgeOfEdge, reaches: reaches, distance: distance,
+            shape: extend.shape, featureID: feature.id, context: context
+        ) {
+            // A one-face B-spline sheet extended along its parameter boundaries is the extended
+            // surface itself: one face, as Plasticity's Modify makes one sheet with no line.
+            let sewn = try sewer.sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet,
+                shells: [BRepSewingShell(stableID: "sheet-extend:shell", patches: [whole])]), tolerance: tolerance)
+            let replaced = try BRepBodyModelReplacer().replacing(bodyIDs: [bodyID], with: sewn.brep, in: model)
+            try replaced.validate(level: .exact, tolerance: tolerance)
+            return EvaluationResult(
+                brep: replaced,
+                subshapes: sewn.subshapes,
+                removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes)
+                    .union(context.subshapes.entries.filter { $0.value == .body(bodyID) }.map(\.key)),
+                lineage: sewn.lineage
+            )
+        }
+        let vertices = try chosen.flatMap { edgeID -> [VertexID] in
+            guard let edge = model.edges[edgeID] else { throw TopologyError.missingReference("An extended edge is missing.") }
+            return [edge.startVertexID, edge.endVertexID]
+        }
+        // Two chosen edges meeting at a corner: their strips meet a corner patch between them.
+        let corners = Dictionary(grouping: vertices, by: { $0 }).filter { $0.value.count > 1 }.keys.sorted()
+        var strips: [BRepSewingFacePatch] = []
+        for (ordinal, edgeID) in chosen.enumerated() {
+            guard let use = coedgeOfEdge[edgeID]?.first else { continue }
+            let reach = reaches[edgeID] ?? distance
+            strips.append(try strip(
+                edgeID: edgeID, faceID: use.face, coedge: use.coedge, distance: reach, shape: extend.shape,
+                stableID: "sheet-extend:\(ordinal)", featureID: feature.id, context: context
+            ))
+        }
+        for (ordinal, vertexID) in corners.enumerated() {
+            let meeting = chosen.filter { edgeID in
+                guard let edge = model.edges[edgeID] else { return false }
+                return edge.startVertexID == vertexID || edge.endVertexID == vertexID
+            }
+            guard meeting.count == 2, let first = coedgeOfEdge[meeting[0]]?.first, let second = coedgeOfEdge[meeting[1]]?.first,
+                  first.face == second.face else {
+                throw failure(.unsupportedCapability, feature.id, tolerance, "Extend Sheet joins two edges of one face at a corner.")
+            }
+            strips.append(try cornerPatch(
+                at: vertexID, edges: [(meeting[0], first.coedge, reaches[meeting[0]] ?? distance), (meeting[1], second.coedge, reaches[meeting[1]] ?? distance)],
+                faceID: first.face, stableID: "sheet-extend:corner:\(ordinal)", featureID: feature.id, context: context
+            ))
+        }
+        if extend.modifies {
+            // The sheet and its extensions sewn into one sheet in its place.
+            let extraction = try DefaultBRepFacePatchExtractor().extract(
+                bodyID: bodyID, featureID: feature.id, from: model, sourceSubshapes: context.subshapes.entries, tolerance: tolerance
+            )
+            let patches = extraction.request.shells.flatMap(\.patches) + strips
+            let shells = try BRepSewingPatchShellPartitioner().shells(patches: patches, stablePrefix: "sheet-extend:shell", tolerance: tolerance)
+            let sewn = try sewer.sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet, shells: shells), tolerance: tolerance)
+            var replaced = try BRepBodyModelReplacer().replacing(bodyIDs: [bodyID], with: sewn.brep, in: model)
+            // Strips on the sheet's own plane merge with it: one face, no line at the old edge.
+            let sewnBodies = Set(sewn.subshapes.values.compactMap { reference -> BodyID? in
+                if case let .body(id) = reference { return id }
+                return nil
+            })
+            guard sewnBodies.count == 1, let sewnBodyID = sewnBodies.first else {
+                throw failure(.topologyFailure, feature.id, tolerance, "An extended sheet is not one sheet.")
+            }
+            let sewnFaces = try BodyTopologyScope(bodyID: sewnBodyID, model: replaced).references.compactMap { reference -> FaceID? in
+                if case let .face(id) = reference { return id }
+                return nil
+            }
+            let allPlanes = sewnFaces.allSatisfy { id in
+                guard let face = replaced.faces[id], case .plane? = replaced.geometry.surfaces[face.surfaceID] else { return false }
+                return true
+            }
+            if allPlanes, try RedundantTopologyRemover().remove(bodyID: sewnBodyID, featureID: feature.id, model: &replaced, tolerance: tolerance) {
+                try ExactFacePcurveBuilder().populateMissingPcurves(in: &replaced, tolerance: tolerance)
+                try replaced.validate(level: .exact, tolerance: tolerance)
+                let identity = try DefaultCarriedTopologyIdentityBuilder().identity(featureID: feature.id, bodyID: sewnBodyID,
+                                                                                     model: replaced, context: context)
+                return EvaluationResult(
+                    brep: replaced,
+                    subshapes: identity.subshapes,
+                    removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes)
+                        .union(context.subshapes.entries.filter { $0.value == .body(bodyID) }.map(\.key)),
+                    lineage: identity.lineage
+                )
+            }
+            try replaced.validate(level: .exact, tolerance: tolerance)
+            return EvaluationResult(
+                brep: replaced,
+                subshapes: sewn.subshapes,
+                removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes)
+                    .union(context.subshapes.entries.filter { $0.value == .body(bodyID) }.map(\.key)),
+                lineage: sewn.lineage
+            )
+        }
+        // The extensions alone, a sheet of their own beside the sheet.
+        let shells = try BRepSewingPatchShellPartitioner().shells(patches: strips, stablePrefix: "sheet-extend:shell", tolerance: tolerance)
+        let sewn = try sewer.sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet, shells: shells), tolerance: tolerance)
+        let combined = try BRepModelCombiner().combined([model, sewn.brep])
+        try combined.validate(level: .exact, tolerance: tolerance)
+        return EvaluationResult(brep: combined, subshapes: sewn.subshapes, removedSubshapeIDs: [], lineage: sewn.lineage)
+    }
+
+    /// How far an edge runs on straight across itself to reach the limit's body: rays from points
+    /// along the edge, across it in the face's tangent plane, meet the body's faces — the least
+    /// first meeting (Minimal), the greatest first meeting (Inside, all of the edge at the near
+    /// side) or the greatest first leaving (Outside, all of it through).
+    private func limitedDistance(edgeID: EdgeID, faceID: FaceID, coedge: Coedge, shape: SheetExtensionShape,
+                                 limit: SheetExtensionLimit, featureID: FeatureID, context: EvaluationContext) throws -> Double {
+        let model = context.brep
+        let tolerance = context.tolerance
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+              let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+            throw TopologyError.missingReference("An extended edge's geometry is missing.")
+        }
+        let planar = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance)
+        guard planar != nil || shape == .linear else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a curved extension (Natural, Reflective or Soft
+            // past a curved face) runs to a body along its own surface, which is not measured, so
+            // Limit takes straight extensions only. Production path: SheetExtendFeatureEvaluator.
+            // Complete only when a curved extension stops on a body, verified by an arch run to a box.
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet runs to a body along straight extensions: planar faces, or Linear.")
+        }
+        let targetBodyID = try context.bodyID(generatedBy: limit.body)
+        let target = try BodyTopologyScope(bodyID: targetBodyID, model: model)
+        guard let invocation else {
+            throw failure(.invalidInput, featureID, tolerance,
+                "A natural body-limit reach requires its admitted invocation.")
+        }
+        let targetBounds = try BRepBodyBoundingBoxBuilder().bounds(for: targetBodyID, in: model,
+            tolerance: tolerance, maximumSubdivisionDepth: min(invocation.limits.maximumSubdivisionDepth, 32),
+            consumeWork: { try invocation.consume($0) })
+        let faceIDs = target.references.compactMap { reference -> FaceID? in
+            if case let .face(id) = reference { return id }
+            return nil
+        }
+        let crossings = BRepRayFaceCrossings(intersector: DefaultCurveSurfaceIntersector(),
+                                             facePointContainment: DefaultFacePointContainmentTester())
+        let outward = face.orientation == .forward ? 1.0 : -1.0
+        let forward = coedge.orientation == .forward
+        var reaches: [Double] = []
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Sheet Extend body-limit candidates
+        // still use finitely many source stations. The original finite target window
+        // is complete for each ray, but whole station-wise crossing roots and reach
+        // extrema are required before Minimal/Inside/Outside can be source-complete.
+        for index in 0...8 {
+            try invocation.consume()
+            let t = trim.startParameter + (trim.endParameter - trim.startParameter) * Double(index) / 8
+            let point = try curve.point(at: t, tolerance: tolerance)
+            let uv = try surface.parameterProjection(of: point, tolerance: tolerance)
+            let normal = try surface.normal(u: uv.u, v: uv.v, tolerance: tolerance) * outward
+            // The loop runs with the face on its left about the outward normal: across, away from it.
+            let tangent = try curve.differentialGeometry(at: t, tolerance: tolerance).firstDerivative
+                .normalized(tolerance: tolerance.distance) * (forward ? 1 : -1)
+            let away = try tangent.cross(normal).normalized(tolerance: tolerance.distance)
+            // In the body's own frame when it is placed elsewhere.
+            let toBody = limit.placement?.inverted()
+            let rayOrigin = toBody?.applying(to: point) ?? point
+            let x = OutwardScalarInterval(lower: targetBounds.minimum.x, upper: targetBounds.maximum.x)
+                - .exact(rayOrigin.x)
+            let y = OutwardScalarInterval(lower: targetBounds.minimum.y, upper: targetBounds.maximum.y)
+                - .exact(rayOrigin.y)
+            let z = OutwardScalarInterval(lower: targetBounds.minimum.z, upper: targetBounds.maximum.z)
+                - .exact(rayOrigin.z)
+            let reachBounds = OutwardScalarInterval.exact(x.absoluteUpperBound)
+                + .exact(y.absoluteUpperBound) + .exact(z.absoluteUpperBound)
+                + .exact(tolerance.distance) * .exact(4)
+            guard reachBounds.isFinite, reachBounds.upper > tolerance.distance * 2 else {
+                throw failure(.resourceLimitExceeded, featureID, tolerance,
+                    "The original body-limit ray window has no finite admitted distance bound.")
+            }
+            let found = try crossings.crossings(from: rayOrigin,
+                direction: toBody?.applying(to: away) ?? away,
+                upperBound: reachBounds.upper, faceIDs: faceIDs, model: model,
+                containmentSession: nil, tolerance: tolerance)
+            switch limit.mode {
+            case .minimal, .inside:
+                if let first = found.first { reaches.append(first.distance) } else if limit.mode == .inside {
+                    throw failure(.invalidInput, featureID, tolerance, "An extended edge's way across misses the limit's body.")
+                }
+            case .outside:
+                guard found.count >= 2 else {
+                    throw failure(.invalidInput, featureID, tolerance, "An extended edge's way across does not pass through the limit's body.")
+                }
+                reaches.append(found[1].distance)
+            }
+        }
+        let value = limit.mode == .minimal ? reaches.min() : reaches.max()
+        guard let value, value > tolerance.distance else {
+            throw failure(.invalidInput, featureID, tolerance, "An extended edge's way across misses the limit's body.")
+        }
+        return value
+    }
+
+    /// The strip carrying the face on past one of its open edges.
+    private func strip(
+        edgeID: EdgeID, faceID: FaceID, coedge: Coedge, distance: Double, shape: SheetExtensionShape,
+        stableID: String, featureID: FeatureID, context: EvaluationContext
+    ) throws -> BRepSewingFacePatch {
+        let model = context.brep
+        let tolerance = context.tolerance
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+              let edge = model.edges[edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+            throw TopologyError.missingReference("An extended edge's geometry is missing.")
+        }
+        let parents = context.subshapeIDs(for: .face(faceID))
+        // A B-spline face continues on its own surface, flat or not; its domain ends at the edge.
+        if case .bSpline = surface {} else if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
+            return try planarStrip(
+                plane: plane, surface: surface, face: face, curve: curve, trim: trim, coedge: coedge, distance: distance,
+                stableID: stableID, parents: parents, featureID: featureID, tolerance: tolerance
+            )
+        }
+        if shape == .natural, let chart = coedge.surfaceParameterCurve,
+           let natural = try extensionBuilder.strip(on: surface, face: face,
+               boundary: chart, distance: distance, stableID: stableID, parents: parents, tolerance: tolerance) {
+            return natural
+        }
+        guard case let .bSpline(spline) = surface, let pcurve = coedge.surfaceParameterCurve else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): faces on analytic curved surfaces and procedural
+            // surfaces would continue on their own surface or its exact B-spline form. Production
+            // path: SheetExtendFeatureEvaluator. Complete only when a cylinder's and a ruled sheet's
+            // edges extend, verified by exact-area tests.
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet extends planar and B-spline faces.")
+        }
+        return try bSplineStrip(
+            spline: spline, face: face, pcurve: pcurve, distance: distance, shape: shape,
+            stableID: stableID, parents: parents, featureID: featureID, tolerance: tolerance
+        )
+    }
+
+    /// The one face of a single-face B-spline sheet covering its whole surface, extended past each
+    /// chosen edge (each a parameter boundary) in turn; nil when the sheet is not such a sheet.
+    private func wholeSurfaceExtension(
+        bodyID: BodyID, scope: BodyTopologyScope, edges: [EdgeID], coedgeOfEdge: [EdgeID: [(face: FaceID, coedge: Coedge)]],
+        reaches: [EdgeID: Double], distance: Double, shape: SheetExtensionShape, featureID: FeatureID, context: EvaluationContext
+    ) throws -> BRepSewingFacePatch? {
+        let model = context.brep
+        let tolerance = context.tolerance
+        let faces = scope.references.compactMap { reference -> FaceID? in
+            if case let .face(id) = reference { return id }
+            return nil
+        }
+        guard faces.count == 1, let faceID = faces.first, let face = model.faces[faceID],
+              case let .bSpline(spline)? = model.geometry.surfaces[face.surfaceID],
+              let domain = try ExactRectangularPcurveDomainResolver().resolve(face: face, model: model, tolerance: tolerance),
+              let u0 = spline.uKnots.first, let u1 = spline.uKnots.last, let v0 = spline.vKnots.first, let v1 = spline.vKnots.last,
+              abs(domain.uLower - u0) <= tolerance.distance, abs(domain.uUpper - u1) <= tolerance.distance,
+              abs(domain.vLower - v0) <= tolerance.distance, abs(domain.vUpper - v1) <= tolerance.distance else {
+            return nil
+        }
+        var surface = spline
+        for edgeID in edges {
+            guard let pcurve = coedgeOfEdge[edgeID]?.first?.coedge.surfaceParameterCurve else { return nil }
+            surface = try extendedSurface(surface, along: pcurve, distance: reaches[edgeID] ?? distance, shape: shape,
+                                          featureID: featureID, tolerance: tolerance).surface
+        }
+        return try BSplineParameterRectanglePatchBuilder().patch(
+            surface, stableID: "sheet-extend:whole", orientation: face.orientation,
+            parentSubshapeIDs: context.subshapeIDs(for: .face(faceID)), tolerance: tolerance
+        )
+    }
+
+    // MARK: Shortening
+
+    /// The sheet with each edge moved back into it by `distance`: straight edges of planar faces by
+    /// plane cuts in turn, or boundary edges of a one-face B-spline sheet by trimming its surface.
+    private func shortened(
+        bodyID: BodyID, edges: [(edgeID: EdgeID, faceID: FaceID, coedge: Coedge)], by distance: Double,
+        scope: BodyTopologyScope, featureID: FeatureID, context: EvaluationContext
+    ) throws -> EvaluationResult {
+        let model = context.brep
+        let tolerance = context.tolerance
+        if let patches = try NaturalRectangularSheetResizer(builder: extensionBuilder).patches(
+            selections: edges, scope: scope, distance: distance, context: context
+        ) {
+            let shells = try BRepSewingPatchShellPartitioner().shells(
+                patches: patches, stablePrefix: "sheet-shorten:shell", tolerance: tolerance)
+            let sewn = try sewer.sew(BRepSewingRequest(featureID: featureID, bodyKind: .sheet,
+                shells: shells, bodyParentSubshapeIDs: context.subshapeIDs(for: .body(bodyID))),
+                tolerance: tolerance)
+            let replaced = try BRepBodyModelReplacer().replacing(
+                bodyIDs: [bodyID], with: sewn.brep, in: model)
+            try replaced.validate(level: .exact, tolerance: tolerance)
+            return EvaluationResult(brep: replaced, subshapes: sewn.subshapes,
+                removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes)
+                    .union(context.subshapes.entries.filter { $0.value == .body(bodyID) }.map(\.key)),
+                lineage: sewn.lineage)
+        }
+        var planes: [(origin: Point3D, normal: Vector3D)] = []
+        var splines: [(face: Face, spline: BSplineSurface3D, pcurve: SurfaceParameterCurve)] = []
+        for use in edges {
+            guard let face = model.faces[use.faceID], let surface = model.geometry.surfaces[face.surfaceID],
+                  let edge = model.edges[use.edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+                throw TopologyError.missingReference("A shortened edge's geometry is missing.")
+            }
+            if case let .bSpline(spline) = surface, let pcurve = use.coedge.surfaceParameterCurve {
+                splines.append((face, spline, pcurve))
+                continue
+            }
+            guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance),
+                  case .line = curve else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a curved edge of a planar face, or an edge of
+                // an analytic curved face, moved back into its sheet would be cut by the offset of
+                // the edge within the face, which is not built, so it is refused. Production path:
+                // SheetExtendFeatureEvaluator for a negative distance. Complete only when an arc's
+                // edge is moved back by a concentric cut, verified by an exact-area test.
+                throw failure(.unsupportedCapability, featureID, tolerance,
+                              "Extend Sheet moves back straight edges of planar faces and boundary edges of B-spline sheets.")
+            }
+            // As the face's loop runs the edge, the face on its left: the way out of the face is to
+            // its right, and the cut plane stands `distance` inside, facing out.
+            let (from, to) = use.coedge.orientation == .forward ? (trim.startParameter, trim.endParameter) : (trim.endParameter, trim.startParameter)
+            let start = try curve.point(at: from, tolerance: tolerance), end = try curve.point(at: to, tolerance: tolerance)
+            let outward = try plane.normal.normalized(tolerance: tolerance.distance) * (face.orientation == .forward ? 1 : -1)
+            let away = try (end - start).normalized(tolerance: tolerance.distance).cross(outward).normalized(tolerance: tolerance.distance)
+            planes.append((start + away * -distance, away))
+        }
+        guard planes.isEmpty || splines.isEmpty else {
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet moves back edges of one kind of face at a time.")
+        }
+        if planes.isEmpty == false {
+            guard let cutter else {
+                throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet needs a cutter to move edges back.")
+            }
+            var stages = FeatureEvaluationStages(context)
+            var current = bodyID
+            for (index, plane) in planes.enumerated() {
+                let last = index == planes.count - 1
+                let stageID = last ? featureID : featureEvaluationStageID(featureID: featureID, domain: .sheetShorten, ordinal: UInt64(index))
+                guard let cut = try cutter.cut(bodyID: current, planeOrigin: plane.origin, planeNormal: plane.normal,
+                                               featureID: stageID, context: stages.context) else {
+                    throw failure(.invalidInput, featureID, tolerance, "Extend Sheet cannot move an edge back past the sheet's side.")
+                }
+                if last { return try stages.publish(cut, featureID: featureID) }
+                stages.apply(cut)
+                current = try stages.publishedBody(of: cut, featureID: featureID, what: "A sheet cut")
+            }
+        }
+        // A one-face B-spline sheet: its surface trimmed past each moved boundary.
+        guard Set(splines.map(\.face.id)).count == 1, let face = splines.first?.face, var spline = splines.first?.spline,
+              scope.references.filter({ if case .face = $0 { return true }; return false }).count == 1 else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a B-spline face's edge moved back within a sheet of
+            // several faces would trim the face and re-solve its neighbours. Production path:
+            // SheetExtendFeatureEvaluator for a negative distance. Complete only when a two-face
+            // sheet's boundary moves back, verified by an exact-area test.
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet moves back the boundary edges of a one-face B-spline sheet.")
+        }
+        let original = spline
+        for entry in splines {
+            spline = try trimmedBack(spline, original: original, pcurve: entry.pcurve, by: distance, featureID: featureID, tolerance: tolerance)
+        }
+        let patch = try BSplineParameterRectanglePatchBuilder().patch(
+            spline, stableID: "sheet-extend:shortened", orientation: face.orientation,
+            parentSubshapeIDs: context.subshapeIDs(for: .face(face.id)), tolerance: tolerance
+        )
+        let sewn = try sewer.sew(BRepSewingRequest(featureID: featureID, bodyKind: .sheet,
+                                                   shells: [BRepSewingShell(stableID: "sheet-extend:shell", patches: [patch])]), tolerance: tolerance)
+        let replaced = try BRepBodyModelReplacer().replacing(bodyIDs: [bodyID], with: sewn.brep, in: model)
+        try replaced.validate(level: .exact, tolerance: tolerance)
+        return EvaluationResult(
+            brep: replaced, subshapes: sewn.subshapes,
+            removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes).union(context.subshapes.entries.filter { $0.value == .body(bodyID) }.map(\.key)),
+            lineage: sewn.lineage
+        )
+    }
+
+    /// `spline` trimmed back from the boundary `pcurve` of `original` runs along, by `distance`
+    /// measured across the surface through the edge's middle.
+    private func trimmedBack(
+        _ spline: BSplineSurface3D, original: BSplineSurface3D, pcurve: SurfaceParameterCurve, by distance: Double,
+        featureID: FeatureID, tolerance: ModelingTolerance
+    ) throws -> BSplineSurface3D {
+        guard let u0 = original.uKnots.first, let u1 = original.uKnots.last, let v0 = original.vKnots.first, let v1 = original.vKnots.last else {
+            throw failure(.invalidInput, featureID, tolerance, "A shortened face's surface has no domain.")
+        }
+        let (isU, boundary, middle): (Bool, Double, Double)
+        switch pcurve {
+        case let .constantU(u, start, end) where abs(u - u0) <= tolerance.distance || abs(u - u1) <= tolerance.distance:
+            (isU, boundary, middle) = (true, abs(u - u1) <= tolerance.distance ? u1 : u0, (start + end) / 2)
+        case let .constantV(v, start, end) where abs(v - v0) <= tolerance.distance || abs(v - v1) <= tolerance.distance:
+            (isU, boundary, middle) = (false, abs(v - v1) <= tolerance.distance ? v1 : v0, (start + end) / 2)
+        default:
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet moves back B-spline edges along parameter boundaries.")
+        }
+        let (low, high) = isU ? (u0, u1) : (v0, v1)
+        let inward: Double = boundary == high ? -1 : 1
+        let surface = Surface3D.bSpline(original)
+        func speed(_ t: Double) throws -> Double {
+            try invocation?.consume()
+            let geometry = try surface.differentialGeometry(u: isU ? t : middle, v: isU ? middle : t, tolerance: tolerance)
+            return (isU ? geometry.tangentU : geometry.tangentV).length
+        }
+        // The length across from the boundary to `t`, by Gauss–Legendre over sixteen pieces.
+        func length(to t: Double) throws -> Double {
+            let nodes = [-0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526]
+            let weights = [0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478548451374538]
+            var total = 0.0
+            for piece in 0..<16 {
+                let lo = boundary + (t - boundary) * Double(piece) / 16, hi = boundary + (t - boundary) * Double(piece + 1) / 16
+                for (node, weight) in zip(nodes, weights) { total += weight * (hi - lo) / 2 * (try speed((lo + hi) / 2 + (hi - lo) / 2 * node)) }
+            }
+            return abs(total)
+        }
+        guard try length(to: inward > 0 ? high : low) > distance + tolerance.distance else {
+            throw failure(.invalidInput, featureID, tolerance, "Extend Sheet cannot move an edge back past the sheet's far side.")
+        }
+        // Bisection on the parameter where the length across reaches the distance.
+        var (a, b) = inward > 0 ? (boundary, high) : (low, boundary)
+        for _ in 0..<80 {
+            let t = (a + b) / 2
+            if (try length(to: t) < distance) == (inward > 0) { a = t } else { b = t }
+        }
+        let cut = (a + b) / 2
+        try extensionBuilder.certifyPhysicalReach(on: surface, variesU: isU,
+            fixedAcross: middle, from: boundary, to: cut, distance: distance, tolerance: tolerance)
+        let (su0, su1, sv0, sv1) = (spline.uKnots.first ?? u0, spline.uKnots.last ?? u1, spline.vKnots.first ?? v0, spline.vKnots.last ?? v1)
+        return isU
+            ? try spline.trimmed(uFrom: inward > 0 ? cut : su0, uTo: inward > 0 ? su1 : cut, vFrom: sv0, vTo: sv1, tolerance: tolerance)
+            : try spline.trimmed(uFrom: su0, uTo: su1, vFrom: inward > 0 ? cut : sv0, vTo: inward > 0 ? sv1 : cut, tolerance: tolerance)
+    }
+
+    // MARK: Planar
+
+    private func planarStrip(
+        plane: ResolvedPlaneGeometry, surface: Surface3D, face: Face, curve: Curve3D, trim: CurveTrim, coedge: Coedge, distance: Double,
+        stableID: String, parents: [SubshapeID], featureID: FeatureID, tolerance: ModelingTolerance
+    ) throws -> BRepSewingFacePatch {
+        // The edge as the face's loop runs it, the face on its left seen from the outward side.
+        let (from, to) = coedge.orientation == .forward ? (trim.startParameter, trim.endParameter) : (trim.endParameter, trim.startParameter)
+        let start = try curve.point(at: from, tolerance: tolerance)
+        let end = try curve.point(at: to, tolerance: tolerance)
+        let unitNormal = try plane.normal.normalized(tolerance: tolerance.distance)
+        let outward = face.orientation == .forward ? unitNormal : unitNormal * -1
+        let middle = try curve.point(at: (from + to) / 2, tolerance: tolerance)
+        let difference = try BRepSurfaceMeetingSolver(tolerance: tolerance).tangent(of: curve, at: (from + to) / 2) * (to >= from ? 1 : -1)
+        guard difference.length > 0 else {
+            throw failure(.invalidInput, featureID, tolerance, "An extended edge has no direction.")
+        }
+        let tangent = difference / difference.length
+        let away = try tangent.cross(outward).normalized(tolerance: tolerance.distance)
+        var farCurve: Curve3D
+        var farStart: Point3D
+        var farEnd: Point3D
+        switch curve {
+        case .line, .analytic(.line):
+            farStart = start + away * distance
+            farEnd = end + away * distance
+            farCurve = .line(Line3D(origin: farStart, direction: try (farEnd - farStart).normalized(tolerance: tolerance.distance)))
+        case let .circle(circle):
+            (farCurve, farStart, farEnd) = try concentric(center: circle.center, normal: circle.normal, radius: circle.radius,
+                start: start, end: end, middle: middle, away: away, distance: distance, featureID: featureID, tolerance: tolerance)
+        case let .analytic(.circle(center, normal, radius)), let .analytic(.arc(center, normal, radius, _, _)):
+            (farCurve, farStart, farEnd) = try concentric(center: center, normal: normal, radius: radius,
+                start: start, end: end, middle: middle, away: away, distance: distance, featureID: featureID, tolerance: tolerance)
+        default:
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet extends straight and circular edges of planar faces.")
+        }
+        // The strip's loop runs the shared edge backwards, so the strip lies on its left.
+        let near = try edgeOnPlane("\(stableID):near", curve: curve, from: to, to: from, surface: surface, parents: parents, tolerance: tolerance)
+        let farTrim = try farParameters(of: farCurve, from: farStart, to: farEnd, turning: to - from, featureID: featureID, tolerance: tolerance)
+        let far = try edgeOnPlane("\(stableID):far", curve: farCurve, from: farTrim.start, to: farTrim.end, surface: surface, parents: parents, tolerance: tolerance)
+        let startSide = try lineOnPlane("\(stableID):start", from: start, to: farStart, surface: surface, parents: parents, tolerance: tolerance)
+        let endSide = try lineOnPlane("\(stableID):end", from: farEnd, to: end, surface: surface, parents: parents, tolerance: tolerance)
+        return BRepSewingFacePatch(
+            stableID: stableID, surface: surface, orientation: face.orientation,
+            loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: [near, startSide, far, endSide])],
+            parentSubshapeIDs: parents
+        )
+    }
+
+    /// The patch between two extended straight edges of one planar face at a convex corner: the
+    /// quadrilateral from the corner along each strip's side to its far edge, closed where the far
+    /// edges' lines meet, so the strips and it make one larger outline of the face.
+    private func cornerPatch(
+        at vertexID: VertexID, edges: [(edgeID: EdgeID, coedge: Coedge, distance: Double)], faceID: FaceID,
+        stableID: String, featureID: FeatureID, context: EvaluationContext
+    ) throws -> BRepSewingFacePatch {
+        let model = context.brep
+        let tolerance = context.tolerance
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+              let corner = model.vertices[vertexID]?.point,
+              let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): edges of a curved face meeting at a corner would be
+            // joined by the surface continued past both boundaries. Production path:
+            // SheetExtendFeatureEvaluator for every sheetExtend feature with edges meeting at a
+            // corner. Complete only when a B-spline sheet's two boundaries extended together give
+            // one sheet, verified by an exact-area test.
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet joins edges meeting at a corner of a planar face.")
+        }
+        let outward = try plane.normal.normalized(tolerance: tolerance.distance) * (face.orientation == .forward ? 1 : -1)
+        // Each edge's direction from the corner and the way its strip runs off the face.
+        let sides = try edges.map { entry -> (along: Vector3D, far: Point3D) in
+            guard let edge = model.edges[entry.edgeID], let curve = model.geometry.curves[edge.curveID],
+                  let start = model.vertices[edge.startVertexID]?.point, let end = model.vertices[edge.endVertexID]?.point else {
+                throw TopologyError.missingReference("An extended edge is missing.")
+            }
+            guard case .line = curve else {
+                throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet joins straight edges meeting at a corner.")
+            }
+            // As the face's loop runs the edge, the face on its left: the strip leaves to its right.
+            let (from, to) = entry.coedge.orientation == .forward ? (start, end) : (end, start)
+            let tangent = try (to - from).normalized(tolerance: tolerance.distance)
+            let away = try tangent.cross(outward).normalized(tolerance: tolerance.distance)
+            let other = edge.startVertexID == vertexID ? end : start
+            return (try (other - corner).normalized(tolerance: tolerance.distance), corner + away * entry.distance)
+        }
+        // Convex: each edge's strip leaves away from the other edge.
+        guard (sides[0].far - corner).dot(sides[1].along) < -tolerance.distance,
+              (sides[1].far - corner).dot(sides[0].along) < -tolerance.distance else {
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet joins edges meeting at a convex corner.")
+        }
+        // Where the far edges' lines meet: far₀ + a·along₀ = far₁ + b·along₁.
+        let (a0, a1) = (sides[0].along, sides[1].along)
+        let w = sides[1].far - sides[0].far
+        let (aa, ab, bb) = (a0.dot(a0), a0.dot(a1), a1.dot(a1))
+        let determinant = aa * bb - ab * ab
+        guard determinant > tolerance.angle else {
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet's edges at a corner run on one line.")
+        }
+        let t = (w.dot(a0) * bb - w.dot(a1) * ab) / determinant
+        let meet = sides[0].far + a0 * t
+        // Counterclockwise about the outward normal.
+        var points = [corner, sides[0].far, meet, sides[1].far]
+        if (points[1] - points[0]).cross(points[3] - points[0]).dot(outward) < 0 { points = [corner, sides[1].far, meet, sides[0].far] }
+        let parents = context.subshapeIDs(for: .face(faceID))
+        let loop = try points.indices.map { index in
+            try lineOnPlane("\(stableID):\(index)", from: points[index], to: points[(index + 1) % 4], surface: surface, parents: parents, tolerance: tolerance)
+        }
+        return BRepSewingFacePatch(stableID: stableID, surface: surface, orientation: face.orientation,
+                                   loops: [BRepSewingLoop(stableID: "\(stableID):outer", role: .outer, edges: loop)], parentSubshapeIDs: parents)
+    }
+
+    /// The arc concentric with an edge's, a distance further from the face, over the same angles.
+    private func concentric(
+        center: Point3D, normal: Vector3D, radius: Double, start: Point3D, end: Point3D, middle: Point3D,
+        away: Vector3D, distance: Double, featureID: FeatureID, tolerance: ModelingTolerance
+    ) throws -> (Curve3D, Point3D, Point3D) {
+        let grows = away.dot(middle - center) > 0
+        let farRadius = radius + (grows ? distance : -distance)
+        guard farRadius > tolerance.distance else {
+            throw failure(.topologyFailure, featureID, tolerance, "Extend Sheet would carry an arc past its centre.")
+        }
+        func pushed(_ point: Point3D) throws -> Point3D {
+            center + (try (point - center).normalized(tolerance: tolerance.distance)) * farRadius
+        }
+        return (.circle(Circle3D(center: center, normal: normal, radius: farRadius)), try pushed(start), try pushed(end))
+    }
+
+    /// The parameters of the far curve from the start side's far end to the end side's. A far arc
+    /// turns through the same angle as the near one, `turning`, the same way round.
+    private func farParameters(
+        of curve: Curve3D, from start: Point3D, to end: Point3D, turning: Double, featureID: FeatureID, tolerance: ModelingTolerance
+    ) throws -> (start: Double, end: Double) {
+        let solver = BRepSurfaceMeetingSolver(tolerance: tolerance)
+        let a = try solver.closest(to: start, on: curve).parameter
+        guard case .periodic = curve.parameterDomain else {
+            return (a, try solver.closest(to: end, on: curve).parameter)
+        }
+        let b = a + turning
+        guard (try curve.point(at: b, tolerance: tolerance) - end).length <= tolerance.distance else {
+            throw failure(.topologyFailure, featureID, tolerance, "An extended arc's far side does not turn with it.")
+        }
+        return (a, b)
+    }
+
+    private func edgeOnPlane(
+        _ stableID: String, curve: Curve3D, from: Double, to: Double, surface: Surface3D, parents: [SubshapeID], tolerance: ModelingTolerance
+    ) throws -> BRepSewingEdge {
+        let start = try curve.point(at: from, tolerance: tolerance)
+        let end = try curve.point(at: to, tolerance: tolerance)
+        let pcurve = try ExactFacePcurveBuilder().surfaceParameterCurve(
+            for: curve, startParameter: from, endParameter: to, on: surface, tolerance: tolerance
+        )
+        return BRepSewingEdge(
+            stableID: stableID, curve: curve, startParameter: from, endParameter: to, startPoint: start, endPoint: end,
+            surfaceParameterCurve: pcurve, parentSubshapeIDs: parents
+        )
+    }
+
+    private func lineOnPlane(
+        _ stableID: String, from start: Point3D, to end: Point3D, surface: Surface3D, parents: [SubshapeID], tolerance: ModelingTolerance
+    ) throws -> BRepSewingEdge {
+        let length = (end - start).length
+        let line = Curve3D.line(Line3D(origin: start, direction: try (end - start).normalized(tolerance: tolerance.distance)))
+        return try edgeOnPlane(stableID, curve: line, from: 0, to: length, surface: surface, parents: parents, tolerance: tolerance)
+    }
+
+    // MARK: B-spline
+
+    private func bSplineStrip(
+        spline: BSplineSurface3D, face: Face, pcurve: SurfaceParameterCurve, distance: Double, shape: SheetExtensionShape,
+        stableID: String, parents: [SubshapeID], featureID: FeatureID, tolerance: ModelingTolerance
+    ) throws -> BRepSewingFacePatch {
+        var (extended, isU, across) = try extendedSurface(spline, along: pcurve, distance: distance, shape: shape,
+                                                          featureID: featureID, tolerance: tolerance)
+        // Only as wide as the edge.
+        let (eu0, eu1, ev0, ev1) = (extended.uKnots.first ?? 0, extended.uKnots.last ?? 0, extended.vKnots.first ?? 0, extended.vKnots.last ?? 0)
+        extended = isU
+            ? try extended.trimmed(uFrom: eu0, uTo: eu1, vFrom: across.lowerBound, vTo: across.upperBound, tolerance: tolerance)
+            : try extended.trimmed(uFrom: across.lowerBound, uTo: across.upperBound, vFrom: ev0, vTo: ev1, tolerance: tolerance)
+        return try BSplineParameterRectanglePatchBuilder().patch(
+            extended, stableID: stableID, orientation: face.orientation, parentSubshapeIDs: parents, tolerance: tolerance
+        )
+    }
+
+    /// The B-spline surface run on past the parameter boundary `pcurve` lies on by `distance` in
+    /// `shape`, whether that boundary runs along u, and the stretch of it the edge covers.
+    private func extendedSurface(
+        _ spline: BSplineSurface3D, along pcurve: SurfaceParameterCurve, distance: Double, shape: SheetExtensionShape,
+        featureID: FeatureID, tolerance: ModelingTolerance
+    ) throws -> (surface: BSplineSurface3D, isU: Bool, across: ClosedRange<Double>) {
+        guard let u0 = spline.uKnots.first, let u1 = spline.uKnots.last, let v0 = spline.vKnots.first, let v1 = spline.vKnots.last else {
+            throw failure(.invalidInput, featureID, tolerance, "An extended face's surface has no domain.")
+        }
+        // The edge lies along one of the surface's parameter boundaries.
+        let side: BSplineSurfaceBoundaryExtender.Side
+        let across: ClosedRange<Double>
+        switch pcurve {
+        case let .constantU(u, start, end) where abs(u - u0) <= tolerance.distance || abs(u - u1) <= tolerance.distance:
+            side = abs(u - u1) <= tolerance.distance ? .uUpper : .uLower
+            across = min(start, end)...max(start, end)
+        case let .constantV(v, start, end) where abs(v - v0) <= tolerance.distance || abs(v - v1) <= tolerance.distance:
+            side = abs(v - v1) <= tolerance.distance ? .vUpper : .vLower
+            across = min(start, end)...max(start, end)
+        default:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): an edge inside a B-spline surface's domain, or not
+            // along a parameter line, would continue the face across a trim. Production path:
+            // SheetExtendFeatureEvaluator. Complete only when a trimmed B-spline face's inner edge
+            // extends, verified by an exact-boundary test.
+            throw failure(.unsupportedCapability, featureID, tolerance, "Extend Sheet extends B-spline faces along their parameter boundaries.")
+        }
+        let isU = side == .uLower || side == .uUpper
+        let boundary: Double = switch side {
+        case .uLower: u0
+        case .uUpper: u1
+        case .vLower: v0
+        case .vUpper: v1
+        }
+        let outward: Double = side == .uUpper || side == .vUpper ? 1 : -1
+        let middle = (across.lowerBound + across.upperBound) / 2
+        let surface = Surface3D.bSpline(spline)
+        /// The speed along the extension direction at `t` across the edge's middle.
+        func speed(on target: Surface3D, at t: Double) throws -> Double {
+            try invocation?.consume()
+            let geometry = try target.differentialGeometry(u: isU ? t : middle, v: isU ? middle : t, tolerance: tolerance)
+            return (isU ? geometry.tangentU : geometry.tangentV).length
+        }
+        func length(on target: Surface3D, from a: Double, to b: Double) throws -> Double {
+            // Gauss–Legendre over sixteen pieces of the parameter interval.
+            let nodes = [-0.8611363115940526, -0.3399810435848563, 0.3399810435848563, 0.8611363115940526]
+            let weights = [0.3478548451374538, 0.6521451548625461, 0.6521451548625461, 0.3478548451374538]
+            let pieces = 16
+            var total = 0.0
+            for piece in 0..<pieces {
+                let lo = a + (b - a) * Double(piece) / Double(pieces)
+                let hi = a + (b - a) * Double(piece + 1) / Double(pieces)
+                for (node, weight) in zip(nodes, weights) {
+                    total += weight * (hi - lo) / 2 * (try speed(on: target, at: (lo + hi) / 2 + (hi - lo) / 2 * node))
+                }
+            }
+            return abs(total)
+        }
+        let extender = BSplineSurfaceBoundaryExtender()
+        var delta: Double
+        switch shape {
+        case .linear:
+            // The strip runs straight on: its length is the parameter times the boundary's speed.
+            delta = distance / (try speed(on: surface, at: boundary))
+        case .reflective:
+            // A reflection keeps lengths: the stretch before the edge as long as the distance.
+            let limit = isU ? u1 - u0 : v1 - v0
+            delta = min(distance / (try speed(on: surface, at: boundary)), limit)
+            for _ in 0..<32 {
+                let reach = boundary - outward * delta
+                let error = distance - (try length(on: surface, from: reach, to: boundary))
+                if abs(error) <= tolerance.distance * 1e-3 { break }
+                delta = min(limit, max(1e-12, delta + error / (try speed(on: surface, at: reach))))
+            }
+        case .natural, .soft:
+            delta = distance / (try speed(on: surface, at: boundary))
+            for _ in 0..<32 {
+                let extended = Surface3D.bSpline(try extender.extended(of: spline, past: side, by: delta,
+                                                                        shape: shape == .soft ? .soft : .natural, tolerance: tolerance))
+                let reach = boundary + outward * delta
+                let error = distance - (try length(on: extended, from: boundary, to: reach))
+                if abs(error) <= tolerance.distance * 1e-3 { break }
+                delta = max(1e-12, delta + error / (try speed(on: extended, at: reach)))
+            }
+        }
+        let kernelShape: BSplineSurfaceBoundaryExtender.Shape = switch shape {
+        case .natural: .natural
+        case .linear: .linear
+        case .reflective: .reflective
+        case .soft: .soft
+        }
+        let extended = try extender.extended(of: spline, past: side, by: delta,
+            shape: kernelShape, tolerance: tolerance)
+        try extensionBuilder.certifyPhysicalReach(on: .bSpline(extended), variesU: isU,
+            fixedAcross: middle, from: boundary, to: boundary + outward * delta,
+            distance: distance, tolerance: tolerance)
+        return (extended, isU, across)
+    }
+
+    private func failure(_ code: KernelErrorCode, _ featureID: FeatureID, _ tolerance: ModelingTolerance, _ message: String) -> KernelError {
+        KernelError(phase: code == .topologyFailure ? .topology : .evaluation, code: code, featureID: featureID, tolerance: tolerance, message: message)
+    }
+}

@@ -4,7 +4,7 @@
 
 This component owns the PARX.X3 persistent source contract for body/face names,
 appearance, layer membership, and physical material assignments on geometry,
-parts, and occurrences. Parent: [CADIR](../DESIGN.md). No children. It does not add PMI, mass integration, inter-document
+parts, and occurrences. Parent: [CADIR](../DESIGN.md). No children. It composes [PMI](../ProductManufacturingInformation/DESIGN.md) and [View Metadata](../ProductViewMetadata/DESIGN.md) source containers. It does not own mass integration, inter-document
 evaluation, or new long-term split/merge reference policies.
 
 ## Responsibilities and Boundaries

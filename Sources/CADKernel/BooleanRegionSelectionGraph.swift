@@ -1,8 +1,8 @@
 import CADCore
 import CADIR
 
-public struct BooleanRegionSelectionGraph: Codable, Hashable, Sendable {
-    public struct Decision: Codable, Hashable, Sendable {
+public struct BooleanRegionSelectionGraph: Hashable, Sendable {
+    public struct Decision: Hashable, Sendable {
         public let sample: BooleanClassificationGraph.Sample
         public let action: BooleanRegionSelectionAction
 
@@ -46,3 +46,8 @@ public struct BooleanRegionSelectionGraph: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanRegionSelectionGraph: Codable {}
+extension BooleanRegionSelectionGraph.Decision: Codable {}
+#endif

@@ -1,21 +1,26 @@
-public enum SurfaceSurfaceIntersection: Codable, Hashable, Sendable {
+public enum SurfaceSurfaceIntersection: Hashable, Sendable {
     case curve(SurfaceSurfaceIntersectionCurve)
     case point(SurfaceSurfaceIntersectionPoint)
     case coincident(SurfaceSurfaceCoincidence)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case curve
         case point
         case coincident
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case curve
         case point
         case coincident
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -39,7 +44,9 @@ public enum SurfaceSurfaceIntersection: Codable, Hashable, Sendable {
             ))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -54,4 +61,9 @@ public enum SurfaceSurfaceIntersection: Codable, Hashable, Sendable {
             try container.encode(coincidence, forKey: .coincident)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceSurfaceIntersection: Codable {}
+#endif

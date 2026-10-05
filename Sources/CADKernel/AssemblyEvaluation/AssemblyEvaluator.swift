@@ -13,19 +13,27 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
         let expansion = try DocumentAssemblyValidator().expand(assembly, in: graph,
             tolerance: tolerance, limits: limits)
         let expanded = expansion.occurrences
-        try local.model.validate(level: .exact, tolerance: tolerance)
+        let usage = try AssemblyEvaluationUsage(maximumWork: limits.maximumWork,
+            consumedWork: expansion.consumedWork)
+        let sourceDepth = min(16, limits.maximumDepth)
+        let subdivisionDepth = min(32, limits.maximumDepth)
+        func certificate(_ model: BRepModel) throws -> ValidatedBRepModel {
+            try ValidatedBRepModel(model, tolerance: tolerance, validationLevel: .exact,
+                maximumSubdivisionDepth: subdivisionDepth, remainingSourceDepth: sourceDepth,
+                consumeWork: { try usage.consume() }, consumeStorage: { try usage.consume($0) })
+        }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): This public assembly path consumes the
+        // bounded original BRep receipt; its lower correspondence/seam/chart-lift
+        // callbacks must be complete before all original affine families are admitted.
+        _ = try certificate(local.model)
+        try usage.consume(local.subshapes.entries.count)
+        try usage.consume(local.lineage.count)
         try local.subshapes.validate(against: local.model, lineage: local.lineage)
         let definitions = Dictionary(uniqueKeysWithValues: assembly.definitions.map { ($0.id, $0) })
-        var models: [FeatureID: BRepModel] = [:]
+        var models: [FeatureID: ValidatedBRepModel] = [:]
         var geometryCosts: [FeatureID: Int] = [:]
         var accountedBodies = Set<BodyID>()
-        var work = expansion.consumedWork
-        func chargeWork(_ count: Int) throws {
-            guard count >= 0, count <= limits.maximumWork - work else {
-                throw AssemblyError.resourceLimitExceeded("topology work")
-            }
-            work += count
-        }
+        func chargeWork(_ count: Int) throws { try usage.consume(count) }
         for featureID in Set(assembly.definitions.flatMap(\.features)).sorted() {
             try Task.checkCancellation()
             try chargeWork(local.subshapes.entries.count)
@@ -34,11 +42,25 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
             })
             guard !bodyIDs.isEmpty else { throw AssemblyError.unresolvedOutput(featureID) }
             accountedBodies.formUnion(bodyIDs)
+            // Extraction follows bounded ownership passes over the source topology.
+            // Charge those passes before creating the extracted persistent-map copy.
+            var extractionRecords = 0
+            for records in [local.model.bodies.count, local.model.shells.count, local.model.faces.count,
+                            local.model.loops.count, local.model.edges.count, local.model.vertices.count] {
+                guard records <= usage.remainingWork - extractionRecords else {
+                    throw AssemblyError.resourceLimitExceeded("local extraction records")
+                }
+                extractionRecords += records
+            }
+            guard extractionRecords <= usage.remainingWork / 16 else {
+                throw AssemblyError.resourceLimitExceeded("local extraction traversal/storage")
+            }
+            try chargeWork(extractionRecords * 16)
             let model = try BRepBodySubmodelExtractor().extract(bodyIDs: bodyIDs, from: local.model)
-            let cost = try AssemblyGeometryCounter.count(model, maximum: limits.maximumWork - work, maximumDepth: limits.maximumDepth)
+            let cost = try AssemblyGeometryCounter.count(model, maximum: usage.remainingWork, maximumDepth: limits.maximumDepth)
             try chargeWork(cost)
             geometryCosts[featureID] = cost
-            models[featureID] = model
+            models[featureID] = try certificate(model)
         }
         guard accountedBodies == Set(local.model.bodies.keys) else {
             throw AssemblyError.inconsistentArtifact("Assembly source does not account for every live local body.")
@@ -54,9 +76,13 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
             guard let definition = definitions[occurrence.definitionID] else {
                 throw AssemblyError.missingDefinition(occurrence.definitionID)
             }
+            var algebra = AssemblyOriginalAlgebraAdmission(usage: usage, maximumDepth: limits.maximumAlgebraicDepth)
+            let originalWord = try occurrence.placement.originalOperationWord(tolerance: tolerance,
+                maximumDepth: limits.maximumAlgebraicDepth, maximumSourceDepth: limits.maximumDepth, usage: &algebra)
             var features: [AssemblyFeatureCorrespondence] = []
             for featureID in definition.features.sorted() {
-                guard let source = models[featureID] else { throw AssemblyError.unresolvedOutput(featureID) }
+                guard let sourceCertificate = models[featureID] else { throw AssemblyError.unresolvedOutput(featureID) }
+                let source = sourceCertificate.model
                 var count = 0
                 for records in [source.bodies.count, source.shells.count, source.faces.count, source.loops.count,
                                 source.edges.count, source.vertices.count, source.geometry.curves.count, source.geometry.surfaces.count] {
@@ -71,28 +97,26 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
                 guard let geometryCost = geometryCosts[featureID] else {
                     throw AssemblyError.inconsistentArtifact("Missing admitted local geometry cost.")
                 }
-                guard geometryCost <= (limits.maximumWork - work) / 16 else {
+                guard geometryCost <= (usage.remainingWork) / 16 else {
                     throw AssemblyError.resourceLimitExceeded("world geometry work/storage")
                 }
                 try chargeWork(geometryCost * 16)
-                guard count <= (limits.maximumWork - work) / 16 else {
+                guard count <= (usage.remainingWork) / 16 else {
                     throw AssemblyError.resourceLimitExceeded("world topology work")
                 }
                 try chargeWork(count * 16)
                 let seed = namespace(path: occurrence.path, definition: definition.id, feature: featureID)
                 guard namespaces.insert(seed).inserted else { throw AssemblyError.identityCollision }
-                var roots: [ShapeReference] = []
-                for body in source.bodies.values.sorted(by: { $0.id < $1.id }) {
-                    if body.kind == .solid { roots.append(.solid(body.id)) }
-                    else { roots.append(contentsOf: body.shellIDs.map(ShapeReference.shell)) }
-                }
-                let transformed = try shapeOperator.transformed(Shape(root: .compound(roots), model: source),
-                    by: occurrence.placement, tolerance: tolerance)
-                var placedModel = transformed.model
-                // Generic shell shapes own no body record. Retain the exact original sheet
-                // ownership after transforming its shells, rather than treating it as a solid.
-                for body in source.bodies.values where body.kind == .sheet { placedModel.bodies[body.id] = body }
-                try placedModel.validate(level: .exact, tolerance: tolerance)
+                let placedModel = try shapeOperator.transformed(validatedModel: sourceCertificate,
+                    by: originalWord, maximumSubdivisionDepth: subdivisionDepth,
+                    remainingSourceDepth: sourceDepth,
+                    consumeWork: { depth in
+                        guard depth >= 0, depth <= subdivisionDepth else {
+                            throw AssemblyError.resourceLimitExceeded("original affine subdivision depth")
+                        }
+                        try usage.consume()
+                    }, consumeStorage: { try usage.consume($0) })
+                _ = try certificate(placedModel)
                 let image = try ImportedBRepTopologyReidentifier().reidentify(placedModel, featureID: seed)
                 worldModels.append(image.model)
                 let correspondence = AssemblyFeatureCorrespondence(featureID: featureID, bodies: image.bodyIDs,
@@ -108,7 +132,7 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
                     case .vertex(let id): target = image.vertexIDs[id].map(TopologyReference.vertex)
                     }
                     guard let target else { continue }
-                    guard occurrence.path.components.count <= (limits.maximumWork - work) / 37 else {
+                    guard occurrence.path.components.count <= (usage.remainingWork) / 37 else {
                         throw AssemblyError.resourceLimitExceeded("occurrence role text")
                     }
                     try chargeWork(occurrence.path.components.count * 37)
@@ -123,11 +147,13 @@ public struct AssemblyEvaluator: AssemblyEvaluating {
                 placement: occurrence.placement, features: features))
         }
         let world = try BRepModelCombiner().combined(worldModels)
-        try world.validate(level: .exact, tolerance: tolerance)
+        _ = try certificate(world)
         let index = SubshapeIndex(outputs)
+        try usage.consume(outputs.count)
+        try usage.consume(lineage.count)
         try index.validate(against: world, lineage: lineage)
         return AssemblyEvaluationResult(model: world, subshapes: index, lineage: lineage,
-            artifact: AssemblyEvaluationArtifact(local: local, occurrences: occurrences, limits: limits), consumedWork: work)
+            artifact: AssemblyEvaluationArtifact(local: local, occurrences: occurrences, limits: limits), consumedWork: usage.consumedWork)
     }
     private func namespace(path: AssemblyOccurrencePath, definition: AssemblyDefinitionID, feature: FeatureID) -> FeatureID {
         // Fixed unsigned hashing is independent of Swift Hasher randomization and sibling order.

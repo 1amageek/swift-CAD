@@ -43,7 +43,7 @@ struct DefaultProceduralCurveSourceSurfaceCoincidenceResolver:
         tolerance: tolerance
       )
     case .line, .circle, .analytic, .bSpline, .certifiedIntersection,
-      .affineImage:
+      .affineImage, .parameterImage:
       return false
     }
   }
@@ -71,7 +71,7 @@ struct DefaultProceduralCurveSourceSurfaceCoincidenceResolver:
         tolerance: tolerance
       )
     case .line, .circle, .analytic, .bSpline, .certifiedIntersection,
-      .affineImage:
+      .affineImage, .parameterImage:
       return false
     }
     for sourceSurface in sourceSurfaces {

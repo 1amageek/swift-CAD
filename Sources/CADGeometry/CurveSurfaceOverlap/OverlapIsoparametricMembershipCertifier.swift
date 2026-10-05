@@ -145,11 +145,90 @@ struct OverlapIsoparametricMembershipCertifier {
                 }
             }
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic interior-fixed isocurves and
-        // general periodic UV graphs have no complete native correspondence here.
-        // The public result must retain whole membership and complete seam cuts
-        // before these other cyclic families may be admitted.
-        throw failure(.unsupportedCapability, "Periodic isocurve endpoints have no whole-control membership certificate; interior fixed coordinates remain unsupported.", tolerance)
+        // Candidates come from every original fixed-axis span. The complete
+        // homogeneous residual remains the sole publication authority.
+        let fixedKnots = variesU ? surface.vKnots : surface.uKnots
+        let fixedDegree = variesU ? surface.vDegree : surface.uDegree
+        let fixedCount = variesU ? surface.vControlPointCount : surface.uControlPointCount
+        for reversed in [false, true] {
+            try budget.work()
+            if reversed {
+                guard exactSum(lower, upper), curve.knots.allSatisfy({ exactSum(lower + upper, -$0) }) else { continue }
+                try budget.work(curve.controlPointCount + curve.knots.count)
+            }
+            let source = reversed ? try curve.reversed(tolerance: tolerance) : curve
+            guard source.knots == targetKnots else { continue }
+            for span in fixedDegree..<fixedCount where fixedKnots[span] < fixedKnots[span + 1] {
+                try budget.storage()
+                var fixed = fixedKnots[span] * 0.5 + fixedKnots[span + 1] * 0.5
+                guard fixed.isFinite else { throw failure(.resourceLimitExceeded, "Periodic fixed-axis seed is nonfinite.", tolerance) }
+                for _ in 0..<options.maximumIterations {
+                    try chargePeriodicControlProbe(source: source, fixedCount: fixedCount,
+                        fixedDegree: fixedDegree, budget: &budget, tolerance: tolerance)
+                    let bound = try deviationValues(source: source, surface: surface, variesU: variesU,
+                        fixed: fixed, tolerance: tolerance)
+                    if bound <= tolerance.distance {
+                        try budget.storage()
+                        return Certificate(correspondence: .init(variesU: variesU, fixedCoordinate: fixed,
+                            reversedParameterSum: reversed ? lower + upper : nil,
+                            periodic: .init(period: period, sourceRange: range)), deviation: bound)
+                    }
+                    // The represented fixed parameter is a predictor only. The
+                    // original basis and Cartesian control ratios determine its step.
+                    try chargePeriodicControlProbe(source: source, fixedCount: fixedCount,
+                        fixedDegree: fixedDegree, budget: &budget, tolerance: tolerance)
+                    let basis = try BSplineBasis.nonzeroDerivativeValues(parameter: fixed,
+                        degree: fixedDegree, throughDerivativeOrder: 1, knots: fixedKnots,
+                        count: fixedCount, owningSpan: span, tolerance: tolerance)
+                    var gradient = 0.0, metric = 0.0
+                    for index in source.controlPoints.indices {
+                        var w = 0.0, dw = 0.0
+                        var n = Vector3D.zero, dn = Vector3D.zero
+                        for local in basis[0].values.indices {
+                            let other = basis[0].startIndex + local
+                            let row = variesU ? other : index, column = variesU ? index : other
+                            let weight = surface.weights[row][column]
+                            let a = basis[0].values[local] * weight
+                            let b = basis[1].values[local] * weight
+                            let point = surface.controlPoints[row][column]
+                            w += a; dw += b
+                            let delta = point - source.controlPoints[index]
+                            n = n + delta * a; dn = dn + delta * b
+                        }
+                        guard w.isFinite, w > 0, dw.isFinite else {
+                            throw failure(.singularGeometry, "Periodic original fixed-axis predictor has no positive denominator.", tolerance)
+                        }
+                        let residual = n * (1 / w)
+                        let derivative = (dn + residual * (-dw)) * (1 / w)
+                        gradient += residual.dot(derivative)
+                        metric += derivative.dot(derivative)
+                    }
+                    guard gradient.isFinite, metric.isFinite else {
+                        throw failure(.resourceLimitExceeded, "Periodic original predictor arithmetic is nonfinite.", tolerance)
+                    }
+                    guard metric > 0 else { break }
+                    let proposed = fixed - gradient / metric
+                    guard proposed.isFinite else { break }
+                    let next = max(fixedKnots[span], min(fixedKnots[span + 1], proposed))
+                    guard next != fixed else { break }
+                    fixed = next
+                }
+            }
+        }
+        return nil
+    }
+
+    private func chargePeriodicControlProbe(source: BSplineCurve3D, fixedCount: Int,
+        fixedDegree: Int, budget: inout OverlapProofBudget, tolerance: ModelingTolerance) throws {
+        let controls = source.controlPointCount.multipliedReportingOverflow(by: fixedCount)
+        let basis = fixedCount.multipliedReportingOverflow(by: fixedDegree + 1)
+        let controlWork = controls.partialValue.multipliedReportingOverflow(by: 96)
+        let basisWork = basis.partialValue.multipliedReportingOverflow(by: 64)
+        let total = controlWork.partialValue.addingReportingOverflow(basisWork.partialValue)
+        guard !controls.overflow, !basis.overflow, !controlWork.overflow, !basisWork.overflow, !total.overflow else {
+            throw failure(.resourceLimitExceeded, "Periodic interior original control probe dimensions overflowed.", tolerance)
+        }
+        try budget.work(total.partialValue)
     }
 
     private func exactCycle(degree: Int, knots: [Double], count: Int,
@@ -204,6 +283,15 @@ struct OverlapIsoparametricMembershipCertifier {
         let knots = variesU ? surface.vKnots : surface.uKnots
         let basis = try basisValues(parameter: fixed, degree: degree, knots: knots, count: count, tolerance: tolerance)
         let anchor = source.controlPoints[0]
+        var firstWeight = OutwardScalarInterval.exact(0)
+        for other in 0..<count {
+            let row = variesU ? other : 0, column = variesU ? 0 : other
+            firstWeight = firstWeight + basis[other] * .exact(surface.weights[row][column])
+        }
+        guard let homogeneousScale = firstWeight.divided(by: .exact(source.weights[0])),
+              homogeneousScale.isFinite, homogeneousScale.lower > 0 else {
+            throw failure(.singularGeometry, "Isoparametric original homogeneous scale is unresolved.", tolerance)
+        }
         var maximumNumeratorError = [0.0, 0.0, 0.0]
         var maximumWeightError = 0.0
         var minimumWeight = Double.infinity
@@ -222,10 +310,10 @@ struct OverlapIsoparametricMembershipCertifier {
                 }
             }
             minimumWeight = min(minimumWeight, weight.lower)
-            maximumWeightError = max(maximumWeightError, (weight - .exact(source.weights[index])).absoluteUpperBound)
+            maximumWeightError = max(maximumWeightError, (weight - .exact(source.weights[index]) * homogeneousScale).absoluteUpperBound)
             for axis in 0..<3 {
                 let authored = (.exact(coordinate[axis](source.controlPoints[index])) - .exact(coordinate[axis](anchor)))
-                    * OutwardScalarInterval.exact(source.weights[index])
+                    * OutwardScalarInterval.exact(source.weights[index]) * homogeneousScale
                 maximumNumeratorError[axis] = max(maximumNumeratorError[axis], (numerator[axis] - authored).absoluteUpperBound)
             }
         }

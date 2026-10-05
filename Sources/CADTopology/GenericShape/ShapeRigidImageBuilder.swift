@@ -77,7 +77,7 @@ struct ShapeRigidImageBuilder {
                                                                target: target, transform: transform, tolerance: tolerance),
                                             uShift: shift.x, vShift: shift.y)
             case .sphericalGreatCircle, .projectedAnalytic, .certifiedImplicit,
-                 .certifiedAnalyticImplicit, .certifiedAnalyticPair, .rigidImage, .offsetSurfaceImage:
+                 .certifiedAnalyticImplicit, .certifiedAnalyticPair, .rigidImage, .offsetSurfaceImage, .originalImage, .originalBSplineContinuation, .originalAffineWord:
                 break
             }
         }

@@ -1,6 +1,6 @@
 import CADCore
 
-public enum SurfaceParameterDomain: Codable, Equatable, Hashable, Sendable {
+public enum SurfaceParameterDomain: Equatable, Hashable, Sendable {
     case unbounded
     case bounded(lower: Double, upper: Double)
     case periodic(period: Double)
@@ -35,3 +35,7 @@ public enum SurfaceParameterDomain: Codable, Equatable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceParameterDomain: Codable {}
+#endif

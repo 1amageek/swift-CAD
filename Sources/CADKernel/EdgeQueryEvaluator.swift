@@ -38,7 +38,7 @@ public struct ResolvedEdge: Sendable {
     }
 }
 
-public struct EdgeEndpointQueryResult: Codable, Sendable, Hashable {
+public struct EdgeEndpointQueryResult: Sendable, Hashable {
     public var edge: EdgeReference
     public var start: Point3D
     public var end: Point3D
@@ -50,7 +50,7 @@ public struct EdgeEndpointQueryResult: Codable, Sendable, Hashable {
     }
 }
 
-public struct EdgeQueryFrame: Codable, Sendable, Hashable {
+public struct EdgeQueryFrame: Sendable, Hashable {
     public var reference: EdgeParameterReference
     public var point: Point3D
     public var tangent: Vector3D
@@ -84,7 +84,7 @@ public struct EdgeProjectionOptions: Sendable, Hashable {
     }
 }
 
-public struct EdgeProjectionResult: Codable, Sendable, Hashable {
+public struct EdgeProjectionResult: Sendable, Hashable {
     public var sourcePoint: Point3D
     public var parameterReference: EdgeParameterReference
     public var projectedPoint: Point3D
@@ -142,7 +142,7 @@ public struct EdgeDirectionalProjectionOptions: Sendable, Hashable {
     }
 }
 
-public struct EdgeDirectionalProjectionResult: Codable, Sendable, Hashable {
+public struct EdgeDirectionalProjectionResult: Sendable, Hashable {
     public var sourcePoint: Point3D
     public var direction: Vector3D
     public var signedDistanceAlongDirection: Double
@@ -179,6 +179,7 @@ public struct EdgeDirectionalProjectionResult: Codable, Sendable, Hashable {
 
 public struct EdgeQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
+    package var queryTolerance: ModelingTolerance { tolerance }
 
     public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
@@ -286,7 +287,12 @@ public struct EdgeQueryEvaluator: Sendable {
              .surfaceLift,
              .certifiedIntersection,
              .rigidImage,
-             .affineImage:
+             .affineImage,
+             .originalAffineWord,
+             .parameterImage,
+             .originalEndpointConnector,
+             .originalConstructionChart,
+             .originalAngularTransport:
             candidate = try closestPointOnCurve(
                 point,
                 curve: resolved.curve,
@@ -487,7 +493,11 @@ public struct EdgeQueryEvaluator: Sendable {
              .bSpline,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .originalEndpointConnector,
+             .originalConstructionChart,
+             .originalAngularTransport,
+             .parameterImage:
             throw missingNonlinearEdgeTrimError(edgeID: edge.id)
         case let .rigidImage(image):
             let inverse = image.transform.inverted()
@@ -497,6 +507,11 @@ public struct EdgeQueryEvaluator: Sendable {
                 startPoint: inverse.applying(to: startPoint),
                 endPoint: inverse.applying(to: endPoint)
             )
+        case .originalAffineWord:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy untrimmed word-image edges
+            // need retained exact original native endpoint projection. Public edge
+            // queries must not substitute a representative affine matrix or net.
+            throw missingNonlinearEdgeTrimError(edgeID: edge.id)
         case .affineImage:
             if case let .closed(lower, upper) = curve.parameterDomain {
                 return EdgeParameterRange(start: lower, end: upper)
@@ -589,3 +604,10 @@ private struct EdgeDirectionalProjectionCandidate: Sendable, Hashable {
     var iterations: Int
     var converged: Bool
 }
+
+#if !hasFeature(Embedded)
+extension EdgeEndpointQueryResult: Codable {}
+extension EdgeQueryFrame: Codable {}
+extension EdgeProjectionResult: Codable {}
+extension EdgeDirectionalProjectionResult: Codable {}
+#endif

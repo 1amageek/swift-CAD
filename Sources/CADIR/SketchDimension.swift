@@ -1,11 +1,12 @@
 import CADCore
 
-public enum SketchDimension: Codable, Sendable, Hashable {
+public enum SketchDimension: Sendable, Hashable {
     case distance(from: SketchReference, to: SketchReference, value: CADExpression)
     case angle(from: SketchReference, to: SketchReference, value: CADExpression)
     case radius(entity: SketchEntityID, value: CADExpression)
     case diameter(entity: SketchEntityID, value: CADExpression)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case from
@@ -13,14 +14,18 @@ public enum SketchDimension: Codable, Sendable, Hashable {
         case entityID
         case value
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case distance
         case angle
         case radius
         case diameter
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -53,7 +58,9 @@ public enum SketchDimension: Codable, Sendable, Hashable {
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -77,4 +84,9 @@ public enum SketchDimension: Codable, Sendable, Hashable {
             try container.encode(value, forKey: .value)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SketchDimension: Codable {}
+#endif

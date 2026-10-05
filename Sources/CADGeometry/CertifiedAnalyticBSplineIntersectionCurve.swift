@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CertifiedAnalyticBSplineIntersectionCurve: Codable, Hashable, Sendable {
+public struct CertifiedAnalyticBSplineIntersectionCurve: Hashable, Sendable {
   public let implicitCurve: CertifiedImplicitIntersectionCurve
   public let analyticSurface: Surface3D
   public let analyticIsFirst: Bool
@@ -113,13 +113,16 @@ public struct CertifiedAnalyticBSplineIntersectionCurve: Codable, Hashable, Send
     }
   }
 
+#if !hasFeature(Embedded)
   private enum CodingKeys: String, CodingKey {
     case implicitCurve
     case analyticSurface
     case analyticIsFirst
     case periodicSeamOffset
   }
+#endif
 
+#if !hasFeature(Embedded)
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     try container.validateOnlyExpectedKeys(
@@ -138,7 +141,9 @@ public struct CertifiedAnalyticBSplineIntersectionCurve: Codable, Hashable, Send
       tolerance: implicitCurve.certificationTolerance
     )
   }
+#endif
 
+#if !hasFeature(Embedded)
   public func encode(to encoder: Encoder) throws {
     try validate(tolerance: implicitCurve.certificationTolerance)
     var container = encoder.container(keyedBy: CodingKeys.self)
@@ -147,4 +152,9 @@ public struct CertifiedAnalyticBSplineIntersectionCurve: Codable, Hashable, Send
     try container.encode(analyticIsFirst, forKey: .analyticIsFirst)
     try container.encode(periodicSeamOffset, forKey: .periodicSeamOffset)
   }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedAnalyticBSplineIntersectionCurve: Codable {}
+#endif

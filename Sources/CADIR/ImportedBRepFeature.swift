@@ -5,7 +5,7 @@ import CADTopology
 ///
 /// The model remains source authority. CADKernel is responsible for creating
 /// feature-scoped topology identities and for deriving Mesh artifacts.
-public struct ImportedBRepFeature: Codable, Sendable, Hashable {
+public struct ImportedBRepFeature: Sendable, Hashable {
     public let model: BRepModel
     /// The unit system declared by the source exchange document.
     ///
@@ -81,3 +81,7 @@ public struct ImportedBRepFeature: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension ImportedBRepFeature: Codable {}
+#endif

@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 struct AnalyticConicSurfaceValidator {
     func validate(
@@ -138,7 +146,7 @@ private extension AnalyticConicSurfaceValidator {
                     faceID: faceID,
                     tolerance: tolerance
                 )
-            case .procedural(.ruled), .procedural(.rollingBall):
+            case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalAngularTransport), .procedural(.originalAffineWord), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
                 throw TopologyError.invalidFaceSurface(faceID)
             }
         }

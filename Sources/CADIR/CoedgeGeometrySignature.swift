@@ -2,7 +2,7 @@ import CADCore
 import CADGeometry
 import CADTopology
 
-public struct CoedgeGeometrySignature: Codable, Hashable, Sendable {
+public struct CoedgeGeometrySignature: Hashable, Sendable {
     public let edge: CurveSpanGeometrySignature
     public let orientation: Orientation
     public let surfaceParameterCurve: SurfaceParameterCurve
@@ -25,12 +25,15 @@ public struct CoedgeGeometrySignature: Codable, Hashable, Sendable {
         )
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case edge
         case orientation
         case surfaceParameterCurve
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(Set(CodingKeys.allCases), in: decoder)
@@ -41,11 +44,18 @@ public struct CoedgeGeometrySignature: Codable, Hashable, Sendable {
             forKey: .surfaceParameterCurve
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(edge, forKey: .edge)
         try container.encode(orientation, forKey: .orientation)
         try container.encode(surfaceParameterCurve, forKey: .surfaceParameterCurve)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CoedgeGeometrySignature: Codable {}
+#endif

@@ -1,7 +1,7 @@
 import CADCore
 
-public struct ProductAttributeTarget: Codable, Hashable, Sendable {
-    public enum Kind: String, Codable, Hashable, Sendable { case body, face, part, occurrence, directUsage }
+public struct ProductAttributeTarget: Hashable, Sendable {
+    public enum Kind: String, Hashable, Sendable { case body, face, part, occurrence, directUsage }
     public let kind: Kind
     public let geometry: StableSubshapeReference?
     public let definitionID: AssemblyDefinitionID?
@@ -31,7 +31,12 @@ public struct ProductAttributeTarget: Codable, Hashable, Sendable {
         }
         if let path, path.components.isEmpty { throw ProductAttributeError.invalidSource("Occurrence scope cannot be empty.") }
     }
+
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case kind, geometry, definitionID, path, usageID }
+    #endif
+
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.kind, .geometry, .definitionID, .path, .usageID], in: decoder)
@@ -45,10 +50,19 @@ public struct ProductAttributeTarget: Codable, Hashable, Sendable {
         usageID = try c.decodeIfPresent(AssemblyOccurrenceID.self, forKey: .usageID)
         try validate()
     }
+    #endif
+
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(kind, forKey: .kind); try c.encode(geometry, forKey: .geometry)
         try c.encode(definitionID, forKey: .definitionID); try c.encode(path, forKey: .path); try c.encode(usageID, forKey: .usageID)
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension ProductAttributeTarget: Codable {}
+extension ProductAttributeTarget.Kind: Codable {}
+#endif

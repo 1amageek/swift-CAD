@@ -31,6 +31,8 @@ extension Curve3D {
                 origin: image.transform.applying(to: source.origin),
                 direction: image.transform.applying(to: source.direction)
             )
+        case let .parameterImage(image):
+            return image.source.exactLinearLocus
         case let .affineImage(image):
             guard let source = image.source.exactLinearLocus else {
                 return nil
@@ -39,6 +41,10 @@ extension Curve3D {
                 origin: image.transform.applying(to: source.origin),
                 direction: image.transform.applying(to: source.direction)
             )
+        case .originalAngularTransport, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
+            // Original image and endpoint-corrected laws require a complete
+            // source-locus proof; their construction cache is not that proof.
+            return nil
         case .circle, .analytic, .implicit, .surfaceLift,
              .certifiedIntersection:
             return nil

@@ -1,6 +1,6 @@
 import CADCore
 
-public enum SketchConstraint: Codable, Sendable, Hashable {
+public enum SketchConstraint: Sendable, Hashable {
     case coincident(SketchReference, SketchReference)
     case horizontal(SketchEntityID)
     case vertical(SketchEntityID)
@@ -16,6 +16,7 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
     case smoothSplineEndpoints(SketchSplineEndpointTangencyConstraint)
     case fixed(SketchReference)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case first
@@ -26,7 +27,9 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
         case splineLineTangency
         case splineEndpointTangency
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case coincident
         case horizontal
@@ -43,7 +46,9 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
         case smoothSplineEndpoints
         case fixed
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -128,7 +133,9 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
             self = .fixed(try container.decode(SketchReference.self, forKey: .first))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -183,4 +190,9 @@ public enum SketchConstraint: Codable, Sendable, Hashable {
             try container.encode(reference, forKey: .first)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SketchConstraint: Codable {}
+#endif

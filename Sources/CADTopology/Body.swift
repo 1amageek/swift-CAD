@@ -1,7 +1,7 @@
 import CADCore
 
 /// A topological body with explicit solid-component or sheet-shell ownership.
-public struct Body: Codable, Equatable, Sendable {
+public struct Body: Equatable, Sendable {
     public var id: BodyID
     public var topology: BodyTopology
     public var name: String?
@@ -63,13 +63,16 @@ public struct Body: Codable, Equatable, Sendable {
         topology.sheetShellIDs
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id
         case topology
         case name
         case material
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.id, .topology, .name, .material], in: decoder)
@@ -78,7 +81,9 @@ public struct Body: Codable, Equatable, Sendable {
         name = try container.decodeIfPresent(String.self, forKey: .name)
         material = try container.decodeIfPresent(MaterialID.self, forKey: .material)
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -86,4 +91,9 @@ public struct Body: Codable, Equatable, Sendable {
         try container.encodeIfPresent(name, forKey: .name)
         try container.encodeIfPresent(material, forKey: .material)
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension Body: Codable {}
+#endif

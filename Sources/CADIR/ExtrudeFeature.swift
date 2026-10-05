@@ -1,6 +1,6 @@
 import CADCore
 
-public struct ExtrudeFeature: Codable, Sendable, Hashable {
+public struct ExtrudeFeature: Sendable, Hashable {
     public var section: SectionReference
     public var distance: CADExpression
     public var startDistance: CADExpression?
@@ -12,6 +12,8 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
     /// The walls' draft: a positive angle narrows the section along the extrusion direction, one
     /// taper running straight through the sketch plane; nil or zero leaves the walls straight.
     public var draftAngle: CADExpression?
+    /// The source-frame pull direction; nil uses the extrusion axis.
+    public var draftDirection: Vector3D?
     /// A thin extrusion's wall thickness: every loop of the section becomes a wall of it on the
     /// material's side, open at both ends — a curve's sheet thickened toward the curve's left about
     /// the extrusion direction (inside a counterclockwise closed curve); nil extrudes the whole
@@ -28,11 +30,12 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         keepTools: Bool = false,
         resultKind: ExtrudeResultKind = .solid,
         draftAngle: CADExpression? = nil,
+        draftDirection: Vector3D? = nil,
         thickness: CADExpression? = nil
     ) {
         self.init(section: .profile(profile), distance: distance, startDistance: startDistance, direction: direction,
                   operation: operation, targets: targets, keepTools: keepTools, resultKind: resultKind, draftAngle: draftAngle,
-                  thickness: thickness)
+                  draftDirection: draftDirection, thickness: thickness)
     }
 
     public init(
@@ -45,6 +48,7 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         keepTools: Bool = false,
         resultKind: ExtrudeResultKind,
         draftAngle: CADExpression? = nil,
+        draftDirection: Vector3D? = nil,
         thickness: CADExpression? = nil
     ) {
         self.section = section
@@ -56,9 +60,11 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         self.keepTools = keepTools
         self.resultKind = resultKind
         self.draftAngle = draftAngle
+        self.draftDirection = draftDirection
         self.thickness = thickness
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case section
         case distance
@@ -68,13 +74,16 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         case targets, keepTools
         case resultKind
         case draftAngle
+        case draftDirection
         case thickness
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.section, .distance, .startDistance, .direction, .operation, .targets, .keepTools, .resultKind, .draftAngle, .thickness],
+            [.section, .distance, .startDistance, .direction, .operation, .targets, .keepTools, .resultKind, .draftAngle, .draftDirection, .thickness],
             in: decoder
         )
         section = try container.decode(SectionReference.self, forKey: .section)
@@ -86,10 +95,13 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         keepTools = try container.decodeIfPresent(Bool.self, forKey: .keepTools) ?? false
         resultKind = try container.decode(ExtrudeResultKind.self, forKey: .resultKind)
         draftAngle = try container.decodeIfPresent(CADExpression.self, forKey: .draftAngle)
+        draftDirection = try container.decodeIfPresent(Vector3D.self, forKey: .draftDirection)
         thickness = try container.decodeIfPresent(CADExpression.self, forKey: .thickness)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -102,8 +114,10 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         if keepTools { try container.encode(keepTools, forKey: .keepTools) }
         try container.encode(resultKind, forKey: .resultKind)
         try container.encodeIfPresent(draftAngle, forKey: .draftAngle)
+        try container.encodeIfPresent(draftDirection, forKey: .draftDirection)
         try container.encodeIfPresent(thickness, forKey: .thickness)
     }
+#endif
 
     public func validate() throws {
         try section.validate()
@@ -124,6 +138,12 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
         try distance.validateLiteralQuantities()
         try startDistance?.validateLiteralQuantities()
         try draftAngle?.validateLiteralQuantities()
+        if let draftDirection {
+            try draftDirection.validate()
+            guard draftDirection.length.isFinite, draftDirection.length > 0 else {
+                throw FeatureEvaluationError.invalidGraph("Extrusion draft pull direction must be finite and nonzero.")
+            }
+        }
         try thickness?.validateLiteralQuantities()
         guard thickness == nil || resultKind == .solid else {
             throw FeatureEvaluationError.invalidGraph("A thin extrusion makes a solid wall.")
@@ -173,31 +193,36 @@ public struct ExtrudeFeature: Codable, Sendable, Hashable {
 /// A solid extrusion caps both ends of the swept wall; a sheet extrusion leaves them open and
 /// sews the wall alone. The profile is the same value in both cases, so the choice belongs to the
 /// feature rather than to the profile it consumes. Open curves produce sheets only.
-public enum ExtrudeResultKind: String, Codable, Sendable, Hashable {
+public enum ExtrudeResultKind: String, Sendable, Hashable {
     case solid
     case sheet
 }
 
-public enum SolidOperation: String, Codable, Sendable, Hashable {
+public enum SolidOperation: String, Sendable, Hashable {
     case newBody, union, difference, intersect, slice
 }
 
-public enum ExtrudeDirection: Codable, Sendable, Hashable {
+public enum ExtrudeDirection: Sendable, Hashable {
     case normal
     case vector(Vector3D)
     case symmetric
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case vector
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case normal
         case vector
         case symmetric
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -213,7 +238,9 @@ public enum ExtrudeDirection: Codable, Sendable, Hashable {
             self = .symmetric
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -226,4 +253,12 @@ public enum ExtrudeDirection: Codable, Sendable, Hashable {
             try container.encode(Kind.symmetric, forKey: .kind)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension ExtrudeFeature: Codable {}
+extension ExtrudeResultKind: Codable {}
+extension SolidOperation: Codable {}
+extension ExtrudeDirection: Codable {}
+#endif

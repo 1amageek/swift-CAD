@@ -8,17 +8,26 @@ public extension CADDocument {
     ) throws -> CADDocument {
         try vector.validate()
         try tolerance.validate()
-        guard vector.length > tolerance.distance else {
+        guard vector != .zero else {
             return self
         }
 
         var document = self
+        if let independent = document.independentShapes {
+            document.independentShapes = try independent.translated(by: vector,
+                tolerance: tolerance, bodySourceGraph: designGraph)
+        }
         if var assembly = document.assembly {
             for index in assembly.roots.indices {
-                let frame = assembly.roots[index].placement
-                assembly.roots[index].placement = try RigidTransform3D(basisX: frame.basisX,
-                    basisY: frame.basisY, basisZ: frame.basisZ,
-                    translation: frame.translation + vector, tolerance: tolerance)
+                let original = assembly.roots[index].placement
+                let factors: [AssemblyPlacementFactor]
+                switch original {
+                case .word(let word): factors = word.factors
+                case .rigid, .affine: factors = [.forward(original)]
+                }
+                assembly.roots[index].placement = .word(try AssemblyPlacementWord(
+                    factors: [.forward(.translated(by: vector))] + factors
+                ))
             }
             document.assembly = assembly
             try document.validate(tolerance: tolerance)
@@ -61,17 +70,86 @@ private extension FeatureOperation {
             return .primitive(PrimitiveFeature(
                 definition: primitive.definition.translatingSources(by: vector)
             ))
-        // FIXME(INCOMPLETE_IMPLEMENTATION):
-        // Imported exact-source translation is unsupported on the workspace
-        // rebase path. Admit it only after complete topology/geometry translation
-        // and mixed-document atomicity are verified; never report a no-op success.
-        case .importedBRep:
-            throw KernelError.unsupportedEvaluation(
-                tolerance: tolerance,
-                message: "Document source translation cannot move an imported exact B-rep without a complete topology translation utility."
-            )
-        case .extrude,
-             .sweep,
+        case let .importedBRep(source):
+            return .importedBRep(try ImportedBRepSourceTranslator().translated(
+                source, by: vector, tolerance: tolerance
+            ))
+        case var .boolean(operation):
+            for index in operation.targets.indices {
+                operation.targets[index].placement = try operation.targets[index].placement.map {
+                    try $0.conjugated(byTranslation: vector, tolerance: tolerance)
+                }
+            }
+            for index in operation.tools.indices {
+                operation.tools[index].placement = try operation.tools[index].placement.map {
+                    try $0.conjugated(byTranslation: vector, tolerance: tolerance)
+                }
+            }
+            return .boolean(operation)
+        case var .extrude(extrude):
+            for index in extrude.targets.indices {
+                extrude.targets[index].placement = try extrude.targets[index].placement.map {
+                    try $0.conjugated(byTranslation: vector, tolerance: tolerance)
+                }
+            }
+            return .extrude(extrude)
+        case let .joinBodies(join):
+            return .joinBodies(JoinBodiesFeature(targets: try join.targets.map { target in
+                JoinBodiesTargetReference(featureID: target.featureID,
+                    placement: try target.placement.map { try $0.conjugated(byTranslation: vector, tolerance: tolerance) })
+            }, mode: join.mode))
+        case var .surfaceAlign(align):
+            align.referencePlacement = try align.referencePlacement.map {
+                try $0.conjugated(byTranslation: vector, tolerance: tolerance)
+            }
+            return .surfaceAlign(align)
+        case var .wrap(wrap):
+            wrap.referencePlacement = try wrap.referencePlacement.map {
+                try $0.conjugated(byTranslation: vector, tolerance: tolerance)
+            }
+            wrap.targetPlacement = try wrap.targetPlacement.map {
+                try $0.conjugated(byTranslation: vector, tolerance: tolerance)
+            }
+            return .wrap(wrap)
+        case var .faceMatch(match):
+            match.sourcePlacement = try match.sourcePlacement.map {
+                try $0.conjugated(byTranslation: vector, tolerance: tolerance)
+            }
+            return .faceMatch(match)
+        case var .imprintBody(imprint):
+            for index in imprint.tools.indices {
+                imprint.tools[index].placement = try imprint.tools[index].placement.map {
+                    try $0.conjugated(byTranslation: vector, tolerance: tolerance)
+                }
+            }
+            return .imprintBody(imprint)
+        case var .imprintCurves(imprint):
+            for index in imprint.curves.indices {
+                imprint.curves[index].placement = try imprint.curves[index].placement.map {
+                    try $0.conjugated(byTranslation: vector, tolerance: tolerance)
+                }
+            }
+            return .imprintCurves(imprint)
+        case let .topologyTransform(transform):
+            let motion: TopologyMotion
+            switch transform.motion {
+            case .translation: motion = transform.motion
+            case let .rotation(rotation):
+                motion = .rotation(DirectRotation(origin: rotation.origin + vector,
+                    axis: rotation.axis, angle: rotation.angle))
+            case let .scale(scale):
+                motion = .scale(DirectScale(origin: scale.origin + vector,
+                    xAxis: scale.xAxis, yAxis: scale.yAxis, factors: scale.factors))
+            }
+            return .topologyTransform(TopologyTransformFeature(target: transform.target,
+                subshapes: transform.subshapes, motion: motion))
+        case var .faceRebuild(rebuild):
+            if case var .given(surface) = rebuild.method {
+                surface.controlPoints = surface.controlPoints.map { $0.map { $0 + vector } }
+                rebuild.method = .given(surface)
+            }
+            return .faceRebuild(rebuild)
+        case .sweep,
              .pipe,
              .edgeCurve,
              .squareSurface,
@@ -79,7 +157,6 @@ private extension FeatureOperation {
              .curvePatch,
              .sheetBridge,
              .loft,
-             .boolean,
              .faceLoopOffset,
              .edgeOffset,
              .faceDelete,
@@ -88,26 +165,18 @@ private extension FeatureOperation {
              .faceMove,
              .edgeMove,
              .vertexMove,
-             .topologyTransform,
              .linearPattern,
              .gridPattern,
-             .joinBodies,
              .unjoinBody,
              .unjoinFaces,
              .reverseSheet,
              .isoparam,
-             .imprintBody,
-             .faceMatch,
              .removeFillets,
              .removeRedundantTopology,
              .sheetExtend,
-             .faceRebuild,
              .faceUnwrap,
-             .surfaceAlign,
              .untrimFace,
-             .imprintCurves,
              .extract,
-             .wrap,
              .chamfer,
              .fillet,
              .g2Blend,
@@ -185,8 +254,14 @@ private extension FeatureOperation {
             return .faceKnife(faceKnife)
         case let .bridgeCurve(bridgeCurve):
             return .bridgeCurve(bridgeCurve)
-        case let .bridgeSurface(bridgeSurface):
-            return .bridgeSurface(bridgeSurface)
+        case let .bridgeSurface(bridge):
+            return .bridgeSurface(BridgeSurfaceFeature(startBoundary: bridge.startBoundary,
+                endBoundary: bridge.endBoundary, endOrientation: bridge.endOrientation,
+                startTransform: try bridge.startTransform.map { try $0.conjugated(byTranslation: vector) },
+                endTransform: try bridge.endTransform.map { try $0.conjugated(byTranslation: vector) },
+                startContinuity: bridge.startContinuity, endContinuity: bridge.endContinuity,
+                startTension: bridge.startTension, endTension: bridge.endTension,
+                width: bridge.width, startWall: bridge.startWall, endWall: bridge.endWall))
         case .curveEdit(var curveEdit):
             curveEdit.edits = curveEdit.edits.map { $0.translatingSources(by: vector) }
             return .curveEdit(curveEdit)
@@ -242,139 +317,21 @@ private extension PrimitivePlacement {
 }
 
 private extension Sketch {
-    func translatingSources(
-        by vector: Vector3D,
-        tolerance: ModelingTolerance
-    ) throws -> Sketch {
+    func translatingSources(by vector: Vector3D, tolerance: ModelingTolerance) throws -> Sketch {
         var sketch = self
         switch sketch.plane {
         case .xy:
-            try requireInPlaneTranslation(
-                normalDistance: vector.z,
-                planeName: "xy",
-                tolerance: tolerance
-            )
-            sketch.entities = sketch.entities.mapValues {
-                $0.translatingLocalCoordinates(deltaX: vector.x, deltaY: vector.y, tolerance: tolerance)
-            }
+            sketch.plane = .plane(Plane3D(origin: .origin + vector, normal: .unitZ, uDirection: .unitX))
         case .yz:
-            try requireInPlaneTranslation(
-                normalDistance: vector.x,
-                planeName: "yz",
-                tolerance: tolerance
-            )
-            sketch.entities = sketch.entities.mapValues {
-                $0.translatingLocalCoordinates(deltaX: vector.y, deltaY: vector.z, tolerance: tolerance)
-            }
+            sketch.plane = .plane(Plane3D(origin: .origin + vector, normal: .unitX, uDirection: .unitY))
         case .zx:
-            try requireInPlaneTranslation(
-                normalDistance: vector.y,
-                planeName: "zx",
-                tolerance: tolerance
-            )
-            sketch.entities = sketch.entities.mapValues {
-                $0.translatingLocalCoordinates(deltaX: vector.z, deltaY: vector.x, tolerance: tolerance)
-            }
+            sketch.plane = .plane(Plane3D(origin: .origin + vector, normal: .unitY, uDirection: .unitZ))
         case .plane(var plane):
             plane.origin = plane.origin + vector
             sketch.plane = .plane(plane)
         }
+        if case let .plane(plane) = sketch.plane { try plane.validate(tolerance: tolerance) }
         return sketch
-    }
-
-    private func requireInPlaneTranslation(
-        normalDistance: Double,
-        planeName: String,
-        tolerance: ModelingTolerance
-    ) throws {
-        guard abs(normalDistance) <= tolerance.distance else {
-            throw KernelError.unsupportedEvaluation(tolerance: tolerance, message:
-                "Document source translation cannot move a \(planeName) sketch along its normal without changing the sketch plane representation."
-            )
-        }
-    }
-}
-
-private extension SketchEntity {
-    func translatingLocalCoordinates(
-        deltaX: Double,
-        deltaY: Double,
-        tolerance: ModelingTolerance
-    ) -> SketchEntity {
-        switch self {
-        case .point(let point):
-            return .point(point.translatingLocalCoordinates(
-                deltaX: deltaX,
-                deltaY: deltaY,
-                tolerance: tolerance
-            ))
-        case .line(var line):
-            line.start = line.start.translatingLocalCoordinates(
-                deltaX: deltaX,
-                deltaY: deltaY,
-                tolerance: tolerance
-            )
-            line.end = line.end.translatingLocalCoordinates(
-                deltaX: deltaX,
-                deltaY: deltaY,
-                tolerance: tolerance
-            )
-            return .line(line)
-        case .circle(var circle):
-            circle.center = circle.center.translatingLocalCoordinates(
-                deltaX: deltaX,
-                deltaY: deltaY,
-                tolerance: tolerance
-            )
-            return .circle(circle)
-        case .arc(var arc):
-            arc.center = arc.center.translatingLocalCoordinates(
-                deltaX: deltaX,
-                deltaY: deltaY,
-                tolerance: tolerance
-            )
-            return .arc(arc)
-        case .spline(var spline):
-            spline.controlPoints = spline.controlPoints.map {
-                $0.translatingLocalCoordinates(
-                    deltaX: deltaX,
-                    deltaY: deltaY,
-                    tolerance: tolerance
-                )
-            }
-            return .spline(spline)
-        }
-    }
-}
-
-private extension SketchPoint {
-    func translatingLocalCoordinates(
-        deltaX: Double,
-        deltaY: Double,
-        tolerance: ModelingTolerance
-    ) -> SketchPoint {
-        SketchPoint(
-            x: x.translatingLength(by: deltaX, tolerance: tolerance),
-            y: y.translatingLength(by: deltaY, tolerance: tolerance)
-        )
-    }
-}
-
-private extension CADExpression {
-    func translatingLength(
-        by delta: Double,
-        tolerance: ModelingTolerance
-    ) -> CADExpression {
-        guard abs(delta) > tolerance.distance else {
-            return self
-        }
-        let deltaExpression = CADExpression.constant(.length(delta, unit: .meter))
-        switch self {
-        case .constant(let quantity) where quantity.kind == .length:
-            return .constant(.length(quantity.value + delta, unit: .meter))
-        default:
-            return .add(self, deltaExpression)
-        }
     }
 }
 
@@ -388,5 +345,19 @@ private extension CurveEdit {
              .setWeight:
             return self
         }
+    }
+}
+
+private extension RigidTransform3D {
+    func conjugated(byTranslation vector: Vector3D, tolerance: ModelingTolerance) throws -> RigidTransform3D {
+        try RigidTransform3D(basisX: basisX, basisY: basisY, basisZ: basisZ,
+            translation: translation + vector - applying(to: vector), tolerance: tolerance)
+    }
+}
+
+private extension AffineTransform3D {
+    func conjugated(byTranslation vector: Vector3D) throws -> AffineTransform3D {
+        try AffineTransform3D(basisX: basisX, basisY: basisY, basisZ: basisZ,
+            translation: translation + vector - applying(to: vector))
     }
 }

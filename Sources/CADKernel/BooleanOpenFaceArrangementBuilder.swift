@@ -868,7 +868,7 @@ struct BooleanOpenFaceArrangementBuilder {
             return true
         case let .polyline(points) where points.count == 2:
             return true
-        case .polyline, .harmonic, .bSpline, .certifiedImplicit,
+        case .polyline, .harmonic, .bSpline, .originalBSplineContinuation, .originalImage, .certifiedImplicit,
              .certifiedAnalyticImplicit, .sphericalGreatCircle,
              .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:
             return false
@@ -1892,7 +1892,7 @@ struct BooleanOpenFaceArrangementBuilder {
                 uShift: existingUShift + uShift,
                 vShift: existingVShift + vShift
             )
-        case .sphericalGreatCircle, .certifiedImplicit,
+        case .originalBSplineContinuation, .originalImage, .sphericalGreatCircle, .certifiedImplicit,
              .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage, .offsetSurfaceImage:
             return .periodicTranslation(
@@ -2628,6 +2628,14 @@ struct BooleanOpenFaceArrangementBuilder {
             return "procedural-ruled"
         case .procedural(.rollingBall):
             return "procedural-rolling-ball"
+        case .procedural(.originalImage):
+            return "procedural-original-image"
+        case .procedural(.originalRevolution):
+            return "procedural-original-revolution"
+        case .procedural(.originalCoons):
+            return "procedural-original-coons"
+        case .procedural(.originalAffineWord):
+            return "procedural-original-affine-word"
         }
     }
 

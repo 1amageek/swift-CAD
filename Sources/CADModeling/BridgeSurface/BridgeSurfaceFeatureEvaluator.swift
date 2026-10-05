@@ -3,22 +3,29 @@ import CADGeometry
 import CADIR
 import CADTopology
 
-// FIXME(INCOMPLETE_IMPLEMENTATION): This implements G0 boundary bridging only.
-// CADKernel and the editor Boundary Bridge command use this evaluator; full
-// Bridge Surface requires width, tension, G2/chamfer and wall-trim construction.
+// FIXME(INCOMPLETE_IMPLEMENTATION): Constrained Bridge publishes only after
+// whole-boundary continuity and sheet admission. The production CADKernel Bridge
+// path still requires finite wall clipping and general wall-chart transfer before
+// the full Bridge Surface contract may be reported complete.
 public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let surfaceEvaluator: BSplineSurfaceFeatureEvaluator
     private let surfaceBuilder: any RuledBSplineSurfaceBuilding
+    private let wallTrimmer: (any BridgeSurfaceWallTrimming)?
+    private let sourceAdmission: GeometryConversionAdmission?
     private let subshapeResolver = StableSubshapeResolver()
     private let boundaryLoopResolver = OpenBoundaryLoopResolver()
     private let boundaryCurveResolver = ExactBoundaryCurveResolver()
 
     public init(
         surfaceEvaluator: BSplineSurfaceFeatureEvaluator = BSplineSurfaceFeatureEvaluator(),
-        surfaceBuilder: any RuledBSplineSurfaceBuilding = ExactRuledBSplineSurfaceBuilder()
+        surfaceBuilder: any RuledBSplineSurfaceBuilding = ExactRuledBSplineSurfaceBuilder(),
+        wallTrimmer: (any BridgeSurfaceWallTrimming)? = nil,
+        sourceAdmission: GeometryConversionAdmission? = nil
     ) {
         self.surfaceEvaluator = surfaceEvaluator
         self.surfaceBuilder = surfaceBuilder
+        self.wallTrimmer = wallTrimmer
+        self.sourceAdmission = sourceAdmission
     }
 
     public func evaluate(
@@ -130,12 +137,28 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         if bridge.endOrientation == .reversed {
             endBoundary = try endBoundary.reversed(tolerance: context.tolerance)
         }
-        let surface = try surfaceBuilder.build(
-            startBoundary: startBoundary,
-            endBoundary: endBoundary,
-            tolerance: context.tolerance
-        )
-        return try surfaceEvaluator.evaluateValidated(
+        let constrained = bridge.startContinuity != .positional || bridge.endContinuity != .positional
+            || bridge.startTension != 1 || bridge.endTension != 1 || bridge.width != nil
+        let surface: BSplineSurface3D
+        if constrained {
+            let firstWall = try boundaryWall(edgeID: startEdgeID, explicit: bridge.startWall,
+                body: body, transform: bridge.startTransform, followsStoredDirection: true,
+                featureID: feature.id, context: context)
+            let lastWall = try boundaryWall(edgeID: endEdgeID, explicit: bridge.endWall,
+                body: endBody, transform: bridge.endTransform,
+                followsStoredDirection: bridge.endOrientation != .reversed,
+                featureID: feature.id, context: context)
+            surface = try ConstrainedBridgeSurfaceBuilder().build(start: startBoundary, end: endBoundary,
+                startWall: firstWall.surface, endWall: lastWall.surface,
+                startContinuity: bridge.startContinuity, endContinuity: bridge.endContinuity,
+                startTension: bridge.startTension, endTension: bridge.endTension, width: bridge.width,
+                startWallBoundary: firstWall.boundary, endWallBoundary: lastWall.boundary,
+                tolerance: context.tolerance, admission: sourceAdmission)
+        } else {
+            surface = try surfaceBuilder.build(startBoundary: startBoundary, endBoundary: endBoundary,
+                tolerance: context.tolerance)
+        }
+        let candidate = try surfaceEvaluator.evaluateValidated(
             feature: FeatureNode(
                 id: feature.id,
                 name: feature.name,
@@ -148,6 +171,77 @@ public struct BridgeSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             ),
             context: context
         )
+        if constrained || bridge.startWall != nil || bridge.endWall != nil {
+            guard let wallTrimmer else {
+                throw KernelError(phase: .evaluation, code: .dependencyUnavailable, featureID: feature.id,
+                    tolerance: context.tolerance, message: "Finite bridge wall clipping requires the kernel trim port.")
+            }
+            return try ValidatedFeatureEvaluation(validating:
+                wallTrimmer.trim(feature: feature, candidate: candidate.result, context: context),
+                tolerance: context.tolerance)
+        }
+        return candidate
+    }
+
+    private func boundaryWall(edgeID: EdgeID, explicit: StableSubshapeReference?, body: Body,
+                              transform: AffineTransform3D?, followsStoredDirection: Bool,
+                              featureID: FeatureID, context: EvaluationContext) throws
+        -> (surface: Surface3D, boundary: SurfaceParameterCurve) {
+        let faceID: FaceID
+        if let explicit {
+            let reference = try subshapeResolver.topologyReference(for: explicit, model: context.brep,
+                subshapes: context.subshapes, lineage: context.lineage, tolerance: context.tolerance)
+            guard case let .face(value) = reference else {
+                throw KernelError(phase: .evaluation, code: .missingReference, featureID: featureID,
+                    tolerance: context.tolerance, message: "A bridge wall reference must resolve to a live source face.")
+            }
+            faceID = value
+        } else {
+            let incident = body.shellIDs.flatMap { context.brep.shells[$0]?.faceIDs ?? [] }.filter { faceID in
+                context.brep.faces[faceID]?.loops.contains { loopID in
+                    context.brep.loops[loopID]?.coedges.contains { $0.edgeID == edgeID } == true
+                } == true
+            }
+            guard incident.count == 1, let value = incident.first else {
+                throw KernelError(phase: .evaluation, code: .ambiguousSelection, featureID: featureID,
+                    tolerance: context.tolerance, message: "A constrained bridge requires one incident wall per source boundary.")
+            }
+            faceID = value
+        }
+        guard let face = context.brep.faces[faceID], let surface = context.brep.geometry.surfaces[face.surfaceID] else {
+            throw TopologyError.missingReference("A bridge source wall is missing.")
+        }
+        let placed: Surface3D
+        if let transform {
+            placed = .procedural(.originalImage(try OriginalImageSurface3D(source: surface,
+                transform: transform, tolerance: context.tolerance)))
+        } else { placed = surface }
+        let uses = face.loops.flatMap { context.brep.loops[$0]?.edges ?? [] }
+            .filter { $0.edgeID == edgeID }
+        let boundary: SurfaceParameterCurve
+        if uses.count == 1, let coedge = uses.first, let original = coedge.surfaceParameterCurve {
+            boundary = (coedge.orientation == .forward) == followsStoredDirection
+                ? original : try original.reversed(tolerance: context.tolerance)
+        } else if uses.isEmpty {
+            guard let edge = context.brep.edges[edgeID], let trim = edge.trim,
+                  let curve = context.brep.geometry.curves[edge.curveID] else {
+                throw TopologyError.missingReference("An explicit bridge wall requires the retained original boundary trim.")
+            }
+            let original: Curve3D
+            if let transform {
+                original = .affineImage(try AffineImageCurve3D(source: curve,
+                    transform: transform, tolerance: context.tolerance))
+            } else { original = curve }
+            boundary = try ExactFacePcurveBuilder().surfaceParameterCurve(for: original,
+                startParameter: followsStoredDirection ? trim.startParameter : trim.endParameter,
+                endParameter: followsStoredDirection ? trim.endParameter : trim.startParameter,
+                on: placed, tolerance: context.tolerance)
+        } else {
+            throw KernelError(phase: .evaluation, code: .ambiguousSelection, featureID: featureID,
+                tolerance: context.tolerance, message: "A bridge wall has no unique original boundary coedge use.")
+        }
+        try boundary.validate(on: placed, tolerance: context.tolerance)
+        return (placed, boundary)
     }
 
     private func resolveBoundaryEdge(

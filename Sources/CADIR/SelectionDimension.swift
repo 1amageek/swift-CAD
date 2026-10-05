@@ -1,7 +1,15 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADIR numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
-public struct SelectionDimension: Codable, Sendable, Hashable {
+public struct SelectionDimension: Sendable, Hashable {
     public var id: SelectionDimensionID
     public var name: String?
     public var kind: SelectionDimensionKind
@@ -9,6 +17,7 @@ public struct SelectionDimension: Codable, Sendable, Hashable {
     public var second: SelectionReference
     public var target: CADExpression
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id
         case name
@@ -17,6 +26,7 @@ public struct SelectionDimension: Codable, Sendable, Hashable {
         case second
         case target
     }
+#endif
 
     public init(
         id: SelectionDimensionID = SelectionDimensionID(),
@@ -62,3 +72,7 @@ public struct SelectionDimension: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SelectionDimension: Codable {}
+#endif

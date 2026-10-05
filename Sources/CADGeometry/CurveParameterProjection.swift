@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveParameterProjection: Codable, Hashable, Sendable {
+public struct CurveParameterProjection: Hashable, Sendable {
     public let parameter: Double
     public let point: Point3D
     public let residual: Double
@@ -31,3 +31,7 @@ public struct CurveParameterProjection: Codable, Hashable, Sendable {
         self.iterations = iterations
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveParameterProjection: Codable {}
+#endif

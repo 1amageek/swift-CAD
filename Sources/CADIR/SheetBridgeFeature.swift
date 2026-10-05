@@ -8,8 +8,8 @@ import CADCore
 /// sheets, sheets bending out of one plane, parallel planes), or when boundary edges are named, the
 /// bridge spans between each sheet's named boundary edge — or the pair of boundary edges nearest
 /// each other — continuous with both sheets there (decided 2026-10-02).
-public struct SheetBridgeFeature: Codable, Hashable, Sendable {
-    public enum Shape: String, Codable, Hashable, Sendable {
+public struct SheetBridgeFeature: Hashable, Sendable {
+    public enum Shape: String, Hashable, Sendable {
         case curvature
         case chamfer
     }
@@ -17,7 +17,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
     /// Which sheets the bridge trims back to its contacts. Bridge Surface's Short and Long name the
     /// sheet reaching less or more far from where the sheets meet; authors resolve them into the
     /// first or second sheet (`SheetBridgeWallReach`), so the feature keeps which wall it consumes.
-    public enum TrimWalls: String, Codable, Hashable, Sendable {
+    public enum TrimWalls: String, Hashable, Sendable {
         case none
         case both
         case first
@@ -27,7 +27,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
     /// How far the bridge between two planes meeting runs along where they meet: the stretch both
     /// sheets share (Both), the shorter or the longer sheet's own stretch (Short, Long), or both
     /// sheets' stretches together run on by the width at each end, the bridge left untrimmed (None).
-    public enum Extent: String, Codable, Hashable, Sendable {
+    public enum Extent: String, Hashable, Sendable {
         case both
         case short
         case long
@@ -69,9 +69,11 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         self.reversesSecondSense = reversesSecondSense
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case first, second, width, tension, shape, trimWalls, extent, reversesFirstSense, reversesSecondSense, firstEdge, secondEdge, angularAllowance, curvatureAllowance
     }
+#endif
 
     public static func == (lhs: SheetBridgeFeature, rhs: SheetBridgeFeature) -> Bool {
         lhs.first == rhs.first && lhs.second == rhs.second && lhs.width == rhs.width && lhs.tension == rhs.tension
@@ -97,6 +99,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         hasher.combine(curvatureAllowance)
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.first, .second, .width, .tension, .shape, .trimWalls, .extent, .reversesFirstSense, .reversesSecondSense, .firstEdge, .secondEdge, .angularAllowance, .curvatureAllowance], in: decoder)
@@ -120,7 +123,9 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         }
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -138,6 +143,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         try container.encodeIfPresent(angularAllowance, forKey: .angularAllowance)
         try container.encodeIfPresent(curvatureAllowance, forKey: .curvatureAllowance)
     }
+#endif
 
     public func validate() throws {
         guard first != second else {
@@ -164,3 +170,10 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
 
     public var expressions: [CADExpression] { [width] }
 }
+
+#if !hasFeature(Embedded)
+extension SheetBridgeFeature: Codable {}
+extension SheetBridgeFeature.Shape: Codable {}
+extension SheetBridgeFeature.TrimWalls: Codable {}
+extension SheetBridgeFeature.Extent: Codable {}
+#endif

@@ -8,6 +8,26 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     let second: PreparedSurfaceDifferentialEncloser
     let parameterDerivativeBounds: [[ScalarInterval]]
     let exactIsoparametricGraph: ExactIsoparametricPlanarIntersectionGraph?
+    let maximumSpanCount: Int?
+    let maximumSubdivisionDepth: Int?
+    let remainingSourceDepth: Int?
+    let admission: SurfaceSurfaceQueryAdmission?
+
+    init(intersection: CertifiedImplicitIntersectionCurve, tolerance: ModelingTolerance,
+      first: PreparedSurfaceDifferentialEncloser, second: PreparedSurfaceDifferentialEncloser,
+      parameterDerivativeBounds: [[ScalarInterval]],
+      exactIsoparametricGraph: ExactIsoparametricPlanarIntersectionGraph?,
+      maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil,
+      remainingSourceDepth: Int? = nil, admission: SurfaceSurfaceQueryAdmission? = nil) {
+      self.intersection = intersection; self.tolerance = tolerance
+      self.first = first; self.second = second
+      self.parameterDerivativeBounds = parameterDerivativeBounds
+      self.exactIsoparametricGraph = exactIsoparametricGraph
+      self.maximumSpanCount = maximumSpanCount
+      self.maximumSubdivisionDepth = maximumSubdivisionDepth
+      self.remainingSourceDepth = remainingSourceDepth
+      self.admission = admission
+    }
   }
 
   fileprivate enum ParameterEnclosurePhase: Sendable {
@@ -212,33 +232,107 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     )
   }
 
+  /// Caller-owned closed localization preparation; no derivative-bound fitting is used.
+  package init(localizing intersection: CertifiedImplicitIntersectionCurve,
+       tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws {
+    try Task.checkCancellation(); try consumeWork()
+    try intersection.validateCertificationContract(tolerance: tolerance)
+    let first = try PreparedSurfaceDifferentialEncloser(surface: intersection.firstSurface,
+      tolerance: tolerance, consumeWork: consumeWork)
+    let second = try PreparedSurfaceDifferentialEncloser(surface: intersection.secondSurface,
+      tolerance: tolerance, consumeWork: consumeWork)
+    preparedSurfaces = PreparedSurfaces(intersection: intersection, tolerance: tolerance,
+      first: first, second: second, parameterDerivativeBounds: [], exactIsoparametricGraph: nil)
+  }
+
+  /// Original preparation under the composing caller's explicit limits and bytes.
+  package init(localizing intersection: CertifiedImplicitIntersectionCurve,
+    tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
+    remainingSourceDepth: Int, consumeWork: () throws -> Void,
+    consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws {
+    try Task.checkCancellation(); try consumeWork()
+    guard maximumSpanCount > 0, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0 else {
+      throw GeometryConversionError.invalidInput("Original implicit localization needs caller span and remaining source admission.")
+    }
+    try intersection.validateCertificationContract(tolerance: tolerance)
+    let first = try PreparedSurfaceDifferentialEncloser(surface: intersection.firstSurface,
+      tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
+      consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+    let second = try PreparedSurfaceDifferentialEncloser(surface: intersection.secondSurface,
+      tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
+      consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+    try OriginalCoefficientAllocation.reserve(count: 1, of: PreparedSurfaces.self, consumeStorage: consumeStorage)
+    preparedSurfaces = PreparedSurfaces(intersection: intersection, tolerance: tolerance,
+      first: first, second: second, parameterDerivativeBounds: [], exactIsoparametricGraph: nil,
+      maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
+      remainingSourceDepth: remainingSourceDepth - 1)
+  }
+
+  /// Retains both original support preparations and their composing admission.
+  package init(localizing intersection: CertifiedImplicitIntersectionCurve,
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission) throws {
+    try admission.step()
+    guard admission.remainingSourceDepth > 0 else {
+      throw GeometryConversionError.resourceLimitExceeded("Original implicit preparation exhausted source depth.")
+    }
+    try intersection.validateCertificationContract(tolerance: tolerance)
+    let child = try admission.descendingSource()
+    let first = try child.prepare(intersection.firstSurface, tolerance: tolerance)
+    let second = try child.prepare(intersection.secondSurface, tolerance: tolerance)
+    try admission.reserve(count: 1, stride: MemoryLayout<PreparedSurfaces>.stride)
+    preparedSurfaces = PreparedSurfaces(intersection: intersection, tolerance: tolerance,
+      first: first, second: second, parameterDerivativeBounds: [], exactIsoparametricGraph: nil,
+      maximumSpanCount: admission.maximumSpanCount,
+      maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+      remainingSourceDepth: child.remainingSourceDepth, admission: child)
+  }
+
+  /// Restricts the graph source carried by this immutable preparation.
+  package func restrictedBounds(cellIndex: Int,
+    fromNormalizedFraction lowerFraction: Double, toNormalizedFraction upperFraction: Double,
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission)
+    throws -> CertifiedImplicitIntersectionGraphSubcell {
+    try admission.step()
+    guard let preparedSurfaces, preparedSurfaces.tolerance == tolerance,
+      preparedSurfaces.intersection.cells.indices.contains(cellIndex) else {
+      throw GeometryConversionError.invalidInput("Original implicit restriction requires its prepared graph and tolerance.")
+    }
+    let cell = preparedSurfaces.intersection.cells[cellIndex]
+    let derivatives = try cell.parameterDerivativeBounds(firstSurface: preparedSurfaces.first,
+      secondSurface: preparedSurfaces.second, tolerance: tolerance, admission: admission)
+    return try cell.restrictedBounds(fromNormalizedFraction: lowerFraction,
+      toNormalizedFraction: upperFraction, firstSurface: preparedSurfaces.first,
+      secondSurface: preparedSurfaces.second, parentDerivativeBounds: derivatives,
+      tolerance: tolerance, admission: admission)
+  }
+
   /// One bounded prepare operation. The caller charges this and every advance
   /// to the same work counter; the localizer owns no recursive work allowance.
   package func prepareParameterEnclosure(
     of curve: CertifiedImplicitIntersectionCurve, cellIndex: Int,
-    overClosedInterval interval: ScalarInterval, tolerance: ModelingTolerance
+    overClosedInterval interval: ScalarInterval, tolerance: ModelingTolerance,
+    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> ParameterEnclosureState {
-    try checkLocalizationCancellation(tolerance)
+    try checkLocalizationCancellation(tolerance); try consumeWork()
+    try chargeOwnerComparison(curve, consumeWork: consumeWork)
     try curve.validateCertificationContract(tolerance:tolerance)
     guard let preparedSurfaces, preparedSurfaces.intersection == curve,
           preparedSurfaces.tolerance == tolerance,
           curve.cells.indices.contains(cellIndex), interval.lower >= 0, interval.upper <= 1 else {
       throw invalidInput(tolerance:tolerance,message:"Implicit localization requires its exact prepared owner and original closed interval.")
     }
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Mixed-coordinate/direction joins, closed charts, periodic,
-    // piecewise and procedural supports lack this caller-budget localization
-    // contract on implicit/face-area queries. Complete only after their original
-    // root and derivative-domain authority is certified without hidden budgets.
-    guard !curve.isClosed, !curve.cells.isEmpty,
-          curve.cells.allSatisfy({ $0.freeParameter == curve.cells[0].freeParameter
-            && $0.direction == curve.cells[0].direction }),
-          case .bSpline(let first) = curve.firstSurface,
-          case .bSpline(let second) = curve.secondSurface,
-          Self.isSinglePositiveWeightSpan(first),Self.isSinglePositiveWeightSpan(second) else {
-      throw KernelError(phase:.geometry,code:.unsupportedCapability,tolerance:tolerance,
-        message:"Implicit closed localization requires an open same-coordinate/direction graph chain on positive-weight single-span B-spline supports.")
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Whole chains crossing critical cells
+    // still need a regular atlas and exact join identity. This cell-local source
+    // path keeps its own certified free coordinate and direction; it does not
+    // promote a union of one-sided derivative ranges into a smooth chain proof.
+    guard !curve.cells.isEmpty else {
+      throw invalidInput(tolerance: tolerance, message: "Implicit localization requires an original certified graph cell.")
     }
     let cell = curve.cells[cellIndex]
+    try OriginalCoefficientAllocation.reserve(count: 4, of: ScalarInterval.self, consumeStorage: consumeStorage)
     var bounds = cell.parameterBox.intervals
     bounds[cell.freeParameter.rawValue] = try nativeFreeInterval(cell, over: interval, tolerance: tolerance)
     return ParameterEnclosureState(intersection:curve,cellIndex:cellIndex,
@@ -249,9 +343,12 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   package func prepareParameterEnclosure(
     restricting parent: ParameterEnclosureState, cellIndex: Int? = nil,
     overClosedInterval interval: ScalarInterval,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> ParameterEnclosureState {
-    try checkLocalizationCancellation(tolerance)
+    try checkLocalizationCancellation(tolerance); try consumeWork()
+    try chargeOwnerComparison(parent.intersection, consumeWork: consumeWork)
     guard let preparedSurfaces, preparedSurfaces.intersection == parent.intersection,
           preparedSurfaces.tolerance == tolerance, parent.tolerance == tolerance,
           parent.intersection.cells.indices.contains(parent.cellIndex),
@@ -270,6 +367,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     let cell = parent.intersection.cells[parent.cellIndex]
     let freeIndex = cell.freeParameter.rawValue
     let free = try nativeFreeInterval(cell,over:interval,tolerance:tolerance)
+    try OriginalCoefficientAllocation.reserve(count: 4, of: ScalarInterval.self, consumeStorage: consumeStorage)
     var bounds = wholeBox.intervals
     if case .upperEndpoint(let rangeJet, _, let lowerJet) = parent.phase {
       // These are actual original endpoint-root jets and a certified whole-range
@@ -291,6 +389,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
         OutwardScalarInterval(lower:value.lower,upper:value.upper)
       }
       for index in bounds.indices {
+        try consumeWork()
         let point = lowerJet.coordinates[index]
         let cover = outward(point.value) + outward(point.firstDerivative)*delta
           + outward(point.secondDerivative)*square * .exact(0.5)
@@ -319,30 +418,80 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   /// One outward Krawczyk contraction retaining every already-certified root.
   /// Numeric centers select a preconditioner; they never certify a point root.
   package func advanceParameterEnclosure(
-    _ state: ParameterEnclosureState, tolerance: ModelingTolerance
+    _ state: ParameterEnclosureState, tolerance: ModelingTolerance,
+    maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil, remainingSourceDepth: Int = 0,
+    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> ParameterEnclosureStep {
-    try checkLocalizationCancellation(tolerance)
+    try checkLocalizationCancellation(tolerance); try consumeWork()
+    try chargeOwnerComparison(state.intersection, consumeWork: consumeWork)
     guard let preparedSurfaces,preparedSurfaces.intersection == state.intersection,
           preparedSurfaces.tolerance == state.tolerance,
           tolerance == state.tolerance,state.intersection.cells.indices.contains(state.cellIndex) else {
       throw invalidInput(tolerance:tolerance,message:"Implicit localization state belongs to another prepared owner or tolerance.")
     }
+    let admittedSpans = minimumLimit(maximumSpanCount, preparedSurfaces.maximumSpanCount)
+    let admittedDepth = minimumLimit(maximumSubdivisionDepth, preparedSurfaces.maximumSubdivisionDepth)
+    let admittedSourceDepth = preparedSurfaces.remainingSourceDepth.map {
+      maximumSpanCount == nil && maximumSubdivisionDepth == nil ? $0 : min($0, remainingSourceDepth)
+    } ?? remainingSourceDepth
+    if let admittedSpans, admittedSpans <= 0 {
+      throw GeometryConversionError.resourceLimitExceeded("Implicit localization exhausted original span admission.")
+    }
+    if let admittedDepth, admittedDepth < 0 {
+      throw GeometryConversionError.resourceLimitExceeded("Implicit localization exhausted original subdivision admission.")
+    }
     let cell = state.intersection.cells[state.cellIndex]
     let freeIndex = cell.freeParameter.rawValue
-    let dependent = (0..<4).filter { $0 != freeIndex }
-    let jets = try closedSurfaceJets(over:state.parameterBox,prepared:preparedSurfaces,tolerance:tolerance)
-    let columns = derivativeColumns(first:jets.first,second:jets.second)
-    let dependentColumns = dependent.map { columns[$0] }
-    guard columns.allSatisfy(\.isFinite) else {
-      throw arithmeticFailure(tolerance:tolerance,message:"Implicit localization has nonfinite source Jacobian bounds.")
+    try OriginalCoefficientAllocation.reserve(count: 3, of: Int.self, consumeStorage: consumeStorage)
+    var dependent: [Int] = []; dependent.reserveCapacity(3)
+    for index in 0..<4 { try consumeWork(); if index != freeIndex { dependent.append(index) } }
+    let jets: (first: SurfaceIntervalVectorJet, second: SurfaceIntervalVectorJet)
+    do {
+      jets = try closedSurfaceJets(over: state.parameterBox, prepared: preparedSurfaces, tolerance: tolerance,
+        maximumSpanCount: admittedSpans, maximumSubdivisionDepth: admittedDepth,
+        remainingSourceDepth: admittedSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
     }
-    guard let inverse = inverseRows(dependentColumns) else { return .subdivisionRequired }
+    catch let error as KernelError where error.code == .unsupportedCapability {
+      guard let maximumSpanCount = admittedSpans, let maximumSubdivisionDepth = admittedDepth else { throw error }
+      func original(_ surface: Surface3D, _ box: SurfaceParameterBox) throws -> SurfaceIntervalVectorJet {
+        try OriginalSurfaceHigherJetProvider.intervalTaylorJet(of: surface, over: box,
+          tolerance: tolerance, throughOrder: 4, maximumSpanCount: maximumSpanCount,
+          maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: admittedSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage).intervalJet()
+      }
+      jets = try (original(state.intersection.firstSurface,
+        SurfaceParameterBox(u: state.parameterBox.firstU, v: state.parameterBox.firstV)),
+        original(state.intersection.secondSurface,
+          SurfaceParameterBox(u: state.parameterBox.secondU, v: state.parameterBox.secondV)))
+    }
+    try OriginalCoefficientAllocation.reserve(count: 4, of: IntervalVector.self, consumeStorage: consumeStorage)
+    let columns = derivativeColumns(first:jets.first,second:jets.second)
+    try OriginalCoefficientAllocation.reserve(count: 3, of: IntervalVector.self, consumeStorage: consumeStorage)
+    let dependentColumns = try dependent.map { try consumeWork(); return columns[$0] }
+    for column in columns {
+      try consumeWork()
+      guard column.isFinite else {
+        throw arithmeticFailure(tolerance:tolerance,message:"Implicit localization has nonfinite source Jacobian bounds.")
+      }
+    }
+    guard let inverse = try inverseRows(dependentColumns, consumeWork: consumeWork, consumeStorage: consumeStorage) else { return .subdivisionRequired }
+    try OriginalCoefficientAllocation.reserve(count: 4, of: ScalarInterval.self, consumeStorage: consumeStorage)
     let bounds = state.parameterBox.intervals
-    let centers = bounds.map { OutwardScalarInterval.exact($0.midpoint) }
-    let centerFirst = try preparedSurfaces.first.pointValue(
-      u:centers[0].lower,v:centers[1].lower,tolerance:tolerance)
-    let centerSecond = try preparedSurfaces.second.pointValue(
-      u:centers[2].lower,v:centers[3].lower,tolerance:tolerance)
+    try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+    let centers = try bounds.map { try consumeWork(); return OutwardScalarInterval.exact($0.midpoint) }
+    func centerPosition(_ prepared: PreparedSurfaceDifferentialEncloser,
+      u: OutwardScalarInterval, v: OutwardScalarInterval) throws -> IntervalVector3DBounds {
+      if let admittedSpans, let admittedDepth {
+        return try prepared.positionBounds(over: SurfaceParameterBox(
+          u: scalarInterval(u), v: scalarInterval(v)), tolerance: tolerance,
+          maximumSpanCount: admittedSpans, maximumSubdivisionDepth: admittedDepth,
+          remainingSourceDepth: admittedSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+      }
+      try consumeWork()
+      return try prepared.pointValue(u: u.lower, v: v.lower, tolerance: tolerance)
+    }
+    let centerFirst = try centerPosition(preparedSurfaces.first, u: centers[0], v: centers[1])
+    let centerSecond = try centerPosition(preparedSurfaces.second, u: centers[2], v: centers[3])
     // The exact-center point owner avoids interval-conditioning padding.
     // The mean-value segment in the retained convex box then encloses the
     // residual for every original free value while dependent centers stay fixed.
@@ -354,12 +503,15 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     guard residual.isFinite else {
       throw arithmeticFailure(tolerance:tolerance,message:"Implicit localization has a nonfinite outward center residual.")
     }
+    try OriginalCoefficientAllocation.reserve(count: bounds.count, of: ScalarInterval.self, consumeStorage: consumeStorage)
     var contracted = bounds
     var changed = false
     for row in dependent.indices {
+      try consumeWork()
       let coordinate = dependent[row]
       var image = centers[coordinate] - inverse[row].dot(residual)
       for column in dependent.indices {
+        try consumeWork()
         let entry = OutwardScalarInterval.exact(row == column ? 1 : 0)
           - inverse[row].dot(dependentColumns[column])
         let displacement = OutwardScalarInterval(lower:bounds[dependent[column]].lower,
@@ -388,25 +540,30 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
       * .exact(Double(state.intersection.cells.count))
     if cell.direction == .reversed { freeSlope = -freeSlope }
     var first = try solveDependentDerivatives(columns:dependentColumns,dependentIndexes:dependent,
-      rightHandSide:-columns[freeIndex]*freeSlope,denominator:denominator,tolerance:tolerance,order:"first")
+      rightHandSide:-columns[freeIndex]*freeSlope,denominator:denominator,tolerance:tolerance,order:"first", consumeWork: consumeWork, consumeStorage: consumeStorage)
     first[freeIndex] = freeSlope
     let firstQuadratic = surfaceQuadratic(jets.first,derivativeU:first[0],derivativeV:first[1])
     let secondQuadratic = surfaceQuadratic(jets.second,derivativeU:first[2],derivativeV:first[3])
     let second = try solveDependentDerivatives(columns:dependentColumns,dependentIndexes:dependent,
-      rightHandSide:-(firstQuadratic-secondQuadratic),denominator:denominator,tolerance:tolerance,order:"second")
+      rightHandSide:-(firstQuadratic-secondQuadratic),denominator:denominator,tolerance:tolerance,order:"second", consumeWork: consumeWork, consumeStorage: consumeStorage)
     let firstCubic = surfaceCubic(jets.first,firstU:first[0],firstV:first[1],secondU:second[0],secondV:second[1])
     let secondCubic = surfaceCubic(jets.second,firstU:first[2],firstV:first[3],secondU:second[2],secondV:second[3])
     let third = try solveDependentDerivatives(columns:dependentColumns,dependentIndexes:dependent,
-      rightHandSide:-(firstCubic-secondCubic),denominator:denominator,tolerance:tolerance,order:"third")
-    guard (first+second+third).allSatisfy(\.isFinite) else {
-      throw arithmeticFailure(tolerance:tolerance,message:"Implicit localized derivatives exceeded finite arithmetic.")
+      rightHandSide:-(firstCubic-secondCubic),denominator:denominator,tolerance:tolerance,order:"third", consumeWork: consumeWork, consumeStorage: consumeStorage)
+    for index in first.indices {
+      try consumeWork()
+      guard first[index].isFinite, second[index].isFinite, third[index].isFinite else {
+        throw arithmeticFailure(tolerance:tolerance,message:"Implicit localized derivatives exceeded finite arithmetic.")
+      }
     }
+    try OriginalCoefficientAllocation.reserve(count: bounds.count, of: CertifiedImplicitParameterIntervalJet.Coordinate.self, consumeStorage: consumeStorage)
     let jet = CertifiedImplicitParameterIntervalJet(coordinates:try bounds.indices.map {
-      try CertifiedImplicitParameterIntervalJet.Coordinate(value:bounds[$0],
+      try consumeWork()
+      return try CertifiedImplicitParameterIntervalJet.Coordinate(value:bounds[$0],
         firstDerivative:scalarInterval(first[$0]),secondDerivative:scalarInterval(second[$0]),
         thirdDerivative:scalarInterval(third[$0]))
     })
-    return try completeParameterEnclosure(jet, state: state, tolerance: tolerance)
+    return try completeParameterEnclosure(jet, state: state, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
   }
 
   private func nativeFreeInterval(_ cell: CertifiedImplicitIntersectionGraphCell,
@@ -435,10 +592,13 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
 
   private func endpointState(from state: ParameterEnclosureState,
     rangeBox: SurfaceIntersectionParameterBox, fraction: Double,
-    phase: ParameterEnclosurePhase, tolerance: ModelingTolerance) throws -> ParameterEnclosureState {
+    phase: ParameterEnclosurePhase, tolerance: ModelingTolerance,
+    consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)?) throws -> ParameterEnclosureState {
     let cell = state.intersection.cells[state.cellIndex]
     let freeIndex = cell.freeParameter.rawValue
     let free = try nativeFreeInterval(cell, over: ScalarInterval(lower: fraction, upper: fraction), tolerance: tolerance)
+    try consumeWork()
+    try OriginalCoefficientAllocation.reserve(count: 4, of: ScalarInterval.self, consumeStorage: consumeStorage)
     var bounds = rangeBox.intervals
     guard let retained = OutwardScalarInterval(lower: free.lower, upper: free.upper).intersection(
       with: OutwardScalarInterval(lower: bounds[freeIndex].lower, upper: bounds[freeIndex].upper)) else {
@@ -451,19 +611,22 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   }
 
   private func completeParameterEnclosure(_ jet: CertifiedImplicitParameterIntervalJet,
-    state: ParameterEnclosureState, tolerance: ModelingTolerance) throws -> ParameterEnclosureStep {
+    state: ParameterEnclosureState, tolerance: ModelingTolerance,
+    consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)?) throws -> ParameterEnclosureStep {
     switch state.phase {
     case .range:
-      guard state.originalInterval.width > 0, jet.coordinates.contains(where: isMonotone) else {
-        return .enclosed(jet)
-      }
+      var monotone = false
+      for coordinate in jet.coordinates { try consumeWork(); monotone = monotone || isMonotone(coordinate) }
+      guard state.originalInterval.width > 0, monotone else { return .enclosed(jet) }
       return .contracted(try endpointState(from: state, rangeBox: state.parameterBox,
-        fraction: state.originalInterval.lower, phase: .lowerEndpoint(jet, state.parameterBox), tolerance: tolerance))
+        fraction: state.originalInterval.lower, phase: .lowerEndpoint(jet, state.parameterBox), tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage))
     case .lowerEndpoint(let rangeJet, let rangeBox):
       return .contracted(try endpointState(from: state, rangeBox: rangeBox,
-        fraction: state.originalInterval.upper, phase: .upperEndpoint(rangeJet, rangeBox, jet), tolerance: tolerance))
+        fraction: state.originalInterval.upper, phase: .upperEndpoint(rangeJet, rangeBox, jet), tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage))
     case .upperEndpoint(let rangeJet, _, let lowerJet):
+      try OriginalCoefficientAllocation.reserve(count: rangeJet.coordinates.count, of: CertifiedImplicitParameterIntervalJet.Coordinate.self, consumeStorage: consumeStorage)
       let coordinates = try rangeJet.coordinates.indices.map { index in
+        try consumeWork()
         let coordinate = rangeJet.coordinates[index]
         guard isMonotone(coordinate) else { return coordinate }
         // A localized derivative sign proves that the extrema occur at these
@@ -483,11 +646,40 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     }
   }
 
-  private func closedSurfaceJets(over box: SurfaceIntersectionParameterBox,prepared: PreparedSurfaces,
-                                 tolerance: ModelingTolerance)
-    throws -> (first: SurfaceIntervalVectorJet,second: SurfaceIntervalVectorJet) {
-    try (prepared.first.intervalJet(overClosedBox:SurfaceParameterBox(u:box.firstU,v:box.firstV),tolerance:tolerance),
-         prepared.second.intervalJet(overClosedBox:SurfaceParameterBox(u:box.secondU,v:box.secondV),tolerance:tolerance))
+  private func minimumLimit(_ first: Int?, _ second: Int?) -> Int? {
+    if let first, let second { return min(first, second) }
+    return first ?? second
+  }
+
+  private func chargeOwnerComparison(_ curve: CertifiedImplicitIntersectionCurve,
+    consumeWork: () throws -> Void) throws {
+    if let preparedSurfaces {
+      try GeometryStructuralComparisonWork.charge(curve: .implicit(preparedSurfaces.intersection),
+        using: { count in for _ in 0..<count { try consumeWork() } })
+    }
+    try GeometryStructuralComparisonWork.charge(curve: .implicit(curve),
+      using: { count in for _ in 0..<count { try consumeWork() } })
+  }
+
+  private func closedSurfaceJets(over box: SurfaceIntersectionParameterBox, prepared: PreparedSurfaces,
+    tolerance: ModelingTolerance, maximumSpanCount: Int? = nil,
+    maximumSubdivisionDepth: Int? = nil, remainingSourceDepth: Int = 0,
+    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeStorage: ((Int) throws -> Void)? = nil)
+    throws -> (first: SurfaceIntervalVectorJet, second: SurfaceIntervalVectorJet) {
+    func original(_ source: PreparedSurfaceDifferentialEncloser,
+      _ u: ScalarInterval, _ v: ScalarInterval) throws -> SurfaceIntervalVectorJet {
+      if let maximumSpanCount, let maximumSubdivisionDepth {
+        return try source.intervalJet(overClosedBox: SurfaceParameterBox(u: u, v: v),
+          tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+          maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+          consumeWork: consumeWork, consumeStorage: consumeStorage)
+      }
+      try consumeWork()
+      return try source.intervalJet(overClosedBox: SurfaceParameterBox(u: u, v: v), tolerance: tolerance)
+    }
+    return try (original(prepared.first, box.firstU, box.firstV),
+      original(prepared.second, box.secondU, box.secondV))
   }
 
   private func derivativeColumns(first: SurfaceIntervalVectorJet,second: SurfaceIntervalVectorJet) -> [IntervalVector] {
@@ -495,13 +687,19 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
      -vector(second,at:\SurfaceIntervalJet.derivativeU),-vector(second,at:\SurfaceIntervalJet.derivativeV)]
   }
 
-  private func inverseRows(_ columns: [IntervalVector]) -> [IntervalVector]? {
-    let centers = columns.map { Vector3D(x:$0.x.midpoint,y:$0.y.midpoint,z:$0.z.midpoint) }
+  private func inverseRows(_ columns: [IntervalVector], consumeWork: () throws -> Void,
+    consumeStorage: ((Int) throws -> Void)?) throws -> [IntervalVector]? {
+    try OriginalCoefficientAllocation.reserve(count: columns.count, of: Vector3D.self, consumeStorage: consumeStorage)
+    let centers = try columns.map { try consumeWork(); return Vector3D(x:$0.x.midpoint,y:$0.y.midpoint,z:$0.z.midpoint) }
+    try consumeWork()
     let determinant = centers[0].dot(centers[1].cross(centers[2]))
     guard determinant.isFinite,determinant != 0 else { return nil }
+    try OriginalCoefficientAllocation.reserve(count: 3, of: Vector3D.self, consumeStorage: consumeStorage)
     let crosses = [centers[1].cross(centers[2]),centers[2].cross(centers[0]),centers[0].cross(centers[1])]
-    let rows = crosses.map { IntervalVector(x:.exact($0.x/determinant),y:.exact($0.y/determinant),z:.exact($0.z/determinant)) }
-    return rows.allSatisfy(\.isFinite) ? rows : nil
+    try OriginalCoefficientAllocation.reserve(count: crosses.count, of: IntervalVector.self, consumeStorage: consumeStorage)
+    let rows = try crosses.map { try consumeWork(); return IntervalVector(x:.exact($0.x/determinant),y:.exact($0.y/determinant),z:.exact($0.z/determinant)) }
+    for row in rows { try consumeWork(); if !row.isFinite { return nil } }
+    return rows
   }
 
   private func parameterBox(_ bounds: [ScalarInterval]) -> SurfaceIntersectionParameterBox {
@@ -575,6 +773,15 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
       )
     }
     let cell = curve.cells[cellIndex]
+    if let preparedSurfaces, let admission = preparedSurfaces.admission {
+      try chargeOwnerComparison(curve, consumeWork: { try admission.step() })
+      guard preparedSurfaces.intersection == curve else {
+        throw GeometryConversionError.invalidInput("Original implicit restriction belongs to another prepared graph.")
+      }
+      return try restrictedBounds(cellIndex: cellIndex,
+        fromNormalizedFraction: lowerFraction, toNormalizedFraction: upperFraction,
+        tolerance: tolerance, admission: admission)
+    }
     if let preparedSurfaces,
       preparedSurfaces.first.surface == curve.firstSurface,
       preparedSurfaces.second.surface == curve.secondSurface,
@@ -909,13 +1116,17 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     rightHandSide: IntervalVector,
     denominator: OutwardScalarInterval,
     tolerance: ModelingTolerance,
-    order: String
+    order: String, consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> [OutwardScalarInterval] {
+    try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
     var derivatives = Array(
       repeating: OutwardScalarInterval(0.0),
       count: 4
     )
     for dependentOffset in columns.indices {
+      try consumeWork()
+      try OriginalCoefficientAllocation.reserve(count: columns.count, of: IntervalVector.self, consumeStorage: consumeStorage)
       var numeratorColumns = columns
       numeratorColumns[dependentOffset] = rightHandSide
       let numerator = determinant(numeratorColumns)

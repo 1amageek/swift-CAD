@@ -1,6 +1,6 @@
 import CADCore
 
-public enum FeatureOperation: Codable, Sendable, Hashable {
+public enum FeatureOperation: Sendable, Hashable {
     case involuteGear(InvoluteGearFeature)
     case sketch(Sketch)
     case spatialPath(SpatialPathFeature)
@@ -73,6 +73,7 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
     case surfaceExtend(SurfaceExtendFeature)
     case surfaceMatch(SurfaceMatchFeature)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case involuteGear
         case kind
@@ -147,9 +148,11 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
         case surfaceExtend
         case surfaceMatch
     }
+#endif
 
     private typealias Kind = FeatureOperationKind
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -369,7 +372,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
             self = .surfaceMatch(try container.decode(SurfaceMatchFeature.self, forKey: .surfaceMatch))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -588,4 +593,9 @@ public enum FeatureOperation: Codable, Sendable, Hashable {
             try container.encode(surfaceMatch, forKey: .surfaceMatch)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension FeatureOperation: Codable {}
+#endif

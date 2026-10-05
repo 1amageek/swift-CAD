@@ -9,11 +9,10 @@ import Foundation
 /// zeros of its constant coefficient split the nodal branch at the apex, and
 /// simple zeros of its discriminant delimit the generator-tangent loop.
 public struct CertifiedConeTorusApexIntersectionCurve:
-    Codable,
     Hashable,
     Sendable
 {
-    public enum ComponentKind: String, Codable, Hashable, Sendable {
+    public enum ComponentKind: String, Hashable, Sendable {
         case apexNodeInterval
         case generatorTangencyInterval
     }
@@ -2506,3 +2505,8 @@ public struct CertifiedConeTorusApexIntersectionCurve:
         return min(max(fraction, 0.0), 1.0)
     }
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedConeTorusApexIntersectionCurve: Codable {}
+extension CertifiedConeTorusApexIntersectionCurve.ComponentKind: Codable {}
+#endif

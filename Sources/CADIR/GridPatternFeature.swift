@@ -1,6 +1,6 @@
 import CADCore
 
-public struct GridPatternFeature: Codable, Hashable, Sendable {
+public struct GridPatternFeature: Hashable, Sendable {
     public let target: PatternTargetReference
     public let firstDirection: Vector3D
     public let firstSpacing: CADExpression
@@ -69,6 +69,7 @@ public struct GridPatternFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case firstDirection
@@ -78,7 +79,9 @@ public struct GridPatternFeature: Codable, Hashable, Sendable {
         case secondSpacing
         case secondCount
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -102,7 +105,9 @@ public struct GridPatternFeature: Codable, Hashable, Sendable {
         secondCount = try container.decode(Int.self, forKey: .secondCount)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -114,4 +119,9 @@ public struct GridPatternFeature: Codable, Hashable, Sendable {
         try container.encode(secondSpacing, forKey: .secondSpacing)
         try container.encode(secondCount, forKey: .secondCount)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension GridPatternFeature: Codable {}
+#endif

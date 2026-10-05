@@ -4,6 +4,8 @@ public struct ExchangeResourceLimits: Codable, Equatable, Sendable {
     public var maximumBytes: Int
     public var maximumEntities: Int
     public var maximumNesting: Int
+    public var maximumAlgebraicDepth: Int
+    public var maximumCurveSubdivisionDepth: Int
     public var maximumIterations: Int
     public var maximumProcessingDuration: Duration
 
@@ -12,8 +14,12 @@ public struct ExchangeResourceLimits: Codable, Equatable, Sendable {
         maximumEntities: Int = 1_000_000,
         maximumNesting: Int = 256,
         maximumIterations: Int = 10_000_000,
-        maximumProcessingDuration: Duration = .seconds(120)
+        maximumProcessingDuration: Duration = .seconds(120),
+        maximumCurveSubdivisionDepth: Int = 32,
+        maximumAlgebraicDepth: Int = 32
     ) {
+        self.maximumAlgebraicDepth = maximumAlgebraicDepth
+        self.maximumCurveSubdivisionDepth = maximumCurveSubdivisionDepth
         self.maximumBytes = maximumBytes
         self.maximumEntities = maximumEntities
         self.maximumNesting = maximumNesting
@@ -28,12 +34,12 @@ public struct ExchangeResourceLimits: Codable, Equatable, Sendable {
               maximumEntities > 0,
               maximumNesting > 0,
               maximumIterations > 0,
-              maximumProcessingDuration > .zero else {
+              maximumProcessingDuration > .zero, maximumCurveSubdivisionDepth >= 0, maximumCurveSubdivisionDepth <= 32, maximumAlgebraicDepth >= 0, maximumAlgebraicDepth <= 32 else {
             throw KernelError(
                 phase: .exchange,
                 code: .invalidInput,
                 tolerance: nil,
-                message: "Exchange resource limits must be positive."
+                message: "Exchange resource limits must be positive and the independent algebra and curve subdivision ceilings must be in 0...32."
             )
         }
     }

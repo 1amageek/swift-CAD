@@ -1,4 +1,4 @@
-public enum SnapQueryIntent: String, Codable, Sendable, Hashable {
+public enum SnapQueryIntent: String, Sendable, Hashable {
     case precisePoint
     case vertex
     case edge
@@ -53,3 +53,7 @@ public enum SnapQueryIntent: String, Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SnapQueryIntent: Codable {}
+#endif

@@ -73,8 +73,15 @@ struct PreparedBSplineSurfaceDifferentialCost {
         // knot validation: finite, sorted and complete multiplicity scan.
         let scan = try Arithmetic.sum(Arithmetic.product(controls, 3), Arithmetic.product(weights, 2),
             Arithmetic.product(knots, 4), rows)
-        try budget.charge(work: Arithmetic.sum(scan, 12))
-        return try Arithmetic.sum(Arithmetic.product(controls, 3), weights, knots, rows, 12)
+        // A periodic validation also compares every repeated Cartesian/weight tail
+        // and checks translated knot axes. Charge conservative complete-net/axis
+        // scans before validation, including both axes when both are periodic.
+        let periodicAxes = (surface.isUPeriodic ? 1 : 0) + (surface.isVPeriodic ? 1 : 0)
+        let periodicScan = try Arithmetic.product(periodicAxes,
+            Arithmetic.sum(Arithmetic.product(controls, 4), Arithmetic.product(knots, 64), 128))
+        try budget.charge(work: Arithmetic.sum(scan, periodicScan, 12))
+        return try Arithmetic.sum(Arithmetic.product(controls, 3), weights, knots, rows,
+            periodicScan, 12)
     }
 
     init(surface: BSplineSurface3D, budget: inout Budget) throws {
@@ -146,6 +153,43 @@ struct PreparedBSplineSurfaceDifferentialCost {
     }
 
     func chargeProbe(over box: SurfaceParameterBox, pointOnly: Bool, budget: inout Budget) throws {
+        guard !surface.isUPeriodic, !surface.isVPeriodic else {
+            throw GeometryConversionError.invalidInput("A periodic original probe reservation requires its actual preparation tolerance and fundamental cover.")
+        }
+        try chargeProbe(over: box, pointOnly: pointOnly, periodicCover: false, budget: &budget)
+    }
+
+    /// Reserves the actual original periodic cover without replacing its chart or controls.
+    /// The prepared visitor consumes the same deterministic cover law and tolerance.
+    func chargeProbe(over box: SurfaceParameterBox, pointOnly: Bool,
+        tolerance: ModelingTolerance, budget: inout Budget) throws {
+        guard surface.isUPeriodic || surface.isVPeriodic else {
+            try chargeProbe(over: box, pointOnly: pointOnly, budget: &budget)
+            return
+        }
+        // Cost inspection and the actual query each form at most two intervals
+        // per axis. Fourfold array capacity, payloads and fixed metadata fit 64
+        // slots. Repeated-knot searches and representative arithmetic are reserved
+        // twice, before either inspection or execution obtains a base cover.
+        let knotWork = try Arithmetic.sum(
+            Arithmetic.product(surface.uKnots.count, surface.uKnots.count),
+            Arithmetic.product(surface.vKnots.count, surface.vKnots.count))
+        try budget.charge(scalars: 64, work: Arithmetic.sum(Arithmetic.product(knotWork, 8), 512))
+        let us = try surface.enclosureIntervals(box.u, direction: .u, tolerance: tolerance)
+        let vs = try surface.enclosureIntervals(box.v, direction: .v, tolerance: tolerance)
+        guard us.count <= 2, vs.count <= 2 else {
+            throw GeometryConversionError.resourceLimitExceeded("The original periodic query exceeded its proved fundamental-cover count.")
+        }
+        for u in us {
+            for v in vs {
+                try chargeProbe(over: SurfaceParameterBox(u: u, v: v),
+                    pointOnly: pointOnly, periodicCover: true, budget: &budget)
+            }
+        }
+    }
+
+    private func chargeProbe(over box: SurfaceParameterBox, pointOnly: Bool,
+        periodicCover: Bool, budget: inout Budget) throws {
         // Both cost inspection and the actual prepared query scan the entire retained span set.
         try budget.charge(work: Arithmetic.sum(Arithmetic.product(spanCount, 2, 8),
             surface.uKnots.count, surface.vKnots.count))
@@ -163,7 +207,14 @@ struct PreparedBSplineSurfaceDifferentialCost {
                         // Every scalar hull allocates its component array plus lower/upper arrays.
                         scalars = try Arithmetic.sum(scalars, Arithmetic.product(count, 4, 6, groups))
                         work = try Arithmetic.sum(work, Arithmetic.product(count, 4, 4, groups))
-                        if pointOnly {
+                        // Periodic singleton stations may have a positive-width
+                        // outward cover. Conversely, a closed cover can only touch
+                        // a span at a singleton corner. Reserve the actual selected
+                        // point/value-localization operation, not the unwrapped tag.
+                        let pointExecution = periodicCover
+                            ? u0 == u1 && v0 == v1
+                            : pointOnly
+                        if pointExecution {
                             let steps = try Arithmetic.sum(Arithmetic.product(b, triangle(a - 1)), triangle(b - 1))
                             scalars = try Arithmetic.sum(scalars, Arithmetic.product(steps, 8 + 32, groups),
                                 Arithmetic.product(count, 8, groups))

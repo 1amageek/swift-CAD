@@ -1,7 +1,7 @@
 import CADCore
 
-public enum ProductAttributeValue: Hashable, Sendable, Codable {
-    public enum Property: String, Codable, Hashable, Sendable { case name, color, opacity, material, density }
+public enum ProductAttributeValue: Hashable, Sendable {
+    public enum Property: String, Hashable, Sendable { case name, color, opacity, material, density }
     case name(String)
     case color(ColorRGBA)
     case opacity(Double)
@@ -28,7 +28,12 @@ public enum ProductAttributeValue: Hashable, Sendable, Codable {
         case .name, .material, .descriptorDensity: break
         }
     }
+
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case kind, name, color, opacity, material, density, descriptorDensity }
+    #endif
+
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try c.decode(String.self, forKey: .kind)
@@ -45,6 +50,9 @@ public enum ProductAttributeValue: Hashable, Sendable, Codable {
         try c.validateOnlyExpectedKeys([.kind, key], in: decoder)
         try validate()
     }
+    #endif
+
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var c = encoder.container(keyedBy: CodingKeys.self)
@@ -57,4 +65,10 @@ public enum ProductAttributeValue: Hashable, Sendable, Codable {
         case let .descriptorDensity(value): try c.encode("descriptorDensity", forKey: .kind); try c.encode(value, forKey: .descriptorDensity)
         }
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension ProductAttributeValue: Codable {}
+extension ProductAttributeValue.Property: Codable {}
+#endif

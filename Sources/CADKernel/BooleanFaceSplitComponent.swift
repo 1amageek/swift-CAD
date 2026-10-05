@@ -1,4 +1,4 @@
-public struct BooleanFaceSplitComponent: Codable, Hashable, Sendable {
+public struct BooleanFaceSplitComponent: Hashable, Sendable {
     public let id: BooleanFaceSplitComponentID
     public let geometry: BooleanFaceSplitComponentGeometry
 
@@ -10,3 +10,7 @@ public struct BooleanFaceSplitComponent: Codable, Hashable, Sendable {
         self.geometry = geometry
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanFaceSplitComponent: Codable {}
+#endif

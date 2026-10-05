@@ -12,5 +12,7 @@ public struct STEPAttributeReadTransfer: Sendable {
     public var relationships: [Int: AssemblyOccurrenceID] = [:]
     /// Maps a producer-validated CDSR entity to its real NAUO source identity.
     public var usageContexts: [Int: AssemblyOccurrenceID] = [:]
+    /// Maps a standard MATERIAL_DESIGNATION entity to its retained descriptor identity.
+    public var materialIdentities: [Int: PhysicalMaterialID] = [:]
     public init() {}
 }

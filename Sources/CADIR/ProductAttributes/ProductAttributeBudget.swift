@@ -6,7 +6,7 @@ public struct ProductAttributeBudget: Sendable {
     public private(set) var consumedTextBytes = 0
     public init(limits: ProductAttributeLimits) throws { try limits.validate(); self.limits = limits }
     public mutating func charge(work: Int = 0, targets: Int = 0, textBytes: Int = 0) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard work >= 0, targets >= 0, textBytes >= 0,
               work <= limits.maximumWork - consumedWork,
               targets <= limits.maximumTargets - consumedTargets,

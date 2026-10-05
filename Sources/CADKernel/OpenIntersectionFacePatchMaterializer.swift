@@ -107,6 +107,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 toolBodyID: toolBodyID,
                 splitFaceIDs: splitFaceIDs,
                 forcedActions: coincidentFaceActions,
+                splitPatches: splitPatches,
                 model: model,
                 sourceSubshapes: sourceSubshapes,
                 operands: operands,
@@ -119,13 +120,15 @@ struct OpenIntersectionFacePatchMaterializer {
                 tolerance: tolerance
             )
         }
-        let patches = splitPatches + carriedPatches
+        let patches = try mergedCoincidentAncestry(splitPatches + carriedPatches,
+            uvSplitGraph: uvSplitGraph, forcedActions: coincidentFaceActions,
+            model: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance)
         guard patches.isEmpty == false else {
             throw KernelError(
-                phase: .topology,
-                code: .topologyFailure,
+                phase: .classification,
+                code: .emptyResult,
                 tolerance: tolerance,
-                message: "Open Boolean region selection produced no exact face patches."
+                message: "Open Boolean region selection proved an empty material result."
             )
         }
         let shells: [BRepSewingShell]
@@ -151,6 +154,39 @@ struct OpenIntersectionFacePatchMaterializer {
             }
         )
         return request
+    }
+
+    private func mergedCoincidentAncestry(_ original: [BRepSewingFacePatch],
+        uvSplitGraph: BooleanUVSplitGraph, forcedActions: [FaceID: BooleanRegionSelectionAction],
+        model: BRepModel, sourceSubshapes: [SubshapeID: TopologyReference],
+        tolerance: ModelingTolerance) throws -> [BRepSewingFacePatch] {
+        var retained = original
+        for split in uvSplitGraph.splits {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            guard split.components.contains(where: {
+                if case .coincident = $0.geometry { return true }; return false
+            }) else { continue }
+            let a = split.facePair.targetFaceID, b = split.facePair.toolFaceID
+            let discarded: FaceID
+            switch (forcedActions[a], forcedActions[b]) {
+            case (.keep?, .discard?), (.keepReversed?, .discard?): discarded = b
+            case (.discard?, .keep?), (.discard?, .keepReversed?): discarded = a
+            default: continue
+            }
+            let duplicate = try SourceBRepFacePatchBuilder().build(faceID: discarded,
+                stableID: "~coincident-parent:\(a):\(b)", from: model,
+                sourceSubshapes: sourceSubshapes, tolerance: tolerance).patch
+            let merged = try CoincidentFacePatchMerger().merge(retained + [duplicate],
+                tolerance: tolerance)
+            guard merged.count == retained.count,
+                  !merged.contains(where: { $0.stableID == duplicate.stableID }) else {
+                throw KernelError(phase: .classification, code: .classificationFailure,
+                    tolerance: tolerance,
+                    message: "A fully owned coincident face has no retained original region for ancestry.")
+            }
+            retained = merged
+        }
+        return retained
     }
 
     private func faceBoundaries(

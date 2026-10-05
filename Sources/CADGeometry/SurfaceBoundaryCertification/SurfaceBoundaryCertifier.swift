@@ -107,6 +107,247 @@ package enum SurfaceBoundaryCertifier {
             shapeOperator: order >= 2 ? maxima[2] : nil, inspectedCells: visited)
     }
 
+    /// Compares final original sources under the complete caller invocation.
+    package static func certify(
+        first: Side, second: Side, positionTolerance: Double,
+        normalChordTolerance: Double? = nil, shapeOperatorTolerance: Double? = nil,
+        maximumCells: Int, maximumDepth: Int, tolerance: ModelingTolerance,
+        admission: GeometryConversionAdmission
+    ) throws -> Certificate {
+        guard positionTolerance.isFinite, positionTolerance > 0,
+            normalChordTolerance.map({ $0.isFinite && $0 > 0 && $0 <= 2 }) ?? true,
+            shapeOperatorTolerance.map({ $0.isFinite && $0 > 0 }) ?? true,
+            shapeOperatorTolerance == nil || normalChordTolerance != nil,
+            maximumCells > 0, maximumDepth >= 0 else {
+            throw failure(.invalidInput, "Original boundary certification requires positive finite limits and caller ceilings.")
+        }
+        let order = shapeOperatorTolerance != nil ? 2 : normalChordTolerance != nil ? 1 : 0
+        let depthLimit = min(maximumDepth, admission.maximumSubdivisionDepth)
+        let a = try AdmittedSide(side: first, tolerance: tolerance, admission: admission)
+        let b = try AdmittedSide(side: second, tolerance: tolerance, admission: admission)
+        let capacity = depthLimit.addingReportingOverflow(1)
+        let bytes = capacity.partialValue.multipliedReportingOverflow(by: MemoryLayout<BoundaryCell>.stride)
+        guard !capacity.overflow, !bytes.overflow else {
+            throw failure(.resourceLimitExceeded, "Original boundary frontier storage overflowed.")
+        }
+        try admission.chargeStorage(bytes: bytes.partialValue)
+        var pending: [BoundaryCell] = []
+        pending.reserveCapacity(capacity.partialValue)
+        pending.append(.init(lower: 0, upper: 1, depth: 0))
+        var visited = 0
+        var positionMaximum = 0.0, normalMaximum = 0.0, shapeMaximum = 0.0
+        while let cell = pending.popLast() {
+            try admission.visit(depth: cell.depth)
+            guard visited < maximumCells else {
+                throw failure(.resourceLimitExceeded, "Original boundary certification exhausted its cell ceiling.")
+            }
+            visited += 1
+            let interval = try ScalarInterval(lower: cell.lower, upper: cell.upper)
+            let middle = cell.lower + (cell.upper - cell.lower) * 0.5
+            let center = try ScalarInterval(lower: middle, upper: middle)
+            let wholeA = try a.quantities(over: interval, order: order, depth: cell.depth)
+            let wholeB = try b.quantities(over: interval, order: order, depth: cell.depth)
+            let centerA = try a.quantities(over: center, order: order, depth: cell.depth)
+            let centerB = try b.quantities(over: center, order: order, depth: cell.depth)
+            if let wholeA, let wholeB, let centerA, let centerB {
+                let radius = OutwardScalarInterval(lower: (cell.lower - middle).nextDown,
+                    upper: (cell.upper - middle).nextUp)
+                var admitted = true
+                var cellPosition = 0.0, cellNormal = 0.0, cellShape = 0.0
+                for group in 0...order {
+                    let lowerIndex = group == 0 ? 0 : group == 1 ? 3 : 6
+                    let upperIndex = group == 0 ? 3 : group == 1 ? 6 : 15
+                    let limit = group == 0 ? positionTolerance
+                        : group == 1 ? normalChordTolerance! : shapeOperatorTolerance!
+                    var upperSquared = OutwardScalarInterval.exact(0)
+                    var lowerSquared = OutwardScalarInterval.exact(0)
+                    var witnessSquared = OutwardScalarInterval.exact(0)
+                    for index in lowerIndex..<upperIndex {
+                        try admission.chargeWork()
+                        var difference = wholeA.values[index].value - wholeB.values[index].value
+                        if wholeA.continuousOrder >= group && wholeB.continuousOrder >= group {
+                            let tightened = centerA.values[index].value - centerB.values[index].value
+                                + radius * (wholeA.values[index].derivativeU - wholeB.values[index].derivativeU)
+                            difference = OutwardScalarInterval(lower: max(difference.lower, tightened.lower),
+                                upper: min(difference.upper, tightened.upper))
+                        }
+                        guard difference.isFinite, difference.lower <= difference.upper else {
+                            throw failure(.resourceLimitExceeded, "Original boundary difference has no finite coherent enclosure.")
+                        }
+                        let high = OutwardScalarInterval.exact(difference.absoluteUpperBound)
+                        let low = OutwardScalarInterval.exact(difference.absoluteLowerBound)
+                        let witness = OutwardScalarInterval.exact(
+                            (centerA.values[index].value - centerB.values[index].value).absoluteLowerBound)
+                        upperSquared = upperSquared + high * high
+                        lowerSquared = lowerSquared + low * low
+                        witnessSquared = witnessSquared + witness * witness
+                    }
+                    let magnitude = sqrt(max(0, upperSquared.upper)).nextUp
+                    let upper = group == 1 ? min(2, magnitude) : magnitude
+                    guard upper.isFinite else {
+                        throw failure(.resourceLimitExceeded, "Original boundary magnitude overflowed.")
+                    }
+                    let lower = max(0, sqrt(max(0, lowerSquared.lower)).nextDown)
+                    let witness = max(0, sqrt(max(0, witnessSquared.lower)).nextDown)
+                    guard max(lower, witness) <= limit else {
+                        throw failure(.classificationFailure, "An original boundary interval violates its continuity request.")
+                    }
+                    if upper > limit { admitted = false }
+                    if group == 0 { cellPosition = upper }
+                    else if group == 1 { cellNormal = upper }
+                    else { cellShape = upper }
+                }
+                if admitted {
+                    positionMaximum = max(positionMaximum, cellPosition)
+                    normalMaximum = max(normalMaximum, cellNormal)
+                    shapeMaximum = max(shapeMaximum, cellShape)
+                    continue
+                }
+            }
+            guard cell.depth < depthLimit, middle > cell.lower, middle < cell.upper else {
+                throw failure(.resourceLimitExceeded, "Original boundary regularity or continuity remains unresolved at the caller depth.")
+            }
+            pending.append(.init(lower: middle, upper: cell.upper, depth: cell.depth + 1))
+            pending.append(.init(lower: cell.lower, upper: middle, depth: cell.depth + 1))
+        }
+        return Certificate(position: positionMaximum, normalChord: order >= 1 ? normalMaximum : nil,
+            shapeOperator: order >= 2 ? shapeMaximum : nil, inspectedCells: visited)
+    }
+
+    private struct BoundaryCell { let lower: Double; let upper: Double; let depth: Int }
+
+    private struct ExactAdmission: RationalAlgebraAdmitting {
+        let admission: GeometryConversionAdmission
+        mutating func visitExactCell(depth: Int) throws {
+            guard depth >= 0, depth <= (admission.maximumAlgebraicDepth ?? 32) else {
+                throw failure(.resourceLimitExceeded, "Original boundary algebra exhausted its independent depth.")
+            }
+            try admission.chargeWork()
+        }
+        mutating func consumeExactWork(_ count: Int) throws { try admission.chargeWork(count) }
+        mutating func retainExactStorage(_ count: Int) throws {
+            let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
+            guard count >= 0, !bytes.overflow else {
+                throw failure(.resourceLimitExceeded, "Original boundary exact storage overflowed.")
+            }
+            try admission.chargeStorage(bytes: bytes.partialValue)
+        }
+    }
+
+    private struct AdmittedSide {
+        let side: Side
+        let surface: PreparedSurfaceDifferentialEncloser
+        let chart: SurfaceAreaParameterChartEncloser
+        let tolerance: ModelingTolerance
+        let admission: GeometryConversionAdmission
+        let sourceDepth: Int
+        struct Quantities { let values: [SurfaceIntervalJet]; let continuousOrder: Int }
+
+        init(side: Side, tolerance: ModelingTolerance, admission: GeometryConversionAdmission) throws {
+            self.side = side; self.tolerance = tolerance; self.admission = admission
+            sourceDepth = min(16, admission.remainingSourceDepth)
+            surface = try PreparedSurfaceDifferentialEncloser(surface: side.lift.surface, tolerance: tolerance,
+                remainingSourceDepth: sourceDepth, maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+                consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) },
+                maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+            chart = try SurfaceAreaParameterChartEncloser(curve: side.lift.parameterCurve, on: side.lift.surface,
+                tolerance: tolerance, maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+                remainingSourceDepth: sourceDepth, maximumAlgebraicDepth: admission.maximumAlgebraicDepth ?? 32,
+                consumeWork: { _ in try admission.chargeWork() },
+                consumeStorage: { try admission.chargeStorage(bytes: $0) })
+        }
+
+        func quantities(over interval: ScalarInterval, order: Int, depth: Int) throws -> Quantities? {
+            try admission.visit(depth: depth)
+            let mapped: ScalarInterval
+            if side.reversedParameter {
+                let image = OutwardScalarInterval.exact(1)
+                    - OutwardScalarInterval(lower: interval.lower, upper: interval.upper)
+                mapped = try ScalarInterval(lower: max(0, image.lower), upper: min(1, image.upper))
+            } else { mapped = interval }
+            let proof = try chart.intervalProof(over: mapped, tolerance: tolerance,
+                consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            let uv = proof.values
+            let box = try SurfaceParameterBox(
+                u: ScalarInterval(lower: uv.u.lower, upper: uv.u.upper),
+                v: ScalarInterval(lower: uv.v.lower, upper: uv.v.upper))
+            let p = try surface.intervalJet(overClosedBox: box, tolerance: tolerance,
+                maximumSpanCount: admission.maximumSpanCount,
+                maximumSubdivisionDepth: admission.maximumSubdivisionDepth, remainingSourceDepth: sourceDepth,
+                consumeWork: { try admission.chargeWork() }, consumeStorage: { try admission.chargeStorage(bytes: $0) })
+            var continuousOrder = -1
+            if case .smooth = proof {
+                var usage = ExactAdmission(admission: admission)
+                if try surface.admittingContinuousFirstOrder(over: box, tolerance: tolerance,
+                    remainingSourceDepth: sourceDepth, maximumSpanCount: admission.maximumSpanCount,
+                    maximumSubdivisionDepth: admission.maximumSubdivisionDepth, usage: &usage) != nil {
+                    continuousOrder = 0
+                    if order > 0 {
+                        for requested in stride(from: order, through: 1, by: -1) {
+                            if try surface.admittingContinuousPartials(over: box, throughOrder: requested,
+                                tolerance: tolerance, remainingSourceDepth: sourceDepth,
+                                maximumSpanCount: admission.maximumSpanCount,
+                                maximumSubdivisionDepth: admission.maximumSubdivisionDepth, usage: &usage) != nil {
+                                continuousOrder = requested
+                                break
+                            }
+                        }
+                    }
+                }
+            }
+            let count = order == 0 ? 3 : order == 1 ? 6 : 15
+            try admission.chargeStorage(bytes: count * MemoryLayout<SurfaceIntervalJet>.stride)
+            var values: [SurfaceIntervalJet] = []
+            values.reserveCapacity(count)
+            values.append(p.x); values.append(p.y); values.append(p.z)
+            if order > 0 {
+                let rawU = p.differentiatedUThroughSecondOrder(), rawV = p.differentiatedVThroughSecondOrder()
+                let uScale = max(rawU.x.value.absoluteUpperBound,
+                    max(rawU.y.value.absoluteUpperBound, rawU.z.value.absoluteUpperBound))
+                let vScale = max(rawV.x.value.absoluteUpperBound,
+                    max(rawV.y.value.absoluteUpperBound, rawV.z.value.absoluteUpperBound))
+                try admission.chargeWork(2)
+                guard uScale.isFinite, vScale.isFinite, uScale > 0, vScale > 0,
+                    let inverseU = SurfaceIntervalJet.constant(uScale).reciprocal(),
+                    let inverseV = SurfaceIntervalJet.constant(vScale).reciprocal() else { return nil }
+                let u = rawU * inverseU, v = rawV * inverseV
+                let cross = u.cross(v)
+                guard let unit = cross.normalized() else { return nil }
+                let normal = side.reversedNormal ? -unit : unit
+                values.append(normal.x); values.append(normal.y); values.append(normal.z)
+                if order > 1 {
+                    guard let inverse = cross.dot(cross).reciprocal() else { return nil }
+                    let e = u.dot(u), f = u.dot(v), g = v.dot(v)
+                    let dualU = (u * g + -(v * f)) * inverse
+                    let dualV = (v * e + -(u * f)) * inverse
+                    let l = normal.dot(u.differentiatedUThroughSecondOrder()) * inverseU
+                    let m = normal.dot(u.differentiatedVThroughSecondOrder()) * inverseV
+                    let n = normal.dot(v.differentiatedVThroughSecondOrder()) * inverseV
+                    func component(_ value: SurfaceIntervalVectorJet, _ index: Int) -> SurfaceIntervalJet {
+                        index == 0 ? value.x : index == 1 ? value.y : value.z
+                    }
+                    for row in 0..<3 { for column in 0..<3 {
+                        try admission.chargeWork()
+                        let ur = component(dualU, row), uc = component(dualU, column)
+                        let vr = component(dualV, row), vc = component(dualV, column)
+                        values.append(l * ur * uc + m * (ur * vc + vr * uc) + n * vr * vc)
+                    } }
+                }
+            }
+            let sign = OutwardScalarInterval.exact(side.reversedParameter ? -1 : 1)
+            let zero = OutwardScalarInterval.exact(0)
+            for index in values.indices {
+                try admission.chargeWork()
+                let value = values[index]
+                values[index] = SurfaceIntervalJet(value: value.value,
+                    derivativeU: (value.derivativeU * uv.tangentU + value.derivativeV * uv.tangentV) * sign,
+                    derivativeV: zero, secondDerivativeUU: zero, secondDerivativeUV: zero, secondDerivativeVV: zero,
+                    thirdDerivativeUUU: zero, thirdDerivativeUUV: zero, thirdDerivativeUVV: zero, thirdDerivativeVVV: zero)
+            }
+            return Quantities(values: values, continuousOrder: continuousOrder)
+        }
+    }
+
     private struct Prepared {
         let side: Side
         let surface: PreparedSurfaceDifferentialEncloser

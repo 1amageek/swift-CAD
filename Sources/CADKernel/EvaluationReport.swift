@@ -1,7 +1,7 @@
 import CADCore
 import CADIR
 
-public struct EvaluationReport: Codable, Sendable {
+public struct EvaluationReport: Sendable {
     public var document: CADDocument
     public var evaluatedDocument: EvaluatedDocument?
     public var featureStates: [FeatureID: FeatureEvaluationState]
@@ -20,34 +20,61 @@ public struct EvaluationReport: Codable, Sendable {
     }
 
     public var isComplete: Bool {
-        evaluatedDocument != nil && featureStates.values.allSatisfy { state in
-            switch state {
-            case .evaluated, .suppressed:
-                true
-            case .unevaluated, .blocked, .failed:
-                false
+        guard let evaluatedDocument, failure == nil,
+              document == evaluatedDocument.document,
+              Set(featureStates.keys) == Set(document.designGraph.nodes.keys) else { return false }
+        for (id, node) in document.designGraph.nodes {
+            guard let state = featureStates[id] else { return false }
+            switch (node.isSuppressed, state) {
+            case (false, .evaluated), (true, .suppressed): continue
+            default: return false
             }
         }
+        return true
     }
 
     public func validate() throws {
         if let failure {
             try failure.validate()
         }
-        for state in featureStates.values {
-            if case let .failed(featureFailure) = state {
+        let graphIDs = Set(document.designGraph.nodes.keys)
+        guard Set(featureStates.keys) == graphIDs else {
+            throw FeatureEvaluationError.invalidGraph("Evaluation states must cover exactly the source graph.")
+        }
+        for (id, state) in featureStates {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            switch state {
+            case .failed(let featureFailure):
                 try featureFailure.validate()
+                guard featureFailure.featureID == id,
+                      Set(featureFailure.invalidatedFeatureIDs).isSubset(of: graphIDs) else {
+                    throw FeatureEvaluationError.invalidGraph("Failed feature state has foreign provenance.")
+                }
+                for downstream in featureFailure.invalidatedFeatureIDs {
+                    guard case .some(.blocked(let upstream)) = featureStates[downstream], upstream == id else {
+                        throw FeatureEvaluationError.invalidGraph("Failed feature descendants must retain blocked provenance.")
+                    }
+                }
+            case .blocked(let upstream):
+                guard upstream != id, case .some(.failed(let failed)) = featureStates[upstream],
+                      failed.invalidatedFeatureIDs.contains(id) else {
+                    throw FeatureEvaluationError.invalidGraph("Blocked state must identify its failed upstream producer.")
+                }
+            case .evaluated:
+                guard document.designGraph.nodes[id]?.isSuppressed == false else {
+                    throw FeatureEvaluationError.invalidGraph("A suppressed feature cannot have an evaluated state.")
+                }
+            case .suppressed:
+                guard document.designGraph.nodes[id]?.isSuppressed == true else {
+                    throw FeatureEvaluationError.invalidGraph("An active feature cannot have a suppressed state.")
+                }
+            case .unevaluated: break
             }
         }
         switch (evaluatedDocument, failure) {
         case let (.some(evaluatedDocument), .none):
             try evaluatedDocument.validate()
-            let tolerance = evaluatedDocument.configuration.tolerance
-            let reportFingerprint = try document.sourceFingerprint(tolerance: tolerance)
-            let evaluatedFingerprint = try evaluatedDocument.document.sourceFingerprint(
-                tolerance: tolerance
-            )
-            guard reportFingerprint == evaluatedFingerprint, isComplete else {
+            guard document == evaluatedDocument.document, isComplete else {
                 throw FeatureEvaluationError.invalidGraph(
                     "A successful evaluation report must describe its complete evaluated document."
                 )
@@ -65,6 +92,7 @@ public struct EvaluationReport: Codable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case document
         case evaluatedDocument
@@ -104,9 +132,10 @@ public struct EvaluationReport: Codable, Sendable {
         try container.encode(featureStates, forKey: .featureStates)
         try container.encode(failure, forKey: .failure)
     }
+#endif
 }
 
-public struct EvaluationFailure: Codable, Sendable, Hashable {
+public struct EvaluationFailure: Sendable, Hashable {
     public var message: String
 
     public init(message: String) {
@@ -119,3 +148,8 @@ public struct EvaluationFailure: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension EvaluationReport: Codable {}
+extension EvaluationFailure: Codable {}
+#endif

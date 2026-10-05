@@ -1,4 +1,3 @@
-import Foundation
 import CADCore
 import CADIR
 import CADKernel
@@ -16,9 +15,10 @@ public actor DocumentTransactionSession: DocumentTransacting {
         let after: EvaluatedDocument
     }
 
-    private let sessionID = UUID()
+    private let sessionID = PortableIdentity128()
     private let editor: any DocumentEditing
     private let evaluator: any ExactDocumentEvaluating
+    private let cancellation: any CurrentTaskCancellationChecking
     private let tolerance: ModelingTolerance
     private let limits: DocumentTransactionLimits
     private var committed: EvaluatedDocument
@@ -31,13 +31,15 @@ public actor DocumentTransactionSession: DocumentTransacting {
         document: CADDocument,
         editor: any DocumentEditing = DocumentEditor(),
         evaluator: any ExactDocumentEvaluating,
-        limits: DocumentTransactionLimits
+        limits: DocumentTransactionLimits,
+        cancellation: any CurrentTaskCancellationChecking = CurrentTaskCancellationChecker()
     ) throws {
         let tolerance = evaluator.evaluationTolerance
         try tolerance.validate()
-        self.committed = try Self.evaluate(document, using: evaluator, tolerance: tolerance)
+        self.committed = try Self.evaluate(document, using: evaluator, tolerance: tolerance, cancellation: cancellation)
         self.editor = editor
         self.evaluator = evaluator
+        self.cancellation = cancellation
         self.tolerance = tolerance
         self.limits = limits
     }
@@ -52,48 +54,48 @@ public actor DocumentTransactionSession: DocumentTransacting {
     }
 
     public func begin(expectedEpoch: UInt64) throws -> DocumentTransactionToken {
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         try requireEpoch(expectedEpoch)
         guard draft == nil else { throw DocumentTransactionError.transactionAlreadyActive }
-        let token = DocumentTransactionToken(sessionID: sessionID, transactionID: UUID(), baseEpoch: epoch)
+        let token = DocumentTransactionToken(sessionID: sessionID, transactionID: PortableIdentity128(), baseEpoch: epoch)
         draft = Draft(token: token, document: committed.document, commandCount: 0)
         return token
     }
 
     public func stage(_ commands: [CADCommand], in token: DocumentTransactionToken) throws -> DocumentTransactionPreview {
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         var staged = try requireDraft(token)
         guard !commands.isEmpty else { throw DocumentTransactionError.emptyCommandBatch }
         guard commands.count <= limits.maximumCommandsPerTransaction - staged.commandCount else {
             throw DocumentTransactionError.resourceLimitExceeded("Commands per transaction")
         }
         for command in commands {
-            try Task.checkCancellation()
+            try cancellation.checkCancellation()
             let next = try editor.apply(command, to: staged.document, tolerance: tolerance)
             guard next.id == committed.document.id else { throw DocumentTransactionError.incompatibleEditorOutput }
             try next.validate(tolerance: tolerance)
             staged.document = next
         }
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         staged.commandCount += commands.count
         draft = staged
         return makePreview(staged)
     }
 
     public func preview(_ token: DocumentTransactionToken) throws -> DocumentTransactionPreview {
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         return makePreview(try requireDraft(token))
     }
 
     public func commit(_ token: DocumentTransactionToken) throws -> DocumentTransactionSnapshot {
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         let staged = try requireDraft(token)
         guard staged.commandCount > 0 else { throw DocumentTransactionError.emptyTransaction }
         guard undoRecords.count < limits.maximumHistoryEntries else {
             throw DocumentTransactionError.resourceLimitExceeded("History entries")
         }
         let nextEpoch = try advancedEpoch()
-        let evaluated = try Self.evaluate(staged.document, using: evaluator, tolerance: tolerance)
+        let evaluated = try Self.evaluate(staged.document, using: evaluator, tolerance: tolerance, cancellation: cancellation)
         // Publication has no suspension point; all fallible work precedes these mutations.
         redoRecords.removeAll(keepingCapacity: false)
         undoRecords.append(HistoryRecord(before: committed, after: evaluated))
@@ -104,13 +106,13 @@ public actor DocumentTransactionSession: DocumentTransacting {
     }
 
     public func rollback(_ token: DocumentTransactionToken) throws {
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         _ = try requireDraft(token)
         draft = nil
     }
 
     public func undo(expectedEpoch: UInt64) throws -> DocumentTransactionSnapshot {
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         try requireHistoryAccess(expectedEpoch)
         guard let record = undoRecords.last else { throw DocumentTransactionError.noUndo }
         let nextEpoch = try advancedEpoch()
@@ -122,7 +124,7 @@ public actor DocumentTransactionSession: DocumentTransacting {
     }
 
     public func redo(expectedEpoch: UInt64) throws -> DocumentTransactionSnapshot {
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         try requireHistoryAccess(expectedEpoch)
         guard let record = redoRecords.last else { throw DocumentTransactionError.noRedo }
         let nextEpoch = try advancedEpoch()
@@ -163,15 +165,16 @@ public actor DocumentTransactionSession: DocumentTransacting {
     private nonisolated static func evaluate(
         _ document: CADDocument,
         using evaluator: any ExactDocumentEvaluating,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        cancellation: any CurrentTaskCancellationChecking
     ) throws -> EvaluatedDocument {
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         try document.validate(tolerance: tolerance)
         let evaluated = try evaluator.evaluateExact(document)
         guard evaluated.document == document, evaluated.configuration.tolerance == tolerance else {
             throw DocumentTransactionError.incompatibleEvaluationOutput
         }
-        try Task.checkCancellation()
+        try cancellation.checkCancellation()
         return evaluated
     }
 }

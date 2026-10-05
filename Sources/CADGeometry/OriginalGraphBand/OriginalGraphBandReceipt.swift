@@ -5,6 +5,15 @@ import Foundation
 package struct OriginalGraphBandReceipt: Sendable {
     fileprivate final class Identity: Sendable {}
 
+    package struct Row: Sendable {
+        fileprivate let owner: Identity
+        fileprivate let cellIndex: Int
+        fileprivate let u: Double
+        fileprivate let lower: OriginalGraphBandRationalPiece.GraphJet
+        fileprivate let upper: OriginalGraphBandRationalPiece.GraphJet
+        fileprivate let surfaceRow: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan.RowEvaluator
+    }
+
     package struct Station: Sendable {
         package let parameter: SurfaceParameter
         package let point: Point3D
@@ -39,6 +48,7 @@ package struct OriginalGraphBandReceipt: Sendable {
         package let sourceVertex: Point3D
         package let originalPositionErrorUpperBound: Double
         package let panels: [SurfaceTessellationDifferentialBounds.OriginalNativePanel]
+        let originalPanelJets: [SurfaceIntervalVectorJet]
         package let entry: SurfaceParameterBox
         package let exit: SurfaceParameterBox
     }
@@ -64,44 +74,72 @@ package struct OriginalGraphBandReceipt: Sendable {
         self.originalBoundaryIntervals = originalBoundaryIntervals
     }
 
-    /// The station is a mesh approximation, paired with its original inverse uncertainty.
-    package func station(cellIndex: Int, u: Double, w: Double,
-                         pointCandidate: Point3D? = nil,
-                         proofUsage: inout OriginalTessellationProofUsage)
-      throws -> Station {
-        guard referenceCells.indices.contains(cellIndex), u.isFinite, w.isFinite,
-              referenceCells[cellIndex].u.contains(u), (0...1).contains(w) else {
+    /// Retains one original lower/upper inverse proof for a closed U station.
+    package func stationRow(cellIndex: Int, u: Double,
+                            proofUsage: inout OriginalTessellationProofUsage) throws -> Row {
+        guard referenceCells.indices.contains(cellIndex), u.isFinite,
+              referenceCells[cellIndex].u.contains(u) else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                              message: "A graph-band station requires its original retained reference cell.")
+                              message: "A graph-band row requires its original retained reference cell.")
         }
-        // Materialization is its own proof operation even when every original
-        // graph inverse is an exact native endpoint shortcut.
         try proofUsage.consume(depth: 0, tolerance: tolerance)
         let cell = referenceCells[cellIndex]
         let pointU = try ScalarInterval(lower: u, upper: u)
         let lower = try cell.lowerPiece.graphJet(over: pointU, tolerance: tolerance, proofUsage: &proofUsage)
         let upper = try cell.upperPiece.graphJet(over: pointU, tolerance: tolerance, proofUsage: &proofUsage)
-        let value = (OutwardScalarInterval.exact(1) - .exact(w)) * lower.v + .exact(w) * upper.v
+        let surfaceRow = try cell.nativePanel.span.prepareStationRow(u: u, on: input.surface,
+            tolerance: tolerance) { try proofUsage.consume(depth: 0, tolerance: tolerance) }
+        try Task.checkCancellation()
+        return Row(owner: identity, cellIndex: cellIndex, u: u, lower: lower, upper: upper, surfaceRow: surfaceRow)
+    }
+
+    /// The station is a mesh approximation, paired with its original inverse uncertainty.
+    package func station(cellIndex: Int, u: Double, w: Double,
+                         pointCandidate: Point3D? = nil,
+                         proofUsage: inout OriginalTessellationProofUsage) throws -> Station {
+        guard w.isFinite, (0...1).contains(w) else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                              message: "A graph-band station requires a finite normalized W value.")
+        }
+        let row = try stationRow(cellIndex: cellIndex, u: u, proofUsage: &proofUsage)
+        return try station(row: row, w: w, pointCandidate: pointCandidate, proofUsage: &proofUsage)
+    }
+
+    /// Reuses original U preparation; each actual V station retains its independent proof.
+    package func station(row: Row, w: Double, pointCandidate: Point3D? = nil,
+                         proofUsage: inout OriginalTessellationProofUsage) throws -> Station {
+        guard row.owner === identity, referenceCells.indices.contains(row.cellIndex),
+              row.u.isFinite, referenceCells[row.cellIndex].u.contains(row.u),
+              w.isFinite, (0...1).contains(w) else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                              message: "A graph-band station requires this receipt's retained original row.")
+        }
+        // Original surface materialization remains paid even when row inverse
+        // evidence was already retained or used at another W station.
+        try proofUsage.consume(depth: 0, tolerance: tolerance)
+        let cellIndex = row.cellIndex
+        let u = row.u
+        let value = (OutwardScalarInterval.exact(1) - .exact(w)) * row.lower.v + .exact(w) * row.upper.v
         guard value.isFinite else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                               message: "An original graph-band station exceeded finite materialization arithmetic.")
         }
         let v = value.midpoint
         let parameter = SurfaceParameter(u: u, v: v)
-        let point = try pointCandidate ?? input.surface.point(u: u, v: v, tolerance: tolerance)
+        let intervalV = try ScalarInterval(lower: value.lower, upper: value.upper)
+        let materialized = try row.surfaceRow.materialize(v: v, overClosedV: intervalV, pointCandidate: pointCandidate)
+        let point = materialized.point
         guard point.x.isFinite, point.y.isFinite, point.z.isFinite else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "A retained mesh station candidate must have finite coordinates.")
         }
-        let normal = try input.surface.normal(u: u, v: v, owning: cell.nativePanel.span, tolerance: tolerance)
-        let query = try SurfaceParameterBox(u: pointU,
-            v: ScalarInterval(lower: value.lower, upper: value.upper))
-        let original = try cell.nativePanel.span.intervalJet(overClosedBox: query,
-                                                            on: input.surface, tolerance: tolerance)
+        let normal = materialized.normal
+        let original = materialized.enclosure
         let positionError = IntervalVector3DBounds(
-            x: original.x.value - .exact(point.x), y: original.y.value - .exact(point.y),
-            z: original.z.value - .exact(point.z)).lengthUpperBound
-        let normalError = try Self.normalAngleUpper(jet: original, candidate: normal, tolerance: tolerance)
+            x: original.value.x - .exact(point.x), y: original.value.y - .exact(point.y),
+            z: original.value.z - .exact(point.z)).lengthUpperBound
+        let normalError = try Self.normalAngleUpper(tangents: original.derivativeU.cross(original.derivativeV),
+                                                   candidate: normal, tolerance: tolerance)
         guard positionError.isFinite, positionError <= fidelity.linearTolerance else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                               residual: positionError, tolerance: tolerance,
@@ -159,7 +197,8 @@ package struct OriginalGraphBandReceipt: Sendable {
                                positions: [Point3D], normals: [Vector3D],
                                proofUsage: inout OriginalTessellationProofUsage) throws {
         guard joinCells.indices.contains(joinIndex), positions.count == 3, normals.count == 3,
-              joinCells[joinIndex].panels.indices.contains(panelIndex) else {
+              joinCells[joinIndex].panels.indices.contains(panelIndex),
+              joinCells[joinIndex].originalPanelJets.count == joinCells[joinIndex].panels.count else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "A join facet requires its retained original uncertainty cell.")
         }
@@ -177,9 +216,10 @@ package struct OriginalGraphBandReceipt: Sendable {
                               residual: bound, tolerance: tolerance,
                               message: "The actual join facet exceeds retained original uncertainty fidelity.")
         }
-        let panel = join.panels[panelIndex]
-        let jet = try panel.span.intervalJet(overClosedBox: panel.parameters,
-                                            on: input.surface, tolerance: tolerance)
+        // Construction paid and retained the full original closed selected panel.
+        // Actual facet admission still pays its existing operation and verifies
+        // every position, normal and edge against that same immutable authority.
+        let jet = join.originalPanelJets[panelIndex]
         for normal in normals {
             let angle = try Self.normalAngleUpper(jet: jet, candidate: normal, tolerance: tolerance)
             guard angle <= fidelity.angularTolerance else {
@@ -194,9 +234,20 @@ package struct OriginalGraphBandReceipt: Sendable {
 
     private static func normalAngleUpper(jet: SurfaceIntervalVectorJet,
                                          candidate: Vector3D, tolerance: ModelingTolerance) throws -> Double {
+        let u = IntervalVector3DBounds(x: jet.x.derivativeU, y: jet.y.derivativeU, z: jet.z.derivativeU)
+        let v = IntervalVector3DBounds(x: jet.x.derivativeV, y: jet.y.derivativeV, z: jet.z.derivativeV)
+        return try normalAngleUpper(tangents: u.cross(v), candidate: candidate, tolerance: tolerance)
+    }
+
+    private static func normalAngleUpper(tangents: IntervalVector3DBounds,
+                                         candidate: Vector3D, tolerance: ModelingTolerance) throws -> Double {
+        let originalMagnitude = OutwardScalarInterval(lower: tangents.lengthLowerBound,
+                                                      upper: tangents.lengthUpperBound)
         guard candidate.x.isFinite, candidate.y.isFinite, candidate.z.isFinite,
-              let original = jet.differentiatedUThroughSecondOrder()
-                .cross(jet.differentiatedVThroughSecondOrder()).normalized() else {
+              originalMagnitude.lower > 0,
+              let originalX = tangents.x.divided(by: originalMagnitude),
+              let originalY = tangents.y.divided(by: originalMagnitude),
+              let originalZ = tangents.z.divided(by: originalMagnitude) else {
             throw KernelError(phase: .geometry, code: .singularGeometry, tolerance: tolerance,
                               message: "Original graph-band normals require a proved regular selected support.")
         }
@@ -207,8 +258,8 @@ package struct OriginalGraphBandReceipt: Sendable {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "Actual mesh normals must have a finite nonzero direction.")
         }
-        let chord = IntervalVector3DBounds(x: original.x.value - x, y: original.y.value - y,
-                                          z: original.z.value - z).lengthUpperBound
+        let chord = IntervalVector3DBounds(x: originalX - x, y: originalY - y,
+                                          z: originalZ - z).lengthUpperBound
         guard chord.isFinite else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                               message: "Original graph-band normal comparison exceeded finite arithmetic.")

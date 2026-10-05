@@ -44,7 +44,7 @@ struct STEPAttributesExchangeTests {
             let native = DataByteSink(), store = NativePackageStore(tolerance: .standard)
             try store.writePackage(for: source, to: native)
             let restored = try store.loadDocument(from: native.bytes)
-            #expect(restored == source && restored.schemaVersion == SchemaVersion(major: 0, minor: 11, patch: 0))
+            #expect(restored == source && restored.schemaVersion == SchemaVersion(major: 0, minor: 12, patch: 0))
             let evaluated = try evaluator.evaluate(restored), resolved = try resolver.resolve(evaluated)
             let writer: any STEPAttributesWriting = STEPAttributesWriter()
             #expect(resolved.consumedWork > 1)

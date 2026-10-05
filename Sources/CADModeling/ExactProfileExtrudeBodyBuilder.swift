@@ -1,4 +1,6 @@
+import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
 
@@ -6,15 +8,18 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
     private let featureID: FeatureID
     private let context: EvaluationContext
     private let sewer: any BRepSewing
+    private let admission: GeometryConversionAdmission?
 
     package init(
         featureID: FeatureID,
         context: EvaluationContext,
-        sewer: any BRepSewing
+        sewer: any BRepSewing,
+        admission: GeometryConversionAdmission? = nil
     ) {
         self.featureID = featureID
         self.context = context
         self.sewer = sewer
+        self.admission = admission
     }
 
     package func build(
@@ -25,9 +30,14 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         bodyKind: BodyKind,
         includesCaps: Bool,
         draftTangent: Double = 0,
-        wallThickness: Double = 0
+        draftDirection: Vector3D? = nil,
+        wallThickness: Double = 0,
+        sourceDraftAngle: Double? = nil,
+        originalFaceSection: ResolvedFaceSection? = nil,
+        originalCurveSpans: [ExactBSplineCurveSpan]? = nil
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
+        let sourceAdmission = try admission ?? CurvedSweepSourceBudget(tolerance: context.tolerance).conversionAdmission()
         guard profile.vertices.count >= 3 else {
             throw SketchError.openProfile
         }
@@ -51,12 +61,25 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
             ? .forward
             : .reversed
         let capNormal = profileNormal * (normalComponent >= 0.0 ? 1.0 : -1.0)
+        let originalDirections = OriginalDraftDirectionInputs(plane: profile.plane, direction: direction, pull: draftDirection)
+        let independentPull = draftDirection != nil
+            || (draftTangent != 0 && abs(abs(normalComponent) - 1) > context.tolerance.angle)
+        let independentDraft = independentPull
+            || (wallThickness == 0 && sourceDraftAngle.map({ $0 != 0 }) == true)
         let patchBuilder = ExactPrismaticFacePatchBuilder(tolerance: context.tolerance)
         let boundaries: [[ExactPrismaticBoundarySegment]]
         let request: BRepSewingRequest
         if wallThickness != 0 {
             // A thin extrusion: one solid ring of the thickness along every loop, on the
             // material's side, drafted with the section when it is drafted.
+            // FIXME(INCOMPLETE_IMPLEMENTATION): the thin closed-profile path requires both
+            // independent-pull wall offsets and finite sharp-corner intersection tracks.
+            // Public Extrude reaches this path; completion requires the retained original
+            // draft law on both material boundaries and exact wall/cap admission.
+            guard !independentPull else {
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: context.tolerance,
+                    message: "Independent-pull thin extrusion requires both offset wall intersection tracks.")
+            }
             guard includesCaps, bodyKind == .solid, draftTangent.isFinite,
                   draftTangent == 0 || abs(abs(normalComponent) - 1) <= context.tolerance.angle else {
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: context.tolerance,
@@ -64,7 +87,8 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
             }
             let lower = axis.dot(bottomOffset)
             let reach = max(abs(lower * draftTangent), abs((lower + distance) * draftTangent)) + wallThickness
-            let walls = ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance, splineReach: reach)
+            let walls = ExactDraftedProfileBoundaryBuilder(tolerance: context.tolerance,
+                splineReach: reach, admission: sourceAdmission)
             let bottom = try walls.wallRegions(
                 from: profile, planeNormal: profileNormal, axis: axis, height: lower, tangent: draftTangent, thickness: wallThickness
             )
@@ -86,20 +110,46 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
                 subshapes: subshapes,
                 lineage: try GeneratedTopologyLineageBuilder().build(featureID: featureID, subshapes: subshapes)
             )
+        } else if independentDraft {
+            let lower = axis.dot(bottomOffset)
+            let sections: (lower: [[ExactPrismaticBoundarySegment]], upper: [[ExactPrismaticBoundarySegment]])
+            if let originalCurveSpans {
+                sections = try DraftedProfileSectionPairBuilder().pair(originalCurveSpans: originalCurveSpans,
+                    normal: originalDirections.normal, axis: originalDirections.axis, pull: originalDirections.pull,
+                    lowerHeight: lower, upperHeight: lower + distance,
+                    angle: sourceDraftAngle ?? atan(draftTangent), tolerance: context.tolerance,
+                    admission: sourceAdmission)
+            } else if let originalFaceSection {
+                sections = try DraftedProfileSectionPairBuilder().pair(face: originalFaceSection,
+                    normal: originalDirections.normal, axis: originalDirections.axis, pull: originalDirections.pull,
+                    lowerHeight: lower, upperHeight: lower + distance,
+                    angle: sourceDraftAngle ?? atan(draftTangent), tolerance: context.tolerance,
+                    admission: sourceAdmission)
+            } else {
+                sections = try DraftedProfileSectionPairBuilder().pair(profile: profile,
+                    normal: originalDirections.normal, axis: originalDirections.axis, pull: originalDirections.pull,
+                    lowerHeight: lower, upperHeight: lower + distance,
+                    angle: sourceDraftAngle ?? atan(draftTangent), tolerance: context.tolerance, admission: sourceAdmission)
+            }
+            boundaries = sections.lower
+            request = try patchBuilder.request(bottom: sections.lower, top: sections.upper,
+                featureID: featureID, stablePrefix: "extrude", bodyKind: bodyKind,
+                includesCaps: includesCaps, sideOrientation: sideOrientation, capNormal: capNormal)
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Direct tangent-only compatibility callers lack an original angle receipt.
+        // Public authored-angle non-thin extrusion selects the original ruling above. This candidate-only
+        // route cannot establish a final physical-radian draft certificate without its retained angle law.
         } else if draftTangent != 0 {
             // A draft tapers the walls by one angle through the whole span, measured from the
             // sketch plane along the axis, so the axis must be the plane's normal.
             guard draftTangent.isFinite, abs(abs(normalComponent) - 1) <= context.tolerance.angle else {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): an oblique extrusion is refused a draft.
-                // Production path: ExactProfileExtrudeBodyBuilder for every extrude with a draft
-                // angle. Complete only when an oblique drafted extrusion's walls keep the angle to
-                // the extrusion direction, verified by its wall normals.
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: context.tolerance,
                                   message: "A drafted extrusion runs along its section's normal.")
             }
             let lower = axis.dot(bottomOffset)
             let drafted = ExactDraftedProfileBoundaryBuilder(
-                tolerance: context.tolerance, splineReach: max(abs(lower * draftTangent), abs((lower + distance) * draftTangent))
+                tolerance: context.tolerance,
+                splineReach: max(abs(lower * draftTangent), abs((lower + distance) * draftTangent)),
+                admission: sourceAdmission
             )
             boundaries = try drafted.boundaries(
                 from: profile, planeNormal: profileNormal, axis: axis, height: lower, tangent: draftTangent
@@ -402,13 +452,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         case .normal, .symmetric:
             return try normal(for: plane)
         case let .vector(vector):
-            do {
-                return try vector.normalized(
-                    tolerance: context.tolerance.distance
-                )
-            } catch GeometryError.invalidVectorLength {
-                throw FeatureEvaluationError.invalidDirection(vector)
-            }
+            return try OriginalDraftDirectionInputs.normalized(vector)
         }
     }
 
@@ -421,9 +465,7 @@ package struct ExactProfileExtrudeBodyBuilder: Sendable {
         case .zx:
             return .unitY
         case let .plane(value):
-            return try value.normal.normalized(
-                tolerance: context.tolerance.distance
-            )
+            return try OriginalDraftDirectionInputs.normalized(value.normal)
         }
     }
 

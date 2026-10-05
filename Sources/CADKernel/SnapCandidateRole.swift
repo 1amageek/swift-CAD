@@ -1,4 +1,4 @@
-public enum SnapCandidateRole: String, Codable, Sendable, Hashable {
+public enum SnapCandidateRole: String, Sendable, Hashable {
     case topologyVertex
     case edgeProjection
     case curveProjection
@@ -7,3 +7,7 @@ public enum SnapCandidateRole: String, Codable, Sendable, Hashable {
     case curveMidpoint
     case faceProjection
 }
+
+#if !hasFeature(Embedded)
+extension SnapCandidateRole: Codable {}
+#endif

@@ -1,12 +1,12 @@
 import CADCore
 import CADGeometry
 
-public enum SurfaceTrimLoopRole: String, Codable, CaseIterable, Hashable, Sendable {
+public enum SurfaceTrimLoopRole: String, CaseIterable, Hashable, Sendable {
     case outer
     case inner
 }
 
-public struct SurfaceTrimLoop: Codable, Hashable, Sendable {
+public struct SurfaceTrimLoop: Hashable, Sendable {
     public let role: SurfaceTrimLoopRole
     public let parameterCurves: [SurfaceParameterCurve]
 
@@ -40,11 +40,14 @@ public struct SurfaceTrimLoop: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case role
         case parameterCurves
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.role, .parameterCurves], in: decoder)
@@ -55,11 +58,19 @@ public struct SurfaceTrimLoop: Codable, Hashable, Sendable {
         )
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(role, forKey: .role)
         try container.encode(parameterCurves, forKey: .parameterCurves)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceTrimLoopRole: Codable {}
+extension SurfaceTrimLoop: Codable {}
+#endif

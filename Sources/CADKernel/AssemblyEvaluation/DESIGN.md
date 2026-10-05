@@ -47,7 +47,7 @@ flowchart LR
     DAG[Assembly source DAG] --> Expand[Bounded path expansion]
     Local --> Resolve[Resolve live definition bodies]
     Expand --> Resolve
-    Resolve --> Transform[Exact rigid images and unique world IDs]
+    Resolve --> Transform[Original affine images and unique world IDs]
     Transform --> World[Validated world BRep]
     Transform --> Index[Typed occurrence correspondence]
     World --> Mesh[World mesh/cache generation]
@@ -61,12 +61,11 @@ flowchart LR
 - Every definition body is resolved from real live subshape outputs of its
   declared FeatureIDs. Missing, consumed, ambiguous, or non-body outputs fail.
   Local body geometry remains ownership-closed and exact. Solid images use solid
-  roots; sheet images use their existing shell roots and reattach their retained
-  source body ownership records after the exact rigid operation. Shell transformation
+  roots; sheet images use their existing shell and source body records under the original affine image operation. Shell transformation
   does not invent a solid or a new local source body. Every live local body
   must be accounted for by the assembly source; none is silently omitted.
 - The correspondence index identifies each complete occurrence path, its source
-  definition, composed proper rigid frame, local body identities, and world
+  definition, original placement word, local body identities, and world
   body/face/edge/vertex identities. It is validated against source and both local
   and world models. Index coverage of world topology is complete and unique.
 - World topology identities are deterministic functions of persistent path and
@@ -90,7 +89,8 @@ flowchart LR
   the standard source validation can expand a DAG; certified-document entry checks
   them again before local evaluation. Consistency validation accepts a caller ceiling
   and otherwise uses the artifact's retained admitted limits. Geometry counting traverses persistent-map values directly
-  through their existing Codable payloads into an operation-local counting encoder,
+  through their common PortableSourceEncodable payloads into an operation-local
+  PortableSourceEncoder measurement,
   without map materialization, a serialized buffer, or control-net copies.
   Primitive/array values, including loop-owned trim/control arrays, bound retained
   geometry storage;
@@ -114,7 +114,7 @@ flowchart LR
 ```text
 validate source -> evaluate/reuse local features -> retain immutable local base
  -> expand occurrence paths -> extract local definition bodies -> charge copies
- -> compose parent/local frame -> rigid transform -> reidentify -> combine
+ -> concatenate original factors -> bounded original affine image -> reidentify -> combine
  -> validate world model/index -> create world meshes/caches -> publish snapshot
 ```
 
@@ -123,8 +123,9 @@ validate source -> evaluate/reuse local features -> retain immutable local base
 Local and world artifacts are immutable snapshot-owned values. Local geometry
 may share immutable storage through existing value semantics, but every world
 topology record belongs to one occurrence path. Operation counters and temporary
-maps are confined to one synchronous evaluation. No registry, shared mutable
-state, I/O, callback, or platform-specific synchronization is introduced.
+maps are confined to one synchronous evaluation. An invocation-owned Mutex usage receipt is shared by synchronous lower callbacks.
+All targets use the same storage and isolation; no callback or I/O executes under
+the lock. No global registry is introduced.
 
 ## Failure, Concurrency, and Constraints
 
@@ -144,3 +145,68 @@ evaluation, consumed-output/resource/cancellation refusal, and source/derived
 consistency. STEP/native tests verify the same artifacts through public document
 flows. Changes require rechecking DocumentAssembly, existing evaluator
 incremental/cache invariants, GenericShape exact transforms, and STEP export.
+
+## Original Affine Placement Words
+
+Assembly expansion supplies ordered immutable original rigid/affine factors.
+An invocation-owned Mutex-backed usage receipt starts at structural expansion's
+consumedWork and is shared by source feature extraction, bounded exact validation,
+original-image placement, world namespace retention and correspondence publication.
+Each feature model receives one exact source certificate. ShapeOperating's
+validated-model original-word port retains flat original curve/surface images,
+native UV/pcurve/coedge laws and exact determinant reflection orientation. No
+rounded flattened matrix, unplaced fallback or fabricated validation receipt is
+used. Bounded output validation precedes topology reidentification; the original
+word remains in each published occurrence correspondence. All common source fields,
+Sendable and synchronization contracts are identical on Native/WASM/Embedded;
+Codable adapters remain Native-only. Deferred execution must cover nested mixed
+rigid/affine words, reflection, shear/nonuniform scale, repeated/shared definitions,
+source and decoded artifacts, cancellation and same-ledger refusal.
+
+### Original Operation and Shared Admission
+
+Persistent factors retain forward/inverse direction on their original direct
+source. Original factors are applied leaf-to-root through the validated-model
+ShapeOperating word port. Its prepared rational/algebraic action retains exact
+inverse and direction normalization laws; a rounded inverse matrix cannot
+substitute for them. Legacy context-free normalized point/vector conveniences
+remain marked separately from this explicit caller path.
+
+Bounded ValidatedBRepModel input and output receipts share the invocation usage
+callback and caller depth caps. Source-local certificates are retained once per
+feature. Structural extraction and reidentification copies keep their original
+prepaid pass allowance, while original numeric validation/image visits charge the
+same remaining work before execution. PortableSourceEncoder.measure counts the
+actual common source payload without retaining its output byte buffer; required
+canonical sorting scratch remains charged. Native codecs are adapters and never
+participate in common geometry admission.
+
+| State | Native | WASM | Embedded |
+|---|---|---|---|
+| Invocation usage | Mutex<State> | Mutex<State> | Mutex<State> |
+| Read | remainingWork/consumedWork withLock | same | same |
+| Mutation | consume before lower work, withLock | same | same |
+| Release | invocation ARC owner after synchronous evaluation | same | same |
+
+Lower bounded correspondence, seam/chart lift and exact inverse authority are
+tracked by their owning components. Until those original lower ports close,
+this source composition is incomplete even when a restricted forward image works.
+
+### Flat Original Placement Action
+
+AssemblyPlacementWord.originalOperationWord receives the explicit evaluation
+tolerance and min(32, caller maximumDepth), and uses AssemblyOriginalAlgebraAdmission
+backed by the invocation's existing Mutex-owned usage. Rational/algebraic work
+and exact root visits share that owner; retained UInt32 limbs are charged as
+checked bytes to its original work/storage envelope before allocation. One
+immutable operation word is prepared per occurrence and reused across its source
+features. Original inverse operations and normalized STEP directions remain
+source; no rounded inverse/composition or reset allowance is introduced.
+Topology owns original curve/surface image publication and orientation transport,
+with word length independent of the child-source min(16, caller depth) cap.
+
+Original word preparation and its exact-cell visit adapter consume the explicit
+AssemblyResourceLimits.maximumAlgebraicDepth, independent from structural
+maximumDepth and bounded curve subdivision. The same AssemblyEvaluationUsage
+owner admits exact work/storage and ordinary geometry visits; separating the
+depth authorities neither resets counters nor enlarges any numeric ceiling.

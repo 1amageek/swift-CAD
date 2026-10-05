@@ -1,6 +1,6 @@
 import CADCore
 
-public enum ProjectionQueryResult: Codable, Sendable {
+public enum ProjectionQueryResult: Sendable {
     case curveClosest(CurveProjectionResult)
     case curveDirectional(CurveDirectionalProjectionResult)
     case edgeClosest(EdgeProjectionResult)
@@ -8,6 +8,7 @@ public enum ProjectionQueryResult: Codable, Sendable {
     case surfaceClosest(SurfaceProjectionResult)
     case surfaceDirectional(SurfaceDirectionalProjectionResult)
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case curveClosest
@@ -17,7 +18,9 @@ public enum ProjectionQueryResult: Codable, Sendable {
         case surfaceClosest
         case surfaceDirectional
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case curveClosest
         case curveDirectional
@@ -26,7 +29,9 @@ public enum ProjectionQueryResult: Codable, Sendable {
         case surfaceClosest
         case surfaceDirectional
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -68,7 +73,9 @@ public enum ProjectionQueryResult: Codable, Sendable {
             ))
         }
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -92,4 +99,9 @@ public enum ProjectionQueryResult: Codable, Sendable {
             try container.encode(result, forKey: .surfaceDirectional)
         }
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension ProjectionQueryResult: Codable {}
+#endif

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveOffsetFeature: Codable, Hashable, Sendable {
+public struct CurveOffsetFeature: Hashable, Sendable {
     public var source: CurveOutputReference
     public var distance: CADExpression
     public var planeNormal: Vector3D
@@ -25,13 +25,16 @@ public struct CurveOffsetFeature: Codable, Hashable, Sendable {
         try planeNormal.validateUnitLength(tolerance: tolerance)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source
         case distance
         case planeNormal
         case side
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -44,7 +47,9 @@ public struct CurveOffsetFeature: Codable, Hashable, Sendable {
         side = try container.decode(CurveOffsetSide.self, forKey: .side)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -53,9 +58,15 @@ public struct CurveOffsetFeature: Codable, Hashable, Sendable {
         try container.encode(planeNormal, forKey: .planeNormal)
         try container.encode(side, forKey: .side)
     }
+#endif
 }
 
-public enum CurveOffsetSide: String, Codable, CaseIterable, Hashable, Sendable {
+public enum CurveOffsetSide: String, CaseIterable, Hashable, Sendable {
     case left
     case right
 }
+
+#if !hasFeature(Embedded)
+extension CurveOffsetFeature: Codable {}
+extension CurveOffsetSide: Codable {}
+#endif

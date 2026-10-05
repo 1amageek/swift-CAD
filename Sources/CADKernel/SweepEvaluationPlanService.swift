@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 
@@ -61,6 +62,8 @@ public struct SweepEvaluationPlanService: Sendable {
     ) throws -> SweepEvaluationPlanResult {
         try tolerance.validate()
         try document.validate(tolerance: tolerance)
+        let sourceBudget = try CurvedSweepSourceBudget(tolerance: tolerance)
+        let sourceAdmission = try sourceBudget.conversionAdmission()
 
         let sweep = SweepFeature(
             sections: sections,
@@ -110,7 +113,8 @@ public struct SweepEvaluationPlanService: Sendable {
             document: document,
             parameters: parameters,
             evaluatedDocument: evaluatedDocument,
-            tolerance: tolerance
+            tolerance: tolerance,
+            sourceBudget: sourceBudget
         )
         let pathCurves = try curves(
             for: path.featureID,
@@ -173,25 +177,27 @@ public struct SweepEvaluationPlanService: Sendable {
         )
         // Straight arms with corners, open or closed, are admitted by building the mitred sweep.
         if chain.segments.allSatisfy({ $0.curve.exactCurve != nil }) {
-            let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(from: chain.segments, allowsClosed: chain.isClosed)
-            if MitredPolylineSweepBuilder.applies(options, pathSpans: spans, tolerance: tolerance) {
+            let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: sourceAdmission).pathSpans(from: chain.segments, allowsClosed: chain.isClosed)
+            if try MitredPolylineSweepBuilder.applies(options, pathSpans: spans, tolerance: tolerance, sourceBudget: sourceBudget) {
                 let sectionState: SweepEvaluationCapabilities.SectionState = guideCurves.isEmpty ? .identity : .guided
                 do {
-                    let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance)
-                    let loops: [[ExactBSplineCurveSpan]]
+                    let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: sourceAdmission)
+                    let loops = try spanBuilder.loopSpans(from: section)
                     let closedSection: Bool
                     switch section {
-                    case .profile(let profile, _):
-                        loops = try spanBuilder.profileLoopSpans(from: profile)
-                        closedSection = true
-                    case .curve(let curve):
-                        loops = [try spanBuilder.sectionSpans(from: curve)]
-                        closedSection = curve.isClosed
+                    case .profile, .face, .constructedRegion: closedSection = true
+                    case .curve(let curve): closedSection = curve.isClosed
                     }
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): This public preflight shares one
+                    // original-law ledger for span preparation and path admission. The
+                    // mitred request forwards that same admission, but internal contact
+                    // and patch proof/storage callbacks remain incomplete before fully
+                    // resource-bounded preflight can be claimed.
                     _ = try MitredPolylineSweepBuilder(tolerance: tolerance).request(
                         sectionLoops: loops, sectionIsClosed: closedSection, profilePlane: try section.plane(),
                         pathSpans: spans, pathIsClosed: chain.isClosed, options: options, values: optionValues,
-                        featureID: sweep.path.featureID
+                        featureID: sweep.path.featureID,
+                        guidesAreEmpty: guideCurves.isEmpty, sourceBudget: sourceBudget
                     )
                     let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .curved, sectionState: sectionState,
                         guideConstraintCount: guides.count, tolerance: tolerance, mitredPolylineAvailable: true)
@@ -214,9 +220,9 @@ public struct SweepEvaluationPlanService: Sendable {
         if chain.isClosed, chain.segments.allSatisfy({ $0.curve.exactCurve != nil }), options.alignment == .normal,
            optionValues.distanceFraction == 1 {
             do {
-                let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(from: chain.segments, allowsClosed: true)
+                let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: sourceAdmission).pathSpans(from: chain.segments, allowsClosed: true)
                 let certified = try CertifiedCurvedPathSweepPlan.closed(section: section, pathSpans: spans, sweep: sweep,
-                    values: optionValues, featureID: nil, tolerance: tolerance)
+                    values: optionValues, featureID: nil, tolerance: tolerance, sourceBudget: sourceBudget)
                 let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .curved, sectionState: .identity,
                     guideConstraintCount: guides.count, tolerance: tolerance, certifiedCurvedPathAvailable: true)
                 let supported = try SweepEvaluationCapabilities().supportedPlan(options, geometry: geometry, tolerance: tolerance)
@@ -245,21 +251,36 @@ public struct SweepEvaluationPlanService: Sendable {
             preferredNormal: normal(for: try section.plane(), tolerance: tolerance)
         )
         let curvedPathSpans = pathSegments.allSatisfy({ $0.curve.exactCurve != nil })
-            ? try ExactBSplineCurveSpanBuilder(tolerance: tolerance).pathSpans(
+            ? try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: sourceAdmission).pathSpans(
                 from: pathSegments, endingAt: optionValues.distanceFraction < 1 ? curvedFrames.last?.origin : nil
             )
             : []
         let circularSolid = try ExactCircularSweepPath(
             segments: pathSegments, distanceFraction: optionValues.distanceFraction, tolerance: tolerance
         ) != nil && options.resultKind == .solid
-        if curvedPathSpans.isEmpty == false, CertifiedCurvedPathSweepPlan.applies(options, pathSpans: curvedPathSpans, exactCircularSolid: circularSolid, tolerance: tolerance) {
+        if curvedPathSpans.isEmpty == false, try CertifiedCurvedPathSweepPlan.applies(options, pathSpans: curvedPathSpans, exactCircularSolid: circularSolid, tolerance: tolerance, sourceBudget: sourceBudget) {
             let sectionState: SweepEvaluationCapabilities.SectionState = guideCurves.isEmpty ? .identity : .guided
             do {
-                let guideSpans = try (guideCurves.count == 1 ? guideCurves.first : nil).map {
-                    try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: $0).map(\.curve)
-                }
+                let guideSpans: [BSplineCurve3D]?
+                if guideCurves.count == 1, let guide = guideCurves.first {
+                    let spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance,
+                        admission: sourceAdmission).sectionSpans(from: guide)
+                    let bytes = spans.count.multipliedReportingOverflow(by: MemoryLayout<BSplineCurve3D>.stride)
+                    guard !bytes.overflow else {
+                        throw KernelError(phase: .evaluation, code: .resourceLimitExceeded,
+                            tolerance: tolerance, message: "Original sweep guide retention overflows.")
+                    }
+                    try sourceBudget.retainBytes(bytes.partialValue)
+                    var retained: [BSplineCurve3D] = []; retained.reserveCapacity(spans.count)
+                    for span in spans {
+                        try sourceBudget.consumeExactWork(1)
+                        retained.append(span.curve)
+                    }
+                    guideSpans = retained
+                } else { guideSpans = nil }
                 let certified = try CertifiedCurvedPathSweepPlan(section: section, pathSpans: curvedPathSpans,
-                    sweep: sweep, values: optionValues, guide: guideSpans, featureID: nil, tolerance: tolerance)
+                    sweep: sweep, values: optionValues, guide: guideSpans, sourceBudget: sourceBudget,
+                    featureID: nil, tolerance: tolerance)
                 let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .curved, sectionState: sectionState,
                     guideConstraintCount: guides.count, tolerance: tolerance, certifiedCurvedPathAvailable: true)
                 let supported = try SweepEvaluationCapabilities().supportedPlan(options, geometry: geometry, tolerance: tolerance)
@@ -282,7 +303,7 @@ public struct SweepEvaluationPlanService: Sendable {
         if CertifiedTwistSweepPlan.requested(options) {
             do {
                 let certified = try CertifiedTwistSweepPlan(section: section, pathSegments: pathSegments,
-                    sweep: sweep, values: optionValues, tolerance: tolerance)
+                    sweep: sweep, values: optionValues, tolerance: tolerance, admission: sourceAdmission)
                 let geometry = SweepEvaluationCapabilities.Geometry(pathShape: .straight(profileNormalComponent: 1),
                     sectionState: .twisted, guideConstraintCount: guides.count, tolerance: tolerance,
                     certifiedTwistAvailable: true)
@@ -587,7 +608,8 @@ public struct SweepEvaluationPlanService: Sendable {
         document: CADDocument,
         parameters: ResolvedParameterTable,
         evaluatedDocument: EvaluatedDocument?,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        sourceBudget: CurvedSweepSourceBudget? = nil
     ) throws -> ResolvedModelingSection {
         switch section {
         case .face(let reference):
@@ -597,8 +619,9 @@ public struct SweepEvaluationPlanService: Sendable {
             }
             let context = EvaluationContext(parameters: parameters, brep: evaluated.brep, profiles: [:],
                 subshapes: evaluated.subshapes, lineage: evaluated.lineage, tolerance: tolerance)
-            return .profile(
-                try FaceSectionProfileResolver().profile(for: reference, context: context, featureID: reference.featureID),
+            return .face(
+                try FaceSectionProfileResolver().resolve(for: reference, context: context,
+                    featureID: reference.featureID, sourceBudget: sourceBudget),
                 section
             )
         case .profile(let profileReference):
@@ -623,7 +646,8 @@ public struct SweepEvaluationPlanService: Sendable {
             let curve = try ResolvedModelingSection.resolveCurve(
                 curveReference,
                 from: sourceCurves,
-                tolerance: tolerance
+                tolerance: tolerance,
+                admission: try sourceBudget?.conversionAdmission()
             )
             return .curve(curve)
         }
@@ -662,14 +686,16 @@ public struct SweepEvaluationPlanService: Sendable {
         document: CADDocument
     ) throws -> Set<FeatureID> {
         var required = Set(targets.map(\.featureID))
-        var curveSourceIDs = [path.featureID]
-        curveSourceIDs.append(contentsOf: guides.map(\.featureID))
+        var geometrySourceIDs = [path.featureID]
+        geometrySourceIDs.append(contentsOf: guides.map(\.featureID))
         for section in sections {
-            if case .curve(let reference) = section {
-                curveSourceIDs.append(reference.featureID)
+            switch section {
+            case .curve(let reference): geometrySourceIDs.append(reference.featureID)
+            case .face(let reference): geometrySourceIDs.append(reference.featureID)
+            case .profile: break
             }
         }
-        for featureID in curveSourceIDs {
+        for featureID in geometrySourceIDs {
             guard let feature = document.designGraph.nodes[featureID] else {
                 throw FeatureEvaluationError.missingInput(
                     "Sweep geometry source feature could not be resolved."

@@ -1,7 +1,7 @@
 import CADCore
 
 /// An ordered, oriented chain of coedges forming a face-local boundary.
-public struct Loop: Codable, Equatable, Sendable {
+public struct Loop: Equatable, Sendable {
     public var id: LoopID
     public var role: LoopRole
     public var coedges: [Coedge]
@@ -24,12 +24,15 @@ public struct Loop: Codable, Equatable, Sendable {
         self.coedges = coedges
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id
         case role
         case coedges
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.id, .role, .coedges], in: decoder)
@@ -37,11 +40,18 @@ public struct Loop: Codable, Equatable, Sendable {
         role = try container.decode(LoopRole.self, forKey: .role)
         coedges = try container.decode([Coedge].self, forKey: .coedges)
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encode(role, forKey: .role)
         try container.encode(coedges, forKey: .coedges)
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension Loop: Codable {}
+#endif

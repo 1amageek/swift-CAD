@@ -1,4 +1,5 @@
-import Foundation
+import CADCore
+
 
 /// SHA-256 (FIPS 180-4) of a byte buffer, written in Swift so the source fingerprint stays
 /// available on every platform the package builds for, WASI included.
@@ -41,8 +42,23 @@ enum SHA256Digest {
     }
 
     /// The lowercase hexadecimal digest of `data`.
-    static func hexDigest(for data: Data) -> String {
-        let words = data.withUnsafeBytes { digest(of: $0) }
+    static func hexDigest(for bytes: [UInt8]) -> String {
+        bytes.withUnsafeBytes { hexDigest(of: $0) }
+    }
+
+    static func hexDigest(of bytes: UnsafeRawBufferPointer) -> String {
+        hexDigest(words: digest(of: bytes))
+    }
+
+    static func sourceHexDigest(for bytes: [UInt8]) throws -> String {
+        try bytes.withUnsafeBytes { buffer in
+            try hexDigest(words: digest(of: buffer, check: {
+                try CurrentTaskCancellationChecker().checkCancellation()
+            }))
+        }
+    }
+
+    private static func hexDigest(words: [UInt32]) -> String {
         let digits = Array("0123456789abcdef".utf8)
         var output: [UInt8] = []
         output.reserveCapacity(64)
@@ -56,12 +72,21 @@ enum SHA256Digest {
 
     /// The eight digest words of `message`.
     static func digest(of message: UnsafeRawBufferPointer) -> [UInt32] {
+        digest(of: message, check: {})
+    }
+
+    // The caller owns the immutable buffer for this entire scoped borrow. Blocks and
+    // padding are indexed only within derived counts; all tail bytes are initialized.
+    // Temporary pointers never escape and are released exactly once by their scopes.
+    private static func digest(of message: UnsafeRawBufferPointer, check: () throws -> Void) rethrows -> [UInt32] {
+        try check()
         var state = State()
-        roundConstants.withUnsafeBufferPointer { constants in
-            withUnsafeTemporaryAllocation(of: UInt32.self, capacity: 64) { schedule in
+        try roundConstants.withUnsafeBufferPointer { constants in
+            try withUnsafeTemporaryAllocation(of: UInt32.self, capacity: 64) { schedule in
                 let fullBlockCount = message.count / 64
                 var start = 0
                 while start < fullBlockCount &* 64 {
+                    try check()
                     compress(
                         UnsafeRawBufferPointer(rebasing: message[start..<(start &+ 64)]),
                         into: &state,

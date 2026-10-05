@@ -71,21 +71,21 @@ extension KernelCapabilities {
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP import retains only the bounded native assembly identity namespace. Other identification assignments require persistent source ownership and lossless standard re-export before admission.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 27
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 28
         ),
         KernelDomainLimitation(
             id: "condition-c7e895426ce6ed13",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP import cannot preserve unrelated external identification namespaces. Complete source ownership/transport for their assigned IDs, roles and sources is required before they can succeed.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 41
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 42
         ),
         KernelDomainLimitation(
             id: "condition-537b72aceaa8f741",
             operations: ["STEP"],
             dimensions: [.representation, .connection],
             condition: "Public STEP import retains only the native assembly identification roles without role descriptions. Other roles/descriptions require an explicit persistent identification owner and faithful standard re-export.",
-            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 47
+            sourcePath: "Sources/CADExchange/STEPAssembly/STEPSourceIdentityReader.swift", sourceLine: 48
         ),
         KernelDomainLimitation(
             id: "condition-4dddadefe246fbfb",
@@ -281,14 +281,14 @@ extension KernelCapabilities {
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
             condition: "Non-factorable rational target endpoint coincidence has no closed inverse authority here. The public regular graph route requires original coordinate independence and closed existence, membership and owned correspondence before success.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 199
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 198
         ),
         KernelDomainLimitation(
             id: "condition-902e47b52482f0fa",
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
             condition: "Other original source multiplicities still require directed original extraction authority. The public regular graph endpoint path must not admit their rounded extracted nets before complete original-span membership, root joins and correspondence are proved.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 253
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphClosedDomainAuthority.swift", sourceLine: 252
         ),
         KernelDomainLimitation(
             id: "condition-f0c737e771082924",
@@ -302,27 +302,20 @@ extension KernelCapabilities {
             operations: ["curveSurfaceIntersectionResult"],
             dimensions: [.parameterization, .representation],
             condition: "continuous or non-transverse native knot coincidence lacks complete atlas classification. The public graph route must refuse until all boundary intervals and root identities can be certified without a higher-derivative continuity assumption.",
-            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 378
+            sourcePath: "Sources/CADGeometry/CurveSurfaceOverlap/OverlapRegularGraphRootCertifier.swift", sourceLine: 364
         ),
         KernelDomainLimitation(
             id: "condition-2cad7378732965fa",
             operations: ["CADCommand", "faceRebuild", "curveSurfaceIntersectionResult"],
             dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
             condition: "Correspondence's scalar native derivative bounds do not own periodic seam or translated-cycle coverage. This production validator may use them only after whole requested wrap intervals have proof.",
-            sourcePath: "Sources/CADGeometry/DefaultCurveSurfaceCorrespondenceValidator.swift", sourceLine: 2764
+            sourcePath: "Sources/CADGeometry/DefaultCurveSurfaceCorrespondenceValidator.swift", sourceLine: 2767
         ),
         KernelDomainLimitation(
-            id: "condition-96a4285245f0f606",
-            operations: ["faceRebuild"],
-            dimensions: [.supportSurface, .parameterization, .geometricFidelity],
-            condition: "Other original analytic/procedural families cannot use the public Rebuild position producer yet. Completion requires their original native whole-law bounds, resource/cancellation and consumer evidence.",
-            sourcePath: "Sources/CADGeometry/GeometryConversion/CertifiedAnalyticSurfacePositionCertifier.swift", sourceLine: 38
-        ),
-        KernelDomainLimitation(
-            id: "condition-89661a2a81315309",
+            id: "condition-e3c722793010fbf6",
             operations: ["curveSurfaceIntersectionResult", "faceAreaMeasurement"],
             dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
-            condition: "Mixed-coordinate/direction joins, closed charts, periodic, piecewise and procedural supports lack this caller-budget localization contract on implicit/face-area queries. Complete only after their original root and derivative-domain authority is certified without hidden budgets.",
+            condition: "General joins, closed charts, periodic, piecewise and procedural supports lack this caller-budget localization contract on implicit/face-area queries. Complete only after their original root and derivative-domain authority is certified without hidden budgets.",
             sourcePath: "Sources/CADGeometry/ImplicitCurveIntervalJetEncloser.swift", sourceLine: 228
         ),
         KernelDomainLimitation(
@@ -330,28 +323,7 @@ extension KernelCapabilities {
             operations: ["curveSurfaceIntersectionResult", "faceAreaMeasurement"],
             dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
             condition: "Legacy implicit curve/lift interval calls retain positive-width, modeling-resolution and private recursive refinement limits. General certified area callers must adopt the closed continuation and their shared work/depth contract before treating those domains as complete.",
-            sourcePath: "Sources/CADGeometry/ImplicitCurveIntervalJetEncloser.swift", sourceLine: 622
-        ),
-        KernelDomainLimitation(
-            id: "condition-b071fec554a9daaa",
-            operations: ["CADCommand"],
-            dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
-            condition: "General curve/surface families lack an original whole-use proof. The public original-correspondence factory refuses them until original coefficient, chart and budget authority exist.",
-            sourcePath: "Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/OriginalCorrespondenceBudget.swift", sourceLine: 89
-        ),
-        KernelDomainLimitation(
-            id: "condition-792ebe4ce8c9e4c9",
-            operations: ["CADCommand"],
-            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "This bounded mesh-only authority admits original native Bezier graph pieces on a nonperiodic one-V-span support. Kernel's general trimmed-face path requires complete graph/domain/facet proofs before other pcurve, periodic or arbitrary-trim families can succeed.",
-            sourcePath: "Sources/CADGeometry/OriginalGraphBand/DefaultOriginalRationalGraphBandCertifier.swift", sourceLine: 48
-        ),
-        KernelDomainLimitation(
-            id: "condition-cefcaac008b7892a",
-            operations: ["faceAreaMeasurement"],
-            dimensions: [.boundaryCurve, .parameterization, .geometricFidelity],
-            condition: "Closed owning-span curve proofs currently serve original nonperiodic B-splines and their affine images. Q3 rolling and trim consumers must not claim periodic/procedural closed support until their original chart coverage and one-sided derivatives are certified here.",
-            sourcePath: "Sources/CADGeometry/PreparedCurveDifferentialEncloser.swift", sourceLine: 214
+            sourcePath: "Sources/CADGeometry/ImplicitCurveIntervalJetEncloser.swift", sourceLine: 608
         ),
         KernelDomainLimitation(
             id: "condition-94dc729b5c31259b",
@@ -375,25 +347,25 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/RollingBall/RollingBallSectionEvaluator.swift", sourceLine: 69
         ),
         KernelDomainLimitation(
-            id: "condition-d40fa086407d39ac",
+            id: "condition-0c6b71106c467b84",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Sources below third order, including sources outside the original B-spline higher-coefficient family, lack derivatives for production face-area/centroid integration. Complete only after original higher source jets and integral fixtures certify.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 96
+            condition: "Sources below third order, including uncertified nested offsets, lack derivatives for production face-area/centroid integration. Complete only after higher source interval jets and offset integral fixtures certify.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 71
         ),
         KernelDomainLimitation(
-            id: "condition-b44cf98308011fb0",
+            id: "condition-0dde2d1ce395fdb8",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Non-C1 ruled supports outside the original same-degree/knot/domain/weight tensor family remain unsupported on production face-area/centroid queries. Complete only after original piecewise boundary authority and successful/failure integral fixtures.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 119
+            condition: "Ruled supports with non-C1 boundary curves lack density derivative admission on production face-area/centroid queries. Complete only after piecewise boundary partitioning and successful/failure integral fixtures.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 87
         ),
         KernelDomainLimitation(
-            id: "condition-70e1db5ebce47591",
+            id: "condition-40aae3cf94aae8f0",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Non-C1 rolling-ball rails outside the original same-basis/denominator constant-radial family remain unsupported in production area/centroid queries. Complete only after original piecewise radial laws and integral/error fixtures certify.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 142
+            condition: "Non-C1 rolling-ball spine/rails cannot certify density derivatives on production face-area/centroid queries. Complete only after piecewise blend integration and exact integral/error fixtures admit these sources.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 102
         ),
         KernelDomainLimitation(
             id: "condition-1348d8034135b5b0",
@@ -417,53 +389,46 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaAffineImplicitChartEncloser.swift", sourceLine: 62
         ),
         KernelDomainLimitation(
-            id: "condition-97a79f341a165d96",
+            id: "condition-a5a32403e3d83e8e",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Periodic, multispan, mixed-coordinate/direction, closed and procedural implicit charts lack this caller-owned localization contract on face-area queries. Complete only after original root/jet coverage and shared-budget area/centroid evidence is established for every owning piece.",
+            condition: "Periodic, multispan, multicell, closed and procedural implicit charts lack this caller-owned localization contract on face-area queries. Complete only after original root/jet coverage and shared-budget area/centroid evidence is established for every owning piece.",
             sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaImplicitParameterChartEncloser.swift", sourceLine: 11
-        ),
-        KernelDomainLimitation(
-            id: "condition-41d2df95559e2eeb",
-            operations: ["faceAreaMeasurement"],
-            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Inexact original graph joins lack complete-domain connection authority in production face-area queries. Admit only after original four-coordinate gap coverage is certified.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaImplicitParameterChartEncloser.swift", sourceLine: 28
         ),
         KernelDomainLimitation(
             id: "condition-e24fa3aaf30bc61d",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Non-affine spherical rigid-image charts lack whole-interval jets on the production face-area path. Complete only after the original spherical chart and integral/error fixtures are certified.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 355
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 354
         ),
         KernelDomainLimitation(
             id: "condition-0dd1789b88683b27",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Projected and unsplit piecewise source charts lack integral-specific jets on production face-area/centroid queries. Complete only after their full original chart derivatives and integral/error fixtures certify.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 375
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 374
         ),
         KernelDomainLimitation(
             id: "condition-ee1d607a304e4ec7",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Non-C2 numeric trim knots need piecewise original-chart derivative authority on production face-area queries. Complete only after trim-span partitioning preserves every fan and certified moment.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 496
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 495
         ),
         KernelDomainLimitation(
             id: "condition-b4bc87e8f09c70a5",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Remaining non-numeric source charts have no bounded derivative admission for production face-area queries. Complete only after whole-chart integral authority and success/failure fixtures are implemented.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 534
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 533
         ),
         KernelDomainLimitation(
             id: "condition-bdff7d7395e93015",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Certified implicit source rails lack bounded mapped-chart admission on production face-area queries. Complete only when their input graph and full original derivative chart are certified for integration.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 600
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/SurfaceAreaParameterChartEncloser.swift", sourceLine: 599
         ),
         KernelDomainLimitation(
             id: "condition-ac542d7b1e032f8a",
@@ -508,32 +473,32 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/FaceBSplineSurfaceConverter.swift", sourceLine: 75
         ),
         KernelDomainLimitation(
-            id: "condition-706fb180d3b9ea8c",
+            id: "condition-202ab6ce8171c355",
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
-            condition: "other analytic and non-native tolerance rebuilds still publish through historical edge checks without a complete original-source position certificate. Production completion requires a typed whole-domain position proof for each remaining source family.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 270
+            condition: "analytic and other non-native tolerance rebuilds still publish through the historical edge checks without a complete native-source position certificate. The production completion condition is a typed whole-domain position proof for each such source family.",
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 148
         ),
         KernelDomainLimitation(
-            id: "condition-c555da826297bfc9",
+            id: "condition-00abfdffcc13647e",
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
-            condition: "The production DefaultFeatureEvaluator faceRebuild tolerance path still refuses periodic, varying-weight and foreign-chart continuation requests with a typed unsupported error. Completion requires a whole-domain position proof for each such original source law before those requests may publish.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 388
+            condition: "The production DefaultFeatureEvaluator faceRebuild tolerance path still refuses periodic, rational and multi-span continuation requests with a typed unsupported error. Completion requires a whole-domain position proof for each such original source law before those requests may publish.",
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 266
         ),
         KernelDomainLimitation(
             id: "condition-73e03fac2f4f0f40",
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
             condition: "a boundary control point moved within the face's own plane leaves its straight edges on a spline whose parameters run unevenly along them: no exact trimming curve exists there, and the certified intersection with the plane beside it does not resolve, so the evaluation fails with that error. Production path: Rupa's control point moves on a face of a solid given control points. Complete when such a face keeps its edges, verified by a box face's corner control point drawn in alone.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 691
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 551
         ),
         KernelDomainLimitation(
             id: "condition-d0540804209f9190",
             operations: ["faceRebuild"],
             dimensions: [.supportSurface, .connection],
             condition: "a solid's face refit on a net that cannot hold its sides on its edges would leave the solid open where they stray (Plasticity keeps it closed with tolerant edges, which this kernel does not represent), so it is refused. Production path: Rebuild Face's square method (Refit Face) on a solid. Complete only when a solid's refit face may stray from its neighbours' edges and stay closed, verified by a pentagonal prism's top refit on a 3 × 3 net.",
-            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 923
+            sourcePath: "Sources/CADKernel/FaceRebuildFeatureEvaluator.swift", sourceLine: 783
         ),
         KernelDomainLimitation(
             id: "condition-2b5a8e9ebadb8cfb",
@@ -543,25 +508,39 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADKernel/ImprintBodyFeatureEvaluator.swift", sourceLine: 110
         ),
         KernelDomainLimitation(
+            id: "condition-c162b7738a0cda3b",
+            operations: ["CADCommand"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Nonclamped open and discontinuous periodic charts lack native rectangle authority. Public mesh preflight refuses these remaining supports until complete original endpoint/continuity contracts certify them.",
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2113
+        ),
+        KernelDomainLimitation(
+            id: "condition-ad2e27742706bb02",
+            operations: ["CADCommand"],
+            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
+            condition: "Nonclamped open C0 rectangles have not established retained native-boundary composition in the public mesh route. Complete full M1 only after original open endpoint ownership and compatible grids certify them.",
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2245
+        ),
+        KernelDomainLimitation(
             id: "condition-63288bf02fc0c723",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Singular boundary shading normals use a nearby regular parameter in the production trimmed-face tessellation path. This does not certify a unique one-sided normal limit or its angular error; those guarantees and direction-dependent singularity rejection are required before full support.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2509
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2534
         ),
         KernelDomainLimitation(
             id: "condition-0a3fef29d1b275ed",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "a trimmed non-spherical parametric face is triangulated from its sampled boundary alone, as a fan here or by ear clipping below, so its interior is not refined against the chord, turning or edge-length bounds. Production path: every trimmed cylinder, cone, torus, B-spline and procedural face that is not a rectangular grid. Not covered by the tessellation fidelity contract until the interior refines against all three bounds with tests that measure interior deviation.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2609
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2634
         ),
         KernelDomainLimitation(
             id: "condition-afc28231555c121a",
             operations: ["CADCommand"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Arbitrary C0/periodic B-spline trims lack certified interior fidelity in the production mesh route. This exact rectangle admission refuses them until full M1/M2 supplies original trim and interior authority.",
-            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2964
+            sourcePath: "Sources/CADKernel/MeshTessellator.swift", sourceLine: 2988
         ),
         KernelDomainLimitation(
             id: "condition-94b418304d6d7b26",
@@ -743,7 +722,7 @@ extension KernelCapabilities {
             operations: ["faceDraft"],
             dimensions: [.supportSurface, .boundaryCurve, .connection],
             condition: "General curved hinges do not yet have original whole-range normal/ruling and adjacent-face authority. Production curved-reference FaceDraftFeatureEvaluator dispatch reaches this refusal. Complete only when the original ruled draft and all adjacent intersections are certified over their trims.",
-            sourcePath: "Sources/CADModeling/CurvedHingeDraftSurfaceBuilder.swift", sourceLine: 43
+            sourcePath: "Sources/CADModeling/CurvedHingeDraftSurfaceBuilder.swift", sourceLine: 112
         ),
         KernelDomainLimitation(
             id: "condition-6b229300060a8165",
@@ -996,13 +975,6 @@ extension KernelCapabilities {
             dimensions: [.boundaryCurve, .connection, .geometricFidelity],
             condition: "The public Turning corner route certifies only positive single-clamped sides of degree at most eight. General multi-span or periodic side admission requires an original-span whole-difference certificate before success.",
             sourcePath: "Sources/CADModeling/TurningCapLoop/TurningCapLoopCornerPatchBuilder.swift", sourceLine: 194
-        ),
-        KernelDomainLimitation(
-            id: "condition-13df0cd1c1a909f1",
-            operations: ["CADCommand"],
-            dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Periodic native charts have no prefix owner on volumetric pcurve queries. Complete only with original cycle/seam coverage.",
-            sourcePath: "Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift", sourceLine: 109
         ),
     ]
 }

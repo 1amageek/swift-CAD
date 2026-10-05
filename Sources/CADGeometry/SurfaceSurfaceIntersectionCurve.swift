@@ -1,7 +1,7 @@
 import CADCore
 import Foundation
 
-public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
+public struct SurfaceSurfaceIntersectionCurve: Hashable, Sendable {
   public let truth: SurfaceSurfaceIntersectionCurveTruth
   public let derivedRepresentation: SurfaceSurfaceIntersectionDerivedRepresentation
   public let kind: CurveSurfaceIntersectionKind
@@ -331,6 +331,7 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
     )
   }
 
+#if !hasFeature(Embedded)
   private enum CodingKeys: String, CodingKey {
     case truth
     case derivedRepresentation
@@ -339,7 +340,9 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
     case secondSurfaceAnchor
     case certificationTolerance
   }
+#endif
 
+#if !hasFeature(Embedded)
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     try container.validateOnlyExpectedKeys(
@@ -371,7 +374,9 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
       tolerance: container.decode(ModelingTolerance.self, forKey: .certificationTolerance)
     )
   }
+#endif
 
+#if !hasFeature(Embedded)
   public func encode(to encoder: Encoder) throws {
     try validate(tolerance: certificationTolerance)
     var container = encoder.container(keyedBy: CodingKeys.self)
@@ -382,6 +387,7 @@ public struct SurfaceSurfaceIntersectionCurve: Codable, Hashable, Sendable {
     try container.encode(secondSurfaceAnchor, forKey: .secondSurfaceAnchor)
     try container.encode(certificationTolerance, forKey: .certificationTolerance)
   }
+#endif
 }
 
 // The synthesized equality copies every large member pair into one frame,
@@ -424,3 +430,7 @@ extension SurfaceSurfaceIntersectionCurve {
       && lhs.secondSurfaceAnchor == rhs.secondSurfaceAnchor
   }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceSurfaceIntersectionCurve: Codable {}
+#endif

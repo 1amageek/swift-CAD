@@ -1,4 +1,4 @@
-public struct CurveDifferentialEnclosure: Codable, Equatable, Hashable, Sendable {
+public struct CurveDifferentialEnclosure: Equatable, Hashable, Sendable {
     public let position: CoordinateEnclosure3D
     public let firstDerivative: CoordinateEnclosure3D
     public let secondDerivative: CoordinateEnclosure3D
@@ -13,3 +13,7 @@ public struct CurveDifferentialEnclosure: Codable, Equatable, Hashable, Sendable
         self.secondDerivative = secondDerivative
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveDifferentialEnclosure: Codable {}
+#endif

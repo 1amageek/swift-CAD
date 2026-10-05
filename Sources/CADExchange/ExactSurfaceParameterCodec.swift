@@ -64,7 +64,10 @@ enum ExactSurfaceParameterCodec {
                     unit: unit,
                     convention: convention
                 )
-            case .ruled, .rollingBall:
+            case .originalImage:
+                // The actual primitive writer proves the retained foreign chart against its standard context.
+                return parameter
+            case .ruled, .rollingBall, .originalRevolution, .originalCoons, .originalAffineWord:
                 return parameter
             }
         }
@@ -128,7 +131,10 @@ enum ExactSurfaceParameterCodec {
                     tolerance: tolerance,
                     convention: convention
                 )
-            case .ruled, .rollingBall:
+            case .originalImage:
+                // The actual primitive writer proves the retained foreign chart against its standard context.
+                return parameter
+            case .ruled, .rollingBall, .originalRevolution, .originalCoons, .originalAffineWord:
                 return parameter
             }
         }
@@ -159,7 +165,10 @@ enum ExactSurfaceParameterCodec {
                     unit: unit,
                     tolerance: tolerance
                 )
-            case .ruled, .rollingBall:
+            case .originalImage(let image):
+                let native = encodedTolerance(on: image.source, unit: .meter, tolerance: tolerance)
+                return native / min(abs(image.uGain), abs(image.vGain))
+            case .ruled, .rollingBall, .originalRevolution, .originalCoons, .originalAffineWord:
                 return max(tolerance.angle, tolerance.relative)
             }
         }

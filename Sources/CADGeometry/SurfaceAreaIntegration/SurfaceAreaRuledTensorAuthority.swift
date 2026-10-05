@@ -7,15 +7,19 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
     private let translatesAlongV: Bool
 
     init?(original: RuledSurface3D, maximumControlPointCount: Int,
-          tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+          tolerance: ModelingTolerance, maximumSubdivisionDepth: Int? = nil,
+          remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil,
+          consumeWork: () throws -> Void = { try Task.checkCancellation() },
+          consumeStorage: ((Int) throws -> Void)? = nil) throws {
+        try Task.checkCancellation(); try consumeWork()
         guard case .bSpline(let start) = original.startBoundary,
               case .bSpline(let end) = original.endBoundary else { return nil }
         let limit = maximumControlPointCount
         guard limit > 0, limit <= 1_048_576 else {
             throw Self.failure(.resourceLimitExceeded, tolerance, "Ruled tensor control admission has no finite limit.")
         }
-        for rail in [start, end] {
+        func admitRail(_ rail: BSplineCurve3D) throws {
+            try consumeWork()
             guard rail.controlPoints.count <= limit, rail.weights.count <= limit,
                   rail.knots.count <= 2 * limit + 1 else {
                 throw Self.failure(.resourceLimitExceeded, tolerance, "Original ruled rail dimensions exceed area admission.")
@@ -26,9 +30,19 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
                 throw Self.failure(.invalidInput, tolerance, "Original ruled rail dimensions are inconsistent.")
             }
         }
-        try original.validate(tolerance: tolerance)
+        try admitRail(start); try admitRail(end)
+        if let maximumSubdivisionDepth {
+            try Surface3D.procedural(.ruled(original)).validateOriginalSource(tolerance:tolerance,
+                remainingSourceDepth:remainingSourceDepth,maximumSubdivisionDepth:maximumSubdivisionDepth,
+                consumeWork:{ _ in try consumeWork() },consumeStorage:consumeStorage,maximumAlgebraicDepth:maximumAlgebraicDepth)
+        } else { try original.validate(tolerance: tolerance) }
+        func equal(_ first: [Double], _ second: [Double]) throws -> Bool {
+            guard first.count == second.count else { return false }
+            for index in first.indices { try consumeWork(); if first[index] != second[index] { return false } }
+            return true
+        }
         guard !start.isPeriodic, !end.isPeriodic, start.degree == end.degree,
-              start.knots == end.knots, start.weights == end.weights,
+              try equal(start.knots,end.knots), try equal(start.weights,end.weights),
               start.domain == end.domain, original.uDomain == start.domain else { return nil }
         // With identical original basis/weights, both rails have the same W.
         // The tensor numerator is (1-v)N0+v*N1, and its denominator stays W.
@@ -38,15 +52,22 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
             throw Self.failure(.resourceLimitExceeded, tolerance, "Original ruled tensor controls exceed area admission.")
         }
         var expanded = 1
-        for factor in [count - start.degree, start.degree + 1, 2] {
+        func admitFactor(_ factor: Int) throws {
+            try consumeWork()
             guard factor > 0, factor <= limit / expanded else {
                 throw Self.failure(.resourceLimitExceeded, tolerance, "Original ruled tensor native span preparation exceeds area admission.")
             }
             expanded *= factor
         }
+        try admitFactor(count-start.degree); try admitFactor(start.degree+1); try admitFactor(2)
         try Task.checkCancellation()
         self.original = original
-        translatesAlongV = SurfaceAreaTranslationCertificate.direction(of: .procedural(.ruled(original))) == .v
+        translatesAlongV = try SurfaceAreaTranslationCertificate.direction(of: .procedural(.ruled(original)),
+            remainingSourceDepth:remainingSourceDepth,maximumAlgebraicDepth:maximumAlgebraicDepth,
+            consumeWork:consumeWork,consumeStorage:consumeStorage) == .v
+        try OriginalCoefficientAllocation.reserve(count:2,of:[Point3D].self,consumeStorage:consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count:2,of:[Double].self,consumeStorage:consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count:4,of:Double.self,consumeStorage:consumeStorage)
         tensor = BSplineSurface3D(uDegree: start.degree, vDegree: 1,
             uKnots: start.knots, vKnots: [0, 0, 1, 1],
             controlPoints: [start.controlPoints, end.controlPoints],
@@ -56,7 +77,9 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
     /// Integrates the original rational line image, never converted coefficients.
     func rectangleIntegral(rectangle: SurfaceParameterBox, fraction: ScalarInterval,
                            nativeLower: Double, nativeUpper: Double,
-                           reference: Point3D, tolerance: ModelingTolerance)
+                           reference: Point3D, tolerance: ModelingTolerance,
+                           consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                           consumeStorage: ((Int) throws -> Void)? = nil)
         throws -> [OutwardScalarInterval]? {
         try Task.checkCancellation()
         guard case .bSpline(let start) = original.startBoundary,
@@ -75,6 +98,7 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
         // prepared span alone cannot authorize unrelated extracted coefficients.
         var owner: Int?
         for index in 1..<start.controlPoints.count {
+            try consumeWork()
             if start.knots[index] == nativeLower, start.knots[index + 1] == nativeUpper,
                nativeLower < nativeUpper {
                 owner = index
@@ -139,11 +163,12 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
         let area = norm * (h1 - h0) * band
         let meanH = (h0 + h1) * .exact(0.5)
         let meanV = (OutwardScalarInterval.exact(rectangle.v.lower) + .exact(rectangle.v.upper)) * .exact(0.5)
-        let center = [origin.x + displacement.x * meanH + translation.x * meanV,
-                      origin.y + displacement.y * meanH + translation.y * meanV,
-                      origin.z + displacement.z * meanH + translation.z * meanV]
-        let referenceCoordinates = [reference.x, reference.y, reference.z]
-        let result = [area] + center.indices.map { area * (center[$0] - .exact(referenceCoordinates[$0])) }
+        try consumeWork()
+        let centerX = origin.x + displacement.x * meanH + translation.x * meanV
+        let centerY = origin.y + displacement.y * meanH + translation.y * meanV
+        let centerZ = origin.z + displacement.z * meanH + translation.z * meanV
+        try OriginalCoefficientAllocation.reserve(count:4,of:OutwardScalarInterval.self,consumeStorage:consumeStorage)
+        let result = [area,area*(centerX - .exact(reference.x)),area*(centerY - .exact(reference.y)),area*(centerZ - .exact(reference.z))]
         guard result.allSatisfy(\.isFinite) else {
             throw Self.failure(.classificationFailure, tolerance, "Original ruled rectangle integral exceeded finite arithmetic.")
         }

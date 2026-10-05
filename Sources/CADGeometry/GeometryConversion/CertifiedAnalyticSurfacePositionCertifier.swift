@@ -1,9 +1,25 @@
 import CADCore
 
-/// Original plane/cylinder position evidence without an intermediate source spline.
+/// Original analytic position evidence on the original UV chart, without a source spline.
 public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurfacePositionCertifying {
     private typealias Budget = PreparedBSplineSurfaceDifferentialCost.Budget
     private typealias Vector = GeometryConversionCertification.VectorBounds
+
+    private enum OriginalFamily {
+        case plane
+        case cylinder
+        case cone
+        case sphere
+        case torus
+
+        var analyticProbeScalarCount: Int {
+            switch self {
+            case .plane, .cylinder: 3_072
+            case .cone: 3_584
+            case .sphere, .torus: 4_608
+            }
+        }
+    }
 
     private struct CubicWholeBounds {
         let originalFourthU: Vector
@@ -32,14 +48,19 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
               parameters.u.width > 0, parameters.v.width > 0 else {
             throw GeometryConversionError.invalidInput("Analytic position certification requires a finite positive distance and native rectangle.")
         }
+        let originalFamily: OriginalFamily
         switch source {
-        case .plane, .cylinder, .analytic(.plane), .analytic(.cylinder): break
-        default:
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Other original analytic/procedural families
-            // cannot use the public Rebuild position producer yet. Completion requires their
-            // original native whole-law bounds, resource/cancellation and consumer evidence.
+        case .plane, .analytic(.plane): originalFamily = .plane
+        case .cylinder, .analytic(.cylinder): originalFamily = .cylinder
+        case .analytic(.cone): originalFamily = .cone
+        case .analytic(.sphere): originalFamily = .sphere
+        case .analytic(.torus): originalFamily = .torus
+        case .bSpline, .procedural:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): General procedural source position
+            // certification is not implemented at this public Rebuild producer. Completion
+            // requires original whole-law bounds, paid preparation and consumer evidence.
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                message: "Analytic Rebuild position certification currently admits original planes and cylinders.")
+                message: "Analytic Rebuild position certification requires an original analytic surface.")
         }
         guard !candidate.isUPeriodic, !candidate.isVPeriodic else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
@@ -100,7 +121,7 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
             let u = box.u.midpoint, v = box.v.midpoint
             let anchor = SurfaceParameterBox(u: try ScalarInterval(lower: u, upper: u),
                 v: try ScalarInterval(lower: v, upper: v))
-            try chargeAnalyticProbe(budget: &budget)
+            try chargeAnalyticProbe(family: originalFamily, budget: &budget)
             let a0 = try original.intervalJetAssumingSurfaceValidated(of: source, over: anchor, tolerance: tolerance)
             try Task.checkCancellation()
             try chargeCandidatePointJet(of: candidate, at: anchor, budget: &budget)
@@ -123,7 +144,7 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
                 retainedBounds = inherited
                 genericJets = nil
             } else {
-                try chargeAnalyticProbe(budget: &budget)
+                try chargeAnalyticProbe(family: originalFamily, budget: &budget)
                 let a = try original.intervalJetAssumingSurfaceValidated(of: source, over: box, tolerance: tolerance)
                 try Task.checkCancellation()
                 try targetCost.chargeProbe(over: box, pointOnly: false, budget: &budget)
@@ -134,13 +155,16 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
                     // both owner rectangles, are paid before extraction/creation.
                     try budget.charge(scalars: 80, work: 128)
                     let originalFourthU: Vector
-                    switch source {
-                    case .plane, .analytic(.plane):
+                    switch originalFamily {
+                    case .plane:
                         originalFourthU = Vector(x: .exact(0), y: .exact(0), z: .exact(0))
-                    case .cylinder, .analytic(.cylinder):
+                    case .cylinder, .cone, .sphere, .torus:
+                        // Every admitted radial original law is A(v) * R(u) + B(v).
+                        // R's fourth derivative equals R and minus its second derivative.
+                        // The whole second-UU jet therefore bounds the original fourth
+                        // derivative, including nonconstant V coefficients and poles.
                         originalFourthU = Vector(x: .exact(0), y: .exact(0), z: .exact(0))
                             - vector(a, at: \.secondDerivativeUU)
-                    default: throw precisionFailure()
                     }
                     retainedBounds = CubicWholeBounds(originalFourthU: originalFourthU,
                         firstVResidual: vector(a, at: \.derivativeV) - vector(b, at: \.derivativeV),
@@ -276,18 +300,18 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
         }
     }
 
-    private func chargeAnalyticProbe(budget: inout Budget) throws {
-        // DefaultSurfaceDifferentialEncloser.cylinderJet performs four vector
-        // products (radialJet: two, radius: one, axial V: one); planes use two.
-        // SurfaceIntervalJet.* has 45 interval products across its ten fields:
-        // 1+2+2+4+4+4+6+8+8+6. applyingUnaryFunction has 41: 2 first,
-        // 9 second and 30 third-order products. Two trig unary jets therefore
-        // give 4*3*45+2*41 = 622 products. OutwardIntervalArithmetic allocates
-        // four scratch slots each: 2,488. Eight trig hulls have two endpoints
-        // and at most two extrema; backing growth/extrema records and fixed
-        // basis/parameter metadata fit within 512 further slots. Reserve
-        // 3,072 before either admitted visitor; the existing work bound stays.
-        try budget.charge(scalars: 3_072, work: 65_536)
+    private func chargeAnalyticProbe(family: OriginalFamily, budget: inout Budget) throws {
+        // A vector jet product invokes three scalar products. Each scalar product
+        // executes 45 interval multiplications and each trig unary jet executes 41.
+        // Plane/cylinder retain their original reservation. Cone adds two scalar
+        // products to four vector products and two trig jets: 712 multiplications.
+        // Sphere has five vector products and four trig jets: 839. Torus has four
+        // vector products, two scalar products and four trig jets: 794.
+        // Each multiplication allocates four numeric scratch slots. Eight trig
+        // hulls plus fixed metadata require at most 512 auxiliary slots; sixteen
+        // require 1024. The selected family reservation is prepaid before the
+        // visitor. Existing work and aggregate caller ceilings remain unchanged.
+        try budget.charge(scalars: family.analyticProbeScalarCount, work: 65_536)
     }
 
     private func vector(_ jet: SurfaceIntervalVectorJet,

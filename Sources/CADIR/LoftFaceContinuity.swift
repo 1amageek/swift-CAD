@@ -4,7 +4,7 @@ import CADCore
 /// boundary the Loft leaves (or arrives) as the face beside that edge runs on, the section's own
 /// face aside (Plasticity's Start and End Continuity for a face). The allowances are those of
 /// `SurfaceEdgeContinuity`, needed where a face beside the boundary is curved.
-public struct LoftFaceContinuity: Codable, Hashable, Sendable {
+public struct LoftFaceContinuity: Hashable, Sendable {
     public var order: SurfaceEdgeContinuity.Order
     public var tension: Double
     public var angularAllowance: Double?
@@ -17,10 +17,13 @@ public struct LoftFaceContinuity: Codable, Hashable, Sendable {
         self.curvatureAllowance = curvatureAllowance
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case order, tension, angularAllowance, curvatureAllowance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.order, .tension, .angularAllowance, .curvatureAllowance], in: decoder)
@@ -30,7 +33,9 @@ public struct LoftFaceContinuity: Codable, Hashable, Sendable {
         curvatureAllowance = try container.decodeIfPresent(Double.self, forKey: .curvatureAllowance)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -39,6 +44,7 @@ public struct LoftFaceContinuity: Codable, Hashable, Sendable {
         try container.encodeIfPresent(angularAllowance, forKey: .angularAllowance)
         try container.encodeIfPresent(curvatureAllowance, forKey: .curvatureAllowance)
     }
+#endif
 
     public func validate() throws {
         guard tension.isFinite, tension > 0 else {
@@ -62,3 +68,7 @@ public struct LoftFaceContinuity: Codable, Hashable, Sendable {
                               angularAllowance: angularAllowance, curvatureAllowance: curvatureAllowance)
     }
 }
+
+#if !hasFeature(Embedded)
+extension LoftFaceContinuity: Codable {}
+#endif

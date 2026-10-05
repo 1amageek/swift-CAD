@@ -12,6 +12,17 @@ struct OverlapRegularGraphBoundaryResolver {
                     try budget.work()
                     let box = variesU ? cell.box.u : cell.box.v
                     if boundary < box.lower || boundary > box.upper { continue }
+                    if let stationary = variesU ? cell.stationaryU : cell.stationaryV {
+                        // The original identity classifies this complete cell: its
+                        // entire axis image is one represented native coordinate.
+                        // Other boundary values have no incidence; equality owns
+                        // the whole interval rather than an isolated transverse root.
+                        if boundary == stationary {
+                            try budget.storage(2)
+                            cuts.append(cell.range.lower); cuts.append(cell.range.upper)
+                        }
+                        continue
+                    }
                     let derivative = variesU ? cell.derivativeU : cell.derivativeV
                     // FIXME(INCOMPLETE_IMPLEMENTATION): non-transverse and continuous
                     // chart-boundary coincidence lacks complete graph clipping here.

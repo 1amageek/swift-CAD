@@ -10,6 +10,7 @@ struct STEPSourceIdentityReader: STEPSourceIdentityReading {
             throw AssemblyError.resourceLimitExceeded("STEP identity records/work")
         }
         var work = names.count, bytes = 0, values: [Int: PortableIdentity128] = [:]
+        var documentCarriers: [Int: PortableIdentity128] = [:]
         func string(_ token: String) throws -> String {
             try processingBudget.check(format: .step)
             let result = try fields.decodedString(token, limits: STEPStringLimits(maximumInputBytes: limits.maximumBytes,
@@ -24,7 +25,7 @@ struct STEPSourceIdentityReader: STEPSourceIdentityReading {
         }
         for id in names.keys.sorted() where names[id]?.contains("IDENTIFICATION_ASSIGNMENT") == true {
             try processingBudget.check(format: .step)
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import retains only the bounded native assembly identity namespace.
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import retains only the bounded native product, document framing and material identity namespaces.
             // Other identification assignments require persistent source ownership and lossless standard re-export before admission.
             guard names[id] == "APPLIED_EXTERNAL_IDENTIFICATION_ASSIGNMENT" else {
                 throw AssemblyError.invalidSource("Unsupported STEP identification assignment subtype.")
@@ -40,11 +41,12 @@ struct STEPSourceIdentityReader: STEPSourceIdentityReading {
             let sourceValue = try string(String(source[0].dropFirst(11).dropLast()))
             // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import cannot preserve unrelated external identification namespaces.
             // Complete source ownership/transport for their assigned IDs, roles and sources is required before they can succeed.
+            if sourceValue == STEPMetadataNames.namespace { continue }
             guard sourceValue == STEPSourceIdentityRole.namespace else {
                 throw AssemblyError.invalidSource("Unsupported STEP identity namespace.")
             }
             let roleName = try string(role[0])
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import retains only the native assembly identification roles without role descriptions.
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import retains only the native product, document framing and material roles without role descriptions.
             // Other roles/descriptions require an explicit persistent identification owner and faithful standard re-export.
             guard let kind = STEPSourceIdentityRole(rawValue: roleName), role[1] == "$" else {
                 throw AssemblyError.invalidSource("Unsupported STEP identity role or role description.")
@@ -67,10 +69,12 @@ struct STEPSourceIdentityReader: STEPSourceIdentityReading {
             guard identity.canonicalString.lowercased() == identifier.lowercased() else {
                 throw AssemblyError.invalidSource("Malformed STEP native UUID assignment.")
             }
-            guard values.updateValue(identity, forKey: target) == nil else {
+            guard values[target] == nil, documentCarriers[target] == nil else {
                 throw AssemblyError.invalidSource("Competing STEP native UUID assignments.")
             }
+            if kind == .documentCarrier { documentCarriers[target] = identity }
+            else { values[target] = identity }
         }
-        return STEPSourceIdentityResult(values: values, consumedWork: work, textBytes: bytes)
+        return STEPSourceIdentityResult(values: values, documentCarriers: documentCarriers, consumedWork: work, textBytes: bytes)
     }
 }

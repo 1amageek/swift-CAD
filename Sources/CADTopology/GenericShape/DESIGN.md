@@ -135,3 +135,55 @@ its selected closure.
 Existing `BRepModel` validation tests retain the strict body ownership contract.
 The root task owns native and WASM/Embedded compile/link/runtime verification;
 source inspection alone is not completion evidence.
+
+### Ordered Original Affine Model Images
+
+The flat `OriginalAffineOperationWord` overload retains one exact forward/inverse
+word on each original curve and support, regardless of factor count. It transports
+face-local traversals through `OriginalAffineWordSurfaceParameterCurve`, retaining
+their native UV coordinates and directed fractions. Vertices use the prepared exact
+action once, and its exact orientation sign reverses faces for reflections. Its
+`ShapeAffineWordAdmission` forwards each original algebra visit as work at
+structural depth zero. Algebraic extension depth uses the immutable word
+constructor's retained authority; it is independent of source traversal and curve
+subdivision. The adapter converts retained UInt32-word counts to checked byte counts before
+the optional caller storage callback. No private allowance is created. Source
+nesting uses the caller source cap; word length does not consume that cap. Output
+validation remains the caller's responsibility under the original tolerance.
+
+| Operation | Source authority | Admission owner |
+|---|---|---|
+| Flat image | Original ordered forward/inverse factors | Caller work and byte ledger |
+| Vertex publication | Prepared exact final action | Same caller ledger |
+| UV traversal | Original source lift and exact target support binding | Same caller ledger |
+| Output certificate | BRep validation at requested level | Caller bounded validator |
+
+The existing array-of-forward-affines overload now delegates to the same flat
+original-word producer. It constructs `.forward` factors from the original array
+under the existing caller work ledger; rational factors require no ordered-field
+root extension. Empty arrays preserve the original model. Hosted implicit/image
+pcurves travel through the same original word carrier as every other boundary,
+rather than leaving a source-support binding on a transformed target. Original
+array order, IDs, native UV, exact determinant parity and output-validation
+responsibility remain unchanged. No rounded intermediate matrix or vertex chain
+becomes the final original source authority.
+
+The protocol's bounded affine operation consumes an immutable `ValidatedBRepModel`
+and the authored ordered affine words. It returns a model image, not a new validation
+certificate. Every word is retained in nested original curve and surface image laws;
+no rounded matrix product replaces the source. UV charts, coedges, trims, entity IDs,
+body material, shell roles and void ownership remain unchanged. Each exact negative
+spatial determinant reverses face orientation. Singular affine words fail before
+publication. Every source entity, word, original determinant and recursive geometry
+admission uses the caller work callback and caller source/subdivision caps. The caller
+owns cumulative storage and output validation: arbitrary scale can amplify an existing
+allowed source vertex/correspondence discrepancy, so the result cannot inherit the old
+validation tolerance or volume certificate without that check. The existing rigid Shape
+operation retains its behavior and validation path.
+
+```text
+Immutable validated model + ordered affine words + caller ledger
+    -> original nested curve/surface laws + transformed vertices
+    -> exact determinant face parity + preserved native UV topology
+    -> model image -> caller bounded validation/publication
+```

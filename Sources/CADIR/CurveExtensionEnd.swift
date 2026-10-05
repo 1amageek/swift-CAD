@@ -1,5 +1,9 @@
-public enum CurveExtensionEnd: String, Codable, CaseIterable, Hashable, Sendable {
+public enum CurveExtensionEnd: String, CaseIterable, Hashable, Sendable {
     case start
     case end
     case both
 }
+
+#if !hasFeature(Embedded)
+extension CurveExtensionEnd: Codable {}
+#endif

@@ -3,7 +3,7 @@ import CADCore
 /// Curves along edges of a body or sheet: each chosen edge's exact curve over its trim, published
 /// as the feature's curve output so a curve consumer (a pipe's or a sweep's path, a curve section)
 /// can follow an edge.
-public struct EdgeCurveFeature: Codable, Hashable, Sendable {
+public struct EdgeCurveFeature: Hashable, Sendable {
     public var source: FeatureID
     public var bodyRole: FeaturePort
     public var edges: [StableSubshapeReference]
@@ -23,3 +23,7 @@ public struct EdgeCurveFeature: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension EdgeCurveFeature: Codable {}
+#endif

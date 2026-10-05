@@ -59,9 +59,14 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
     public init(
         sewer: any BRepSewing = DefaultBRepSewer(),
         resolver: ParameterResolving = ParameterResolver(),
-        nativeSurfacePositionCertificationLimits: NativeSurfacePositionCertificationLimits = .standard
+        nativeSurfacePositionCertificationLimits: NativeSurfacePositionCertificationLimits = .standard,
+        naturalSheetExtensionLimits: NaturalSheetExtensionLimits = NaturalSheetExtensionLimits(),
+        offsetFeasibilityLimits: OffsetFeasibilityLimits = OffsetFeasibilityLimits(),
+        edgeOffsetConversionLimits: EdgeOffsetConversionLimits? = nil,
+        bridgeSourceAdmission: GeometryConversionAdmission? = nil
     ) {
         self.nativeSurfacePositionCertificationLimits = nativeSurfacePositionCertificationLimits
+        let offsetFeasibilityValidator = DefaultOffsetResultValidator(limits: offsetFeasibilityLimits)
         self.primitiveEvaluator = PrimitiveFeatureEvaluator(
             sewer: sewer,
             resolver: resolver
@@ -74,7 +79,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
                 sewer: sewer,
                 unionApplicator: ExactBooleanOperationApplicator(),
                 separationValidator: ExactBodyJoinValidator()
-            )
+            ),
+            generatedResultValidator: offsetFeasibilityValidator
         )
         self.revolveEvaluator = PlanarRevolveFeatureEvaluator(
             sewer: sewer,
@@ -94,7 +100,10 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             booleanApplicator: ExactSweepBooleanApplicator()
         )
         self.involuteGearEvaluator = InvoluteGearFeatureEvaluator(sweep: sweepEvaluator, resolver: resolver)
-        self.loftEvaluator = LoftFeatureEvaluator(sewer: sewer)
+        self.loftEvaluator = LoftFeatureEvaluator(
+            sewer: sewer,
+            capContactValidator: DefaultLoftFiniteCapContactValidator()
+        )
         self.booleanEvaluator = BooleanFeatureEvaluator(
             applicator: ExactBooleanOperationApplicator(),
             toolRelocator: DefaultExactBodyPatternRebuilder(
@@ -114,16 +123,20 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator()),
             joiner: DefaultSheetBodyJoiner(sewer: sewer)
         )
-        self.faceLoopOffsetEvaluator = FaceLoopOffsetFeatureEvaluator(parameterResolver: resolver)
-        self.edgeOffsetEvaluator = EdgeOffsetFeatureEvaluator(parameterResolver: resolver)
+        self.faceLoopOffsetEvaluator = FaceLoopOffsetFeatureEvaluator(parameterResolver: resolver, conversionLimits: edgeOffsetConversionLimits)
+        self.edgeOffsetEvaluator = EdgeOffsetFeatureEvaluator(parameterResolver: resolver, conversionLimits: edgeOffsetConversionLimits)
         self.faceKnifeEvaluator = FaceKnifeFeatureEvaluator()
         self.faceDeleteEvaluator = FaceDeleteFeatureEvaluator()
         self.sheetExtendEvaluator = SheetExtendFeatureEvaluator(
             sewer: sewer, resolver: resolver, subshapeResolver: StableSubshapeResolver(),
-            cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator())
+            cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator()),
+            naturalSheetExtensionLimits: naturalSheetExtensionLimits
         )
         self.faceDraftEvaluator = FaceDraftFeatureEvaluator(resolver: resolver, sewer: sewer, applicator: ExactBooleanOperationApplicator())
-        self.faceOffsetEvaluator = FaceOffsetFeatureEvaluator(resolver: resolver, faceExtruder: extrudeEvaluator)
+        self.faceOffsetEvaluator = FaceOffsetFeatureEvaluator(
+            resolver: resolver, faceExtruder: extrudeEvaluator,
+            sewer: sewer, applicator: ExactBooleanOperationApplicator()
+        )
         self.faceMoveEvaluator = FaceMoveFeatureEvaluator(resolver: resolver)
         self.edgeMoveEvaluator = EdgeMoveFeatureEvaluator(resolver: resolver)
         self.topologyTransformEvaluator = TopologyTransformFeatureEvaluator(resolver: resolver)
@@ -177,7 +190,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         )
         self.filletEvaluator = FilletFeatureEvaluator(
             sewer: sewer,
-            resolver: resolver
+            resolver: resolver,
+            rollingBallEvaluator: KernelRollingBallFilletEvaluator(sewer: sewer, resolver: resolver)
         )
         self.g2BlendEvaluator = G2BlendFeatureEvaluator(
             sewer: sewer,
@@ -193,17 +207,22 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         )
         self.thickenEvaluator = ThickenFeatureEvaluator(
             sewer: sewer,
-            resolver: resolver
+            resolver: resolver,
+            feasibilityValidator: offsetFeasibilityValidator
         )
         self.bridgeCurveEvaluator = BridgeCurveFeatureEvaluator()
-        self.bridgeSurfaceEvaluator = BridgeSurfaceFeatureEvaluator()
+        self.bridgeSurfaceEvaluator = BridgeSurfaceFeatureEvaluator(
+            wallTrimmer: DefaultBridgeSurfaceWallTrimmer(sewer: sewer),
+            sourceAdmission: bridgeSourceAdmission
+        )
         self.curveEditEvaluator = CurveEditFeatureEvaluator()
         self.curveOffsetEvaluator = CurveOffsetFeatureEvaluator(resolver: resolver)
         self.projectCurveEvaluator = ProjectCurveFeatureEvaluator()
         self.curveTrimEvaluator = CurveTrimFeatureEvaluator()
         self.curveExtendEvaluator = CurveExtendFeatureEvaluator(resolver: resolver)
         self.curveMatchEvaluator = CurveMatchFeatureEvaluator()
-        self.surfaceOffsetEvaluator = SurfaceOffsetFeatureEvaluator(resolver: resolver)
+        self.surfaceOffsetEvaluator = SurfaceOffsetFeatureEvaluator(resolver: resolver,
+            feasibilityValidator: offsetFeasibilityValidator)
         self.surfaceTrimEvaluator = SurfaceTrimFeatureEvaluator(sewer: sewer)
         self.surfaceExtendEvaluator = SurfaceExtendFeatureEvaluator(sewer: sewer)
         self.surfaceMatchEvaluator = SurfaceMatchFeatureEvaluator()

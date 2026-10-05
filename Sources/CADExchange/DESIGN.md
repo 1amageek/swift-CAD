@@ -55,6 +55,32 @@ Native B-spline field admission follows the validated CADGeometry Codable source
 contract: curve periodicity/origin and independent surface U/V periodicity/origins
 survive save/load. Unknown fields remain errors; field admission never bypasses
 source geometry validation.
+Independent STEP import composes the [independent unit-association resolver](IndependentShapeExchange/DESIGN.md#independent-unit-association-selection)
+with the original primitive and graph reader under one producer instance and cumulative caller ledger.
+Its result carries both the complete source and its resolved document UnitSystem. Distinct real representation
+contexts retain their own units; document presentation units never overwrite a represented primitive.
+An unassociated primitive requires unambiguous original ambient units, and missing or conflicting descriptors
+fail explicitly. Independent ingress admits structurally proved degree contexts for nonangular original
+laws while retaining their descriptor and original parameter numbers. Angular curve/surface laws retain
+the child-owned explicit parameter-image refusal until their lower owner exists. Writer capability is
+unchanged. The ordinary exact Body route retains its existing single-length-unit admission authority.
+Shared lexical admission recognizes the standard plane-angle conversion records for independent ingress;
+the [Body context partition](IndependentShapeExchange/DESIGN.md) selects only directly owned Body
+contexts before ordinary geometry decoding. Independent-only angle declarations do not redefine Body
+parameters. Original foreign Body charts retain a marked failure until their original producer is connected.
+
+Native independent source admission follows [IndependentShapeSource](../CADIR/IndependentShapeSource/DESIGN.md).
+The required position-association maps retain original primitive FrameIDs and
+required-nullable parameter length units. Missing/unknown keys, competing map
+keys and inconsistent original law poses fail before publication. The source
+remains self-contained; document units do not guess its local parameter units.
+Native plane admission also retains the optional original `uDirection` from
+the CADGeometry plane parameter contract. A present non-null direction accepts
+only vector coordinates; its finite, unit and perpendicular requirements are
+validated by the same original geometry owner after decoding. Absent or null
+directions retain the existing deterministic chart. Native source equality and
+fingerprints include an authored direction, and transport never chooses a new
+axis for a stored chart.
 
 ## Related Designs
 
@@ -65,9 +91,14 @@ entry does not change the existing B-rep import result or document authority.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [IGES Association Parameters](IGESAssociationParameters/DESIGN.md) | child | original specified extent and generic tails | Retains real inverse/property references | Unknown family grammar stays opaque |
+| [Exchange Resource Accounting](ExchangeResourceAccounting/DESIGN.md) | child | one synchronized cumulative accountant | Conversion and drawing callbacks retain the same owner | No copy-back or reset of live counters |
+| [Independent Shape Exchange](IndependentShapeExchange/DESIGN.md) | child | Original standalone selections and standard representation graph transfer | Composes original shape exchange without fabricated bodies | Format representability and Native preservation have separate evidence |
+| [Independent Shape Source](../CADIR/IndependentShapeSource/DESIGN.md) | depends on | Strict source decoding and bounded semantic validation | Native transport includes the required nullable document field | Missing or unknown fields fail; the complete source affects document fingerprint |
 | [Swift-CAD package](../../DESIGN.md) | child of | exact source and typed failure contract | Defines the source-to-evaluation boundary. | Exchange output is not a project publication. |
 | [CADIR](../CADIR/DESIGN.md) | depends on | `ImportedBRepFeature`, `CADDocument` Codable | Retains exact STEP source values. | Do not replace exact B-rep with Mesh. |
 | [STEP Assembly](STEPAssembly/DESIGN.md) | child | shared product/formation/definition sources, explicit native identity assignments, occurrences and local placement interchange | Composes exact local geometry with standard assembly relationships. | Export requires validated local/world artifacts; ambiguity is an explicit failure. |
+| [STEP Physical Source History](STEPPhysicalSourceHistory/DESIGN.md) | child | Actual descriptor/property/precedence graph | Retains unattached descriptors and independent density source | Original values and relationships share the parent caller budget |
 | [STEP Attributes](STEPAttributes/DESIGN.md) | child | exact target transfer maps, explicit styling/property relationships and physical units | Preserves admitted product attribute scope through STEP under caller projection/record budgets. | Definition-qualified geometry admission follows the child's property-specific transport contract; Native source admission remains a separate contract. |
 | [Document Foundation](../CADIR/DocumentFoundation/DESIGN.md) | depends on | strict typed attributes and persistent references | Native packages retain the complete source foundation. | The required current envelope is owned by CADCore; external links require caller snapshots to resolve. |
 | [CADKernel](../CADKernel/DESIGN.md) | depends on | exact source evaluation and local/world assembly consistency | Validates retained imported parts and composed world occurrences. | STEP Assembly maps exchange ceilings into evaluation before world materialization. |
@@ -218,3 +249,80 @@ meaning belongs to [ProductAttributes](../CADIR/ProductAttributes/DESIGN.md#defi
 and standard egress belongs to [STEPAttributes](STEPAttributes/DESIGN.md#definition-qualified-description-transport-parsdesc1).
 Current-source fingerprints, exact receipts, unknown/missing-field refusal and
 atomic publication compose through the verified source/resolution/exchange fixtures.
+
+### Product Manufacturing and View Metadata
+
+[STEP Product Metadata](STEPProductMetadata/DESIGN.md) owns the standard semantic and draughting transport of [PMI](../CADIR/ProductManufacturingInformation/DESIGN.md) and [View Metadata](../CADIR/ProductViewMetadata/DESIGN.md). NativePackageStore composes both required ProductAttributes fields through their strict decoders and document source validation. STEPExchange retains its existing preflight, operation budgets and atomic publication boundary. Public geometry ownership remains in the original B-rep source and assembly; drawing geometry is separately consumed from the actual kernel projection port.
+
+### Explicit Preservation Policy
+
+[Exchange Preservation](ExchangePreservation/DESIGN.md) owns caller-visible loss records and the production dependency-closed partial STEP route. Existing import overloads remain strict; the policy overload returns a preservationReport alongside the actual imported source. No unsupported record can be dropped without accepted loss domains. Partial reconstruction forwards the remaining work ceiling and the original deadline into the real importer.
+
+### Actual Drawing Geometry Ports
+
+[B-rep Drawing Exchange](BRepDrawingExchange/DESIGN.md) consumes the kernel's actual original-curve projection result through public DXF/SVG/PDF and OfficialFormatExchange memory/URL overloads. Error-bounded conversion precedes unit/paper scaling and complete buffered publication. The edge-only port makes no hidden-line or region classification claim.
+
+[CurveTrimResolution](CurveTrimResolution/DESIGN.md) owns original Cartesian-selector to native-curve parameter correspondence under the existing independent exchange ledger.
+
+[GeometryConversionExchange](GeometryConversionExchange/DESIGN.md) owns explicit exact/certified policy, source-ID guarantees and shared conversion/output allowance before standard coefficient publication.
+
+Native surface-trim admission recognizes the complete persistent Geometry p-curve discriminators, including original chart images, original spline continuation, rigid/offset images and periodic translations. The foundation shape boundary retains strict carrier keys and recursively checks nested p-curve source values; Geometry's strict native codec owns the surface and transformation laws and their typed validation. Neither boundary silently accepts an unknown discriminator.
+
+### Native original-source decoding allowance
+NativePackageStore accepts caller ExchangeResourceLimits with explicit standard defaults. Its exact source decoder forwards one invocation-local userInfo context: maximumIterations bounds original work, maximumEntities bounds cells, maximumBytes/4 bounds rational words, maximumAlgebraicDepth bounds algebraic depth, maximumNesting independently bounds source coding paths, and maximumCurveSubdivisionDepth independently bounds geometric subdivision. The original ContinuousClock duration check is shared by nested decoders. Repeated and nested exact payloads consume the same allowance; a child does not reset it. Existing public callers retain the standard default. Native independent source admission requires productAssociations and its strict pair keys; document cross-reference validation remains CADIR-owned. No decoder context is retained after the invocation.
+
+Native selected independent items require explicitly nullable trimmingSource and traversalSource; nested original Geometry codecs own strict family keys and exact decoding allowance. Original graph references admit Body only as a complete SubshapeID payload, then source validation binds it to the actual parent DesignGraph before document publication.
+
+Native source write/load derives IndependentShapeSourceLimits directly from the same caller ExchangeResourceLimits, including the distinct maximumCurveSubdivisionDepth. The original processing deadline begins at the public package boundary and is shared by exact decoding and post-decode source validation. These checks are invocation-owned; their allowances are not persistent source identity.
+
+STEP DATA sections with no entities fail as malformed input (ImportError.invalidData), separately from the typed unsupported-capability refusal for nonempty inputs outside the exact subset. This applies to both ordinary and standalone independent public ingress.
+
+Native assembly placement prevalidation follows the [DocumentAssembly](../CADIR/DocumentAssembly/DESIGN.md) source family. Legacy rigid frames retain exactly basisX/basisY/basisZ/translation. An affine frame requires kind=affine and a transform with those exact four vector fields. A word requires kind=word and an explicit factors array; each factor retains operation forward/inverse and one original direct placement. Nested words, unknown operations/discriminators, extra keys and malformed vectors fail. Semantic determinant and source factor validation belong to the typed original placement owner.
+
+The STEP output table admits original rational operations through the same
+invocation allowance as actual source entity/string publication. Original cells
+share maximumEntities, exact work shares maximumIterations, and rational words
+share maximumBytes with the serialized table. The caller's maximumNesting is
+forwarded explicitly. Equal cached gain coefficients do not mint a new budget,
+and ordinary Body output can use exact gain equivalence through this same table.
+
+The Native package decoder supplies its actual caller ModelingTolerance via
+`OriginalAffineWordDecodingContext.toleranceKey`, together with the same original
+exact-source allowance and depth. Normalized placement decode never substitutes
+a standard tolerance. Assembly placement `step` uses strict kind/source keys;
+its nested original source owns the raw frame keys.
+
+The Native decoder also forwards `OriginalAffineWordDecodingContext.maximumCurveSubdivisionDepthKey` from the actual caller limits. Algorithm subdivision and structural source nesting remain separate admission authorities.
+
+ExchangeResourceLimits.maximumAlgebraicDepth is independently caller-owned, default32 and validated0...32, matching the exact normalized algebra producer ceiling. It is not inferred from source nesting or curve subdivision. Native forwards it through the original word context and exact algebra allowance; source record admission remains independently bounded by original JSON/source nesting.
+
+The exact Body format dispatch includes retained original affine-word surface and hosted pcurve families and corrected endpoint connectors. Unsupported exact carriers fail before publication with explicit incomplete markers. The surface conversion child owns the original whole-domain affine-word certified route and unchanged UV chart; corrected endpoint curve conversion still requires the Geometry curve producer contract.
+
+The [GeometryConversionExchange](GeometryConversionExchange/DESIGN.md) public writeConverting boundary returns both original directed curve and surface guarantees. Official format publication consumes this combined report; legacy surface-only entry points cannot silently discard curve certification. Body incidence remains owned by that child's final boundary certification contract.
+
+Native package ingress checks original archive bytes before ZIP traversal, forwards the original entity and uncompressed-byte ceilings into the ZIP reader, and rejects oversized JSON payloads before Foundation JSON materialization. These guards complement the same exact decode/validation ledger and do not reset it or reinterpret any depth ceiling.
+
+[Native JSON Encoding](NativeJSONEncoding/DESIGN.md) owns bounded actual Native token serialization and original drawing source descriptors. It preserves original Codable semantic grammar and canonical dynamic pairs, with compact whitespace; it does not claim a Foundation allocator-wide cap. Native package publication buffers its bounded archive before external output.
+
+Native ZIP publication forwards the original bounded serializer's live work
+callback into both CRC passes and entry assembly. CRC work is one original byte
+visit, admitted before its update; the callback checks the same deadline and
+cancellation. ZIP headers and payloads still pass through the original bounded
+output sink, and only the complete staged archive reaches the external sink.
+The existing Native ZIP platform adapter owns these byte operations; this does
+not add a new allowance or claim unguarded Foundation input work is accounted.
+
+Native duplicate-key scanning admits each original lexical/value visit through
+one load invocation owner and checks maximumNesting before recursive descent.
+Its manifest and document scans share the owner. After those scans finish, exact
+decoding receives only the remaining work/cells; the existing completed-decoder
+snapshot transfers the remaining allowance once to source validation. JSON
+Foundation shape materialization remains bounded by original input payload size;
+it is not described as an allocator-wide or per-Foundation-operation ledger.
+
+Native ZIP ingress now forwards that same load work callback into central/local
+entry traversal, checksum bytes and DEFLATE bit, symbol-table and output-copy
+visits. Compressed size and aggregate uncompressed payload ceilings retain their
+existing meaning. Budget and cancellation failures remain typed across ZIP
+syntax translation. Borrowed compressed pointers remain scoped to the synchronous
+ByteSource visit; callbacks receive counts, never pointers.

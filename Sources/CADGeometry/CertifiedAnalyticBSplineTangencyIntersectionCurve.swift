@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable, Hashable, Sendable {
+public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Hashable, Sendable {
     public let tangencyCurve: CertifiedQuadraticTangencyIntersectionCurve
     public let analyticSurface: Surface3D
     public let analyticIsFirst: Bool
@@ -226,13 +226,16 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable, Hashab
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case tangencyCurve
         case analyticSurface
         case analyticIsFirst
         case periodicSeamOffset
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -251,7 +254,9 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable, Hashab
             tolerance: tangencyCurve.certificationTolerance
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -260,4 +265,9 @@ public struct CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable, Hashab
         try container.encode(analyticIsFirst, forKey: .analyticIsFirst)
         try container.encode(periodicSeamOffset, forKey: .periodicSeamOffset)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedAnalyticBSplineTangencyIntersectionCurve: Codable {}
+#endif

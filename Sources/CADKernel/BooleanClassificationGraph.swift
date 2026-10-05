@@ -2,13 +2,13 @@ import CADCore
 import CADIR
 import CADTopology
 
-public struct BooleanClassificationGraph: Codable, Hashable, Sendable {
-    public enum Side: String, Codable, Hashable, Sendable {
+public struct BooleanClassificationGraph: Hashable, Sendable {
+    public enum Side: String, Hashable, Sendable {
         case negative
         case positive
     }
 
-    public struct Sample: Codable, Hashable, Sendable {
+    public struct Sample: Hashable, Sendable {
         public let facePair: BooleanFacePairCandidate
         public let componentID: BooleanFaceSplitComponentID
         public let sourceFaceID: FaceID
@@ -76,3 +76,9 @@ public struct BooleanClassificationGraph: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanClassificationGraph: Codable {}
+extension BooleanClassificationGraph.Side: Codable {}
+extension BooleanClassificationGraph.Sample: Codable {}
+#endif

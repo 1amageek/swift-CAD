@@ -218,3 +218,108 @@ subtraction of the maximum achieved error from its original linear allowance.
 The combined diagnostic (14 declarations / 15 cases) took 26.030 seconds.
 This is Geometry proof evidence; Kernel mesh publication, full public Draft and
 portable verification remain separately owned and unproved here.
+
+### Original station inverse
+
+`OriginalSurfaceStationCorrespondence` prepares the retained spatial curve and
+retained surface lift once. Its package protocol resolves an original native
+spatial station against the complete normalized pcurve domain on the caller's
+cumulative work ledger. Endpoints use the authored directed use endpoint and an
+original closed-point deviation bound. Interior stations use an original
+coordinate whose spatial tangent interval excludes zero. Closed subdivision
+exhausts every lift cell: complete coordinate separation or spatial separation
+excludes it; all other cells must achieve the requested full spatial bound.
+
+The union of possible cells must be one interval. Its original one-sided lift
+coordinate derivative must have a strict common sign and its endpoint values
+must bracket the original station coordinate interval. This proves a unique
+transverse coordinate root and bounds the physical error of every represented
+fraction in the receipt. A midpoint is only a publishable representative inside
+that proven interval. It is never the station's source authority. Multiple
+branches, stationary coordinates, unproved original endpoint jets or exhausted
+resources produce explicit failure. The receipt binds original curve, directed
+trim, support, pcurve, native station and tolerance. Consecutive receipts expose
+orientation for the topology owner to enforce directed monotone use traversal.
+This local transverse station proof does not claim a global implicit atlas or
+repair a missing pcurve. Those production domains remain separate requirements.
+
+### Reverse original station transfer
+
+The prepared station correspondence also resolves an authored lifted fraction onto the complete directed spatial native trim. Its original lifted singleton bounds select a transverse coordinate. Exhaustive native interval exclusion, a strict endpoint sign bracket and a same-sign whole derivative prove one physical station branch; whole XYZ bounds control the requested deviation. The immutable inverse receipt retains both original sources, the lifted fraction, native parameter interval, direction and tolerance. Every preparation, owning-span union and search cell consumes the composing callback. Stationary/critical global atlases remain separately required; no numerical projection or shared normalized fraction proves correspondence.
+
+
+### Bounded Void Validator Composition
+
+The invocation-aware void facade composes original prepared spatial/lift source
+bounds under explicit caller span, subdivision and source-depth limits. Work is
+one actual visit per callback; storage callbacks reserve bytes before preparation
+and traversal allocations. Legacy void entry points keep their historical policy.
+Identical hosted SurfaceLift laws prove zero residual structurally after paid
+source comparison. Identical retained affine curve/surface images with the
+original image pcurve recurse to the original correspondence, then multiply the
+proved residual by an outward original matrix operator upper bound. The original
+caller acceptance bound is preserved; no rounded composed transform or chart
+inverse becomes authority.
+
+A flat original-word coedge theorem retains the same original curve, support
+and hosting pcurve law. Identical word values are compared after paid original
+payload traversal. A proved zero source residual stays zero; other source bounds
+use the retained exact-word operator upper bound and the same composing byte
+allowance, without a rounded matrix or a new acceptance allowance.
+
+Generic fixed-fraction residual cells use complete original position intervals.
+A mean-value tightening is permitted only after source C0 continuity is admitted:
+validated ordinary native splines, explicit continuous analytic laws, their
+retained spatial/parameter images and numeric pcurves on continuous supports.
+A hull of higher one-sided jets never independently proves continuity. Unknown
+implicit, offset-normal or certificate joins retain rectangular residual bounds
+and explicit producer failures. Nonlinear/global correspondence, critical atlas
+coverage and lower jet temporary byte accounting remain completion gates of the
+new bounded facade; source-authored ports alone do not close those domains.
+
+
+### Original Continuous UV Endpoint Lift
+
+The bounded continuous-chart facade admits explicit globally continuous original
+UV laws and their literal translations/retained exact UV images. It keeps their
+original universal chart rather than deriving winding from sampled principal
+angles. Start/middle/end are numerical representatives with complete original
+closed UV boxes retained in the chart receipt; interpolation between those
+representatives remains a candidate only. Whole original UV bounds establish
+whether known U-singular roles can be visited. Unknown principal-angle or
+implicit branch joins, permuted singular image charts and unmetered lower query
+byte allocations remain explicit completion gates. A numerical image period
+never authorizes an exact foreign chart translation.
+
+
+Original surface chart period-shift admission propagates each exact stored shift
+through the retained signed image gains and axis permutations before comparing
+with the native period. Native spline periods use the exact difference of the
+authored fundamental knots; ideal primitive periods use their declared label
+period. A reduced exact quotient is integral only when its denominator is one.
+The same caller rational ledger pays gain arithmetic and source validation.
+This theorem admits representable stored translations without treating a
+rounded foreign period as authority. Nonrepresentable translations require an
+actual persistent exact shift law and remain a separate incomplete carrier.
+
+Bounded continuous-chart translation preserves the original pcurve/support
+binding and translates every retained endpoint UV enclosure outward. The caller
+separately proves the stored shift belongs to the original support lattice with
+OriginalSurfacePeriodShift. Translation itself makes no periodicity claim.
+Numerical interpolation remains candidate generation, and a legacy sampled
+receipt cannot be promoted to an original endpoint enclosure by translation.
+
+A zero shift preserves that coordinate enclosure identically. Adding an
+outward zero interval must not widen an exact collapsed-boundary singleton.
+
+Bounded directed offset-chart binding admits the retained procedural offset
+source itself, its exact pullback to the stored source support, and an exactly
+zero-distance identity. It validates the original pcurve on the directed source
+and compares retained source graphs under caller work admission. Materialized
+analytic/plane radius or origin arithmetic is not an exact offset-source binding
+without a separate original arithmetic/normal theorem. Those legacy optimized
+targets remain typed incomplete in the bounded relation port.
+
+### Independent Caller Admission for Residual Proof
+
+The bounded correspondence witness forwards optional byte storage unchanged and accepts an optional independently selected algebra depth in 0...32. Source validation, prepared curve and hosted lift preparation, recursive original-word transport and exact C0 admission consume that same invocation. Positional continuity is issued by the original curve traversal producer; native spline type alone does not establish continuity across full-multiplicity knots. A missing lift join issuer disables derivative mean-value tightening while complete original position boxes remain usable. No no-op byte callback substitutes for absent storage admission.

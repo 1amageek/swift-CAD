@@ -23,6 +23,13 @@ public extension KernelError {
         switch error {
         case is GeometryError, is UnitError, is MaterialError, is MeshArtifactPurposeError:
             code = .invalidInput
+        case let encodingError as PortableSourceEncodingError:
+            switch encodingError {
+            case .resourceLimitExceeded:
+                code = .resourceLimitExceeded
+            case .invalidLimits, .nonfiniteScalar, .canonicalKeyCollision:
+                code = .invalidInput
+            }
         #if !hasFeature(Embedded)
         case is DecodingError, is EncodingError:
             code = .invalidInput

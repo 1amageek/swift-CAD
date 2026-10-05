@@ -22,10 +22,14 @@ package extension Curve3D {
             return lift.exactDerivativeCertificate != nil
         case let .rigidImage(image):
             return image.source.supportsEfficientLocalizedTessellationDerivativeBounds
+        case let .parameterImage(image):
+            return image.source.supportsEfficientLocalizedTessellationDerivativeBounds
+        case let .originalAffineWord(image):
+            return image.source.supportsEfficientLocalizedTessellationDerivativeBounds
         case let .affineImage(image):
             return image.source.supportsEfficientLocalizedTessellationDerivativeBounds
         case .line, .circle, .analytic, .bSpline, .implicit,
-             .certifiedIntersection:
+             .certifiedIntersection, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
             return false
         }
     }
@@ -137,6 +141,8 @@ fileprivate extension Curve3D {
         case let .bSpline(spline):
             try spline.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
         case let .rigidImage(image):
+            try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
+        case let .originalAffineWord(image):
             try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
         case let .affineImage(image):
             try image.source.validatePeriodicDerivativeCertificate(over: interval, tolerance: tolerance)
@@ -273,15 +279,23 @@ fileprivate extension Curve3D {
         tolerance: ModelingTolerance
     ) throws -> Double {
         switch self {
+        case let .parameterImage(image):
+            let source = try image.source.secondDerivativeMagnitudeUpperBound(
+                image.originalInterval(interval), tolerance: tolerance)
+            return (source * image.gain * image.gain).nextUp
+
         case .line, .analytic(.line):
             return 0.0
         case let .circle(circle):
-            return circle.radius.nextUp
+            return (OutwardScalarInterval.exact(circle.radius)
+                * CanonicalSphereAngularPhase.scaleBounds * CanonicalSphereAngularPhase.scaleBounds).upper
         case let .analytic(.circle(_, _, radius)),
              let .analytic(.arc(_, _, radius, _, _)):
-            return radius.nextUp
+            return (OutwardScalarInterval.exact(radius)
+                * CanonicalSphereAngularPhase.scaleBounds * CanonicalSphereAngularPhase.scaleBounds).upper
         case let .analytic(.ellipse(_, _, _, majorRadius, minorRadius)):
-            return max(majorRadius, minorRadius).nextUp
+            return (OutwardScalarInterval.exact(max(majorRadius, minorRadius))
+                * CanonicalSphereAngularPhase.scaleBounds * CanonicalSphereAngularPhase.scaleBounds).upper
         case let .analytic(.hyperbola(curve)):
             let parameter = max(abs(interval.lower), abs(interval.upper))
             let value = hypot(
@@ -376,6 +390,18 @@ fileprivate extension Curve3D {
                 interval,
                 tolerance: tolerance
             )
+        case .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
+            let receipt = try PreparedCurveDifferentialEncloser(curve: self, tolerance: tolerance)
+                .closedNativeJets(over: interval, tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+            guard let first = receipt.spans.first else { throw GeometryConversionError.invalidInput("Original word tessellation has no native owner.") }
+            var bound = 0.0
+            for span in receipt.spans {
+                let q = span.jet
+                bound = max(bound, IntervalVector3DBounds(x: q.x.secondDerivativeUU,
+                    y: q.y.secondDerivativeUU, z: q.z.secondDerivativeUU).lengthUpperBound)
+            }
+            _ = first
+            return bound
         case let .affineImage(image):
             let sourceBound = try image.source.secondDerivativeMagnitudeUpperBound(
                 interval,

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct PrimitiveFeature: Codable, Hashable, Sendable {
+public struct PrimitiveFeature: Hashable, Sendable {
     public let definition: PrimitiveDefinition
 
     public init(definition: PrimitiveDefinition) {
@@ -11,20 +11,30 @@ public struct PrimitiveFeature: Codable, Hashable, Sendable {
         try definition.validate(tolerance: tolerance)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case definition
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.definition], in: decoder)
         definition = try container.decode(PrimitiveDefinition.self, forKey: .definition)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(definition, forKey: .definition)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension PrimitiveFeature: Codable {}
+#endif

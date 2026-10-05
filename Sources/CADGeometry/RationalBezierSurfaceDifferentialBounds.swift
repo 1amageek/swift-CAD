@@ -73,10 +73,35 @@ package struct RationalBezierSurfaceDifferentialBounds: Sendable {
         return try ScalarInterval(lower: max(0, ratio.lower), upper: min(1, ratio.upper))
     }
 
+    init(originalTangentU: IntervalVector3DBounds, originalTangentV: IntervalVector3DBounds,
+        originalNormal: IntervalVector3DBounds) {
+        tangentUNumerator = originalTangentU; tangentVNumerator = originalTangentV
+        normalNumerator = originalNormal
+    }
+
+    static func prepared(patch: RationalBezierSurfacePatch3D,
+        stationaryBoundaries: Set<SurfaceParameterBoundary> = [],
+        admission: NativeSurfaceEmbeddingAdmission) throws -> Self {
+        let fields = try prepare(patch: patch, stationaryBoundaries: stationaryBoundaries, admit: { phase in
+            try NativeSurfaceEmbeddingPreparationReservation.differential(patch, phase: phase, admission: admission)
+        })
+        return Self(fields: fields)
+    }
+
     init(patch: RationalBezierSurfacePatch3D,
          stationaryBoundaries: Set<SurfaceParameterBoundary> = []) {
+        let fields = Self.prepare(patch: patch, stationaryBoundaries: stationaryBoundaries, admit: { _ in })
+        tangentUNumerator = fields.0; tangentVNumerator = fields.1; normalNumerator = fields.2
+    }
+    private init(fields: (IntervalVector3DBounds, IntervalVector3DBounds, IntervalVector3DBounds)) {
+        tangentUNumerator = fields.0; tangentVNumerator = fields.1; normalNumerator = fields.2
+    }
+    private static func prepare(patch: RationalBezierSurfacePatch3D,
+        stationaryBoundaries: Set<SurfaceParameterBoundary>, admit: (Int) throws -> Void) rethrows
+        -> (IntervalVector3DBounds, IntervalVector3DBounds, IntervalVector3DBounds) {
         // Unit weights make the rational denominator identically one, including
         // interior subdivision cells without stationary boundary factors.
+        try admit(0)
         if patch.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }),
            let h = BernsteinVector4Surface(patch: patch),
            var u = h.xyz.derivativeU(parameterSpan: patch.uUpper - patch.uLower),
@@ -110,19 +135,15 @@ package struct RationalBezierSurfaceDifferentialBounds: Sendable {
                 }
             }
             if let normal = u.cross(v) {
-                tangentUNumerator = u.enclosure
-                tangentVNumerator = v.enclosure
-                normalNumerator = normal.enclosure
-                return
+                return (u.enclosure, v.enclosure, normal.enclosure)
             }
         }
+        try admit(1)
         if let exactBounds = ExactBernsteinDifferentialBounds(patch: patch) {
-            tangentUNumerator = exactBounds.tangentUNumerator
-            tangentVNumerator = exactBounds.tangentVNumerator
-            normalNumerator = exactBounds.normalNumerator
-            return
+            return (exactBounds.tangentUNumerator, exactBounds.tangentVNumerator, exactBounds.normalNumerator)
         }
 
+        try admit(2)
         let homogeneous = patch.controlPoints.indices.map { vIndex in
             patch.controlPoints[vIndex].indices.map { uIndex in
                 HomogeneousSurfacePoint(
@@ -150,12 +171,10 @@ package struct RationalBezierSurfaceDifferentialBounds: Sendable {
         let valueBounds = HomogeneousSurfaceBounds.enclosing(homogeneous.flatMap { $0 })
         let uBounds = HomogeneousSurfaceBounds.enclosing(derivativeU.flatMap { $0 })
         let vBounds = HomogeneousSurfaceBounds.enclosing(derivativeV.flatMap { $0 })
-        tangentUNumerator = uBounds.xyz * valueBounds.weight
-            - valueBounds.xyz * uBounds.weight
-        tangentVNumerator = vBounds.xyz * valueBounds.weight
-            - valueBounds.xyz * vBounds.weight
-        normalNumerator = tangentUNumerator.cross(tangentVNumerator)
-    }
+        let tangentU = uBounds.xyz * valueBounds.weight - valueBounds.xyz * uBounds.weight
+        let tangentV = vBounds.xyz * valueBounds.weight - valueBounds.xyz * vBounds.weight
+        return (tangentU, tangentV, tangentU.cross(tangentV))
+        }
 
     var representativeTangentU: Vector3D {
         tangentUNumerator.midpoint

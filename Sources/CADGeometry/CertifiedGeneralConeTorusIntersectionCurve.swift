@@ -2,7 +2,7 @@ import CADCore
 import Synchronization
 import Foundation
 
-public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sendable {
+public struct CertifiedGeneralConeTorusIntersectionCurve: Hashable, Sendable {
     public struct DifferentialGeometry: Hashable, Sendable {
         public let position: Point3D
         public let firstDerivative: Vector3D
@@ -3006,6 +3006,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             || (direction.x == 0.0 && direction.y == 0.0 && direction.z < 0.0)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case coneSurface
         case torusSurface
@@ -3017,7 +3018,9 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         case maximumResidualUpperBound
         case apexReduction
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -3102,7 +3105,9 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -3116,4 +3121,9 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         try container.encode(maximumResidualUpperBound, forKey: .maximumResidualUpperBound)
         try container.encodeIfPresent(apexReduction, forKey: .apexReduction)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedGeneralConeTorusIntersectionCurve: Codable {}
+#endif

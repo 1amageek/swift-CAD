@@ -1,7 +1,7 @@
 import CADCore
 
-public struct PatchSurfaceFeature: Codable, Sendable, Hashable {
-    public enum BoundaryOrientation: String, Codable, Sendable, Hashable {
+public struct PatchSurfaceFeature: Sendable, Hashable {
+    public enum BoundaryOrientation: String, Sendable, Hashable {
         case forward
         case reversed
     }
@@ -38,6 +38,7 @@ public struct PatchSurfaceFeature: Codable, Sendable, Hashable {
         self.material = material
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case vMinimumBoundary
         case vMaximumBoundary
@@ -49,7 +50,9 @@ public struct PatchSurfaceFeature: Codable, Sendable, Hashable {
         case uMaximumOrientation
         case material
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -101,7 +104,9 @@ public struct PatchSurfaceFeature: Codable, Sendable, Hashable {
         material = try container.decodeIfPresent(MaterialID.self, forKey: .material)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -115,6 +120,7 @@ public struct PatchSurfaceFeature: Codable, Sendable, Hashable {
         try container.encode(uMaximumOrientation, forKey: .uMaximumOrientation)
         try container.encodeIfPresent(material, forKey: .material)
     }
+#endif
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -124,3 +130,8 @@ public struct PatchSurfaceFeature: Codable, Sendable, Hashable {
         try uMaximumBoundary.validate(tolerance: tolerance)
     }
 }
+
+#if !hasFeature(Embedded)
+extension PatchSurfaceFeature: Codable {}
+extension PatchSurfaceFeature.BoundaryOrientation: Codable {}
+#endif

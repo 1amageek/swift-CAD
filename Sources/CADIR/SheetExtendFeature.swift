@@ -3,7 +3,7 @@ import CADCore
 /// Extend Sheet: open edges of a sheet carried on by `distance` in the chosen shape. Modifying,
 /// the extensions join the sheet; otherwise they form a sheet of their own beside it, the sheet
 /// kept as it was.
-public struct SheetExtendFeature: Codable, Hashable, Sendable {
+public struct SheetExtendFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var edges: [StableSubshapeReference]
     public var distance: CADExpression
@@ -42,10 +42,13 @@ public struct SheetExtendFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, edges, distance, shape, modifies, limit
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .edges, .distance, .shape, .modifies, .limit], in: decoder)
@@ -57,7 +60,9 @@ public struct SheetExtendFeature: Codable, Hashable, Sendable {
         limit = try container.decodeIfPresent(SheetExtensionLimit.self, forKey: .limit)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -68,6 +73,7 @@ public struct SheetExtendFeature: Codable, Hashable, Sendable {
         try container.encode(modifies, forKey: .modifies)
         try container.encodeIfPresent(limit, forKey: .limit)
     }
+#endif
 
     /// The inputs the feature reads: its target, consumed when the extensions join it.
     public var inputs: [FeatureInput] {
@@ -77,7 +83,7 @@ public struct SheetExtendFeature: Codable, Hashable, Sendable {
 }
 
 /// How an extended sheet carries on past its edge.
-public enum SheetExtensionShape: String, Codable, Hashable, Sendable, CaseIterable {
+public enum SheetExtensionShape: String, Hashable, Sendable, CaseIterable {
     /// The sheet's own surface continued.
     case natural
     /// Straight on along the sheet's tangent across the edge.
@@ -89,3 +95,8 @@ public enum SheetExtensionShape: String, Codable, Hashable, Sendable, CaseIterab
     /// fading to none at the far end (decided 2026-10-02).
     case soft
 }
+
+#if !hasFeature(Embedded)
+extension SheetExtendFeature: Codable {}
+extension SheetExtensionShape: Codable {}
+#endif

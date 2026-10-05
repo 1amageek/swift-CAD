@@ -89,6 +89,97 @@ normal ownership. This changes no source station or topology identity.
 Kernel must bind the actual facet
 positions/normals to the receipt before publication.
 
+### Original homogeneous affine-coordinate inverse bracket
+
+The original piece preparation already consumes the invocation-local ledger
+before bounded degree-at-most-four coefficient work and allocation. It retains
+an outward homogeneous residual against the endpoint affine U law: elevate
+original X to degree d+1 and subtract the exact-endpoint linear Bernstein law
+multiplied by original W. The Bernstein hull and strictly positive original
+weight minimum prove a whole closed-domain U residual. No sampled agreement,
+rounded coefficient equality, fitted law or new source coordinate is authority.
+
+For a requested exact stored U, dividing the residual-enlarged original
+endpoint difference by the outward original endpoint delta encloses its unique
+normalized inverse. The original monotonicity proof owns uniqueness; the
+existing charged monotone contraction refines this retained bracket under the
+same depth and 262144-cell ceiling. Nonuniform weights and a one-ULP deviation
+retain their nonzero residual rather than being labelled exactly affine.
+A zero-width graph query reuses its identical inverse enclosure for both
+endpoints; each actual inverse and every surface station/facet still consume
+the original ledger. Failure of finite arithmetic is explicit resource failure.
+
+Independent inverse tests own degree-two/four forward and reversed original
+coordinates, common nonunit and varying positive weights, one-ULP nonaffinity,
+finite closed inverse containment and exhausted/cancelled work. The original
+Kernel nonconvex/C0 facet suite and frozen Draft public fixture remain required
+upper evidence; the lower bracket alone completes neither M1 nor M2.
+
+### Immutable original U-row proof
+
+`stationRow(cellIndex:u:proofUsage:)` produces an opaque immutable nested
+`OriginalGraphBandReceipt.Row`. It requires finite U within the complete closed
+retained cell, consumes the same invocation-local usage before preparation, and
+encloses that cell's original lower and upper graph jets exactly once. The row
+retains the receipt's unique immutable identity, exact cell index and U, both original jets, and the opaque selected-native surface row evaluator. These values have no caller-settable initializer or mutable cache.
+The row's identity remains alive through the row; materialization also requires
+the originating receipt, whose immutable input owns the original source arrays.
+
+`station(row:w:pointCandidate:proofUsage:)` checks exact receipt identity,
+retained cell and closed U membership, and finite W in [0,1]. It consumes the
+same usage before each station's original surface point, selected native normal,
+closed original value/first-tangent enclosure and position/normal error proof.
+The row additionally retains the selected-native evaluator supplied by the
+parent owner: original U point/derivative bases and original U-localized
+first-order homogeneous nets are prepared once, with all added work and retained
+slots prepaid through the same usage. Original global point accumulation and
+selected-side normal accumulation retain their original ordered numeric laws.
+Per-station V evaluation, independent original error proof and whole-facet
+admission remain mandatory and unchanged. Rows at a C0 station are distinct for
+the two selected cells. A neighboring cell needs its own row and its own original
+point/normal admission even if the actual point candidate is shared.
+
+The existing `station(cellIndex:u:w:pointCandidate:proofUsage:)` delegates through
+this factory and materialization path. Preparing one row and using it at several
+W values avoids repeated original inversions without changing source parameters,
+proof ceilings, tolerance or error arithmetic. Each row factory and each station
+consume separately; no helper resets usage. A foreign receipt row is
+`invalidInput`, and exhausted usage after successful row preparation still
+refuses station materialization as `resourceLimitExceeded`.
+
+### Immutable graph derivative preparation
+
+Each original degree-one-through-four graph piece retains its original
+homogeneous first and second derivative coefficients for X, Y and W. These are
+exactly the same outward differences used by the existing graph-jet evaluation;
+only repeated coefficient preparation is removed. Native piece production pays
+one work operation and both scalar endpoints for every added derivative
+coefficient, plus the six retained array entries, before piece allocation.
+The existing native-piece and inverse operation charges remain unchanged.
+A graph query evaluates these retained nets on its independently certified
+original inverse interval and preserves all quotient, monotonicity and curvature
+terms. Constant weights still follow the original exact constant law.
+
+### Retained closed join-panel jets
+
+Join construction evaluates each selected original panel's full closed interval
+jet once. The immutable `JoinCell` retains that jet in the same index order as
+its closed panel cover. Source, selected side, parameter box and preparation
+tolerance are already bound by the owning receipt and native token; the jet
+cannot be replaced through the package API. Every panel's jet preparation and
+sixty scalar endpoint slots, plus its retained array entry, consume the same
+invocation-local proof usage before evaluation or append. Failed candidate join
+attempts retain their consumed work; no child invocation resets or refunds it.
+
+Each actual join facet still consumes its existing operation, proves its actual
+position displacement and all three edge lengths, and compares every actual
+normal against the retained full-panel jet. Reuse is valid only for that exact
+retained closed panel; it does not substitute a narrower unsupported parameter
+query or discard original uncertainty. Preparation failure, exhausted usage,
+invalid index and cancellation preserve typed refusal. Implementation is
+source-only until the original cap, C0, aggregate-budget and public Draft paths
+are executed after the current implementation phase.
+
 ### Simple reference completion and original uncertainty
 
 Outside each retained closed join box B, the exact original graph is fixed.
@@ -124,6 +215,25 @@ may not overlap unrelated arcs or each other without a separately proven
 complete reference cover. Unproved separation, domain, inverse ownership,
 nonemptiness, normal or cell cover is a typed refusal. No tail is clipped away
 merely to make U stations appear ordered.
+
+Pairwise join admission consumes one operation from the same invocation-local
+proof usage before each comparison, including already disjoint U ranges. This
+bounds quadratic comparison work and checks real cancellation without a fresh
+helper allowance. Closed U ranges with disjoint interiors retain the existing
+admission. When U interiors overlap, only two non-tip joins with exclusive
+opposite-chain connector ownership may be admitted: one has only the lower
+connector and the other only the upper connector, and their complete closed V
+boxes must be strictly disjoint. Same-chain joins, tips, mixed connector owners,
+and touching or overlapping V boxes retain typed refusal.
+
+This case preserves complete simultaneous lower and upper reference laws.
+Reference stations are the union of both connector endpoints and all original
+support breaks; each chain selects only its own connector. Every retained cell
+still proves strict separation of the full original lower/upper V covers and
+uses its independently selected native support panel. Both original join boxes
+and all original boundary intervals remain in the receipt. U-projection overlap
+therefore does not imply geometric box overlap and cannot erase the vertical
+strip between two opposite-chain connectors or merge selected C0 owners.
 
 ### Whole reference cells and joins
 
@@ -223,7 +333,11 @@ and the native traversal handoff in `../SurfaceTessellationDifferentialBounds.sw
 `Tests/CADGeometryTests/OriginalGraphBandTests.swift` owns the literal loop/cap,
 reversal, flat nonconvex trim, crossing full-strip, unequal-weight rational,
 selected C0 normal, actual station/diagonal, aggregate resource, invalid vertex
-and cancellation declarations. Existing OriginalNativeSpanTessellationTests
+and cancellation declarations.
+[OriginalGraphBandRowTests](../../../Tests/CADGeometryTests/OriginalGraphBandRowTests.swift)
+owns independent literal row points/normals/errors, observed inverse-work reuse,
+foreign receipt refusal, post-preparation budget refusal and separate selected
+C0 row normals. Existing OriginalNativeSpanTessellationTests
 owns compatibility of the original default traversal. Compile/runtime evidence
 is required before this bounded component is complete.
 
@@ -231,3 +345,33 @@ The one-ULP crossing-tail fixture must retain every original interval and the
 complete join strip while removing hidden same-chain reference partitions. An
 opposite active original break at that same station and native C0 support
 breaks must still partition reference cells.
+
+### Original station first-order materialization
+
+Mesh station admission consumes only original position and U/V tangents. The
+selected native-span owner exposes an immutable first-order result containing
+those three interval vectors and no second/third-order fields. It validates the
+same source, preparation tolerance, finite closed box, selected knot side and
+periodic lift as the existing full jet. The original prepared homogeneous value
+and first derivative nets are localized once; positive-weight quotient
+differentiation and original common-weight/polynomial-coordinate authority are
+retained. Cancellation is checked before and after evaluation. No derivative
+order is manufactured or filled with zero. Full-cell subdivision and facet
+Taylor/normal-variation evidence continue to use the original full jet.
+
+Station normals are certified directly from the first-tangent cross product
+and its outward positive magnitude bound. Actual normal normalization and
+whole-facet admission remain mandatory. The original rational curved-support,
+C0 side, source/tolerance/box refusal and cancellation tests compare against
+independent original laws; the same unchanged public nonconvex/C0 mesh suite
+remains the completion evidence. The captured Native stack shows that prior
+station emission localized unneeded derivative nets; only public runtime can
+prove the resulting cost improvement.
+
+### Composed Tessellation Cell Admission
+
+`OriginalTessellationProofUsage` may receive an immutable Sendable depth callback
+to the enclosing invocation's cell ledger. Existing local ceilings are checked
+first; the enclosing callback then admits the visit before the local count
+increments. Callback failure preserves the local count and propagates. Native,
+WASM and Embedded retain identical callback and mutable invocation ownership.

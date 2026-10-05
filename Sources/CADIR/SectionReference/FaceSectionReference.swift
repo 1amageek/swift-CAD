@@ -3,7 +3,7 @@ import CADCore
 /// A planar face of a body or sheet taken as a section: its loops, read where the face is when the
 /// feature is evaluated, bound the region the section stands for, and its outward normal is the
 /// section's normal.
-public struct FaceSectionReference: Codable, Hashable, Sendable {
+public struct FaceSectionReference: Hashable, Sendable {
     /// The feature whose body or sheet owns the face.
     public var featureID: FeatureID
     public var face: StableSubshapeReference
@@ -23,3 +23,7 @@ public struct FaceSectionReference: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension FaceSectionReference: Codable {}
+#endif

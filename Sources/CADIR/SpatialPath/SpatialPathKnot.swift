@@ -1,19 +1,21 @@
-import Foundation
 import CADCore
 
-public struct SpatialPathKnot: Codable, Hashable, Sendable, Identifiable {
-    public enum Mode: String, Codable, Sendable {
+public enum SpatialPathKnotTag {}
+public typealias SpatialPathKnotID = TaggedID<SpatialPathKnotTag>
+
+public struct SpatialPathKnot: Hashable, Sendable, Identifiable {
+    public enum Mode: String, Sendable {
         case corner, smooth, symmetric
     }
 
-    public var id: UUID
+    public var id: SpatialPathKnotID
     public var position: Point3D
     public var incoming: Vector3D
     public var outgoing: Vector3D
     public var mode: Mode
 
     public init(
-        id: UUID = UUID(), position: Point3D,
+        id: SpatialPathKnotID = SpatialPathKnotID(), position: Point3D,
         incoming: Vector3D = .zero, outgoing: Vector3D = .zero,
         mode: Mode = .corner
     ) {
@@ -50,13 +52,16 @@ public struct SpatialPathKnot: Codable, Hashable, Sendable, Identifiable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case id, position, incoming, outgoing, mode }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         try values.validateOnlyExpectedKeys([.id, .position, .incoming, .outgoing, .mode], in: decoder)
         self.init(
-            id: try values.decode(UUID.self, forKey: .id),
+            id: try values.decode(SpatialPathKnotID.self, forKey: .id),
             position: try values.decode(Point3D.self, forKey: .position),
             incoming: try values.decode(Vector3D.self, forKey: .incoming),
             outgoing: try values.decode(Vector3D.self, forKey: .outgoing),
@@ -64,7 +69,9 @@ public struct SpatialPathKnot: Codable, Hashable, Sendable, Identifiable {
         )
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var values = encoder.container(keyedBy: CodingKeys.self)
@@ -74,4 +81,10 @@ public struct SpatialPathKnot: Codable, Hashable, Sendable, Identifiable {
         try values.encode(outgoing, forKey: .outgoing)
         try values.encode(mode, forKey: .mode)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SpatialPathKnot: Codable {}
+extension SpatialPathKnot.Mode: Codable {}
+#endif

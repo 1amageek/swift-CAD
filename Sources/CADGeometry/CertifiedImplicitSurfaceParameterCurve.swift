@@ -1,7 +1,7 @@
 import CADCore
 import Foundation
 
-public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendable {
+public struct CertifiedImplicitSurfaceParameterCurve: Hashable, Sendable {
   public let intersection: CertifiedImplicitIntersectionCurve
   public let role: SurfaceIntersectionSurfaceRole
   public let startFraction: Double
@@ -47,13 +47,16 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
     self.endFraction = min(max(endFraction, 0.0), upperBound)
   }
 
+#if !hasFeature(Embedded)
   private enum CodingKeys: String, CodingKey {
     case intersection
     case role
     case startFraction
     case endFraction
   }
+#endif
 
+#if !hasFeature(Embedded)
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     try container.validateOnlyExpectedKeys(
@@ -72,7 +75,9 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
       tolerance: intersection.certificationTolerance
     )
   }
+#endif
 
+#if !hasFeature(Embedded)
   public func encode(to encoder: Encoder) throws {
     _ = try CertifiedImplicitSurfaceParameterCurve(
       intersection: intersection,
@@ -87,6 +92,7 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
     try container.encode(startFraction, forKey: .startFraction)
     try container.encode(endFraction, forKey: .endFraction)
   }
+#endif
 
   public func validate(
     on surface: Surface3D,
@@ -310,3 +316,7 @@ public struct CertifiedImplicitSurfaceParameterCurve: Codable, Hashable, Sendabl
     lower + (upper - lower) * fraction
   }
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedImplicitSurfaceParameterCurve: Codable {}
+#endif

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveSurfaceCorrespondenceValidationOptions: Codable, Hashable, Sendable {
+public struct CurveSurfaceCorrespondenceValidationOptions: Hashable, Sendable {
     public let maximumSubdivisionDepth: Int
     public let maximumCellCount: Int
     // Acceptance bound for the lift-versus-curve deviation. The default of
@@ -35,3 +35,7 @@ public struct CurveSurfaceCorrespondenceValidationOptions: Codable, Hashable, Se
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveSurfaceCorrespondenceValidationOptions: Codable {}
+#endif

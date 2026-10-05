@@ -3,7 +3,7 @@ import CADCore
 /// Fillet Shell's variable point: the fillet's radius (or distance) at a fraction of its edge's
 /// length from its start; the radius follows the natural cubic spline through the points and the
 /// edge's ends.
-public struct FilletVariablePoint: Codable, Hashable, Sendable {
+public struct FilletVariablePoint: Hashable, Sendable {
     public let position: Double
     public let radius: CADExpression
 
@@ -12,3 +12,7 @@ public struct FilletVariablePoint: Codable, Hashable, Sendable {
         self.radius = radius
     }
 }
+
+#if !hasFeature(Embedded)
+extension FilletVariablePoint: Codable {}
+#endif

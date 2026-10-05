@@ -4,4 +4,6 @@
 @_exported import CADIR
 @_exported import CADModeling
 @_exported import CADKernel
+#if CAD_EXCHANGE
 @_exported import CADExchange
+#endif

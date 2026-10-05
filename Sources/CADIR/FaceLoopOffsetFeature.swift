@@ -6,7 +6,7 @@ import CADTopology
 /// joined as `gapFill` says, and imprinted. Individually,
 /// each face's own outline is offset; combined, the outline of the faces together is, so edges
 /// between two chosen faces are not.
-public struct FaceLoopOffsetFeature: Codable, Hashable, Sendable {
+public struct FaceLoopOffsetFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var faces: [StableSubshapeReference]
     public var distance: CADExpression
@@ -42,10 +42,13 @@ public struct FaceLoopOffsetFeature: Codable, Hashable, Sendable {
         try distance.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, faces, distance, side, gapFill, isIndividual
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .faces, .distance, .side, .gapFill, .isIndividual], in: decoder)
@@ -57,7 +60,9 @@ public struct FaceLoopOffsetFeature: Codable, Hashable, Sendable {
         isIndividual = try container.decode(Bool.self, forKey: .isIndividual)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -68,10 +73,11 @@ public struct FaceLoopOffsetFeature: Codable, Hashable, Sendable {
         try container.encode(gapFill, forKey: .gapFill)
         try container.encode(isIndividual, forKey: .isIndividual)
     }
+#endif
 }
 
 /// Where Offset Face Loop offsets a face's outline.
-public enum FaceLoopOffsetSide: String, Codable, Hashable, Sendable {
+public enum FaceLoopOffsetSide: String, Hashable, Sendable {
     /// Into the face.
     case inward
     /// Over the faces around it.
@@ -79,3 +85,8 @@ public enum FaceLoopOffsetSide: String, Codable, Hashable, Sendable {
     /// Both ways, the same distance.
     case symmetric
 }
+
+#if !hasFeature(Embedded)
+extension FaceLoopOffsetFeature: Codable {}
+extension FaceLoopOffsetSide: Codable {}
+#endif

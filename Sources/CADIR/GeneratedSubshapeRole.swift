@@ -1,4 +1,4 @@
-public enum GeneratedSubshapeRole: String, Codable, Sendable, Hashable {
+public enum GeneratedSubshapeRole: String, Sendable, Hashable {
     case body
     case vertex
     case edge
@@ -7,3 +7,7 @@ public enum GeneratedSubshapeRole: String, Codable, Sendable, Hashable {
     case endFace
     case sideFace
 }
+
+#if !hasFeature(Embedded)
+extension GeneratedSubshapeRole: Codable {}
+#endif

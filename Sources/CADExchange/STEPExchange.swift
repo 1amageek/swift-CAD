@@ -1,12 +1,17 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADKernel
 import CADTopology
 
-public struct STEPExchange: IndependentSTEPGeometryExchanging {
+public struct STEPExchange: IndependentSTEPGeometryExchanging, CertifiedDocumentGeometryExchanging {
     private let resourceLimits: ExchangeResourceLimits
     private let tolerance: ModelingTolerance
+    private let allowsGroupSemanticLoss: Bool
+    private let surfaceOverrides: [Surface3D: BSplineSurface3D]
+    private let curveConversions: ExchangeCurveConversionPlan
+    private let processingBudgetOverride: ExchangeProcessingBudget?
 
     public init(
         tolerance: ModelingTolerance,
@@ -14,6 +19,75 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
     ) {
         self.tolerance = tolerance
         self.resourceLimits = resourceLimits
+        surfaceOverrides = [:]; curveConversions = .init(); processingBudgetOverride = nil; allowsGroupSemanticLoss = false
+    }
+
+    init(tolerance: ModelingTolerance, resourceLimits: ExchangeResourceLimits, surfaceOverrides: [Surface3D: BSplineSurface3D], curveConversions: ExchangeCurveConversionPlan = .init(), processingBudget: ExchangeProcessingBudget? = nil, allowsGroupSemanticLoss: Bool = false) {
+        self.tolerance = tolerance; self.resourceLimits = resourceLimits; self.surfaceOverrides = surfaceOverrides; self.curveConversions = curveConversions; processingBudgetOverride = processingBudget; self.allowsGroupSemanticLoss = allowsGroupSemanticLoss
+    }
+    /// Used only after the parent has admitted the concrete original group losses.
+    func permittingReportedGroupLoss() -> Self {
+        Self(tolerance: tolerance, resourceLimits: resourceLimits, surfaceOverrides: surfaceOverrides,
+            curveConversions: curveConversions, processingBudget: processingBudgetOverride, allowsGroupSemanticLoss: true)
+    }
+    public func write(_ evaluated: EvaluatedDocument, units: UnitSystem? = nil,
+        geometryPolicy: ExchangeGeometryConversionPolicy, to sink: any ByteSink) throws -> [ExchangeSurfaceConversionGuarantee] {
+        try conversionWrite(evaluated, units: units, policy: geometryPolicy, permitsCurveReports: false, to: sink).surfaceConversions
+    }
+    public func writeConverting(_ evaluated: EvaluatedDocument, units: UnitSystem? = nil,
+        geometryPolicy: ExchangeGeometryConversionPolicy, to sink: any ByteSink) throws -> ExchangeGeometryConversionReport {
+        try conversionWrite(evaluated, units: units, policy: geometryPolicy, permitsCurveReports: true, to: sink)
+    }
+    private func conversionWrite(_ evaluated: EvaluatedDocument, units: UnitSystem?, policy: ExchangeGeometryConversionPolicy,
+        permitsCurveReports: Bool, to sink: any ByteSink) throws -> ExchangeGeometryConversionReport {
+        try evaluated.validate()
+        let local = evaluated.assembly?.local.model ?? evaluated.brep
+        let ledger = try ExchangeConversionLedger(limits: resourceLimits, format: .step)
+        var stores = [local.geometry]
+        if let independent = evaluated.document.independentShapes { stores.append(independent.geometry) }
+        let surfaces = try ExchangeSurfaceConversionPlanner().plan(stores: stores, policy: policy, format: .step,
+            tolerance: tolerance, limits: resourceLimits, ledger: ledger)
+        let curves = try ExchangeCurveConversionPlanner().plan(breps: [local], independent: evaluated.document.independentShapes,
+            policy: policy, tolerance: tolerance, ledger: ledger, surfaceOverrides: surfaces.overrides)
+        guard permitsCurveReports || curves.guarantees.isEmpty else {
+            throw IndependentShapeExchangeError.unsupportedSemantics("The legacy surface-only result cannot report a curve conversion; use writeConverting.")
+        }
+        let remainingLimits = try ledger.remainingLimits()
+        let output = DataByteSink()
+        try STEPExchange(tolerance: tolerance, resourceLimits: remainingLimits,
+            surfaceOverrides: surfaces.overrides, curveConversions: curves, processingBudget: surfaces.budget, allowsGroupSemanticLoss: allowsGroupSemanticLoss).write(evaluated, units: units, to: output)
+        try ledger.snapshot().checkTime(); try sink.write(output.bytes)
+        return .init(curveConversions: curves.guarantees, surfaceConversions: surfaces.guarantees)
+    }
+    public func write(_ document: CADDocument, units: UnitSystem? = nil,
+        geometryPolicy: ExchangeGeometryConversionPolicy, to sink: any ByteSink) throws -> [ExchangeSurfaceConversionGuarantee] {
+        try conversionWrite(document, units: units, policy: geometryPolicy, permitsCurveReports: false, to: sink).surfaceConversions
+    }
+    public func writeConverting(_ document: CADDocument, units: UnitSystem? = nil,
+        geometryPolicy: ExchangeGeometryConversionPolicy, to sink: any ByteSink) throws -> ExchangeGeometryConversionReport {
+        try conversionWrite(document, units: units, policy: geometryPolicy, permitsCurveReports: true, to: sink)
+    }
+    private func conversionWrite(_ document: CADDocument, units: UnitSystem?, policy: ExchangeGeometryConversionPolicy,
+        permitsCurveReports: Bool, to sink: any ByteSink) throws -> ExchangeGeometryConversionReport {
+        guard let independent = document.independentShapes, document.designGraph.nodes.isEmpty,
+            document.assembly == nil, document.productAttributes.isEmpty else {
+            return try conversionWrite(DocumentEvaluator(tolerance: tolerance).evaluateExact(document), units: units,
+                policy: policy, permitsCurveReports: permitsCurveReports, to: sink)
+        }
+        let ledger = try ExchangeConversionLedger(limits: resourceLimits, format: .step)
+        let surfaces = try ExchangeSurfaceConversionPlanner().plan(stores: [independent.geometry], policy: policy,
+            format: .step, tolerance: tolerance, limits: resourceLimits, ledger: ledger)
+        let curves = try ExchangeCurveConversionPlanner().plan(breps: [], independent: independent, policy: policy,
+            tolerance: tolerance, ledger: ledger, surfaceOverrides: surfaces.overrides)
+        guard permitsCurveReports || curves.guarantees.isEmpty else {
+            throw IndependentShapeExchangeError.unsupportedSemantics("The legacy surface-only result cannot report a curve conversion; use writeConverting.")
+        }
+        let remainingLimits = try ledger.remainingLimits()
+        let output = DataByteSink()
+        try STEPExchange(tolerance: tolerance, resourceLimits: remainingLimits,
+            surfaceOverrides: surfaces.overrides, curveConversions: curves, processingBudget: surfaces.budget, allowsGroupSemanticLoss: allowsGroupSemanticLoss).write(document, units: units, to: output)
+        try ledger.snapshot().checkTime(); try sink.write(output.bytes)
+        return .init(curveConversions: curves.guarantees, surfaceConversions: surfaces.guarantees)
     }
 
     public func write(
@@ -27,7 +101,7 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
         try brep.validate(level: .exact, tolerance: tolerance)
         try ExactSTEPWriter(
             resourceLimits: resourceLimits,
-            tolerance: tolerance
+            tolerance: tolerance, surfaceOverrides: surfaceOverrides, curveConversions: curveConversions, processingBudget: processingBudgetOverride, allowsGroupSemanticLoss: allowsGroupSemanticLoss
         ).write(
             brep: brep,
             units: units,
@@ -36,12 +110,15 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
     }
 
     public func write(_ evaluated: EvaluatedDocument, units: UnitSystem? = nil, to sink: any ByteSink) throws {
+        if evaluated.document.independentShapes != nil, evaluated.document.designGraph.nodes.isEmpty,
+           evaluated.document.assembly == nil, evaluated.document.productAttributes.isEmpty {
+            try write(evaluated.document, units: units, to: sink)
+            return
+        }
         let outputUnits = units ?? evaluated.document.units
         if evaluated.document.assembly != nil {
-            try STEPAssemblyWriter(tolerance: tolerance, resourceLimits: resourceLimits)
+            try STEPAssemblyWriter(tolerance: tolerance, resourceLimits: resourceLimits, surfaceOverrides: surfaceOverrides, curveConversions: curveConversions, processingBudget: processingBudgetOverride, allowsGroupSemanticLoss: allowsGroupSemanticLoss)
                 .write(evaluated, units: outputUnits, to: sink)
-        } else if evaluated.document.productAttributes.isEmpty {
-            try write(brep: evaluated.brep, units: outputUnits, to: sink)
         } else {
             try outputUnits.validate(); try resourceLimits.validate()
             let resolved = try ProductAttributeResolver().resolve(evaluated, limits: ProductAttributeLimits(
@@ -50,12 +127,20 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
                 maximumWork: resourceLimits.maximumIterations))
             let attributes = STEPAttributesWriter()
             let names = try attributes.geometryNames(for: evaluated, resolved: resolved, limits: resourceLimits)
-            let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)
+            let writer = ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance, surfaceOverrides: surfaceOverrides, curveConversions: curveConversions, processingBudget: processingBudgetOverride, allowsGroupSemanticLoss: allowsGroupSemanticLoss)
+            let processing = processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
             var table = ExactSTEPWriter.EntityTable(maximumEntities: resourceLimits.maximumEntities,
-                tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations)
+                tolerance: tolerance, maximumBytes: resourceLimits.maximumBytes, maximumStringWork: resourceLimits.maximumIterations,
+                maximumSourceDepth: resourceLimits.maximumNesting, maximumAlgebraicDepth: resourceLimits.maximumAlgebraicDepth, processingBudget: processing)
+            if evaluated.document.independentShapes != nil {
+                table.independentUsage = try IndependentShapeExchangeUsage(limits: resourceLimits, format: .step, processing: processing,
+                    consumedEntities: 0, consumedWork: resolved.consumedWork, consumedBytes: 0)
+            }
             let product = try writer.appendDefinition(brep: evaluated.brep, units: outputUnits,
                 identifier: "SWIFTCAD", name: evaluated.document.metadata.name ?? "",
                 additionalItems: [], bodyNames: names.bodies, faceNames: names.faces, table: &table)
+            try STEPSourceIdentityWriter().append(uuid: evaluated.document.id.description, role: .documentCarrier,
+                target: product.definition, table: &table)
             var transfer = STEPAttributeWriteTransfer()
             transfer.products[AssemblyDefinitionID()] = STEPAttributeProductRepresentation(definition: product.definition,
                 definitionShape: product.definitionShape, representation: product.representation, context: product.context,
@@ -63,8 +148,38 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
             let records = try attributes.records(for: evaluated, resolved: resolved, transfer: transfer,
                 startingAt: table.entities.count + 1, limits: resourceLimits)
             for record in records { _ = try table.add(record) }
+            if let independent = evaluated.document.independentShapes {
+                guard var usage = table.independentUsage else { throw IndependentShapeExchangeError.invalidAssociation("Missing composed STEP caller ledger.") }
+                try usage.validateDocument(evaluated.document, tolerance: tolerance)
+                var bodyBindings: [SubshapeID: IndependentSTEPBodyBinding] = [:]
+                for (selector, reference) in evaluated.subshapes.entries {
+                    try usage.charge(entities: 1, work: 1)
+                    guard case .body(let id) = reference else { continue }
+                    guard let entities = product.bodies[id], entities.count == 1, let entity = entities.first else {
+                        throw IndependentShapeExchangeError.invalidAssociation("Original Body selector has no sole emitted source entity.")
+                    }
+                    bodyBindings[selector] = try IndependentSTEPBodyBinding(entityID: entity, lengthUnit: outputUnits.length)
+                }
+                try writer.appendIndependent(independent, units: outputUnits, table: &table,
+                    bodyBindings: bodyBindings, bodySourceGraph: evaluated.document.designGraph, usage: &usage)
+            }
             try writer.publish(table: table, to: sink)
         }
+    }
+
+    public func write(_ document: CADDocument, units: UnitSystem? = nil, to sink: any ByteSink) throws {
+        guard let source = document.independentShapes else {
+            try write(DocumentEvaluator(tolerance:tolerance).evaluateExact(document),units:units,to:sink)
+            return
+        }
+        guard document.designGraph.nodes.isEmpty, document.assembly == nil, document.productAttributes.isEmpty else {
+            try write(DocumentEvaluator(tolerance: tolerance).evaluateExact(document), units: units, to: sink)
+            return
+        }
+        var usage = try IndependentShapeExchangeUsage(limits:resourceLimits,format:.step,processing:processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration),consumedEntities:0,consumedWork:0,consumedBytes:0)
+        try usage.validateDocument(document,tolerance:tolerance)
+        try ExactSTEPWriter(resourceLimits:resourceLimits,tolerance:tolerance,surfaceOverrides:surfaceOverrides,curveConversions:curveConversions,processingBudget:processingBudgetOverride,allowsGroupSemanticLoss:allowsGroupSemanticLoss)
+            .writeIndependent(source,units:units ?? document.units,to:sink,usage:&usage)
     }
 
     public func writeIndependentGeometry(_ model: IndependentSTEPGeometry, to sink: any ByteSink) throws {
@@ -84,15 +199,16 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
             guard let text = String(data: data, encoding: .utf8) else {
                 throw ImportError.invalidData("STEP data is not UTF-8.")
             }
-            try validateSTEPResourceBudget(text, budget: budget)
+            let lexicalWork = try validateSTEPResourceBudget(text, budget: budget)
             try validateSTEPExchangeEnvelope(in: text)
             let sections = try stepDataSections(in: text)
             try rejectSTEPEntityMarkersOutsideDataSections(in: text, dataRanges: sections.map(\.contentRange))
             guard !sections.isEmpty else { throw ImportError.invalidData("Missing STEP DATA section.") }
             let entities = try stepEntities(in: sections.map(\.content).joined(separator: "\n"))
-            guard !entities.isEmpty, entities.count <= resourceLimits.maximumEntities else {
+            guard !entities.isEmpty else { throw ImportError.invalidData("STEP DATA section contains no entities.") }
+            guard entities.count <= resourceLimits.maximumEntities else {
                 throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
-                    message: "Standalone STEP input exceeds its entity budget or has no entities.")
+                    message: "Standalone STEP input exceeds its entity budget.")
             }
             let additional = ["GEOMETRIC_CURVE_SET(", "GEOMETRIC_SET(",
                 "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION("]
@@ -110,8 +226,10 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
                 }
             }
             let length = try stepLengthUnit(in: entities)
+            var usage = try IndependentShapeExchangeUsage(limits: resourceLimits, processing: budget,
+                consumedEntities: entities.count, consumedWork: lexicalWork, consumedBytes: 0)
             return try ExactSTEPReader(entities: entities, lengthUnit: length,
-                processingBudget: budget, tolerance: tolerance).readIndependentGeometry()
+                processingBudget: budget, tolerance: tolerance).readIndependentGeometry(usage: &usage)
         }
     }
 
@@ -153,6 +271,73 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
         }
     }
 
+    /// Explicit partial import retains a dependency-closed supported graph and returns every loss.
+    public func `import`(_ source: any ByteSource, policy: ExchangeImportPolicy) throws -> ImportedExchangeModel {
+        switch policy {
+        case .strict: return try self.import(source)
+        case let .allowPartial(accepting):
+            try resourceLimits.validate()
+            let processing = processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
+            guard source.count <= resourceLimits.maximumBytes else { throw exchangeResourceLimitError(format: .step, detail: "input exceeds byte ceiling") }
+            return try source.withNoCopyData { data in
+                try processing.check(format: .step)
+                guard let text = String(data: data, encoding: .utf8) else { throw ImportError.invalidData("STEP data is not valid UTF-8.") }
+                let lexicalWork = try validateSTEPResourceBudget(text, budget: processing)
+                try validateSTEPExchangeEnvelope(in: text)
+                let sections = try stepDataSections(in: text)
+                guard !sections.isEmpty else { throw ImportError.invalidData("Missing STEP DATA section.") }
+                try rejectSTEPEntityMarkersOutsideDataSections(in: text, dataRanges: sections.map(\.contentRange))
+                let entities = try stepEntities(in: sections.map(\.content).joined(separator: "\n"))
+                var plannerLimits = resourceLimits
+                guard lexicalWork < plannerLimits.maximumIterations else { throw exchangeResourceLimitError(format: .step, detail: "partial lexical work exhausted caller allowance") }
+                plannerLimits.maximumIterations -= lexicalWork
+                let plan = try STEPPartialImportPlanner(limits: plannerLimits, budget: processing).plan(entities: entities, accepting: accepting, isSupported: { isSupportedSTEPEntity(syntax: normalizedSTEPText(stepSyntaxOutsideStrings(in: $0))) })
+                var remaining = plannerLimits
+                remaining.maximumIterations -= plan.consumedWork
+                remaining.maximumEntities -= plan.consumedEntities
+                remaining.maximumBytes -= plan.consumedBytes
+                guard remaining.maximumIterations > 0, remaining.maximumEntities > 0, remaining.maximumBytes > 0 else {
+                    throw exchangeResourceLimitError(format: .step, detail: "partial planner exhausted caller allowance")
+                }
+                func admitReconstruction(_ bytes: Int) throws {
+                    try processing.check(format: .step)
+                    guard bytes >= 0, bytes < remaining.maximumBytes, bytes < remaining.maximumIterations else {
+                        throw exchangeResourceLimitError(format: .step, detail: "partial reconstruction exceeds cumulative caller allowance")
+                    }
+                    remaining.maximumBytes -= bytes; remaining.maximumIterations -= bytes
+                }
+                var payload = ""
+                for id in plan.entities.keys.sorted() {
+                    guard let entity = plan.entities[id] else { throw ImportError.missingRequiredEntity("Retained STEP record.") }
+                    var digitCount = 1, quotient = id / 10
+                    while quotient > 0 { digitCount += 1; quotient /= 10 }
+                    let recordBytes = entity.utf8.count.addingReportingOverflow(digitCount + 4)
+                    guard !recordBytes.overflow else { throw exchangeResourceLimitError(format: .step, detail: "partial record byte overflow") }
+                    try admitReconstruction(recordBytes.partialValue)
+                    payload += "#\(id)=\(entity);\n"
+                }
+                guard text.utf8.count < remaining.maximumIterations else { throw exchangeResourceLimitError(format: .step, detail: "partial reconstruction traversal ceiling") }
+                remaining.maximumIterations -= text.utf8.count
+                var retained = "", cursor = text.startIndex
+                for (index, section) in sections.enumerated() {
+                    let prefix = text[cursor..<section.contentRange.lowerBound]
+                    try admitReconstruction(prefix.utf8.count)
+                    retained += prefix
+                    if index == 0 { try admitReconstruction(payload.utf8.count); retained += payload }
+                    cursor = section.contentRange.upperBound
+                }
+                let suffix = text[cursor...]
+                try admitReconstruction(suffix.utf8.count)
+                retained += suffix
+                try processing.check(format: .step)
+                guard retained.utf8.count <= remaining.maximumBytes, remaining.maximumIterations > 0 else { throw exchangeResourceLimitError(format: .step, detail: "retained reconstruction exceeds caller ceiling") }
+                var result = try STEPExchange(tolerance: tolerance, resourceLimits: remaining).importText(retained, budget: processing)
+                result.preservationReport = plan.report
+                return result
+            }
+        }
+    }
+
     private func importText(
         _ text: String,
         budget: ExchangeProcessingBudget
@@ -169,6 +354,7 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
         }
         let entities = try stepEntities(in: dataSections.map(\.content).joined(separator: "\n"))
         try budget.check(format: .step)
+        guard !entities.isEmpty else { throw ImportError.invalidData("STEP DATA section contains no entities.") }
         guard entities.count <= resourceLimits.maximumEntities else {
             throw KernelError(
                 phase: .exchange,
@@ -177,9 +363,9 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
                 message: "STEP input exceeds the configured entity limit."
             )
         }
-        try validateSupportedSTEPEntities(entities)
+        let names = try validateSupportedSTEPEntities(entities, budget: budget)
         try budget.check(format: .step)
-        if entities.values.contains(where: { $0.hasPrefix("TRIANGULATED_FACE_SET") }) {
+        if names.values.contains("TRIANGULATED_FACE_SET") {
             throw KernelError(
                 phase: .exchange,
                 code: .unsupportedCapability,
@@ -187,9 +373,53 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
                 message: "Tessellated STEP is a mesh exchange and cannot be imported as exact CAD geometry."
             )
         }
-        if let assembly = try STEPAssemblyReader(tolerance: tolerance, resourceLimits: resourceLimits)
-            .read(entities: entities, budget: budget) { return assembly }
-        let lengthUnit = try stepLengthUnit(in: entities)
+        let hasBodies = names.values.contains { ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains($0) }
+        let hasMaterialDesignation = names.values.contains("MATERIAL_DESIGNATION")
+        var sourceAdmission = try IndependentShapeExchangeUsage(limits: resourceLimits, format: .step, processing: budget,
+            consumedEntities: entities.count, consumedWork: text.unicodeScalars.count, consumedBytes: text.utf8.count)
+        let bodyContextUnits = hasBodies ? try ExactSTEPReader.bodyContextUnits(entities: entities, names: names,
+            processingBudget: budget, tolerance: tolerance, usage: &sourceAdmission) : [:]
+        var materialIdentities: [Int: PhysicalMaterialID] = [:]
+        var documentCarrier: STEPDocumentCarrierReadReceipt?
+        if names.values.contains("PRODUCT_DEFINITION"), let assembled = try STEPAssemblyReader(tolerance: tolerance, resourceLimits: resourceLimits)
+            .read(entities: entities, budget: budget, materialIdentities: &materialIdentities, documentCarrier: &documentCarrier, sourceAdmission: sourceAdmission) { return assembled }
+        if !hasBodies {
+            var independentUsage = try IndependentShapeExchangeUsage(limits:resourceLimits,format:.step,processing:budget,
+                consumedEntities:entities.count,consumedWork:text.unicodeScalars.count,consumedBytes:text.utf8.count)
+            let independentItems = try independentSTEPItemRoots(entities:entities,names:names,budget:budget) { entities, work in
+                try independentUsage.charge(entities:entities,work:work)
+            }
+            if let original = try ExactSTEPReader.readIndependent(entities: entities, processingBudget: budget,
+                tolerance: tolerance, standaloneItems: independentItems, usage: &independentUsage) {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public independent STEP import has no material-attribute composition owner.
+                // Retain and validate actual material designation identities and attachments before publishing mixed independent shapes and materials.
+                guard !hasMaterialDesignation else {
+                    throw IndependentShapeExchangeError.unsupportedSemantics("Independent STEP material attributes require an explicit source composition owner.")
+                }
+                let document = CADDocument(units: original.units, independentShapes: original.source)
+                try independentUsage.validateDocument(document,tolerance:tolerance)
+                return ImportedExchangeModel(format: .step, document: document, units: original.units)
+            }
+        }
+        let actualBodyIDs = names.filter { ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains($0.value) }.keys
+        let lengthUnit: LengthUnit
+        if actualBodyIDs.allSatisfy({ bodyContextUnits[$0] != nil }), let first = bodyContextUnits.values.first {
+            guard bodyContextUnits.values.allSatisfy({ $0.length == first.length }) else {
+                throw IndependentShapeExchangeError.invalidAssociation("Ordinary Body import has distinct actual Body coordinate units.")
+            }
+            lengthUnit = first.length
+        } else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Unassociated Body primitives still use the original single ambient unit profile.
+            // Original foreign angular coordinates require a retained Body source context before this fallback can admit them.
+            for (id, entity) in entities {
+                try budget.check(format: .step)
+                let syntax = normalizedSTEPText(stepSyntaxOutsideStrings(in: entity))
+                if syntax.contains("PLANE_ANGLE_UNIT()"), syntax.contains("CONVERSION_BASED_UNIT(") {
+                    throw IndependentShapeExchangeError.unsupportedSemantics("Unassociated Body angular unit #\(id) needs an original source context.")
+                }
+            }
+            lengthUnit = try stepLengthUnit(in: entities, budget: budget)
+        }
         try budget.check(format: .step)
         let exact = try ExactSTEPReader(
             entities: entities,
@@ -199,6 +429,7 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
         ).readWithTransfer()
         let brep = exact.model
         var transfer = STEPAttributeReadTransfer()
+        transfer.materialIdentities = materialIdentities
         try budget.check(format: .step)
         guard !brep.bodies.isEmpty else {
             throw ImportError.invalidData("STEP model contains no bodies.")
@@ -245,12 +476,28 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
             }
         }
         var document = CADDocument(
+            id: documentCarrier?.documentID ?? DocumentID(),
             units: UnitSystem(length: lengthUnit, angle: .radian),
             designGraph: DesignGraph(
                 nodes: nodes,
                 order: order
             )
         )
+        if let carrier = documentCarrier { document.metadata.name = carrier.documentName.isEmpty ? nil : carrier.documentName }
+        var independentUsage = try IndependentShapeExchangeUsage(limits: resourceLimits, format: .step, processing: budget,
+            consumedEntities: documentCarrier?.consumedEntities ?? sourceAdmission.consumedEntities,
+            consumedWork: documentCarrier?.consumedWork ?? sourceAdmission.consumedWork,
+            consumedBytes: documentCarrier?.consumedTextBytes ?? sourceAdmission.consumedBytes)
+        let independentItems = try independentSTEPItemRoots(entities: entities, names: names, budget: budget) { records, work in
+            try independentUsage.charge(entities: records, work: work)
+        }
+        if let original = try ExactSTEPReader.readIndependent(entities: entities, processingBudget: budget,
+            tolerance: tolerance, standaloneItems: independentItems,
+            bodySources: transfer.geometry.filter { $0.value.role == GeneratedSubshapeRole.body.rawValue },
+            bodySourceGraph: document.designGraph, usage: &independentUsage) {
+            document.independentShapes = original.source
+        }
+        try independentUsage.validateDocument(document, tolerance: tolerance)
         try document.validate(tolerance: tolerance)
         let base = try DocumentEvaluator(tolerance: tolerance).evaluateExact(document)
         document.productAttributes = try STEPAttributesReader().read(entities: entities, transfer: transfer,
@@ -271,10 +518,11 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
         )
     }
 
+    @discardableResult
     private func validateSTEPResourceBudget(
         _ text: String,
         budget: ExchangeProcessingBudget
-    ) throws {
+    ) throws -> Int {
         let limits = resourceLimits
         var depth = 0
         var iterations = 0
@@ -324,23 +572,96 @@ public struct STEPExchange: IndependentSTEPGeometryExchanging {
     guard !inString, depth == 0 else {
         throw ImportError.invalidData("STEP exchange contains an unterminated string or tuple.")
     }
+    return iterations
 }
 
 }
 
-private func validateSupportedSTEPEntities(_ entities: [Int: String]) throws {
+func independentSTEPItemRoots(entities:[Int:String],names:[Int:String],budget:ExchangeProcessingBudget,
+                                     charge:(Int,Int) throws -> Void) throws -> [Int] {
+    let fields = STEPAssemblySyntax(entities:entities)
+    var geometry = Set<Int>(), consumed = Set<Int>()
+    for (id,entity) in entities {
+        try budget.check(format: .step)
+        try charge(1,entity.utf8.count+1)
+        guard let name = names[id] else { throw ImportError.invalidData("Missing admitted STEP record name.") }
+        let spline = name.isEmpty ? try fields.hasComponent(id,named:"B_SPLINE_CURVE")
+            || fields.hasComponent(id,named:"B_SPLINE_SURFACE") : false
+        if ["LINE","CIRCLE","ELLIPSE","HYPERBOLA","PARABOLA","TRIMMED_CURVE","PLANE",
+            "CYLINDRICAL_SURFACE","CONICAL_SURFACE","SPHERICAL_SURFACE","TOROIDAL_SURFACE","OFFSET_SURFACE","AXIS2_PLACEMENT_3D"].contains(name)
+            || spline {
+            geometry.insert(id)
+        }
+        let selected:Int?
+        switch name {
+        case "TRIMMED_CURVE","OFFSET_SURFACE","SURFACE_CURVE","PCURVE": selected = 1
+        case "EDGE_CURVE": selected = 3
+        case "ADVANCED_FACE": selected = 2
+        default: selected = nil
+        }
+        if let selected {
+            let a = try fields.arguments(id)
+            guard selected < a.count else { throw ImportError.invalidData("Malformed STEP geometry owner association.") }
+            try charge(1,1); consumed.insert(try fields.reference(a[selected]))
+        }
+        if name == "DEFINITIONAL_REPRESENTATION" {
+            let a = try fields.arguments(id)
+            guard a.count == 3 else { throw ImportError.invalidData("Malformed STEP parameter representation.") }
+            let items = try fields.list(a[1])
+            for item in items { try charge(1,1); consumed.insert(item) }
+        }
+        if ["CIRCLE","ELLIPSE","HYPERBOLA","PARABOLA","PLANE","CYLINDRICAL_SURFACE","CONICAL_SURFACE",
+            "SPHERICAL_SURFACE","TOROIDAL_SURFACE","REPRESENTATION_MAP"].contains(name) {
+            let a = try fields.arguments(id), position = name == "REPRESENTATION_MAP" ? 0 : 1
+            guard position < a.count else { throw ImportError.invalidData("Malformed STEP frame owner association.") }
+            try charge(1,1); consumed.insert(try fields.reference(a[position]))
+        }
+        if ["SHAPE_REPRESENTATION","GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION",
+            "GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION","ADVANCED_BREP_SHAPE_REPRESENTATION",
+            "MANIFOLD_SURFACE_SHAPE_REPRESENTATION"].contains(name) {
+            let a = try fields.arguments(id)
+            guard a.count == 3 else { throw ImportError.invalidData("Malformed STEP representation membership.") }
+            for item in try fields.list(a[1]) {
+                try charge(1,1)
+                if try fields.name(item) == "AXIS2_PLACEMENT_3D" { consumed.insert(item) }
+            }
+        }
+    }
+    // Presentation geometry has its own real standard owner and is not an independent shape root.
+    var presentationStack = names.keys.filter { ["DRAUGHTING_CALLOUT", "CAMERA_MODEL_D3", "CAMERA_MODEL_D3_MULTI_CLIPPING"].contains(names[$0] ?? "") }
+    var presentationVisited = Set<Int>()
+    while let id = presentationStack.popLast() {
+        try budget.check(format: .step)
+        guard presentationVisited.insert(id).inserted else { continue }
+        try charge(1, 1)
+        consumed.insert(id)
+        guard let record = entities[id] else { throw ImportError.missingRequiredEntity("Presentation dependency #\(id)") }
+        let references = try STEPMetadataReferenceScanner.references(in: record)
+        try charge(references.count, record.utf8.count)
+        for reference in references { presentationStack.append(reference) }
+    }
+    try charge(geometry.count,geometry.count*(Int.bitWidth-geometry.count.leadingZeroBitCount+1))
+    return geometry.filter { !consumed.contains($0) }.sorted()
+}
+
+private func validateSupportedSTEPEntities(_ entities: [Int: String], budget: ExchangeProcessingBudget) throws -> [Int:String] {
+    let fields = STEPAssemblySyntax(entities: entities)
+    var names: [Int:String] = [:]
     for id in entities.keys.sorted() {
+        try budget.check(format: .step)
         guard let entity = entities[id] else {
             continue
         }
-        guard isSupportedSTEPEntity(entity) else {
+        let syntax = normalizedSTEPText(stepSyntaxOutsideStrings(in: entity))
+        guard isSupportedSTEPEntity(syntax: syntax) else {
             throw ImportError.invalidData("Unsupported STEP entity #\(id).")
         }
+        names[id] = try fields.name(id)
     }
+    return names
 }
 
-private func isSupportedSTEPEntity(_ entity: String) -> Bool {
-    let syntax = normalizedSTEPText(stepSyntaxOutsideStrings(in: entity))
+private func isSupportedSTEPEntity(syntax: String) -> Bool {
     let supportedPrefixes = [
         "APPLICATION_CONTEXT(",
         "APPLICATION_PROTOCOL_DEFINITION(",
@@ -348,6 +669,7 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
         "EXTERNAL_SOURCE(",
         "IDENTIFICATION_ROLE(",
         "APPLIED_EXTERNAL_IDENTIFICATION_ASSIGNMENT(",
+        "MATERIAL_DESIGNATION(",
         "PRODUCT(",
         "PRODUCT_DEFINITION_FORMATION(",
         "PRODUCT_DEFINITION_CONTEXT(",
@@ -394,6 +716,8 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
         "ITEM_DEFINED_TRANSFORMATION(",
         "SHAPE_REPRESENTATION_RELATIONSHIP(",
         "REPRESENTATION_MAP(",
+        "GEOMETRIC_SET(", "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION(",
+        "GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION(", "GROUP(", "APPLIED_GROUP_ASSIGNMENT(",
         "MAPPED_ITEM(",
         "CARTESIAN_TRANSFORMATION_OPERATOR_3D(",
         "PRODUCT_DEFINITION_FORMATION_WITH_SPECIFIED_SOURCE(",
@@ -402,19 +726,20 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
         "TRIANGULATED_FACE_SET(",
         "TESSELLATED_SHAPE_REPRESENTATION(",
         "SHAPE_DEFINITION_REPRESENTATION(",
-        "LENGTH_MEASURE_WITH_UNIT(",
+        "LENGTH_MEASURE_WITH_UNIT(", "PLANE_ANGLE_MEASURE_WITH_UNIT(",
         "DIMENSIONAL_EXPONENTS(",
         "STYLED_ITEM(", "OVER_RIDING_STYLED_ITEM(", "CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM(",
         "COLOUR_RGB(", "DRAUGHTING_PRE_DEFINED_COLOUR(", "FILL_AREA_STYLE_COLOUR(", "FILL_AREA_STYLE(",
         "SURFACE_STYLE_FILL_AREA(", "SURFACE_SIDE_STYLE(", "SURFACE_STYLE_USAGE(",
         "SURFACE_STYLE_RENDERING(", "SURFACE_STYLE_RENDERING_WITH_PROPERTIES(", "SURFACE_STYLE_TRANSPARENT(",
         "PRESENTATION_STYLE_ASSIGNMENT(", "PRESENTATION_STYLE_BY_CONTEXT(", "DRAUGHTING_MODEL(", "MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION(",
-        "PRESENTATION_LAYER_ASSIGNMENT(", "PROPERTY_DEFINITION(", "PROPERTY_DEFINITION_REPRESENTATION(",
+        "PRESENTATION_LAYER_ASSIGNMENT(", "PROPERTY_DEFINITION(", "PROPERTY_DEFINITION_REPRESENTATION(", "PROPERTY_DEFINITION_RELATIONSHIP(", "CHARACTERIZED_OBJECT(",
         "REPRESENTATION(", "DESCRIPTIVE_REPRESENTATION_ITEM(", "SHAPE_ASPECT(", "GEOMETRIC_ITEM_SPECIFIC_USAGE(",
         "CHARACTERIZED_ITEM_WITHIN_REPRESENTATION(",
         "DERIVED_UNIT(", "DERIVED_UNIT_ELEMENT(", "MEASURE_WITH_UNIT(", "MEASURE_REPRESENTATION_ITEM(",
         "MASS_MEASURE_WITH_UNIT(", "VOLUME_MEASURE_WITH_UNIT(", "MASS_DENSITY_MEASURE_WITH_UNIT("
     ]
+    if STEPMetadataNames.simpleNames.contains(where: { syntax.hasPrefix($0 + "(") }) { return true }
     if supportedPrefixes.contains(where: { syntax.hasPrefix($0) }) {
         return true
     }
@@ -425,6 +750,7 @@ private func isSupportedSTEPEntity(_ entity: String) -> Bool {
 }
 
 private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
+    if syntax.contains("GEOMETRIC_TOLERANCE("), STEPMetadataNames.tolerances.values.contains(where: { syntax.contains($0 + "()") }) { return true }
     if syntax.contains("MEASURE_REPRESENTATION_ITEM()"), syntax.contains("MEASURE_WITH_UNIT("),
        syntax.contains("REPRESENTATION_ITEM(") { return true }
     if syntax.contains("NAMED_UNIT("),
@@ -436,13 +762,11 @@ private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
        syntax.contains("SHAPE_REPRESENTATION_RELATIONSHIP()") { return true }
     if syntax.contains("B_SPLINE_CURVE("),
        syntax.contains("B_SPLINE_CURVE_WITH_KNOTS("),
-       syntax.contains("RATIONAL_B_SPLINE_CURVE("),
        syntax.contains("REPRESENTATION_ITEM(") {
         return true
     }
     if syntax.contains("B_SPLINE_SURFACE("),
        syntax.contains("B_SPLINE_SURFACE_WITH_KNOTS("),
-       syntax.contains("RATIONAL_B_SPLINE_SURFACE("),
        syntax.contains("REPRESENTATION_ITEM(") {
         return true
     }
@@ -456,8 +780,10 @@ private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
        syntax.contains("REPRESENTATION_CONTEXT(") {
         return true
     }
-    if syntax.contains("PLANE_ANGLE_UNIT()"),
-       syntax.contains("SI_UNIT($,.RADIAN.)") {
+    if syntax.contains("PLANE_ANGLE_UNIT()"), syntax.contains("NAMED_UNIT(") {
+        return syntax.contains("SI_UNIT($,.RADIAN.)") || syntax.contains("CONVERSION_BASED_UNIT(")
+    }
+    if syntax.contains("PLANE_ANGLE_MEASURE_WITH_UNIT()"), syntax.contains("MEASURE_WITH_UNIT(") {
         return true
     }
     if syntax.contains("SOLID_ANGLE_UNIT()"),
@@ -472,12 +798,40 @@ private func isSupportedSTEPComplexEntity(_ syntax: String) -> Bool {
     return false
 }
 
-private func stepLengthUnit(in entities: [Int: String]) throws -> LengthUnit {
+private func stepLengthUnit(in entities: [Int: String], budget: ExchangeProcessingBudget) throws -> LengthUnit {
     let syntax = STEPAssemblySyntax(entities: entities)
+    var bodyContexts = Set<Int>()
+    for id in entities.keys.sorted() {
+        try budget.check(format: .step)
+        let kind = try syntax.name(id)
+        if ["ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SURFACE_SHAPE_REPRESENTATION"].contains(kind) {
+            let arguments = try syntax.arguments(id)
+            guard arguments.count == 3 else { throw ImportError.invalidData("Malformed original Body representation context.") }
+            bodyContexts.insert(try syntax.reference(arguments[2]))
+        } else if kind == "SHAPE_REPRESENTATION" || kind == "REPRESENTATION" {
+            let arguments = try syntax.arguments(id)
+            guard arguments.count == 3 else { throw ImportError.invalidData("Malformed original representation context.") }
+            for item in try syntax.list(arguments[1]) {
+                try budget.check(format: .step)
+                if ["MANIFOLD_SOLID_BREP", "BREP_WITH_VOIDS", "SHELL_BASED_SURFACE_MODEL"].contains(try syntax.name(item)) {
+                    bodyContexts.insert(try syntax.reference(arguments[2]))
+                }
+            }
+        }
+    }
+    for context in bodyContexts {
+        try budget.check(format: .step)
+        guard entities[context] != nil else { throw ImportError.missingRequiredEntity("Original Body unit context #\(context)") }
+    }
     var lengthUnits: [LengthUnit] = []
     for id in entities.keys.sorted() {
+        try budget.check(format: .step)
+        if !bodyContexts.isEmpty, !bodyContexts.contains(id) { continue }
         guard let entity = entities[id], normalizedSTEPText(stepSyntaxOutsideStrings(in: entity))
-            .contains("GLOBAL_UNIT_ASSIGNED_CONTEXT((") else { continue }
+            .contains("GLOBAL_UNIT_ASSIGNED_CONTEXT((") else {
+                if bodyContexts.contains(id) { throw ImportError.invalidData("Body representation lacks its actual global unit context.") }
+                continue
+            }
         let fields = try syntax.arguments(id, component: "GLOBAL_UNIT_ASSIGNED_CONTEXT")
         guard fields.count == 1 else { throw ImportError.invalidData("Malformed STEP unit context.") }
         var localUnits: [LengthUnit] = []

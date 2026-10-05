@@ -2,29 +2,35 @@ import CADCore
 
 /// Patch from closed curves: a sheet spanning curves (sketch curves or edges of bodies through their
 /// edge curves) that join end to end into one closed loop, or one closed curve.
-public struct CurvePatchFeature: Codable, Hashable, Sendable {
+public struct CurvePatchFeature: Hashable, Sendable {
     public var curves: [CurveSectionReference]
 
     public init(curves: [CurveSectionReference]) {
         self.curves = curves
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case curves
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.curves], in: decoder)
         curves = try container.decode([CurveSectionReference].self, forKey: .curves)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(curves, forKey: .curves)
     }
+#endif
 
     public func validate() throws {
         guard curves.isEmpty == false, Set(curves.map(\.featureID)).count == curves.count else {
@@ -40,3 +46,7 @@ public struct CurvePatchFeature: Codable, Hashable, Sendable {
         curves.map { FeatureInput(featureID: $0.featureID, role: .curve) }
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurvePatchFeature: Codable {}
+#endif

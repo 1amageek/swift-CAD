@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SketchDimensionEvaluation: Codable, Sendable, Hashable {
+public struct SketchDimensionEvaluation: Sendable, Hashable {
     public var measurements: [SketchDimensionMeasurement]
 
     public init(measurements: [SketchDimensionMeasurement]) {
@@ -16,3 +16,7 @@ public struct SketchDimensionEvaluation: Codable, Sendable, Hashable {
         return true
     }
 }
+
+#if !hasFeature(Embedded)
+extension SketchDimensionEvaluation: Codable {}
+#endif

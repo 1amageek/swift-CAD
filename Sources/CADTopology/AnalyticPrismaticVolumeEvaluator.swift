@@ -1,4 +1,12 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 import CADCore
 import CADGeometry
 
@@ -546,6 +554,15 @@ struct AnalyticPrismaticVolumeEvaluator {
                     + transverseAxis.cross(parabola.axis)
                         * (parameterCubeDifference / (12.0 * parabola.focalLength))
             ).dot(axis)
+        case let .parameterImage(image):
+            let first = try image.sourceParameterBounds(over: ScalarInterval(lower: startParameter,
+                upper: startParameter), tolerance: tolerance)
+            let last = try image.sourceParameterBounds(over: ScalarInterval(lower: endParameter,
+                upper: endParameter), tolerance: tolerance)
+            guard first.lower == first.upper, last.lower == last.upper else { return nil }
+            return try exactSignedDoubleAreaContribution(curve: image.source,
+                startParameter: first.lower, endParameter: last.lower,
+                reference: reference, axis: axis, tolerance: tolerance)
         case let .rigidImage(image):
             let inverse = image.transform.inverted()
             guard let source = try exactSignedDoubleAreaContribution(
@@ -559,13 +576,13 @@ struct AnalyticPrismaticVolumeEvaluator {
                 return nil
             }
             return image.transform.reversesOrientation ? -source : source
-        case .affineImage:
+        case .affineImage, .originalAffineWord:
             guard curve.hasExactLinearParameterization else {
                 return nil
             }
             return (startPoint - reference).cross(endPoint - reference).dot(axis)
         case .analytic(.planeTorus), .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
             return nil
         }
     }
@@ -1176,7 +1193,7 @@ struct AnalyticPrismaticVolumeEvaluator {
             case let .rigidImage(image):
                 isCircular = isCircularCurve(image.source)
             case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-                 .certifiedIntersection, .affineImage:
+                 .certifiedIntersection, .affineImage, .parameterImage, .originalAffineWord:
                 isCircular = false
             }
             if isCircular {
@@ -1201,7 +1218,7 @@ struct AnalyticPrismaticVolumeEvaluator {
         case let .rigidImage(image):
             return isCircularCurve(image.source)
         case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection, .affineImage:
+             .certifiedIntersection, .affineImage, .parameterImage, .originalAffineWord:
             return false
         }
     }

@@ -2,7 +2,7 @@ import CADCore
 
 /// Moves faces, edges and vertices of one body together by one motion: every vertex they bound
 /// moves once, so targets that share vertices move consistently.
-public struct TopologyTransformFeature: Codable, Hashable, Sendable {
+public struct TopologyTransformFeature: Hashable, Sendable {
     public let target: TopologyTransformTargetReference
     public let subshapes: [StableSubshapeReference]
     public let motion: TopologyMotion
@@ -35,12 +35,15 @@ public struct TopologyTransformFeature: Codable, Hashable, Sendable {
         try motion.validate(tolerance: tolerance)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case subshapes
         case motion
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .subshapes, .motion], in: decoder)
@@ -49,7 +52,9 @@ public struct TopologyTransformFeature: Codable, Hashable, Sendable {
         motion = try container.decode(TopologyMotion.self, forKey: .motion)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -57,4 +62,9 @@ public struct TopologyTransformFeature: Codable, Hashable, Sendable {
         try container.encode(subshapes, forKey: .subshapes)
         try container.encode(motion, forKey: .motion)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension TopologyTransformFeature: Codable {}
+#endif

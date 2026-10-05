@@ -1,8 +1,8 @@
 import Foundation
 import CADCore
 
-public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
-    public struct DifferentialGeometry: Codable, Equatable, Hashable, Sendable {
+public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
+    public struct DifferentialGeometry: Equatable, Hashable, Sendable {
         public let position: Point3D
         public let tangentU: Vector3D
         public let tangentV: Vector3D
@@ -60,6 +60,7 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
     case sphere(center: Point3D, radius: Double)
     case torus(center: Point3D, axis: Vector3D, majorRadius: Double, minorRadius: Double)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case origin
@@ -72,7 +73,9 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
         case majorRadius
         case minorRadius
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case plane
         case cylinder
@@ -80,7 +83,9 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
         case sphere
         case torus
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -135,7 +140,9 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -165,6 +172,7 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
             try container.encode(minorRadius, forKey: .minorRadius)
         }
     }
+#endif
 
     public var uDomain: SurfaceParameterDomain {
         switch self {
@@ -230,6 +238,7 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
               vDomain.contains(v, tolerance: tolerance.distance) else {
             throw GeometryError.invalidDistance(u)
         }
+        let angularScale = CanonicalSphereAngularPhase.scaleBounds.midpoint
         switch self {
         case let .plane(origin, normal):
             let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
@@ -243,62 +252,66 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
             )
         case let .cylinder(origin, axis, radius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * cos(u) + basis.v * sin(u)
-            let tangent = (-basis.u * sin(u) + basis.v * cos(u)) * radius
+            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let tangent = (-basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)) * (radius * angularScale)
             return try makeDifferential(
                 origin + radial * radius + axis * v,
                 tangent,
                 axis,
-                secondDerivativeUU: -radial * radius,
+                secondDerivativeUU: -radial * (radius * angularScale * angularScale),
                 normal: radial,
                 tolerance: tolerance
             )
         case let .cone(apex, axis, halfAngle):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * cos(u) + basis.v * sin(u)
-            let tangent = (-basis.u * sin(u) + basis.v * cos(u)) * (v * sin(halfAngle))
+            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let tangent = (-basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)) * (v * sin(halfAngle) * angularScale)
             let tangentV = radial * sin(halfAngle) + axis * cos(halfAngle)
             let position = apex + axis * (v * cos(halfAngle)) + radial * (v * sin(halfAngle))
             return try makeDifferential(
                 position,
                 tangent,
                 tangentV,
-                secondDerivativeUU: -radial * (v * sin(halfAngle)),
-                secondDerivativeUV: (-basis.u * sin(u) + basis.v * cos(u)) * sin(halfAngle),
+                secondDerivativeUU: -radial * (v * sin(halfAngle) * angularScale * angularScale),
+                secondDerivativeUV: (-basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)) * (sin(halfAngle) * angularScale),
                 secondDerivativeVV: .zero,
                 normal: try tangent.cross(tangentV).normalized(tolerance: tolerance.distance),
                 tolerance: tolerance
             )
         case let .sphere(center, radius):
             let basis = try analyticOrthonormalBasis(Vector3D.unitZ, tolerance: tolerance)
-            let radialU = basis.u * cos(u) + basis.v * sin(u)
-            let tangentU = (-basis.u * sin(u) + basis.v * cos(u)) * (radius * cos(v))
-            let radial = radialU * cos(v) + Vector3D.unitZ * sin(v)
-            let tangentV = (-radialU * sin(v) + Vector3D.unitZ * cos(v)) * radius
+            let cu = CanonicalSphereAngularPhase.candidate(at: u, cosine: true)
+            let su = CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let cv = CanonicalSphereAngularPhase.candidate(at: v, cosine: true)
+            let sv = CanonicalSphereAngularPhase.candidate(at: v, cosine: false)
+            let scale = CanonicalSphereAngularPhase.scaleBounds.midpoint
+            let radialU = basis.u * cu + basis.v * su
+            let angularTangent = -basis.u * su + basis.v * cu
+            let radial = radialU * cv + Vector3D.unitZ * sv
             return try makeDifferential(
                 center + radial * radius,
-                tangentU,
-                tangentV,
-                secondDerivativeUU: -radialU * (radius * cos(v)),
-                secondDerivativeUV: -(-basis.u * sin(u) + basis.v * cos(u)) * (radius * sin(v)),
-                secondDerivativeVV: -radial * radius,
+                angularTangent * (radius * cv * scale),
+                (-radialU * sv + Vector3D.unitZ * cv) * (radius * scale),
+                secondDerivativeUU: -radialU * (radius * cv * scale * scale),
+                secondDerivativeUV: -angularTangent * (radius * sv * scale * scale),
+                secondDerivativeVV: -radial * (radius * scale * scale),
                 normal: radial,
                 tolerance: tolerance
             )
         case let .torus(center, axis, majorRadius, minorRadius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * cos(u) + basis.v * sin(u)
-            let tangent = -basis.u * sin(u) + basis.v * cos(u)
-            let tube = radial * cos(v) + axis * sin(v)
-            let tangentU = tangent * (majorRadius + minorRadius * cos(v))
-            let tangentV = (-radial * sin(v) + axis * cos(v)) * minorRadius
+            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let tangent = -basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)
+            let tube = radial * CanonicalSphereAngularPhase.candidate(at: v, cosine: true) + axis * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)
+            let tangentU = tangent * ((majorRadius + minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) * angularScale)
+            let tangentV = (-radial * CanonicalSphereAngularPhase.candidate(at: v, cosine: false) + axis * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) * (minorRadius * angularScale)
             return try makeDifferential(
-                center + radial * (majorRadius + minorRadius * cos(v)) + axis * (minorRadius * sin(v)),
+                center + radial * (majorRadius + minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) + axis * (minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)),
                 tangentU,
                 tangentV,
-                secondDerivativeUU: -radial * (majorRadius + minorRadius * cos(v)),
-                secondDerivativeUV: tangent * (-minorRadius * sin(v)),
-                secondDerivativeVV: (-radial * cos(v) - axis * sin(v)) * minorRadius,
+                secondDerivativeUU: -radial * ((majorRadius + minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) * angularScale * angularScale),
+                secondDerivativeUV: tangent * (-minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false) * angularScale * angularScale),
+                secondDerivativeVV: (-radial * CanonicalSphereAngularPhase.candidate(at: v, cosine: true) - axis * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)) * (minorRadius * angularScale * angularScale),
                 normal: tube,
                 tolerance: tolerance
             )
@@ -321,20 +334,24 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
             return origin + basis.u * u + basis.v * v
         case let .cylinder(origin, axis, radius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * cos(u) + basis.v * sin(u)
+            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
             return origin + radial * radius + axis * v
         case let .cone(apex, axis, halfAngle):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * cos(u) + basis.v * sin(u)
+            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
             return apex + axis * (v * cos(halfAngle)) + radial * (v * sin(halfAngle))
         case let .sphere(center, radius):
             let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
-            let radial = (basis.u * cos(u) + basis.v * sin(u)) * cos(v) + Vector3D.unitZ * sin(v)
+            let cu = CanonicalSphereAngularPhase.candidate(at: u, cosine: true)
+            let su = CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let cv = CanonicalSphereAngularPhase.candidate(at: v, cosine: true)
+            let sv = CanonicalSphereAngularPhase.candidate(at: v, cosine: false)
+            let radial = (basis.u * cu + basis.v * su) * cv + Vector3D.unitZ * sv
             return center + radial * radius
         case let .torus(center, axis, majorRadius, minorRadius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
-            let radial = basis.u * cos(u) + basis.v * sin(u)
-            return center + radial * (majorRadius + minorRadius * cos(v)) + axis * (minorRadius * sin(v))
+            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            return center + radial * (majorRadius + minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) + axis * (minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false))
         }
     }
 
@@ -470,3 +487,8 @@ public enum AnalyticSurface3D: Codable, Equatable, Hashable, Sendable {
         return (minimum, maximum)
     }
 }
+
+#if !hasFeature(Embedded)
+extension AnalyticSurface3D: Codable {}
+extension AnalyticSurface3D.DifferentialGeometry: Codable {}
+#endif

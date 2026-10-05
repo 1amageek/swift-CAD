@@ -75,13 +75,17 @@ public struct BooleanFeature: Hashable, Sendable {
     }
 }
 
+#if !hasFeature(Embedded)
 extension BooleanFeature: Codable {
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case targets, tools, operation, keepTools, targetMaterial, toolMaterial
         // The single-tool form written before `tools`.
         case tool, toolPlacement
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         targets = try container.decode([BooleanTargetReference].self, forKey: .targets)
@@ -102,7 +106,9 @@ extension BooleanFeature: Codable {
             tools = [tool]
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(targets, forKey: .targets)
@@ -112,9 +118,11 @@ extension BooleanFeature: Codable {
         try container.encode(targetMaterial, forKey: .targetMaterial)
         try container.encode(toolMaterial, forKey: .toolMaterial)
     }
+#endif
 }
+#endif
 
-public struct BooleanTargetReference: Codable, Hashable, Sendable {
+public struct BooleanTargetReference: Hashable, Sendable {
     public var featureID: FeatureID
     /// Where the target body sits in the result's frame: it is moved rigidly there before
     /// combining; `nil` combines it where it was evaluated.
@@ -128,7 +136,7 @@ public struct BooleanTargetReference: Codable, Hashable, Sendable {
     public func validate() throws {}
 }
 
-public struct BooleanToolReference: Codable, Hashable, Sendable {
+public struct BooleanToolReference: Hashable, Sendable {
     public var featureID: FeatureID
     /// Where the tool body sits in the result's frame: a copy moved rigidly there is combined;
     /// `nil` combines the tool where it was evaluated.
@@ -143,7 +151,7 @@ public struct BooleanToolReference: Codable, Hashable, Sendable {
 }
 
 /// How a Boolean takes an operand's material.
-public enum BooleanMaterial: String, Codable, CaseIterable, Hashable, Sendable {
+public enum BooleanMaterial: String, CaseIterable, Hashable, Sendable {
     /// A solid's volume; a sheet tool facing solid targets takes the side behind its normals
     /// (as `inside`); any other sheet is an empty shell.
     case `default`
@@ -168,7 +176,7 @@ public struct BooleanMaterials: Hashable, Sendable {
     public static let `default` = BooleanMaterials()
 }
 
-public enum BooleanOperation: String, Codable, CaseIterable, Hashable, Sendable {
+public enum BooleanOperation: String, CaseIterable, Hashable, Sendable {
     case union
     case difference
     case intersect
@@ -177,3 +185,18 @@ public enum BooleanOperation: String, Codable, CaseIterable, Hashable, Sendable 
     /// they bound a solid of its own.
     case region
 }
+
+#if !hasFeature(Embedded)
+#if !hasFeature(Embedded)
+extension BooleanTargetReference: Codable {}
+#endif
+#if !hasFeature(Embedded)
+extension BooleanToolReference: Codable {}
+#endif
+#if !hasFeature(Embedded)
+extension BooleanMaterial: Codable {}
+#endif
+#if !hasFeature(Embedded)
+extension BooleanOperation: Codable {}
+#endif
+#endif

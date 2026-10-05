@@ -29,7 +29,8 @@ extension Curve3D {
              .analytic(.circle),
              .analytic(.arc),
              .analytic(.ellipse):
-            third = -lower.firstDerivative
+            let scale = CanonicalSphereAngularPhase.scaleBounds.midpoint
+            third = lower.firstDerivative * (-scale * scale)
         case .analytic(.hyperbola):
             third = lower.firstDerivative
         case let .analytic(.planeTorus(curve)):
@@ -63,6 +64,46 @@ extension Curve3D {
                     at: parameter,
                     tolerance: tolerance
                 ).thirdDerivative)
+        case let .parameterImage(image):
+            third = try image.source.parameterDerivativesThroughThirdOrder(
+                at: OriginalParameterImageMap.parameter(parameter, gain: image.parameterGain, offset: image.offset),
+                tolerance: tolerance).thirdDerivative * (image.gain * image.gain * image.gain)
+        case let .originalAngularTransport(curve):
+            let jet = try curve.intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 3,
+                tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+            third = try .init(x: (jet.x.coefficient(3, 0) * .exact(6)).midpoint,
+                y: (jet.y.coefficient(3, 0) * .exact(6)).midpoint, z: (jet.z.coefficient(3, 0) * .exact(6)).midpoint)
+        case let .originalConstructionChart(curve):
+            let jet = try curve.intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 3,
+                tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
+                remainingSourceDepth: curve.remainingSourceDepth == Int.max ? Int.max : curve.remainingSourceDepth + 1,
+                consumeWork: { try Task.checkCancellation() })
+            third = .init(x: try (jet.x.coefficient(3, 0) * .exact(6)).midpoint,
+                y: try (jet.y.coefficient(3, 0) * .exact(6)).midpoint, z: try (jet.z.coefficient(3, 0) * .exact(6)).midpoint)
+        case let .originalDrafted(curve):
+            let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 3, tolerance: tolerance)
+            third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
+                z: jet.z.derivatives[3].midpoint)
+        case let .originalPlaneDerivative(curve):
+            let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
+                consumeWork: { try Task.checkCancellation() })
+            third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint, z: jet.z.derivatives[3].midpoint)
+        case let .originalEndpointConnector(curve):
+            let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: 0,
+                consumeWork: { try Task.checkCancellation() })
+            third = .init(x: jet.x.derivatives[3].midpoint,
+                y: jet.y.derivatives[3].midpoint, z: jet.z.derivatives[3].midpoint)
+        case let .originalAffineWord(image):
+            var usage = OriginalAffineImageLegacyUsage()
+            third = try image.preparedWord.applying(to: image.source
+                .parameterDerivativesThroughThirdOrder(at: parameter, tolerance: image.sourceTolerance).thirdDerivative,
+                usage: &usage)
         case let .affineImage(image):
             third = image.transform.applying(to: try image.source
                 .parameterDerivativesThroughThirdOrder(
@@ -198,6 +239,12 @@ extension SurfaceLiftCurve3D {
                 tolerance: tolerance
             )
         }
+        if case let .originalAffineWord(curve) = parameterCurve {
+            return try curve.modelSpaceThirdOrder(atNormalizedFraction: fraction, tolerance: tolerance).thirdDerivative
+        }
+        if case let .originalImage(curve) = parameterCurve {
+            return try curve.modelSpaceThirdOrder(atNormalizedFraction: fraction, tolerance: tolerance).thirdDerivative
+        }
         if case let .certifiedAnalyticPair(curve) = parameterCurve {
             return try curve.modelSpaceThirdDerivative(
                 atNormalizedFraction: fraction,
@@ -306,11 +353,18 @@ private extension SurfaceParameterCurve {
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             )
+        case let .originalBSplineContinuation(curve):
+            let jet = try curve.intervalJet(over: ScalarInterval(lower: fraction, upper: fraction), tolerance: tolerance)
+            third = Point2D(x: jet.u.thirdDerivativeUUU.midpoint, y: jet.v.thirdDerivativeUUU.midpoint)
         case let .projectedAnalytic(curve):
             third = try curve.thirdDerivative(
                 atNormalizedFraction: fraction,
                 tolerance: tolerance
             )
+        case let .originalAffineWord(curve):
+            third = try curve.thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance)
+        case let .originalImage(curve):
+            third = try curve.thirdDerivative(atNormalizedFraction: fraction, tolerance: tolerance)
         case let .rigidImage(curve):
             third = try curve.thirdDerivative(
                 atNormalizedFraction: fraction,

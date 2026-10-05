@@ -10,9 +10,16 @@ struct OriginalGraphBandRationalPiece: Sendable {
     let weights: [Interval]
     let x: [Interval]
     let y: [Interval]
+    private let firstX: [Interval]
+    private let secondX: [Interval]
+    private let firstY: [Interval]
+    private let secondY: [Interval]
+    private let firstWeight: [Interval]
+    private let secondWeight: [Interval]
     let uDirection: Int
     let minimumAbsoluteUDerivative: Double
     let uDerivativeHull: Interval
+    let endpointAffineResidualUpperBound: Double
 
     struct GraphJet: Sendable {
         let v: Interval
@@ -36,9 +43,15 @@ struct OriginalGraphBandRationalPiece: Sendable {
         self.weights = weights.map(Interval.exact)
         x = zip(points, self.weights).map { Interval.exact($0.0.x) * $0.1 }
         y = zip(points, self.weights).map { Interval.exact($0.0.y) * $0.1 }
+        firstX = Self.derivative(x)
+        secondX = Self.derivative(firstX)
+        firstY = Self.derivative(y)
+        secondY = Self.derivative(firstY)
+        firstWeight = Self.derivative(self.weights)
+        secondWeight = Self.derivative(firstWeight)
         let numerator = Self.difference(
-            Self.product(Self.derivative(x), self.weights),
-            Self.product(x, Self.derivative(self.weights)))
+            Self.product(firstX, self.weights),
+            Self.product(x, firstWeight))
         if numerator.allSatisfy({ $0.lower > 0 }) {
             uDirection = 1
         } else if numerator.allSatisfy({ $0.upper < 0 }) {
@@ -55,6 +68,37 @@ struct OriginalGraphBandRationalPiece: Sendable {
         }
         minimumAbsoluteUDerivative = derivativeHull.absoluteLowerBound
         uDerivativeHull = derivativeHull
+        // Elevation and multiplication use outward arithmetic over original
+        // homogeneous coefficients; near-affine data never becomes exact data.
+        let degree = points.count - 1
+        var elevatedX = [Interval](repeating: .exact(0), count: degree + 2)
+        elevatedX[0] = x[0]
+        elevatedX[degree + 1] = x[degree]
+        for index in 1...degree {
+            let ratio = Interval.exact(Double(index)).divided(by: .exact(Double(degree + 1)))!
+            elevatedX[index] = ratio * x[index - 1] + (.exact(1) - ratio) * x[index]
+        }
+        let affineWeight = Self.product([.exact(points[0].x), .exact(points[degree].x)], self.weights)
+        let residual = Self.difference(elevatedX, affineWeight)
+        guard let bound = Interval.exact(residual.map(\.absoluteUpperBound).max()!)
+            .divided(by: .exact(weights.min()!)), bound.isFinite else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                              message: "Original graph endpoint residual exceeded finite arithmetic.")
+        }
+        endpointAffineResidualUpperBound = bound.absoluteUpperBound
+    }
+
+    /// Production factories prepay added immutable derivative storage and work.
+    static func chargeDerivativePreparation(degree: Int, tolerance: ModelingTolerance,
+                                            proofUsage: inout OriginalTessellationProofUsage) throws {
+        guard (1...4).contains(degree) else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                              message: "Original derivative preparation requires its bounded native degree.")
+        }
+        let coefficients = 3 * (degree + max(1, degree - 1))
+        for _ in 0..<(3 * coefficients + 6) {
+            try proofUsage.consume(depth: 0, tolerance: tolerance)
+        }
     }
 
     var uBounds: ScalarInterval {
@@ -106,8 +150,17 @@ struct OriginalGraphBandRationalPiece: Sendable {
             let endpoint = u == points[0].x ? 0.0 : 1.0
             return try ScalarInterval(lower: endpoint, upper: endpoint)
         }
-        var lower = 0.0
-        var upper = 1.0
+        try proofUsage.consume(depth: 0, tolerance: tolerance)
+        let delta = Interval.exact(points[points.count - 1].x) - .exact(points[0].x)
+        let residual = Interval(lower: -endpointAffineResidualUpperBound,
+                                upper: endpointAffineResidualUpperBound)
+        guard let initial = (Interval.exact(u) - .exact(points[0].x) + residual)
+            .divided(by: delta)?.intersection(with: Interval(lower: 0, upper: 1)), initial.isFinite else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                              message: "Original graph affine residual could not enclose its inverse.")
+        }
+        var lower = initial.lower
+        var upper = initial.upper
         for depth in 0...32 {
             try proofUsage.consume(depth: depth, tolerance: tolerance)
             let midpoint = lower + (upper - lower) * 0.5
@@ -145,12 +198,11 @@ struct OriginalGraphBandRationalPiece: Sendable {
     func graphJet(over u: ScalarInterval, tolerance: ModelingTolerance,
                   proofUsage: inout OriginalTessellationProofUsage) throws -> GraphJet {
         let a = try inverse(u: u.lower, tolerance: tolerance, proofUsage: &proofUsage)
-        let b = try inverse(u: u.upper, tolerance: tolerance, proofUsage: &proofUsage)
+        let b = u.lower == u.upper ? a
+            : try inverse(u: u.upper, tolerance: tolerance, proofUsage: &proofUsage)
         let normalized = try ScalarInterval(lower: min(a.lower, b.lower), upper: max(a.upper, b.upper))
         let t = Interval(lower: normalized.lower, upper: normalized.upper)
-        func homogeneousJet(_ controls: [Interval]) -> IntervalDerivativeJet {
-            let first = Self.derivative(controls)
-            let second = Self.derivative(first)
+        func homogeneousJet(_ controls: [Interval], first: [Interval], second: [Interval]) -> IntervalDerivativeJet {
             return IntervalDerivativeJet(derivatives: [Self.evaluate(controls, at: t),
                 Self.evaluate(first, at: t), Self.evaluate(second, at: t)])
         }
@@ -160,7 +212,7 @@ struct OriginalGraphBandRationalPiece: Sendable {
             // polynomial is constant; partition of unity is coefficient authority.
             weightJet = .constant(weights[0], order: 2)
         } else {
-            let original = homogeneousJet(weights)
+            let original = homogeneousJet(weights, first: firstWeight, second: secondWeight)
             guard let boundedValue = original.value.intersection(with: Interval.enclosing(weights)) else {
                 throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
                                   message: "Original graph weight enclosures are inconsistent.")
@@ -172,8 +224,8 @@ struct OriginalGraphBandRationalPiece: Sendable {
             throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
                               message: "Original graph jets could not certify the weight quotient.")
         }
-        let uj = homogeneousJet(x) * reciprocal
-        let vj = homogeneousJet(y) * reciprocal
+        let uj = homogeneousJet(x, first: firstX, second: secondX) * reciprocal
+        let vj = homogeneousJet(y, first: firstY, second: secondY) * reciprocal
         guard let ut = uj.derivatives[1].intersection(with: uDerivativeHull) else {
             throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
                               message: "Original graph derivative enclosures are inconsistent.")

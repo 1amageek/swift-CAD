@@ -1,5 +1,6 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 
 public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
@@ -47,7 +48,15 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         feature: FeatureNode,
         context: EvaluationContext
     ) throws -> ValidatedFeatureEvaluation {
-        let result = try evaluateUnvalidated(feature: feature, context: context)
+        try evaluateValidated(feature: feature, context: context, originalInvocation: nil)
+    }
+
+    package func evaluateValidated(
+        feature: FeatureNode,
+        context: EvaluationContext,
+        originalInvocation: OriginalSweepInvocation?
+    ) throws -> ValidatedFeatureEvaluation {
+        let result = try evaluateUnvalidated(feature: feature, context: context, originalInvocation: originalInvocation)
         return try ValidatedFeatureEvaluation(
             validating: result,
             tolerance: context.tolerance
@@ -56,7 +65,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
 
     private func evaluateUnvalidated(
         feature: FeatureNode,
-        context: EvaluationContext
+        context: EvaluationContext,
+        originalInvocation: OriginalSweepInvocation?
     ) throws -> EvaluationResult {
         try context.tolerance.validate()
         guard case let .sweep(sweep) = feature.operation else {
@@ -84,7 +94,9 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 "Sweep evaluation requires a path curve feature."
             )
         }
-        let section = try ResolvedModelingSection.resolve(sectionReference, context: context, featureID: feature.id)
+        let sourceBudget = try originalInvocation?.sourceBudget ?? CurvedSweepSourceBudget(tolerance: context.tolerance)
+        let admission = try sourceBudget.conversionAdmission()
+        let section = try originalInvocation?.section ?? ResolvedModelingSection.resolve(sectionReference, context: context, featureID: feature.id, sourceBudget: sourceBudget)
         let preferredStartPlane = try ExactSweepSectionPlane(
             try section.plane(),
             tolerance: context.tolerance
@@ -94,18 +106,32 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             operationName: "Sweep path",
             preferredStartPlane: preferredStartPlane
         )
+        let pathIsClosed = originalInvocation?.pathIsClosed ?? chain.isClosed
+        func pathSpans(endingAt point: Point3D? = nil) throws -> [ExactBSplineCurveSpan] {
+            if let originalInvocation {
+                guard point == nil, optionValues.distanceFraction == 1 else {
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Nested original Sweep
+                    // fraction cuts need their original inverse-length boundary
+                    // receipt. A sampled endpoint cannot replace that source law.
+                    throw KernelError(phase: .evaluation, code: .unsupportedCapability,
+                        featureID: feature.id, tolerance: context.tolerance,
+                        message: "An original nested Sweep path requires retained fraction-cut authority.")
+                }
+                return originalInvocation.pathSpans
+            }
+            return try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, admission: admission)
+                .pathSpans(from: chain.segments, endingAt: point, allowsClosed: pathIsClosed)
+        }
         // A path of straight arms with corners, open or closed, sweeps with mitred corners.
         if chain.segments.allSatisfy({ $0.curve.exactCurve != nil }) {
-            let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).pathSpans(
-                from: chain.segments, allowsClosed: chain.isClosed
-            )
-            if MitredPolylineSweepBuilder.applies(sweep.options, pathSpans: spans, tolerance: context.tolerance) {
-                let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance)
+            let spans = try pathSpans()
+            if try MitredPolylineSweepBuilder.applies(sweep.options, pathSpans: spans, tolerance: context.tolerance, sourceBudget: sourceBudget) {
+                let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, admission: admission)
                 let loops: [[ExactBSplineCurveSpan]]
                 let closedSection: Bool
                 switch section {
-                case .profile(let profile, _):
-                    loops = try spanBuilder.profileLoopSpans(from: profile)
+                case .profile, .face, .constructedRegion:
+                    loops = try spanBuilder.loopSpans(from: section)
                     closedSection = true
                 case .curve(let curve):
                     loops = [try spanBuilder.sectionSpans(from: curve)]
@@ -113,27 +139,28 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 }
                 let mitred = try MitredPolylineSweepBuilder(tolerance: context.tolerance).request(
                     sectionLoops: loops, sectionIsClosed: closedSection, profilePlane: try section.plane(),
-                    pathSpans: spans, pathIsClosed: chain.isClosed, options: sweep.options, values: optionValues,
-                    featureID: feature.id
+                    pathSpans: spans, pathIsClosed: pathIsClosed, options: sweep.options, values: optionValues,
+                    featureID: feature.id, guidesAreEmpty: sweep.guides.isEmpty,
+                    sourceBudget: sourceBudget
                 )
-                let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer, admission: admission)
                     .buildMitred(mitred)
                 return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
             }
         }
         // A smooth closed path, the section moved round it with the path's frame and closing on
         // itself.
-        if chain.isClosed, chain.segments.allSatisfy({ $0.curve.exactCurve != nil }), sweep.options.alignment == .normal,
+        if pathIsClosed, chain.segments.allSatisfy({ $0.curve.exactCurve != nil }), sweep.options.alignment == .normal,
            optionValues.distanceFraction == 1 {
-            let spans = try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).pathSpans(from: chain.segments, allowsClosed: true)
+            let spans = try pathSpans()
             let plan = try CertifiedCurvedPathSweepPlan.closed(
-                section: section, pathSpans: spans, sweep: sweep, values: optionValues, featureID: feature.id, tolerance: context.tolerance
+                section: section, pathSpans: spans, sweep: sweep, values: optionValues, featureID: feature.id, tolerance: context.tolerance, sourceBudget: sourceBudget
             )
-            let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+            let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer, admission: admission)
                 .buildCertifiedCurvedPath(plan, resultKind: sweep.options.resultKind)
             return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
         }
-        guard chain.isClosed == false else {
+        guard pathIsClosed == false else {
             throw SketchError.unsupportedEntity("Sweep path requires an open curve chain.")
         }
         let pathSegments = chain.segments
@@ -164,40 +191,38 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         // within the requested positional allowance.
         // Only an exact path has the spans the curved plan moves along; others keep their routes.
         let curvedPathSpans = pathSegments.allSatisfy({ $0.curve.exactCurve != nil })
-            ? try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).pathSpans(
-                from: pathSegments, endingAt: optionValues.distanceFraction < 1 ? frames.last?.origin : nil
-            )
+            ? try pathSpans(endingAt: optionValues.distanceFraction < 1 ? frames.last?.origin : nil)
             : []
-        if curvedPathSpans.isEmpty == false, CertifiedCurvedPathSweepPlan.applies(
+        if curvedPathSpans.isEmpty == false, try CertifiedCurvedPathSweepPlan.applies(
             sweep.options, pathSpans: curvedPathSpans,
-            exactCircularSolid: exactCircularPath != nil && sweep.options.resultKind == .solid,
-            tolerance: context.tolerance
+            exactCircularSolid: exactCircularPath != nil && sweep.options.resultKind == .solid && optionValues.endScale != 0,
+            tolerance: context.tolerance, sourceBudget: sourceBudget
         ) {
             // One guide steers the section along the curved path by its method.
             let guideSpans = try guideCurves.onlyElement.map {
-                try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance).sectionSpans(from: $0).map(\.curve)
+                try ExactBSplineCurveSpanBuilder(tolerance: context.tolerance, admission: admission).sectionSpans(from: $0).map(\.curve)
             }
             let plan = try CertifiedCurvedPathSweepPlan(
                 section: section, pathSpans: curvedPathSpans, sweep: sweep, values: optionValues, guide: guideSpans,
-                featureID: feature.id, tolerance: context.tolerance
+                sourceBudget: sourceBudget, featureID: feature.id, tolerance: context.tolerance
             )
-            let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+            let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer, admission: admission)
                 .buildCertifiedCurvedPath(plan, resultKind: sweep.options.resultKind)
             return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
         }
         if sweep.options.guideMethod == .chord, let guide = guideCurves.onlyElement {
             return try chordGuideSweep(sweep, feature: feature, section: section, pathSegments: pathSegments,
-                                       frames: frames, guide: guide, values: optionValues, context: context)
+                                       frames: frames, guide: guide, values: optionValues, context: context, admission: admission)
         }
         if sweep.options.guideMethod == .curve, let guide = guideCurves.onlyElement {
             return try curveGuideSweep(sweep, feature: feature, section: section, pathSegments: pathSegments,
-                                       frames: frames, guide: guide, values: optionValues, context: context)
+                                       frames: frames, guide: guide, values: optionValues, context: context, admission: admission)
         }
         if CertifiedTwistSweepPlan.requested(sweep.options) {
             let plan = try CertifiedTwistSweepPlan(section: section, pathSegments: pathSegments,
-                sweep: sweep, values: optionValues, tolerance: context.tolerance)
+                sweep: sweep, values: optionValues, tolerance: context.tolerance, admission: admission)
             return try simplifiedIfRequested(sweep, featureID: feature.id, toolResult:
-                ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer, admission: admission)
                     .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind), context: context)
         }
         let toolResult: EvaluationResult
@@ -220,7 +245,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 guides: guideCurves,
                 distanceFraction: optionValues.distanceFraction,
                 featureID: feature.id,
-                tolerance: context.tolerance
+                tolerance: context.tolerance, admission: admission
             )
             sectionState = .pointGuide
         } else if guideCurves.isEmpty == false {
@@ -273,15 +298,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                     message: "Sweep capability planning selected exact circular evaluation without circular path geometry."
                 )
             }
-            guard case let .profile(profile, region) = section else {
-                throw KernelError(
-                    phase: .evaluation,
-                    code: .sweepPathNormalUnavailable,
-                    featureID: feature.id,
-                    tolerance: context.tolerance,
-                    message: "Exact circular path-normal Sweep requires a closed profile section."
-                )
-            }
+            let profile = try section.profileFacade()
+            let region = try section.regionSection()
             toolResult = try ExactCircularPathNormalSweepBuilder(
                 featureID: feature.id,
                 context: context,
@@ -316,7 +334,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 resultKind: sweep.options.resultKind,
                 endTransform: .identity,
                 featureID: feature.id,
-                context: context
+                context: context, admission: admission
             )
             return try applyBooleanIfNeeded(
                 sweep,
@@ -373,7 +391,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 resultKind: sweep.options.resultKind,
                 endTransform: endTransform,
                 featureID: feature.id,
-                context: context
+                context: context, admission: admission
             )
             return try applyBooleanIfNeeded(
                 sweep,
@@ -397,6 +415,13 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                     distance: straightPath.distance,
                     context: context
                 )
+            case .face, .constructedRegion:
+                guard let pathEndPoint = frames.last?.origin else {
+                    throw FeatureEvaluationError.emptyResult("Exact straight face-section Sweep has no terminal frame.")
+                }
+                toolResult = try buildExactLinearSectionSweep(section: section, pathSegments: chain.segments,
+                    pathEndPoint: pathEndPoint, resultKind: .sheet, endTransform: .identity,
+                    featureID: feature.id, context: context, admission: admission)
             case .curve:
                 guard let pathEndPoint = frames.last?.origin else {
                     throw FeatureEvaluationError.emptyResult(
@@ -410,7 +435,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                     resultKind: sweep.options.resultKind,
                     endTransform: .identity,
                     featureID: feature.id,
-                    context: context
+                    context: context, admission: admission
                 )
             }
             return try applyBooleanIfNeeded(
@@ -419,6 +444,16 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 toolResult: toolResult,
                 context: context
             )
+        }
+
+        if section.retainsOriginalRegionBoundary {
+            guard let pathEndPoint = frames.last?.origin else {
+                throw FeatureEvaluationError.emptyResult("Exact straight face-section Sweep has no terminal frame.")
+            }
+            toolResult = try buildExactLinearSectionSweep(section: section, pathSegments: chain.segments,
+                pathEndPoint: pathEndPoint, resultKind: .solid, endTransform: .identity,
+                featureID: feature.id, context: context, admission: admission)
+            return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: toolResult, context: context)
         }
 
         let extrudeFeature = FeatureNode(
@@ -464,12 +499,13 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         resultKind: SweepResultKind,
         endTransform: ExactSectionTransform2D,
         featureID: FeatureID,
-        context: EvaluationContext
+        context: EvaluationContext,
+        admission: GeometryConversionAdmission? = nil
     ) throws -> EvaluationResult {
         let builder = ExactLinearSectionSweepBodyBuilder(
             featureID: featureID,
             context: context,
-            sewer: sewer
+            sewer: sewer, admission: admission
         )
         switch section {
         case .profile(let profile, _):
@@ -480,6 +516,12 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
                 resultKind: resultKind,
                 endTransform: endTransform
             )
+        case .face(let face, _):
+            return try builder.build(faceSection: face, pathSegments: pathSegments,
+                pathEndPoint: pathEndPoint, resultKind: resultKind, endTransform: endTransform)
+        case .constructedRegion(let region):
+            return try builder.build(constructedRegion: region, pathSegments: pathSegments,
+                pathEndPoint: pathEndPoint, resultKind: resultKind, endTransform: endTransform)
         case .curve(let curve):
             guard resultKind == .sheet else {
                 throw FeatureEvaluationError.invalidGraph("Curve-section sweeps can only produce sheet output.")
@@ -509,9 +551,10 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         guides: [EvaluatedCurve],
         distanceFraction: Double,
         featureID: FeatureID,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: GeometryConversionAdmission? = nil
     ) throws -> ExactSectionTransform2D {
-        try ExactPointGuideSectionTransformResolver(tolerance: tolerance).resolve(
+        try ExactPointGuideSectionTransformResolver(tolerance: tolerance, admission: admission).resolve(
             section: section, pathStart: pathStart, pathEnd: pathEnd, guides: guides,
             distanceFraction: distanceFraction, featureID: featureID
         )
@@ -527,7 +570,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     private func chordGuideSweep(
         _ sweep: SweepFeature, feature: FeatureNode, section: ResolvedModelingSection,
         pathSegments: [EvaluatedCurvePathSegment], frames: [SweepPathFrame], guide: EvaluatedCurve,
-        values: SweepOptionValues, context: EvaluationContext
+        values: SweepOptionValues, context: EvaluationContext,
+        admission: GeometryConversionAdmission? = nil
     ) throws -> EvaluationResult {
         let tolerance = context.tolerance
         func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
@@ -543,7 +587,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw failure(.invalidInput, "A Chord-guided sweep has no path.")
         }
         let transform = try exactPointGuideTransform(section: section, pathStart: start, pathEnd: end, guides: [guide],
-            distanceFraction: values.distanceFraction, featureID: feature.id, tolerance: tolerance)
+            distanceFraction: values.distanceFraction, featureID: feature.id, tolerance: tolerance, admission: admission)
         // T as a complex number: the similarity's rotation-scale.
         let (re, im) = (transform.m11 - 1, transform.m21)
         let reach2 = re * re + im * im
@@ -556,11 +600,11 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         // The section's reach about the path: its control points bound every point of it.
         let sectionPoints: [Point3D]
         switch section {
-        case .profile(let profile, _):
-            sectionPoints = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).profileLoopSpans(from: profile)
+        case .profile, .face, .constructedRegion:
+            sectionPoints = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission).loopSpans(from: section)
                 .flatMap { $0.flatMap(\.curve.controlPoints) }
         case .curve(let curve):
-            sectionPoints = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve).flatMap(\.curve.controlPoints)
+            sectionPoints = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission).sectionSpans(from: curve).flatMap(\.curve.controlPoints)
         }
         let radius = sectionPoints.reduce(0.0) { result, point in
             let offset = point - start
@@ -592,8 +636,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         unguided.guides = []
         unguided.options.guideMethod = .point
         let plan = try CertifiedTwistSweepPlan(section: section, pathSegments: pathSegments, sweep: unguided,
-                                               values: turned, tolerance: tolerance)
-        let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                                               values: turned, tolerance: tolerance, admission: admission)
+        let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer, admission: admission)
             .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind)
         return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
     }
@@ -608,7 +652,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
     private func curveGuideSweep(
         _ sweep: SweepFeature, feature: FeatureNode, section: ResolvedModelingSection,
         pathSegments: [EvaluatedCurvePathSegment], frames: [SweepPathFrame], guide: EvaluatedCurve,
-        values: SweepOptionValues, context: EvaluationContext
+        values: SweepOptionValues, context: EvaluationContext,
+        admission: GeometryConversionAdmission? = nil
     ) throws -> EvaluationResult {
         let tolerance = context.tolerance
         func failure(_ code: KernelErrorCode, _ message: String) -> KernelError {
@@ -628,7 +673,7 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         // The guide runs monotonically along the path from the section's plane past the path's
         // end, so each station's plane crosses it once: its control points advance along the
         // axis (a B-spline lies in its control points' hull, so the curve advances with them).
-        let guideSpans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: guide).map(\.curve)
+        let guideSpans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission).sectionSpans(from: guide).map(\.curve)
         func advance(_ point: Point3D) -> Double { (point - start).dot(axis) }
         let guidePoints = guideSpans.flatMap(\.controlPoints)
         guard let firstGuidePoint = guidePoints.first, let lastGuidePoint = guidePoints.last else {
@@ -667,10 +712,10 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         let e2 = axis.cross(e1)
         let spans: [BSplineCurve3D]
         switch section {
-        case .profile(let profile, _):
-            spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).profileLoopSpans(from: profile).flatMap { $0.map(\.curve) }
+        case .profile, .face, .constructedRegion:
+            spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission).loopSpans(from: section).flatMap { $0.map(\.curve) }
         case .curve(let curve):
-            spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance).sectionSpans(from: curve).map(\.curve)
+            spans = try ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission).sectionSpans(from: curve).map(\.curve)
         }
         // The path touches the section: its start lies on the section's boundary.
         func distance(from point: Point3D, to span: BSplineCurve3D) throws -> Double {
@@ -813,8 +858,8 @@ public struct PlanarSweepFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         unguided.guides = []
         unguided.options.guideMethod = .point
         let plan = try CertifiedTwistSweepPlan(section: section, pathSegments: pathSegments, sweep: unguided,
-                                               values: turned, tolerance: tolerance)
-        let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer)
+                                               values: turned, tolerance: tolerance, admission: admission)
+        let tool = try ExactLinearSectionSweepBodyBuilder(featureID: feature.id, context: context, sewer: sewer, admission: admission)
             .buildCertifiedTwist(plan, resultKind: sweep.options.resultKind)
         return try applyBooleanIfNeeded(sweep, featureID: feature.id, toolResult: tool, context: context)
     }

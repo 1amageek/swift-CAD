@@ -1,8 +1,8 @@
 import CADCore
 import CADIR
 
-public struct MeasurementQuery: Codable, Sendable, Hashable {
-    public enum Kind: String, Codable, Sendable, Hashable {
+public struct MeasurementQuery: Sendable, Hashable {
+    public enum Kind: String, Sendable, Hashable {
         case point
         case distance
         case angle
@@ -12,11 +12,13 @@ public struct MeasurementQuery: Codable, Sendable, Hashable {
     public var first: SelectionReference
     public var second: SelectionReference?
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case first
         case second
     }
+    #endif
 
     public init(
         kind: Kind,
@@ -28,6 +30,7 @@ public struct MeasurementQuery: Codable, Sendable, Hashable {
         self.second = second
     }
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.kind, .first, .second], in: decoder)
@@ -36,6 +39,7 @@ public struct MeasurementQuery: Codable, Sendable, Hashable {
         second = try container.decodeIfPresent(SelectionReference.self, forKey: .second)
         try validate()
     }
+    #endif
 
     public func validate() throws {
         try first.validate()
@@ -56,3 +60,8 @@ public struct MeasurementQuery: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension MeasurementQuery: Codable {}
+extension MeasurementQuery.Kind: Codable {}
+#endif

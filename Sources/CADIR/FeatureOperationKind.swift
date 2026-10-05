@@ -1,4 +1,4 @@
-public enum FeatureOperationKind: String, Codable, CaseIterable, Hashable, Sendable {
+public enum FeatureOperationKind: String, CaseIterable, Hashable, Sendable {
     case involuteGear
     case sketch
     case spatialPath
@@ -152,3 +152,7 @@ public extension FeatureOperation {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension FeatureOperationKind: Codable {}
+#endif

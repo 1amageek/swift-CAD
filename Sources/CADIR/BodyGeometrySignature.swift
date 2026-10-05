@@ -1,7 +1,7 @@
 import CADCore
 import CADTopology
 
-public struct BodyGeometrySignature: Codable, Hashable, Sendable {
+public struct BodyGeometrySignature: Hashable, Sendable {
     public let kind: BodyKind
     public let shells: [ShellGeometrySignature]
 
@@ -24,11 +24,14 @@ public struct BodyGeometrySignature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case kind
         case shells
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(Set(CodingKeys.allCases), in: decoder)
@@ -36,11 +39,18 @@ public struct BodyGeometrySignature: Codable, Hashable, Sendable {
         shells = try container.decode([ShellGeometrySignature].self, forKey: .shells)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(kind, forKey: .kind)
         try container.encode(shells, forKey: .shells)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension BodyGeometrySignature: Codable {}
+#endif

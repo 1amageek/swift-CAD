@@ -61,14 +61,41 @@ struct STEPPhysicalCharacterizationTests {
             #expect(coedge.orientation == .forward)
             #expect((coedge.edge.startPoint - start).length <= ModelingTolerance.standard.distance)
             #expect((coedge.edge.endPoint - end).length <= ModelingTolerance.standard.distance)
-            #expect(coedge.edge.startParameter == nil && coedge.edge.endParameter == nil)
-            guard case let .line(line) = coedge.edge.curve else {
-                Issue.record("The independently authored triangle requires straight spatial edges.")
+            let expectedEndParameter: Double
+            switch index {
+            case 0: expectedEndParameter = 40.0
+            case 1: expectedEndParameter = sqrt(2000.0)
+            default: expectedEndParameter = 20.0
+            }
+            guard let startParameter = coedge.edge.startParameter,
+                  let endParameter = coedge.edge.endParameter else {
+                Issue.record("The independently authored triangle requires an explicit directed LINE trim.")
+                continue
+            }
+            #expect(abs(startParameter) <= ModelingTolerance.standard.distance)
+            #expect(abs(endParameter - expectedEndParameter) <= ModelingTolerance.standard.relative)
+            let lineOrigin: Point3D
+            let lineDirection: Vector3D
+            switch coedge.edge.curve {
+            case let .line(line):
+                lineOrigin = line.origin
+                lineDirection = line.direction
+            case let .affineImage(image):
+                guard case let .line(source) = image.source else {
+                    Issue.record("The independently authored triangle requires a linear spatial curve image.")
+                    continue
+                }
+                lineOrigin = image.transform.applying(to: source.origin)
+                lineDirection = try image.transform.applying(to: source.direction).normalized(
+                    tolerance: ModelingTolerance.standard.distance
+                )
+            default:
+                Issue.record("The independently authored triangle requires a straight spatial edge.")
                 continue
             }
             let direction = try (end - start).normalized(tolerance: ModelingTolerance.standard.distance)
-            #expect((line.origin - start).length <= ModelingTolerance.standard.distance)
-            #expect((line.direction - direction).length <= ModelingTolerance.standard.angle)
+            #expect((lineOrigin - start).length <= ModelingTolerance.standard.distance)
+            #expect((lineDirection - direction).length <= ModelingTolerance.standard.angle)
             let controls: [Point2D]
             switch coedge.surfaceParameterCurve {
             case let .polyline(points): controls = points.map { Point2D(x: $0.u, y: $0.v) }
@@ -161,6 +188,110 @@ struct STEPPhysicalCharacterizationTests {
             document.assembly = assembly
             document = try imported(emitted(document))
             try inspect(document, name: originalName, description: originalDescription, count: 3, kind: kind)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func occurrencePathPhysicalPropertiesRetainValidatedNAUOOwnerAcrossGenerations() throws {
+        var document = try imported(literal(name: "'region'", description: "$"))
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluateExact(document)
+        let occurrence = try #require(evaluated.assembly?.occurrences.first)
+        let target = ProductAttributeTarget(kind: .occurrence, path: occurrence.path)
+        let material = PhysicalMaterialDescriptor(name: "path steel", description: "occurrence descriptor",
+            density: PhysicalDensity(kilogramsPerCubicMeter: 7850))
+        document.productAttributes.materials = [material]
+        document.productAttributes.itemCharacterizations = []
+        document.productAttributes.assignments = [
+            ProductAttributeAssignment(target: target, value: .material(material.id)),
+            ProductAttributeAssignment(target: target, value: .descriptorDensity(material.id))
+        ]
+        for _ in 0..<2 {
+            let exact = try DocumentEvaluator(tolerance: .standard).evaluateExact(document)
+            let resolved = try ProductAttributeResolver().resolve(exact)
+            let selected = try #require(resolved.values[ResolvedProductTarget(definitionID: occurrence.definitionID, path: occurrence.path)])
+            #expect(selected.properties[.material]?.value == .material(material.id))
+            #expect(selected.properties[.density]?.value == .density(material.density!))
+            #expect(resolved.values.filter { $0.key.path != occurrence.path }.allSatisfy { $0.value.properties[.density] == nil })
+
+            let text = try emitted(document)
+            #expect(text.contains("PRODUCT_DEFINITION_SHAPE('', '', #"))
+            document = try imported(text)
+            let restoredTarget = try #require(document.productAttributes.assignments.first?.target)
+            #expect(restoredTarget.kind == .occurrence && restoredTarget.path == occurrence.path)
+        }
+
+        var invalid = document
+        let foreignPath = AssemblyOccurrencePath([AssemblyOccurrenceID()])
+        let originalAssignment = try #require(invalid.productAttributes.assignments.first)
+        invalid.productAttributes.assignments[0] = ProductAttributeAssignment(id: originalAssignment.id,
+            target: ProductAttributeTarget(kind: .occurrence, path: foreignPath), value: originalAssignment.value)
+        let invalidOutput = DataByteSink()
+        #expect(throws: ProductAttributeError.missingTarget("Occurrence path component.")) {
+            try STEPExchange(tolerance: .standard).write(
+                DocumentEvaluator(tolerance: .standard).evaluateExact(invalid), to: invalidOutput)
+        }
+        #expect(invalidOutput.bytes.isEmpty)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func occurrenceOnlyLayerUsesAUniqueCDSRCarrierAndExcludesItsSibling() throws {
+        var document = try imported(literal(name: "'region'", description: "$"))
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluateExact(document)
+        let occurrence = try #require(evaluated.assembly?.occurrences.first)
+        let target = ProductAttributeTarget(kind: .occurrence, path: occurrence.path)
+        document.productAttributes.layers.append(ProductLayer(name: "occurrence-only layer", members: [target]))
+        for _ in 0..<2 {
+            let output = DataByteSink()
+            try STEPExchange(tolerance: .standard).write(
+                DocumentEvaluator(tolerance: .standard).evaluateExact(document), to: output)
+            let restored = try #require(STEPExchange(tolerance: .standard).import(output.bytes).document)
+            let layer = try #require(restored.productAttributes.layers.first { $0.name == "occurrence-only layer" })
+            #expect(layer.members == [target])
+            let snapshot = try DocumentEvaluator(tolerance: .standard).evaluateExact(restored)
+            let resolved = try ProductAttributeResolver().resolve(snapshot)
+            let selected = try #require(resolved.values[ResolvedProductTarget(definitionID: occurrence.definitionID, path: occurrence.path)])
+            #expect(selected.layers.contains(layer.id))
+            for (key, value) in resolved.values where key.path != occurrence.path {
+                #expect(!value.layers.contains(layer.id))
+            }
+            document = restored
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nestedOccurrenceOnlyLayerUsesCarrierBackedContextChainAndExcludesSiblings() throws {
+        var document = try imported(literal(name: "'region'", description: "$"))
+        var assembly = try #require(document.assembly)
+        let root = try #require(assembly.roots.first)
+        let rootDefinitionIndex = try #require(assembly.definitions.firstIndex { $0.id == root.definitionID })
+        let branchDefinitionID = try #require(assembly.definitions[rootDefinitionIndex].children.first?.definitionID)
+        let nestedDefinitionID = try #require(assembly.definitions.first { definition in
+            definition.id != root.definitionID && definition.id != branchDefinitionID
+        }?.id)
+        let branchIndex = try #require(assembly.definitions.firstIndex { $0.id == branchDefinitionID })
+        assembly.definitions[branchIndex].children.append(
+            AssemblyOccurrence(name: "nested layer child", definitionID: nestedDefinitionID))
+        document.assembly = assembly
+
+        let evaluated = try DocumentEvaluator(tolerance: .standard).evaluateExact(document)
+        let nested = try #require(evaluated.assembly?.occurrences.first { $0.path.components.count == 2 })
+        let target = ProductAttributeTarget(kind: .occurrence, path: nested.path)
+        document.productAttributes.layers.append(ProductLayer(name: "nested occurrence-only layer", members: [target]))
+        for _ in 0..<2 {
+            let output = DataByteSink()
+            try STEPExchange(tolerance: .standard).write(
+                DocumentEvaluator(tolerance: .standard).evaluateExact(document), to: output)
+            let restored = try #require(STEPExchange(tolerance: .standard).import(output.bytes).document)
+            let layer = try #require(restored.productAttributes.layers.first { $0.name == "nested occurrence-only layer" })
+            #expect(layer.members == [target])
+            let snapshot = try DocumentEvaluator(tolerance: .standard).evaluateExact(restored)
+            let resolved = try ProductAttributeResolver().resolve(snapshot)
+            let selected = try #require(resolved.values[ResolvedProductTarget(definitionID: nested.definitionID, path: nested.path)])
+            #expect(selected.layers.contains(layer.id))
+            for (key, value) in resolved.values where key.path != nested.path {
+                #expect(!value.layers.contains(layer.id))
+            }
+            document = restored
         }
     }
 
@@ -270,6 +401,21 @@ struct STEPPhysicalCharacterizationTests {
         let cancelledBytes = try await task.value
         #expect(cancelledBytes.isEmpty)
     }
+
+    @Test(.timeLimit(.minutes(1)))
+    func materialDesignationWithoutMaterialPropertyFailsBeforePublication() throws {
+        let source = try imported(literal(name: "'region'", description: "$"))
+        let emittedText = try emitted(source)
+        #expect(emittedText.contains("MATERIAL_DESIGNATION("))
+        let detached = emittedText
+            .split(separator: "\n", omittingEmptySubsequences: false)
+            .filter { !$0.contains("PROPERTY_DEFINITION('material property','material name'") }
+            .joined(separator: "\n")
+        #expect(throws: ProductAttributeError.missingTarget("Material designation property attachment.")) {
+            _ = try imported(detached)
+        }
+    }
+
     // Independently authored exact AP242 input; production output is never used to author this fixture.
     private static let geometryFixture = #"""
 ISO-10303-21;

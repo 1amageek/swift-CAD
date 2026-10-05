@@ -63,9 +63,12 @@ measurement policy.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [BSplineCurveCommonBasis](BSplineCurveCommonBasis/DESIGN.md) | child | Caller-paid original common-basis preparation | Supplies shared immutable connector images | Retain original curve laws and the same cumulative allowance |
+| [SurfaceProjectionAdmission](SurfaceProjectionAdmission/DESIGN.md) | child | Whole-domain original closest-point projection with caller admission | Owns finite support inverse query coverage | Numerical witnesses carry original residual upper bounds |
 | [StructuralGeometryWork](StructuralGeometryWork/DESIGN.md) | child | Precharged original structural geometry payload traversal | Supplies package-only cost admission for source-signature comparison/hash | Consumers own the work allowance; no geometry validation, equality or tolerance policy changes |
 | [KnotRemoval](KnotRemoval/DESIGN.md) | child | Bounded immutable knot reduction with full-domain deviation evidence | Owns G3 curve and tensor-axis reduction | Sampling is not a reduction certificate |
 | [CurveSurfaceOverlap](CurveSurfaceOverlap/DESIGN.md) | child | Complete isolated points and certified continuous intervals | Owns G4 whole-span membership, clipping and correspondence | Unknown membership or incomplete clipping cannot publish a partial result |
+| [SurfaceSilhouette](SurfaceSilhouette/DESIGN.md) | child | Original normal zero-contour source and cumulative usage | Retains native source graphs for D1 drawing | Critical and coincident contour exhaustion remain lower-owned completion conditions |
 | [GeometryConversion](GeometryConversion/DESIGN.md) | child | Same-chart approximation and continuous error admission | Owns G6 source protocols, candidates and certificates | Point-only mapped consumers still require migration |
 | [SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md) | child | Certified area-density/moment and original trim root/jet enclosures | Supplies geometry evidence to CADTopology integration | Nonlinear implicit consumers must provide their own cumulative work callback; derivative order must be valid for the concrete representation |
 | [Periodic B-spline](PeriodicBSpline/DESIGN.md) | child | Cyclic curve/surface representation and parameter evaluation | Owns G1/G2 periodic axes and fundamental origins | Downstream closure and editing require separate behavioral evidence |
@@ -85,6 +88,32 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
+
+### Canonical Ideal Angular Primitive Authority
+
+[Canonical Sphere Chart](CanonicalSphereChart/DESIGN.md) owns the shared phase producer.
+
+The original analytic sphere is the ideal closed sphere defined by its stored
+center and radius. Conventional binary64 longitude and latitude labels encode
+symbolic full-turn and quarter-turn roles, rather than an independently authored
+binary angle law. Its continuous physical phase is mathematical pi multiplied
+by the normalized label: longitude `pi * (u / Double.pi)` and latitude
+`(pi / 2) * (v / (Double.pi / 2))`. One shared phase producer owns numerical
+representatives, certified mathematical-pi angle enclosures, exact canonical
+seam/pole roles and every derivative chain-rule scale. Whole chart evaluation,
+closed original jets, pcurves, inverse projection and collapsed-boundary receipts
+must consume that producer. Endpoint-only snapping cannot establish this law.
+The same continuous intrinsic-turn law owns original Circle3D and analytic
+circle, ellipse and circular arc harmonics. Their original frames, radii and
+authored arc labels remain source identity; every derivative includes the phase
+scale. Native rational angular charts, hyperbolas and unrelated analytic
+surfaces keep their existing source contracts. Native serialization retains
+primitive source fields, never numerical angle enclosures. Point, closed jets,
+higher jets and inverse angular projection must agree before adapter closure;
+rational conic station correspondence, directional roots and angular pcurve
+transport remain explicit completion gates until connected to this law.
+
+
 
 The ruled builder owns common-denominator conversion for aligned rational
 boundary columns consumed by Loft. Each distinct positive Bernstein weight
@@ -153,19 +182,13 @@ products must not introduce negative squared lengths and force unnecessary
 subdivision. The proof compares lower tangent lengths with distance tolerance
 and the lower normal length with an outward upper tangent-product angle bound;
 it does not require higher derivatives merely to test those magnitudes.
-The shared vector lower magnitude encloses the Euclidean norm of component-wise
-absolute minima, with outward-rounded products, sums and square root. It retains
-the largest-component bound when underflow or overflow makes the sum weaker.
-This avoids orientation-dependent refusal of short but regular tangents.
+Shared vector magnitude bounds scale component-wise absolute extrema by their largest finite component before outward-rounded division, products, sums and square root, then rescale outward. Zero vectors retain an exact zero upper bound. The lower bound also retains the largest-component bound. Direct endpoint quotients avoid overflowing reciprocal intermediates for finite tiny denominators; invalid or zero-containing divisors fail explicitly. Scalar interval midpoints use stable finite candidate arithmetic and never serve as original proof stations.
 
-Common curve-basis resolution preserves already-identical normalized clamped
-bases verbatim after validating both curves and counting their positive knot
-spans against the existing limit. It must not reconstruct these controls from
-derivatives or round-trip their homogeneous coordinates. Different bases still
-use the existing normalization, span alignment and degree elevation path.
-Degree elevation retains exactly equal homogeneous components during blending.
-This preserves constant coordinates and weights instead of introducing a false
-variation through two rounded products; unequal components retain weighted blending.
+[Common curve-basis resolution](BSplineCurveCommonBasis/DESIGN.md) owns original
+normalized preparation and immutable common-basis image construction. Its bounded
+requirement forwards preparation work/storage to the caller before evaluation or
+allocation. Shared connector tuples are prepared once by the composing Modeling
+caller; that caller retains original curves and directed native parameters.
 
 `BSplineSurfaceEmbeddingValidator.validateSeparation` certifies that two complete
 finite spline domains are disjoint using the same outward Bernstein difference
@@ -174,16 +197,17 @@ different charts and never imply adjacency. Failure to prove separation is a
 typed resource failure, not a positive intersection certificate. Touching domains
 are not admissible to this strict separation contract; topology must separately
 own shared-boundary admission. This contract does not establish regularity.
-Adjacent spline charts use a separate admission contract: orient the nominated
-boundaries into a common rectangular chart, require clamped ends and identical
-seam basis, control points and weights, then certify injectivity over both complete
-charts with the existing local-cell, touching-region and separated-cell
-certificates. A global projection is only an early sufficient certificate.
-Sampled coincidence may reject distinct parameters, but never proves admission.
-No snapping or sampled
-agreement establishes continuity. Incompatible seam representations and an
-inconclusive bounded refinement fail explicitly. General basis reconciliation
-remains incomplete; this is not general face sewing.
+Adjacent spline charts use a separate admission contract: orient nominated
+clamped boundaries into the same finite seam parameter domain. Their original
+homogeneous XYZ laws must be exactly equal on every positive interval in the
+union of both original knot partitions. Identical degree, knots, controls and
+weights are an early sufficient path; general representation differences use
+whole cross-denominator polynomial identities under the same pair allowance.
+Injectivity over both complete charts retains the existing local-cell,
+touching-region and separated-cell certificates. Original coefficient rounding
+is not tolerance equality; sampled coincidence never proves admission. Exact
+algebra work/storage is prepaid and the remaining pair allowance continues into
+embedding refinement. This contract does not establish general face sewing.
 Two opposite shared boundaries are admitted by bisecting both source charts
 between those boundaries. Every cross-chart half-pair is checked: matching outer
 halves use single-boundary adjacency, and the other pairs require strict
@@ -304,6 +328,18 @@ Adjacent implicit graph cells use this same search-domain normalization at
 construction and decoding, computed once per connection-validation pass using
 the stored certification tolerance. Native surface domains and geometric and
 tangent continuity checks remain unchanged.
+Connection admission compares the unique closed gauge-root enclosures in all
+four original parameter coordinates. Each enclosure is normalized through the
+original search-domain endpoint differences using outward arithmetic; rounded
+anchor values or rounded domain widths cannot certify a connection. The same
+gauge receipt supplies both source-surface position and tangent bounds under
+the composing caller's work and storage allowance.
+After initial unique-root admission, endpoint enclosures are contracted with
+the same fixed gauge and original normalization. Each Krawczyk iteration uses
+closed jets over the retained root box and intersects with that box, preserving
+the admitted root. The existing root-refinement ceiling of 32 iterations bounds
+this work; unchanged bounds stop refinement. No root iteration consumes source
+nesting or curve subdivision depth, and unresolved width cannot admit a join.
 Surface lifts of implicit intersection pcurves reuse the certified parameter
 interval jet for UV bounds and derivatives through order three. Reversed and
 trimmed pcurves rescale each derivative by its parameter-span power; closed
@@ -1149,6 +1185,34 @@ The original prepared B-spline owner extends its selected-native-span contract t
 
 The selected normal/derivative path verifies the complete original token and query inclusion, resolves a lifted native station to its proven original base station and evaluates that explicitly selected original span without canonical-right normalization. Thus the lifted seam upper/left owner is not silently evaluated on the lower/right span. Enclosures cover each actual original positive span, retain native derivative scaling and finite regular one-sided frames, and reject discontinuous or invalid source/tolerance/lift authority. Original aggregate preparation/proof budgets and cancellation are retained; checked span/lift enumeration and allocation charge before execution. Immutable source and token ownership are identical on all targets. Independent degree-one diamond cycles and double periodic bilinear diamond tensors prove positions/tangents/normals on base, negative/positive seam-crossing, shifted and full-cycle boxes, including both closed seam/corner sides. Invalid tails/translation, exact period excess, singularity, foreign source/tolerance/lift and resource/cancel refuse explicitly. Lower behavioral evidence precedes upper periodic-C0 panel publication; full M1 and portable integration remain open.
 
+### Selected Original Native First-Order Queries
+
+The immutable selected-span differential owner supplies closed original value
+and first-tangent queries for mesh station admission, in addition to its full
+third-order and value-only queries. Source/tolerance/lift and knot-side guards
+are identical. The result has no higher derivative fields. The consuming
+contract and behavioral evidence are owned by
+[OriginalGraphBand](OriginalGraphBand/DESIGN.md#original-station-first-order-materialization).
+
+### Immutable selected-native station rows
+
+`OriginalNativeSpan.prepareStationRow(u:on:tolerance:consumeWork:)` admits the
+original source, preparation tolerance, exact selected side and closed U once,
+then returns an opaque immutable evaluator. It retains the original global U
+point basis and selected U derivative basis without regrouping numeric sums.
+Materialization computes the original global point accumulation in its existing
+V-then-U order and the original selected-side normal accumulation in its existing
+local V-then-U order. The two laws remain distinct at a C0 boundary.
+
+The row also retains original U-localized first-order homogeneous nets, with
+separate singleton and closed-interval laws matching the existing enclosure
+paths. Every V query stays inside the token's original closed V support. Caller
+work is consumed before preparation and every retained numeric slot; existing
+station and facet charges remain owned by the consumer. No mutable cache or
+fresh budget is introduced. [OriginalGraphBand](OriginalGraphBand/DESIGN.md)
+owns receipt/cell/U provenance and connection to actual station error admission.
+These new paths are source-only until subsequent native and portable execution.
+
 ## Original Closed Native Curve Jets
 
 `PreparedCurveDifferentialEncloser.closedNativeJets(over:tolerance:consumeWork:)`
@@ -1197,14 +1261,6 @@ The C0 three-control quarter-cylinder rails provide literal native speeds and
 one-sided jets; genuinely unequal weights provide independent rational
 derivatives through order three. This lower contract does not publish a
 rolling-ball area result or complete the higher-order nested-offset obligation.
-
-### Original native coefficient retention
-
-Selected original native spans may issue an immutable package-only coefficient receipt after exact source, tolerance, closed-domain, and periodic-lift admission. Receipt issuance charges the caller before retention and preserves the existing original homogeneous value net through immutable COW ownership. It performs no extraction or global weight scan and adds no smoothness guarantee. [SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md) owns higher-order construction and its allocation/arithmetic work; the source owner retains token validation authority. Native first-order and full third-order entry points retain their existing contracts. For a singleton receipt query, an error-free subtraction with zero expansion tail retains the exact represented original station after periodic translation; a nonzero tail retains the admitted outward cover. This does not narrow a non-singleton query or change other selected-span visitors.
-
-### Caller-paid original cover enumeration
-
-The additive `originalNativeSpans(over:tolerance:consumeWork:)` entry charges the supplied synchronous caller allowance before original span scans, knot recurrences, exact axis-lift enumeration, and token append. It uses the same original source, closed boxes, lifted sides, and aggregate262144 cover ceiling as existing entry points. Existing callers retain their own admission and budgeting policies; the new entry retains neither the callback nor mutable shared state. [SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md) composes this paid entry with coefficient retention and higher-order work.
 
 ## Original Framed Infinite Plane
 
@@ -1255,5 +1311,362 @@ own retained surface identity and native UV evaluation after signature transport
 Exchange owns independent STEP and strict Native package transport proofs.
 Native, normal WASM and Embedded behavioral evidence remain target-specific.
 
+### Original native coefficient retention
 
-The [original analytic Rebuild position owner](GeometryConversion/DESIGN.md#original-analytic-rebuild-position-parg6analytic1) supplies the complete original-chart certificate consumed by [Kernel analytic publication](../CADKernel/DESIGN.md#original-analytic-rebuild-position-publication-parg6analytic1). Native bounded publication is verified; general G6 and portable closure remain separate.
+Selected original native spans may issue an immutable package-only coefficient receipt after exact source, tolerance, closed-domain, and periodic-lift admission. Receipt issuance charges the caller before retention and preserves the existing original homogeneous value net through immutable COW ownership. It performs no extraction or global weight scan and adds no smoothness guarantee. [SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md) owns higher-order construction and its allocation/arithmetic work; the source owner retains token validation authority. Native first-order and full third-order entry points retain their existing contracts. For a singleton receipt query, an error-free subtraction with zero expansion tail retains the exact represented original station after periodic translation; a nonzero tail retains the admitted outward cover. This does not narrow a non-singleton query or change other selected-span visitors.
+
+### Caller-paid original cover enumeration
+
+The additive `originalNativeSpans(over:tolerance:consumeWork:)` entry charges the supplied synchronous caller allowance before original span scans, knot recurrences, exact axis-lift enumeration, and token append. It uses the same original source, closed boxes, lifted sides, and aggregate262144 cover ceiling as existing entry points. Existing callers retain their own admission and budgeting policies; the new entry retains neither the callback nor mutable shared state. [SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md) composes this paid entry with coefficient retention and higher-order work.
+
+The [original analytic Rebuild position owner](GeometryConversion/DESIGN.md#original-analytic-rebuild-position-parg6analytic1) supplies the complete original-chart certificate consumed by [Kernel analytic publication](../CADKernel/DESIGN.md#original-analytic-rebuild-position-publication-parg6analytic1). The new source-family and retained-state guarantees require their own public evidence; prior Native spline proofs do not establish this analytic path.
+
+
+### Allocation-Free Ordered Interval Product
+
+`OutwardScalarInterval` multiplies the same four binary64 endpoint pairs in the same order, reduces extrema with the same ordered comparisons as the previous Sequence reduction, and applies the same final outward `nextDown`/`nextUp`. Stack scalar storage removes the per-product temporary array on the repeated original-limit-normal materialization path. Signed zero, overflow, infinity and NaN ordering remain unchanged; this is not a new finite-input certificate or a relaxed enclosure. The immutable storage, isolation and target contract are common to Native/WASM/Embedded. [OutwardIntervalArithmeticTests](../../Tests/CADGeometryTests/OutwardIntervalArithmeticTests.swift) compare endpoint bits against the previous independent reduction and preserve endpoint enclosure and typed division refusal. The affected normal receipt validates the actual public corner and guided mesh consumers at unchanged budgets.
+
+- [Orthographic curve projection](OrthographicCurveProjection/DESIGN.md): original parameter-preserving projection law and frame.
+
+The general tessellation-bound traversal exposes a package overload receiving
+`remainingCells: inout Int`. All faces/triangles in one upper invocation debit
+that same counter before visiting a cell. The existing convenience operation
+creates the historical 262,144 ceiling once and composes the same traversal;
+sharing a counter does not change derivative, normal or depth admission.
+
+Original periodic native position publication is owned by
+[GeometryConversion](GeometryConversion/DESIGN.md#original-periodic-native-position-publication).
+Its source/candidate periodic lift covers and point reservations share the same
+caller accounting and preserve the original contained-chart contract.
+
+Prepared internal closed surface boxes retain the same original analytic,
+B-spline, ruled or rolling law used by positive-width queries. The internal
+closed operation validates finite domain containment independently of public
+positive-width admission and preserves both owning sides at native joins.
+
+## Native Codec Boundary
+
+Original geometry values, associated source graphs, immutable fields, Hashable,
+Sendable and shared Mutex ownership remain common to native and Embedded targets.
+Native Codable conformances, keyed schemas and decoder/encoder implementations
+are compiled only outside Embedded. They preserve the native field schema and
+validation path. Embedded consumers use the explicit original-source writer
+owned by CADIR; they do not obtain a default, empty codec or a different geometry
+representation. Codec helpers do not own geometry evaluation or mutable state.
+
+```text
+common original geometry value
+  -> native Codable adapter (!Embedded)
+  -> explicit original-source writer (all targets, CADIR owner)
+```
+
+Verification after the source phase must exercise native schema round trips and
+fixed-toolchain Embedded compile/link for the complete reachable source graph.
+Source separation alone does not establish either runtime behavior.
+
+Original B-spline surface preparation can bind a caller-owned cumulative work
+callback before any new homogeneous patch storage is allocated. The shared
+callback covers actual native-span basis recurrence, homogeneous coefficient conversion
+and prepared derivative nets; checked allocation byte counts refuse overflow.
+The same callback and caller span ceiling then own periodic lift enumeration.
+The legacy convenience initializer retains its established operation ownership.
+
+- [Parameter Image](ParameterImage/DESIGN.md): persistent signed foreign parameter laws and original spatial surface images.
+
+- [Surface Pole Geometry](SurfacePoleGeometry/DESIGN.md): original clamped collapsed-boundary one-sided normal authority.
+
+- [Curve Curve Contact](CurveCurveContact/DESIGN.md): original native curve pair contact and continuous ambiguity evidence.
+- [Rational Bivariate Algebra](RationalBivariateAlgebra/DESIGN.md): exact original dyadic/rational coefficient equality and polynomial algebra.
+
+- [Original Line Incidence](OriginalLineIncidence/DESIGN.md): exact original point/parametric-axis incidence.
+
+- [Original Higher Curve Jets](OriginalHigherCurveJets/DESIGN.md): caller-owned original requested-order curve and implicit-chart derivative authority.
+
+- [Original Root Span](OriginalRootSpan/DESIGN.md): exact original incidence endpoints and normalized retained traversal authority.
+
+- [Original Revolution](OriginalRevolution/DESIGN.md): persistent original root-generator revolution law and closed source jets.
+
+- [Curve Surface Query Admission](CurveSurfaceQueryAdmission/DESIGN.md): same invocation admission across original query preparation, coverage and root proof.
+
+
+
+Bounded original arc-length requests consume closed source-owning curve jets,
+partition native joins before midpoint Taylor integration and preserve every
+original parameter span. Validation, preparation and each integration cell debit
+the same caller callback; nested source work inherits the active cell depth.
+The admitted depth is the minimum of caller and existing option ceilings.
+Rounded Bezier decompositions and numerical chords do not establish an original
+bound. Legacy entry points keep their historical policy. This contract does not
+infer continuity across unresolved implicit or offset source joins.
+
+[Original Geometry Source Validation](OriginalGeometrySourceValidation/DESIGN.md)
+owns caller-admitted native validation. Curve, surface and pcurve composition
+forwards the same admission into every original source descendant; immutable
+certified graph construction/decode witnesses can be consumed without replaying
+an unrelated default proof allowance.
+
+
+`OriginalPeriodicCurveTraversal.normalized` composes the retained original scalar
+selectors and exact integer-period translation into a persistent nested parameter
+image on normalized [0,1]. It binds the translation to the original deepest
+periodic source and exact gain product under caller admission. Its difference
+gain retains the directed selector/translation source values. Foreign `Double`
+period estimates remain conveniences; they cannot authorize chart displacement.
+The traversal does not infer geometric endpoint closure from a numerical period.
+Nonrepresentable original first selectors require a separate exact endpoint
+carrier before they can enter this scalar-selector producer.
+
+
+[Original Coons](OriginalCoons/DESIGN.md) retains four directed original boundary
+traversals and exact corner incidence. The module dispatches its actual Coons
+source jets through procedural evaluation, prepared queries and conversion;
+whole original embedding remains an independent publication requirement. A
+rounded rational tensor embedding receipt cannot certify the retained Coons law.
+
+
+Original arc-length Taylor tightening requires an individually smooth original
+native owner. A synthetic single owner containing several lifted source pieces,
+or a hull of their one-sided derivatives, is not a continuity receipt. Such
+pieces retain whole original speed integration until a source join partition
+and the required derivative continuity have been supplied.
+
+Bounded arc-length parameterizations retain original preparation and the paid
+native partition once. Total and prefix enclosures reuse that immutable authority;
+arbitrary admitted subintervals recompute only their boundary cells through the
+same callback and remaining depth. Retained partition storage belongs to the
+composing invocation. No aggregate lifted jet grants smooth Taylor authority.
+
+OriginalRevolution's intrinsic angular orbit uses the same continuous symbolic
+full-turn phase as Canonical Sphere Chart. Its authored label interval remains
+unchanged; pure and mixed derivatives include the original phase scale. Other
+analytic angular and native rational sources retain their separate contracts.
+
+[Surface Surface Query Admission](SurfaceSurfaceQueryAdmission/DESIGN.md) owns the shared original surface-pair traversal admission. Public dispatch forwards its caller depth, source depth, span ceiling and callback into prepared source queries and retained graph construction.
+
+Bounded arc-length parameterizations expose original differential enclosures from the same retained preparation. Every owning-span union is charged to the original callback; a union provides derivative bounds without granting continuity or smooth Taylor authority.
+
+The retained arc parameterization can report smooth native interval authority only from the original family admission and exactly one positive-width owning span. Closed zero-width neighbors do not invalidate that one-sided owner; aggregate lifted or implicit derivatives alone do not establish continuity. Original endpoint connectors add a globally smooth exact polynomial correction to their retained native construction; exactly one positive-width construction owner can therefore supply the same local smoothness authority. The construction alone never supplies corrected position, speed or endpoint authority.
+
+Caller-admitted surface-pair protocol requirements distinguish work visits from retained byte reservations. Explicit source depth, subdivision depth and span ceilings are forwarded to the same original finite parametric producer. Legacy specialized entry points preserve their historical dispatch. The injected bounded route cannot authorize unmetered analytic/unbounded proof helpers or claim unresolved critical/coincident contact completeness.
+
+[Native Surface Embedding](NativeSurfaceEmbedding/DESIGN.md) owns original native local injectivity, pair separation and adjacent boundary admission, including caller work/depth/storage forwarding. Parent descriptions of these proofs refer to this child authority.
+
+Original Bernstein evaluation may intersect interval de Casteljau with the
+convex hull of its outward restricted original coefficient net. Both retain the
+original polynomial. Local surface-lift position bounds use a containing UV
+subinterval sized only for chart admission; a derivative certification minimum
+width must not prevent positional bounds from converging. Equal original tensor
+weights remove quotient corrections in numerical third derivatives because the
+original denominator is constant. These changes preserve all source tolerances;
+endpoint curvature samples do not authorize a wider implicit connection angle.
+
+Closed implicit localization preparation accepts explicit span, subdivision and
+source-depth admission and forwards original preparation work and retained bytes
+to the same caller. Each restriction and contraction accepts the work callback.
+The retained original source graph and tolerance bind every state; whole source
+Jacobians and closed original center positions bound Krawczyk residuals. A
+center representative selects only a preconditioner. Nested surface queries
+use the remaining caller depth, without a private recursion allowance.
+
+Bounded arc-length parameterization retains the explicit caller byte callback
+alongside its existing work and depth contract. Native coefficient preparation,
+integration heap/cell capacity growth, retained final partitions and owned query
+temporaries reserve actual checked bytes before materialization. Preparation
+and all prefix queries use the same immutable source and allowance. Lower Taylor
+query temporaries remain incomplete until their actual allocation sites forward
+that callback; an outer estimate is not complete storage admission.
+
+[Original Affine Operation Word](OriginalAffineOperationWord/DESIGN.md) owns flat
+retained forward/inverse affine operations and exact normalized STEP frame
+composition. Image adapters consume its immutable prepared action without
+rounding it into a replacement source matrix; factor count is independent of
+source-graph recursion depth.
+
+[Original Affine Image](OriginalAffineImage/DESIGN.md) owns distinct retained-word
+curve, surface and pcurve families. Existing single-affine image source meaning
+is unchanged. Exhaustive dispatch consumes original word action and unchanged
+native charts rather than reading an approximate matrix cache.
+
+
+Finite ScalarInterval midpoint candidates use separate endpoint halves for
+opposite signs and a same-sign endpoint difference otherwise, avoiding overflow
+for admitted finite endpoints. This numerical representative supplies no exact
+source station, interval width or residual authority; original proofs retain
+outward endpoint differences and quotients.
+
+
+Intrinsic ideal cylinder/cone U and torus U/V use the shared continuous
+[canonical angular chart](CanonicalSphereChart/DESIGN.md), consistently with
+sphere, ideal conics and original revolution. Their declared full-turn label
+period is an exact chart identity. The cone halfAngle is a nonperiodic physical
+slope scalar and is not interpreted as a chart turn. Rational native angular
+laws retain their original knots and source meaning.
+
+The original endpoint connector curve family is owned by [the Coons endpoint connector](OriginalCoons/EndpointConnector/DESIGN.md). Curve composition preserves its original section endpoint expressions, exact correction basis and retained construction. Closed prepared queries keep native one-sided construction owners and apply the correction law per owner; higher queries prove only requested continuity.
+
+[Original Curve Construction Chart](OriginalCurveConstructionChart/DESIGN.md) owns persistent normalized root traversals and exact directed construction parameter-law carriers. Publication consumes the retained original chart rather than a rounded native endpoint difference or fitted control net.
+
+Retained arc-length inverse fraction queries compare original total/prefix integral enclosures against the exact requested fraction interval. Only certified inequalities exclude native cells; queries reuse the retained preparation and cumulative work/byte/depth admission. Returned native bounds localize the station and do not replace its original fraction law with a midpoint or authored Double.
+
+The certified rotation trigonometry adapter accepts a composing work callback. Each actual range-reduction, Taylor recurrence and double-angle step debits that callback before evaluation; the historical angle domain, term count and certified remainder remain unchanged. The default legacy entry checks cancellation and introduces no caller ceiling.
+
+Bounded rigid curve-image construction validates its authored transform once and descends into the original curve with the same work and optional byte callbacks. It decrements source recursion once, forwards independent subdivision/algebra capabilities, and introduces no private ceiling; legacy construction retains its historical policy.
+
+Original construction-chart arc-length queries retain their original parameter law. Constant-speed and legacy scalar-third-derivative shortcuts decline this family. Smooth-native queries require the chart producer’s selected native side or exactly one positive-width mapped original owner; a synthetic derivative hull does not establish continuity.
+
+Caller-owned SSI work admission and optional byte admission are independent. A nil byte callback preserves the caller’s work/source/subdivision policy without claiming retained-storage accounting or reverting to a legacy allowance.
+
+Implicit graph restrictions can retain the original SurfaceSurfaceQueryAdmission with both prepared support owners. The prepared-only restriction derives its graph source from that receipt, queries parent derivatives under the same admission, and delegates the retained gauge-root contraction to GraphSubcell. It does not prepare a second pair or use rounded anchors as new existence evidence. Legacy restriction retains its prior policy.
+
+Polyline pcurves retain the exact Euclidean segment arc-length fraction law of their original UV points. Rounded hypot/prefix values are numerical evaluator candidates, not persistent chart coefficients. Exact zero-length segments contribute no traversal, and the original positive total length has no tolerance floor. Exact trim/iso producers must retain square-root length expressions or certified station receipts under independent algebra/work/byte admission.
+
+Generic original SurfaceLift closed jets forward optional query bytes through the actual UV Taylor producer and prepared support interval query. Each lower source family retains its explicit unsupported cases. The composed derivative hull supplies no smoothness or native join partition receipt.
+
+Native iso owning covers also admit authored affine UV sides with an exactly zero fixed-coordinate direction. Original origin/direction/endpoint label arithmetic is evaluated as exact rationals; representable native stations retain the same directed linear support law and one-sided owning metadata. Nonrepresentable affine endpoints require a retained rational UV chart carrier and fail explicitly until supplied. Polyline and nonlinear native UV sides retain their separate exact inverse/segment requirements.
+
+Bounded continuous UV chart lifts and translations accept optional byte admission independently of work admission. They forward the supplied byte callback through original source validation, value-only Taylor bounds and actual retained sample buffers; nil does not select legacy work counters or establish a storage receipt.
+
+Hyperbolic interval evaluation uses scalar endpoint/extremum accumulation and charges each actual visit through the composing work callback. It preserves the existing endpoint enclosure and derivative law without transient value arrays.
+
+The original boundary-corrected surface family is owned by [Coons Boundary Correction](OriginalCoons/BoundaryCorrection/DESIGN.md). Its native Hermite construction and four retained original boundary traversals jointly define the source law. Shared surface dispatch forwards retained coefficient/capability queries; the native construction alone is not an equivalent surface.
+
+Caller-admitted planar orientation compares the original binary coordinate determinant as an exact rational, including the exact determinant threshold. It charges original arithmetic and retained bytes through the same callback and returns zero only for an exact zero determinant; expansion underflow or a rounded estimate is not sign authority. The existing legacy expansion entry retains its distinct policy.
+
+Authored foreign physical-radian parameter laws use the persistent symbolic
+transport contract in [Canonical Sphere Chart](CanonicalSphereChart/DESIGN.md).
+Untrimmed primitives retain intrinsic periodic charts; physical-radian gain and
+offset do not constitute a binary full-turn period witness.
+
+Arc-length queries on original angular transport retain the direct ideal conic
+physical-phase law. This admitted analytic law is smooth on each original
+parameter interval; synthetic owner count does not prove other joins. Constant
+speed and legacy scalar third-derivative shortcuts decline this family; bounded
+original jets and the existing one-positive-owner receipt remain authoritative.
+
+For a Plane3D with authored U direction, original closed jets retain raw U and
+V as the exact cross product of the original normal and U. Numerical
+parameterBasis results are candidates for this law. The nil-U legacy basis
+selection retains its separate original normalization contract; no STEP frame
+policy is substituted. Exact SSI boundary incidence may consume the authored-U
+coefficient law, not a rounded basis.
+
+Prepared curve and surface owners retain an optional independently selected
+algebra depth. Bounded source validation and nested preparation forward this
+same value; lifted Euclidean-polyline queries consume it separately from
+source recursion and geometric subdivision. Nil retains legacy policy and
+does not invent a coefficient field allowance.
+
+- [Original Native Plane Contacts](OriginalNativePlaneContacts/DESIGN.md): complete original native-owner plane incidence, retained isolated parameter roots and positive owning intervals for public curve-surface publication.
+
+### Original Plane Derivative Sources
+
+The [Original Coons plane derivative child](OriginalCoons/PlaneDerivatives/DESIGN.md) owns generated endpoint and transverse derivative correction laws. Curve and procedural surface composition retain distinct `originalPlaneDerivative` families, complete raw traversals and support constraint arrays. Shared evaluation forwards original owning partitions and caller admission; a construction spline is not the corrected position law. Symbolic curve endpoint incidence descends the retained source traversal.
+
+The [Original Drafted Section](OriginalDraftedSection/DESIGN.md) child owns retained tangent-dependent draft curve and ruling laws used by generated walls. Shared family integration waits for its actual requested-order producer.
+
+- [Original surface embedding](OriginalSurfaceEmbedding/DESIGN.md): prepared
+  original self-contact and projection-contraction sessions shared by callers.
+
+Prepared continuous-partial receipts distinguish requested C1 and C2 authority
+from the positional C0 receipt. Both facades share the same retained source
+proof traversal: native higher continuity, exact image chart transport and
+offset support-order/normal premises. Unknown procedural joins return no
+receipt, so boundary normal or shape mean-value tightening must use another
+whole-domain proof instead. Each receipt retains its exact requested box and
+order under the preparation's independent caller algebra policy.
+
+Prepared offset continuity derives from the original support's complete C2
+partial law and a finite closed normal-field cover. Native joins consume the
+[original higher surface continuity](SurfaceSilhouette/DESIGN.md) contract;
+analytic smooth laws and exact parameter-preserving images compose that
+premise. Adaptive normal exclusion uses the same selected span/subdivision,
+source, coefficient and byte admission. Positional C0 alone does not authorize
+normal continuity or the offset line-integration theorem.
+
+- [Original Circular Measurement](OriginalCircularMeasurement/DESIGN.md): original
+  circular-plane conformality and immutable center/radius/normal/boundary query
+  receipts under the caller's independent source, subdivision and algebra policy.
+
+Offset composition of a previously admitted fixed surface jet charges each actual
+scalar-jet differentiation, product, sum, square root and reciprocal through the
+composing work callback. The composition retains fixed value fields and allocates
+no coefficient array; an optional byte callback remains optional. This contract
+does not admit the original support or prove normal continuity.
+
+- [Original Guide Traversal Chain](OriginalCoons/GuideTraversalChain/DESIGN.md):
+  persistent normalized guide chains retaining original traversals and exact
+  rational station partitions. Common curve evaluation consumes the actual
+  D0-D3 source producer; higher orders and unproved joins fail explicitly.
+
+Guide closed derivative covers retain each declared traversal, exact rational
+aggregate lower/upper station and its actual one-sided D0-D3 jet. A declared
+traversal ordinal is not a native B-spline index. Native index/domain metadata
+comes only from the retained original traversal; absent native ownership uses
+an explicit nonnative index and cannot authorize control-net extraction.
+Outward parameter intervals localize exact cuts; they do not replace exact
+station authority or prove smoothness across guide joins.
+
+Arc-length speed and higher derivative magnitudes use the fixed-field,
+scale-before-squares outward vector norm of original interval components.
+This avoids square overflow/underflow without changing tolerance or caps.
+Guide-chain speed Taylor tightening consumes its original selected-domain smooth
+receipt. A single positive selected traversal delegates to that original
+RootSpan's smoothness issuer; crossing positive joins requires declared
+`provenContinuityOrder >= 2`. Corrected guide connectors delegate the same
+original source issuer because their polynomial correction adds no join.
+One synthetic hull owner cannot grant this theorem.
+
+Bounded affine curve-image construction forwards original source visits,
+optional byte admission and independent algebra policy through the same
+validator as its spatial/source policies. It retains the authored affine type
+and parameter law without a private preparation allowance.
+
+Selected arc-length enclosure and parameterization overloads take an explicit
+source depth and optional independent algebra depth. Their original preparation
+retains those values; integration subdivision changes only the spatial cell
+depth. Parameter/spatial wrappers decrement source recursion only when descending
+the original source. Existing overloads retain their historical coupled policy
+as a compatibility facade. Both routes retain the same total/prefix receipt,
+work callback and optional byte callback without replenishing an allowance.
+
+Strictly directed axis polylines use the original exact Euclidean UV length law.
+When every positive segment has one fixed coordinate and the same varying
+direction, its lengths telescope to the exact endpoint difference, proving the
+endpoint-affine clock without rounded prefix stations or uniform vertex knots.
+Native iso metadata may use that proved equivalent clock; nonbinary inverse
+knot stations still require retained exact station authority.
+
+Original guide endpoint connectors retain the original guide traversal, both
+original endpoint traversals, directed endpoint flags and correction basis.
+Their correction changes the geometric law while preserving its declared
+piecewise parameter partition. Owning derivative covers retain original guide
+station expressions; native indices never authorize extraction of uncorrected
+control coefficients. Literal endpoints peel to the retained boundary receipts.
+
+Original direction normalization divides interval components by one finite
+positive maximum magnitude before forming squared norms. This positive common
+scale cancels symbolically from the normalized direction. Direct outward
+quotients and the scaled norm preserve tiny/huge finite authored components;
+fixed-field arithmetic pays the caller's actual work and allocates no arrays.
+A box containing zero or an unresolved positive norm fails explicitly.
+
+- [Original Polyline](OriginalPolyline/DESIGN.md): retained authored XYZ points, exact Euclidean-length clock and one-sided original segment jets under explicit caller algebra admission.
+
+Bounded [surface boundary certification](SurfaceBoundaryCertification/DESIGN.md) composes the same caller preparation and closed queries. Position uses C0, normal mean-value bounds require C1 and shape bounds require C2 receipts; byte admission retains the existing UInt32 bridge.
+
+Original Euclidean-polyline arc queries use the selected-domain smooth issuer. Exact incident segment owners and corners never gain smoothness from a synthetic derivative hull; each positive-width original segment retains its own clock law.
+
+Prepared original axis-isoline covers retain the native support owner, canonical
+physical iso traversal and a cached exact native pcurve inverse. A spline UV
+clock never uses the affine endpoint fraction as its source station. Exact
+native UV targets yield source-bound scalar roots and normalized fraction
+localization from [Native Axis Inverse](ParameterImage/NativeAxisInverse/DESIGN.md).
+The proved monotone orientation permits the canonical support tangent factor to
+replace a zero scalar clock derivative for physical direction admission. This
+receipt does not grant a whole D3 jet across pcurve joins. The initial cover
+facade admits whole normalized clamped native axis clocks; other charts keep
+their existing explicit capability boundary.
+
+- [Original Spatial Point](OriginalSpatialPoint/DESIGN.md): immutable authored Point3D plus original spatial word, exact bounded D0 position and checked numeric localization for topology vertices.
+
+- [Original Normal Angle Bounds](OriginalNormalAngleBounds/DESIGN.md): exact physical-radian normal-angle/chord proof under caller admission, distinct from intrinsic angular parameter labels.

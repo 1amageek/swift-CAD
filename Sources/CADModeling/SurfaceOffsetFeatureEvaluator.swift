@@ -5,12 +5,15 @@ import CADTopology
 
 public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
     private let resolver: ParameterResolving
+    private let feasibilityValidator: (any OffsetResultValidating)?
     private let targetResolver: any SurfaceOperationTargetResolving
     private let targetValidator: any SingleFaceSheetSurfaceOperationTargetValidating
     private let identityBuilder: any CarriedTopologyIdentityBuilding
 
-    public init(resolver: ParameterResolving = ParameterResolver()) {
+    public init(resolver: ParameterResolving = ParameterResolver(),
+        feasibilityValidator: (any OffsetResultValidating)? = nil) {
         self.resolver = resolver
+        self.feasibilityValidator = feasibilityValidator
         self.targetResolver = DefaultSurfaceOperationTargetResolver()
         self.targetValidator = DefaultSingleFaceSheetSurfaceOperationTargetValidator()
         self.identityBuilder = DefaultCarriedTopologyIdentityBuilder()
@@ -67,14 +70,25 @@ public struct SurfaceOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeature
             model: context.brep
         ).subshapeIDs(in: context.subshapes)
         var model = context.brep
-        try offsetSingleFaceSheet(
-            target: target,
-            distance: distance,
-            featureID: feature.id,
-            model: &model,
-            tolerance: context.tolerance
-        )
-        try model.validate(level: .exact, tolerance: context.tolerance)
+        if target.shell.faceIDs.count > 1 {
+            try SharedSheetSurfaceOffsetter().offset(shell: target.shell, bodyID: bodyID, by: distance,
+                featureID: feature.id, model: &model, tolerance: context.tolerance)
+        } else {
+            try offsetSingleFaceSheet(
+                target: target,
+                distance: distance,
+                featureID: feature.id,
+                model: &model,
+                tolerance: context.tolerance
+            )
+        }
+        let validatedModel = try ValidatedBRepModel(model, tolerance: context.tolerance, validationLevel: .exact)
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy direct constructors without
+        // the default kernel's finite contact producer retain only local offset
+        // admission. Full global feasibility requires the injected original port.
+        if let feasibilityValidator {
+            try feasibilityValidator.validate(bodyID: bodyID, validatedModel: validatedModel)
+        }
         let identity = try identityBuilder.identity(
             featureID: feature.id,
             bodyID: bodyID,

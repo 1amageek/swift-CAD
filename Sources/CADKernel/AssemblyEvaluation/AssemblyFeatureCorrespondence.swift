@@ -1,6 +1,6 @@
 import CADCore
 
-public struct AssemblyFeatureCorrespondence: Codable, Sendable, Equatable {
+public struct AssemblyFeatureCorrespondence: Sendable, Equatable {
     public let featureID: FeatureID
     public let bodies: [BodyID: BodyID]
     public let faces: [FaceID: FaceID]
@@ -12,3 +12,7 @@ public struct AssemblyFeatureCorrespondence: Codable, Sendable, Equatable {
         self.edges = edges; self.vertices = vertices
     }
 }
+
+#if !hasFeature(Embedded)
+extension AssemblyFeatureCorrespondence: Codable {}
+#endif

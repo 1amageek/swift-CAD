@@ -523,9 +523,10 @@ visitors with headroom. The existing 65,536 work prepayment remains conservative
 The previous 6,000-slot assumption used five vector products and a 64-product
 bound for each scalar operation; replacing that assumption changes only the
 reservation model, not any visitor, original-law coefficient or caller ceiling.
-Higher analytic/procedural families remain explicit unsupported sources and
-cannot borrow this cost model. The exact scalar/work/cell boundary regression
-and the two original public cylinder paths verify this bounded correction.
+This recorded plane/cylinder evidence does not cover broader analytic or
+procedural families. The cone/sphere/torus source extension below owns its distinct
+visitor reservations and remains unverified. The exact scalar/work/cell boundary
+regression and two original public cylinder paths verify the prior bounded correction.
 
 
 For the common-original-weight cubic path, the invocation retains only two
@@ -567,3 +568,437 @@ while its independently bounded true error remains below the requested goal.
 Actual child anchors and exact scalar/work/box ceilings, each one-unit-short
 refusal and immutable input assertions verify retention without granting a
 private allowance. Original public cylinders remain the required consumer proof.
+
+
+### Original Cone, Sphere and Torus Position Admission
+
+The analytic position producer additionally admits the original cone, sphere and
+torus representations, including their whole requested native UV rectangle. The
+source remains the immutable original `Surface3D`; its validation and parameter
+containment run before any candidate preparation. Singular source parameters do
+not invent tangent or curvature guarantees: this operation certifies position
+only. All three-field conversion requirements retain their separate owner.
+
+| Original family | Native law | Whole U fourth derivative |
+| --- | --- | --- |
+| Cone | apex + axis * v cos(a) + R(u) * v sin(a) | `-S_uu` |
+| Sphere | center + radius * (R(u) cos(v) + Z sin(v)) | `-S_uu` |
+| Torus | center + R(u) * (major + minor cos(v)) + axis * minor sin(v) | `-S_uu` |
+
+Here `R(u)` is the original visitor's radial basis times `cos(u)` and `sin(u)`.
+The radial coefficient is independent of U and every other term is independent
+of U, so four original U differentiations equal minus two original U
+differentiations. This proof uses the original angular chart and the complete
+original second-UU enclosure. It does not replace an angular parameter with a
+rational conic chart. The candidate fourth-U derivative is zero only on the
+already admitted exact-common-positive-weight degree-at-most-three smooth native
+piece. Varying weights or higher degree still use the existing generic Taylor
+method. The V leg retains the complete original-minus-candidate first-V bound;
+no new assertion of zero mixed or V derivatives is made. Receipt containment,
+closed knot-side coverage, actual child anchors, cumulative caller budgets and
+cancellation remain unchanged.
+
+Probe reservation is selected once from the actual admitted original visitor.
+The old plane/cylinder visitor reserves the unchanged 3072 scalar slots and
+65536 work units. A cone executes four vector jet products, two additional
+scalar jet products and two trigonometric unary jets: 712 interval products.
+A sphere executes five vector jet products and four trigonometric unary jets:
+839 interval products. A torus executes four vector jet products, two scalar jet
+products and four trigonometric unary jets: 794 interval products. Each product
+reserves its four-slot scratch array. Cone's original eight trigonometric hulls
+and fixed basis metadata fit the original 512-slot auxiliary allowance; sixteen
+sphere/torus hulls use a 1024-slot allowance. Prepayment is consequently 3584
+slots for cone and 4608 slots for sphere/torus. Work remains 65536 per probe,
+covering these bounded visitor operations. Every reservation is charged before
+executing the original visitor; no private allowance, refunded ancestor budget,
+new default or source substitution is introduced.
+
+```text
+original analytic family / validated requested chart
+    -> family-specific paid original jet visitor
+        -> original fourth-U identity / generic rational candidate proof
+            -> complete native piece coverage with paid immutable receipts
+                -> position certificate or explicit failure
+```
+
+Implementation is deliberately recorded separately from completion evidence.
+Required later checks include independent literal cone/sphere/torus candidate
+laws, both source-domain and candidate-support refusal, varying-weight aliases,
+complete pole/apex parameter coverage for position alone, unchanged plane/cylinder
+regressions, exact scalar/work/cell failure boundaries, cancellation, public
+Rebuild integration, and portable targets. No test or build has been run for this
+extension and the extension is not a completed G6 requirement.
+
+
+### Original Periodic Native Position Publication
+
+`CertifiedNativeSurfacePositionCertifier` accepts validated original periodic
+source and candidate axes on the unchanged finite requested chart. Complete stored
+identity remains a zero-position proof before enclosure preparation. Other periodic
+pairs use the existing original homogeneous preparation and fundamental cover jets;
+common stored weight does not select the nonperiodic polynomial extraction owner.
+The candidate may be periodic or an open chart containing the whole requested
+rectangle. Neither source nor candidate is restricted, reparameterized or replaced.
+
+A periodic derivative integral requires exact native periodic position continuity.
+Existing validation already requires exactly repeated stored controls and weights.
+For nonidentical inputs, the conversion owner additionally proves that the real
+binary64 knot differences repeat the exact represented period, using error-free
+subtraction with zero expansion tails. This admission distinguishes structurally
+valid, near-translated authoring input from a whole-position integral authority.
+Unresolved or nonexact translations refuse explicitly; modeling tolerance does not
+repair a discontinuity. The original homogeneous prepared visitor owns finite
+periodic cover semantics and retains both seam sides. Before a full derivative
+query, the conversion owner scans the original source and candidate periodic knot
+runs and partitions a pending rectangle at a C0 knot's exact represented cycle
+lift. Both closed children remain in the same cumulative traversal. Outward
+quotient arithmetic bounds candidate integer cycles; finite exact integer-cycle
+multiplication and error-free station addition establish each real lifted knot.
+Nonrepresentable lift arithmetic refuses explicitly. A piece crosses no interior
+periodic C0 knot when it reaches the prepared smooth-query owner; closed seam and
+C0 endpoint limits remain included. This partition does not require one global
+smooth derivative across a knot and does not materialize replacement controls.
+
+```text
+paid original source/candidate admission and exact periodic continuity
+    -> original fundamental homogeneous preparations
+        -> paid identical fundamental query covers
+            -> original anchor plus whole first-derivative residual integral
+                -> complete same-chart position certificate or typed refusal
+```
+
+The shared preparation cost owner gains a tolerance-aware probe reservation for
+periodic axes. Both cost inspection and the original query call the same
+`enclosureIntervals` law, with the same source, chart and tolerance. Each axis
+produces at most two covers. Original periodic knot-run/cycle searches and both child stack records are paid
+before partition execution. Metadata, repeated-knot derivative-certificate scans
+and representative arithmetic are charged before either cover is formed; all
+actual cover/span intersections reserve original localization, scalar hull,
+reciprocal and Cartesian work before the query. A singleton unwrapped station can
+map to a positive-width outward base cover. Such a point-value probe reserves
+value-net localization rather than assuming singleton de Casteljau evaluation;
+full jet probes retain all ten fields. Preparation and validation remain fully
+charged. Periodic validation additionally reserves complete homogeneous tail and
+translated-knot scans for each periodic axis before any validation is executed.
+The old nonperiodic reservations are unchanged. The same cumulative
+scalar/work/cell budget owns original and target operations and final publication.
+
+This extension is source implementation only. Later evidence must cover finite
+negative/shifted cycles, seams, independently differing periods and charts,
+original varying weights, nonperiodic target supports, exact-translation refusal,
+C0 closed-side splitting, whole-domain displacement rejection,
+unchanged nonperiodic fixtures, caller-budget exhaustion and cancellation. Native,
+normal WASM and Embedded behavior are not yet verified.
+
+## Explicit Foreign Chart Composition
+
+`GeometrySurfaceParameterMapping` owns a complete second-order map from the
+consumer's rectangle to the original source UV chart. Its enclosure contains
+values, both first derivatives, and all three second derivatives for both
+coordinates. `MappedSurfaceConversionSource` retains the original source and
+map, validates the entire image before evaluation, and applies the complete
+first and second derivative chain rules. `AffineSurfaceParameterMapping` is
+the concrete constant-Jacobian implementation, including angular gains,
+translations, shears and reversals. Nonlinear maps implement the same public
+contract; point samples cannot stand in for an enclosure.
+
+```text
+consumer UV -> complete map value/Jacobian/Hessian enclosure
+            -> original source UV differential enclosure
+            -> composed tangents and Hessian -> common conversion certificate
+```
+
+The converter still compares positions, both consumer-chart tangents, normal
+and ordered geometric curvatures on every complete box. Source containment is
+checked against the actual outward map image. A singular map cannot manufacture
+a regular chart; certification rejects unresolved tangent/normal bounds.
+Cancellation and source/map failures propagate through the existing public
+converter. The immutable adapter retains no sampling cache or mutable state.
+Verification must cover nonlinear chain terms, angular unit gains, reversals,
+non-axis-aligned maps, foreign source bounds and excessive actual candidates.
+
+## Retained Third-Order Curve Port
+
+`GeometryCurveDerivativeEnclosing` exposes original complete-range derivatives
+through order three as the package `IntervalVectorDerivativeJet` contract.
+`NativeCurveDerivativeEncloser` retains the existing prepared native law and
+converts its fields without fitting or a source-family substitute. Modeling
+sweep/draft sources can differentiate and normalize these jets before feeding
+the common conversion certificate. Its caller owns representation preparation
+cost and interval visits; failures and cancellation propagate. Smoothness at a
+native knot is not inferred from a union of one-sided bounds.
+
+## Original Rational Two-Dimensional Endpoint Continuation
+
+`OriginalBSplineCurve2DContinuationSource` retains the authored 2D spline and
+original homogeneous native-span coefficients. Inside the original domain it
+uses the same owning span; outside, the first or last positive native span law
+continues without clipping. Unbounded Bernstein evaluation uses the complete
+interval de Casteljau polynomial, not the coefficient convex hull beyond its
+valid [0,1] parameter set. A varying weight continues with its original
+polynomial denominator, which must remain strictly positive on each requested
+query. The source embeds XY at Z=0 for the existing curve converter; its
+candidate may be projected back to XY only with its complete guarantee retained.
+Point stations are construction candidates; only original whole-law interval
+bounds authorize common position, tangent and curvature publication. Inputs
+retain immutable COW storage, cancellation and finite-arithmetic failures.
+
+A requested continuation may publish a native rational 2D candidate produced by
+original Bernstein blossom transformation, without point sampling or fitting.
+The returned guarantee is independently certified against the original law for
+position, tangent and curvature. Conversion construction consumes the supplied
+work/scalar allowance before the remaining common certification allowance is
+passed onward. Cartesian Double controls may round homogeneous division; the
+candidate is therefore published with its measured certified bounds, never as
+exact arithmetic or with zero deviation. Consumers retain original curve,
+requested interval and guarantee alongside any published candidate.
+
+## Retained Original Two-Dimensional Continuation Value
+
+The original continuation value owns the authored 2D spline and its requested
+oriented native endpoints. It evaluates and encloses the original endpoint-span
+law, independently of any Cartesian publication candidate. Reversal and trimming
+change only the retained endpoint map. A bounded converted candidate and its
+error guarantee cannot replace this source truth. Native decoding reconstructs
+and validates the retained value; Embedded retains the same immutable fields.
+
+Original 3D endpoint continuation uses the identical native homogeneous span
+owner directly on authored spatial controls. Projection into a temporary 2D
+section chart is never substituted for the original source. Its budget-bound
+through-third-order derivative port admits closed intervals outside the native
+support only after complete positive-denominator enclosure.
+
+### Requested Original Curve Derivative Port
+
+`NativeCurveDerivativeEncloser.originalDerivatives` composes the requested-order
+original curve Taylor provider with explicit span, subdivision, source-depth
+and cumulative work inputs. It returns derivative/k! coefficients multiplied
+by exact integer factors, preserving closed source interval authority. It has
+no private preparation budget and does not route through a converted curve.
+Unproved original joins and unsupported branch derivative laws remain failures.
+
+### Invocation-Owned Closed Position Queries
+
+Prepared original curve and surface owners expose whole closed position bounds,
+including singleton stations, independently of differential regularity. Native
+C0 joins retain separate owning sides and union original values. The invoking
+query supplies the same cumulative work callback, remaining span cover, source
+depth and subdivision depth for original implicit localization and higher offset
+composition. Every preparation, original cover visit, root contraction and
+subdivision forwards that admission; no procedural default traversal can reset
+the query ledger. Numerical candidate points may select an upper-distance pair,
+but complete original singleton bounds establish its real-source distance upper
+bound. The exact preparation tolerance and immutable source bind every receipt.
+Root owns bounded two-file adapter implementation while Geometry retains the
+requested-order producers and this contract; reconfirm distance, closest-point
+and projection consumers after source integration.
+
+Prepared ruled owners retain both boundary preparations. Their ordinary interval
+query uses the historical rail jet contract; the invocation-owned closed-box
+overload forwards supplied span, subdivision, source-depth and work admission to
+both retained rail owners, preserving each original side without global C3 claims.
+
+Bounded periodic closed curve receipts retain the exact selected original integer
+cycle as `originalPeriodicCycle` beside the owning native span index. Rigid,
+affine and signed parameter images copy that source witness. Bounded queries
+enumerate every owning lifted cell under caller cover admission, including a
+complete turn. A historical whole-cycle hull has no cycle witness and cannot
+supply an exact lifted polynomial chart. A cycle is never inferred from rounded
+or outward domain endpoints.
+
+Historical closed conveniences delegate newly admitted original procedural jets
+to the same concrete bounded algorithms. Raw native curve paths retain their
+existing unconstrained span enumeration. Legacy surface higher queries retain
+the existing native surface producer cap of 262144 and historical localization
+depth32; source recursion has no newly introduced caller ceiling. Injected paths
+retain their explicit caller ceilings and cumulative callback. Legacy offset
+closed jets use genuine requested higher source coefficients, never rounded
+positions or an offset derivative placeholder.
+
+Closed offset position bounds use the original source value and first partials
+only: S+d*(Su×Sv)/|Su×Sv|. Native one-sided jets may bound first partials across a
+C1 join without imposing C4. This value-only query does not assert higher offset
+smoothness or continuity across a C0 source normal jump. Nested original offsets
+still obtain the actual first source partials, including required source orders.
+Original image value queries apply the retained affine columns directly after
+native chart mapping and do not demand higher parameter-image derivatives.
+
+Selected original tensor span validation accepts a caller work callback for its
+source binding comparison. Both original tensor payloads are charged through
+Structural Geometry Work before identity comparison; prepared coefficient caches
+remain outside binding identity. The same callback covers fixed domain/token
+checks. Legacy token validation keeps its cancellation-only policy.
+
+Prepared surface numerical samples derive D0-D2 representatives from original
+closed singleton interval jets under explicit span/subdivision/source-depth
+admission and the same callback. These finite representatives are root-search
+candidates; they supply no equality, residual or uniqueness proof. Proof consumers
+retain and use the original interval source enclosure independently.
+
+Original native curve coefficient preparation forwards the composing callback into actual raw curve validation, every original knot/span scan, local basis recurrence, coefficient slot and retained homogeneous net. Selected-basis admission charges its original knot checks before recurrence; endpoint continuation shares that preparation callback. No new traversal ceiling or rounded extracted control net is introduced.
+
+Bounded original 2D continuation admission prepares its original endpoint-span coefficients once, evaluates the complete normalized closed range with the exact endpoint-difference interval, and checks the whole UV value enclosure against closed support domains. Every original preparation and continuation coefficient visit shares the composing callback. Numerical UV representatives do not authorize support containment.
+
+Original homogeneous coefficient allocation accepts a byte callback distinct from work/depth admission. Each concrete native coefficient, row-owner, derivative-net and prepared-span buffer reserves checked count times stride immediately before its allocation or COW materialization. Legacy nil callbacks preserve historical accounting. Bounded consumers forward the same callback through descendant preparations; no guessed total preparation estimate replaces actual loops or allocations.
+
+Selected original surface-span queries accept the same caller work callback.
+They issue a source-bound homogeneous coefficient receipt and evaluate genuine
+order-three rational Taylor coefficients on that one closed owning span; no
+rounded Cartesian patch supplies the result. Source binding, derivative net
+preparation and scalar evaluation visits are paid. The legacy query remains
+available without a composing callback. Query-temporary byte admission remains
+incomplete until those Taylor allocations forward a retained-byte callback.
+
+
+Selected original native span closed-jet queries have an additive nonescaping
+byte callback. The native cover API also reserves concrete result/axis-lift
+capacity growth before allocation. Both preserve original owning indices,
+periodic lift law and existing aggregate span caps; work and storage remain
+separate caller quantities. Native query Taylor coefficient/restriction scratch
+uses the SurfaceAreaIntegration byte contract. Other prepared curve/surface
+families still require their own query allocation forwarding.
+
+
+Direct native tensor iso lifts retain the prepared original surface atlas. Each
+constant-U/V traversal query intersects every original native owning rectangle
+and returns its one-sided closed pullback jet separately, including zero-width
+neighboring knot sides. Exact endpoint-difference intervals provide the directed
+chain scale. Fraction ranges localize the native owner by outward division; they
+are not an exact representable knot station or a cross-owner smoothness receipt.
+The retained surface token and restricted UV box identify the actual original
+law used for each result. Work, existing span ceilings, and source-depth
+admission remain those of the composing query; generic lifted joins and query
+byte admission remain separate incomplete domains.
+
+For native iso ownership, the receipt also retains an exact sub-traversal with
+authored Double UV endpoints chosen by intersection of the original native
+knots and authored iso endpoints. Consumers that require an exact native join
+sample this retained traversal or its native UV law; outward fraction
+localizations never become exact cut parameters. A zero-width neighboring side
+is retained in the owner/UV fields without manufacturing a nonzero traversal.
+
+Bounded closed native curve queries accept optional byte admission for actual
+owning-span result buffers and the native higher-Taylor evaluator. Direct
+native iso lifts forward the same byte callback into native cover and selected
+surface queries. Spatial/parameter wrappers retain this admission recursively.
+Unmetered implicit or generic lifted query families fail explicitly when byte
+accounting is requested; work-only legacy policy is retained. A paid result
+array never stands in for unmetered descendant Taylor storage.
+
+## Caller-Owned Final Candidate Certification
+
+Bounded approximation retains one admission across every candidate attempt,
+breakpoint/control/knot/weight allocation, original singleton construction
+station and continuous certification. Candidate stations use bounded original
+enclosure representatives; their final guarantee remains independently proved.
+Candidate breakpoints use finite affine interpolation without first forming a
+possibly overflowing endpoint difference. Endpoint labels are retained exactly;
+interior construction labels still require the independent whole certificate.
+The legacy linear-through-cubic candidate policy is preserved independently of
+the configured degree of a final native candidate.
+Caller-selected interpolation stations use the same Hermite candidate owner,
+with admitted parameter visits, bounded source construction stations and fresh
+continuous certification under the unchanged admission. The borrowed station
+array is never copied into an independent construction allowance.
+
+Final trimmed/reversed construction candidates receive a new complete comparison
+against the retained original source. Earlier construction guarantees do not
+transfer to a changed candidate. `CallerAdmittedGeometryConverting` refines the
+legacy converter with explicit immutable `GeometryConversionAdmission`; legacy
+custom conformers remain source compatible. Bounded source operations are
+protocol requirements so Native, WASM and Embedded existential dispatch shares
+the same witness contract.
+
+The admission retains one caller work-unit and byte callback, original source
+and subdivision depths and span ceiling. An optional independent algebra-depth
+ceiling is either absent (preserving immutable construction authority) or lies
+in `0...32`; supplied values constrain source word/root admission without
+reusing or widening either source-tree or subdivision depth. Each final certificate retains the
+existing requirements' local ceilings in addition to the cumulative caller
+allowance. Neither callback is replaced during candidate validation, target
+preparation, continuous probes, refinement or publication. A copied admission
+retains its immutable invocation identity. Paid Native preparation rejects a
+query from a different admission owner even when its tolerance or limits look
+equal; another ledger cannot inherit preparation charges or source capability.
+The identity carries no mutable state and has the same ownership on all targets. Native target degree
+is compared to the caller's configured maximum; cubic candidate construction
+policy cannot reject a higher-degree authored final candidate by declaration.
+
+```text
+retained original source + final candidate + same caller admission
+    -> bounded original source/target validation and preparation
+    -> complete D0/D1/D2 comparison on each closed source interval
+    -> same-ledger refinement -> measured position/tangent/curvature guarantee
+```
+
+Actual target/query owners admit allocated coefficient buffers in bytes. Legacy
+scalar cost estimates remain separate intrinsic limits and do not certify
+actual byte coverage. The certificate DFS admits its own concrete stack records
+before allocation; each split tracks and checks the caller subdivision depth.
+A bounded source lacking its actual allocation/work port fails explicitly rather
+than forwarding to an opaque legacy enclosure. After the all-source gate,
+verify changed final candidate rejection, high-degree native candidates,
+source/candidate mutation, exact existing thresholds and one-less cumulative
+work/storage/depth refusal through the public bounded entry.
+
+`certifyCurveCorrespondence` compares two original `GeometryCurveConversionSource`
+laws on the same declared chart using this complete D0/D1/D2 certifier. Both
+providers must supply actual caller-admitted validation and enclosure witnesses;
+neither inherits a fitted candidate's guarantee. No generated native target is
+present, so native degree/control-net cost inspection does not apply. Both source
+owners account for their actual preparation/query work and bytes, while the
+certifier retains its existing local proof limits and concrete stack admission.
+Custom bounded converters retain source compatibility through an explicit
+unsupported default requirement witness, never a legacy query fallback.
+
+Surface candidates use the existing Greville tensor interpolation algorithm with
+explicit admission at knot, abscissa, sample, control-net, collocation factor and
+solve buffers. Candidate basis evaluation owns its scratch and forwards work in
+its recurrences and elimination loops. Quarter-grid checks are construction
+hints; only the independent whole original D0/D1/D2 certificate authorizes
+publication. Surface certification uses the same bounded native source/target
+owners and depth-tracked DFS as curves, preserving all local requirements.
+
+### Original Native Curve Source Admission
+
+The bounded NativeCurveConversionSource constructor retains one original
+PreparedCurveDifferentialEncloser under the composing conversion admission.
+Bounded validation and enclosure are protocol witnesses, including for
+existential/Embedded dispatch. Queries reuse the paid preparation and forward
+its caller span/source/subdivision limits, work units and bytes to closed native
+jets. Their union encloses separate one-sided fields and does not prove generic
+implicit, offset or lifted join continuity. Legacy prepared sources cannot claim
+paid bounded preparation retroactively; they require the bounded constructor.
+Singleton queries use original closed positions and derivatives without an
+artificial epsilon interval. Unknown lower byte/family authority propagates a
+typed failure.
+
+### Caller-Admitted Original Surface Sources
+
+The surface source protocol publishes bounded validation, numeric point proposal and whole differential enclosure requirements using GeometryConversionAdmission. Native sources retain one paid PreparedSurface token after source validation with the caller's independent algebra/source/subdivision capabilities; every query forwards the same work and BYTE callbacks. Point proposals use original closed singleton position bounds, while whole surface certification consumes complete differential enclosures. Legacy conformers without bounded source witnesses fail explicitly. Native bounded preparation does not substitute the rounded polynomial ruled candidate for original support authority.
+
+Bounded Native curve and surface source preparations retain the exact GeometryConversionAdmission invocation owner. Every bounded validation/query requires that same owner and preparation tolerance; copying the admission preserves it, while a separately initialized or tighter unrelated admission cannot borrow previously unpaid preparation. Legacy preparations have no bounded invocation witness.
+
+NativeCurveConversionSource exposes an invocation-bound original owning parameter
+cover for drawing chord construction. Direct native knots and parameter-preserving
+spatial wrappers retain actual owning station intervals; direct admitted analytic
+conics have one smooth interval. A derivative hull across owners is not a smooth
+Taylor receipt. Nonlinear/foreign mapped joins require their retained exact
+station producer and fail explicitly instead of returning synthetic cuts.
+
+### Selected Native Coefficient Receipt Retention
+
+A selected original native surface coefficient query retains a shallow immutable
+receipt sharing the already admitted homogeneous net. Its byte callback reserves
+the concrete receipt stride before issuance; it does not charge a second net
+copy. Fixed exact endpoint-difference arithmetic uses scalar fields without
+heap scratch. Native Taylor queries forward that same callback to receipt
+retention and subsequent coefficient scratch.
+
+Bounded original 2D endpoint continuation construction keeps the raw spline and
+directed authored parameters. It validates that raw spline through the original
+caller-admitted coefficient producer and proves a finite whole D0 continuation
+with the same work, optional bytes and independent source/spatial/algebra
+policies. No legacy private source enclosure participates in this constructor.
+The number of native owners is bounded by the original control count; explicit
+caller query limits remain authoritative for subsequent queries.

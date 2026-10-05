@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private enum LocalProofFailure: Error {
@@ -535,14 +543,17 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     case volume(TrimmedAnalyticSurfaceVolumeEvaluator.Integrand)
   }
 
+  private let consumeWork: (@Sendable (Int) throws -> Void)?
   private let maximumSubdivisionDepth: Int
   private let maximumCellCount: Int
 
   init(
     maximumSubdivisionDepth: Int = 64,
-    maximumCellCount: Int = 2_097_152
+    maximumCellCount: Int = 2_097_152,
+    consumeWork: (@Sendable (Int) throws -> Void)? = nil
   ) {
     self.maximumSubdivisionDepth = maximumSubdivisionDepth
+    self.consumeWork = consumeWork
     self.maximumCellCount = maximumCellCount
   }
 
@@ -1020,6 +1031,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     requiresUWidth: Bool,
     tolerance: ModelingTolerance
   ) throws -> [SurfaceParameterCurveEnclosure] {
+    try consumeWork?(0)
     try tolerance.validate()
     try curve.validate(
       on: curve.intersection.surface(for: curve.role),
@@ -1081,6 +1093,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     var result: [SurfaceParameterCurveEnclosure] = []
     var processedCount = 0
     while let item = pending.popLast() {
+      try consumeWork?(item.depth)
       processedCount += 1
       guard processedCount <= maximumCellCount else {
         throw KernelError(
@@ -1792,6 +1805,14 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     requestedWidth: Double,
     tolerance: ModelingTolerance
   ) throws -> SurfaceParameterAreaBounds {
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Caller-bound face extent and query containment
+    // reach this original analytic-pair producer. Its native preparation and cell bounds
+    // still lack a shared-work callback; no complete query-budget receipt may succeed
+    // until those original producer visits debit the caller ledger.
+    if consumeWork != nil {
+      throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+        message: "Original analytic-pair cell preparation lacks caller-owned work accounting.")
+    }
     let parameterBoundsPreparation = try curve.prepareParameterCellBounds(
       tolerance: tolerance
     )
@@ -2621,10 +2642,19 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     ]
     var result: [SurfaceParameterCurveEnclosure] = []
     var processedCount = 0
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Caller-bound face extent and query containment
+    // reach this original analytic-pair producer. Its native preparation and cell bounds
+    // still lack a shared-work callback; no complete query-budget receipt may succeed
+    // until those original producer visits debit the caller ledger.
+    if consumeWork != nil {
+      throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+        message: "Original analytic-pair cell preparation lacks caller-owned work accounting.")
+    }
     let parameterBoundsPreparation = try curve.prepareParameterCellBounds(
       tolerance: tolerance
     )
     while let item = pending.popLast() {
+      try consumeWork?(item.depth)
       processedCount += 1
       guard processedCount <= maximumCellCount else {
         throw KernelError(

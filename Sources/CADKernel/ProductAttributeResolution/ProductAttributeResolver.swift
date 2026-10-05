@@ -117,6 +117,29 @@ public struct ProductAttributeResolver: ProductAttributeResolving {
             try budget.charge(targets: 1)
             localGeometry[record.target] = topology
         }
+        func metadataGeometry(_ target: ProductAttributeTarget, budget: inout ProductAttributeBudget) throws {
+            try budget.charge(work: 1)
+            if let reference = target.geometry { try admitStoredSignature(reference.geometrySignature, budget: &budget) }
+            if let topology = try geometry(target, budget: &budget), let reference = target.geometry {
+                try admitActualSignature(topology, model: model, budget: &budget)
+                let builder = SubshapeGeometrySignatureBuilder(model: model, tolerance: tolerance)
+                let actual = try builder.signature(for: topology)
+                guard builder.matches(reference.geometrySignature, actual) else {
+                    throw ProductAttributeError.inconsistentArtifact("Product metadata target does not match current source geometry.")
+                }
+            }
+        }
+        for datum in source.manufacturingInformation.datums { try metadataGeometry(datum.target, budget: &budget) }
+        for dimension in source.manufacturingInformation.dimensions {
+            try metadataGeometry(dimension.target, budget: &budget)
+            if let reference = dimension.referenceTarget { try metadataGeometry(reference, budget: &budget) }
+        }
+        for tolerance in source.manufacturingInformation.tolerances { try metadataGeometry(tolerance.target, budget: &budget) }
+        for annotation in source.manufacturingInformation.annotations {
+            for target in annotation.targets { try metadataGeometry(target, budget: &budget) }
+        }
+        for property in source.viewMetadata.validationProperties { try metadataGeometry(property.target, budget: &budget) }
+        for record in source.shapeElementDescriptions { try metadataGeometry(record.target, budget: &budget) }
         for assignment in source.assignments { _ = try geometry(assignment.target, budget: &budget) }
         for layer in source.layers { for member in layer.members { _ = try geometry(member, budget: &budget) } }
         var candidates: [(ResolvedProductTarget, TopologyReference?, FeatureID?)] = []

@@ -29,6 +29,8 @@ struct OverlapSourceMembershipResolver {
             return try supports(of: image.source, tolerance: tolerance).map {
                 try image.transform.applying(to: $0, tolerance: tolerance)
             }
+        case .parameterImage(let image):
+            return try supports(of: image.source, tolerance: tolerance)
         case .line, .circle, .bSpline, .affineImage, .analytic:
             return []
         }

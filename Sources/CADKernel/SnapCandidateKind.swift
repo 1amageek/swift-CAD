@@ -1,4 +1,4 @@
-public enum SnapCandidateKind: String, CaseIterable, Codable, Sendable, Hashable {
+public enum SnapCandidateKind: String, CaseIterable, Sendable, Hashable {
     case vertex
     case edge
     case curvePoint
@@ -7,3 +7,7 @@ public enum SnapCandidateKind: String, CaseIterable, Codable, Sendable, Hashable
 
     public static let all: Set<SnapCandidateKind> = Set(allCases)
 }
+
+#if !hasFeature(Embedded)
+extension SnapCandidateKind: Codable {}
+#endif

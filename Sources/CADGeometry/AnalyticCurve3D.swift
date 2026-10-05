@@ -1,8 +1,8 @@
 import Foundation
 import CADCore
 
-public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
-    public struct DifferentialGeometry: Codable, Equatable, Hashable, Sendable {
+public enum AnalyticCurve3D: Equatable, Hashable, Sendable {
+    public struct DifferentialGeometry: Equatable, Hashable, Sendable {
         public let position: Point3D
         public let firstDerivative: Vector3D
         public let secondDerivative: Vector3D
@@ -44,6 +44,7 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
     case parabola(Parabola3D)
     case planeTorus(CertifiedPlaneTorusIntersectionCurve)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case origin
@@ -60,7 +61,9 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         case parabola
         case planeTorus
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case line
         case circle
@@ -70,7 +73,9 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         case parabola
         case planeTorus
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -138,7 +143,9 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
             ))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -176,6 +183,7 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
             try container.encode(curve, forKey: .planeTorus)
         }
     }
+#endif
 
     public var parameterDomain: CurveParameterDomain {
         switch self {
@@ -287,13 +295,16 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
             )
         case let .ellipse(center, normal, majorAxis, majorRadius, minorRadius):
             let minorAxis = try normal.cross(majorAxis).normalized(tolerance: tolerance.distance)
+            let sine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false)
+            let cosine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)
+            let scale = CanonicalSphereAngularPhase.scaleBounds.midpoint
             let position = center
-                + majorAxis * (majorRadius * cos(parameter))
-                + minorAxis * (minorRadius * sin(parameter))
-            let first = -majorAxis * (majorRadius * sin(parameter))
-                + minorAxis * (minorRadius * cos(parameter))
-            let second = -majorAxis * (majorRadius * cos(parameter))
-                - minorAxis * (minorRadius * sin(parameter))
+                + majorAxis * (majorRadius * cosine)
+                + minorAxis * (minorRadius * sine)
+            let first = (-majorAxis * (majorRadius * sine)
+                + minorAxis * (minorRadius * cosine)) * scale
+            let second = (-majorAxis * (majorRadius * cosine)
+                - minorAxis * (minorRadius * sine)) * (scale * scale)
             return try Self.makeDifferential(position, first, second, tolerance: tolerance)
         case let .hyperbola(curve):
             return try curve.differentialGeometry(at: parameter, tolerance: tolerance)
@@ -328,9 +339,12 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         tolerance: ModelingTolerance
     ) throws -> DifferentialGeometry {
         let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
-        let radial = basis.u * cos(parameter) + basis.v * sin(parameter)
-        let first = (-basis.u * sin(parameter) + basis.v * cos(parameter)) * radius
-        let second = -radial * radius
+        let sine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false)
+        let cosine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)
+        let scale = CanonicalSphereAngularPhase.scaleBounds.midpoint
+        let radial = basis.u * cosine + basis.v * sine
+        let first = (-basis.u * sine + basis.v * cosine) * (radius * scale)
+        let second = -radial * (radius * scale * scale)
         return try Self.makeDifferential(
             center + radial * radius,
             first,
@@ -376,3 +390,8 @@ public enum AnalyticCurve3D: Codable, Equatable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension AnalyticCurve3D: Codable {}
+extension AnalyticCurve3D.DifferentialGeometry: Codable {}
+#endif

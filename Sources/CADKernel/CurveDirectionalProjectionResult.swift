@@ -1,7 +1,7 @@
 import CADCore
 import CADIR
 
-public struct CurveDirectionalProjectionResult: Codable, Sendable, Hashable {
+public struct CurveDirectionalProjectionResult: Sendable, Hashable {
     public var sourcePoint: Point3D
     public var direction: Vector3D
     public var signedDistanceAlongDirection: Double
@@ -39,3 +39,7 @@ public struct CurveDirectionalProjectionResult: Codable, Sendable, Hashable {
         self.converged = converged
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveDirectionalProjectionResult: Codable {}
+#endif

@@ -1,6 +1,7 @@
 import Foundation
 import CADCore
 import CADIR
+import CADKernel
 
 public struct PDFExporter: Sendable {
     private let tolerance: ModelingTolerance
@@ -12,6 +13,36 @@ public struct PDFExporter: Sendable {
     ) {
         self.tolerance = tolerance
         self.resourceLimits = resourceLimits
+    }
+
+    public func write(_ page: DrawingExchangePage, outputUnit: LengthUnit = .millimeter,
+                      usage: inout DrawingExchangeUsage, to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(page, as: .pdf,
+            outputUnit: outputUnit, usage: &usage, to: sink)
+    }
+
+    public func write(_ section: BRepDrawingSection, in evaluated: EvaluatedDocument,
+                      hatchSegments: [BRepDrawingHatchSegment] = [], regions: [BRepDrawingMaterialRegion] = [], options: DrawingExchangeOptions = .init(),
+                      to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(section, in: evaluated,
+            hatchSegments: hatchSegments, regions: regions, as: .pdf, options: options, to: sink)
+    }
+
+    public func write(_ projection: BRepDrawingPlacedProjection, in evaluated: EvaluatedDocument,
+                      options: DrawingExchangeOptions = .init(), to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(projection, in: evaluated,
+            as: .pdf, options: options, to: sink)
+    }
+
+    public func write(_ projection: BRepDrawingProjection, in evaluated: EvaluatedDocument,
+                      options: DrawingExchangeOptions = .init(), to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(projection, in: evaluated,
+            as: .pdf, options: options, to: sink)
+    }
+
+    public func write(_ projection: BRepDrawingProjection, options: DrawingExchangeOptions = .init(),
+                      to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(projection, as: .pdf, options: options, to: sink)
     }
 
     public func write(meshes: [BodyID: Mesh], title: String = "Swift-CAD Export", to sink: any ByteSink) throws {

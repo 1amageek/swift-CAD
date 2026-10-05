@@ -302,7 +302,7 @@ struct TranslationalPrismVolumeEvaluator {
                 translation: translation,
                 tolerance: tolerance
             )
-        case .analytic, .procedural(.rollingBall):
+        case .analytic, .procedural(.rollingBall), .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalAngularTransport), .procedural(.originalAffineWord), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             return false
         case let .procedural(.offset(offset)):
             return try faceIsTranslatedSide(
@@ -505,7 +505,7 @@ struct TranslationalPrismVolumeEvaluator {
                 origin: source.origin + source.normal * offset.distance,
                 normal: source.normal
             )
-        case .procedural(.ruled), .procedural(.rollingBall):
+        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalAngularTransport), .procedural(.originalAffineWord), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             return nil
         }
     }
@@ -514,12 +514,14 @@ struct TranslationalPrismVolumeEvaluator {
         switch curve {
         case .line, .analytic(.line):
             return true
+        case let .parameterImage(image):
+            return isLine(image.source)
         case let .rigidImage(image):
             return isLine(image.source)
-        case .affineImage:
+        case .affineImage, .originalAffineWord:
             return curve.hasExactLinearParameterization
         case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
             return false
         }
     }

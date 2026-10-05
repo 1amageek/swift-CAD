@@ -20,13 +20,9 @@ struct SolidPointClassificationSessionSet: Sendable {
         self.model = model
         self.tolerance = tolerance
 
-        guard let preparer = pointClassifier as? any SolidPointClassificationSessionPreparing else {
-            sessions = [:]
-            return
-        }
         var preparedSessions: [BodyID: any SolidPointClassificationSession] = [:]
         for bodyID in Set(bodyIDs).sorted() {
-            preparedSessions[bodyID] = try preparer.makeClassificationSession(
+            preparedSessions[bodyID] = try pointClassifier.preparedClassificationSession(
                 in: bodyID,
                 model: model,
                 tolerance: tolerance

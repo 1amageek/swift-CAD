@@ -1,8 +1,8 @@
 import CADCore
 import Foundation
 
-public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sendable {
-    public enum ComponentKind: String, Codable, Hashable, Sendable {
+public struct CertifiedCylinderCylinderIntersectionCurve: Hashable, Sendable {
+    public enum ComponentKind: String, Hashable, Sendable {
         case negativeFullBranch
         case positiveFullBranch
         case boundedAngularInterval
@@ -2223,6 +2223,7 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
             || (direction.x == 0.0 && direction.y == 0.0 && direction.z < 0.0)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case referenceSurface
         case parameterizedSurface
@@ -2232,7 +2233,9 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         case certificationTolerance
         case maximumResidualUpperBound
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -2285,7 +2288,9 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -2297,4 +2302,10 @@ public struct CertifiedCylinderCylinderIntersectionCurve: Codable, Hashable, Sen
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
         try container.encode(maximumResidualUpperBound, forKey: .maximumResidualUpperBound)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedCylinderCylinderIntersectionCurve: Codable {}
+extension CertifiedCylinderCylinderIntersectionCurve.ComponentKind: Codable {}
+#endif

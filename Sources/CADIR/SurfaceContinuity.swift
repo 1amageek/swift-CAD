@@ -1,7 +1,15 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADIR numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
-public enum SurfaceContinuityLevel: Int, Codable, Sendable, Hashable, Comparable, CaseIterable {
+public enum SurfaceContinuityLevel: Int, Sendable, Hashable, Comparable, CaseIterable {
     case positional = 0
     case tangentPlane = 1
     case curvature = 2
@@ -11,12 +19,12 @@ public enum SurfaceContinuityLevel: Int, Codable, Sendable, Hashable, Comparable
     }
 }
 
-public enum SurfaceFrameOrientation: String, Codable, Sendable, Hashable {
+public enum SurfaceFrameOrientation: String, Sendable, Hashable {
     case forward
     case reversed
 }
 
-public struct SurfaceContinuityTolerances: Codable, Sendable, Hashable {
+public struct SurfaceContinuityTolerances: Sendable, Hashable {
     public var positionDistance: Double
     public var normalAngle: Double
     public var principalCurvature: Double
@@ -49,7 +57,7 @@ public struct SurfaceContinuityTolerances: Codable, Sendable, Hashable {
     }
 }
 
-public struct SurfaceContinuityFrame: Codable, Sendable, Hashable {
+public struct SurfaceContinuityFrame: Sendable, Hashable {
     public var u: Double
     public var v: Double
     public var position: Point3D
@@ -80,7 +88,7 @@ public struct SurfaceContinuityFrame: Codable, Sendable, Hashable {
     }
 }
 
-public struct SurfaceContinuityTarget: Codable, Sendable, Hashable {
+public struct SurfaceContinuityTarget: Sendable, Hashable {
     public var surface: Surface3D
     public var u: Double
     public var v: Double
@@ -127,7 +135,7 @@ public struct SurfaceContinuityTarget: Codable, Sendable, Hashable {
     }
 }
 
-public struct SurfaceContinuitySamplePair: Codable, Sendable, Hashable {
+public struct SurfaceContinuitySamplePair: Sendable, Hashable {
     public var first: SurfaceContinuityTarget
     public var second: SurfaceContinuityTarget
 
@@ -137,7 +145,7 @@ public struct SurfaceContinuitySamplePair: Codable, Sendable, Hashable {
     }
 }
 
-public struct SurfaceContinuityRequest: Codable, Sendable, Hashable {
+public struct SurfaceContinuityRequest: Sendable, Hashable {
     public var samplePairs: [SurfaceContinuitySamplePair]
     public var requiredLevel: SurfaceContinuityLevel
     public var tolerances: SurfaceContinuityTolerances
@@ -153,7 +161,7 @@ public struct SurfaceContinuityRequest: Codable, Sendable, Hashable {
     }
 }
 
-public struct SurfaceContinuityDeviation: Codable, Sendable, Hashable {
+public struct SurfaceContinuityDeviation: Sendable, Hashable {
     public var maximumPositionDistance: Double
     public var maximumNormalAngle: Double
     public var maximumPrincipalCurvatureDistance: Double
@@ -172,7 +180,7 @@ public struct SurfaceContinuityDeviation: Codable, Sendable, Hashable {
     }
 }
 
-public struct SurfaceContinuityResult: Codable, Sendable, Hashable {
+public struct SurfaceContinuityResult: Sendable, Hashable {
     public var requiredLevel: SurfaceContinuityLevel
     public var achievedLevel: SurfaceContinuityLevel?
     public var deviation: SurfaceContinuityDeviation
@@ -300,3 +308,15 @@ public struct SurfaceContinuityEvaluator: Sendable {
         return .curvature
     }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceContinuityLevel: Codable {}
+extension SurfaceFrameOrientation: Codable {}
+extension SurfaceContinuityTolerances: Codable {}
+extension SurfaceContinuityFrame: Codable {}
+extension SurfaceContinuityTarget: Codable {}
+extension SurfaceContinuitySamplePair: Codable {}
+extension SurfaceContinuityRequest: Codable {}
+extension SurfaceContinuityDeviation: Codable {}
+extension SurfaceContinuityResult: Codable {}
+#endif

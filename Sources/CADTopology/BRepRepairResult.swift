@@ -1,9 +1,13 @@
-public struct BRepRepairResult: Codable, Equatable, Sendable {
+public struct BRepRepairResult: Equatable, Sendable {
     public let model: BRepModel
     public let before: TopologyValidationReport
     public let after: TopologyValidationReport
     public let changes: [BRepRepairChange]
     public let diagnostics: [BRepRepairDiagnostic]
+    public var maximumDisplacement: Double { changes.map(\.maximumDisplacement).max() ?? 0 }
+    public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
+    public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
+    public var deletedEntityIDs: [String] { Array(Set(changes.flatMap(\.deletedEntityIDs))).sorted() }
 
     public init(
         model: BRepModel,
@@ -19,6 +23,7 @@ public struct BRepRepairResult: Codable, Equatable, Sendable {
         self.diagnostics = diagnostics
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case model
         case before
@@ -26,7 +31,9 @@ public struct BRepRepairResult: Codable, Equatable, Sendable {
         case changes
         case diagnostics
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -44,7 +51,9 @@ public struct BRepRepairResult: Codable, Equatable, Sendable {
             )
         )
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(model, forKey: .model)
@@ -53,4 +62,9 @@ public struct BRepRepairResult: Codable, Equatable, Sendable {
         try container.encode(changes, forKey: .changes)
         try container.encode(diagnostics, forKey: .diagnostics)
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension BRepRepairResult: Codable {}
+#endif

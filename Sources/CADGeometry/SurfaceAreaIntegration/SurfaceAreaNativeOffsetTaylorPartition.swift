@@ -12,57 +12,86 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
     private let providers: [SurfaceAreaHigherCoefficientTaylorEncloser]
     private let composition: SurfaceAreaOffsetTaylorComposition
     private let tolerance: ModelingTolerance
+    private let originalMaximumAlgebraicDepth: Int?
 
     init?(surface: Surface3D, tolerance: ModelingTolerance,
-          consumeWork: () throws -> Void) throws {
+          consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil, remainingSourceDepth: Int = 16) throws {
+        originalMaximumAlgebraicDepth = maximumAlgebraicDepth
         var original = surface
         var distances: [Double] = []
+        var depth = 0
         while case .procedural(.offset(let offset)) = original {
+            try Task.checkCancellation(); try consumeWork()
+            guard depth < min(16,remainingSourceDepth) else {
+                throw Self.failure(.resourceLimitExceeded,tolerance,"Native offset preparation exhausted original source nesting.")
+            }
+            depth += 1
             if offset.distance != 0 {
-                try Task.checkCancellation(); try consumeWork()
+                try OriginalCoefficientAllocation.reserve(count:distances.count+1,of:Double.self,consumeStorage:consumeStorage)
+                distances.reserveCapacity(distances.count+1)
                 distances.append(offset.distance)
             }
             original = offset.source
         }
         guard !distances.isEmpty, case .bSpline(let spline) = original else { return nil }
         self.surface = surface; source = spline; self.tolerance = tolerance
-        distances.reverse()
+        if distances.count > 1 {
+            for index in 0..<(distances.count/2) {
+                try consumeWork(); distances.swapAt(index,distances.count-1-index)
+            }
+        }
         composition = SurfaceAreaOffsetTaylorComposition(distances:distances)
         translation = try SurfaceAreaOffsetTranslationAuthority(source:spline,
             tolerance:tolerance,consumeWork:consumeWork)
-        try SurfaceAreaNativeSurfacePreparationWork.admit(spline,tolerance:tolerance,consumeWork:consumeWork)
-        prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:spline,tolerance:tolerance)
+        prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:spline,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
         let domain = SurfaceParameterBox(
             u:try ScalarInterval(lower:spline.uKnots[spline.uDegree],upper:spline.uKnots[spline.uControlPointCount]),
             v:try ScalarInterval(lower:spline.vKnots[spline.vDegree],upper:spline.vKnots[spline.vControlPointCount]))
-        let owners = try prepared.originalNativeSpans(over:domain,tolerance:tolerance,consumeWork:consumeWork)
+        let owners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan]
+        if let consumeStorage {
+            owners = try prepared.originalNativeSpans(over:domain,tolerance:tolerance,
+                consumeWork:consumeWork,consumeStorage:consumeStorage)
+        } else { owners = try prepared.originalNativeSpans(over:domain,tolerance:tolerance,consumeWork:consumeWork) }
         let order = distances.count.addingReportingOverflow(3)
         guard !order.overflow else { throw Self.failure(.resourceLimitExceeded,tolerance,"Nested offset source order overflows.") }
+        try OriginalCoefficientAllocation.reserve(count:owners.count,of:SurfaceAreaHigherCoefficientTaylorEncloser.self,consumeStorage:consumeStorage)
         var result: [SurfaceAreaHigherCoefficientTaylorEncloser] = []
+        result.reserveCapacity(owners.count)
         for owner in owners {
             try consumeWork()
             let box = SurfaceParameterBox(u:owner.uBounds,v:owner.vBounds)
             let receipt = try owner.originalCoefficientReceipt(overClosedBox:box,on:spline,
-                tolerance:tolerance,consumeWork:consumeWork)
+                tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
             result.append(try SurfaceAreaHigherCoefficientTaylorEncloser(receipt:receipt,
-                order:order.partialValue,translation:translation,consumeWork:consumeWork))
+                order:order.partialValue,translation:translation,consumeWork:consumeWork,consumeStorage:consumeStorage))
         }
         providers = result
         hasNativeJoins = result.count > 1
     }
 
     func rectangleDomains(over box: SurfaceParameterBox, maximumCount: Int,
-                          tolerance caller: ModelingTolerance) throws -> [SurfaceAreaNativeSpanDomain]? {
+                          tolerance caller: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
+        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
+        guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
+            throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
+        }
+        try consumeWork(0); try Task.checkCancellation()
+
         try validate(caller)
         guard hasNativeJoins else { return nil }
         guard !source.isUPeriodic, !source.isVPeriodic else { return nil }
+        try OriginalCoefficientAllocation.reserve(count:providers.count,of:SurfaceAreaNativeSpanDomain.self,consumeStorage:consumeStorage)
         var result: [SurfaceAreaNativeSpanDomain] = []
+        result.reserveCapacity(providers.count)
         for (index,provider) in providers.enumerated() {
+            try consumeWork(0); try Task.checkCancellation()
             let native = provider.receipt.baseDomain
             let u0 = max(box.u.lower,native.u.lower), u1 = min(box.u.upper,native.u.upper)
             let v0 = max(box.v.lower,native.v.lower), v1 = min(box.v.upper,native.v.upper)
             guard u0 < u1, v0 < v1 else { continue }
             guard result.count < maximumCount else { throw Self.failure(.resourceLimitExceeded,caller,"Nested offset native cells exceed the shared cell budget.") }
+            try consumeWork(0)
             result.append(.init(rectangle:SurfaceParameterBox(u:try ScalarInterval(lower:u0,upper:u1),
                 v:try ScalarInterval(lower:v0,upper:v1)),radialRange:nil,index:index,
                 source:surface,curve:nil,anchor:nil))
@@ -71,7 +100,14 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
     }
 
     func fanDomains(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
-                    maximumCount: Int, tolerance caller: ModelingTolerance) throws -> [SurfaceAreaNativeSpanDomain]? {
+                    maximumCount: Int, tolerance caller: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
+        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
+        guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
+            throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
+        }
+        try consumeWork(0); try Task.checkCancellation()
+
         try validate(caller)
         guard hasNativeJoins, !source.isUPeriodic, !source.isVPeriodic else { return nil }
         let alongU: Bool, station: Double, a: Double, b: Double
@@ -84,34 +120,39 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
         let other = alongU ? anchor.v : anchor.u
         let delta = station-start
         guard delta.isFinite, delta != 0 else { return nil }
-        func cut(_ knot: Double) -> Double? {
+        func cut(_ knot: Double) throws -> Double? {
+            try consumeWork(0)
             let value = (knot-start)/delta
             guard value.isFinite else { return nil }
-            let identity = FloatingPointExpansion.subtract(
-                FloatingPointExpansion.product(FloatingPointExpansion.difference(station,start),[value]),
-                FloatingPointExpansion.difference(knot,start))
-            return FloatingPointExpansion.sign(identity) == .zero ? value : nil
+            return try SurfaceAreaTranslationCertificate.linearImageIsExactlyRepresented(origin:start,
+                first:station,second:start,fraction:value,value:knot,maximumAlgebraicDepth:originalMaximumAlgebraicDepth,
+                consumeWork:{ try consumeWork(0) },consumeStorage:consumeStorage) ? value : nil
         }
+        try OriginalCoefficientAllocation.reserve(count:providers.count,of:SurfaceAreaNativeSpanDomain.self,consumeStorage:consumeStorage)
         var result: [SurfaceAreaNativeSpanDomain] = []
+        result.reserveCapacity(providers.count)
         for (index,provider) in providers.enumerated() {
+            try consumeWork(0); try Task.checkCancellation()
             let box = provider.receipt.baseDomain
             let varying = alongU ? box.u : box.v, fixed = alongU ? box.v : box.u
             guard min(other,a,b) >= fixed.lower, max(other,a,b) <= fixed.upper,
-                  let first = cut(varying.lower), let last = cut(varying.upper) else { continue }
+                  let first = try cut(varying.lower), let last = try cut(varying.upper) else { continue }
             let r0 = max(0,min(first,last)), r1 = min(1,max(first,last))
             guard r0 < r1 else { continue }
             guard result.count < maximumCount else { throw Self.failure(.resourceLimitExceeded,caller,"Nested offset native fans exceed the shared cell budget.") }
+            try consumeWork(0)
             result.append(.init(rectangle:box,radialRange:try ScalarInterval(lower:r0,upper:r1),
                 index:index,source:surface,curve:curve,anchor:anchor))
         }
-        result.sort { ($0.radialRange?.lower ?? 0) < ($1.radialRange?.lower ?? 0) }
+        try result.sort { try consumeWork(0); return ($0.radialRange?.lower ?? 0) < ($1.radialRange?.lower ?? 0) }
         guard result.first?.radialRange?.lower == 0, result.last?.radialRange?.upper == 1,
-              result.indices.dropFirst().allSatisfy({ result[$0-1].radialRange?.upper == result[$0].radialRange?.lower }) else { return nil }
+              try result.indices.dropFirst().allSatisfy({ try consumeWork(0); return result[$0-1].radialRange?.upper == result[$0].radialRange?.lower }) else { return nil }
         return result
     }
 
     func forEachJet(over requested: SurfaceParameterBox, domain: SurfaceAreaNativeSpanDomain?,
                     tolerance caller: ModelingTolerance, consumeWork: () throws -> Void,
+                    consumeStorage: ((Int) throws -> Void)? = nil,
                     _ consume: (SurfaceIntervalVectorJet,Int) throws -> Void) throws {
         try validate(caller)
         var box = requested
@@ -128,7 +169,9 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
             }
             box = SurfaceParameterBox(u:try inside(box.u,domain.rectangle.u),v:try inside(box.v,domain.rectangle.v))
         }
-        let owners = try prepared.originalNativeSpans(over:box,tolerance:caller,consumeWork:consumeWork)
+        let owners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan]
+        if let consumeStorage { owners = try prepared.originalNativeSpans(over:box,tolerance:caller,consumeWork:consumeWork,consumeStorage:consumeStorage) }
+        else { owners = try prepared.originalNativeSpans(over:box,tolerance:caller,consumeWork:consumeWork) }
         var found = false
         for owner in owners {
             let selected = try index(of:owner,consumeWork:consumeWork)
@@ -137,10 +180,10 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
                 u:try ScalarInterval(lower:max(box.u.lower,owner.uBounds.lower),upper:min(box.u.upper,owner.uBounds.upper)),
                 v:try ScalarInterval(lower:max(box.v.lower,owner.vBounds.lower),upper:min(box.v.upper,owner.vBounds.upper)))
             let receipt = try owner.originalCoefficientReceipt(overClosedBox:native,on:source,
-                tolerance:caller,consumeWork:consumeWork)
-            let original = try providers[selected].intervalTaylorJet(using:receipt,consumeWork:consumeWork)
+                tolerance:caller,consumeWork:consumeWork,consumeStorage:consumeStorage)
+            let original = try providers[selected].intervalTaylorJet(using:receipt,consumeWork:consumeWork,consumeStorage:consumeStorage)
             let composed = try composition.intervalTaylorJet(from:original,translation:translation,
-                consumeWork:consumeWork).intervalJet()
+                consumeWork:consumeWork,consumeStorage:consumeStorage).intervalJet()
             let jet = translation?.restoringTranslation(to:composed,over:native) ?? composed
             try consume(jet,domain != nil || owners.count == 1 ? 3 : 0)
             found = true

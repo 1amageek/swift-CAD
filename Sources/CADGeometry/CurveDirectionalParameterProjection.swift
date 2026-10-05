@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveDirectionalParameterProjection: Codable, Hashable, Sendable {
+public struct CurveDirectionalParameterProjection: Hashable, Sendable {
     public let parameter: Double
     public let point: Point3D
     public let signedDistanceAlongDirection: Double
@@ -35,3 +35,7 @@ public struct CurveDirectionalParameterProjection: Codable, Hashable, Sendable {
         self.iterations = iterations
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveDirectionalParameterProjection: Codable {}
+#endif

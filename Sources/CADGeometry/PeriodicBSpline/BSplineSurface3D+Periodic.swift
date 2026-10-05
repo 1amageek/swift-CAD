@@ -77,6 +77,24 @@ extension BSplineSurface3D {
         return degree - knots.filter { $0 == knots[degree] }.count
     }
 
+    package func periodicSeamContinuityOrder(direction: SurfaceParameterDirection,
+        consumeWork: () throws -> Void) throws -> Int? {
+        try Task.checkCancellation()
+        try consumeWork()
+        let degree = direction == .u ? uDegree : vDegree
+        let knots = direction == .u ? uKnots : vKnots
+        let periodic = direction == .u ? isUPeriodic : isVPeriodic
+        guard periodic, degree >= 1, degree < knots.count else { return nil }
+        let seam = knots[degree]
+        var multiplicity = 0
+        for knot in knots {
+            try Task.checkCancellation()
+            try consumeWork()
+            if knot == seam { multiplicity += 1 }
+        }
+        return degree - multiplicity
+    }
+
     public func normalizedParameter(
         _ parameter: Double, direction: SurfaceParameterDirection, tolerance: ModelingTolerance
     ) throws -> Double {
@@ -136,15 +154,19 @@ extension BSplineSurface3D {
             period: knots[knots.count - degree - 1] - lower, tolerance: tolerance)
     }
 
-    func validatePeriodicity(tolerance: ModelingTolerance) throws {
+    func validatePeriodicity(tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        try consumeWork()
         // Full knot/net validity is proved by the caller before indexing. Both axes
         // and every repeated tail are checked in place without temporary control lines.
         if isUPeriodic {
             try BSplineCurve3D.validatePeriodicAxis(degree: uDegree, knots: uKnots,
-                controlPointCount: uControlPointCount, origin: uPeriodicOrigin, tolerance: tolerance)
+                controlPointCount: uControlPointCount, origin: uPeriodicOrigin, tolerance: tolerance, consumeWork: consumeWork)
             let count = uControlPointCount - uDegree
             for j in controlPoints.indices {
+                try consumeWork()
                 for i in count..<uControlPointCount {
+                    try consumeWork(); try consumeWork(); try consumeWork(); try consumeWork()
                     guard controlPoints[j][i] == controlPoints[j][i % count],
                           weights[j][i] == weights[j][i % count] else {
                         throw Self.invalidPeriodicSurface(tolerance)
@@ -156,11 +178,16 @@ extension BSplineSurface3D {
         }
         if isVPeriodic {
             try BSplineCurve3D.validatePeriodicAxis(degree: vDegree, knots: vKnots,
-                controlPointCount: vControlPointCount, origin: vPeriodicOrigin, tolerance: tolerance)
+                controlPointCount: vControlPointCount, origin: vPeriodicOrigin, tolerance: tolerance, consumeWork: consumeWork)
             let count = vControlPointCount - vDegree
             for j in count..<vControlPointCount {
-                guard controlPoints[j] == controlPoints[j % count], weights[j] == weights[j % count] else {
-                    throw Self.invalidPeriodicSurface(tolerance)
+                try consumeWork()
+                for i in 0..<uControlPointCount {
+                    try consumeWork(); try consumeWork(); try consumeWork(); try consumeWork()
+                    guard controlPoints[j][i] == controlPoints[j % count][i],
+                        weights[j][i] == weights[j % count][i] else {
+                        throw Self.invalidPeriodicSurface(tolerance)
+                    }
                 }
             }
         } else if vPeriodicOrigin != nil {

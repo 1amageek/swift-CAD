@@ -111,35 +111,53 @@ extension BSplineCurve3D {
         return try Self.representative(parameter, origin: lower, period: period, tolerance: tolerance)
     }
 
-    func validatePeriodicity(tolerance: ModelingTolerance) throws {
+    func validatePeriodicity(tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        try consumeWork()
         guard isPeriodic else {
             guard periodicOrigin == nil else { throw Self.invalidCycle(tolerance) }
             return
         }
         let count = controlPointCount - degree
-        guard count > 0, let continuity = periodicSeamContinuityOrder, continuity >= 0 else {
-            throw Self.invalidCycle(tolerance)
+        guard count > 0, degree >= 1, degree < knots.count else { throw Self.invalidCycle(tolerance) }
+        var seamMultiplicity = 0
+        for knot in knots {
+            try consumeWork()
+            if knot == knots[degree] { seamMultiplicity += 1 }
         }
+        guard degree >= seamMultiplicity else { throw Self.invalidCycle(tolerance) }
         for index in count..<controlPointCount {
+            try consumeWork(); try consumeWork(); try consumeWork(); try consumeWork()
             guard controlPoints[index] == controlPoints[index % count],
                   weights[index] == weights[index % count] else { throw Self.invalidCycle(tolerance) }
         }
         try Self.validatePeriodicAxis(degree: degree, knots: knots,
-            controlPointCount: controlPointCount, origin: periodicOrigin, tolerance: tolerance)
+            controlPointCount: controlPointCount, origin: periodicOrigin, tolerance: tolerance,
+            consumeWork: consumeWork)
     }
 
-    /// Checks the shared cyclic knot/origin contract without materializing a control line.
+    /// Checks original cyclic knots in place under the composing caller's admission.
     static func validatePeriodicAxis(
         degree: Int, knots: [Double], controlPointCount: Int, origin: Double?,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = { try Task.checkCancellation() }
     ) throws {
-        let count = controlPointCount - degree
-        guard count > 0, degree >= 1, degree < knots.count,
-              degree >= knots.reduce(0, { $0 + ($1 == knots[degree] ? 1 : 0) }) else {
+        try consumeWork()
+        let independent = controlPointCount.subtractingReportingOverflow(degree)
+        guard !independent.overflow, independent.partialValue > 0, degree >= 1,
+            degree < knots.count, controlPointCount >= 0, controlPointCount < knots.count else {
             throw invalidCycle(tolerance)
         }
+        let count = independent.partialValue
+        var multiplicity = 0
+        for knot in knots {
+            try consumeWork()
+            if knot == knots[degree] { multiplicity += 1 }
+        }
+        guard degree >= multiplicity else { throw invalidCycle(tolerance) }
         let period = knots[controlPointCount] - knots[degree]
         for index in 0..<(knots.count - count) {
+            try consumeWork(); try consumeWork()
             let expected = knots[index] + period
             let actual = knots[index + count]
             let resolution = max(abs(expected), abs(actual), period, 1) * Double.ulpOfOne * 16
@@ -148,6 +166,7 @@ extension BSplineCurve3D {
             }
         }
         let lower = origin ?? knots[degree]
+        try consumeWork()
         try ParameterDomain.closed(lower, lower + period).validate(tolerance: tolerance)
     }
 

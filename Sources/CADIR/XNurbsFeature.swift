@@ -5,9 +5,9 @@ import CADCore
 /// edge. Quad sided over two to four boundaries is Square's untrimmed sheet; otherwise the
 /// boundary closes into a loop and one sheet over its mean plane is trimmed by it, open profile
 /// guides pulling it, within the position and angle tolerances when it satisfies them.
-public struct XNurbsFeature: Codable, Hashable, Sendable {
+public struct XNurbsFeature: Hashable, Sendable {
     /// Quality: the sheet's starting spans each way (Auto 3, High 6, Max 12).
-    public enum Quality: String, Codable, Hashable, Sendable, CaseIterable {
+    public enum Quality: String, Hashable, Sendable, CaseIterable {
         case auto
         case high
         case max
@@ -81,10 +81,13 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
             .filter { seen.insert($0).inserted }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case boundaries, guides, quadSided, flatness, boundaryFlow, quality, satisfiesTolerances, positionTolerance, angleTolerance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.boundaries, .guides, .quadSided, .flatness, .boundaryFlow, .quality, .satisfiesTolerances,
@@ -100,7 +103,9 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         angleTolerance = try container.decode(Double.self, forKey: .angleTolerance)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -114,4 +119,10 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         try container.encode(positionTolerance, forKey: .positionTolerance)
         try container.encode(angleTolerance, forKey: .angleTolerance)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension XNurbsFeature: Codable {}
+extension XNurbsFeature.Quality: Codable {}
+#endif

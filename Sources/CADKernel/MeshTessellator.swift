@@ -1,4 +1,12 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 import CADCore
 import CADGeometry
 import CADIR
@@ -20,12 +28,13 @@ public struct MeshTessellator: Tessellating {
     }
 
     public func tessellate(model: BRepModel, options: TessellationOptions = .standard) throws -> [BodyID: Mesh] {
-        let validatedModel = try ValidatedBRepModel(
-            model,
-            tolerance: tolerance,
-            validationLevel: .modeling
-        )
-        return try tessellate(validatedModel: validatedModel, options: options)
+        let proofBudget = TessellationProofBudget()
+        let validatedModel = try ValidatedBRepModel(model, tolerance: tolerance, validationLevel: .modeling,
+            maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
+            consumeWork: { try proofBudget.charge() },
+            consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+        return try performTessellation(validatedModel: validatedModel, options: options,
+            limits: limits, reserving: .zero, proofBudget: proofBudget)
     }
 
     public func tessellate(
@@ -46,6 +55,14 @@ public struct MeshTessellator: Tessellating {
         limits requestLimits: TessellationLimits,
         reserving reservation: TessellationUsage
     ) throws -> [BodyID: Mesh] {
+        try performTessellation(validatedModel: validatedModel, options: options,
+            limits: requestLimits, reserving: reservation, proofBudget: TessellationProofBudget())
+    }
+
+    private func performTessellation(validatedModel: ValidatedBRepModel,
+        options: TessellationOptions, limits requestLimits: TessellationLimits,
+        reserving reservation: TessellationUsage, proofBudget: TessellationProofBudget
+    ) throws -> [BodyID: Mesh] {
         do {
             try tolerance.validate()
             try options.validate()
@@ -60,6 +77,8 @@ public struct MeshTessellator: Tessellating {
         }
         let effectiveLimits = limits.lowered(to: requestLimits)
         let model = validatedModel.model
+        let faceOptions = try resolvedFaceOptions(model: model, options: options)
+        let edgeOptions = resolvedEdgeOptions(model: model, faceOptions: faceOptions)
         let sortedBodies = model.bodies.sorted(by: { $0.key < $1.key })
 
         // Admit the whole invocation before any output storage is reserved, so a
@@ -69,6 +88,20 @@ public struct MeshTessellator: Tessellating {
             limits: effectiveLimits,
             reserving: reservation
         )
+        var canonicalStations: [EdgeID: [CurveTessellationSample]] = [:]
+        for edgeID in edgeOptions.keys.sorted() {
+            try proofBudget.charge()
+            var canonicalOptions = edgeOptions[edgeID] ?? options
+            canonicalOptions.linearTolerance = (canonicalOptions.linearTolerance/4).nextDown
+            canonicalOptions.angularTolerance = (canonicalOptions.angularTolerance/2).nextDown
+            guard canonicalOptions.linearTolerance > 0,canonicalOptions.angularTolerance > 0 else { throw TessellationError.invalidTolerance }
+            let samples = try sampledCurveSamples(for: Coedge(edgeID: edgeID, orientation: .forward),
+                in: model, options: canonicalOptions, proofBudget: proofBudget)
+            try proofBudget.charge(samples.count)
+            canonicalStations[edgeID] = samples
+        }
+        try joinCanonicalVertexStations(canonicalStations: &canonicalStations,model: model,
+            edgeOptions: edgeOptions,proofBudget: proofBudget)
         var preparations: [FaceID: FaceUsageEstimate] = [:]
         for (_, body) in sortedBodies {
             try Task.checkCancellation()
@@ -78,18 +111,54 @@ public struct MeshTessellator: Tessellating {
                 }
                 for faceID in shell.faceIDs {
                     try Task.checkCancellation()
+                    let localOptions = faceOptions[faceID] ?? options
                     let estimate = try estimatedFaceUsage(
                         faceID: faceID,
                         model: model,
-                        options: options
-                    )
-                    try admitted.charge(
-                        vertices: estimate.vertices,
-                        indices: estimate.indices
+                        options: localOptions,
+                        edgeOptions: edgeOptions,
+                        canonicalStations: canonicalStations,
+                        proofBudget: proofBudget
                     )
                     preparations[faceID] = estimate
                 }
             }
+        }
+
+        while true {
+            try installOriginalGridBoundaryStations(preparations: &preparations,
+                canonicalStations: canonicalStations, model: model, edgeOptions: edgeOptions,
+                proofBudget: proofBudget)
+            let joinedEdges = try collectOriginalGridBoundaryStations(preparations: preparations,
+                canonicalStations: &canonicalStations, model: model, edgeOptions: edgeOptions, proofBudget: proofBudget)
+            if joinedEdges.isEmpty {
+                for faceID in preparations.keys.sorted() {
+                    guard var estimate = preparations[faceID] else { throw TessellationError.unsupportedFace(faceID) }
+                    try preparePoleNormals(faceID: faceID, estimate: &estimate,
+                        model: model, options: faceOptions[faceID] ?? options, canonicalStations: canonicalStations,proofBudget: proofBudget)
+                    preparations[faceID] = estimate
+                }
+                if try certifyPublishedOriginalGridFacets(preparations: &preparations,model: model,
+                    faceOptions: faceOptions,proofBudget: proofBudget) { continue }
+                if try certifyPublishedTrimmedFacets(preparations: &preparations, model: model,
+                    faceOptions: faceOptions, proofBudget: proofBudget) { continue }
+                break
+            }
+            for faceID in preparations.keys.sorted() {
+                guard let face = model.faces[faceID] else { throw TessellationError.unsupportedFace(faceID) }
+                let affected = face.loops.contains { loopID in
+                    model.loops[loopID]?.coedges.contains { joinedEdges.contains($0.edgeID) } ?? false
+                }
+                if affected {
+                    preparations[faceID] = try estimatedFaceUsage(faceID: faceID, model: model, options: faceOptions[faceID] ?? options,
+                        edgeOptions: edgeOptions, canonicalStations: canonicalStations, proofBudget: proofBudget)
+                }
+            }
+        }
+        for faceID in preparations.keys.sorted() {
+            guard var estimate = preparations[faceID] else { throw TessellationError.unsupportedFace(faceID) }
+            try admitted.charge(vertices: estimate.vertices,indices: estimate.indices)
+            preparations[faceID] = estimate
         }
 
         var emitted = try TessellationBudget(
@@ -111,20 +180,21 @@ public struct MeshTessellator: Tessellating {
                 for faceID in shell.faceIDs {
                     try Task.checkCancellation()
                     let indexCountBeforeFace = indices.count
-                    guard let preparation = preparations[faceID] else {
+                    guard var preparation = preparations[faceID] else {
                         throw TessellationError.unsupportedFace(faceID)
                     }
                     try append(
                         faceID: faceID,
-                        preparation: preparation,
+                        preparation: &preparation,
                         shellOrientation: shell.orientation,
                         model: model,
-                        options: options,
+                        options: faceOptions[faceID] ?? options,
                         positions: &positions,
                         normals: &normals,
                         indices: &indices,
                         budget: &emitted
                     )
+                    preparations[faceID] = preparation
                     try emitted.validateEmission(against: admitted)
                     // The run is the face's own contribution to this body's
                     // emission. A face that emitted nothing records no run,
@@ -151,19 +221,778 @@ public struct MeshTessellator: Tessellating {
         return meshes
     }
 
+    private func joinCanonicalVertexStations(canonicalStations: inout [EdgeID: [CurveTessellationSample]],
+        model: BRepModel,edgeOptions: [EdgeID: TessellationOptions],proofBudget: TessellationProofBudget) throws {
+        var representatives: [VertexID: VertexID] = [:]
+        func representative(_ vertex: VertexID) throws -> VertexID {
+            var current = vertex
+            while let parent = representatives[current],parent != current {
+                try proofBudget.charge(); current = parent
+            }
+            return current
+        }
+        for edgeID in canonicalStations.keys.sorted() {
+            try proofBudget.charge()
+            guard let edge = model.edges[edgeID] else { throw TopologyError.missingReference("Missing singular mesh incidence.") }
+            if try edgeGeometryClassifier(proofBudget: proofBudget).kind(of: edge,in: model,tolerance: tolerance) == .singular {
+                let a = try representative(edge.startVertexID),b = try representative(edge.endVertexID)
+                if a != b { representatives[max(a,b)] = min(a,b) }
+            }
+        }
+        var vertices: [VertexID: Point3D] = [:]
+        for edgeID in canonicalStations.keys.sorted() {
+            try proofBudget.charge()
+            guard let edge = model.edges[edgeID],let samples = canonicalStations[edgeID],
+                let first = samples.first,let last = samples.last else { throw TopologyError.missingReference("Missing canonical vertex incidence.") }
+            let a = try representative(edge.startVertexID),b = try representative(edge.endVertexID)
+            if vertices[a] == nil { vertices[a] = first.point }
+            if vertices[b] == nil { vertices[b] = last.point }
+        }
+        for edgeID in canonicalStations.keys.sorted() {
+            try proofBudget.charge()
+            guard let edge = model.edges[edgeID],let samples = canonicalStations[edgeID],
+                let first = samples.first,let last = samples.last,
+                let firstParameter = first.originalParameter,let lastParameter = last.originalParameter,
+                let startPoint = vertices[try representative(edge.startVertexID)],let endPoint = vertices[try representative(edge.endVertexID)],
+                let curve = model.geometry.curves[edge.curveID],var options = edgeOptions[edgeID] else {
+                throw TopologyError.missingReference("Missing original canonical vertex source.")
+            }
+            guard first.point != startPoint || last.point != endPoint else { continue }
+            options.linearTolerance = (options.linearTolerance/4).nextDown
+            options.angularTolerance = (options.angularTolerance/2).nextDown
+            guard options.linearTolerance > 0,options.angularTolerance > 0 else { throw TessellationError.invalidTolerance }
+            var forced: [Double: Point3D] = [:]
+            var forcedUV: [Double: SurfaceParameter] = [:]
+            for sample in samples {
+                try proofBudget.charge()
+                guard let parameter = sample.originalParameter else { throw TopologyError.missingReference("Shared endpoint lost original trim.") }
+                forced[parameter] = sample.point
+                if let uv = sample.originalSurfaceParameter { forcedUV[parameter] = uv }
+            }
+            forced[firstParameter] = startPoint; forced[lastParameter] = endPoint
+            if try edgeGeometryClassifier(proofBudget: proofBudget).kind(of: edge,in: model,tolerance: tolerance) == .singular {
+                guard startPoint == endPoint else { throw TopologyError.invalidEdge(edgeID) }
+                let prepared = try PreparedCurveDifferentialEncloser(curve: curve,tolerance: tolerance,
+                    remainingSourceDepth: 16,maximumSubdivisionDepth: 32,consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+                for parameter in [firstParameter,lastParameter] {
+                    let box = try prepared.positionBounds(over: ScalarInterval(lower: parameter,upper: parameter),
+                        tolerance: tolerance,maximumSpanCount: 65_536,maximumSubdivisionDepth: 32,
+                        remainingSourceDepth: 16,consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) })
+                    guard originalPositionGap(box,from: startPoint) <= options.linearTolerance else {
+                        throw KernelError(phase: .geometry,code: .classificationFailure,tolerance: tolerance,
+                            message: "Original collapsed edge cannot admit its shared physical vertex at requested mesh accuracy.")
+                    }
+                }
+                canonicalStations[edgeID] = [.init(normalizedFraction: 0,point: startPoint,originalParameter: firstParameter),
+                    .init(normalizedFraction: 1,point: endPoint,originalParameter: lastParameter)]
+            } else {
+                let trim = try orientedTrimParameters(edge: edge,coedge: Coedge(edgeID: edgeID,orientation: .forward),in: model)
+                let required = try forced.keys.sorted(by: { a,b in try proofBudget.charge(); return a < b })
+                canonicalStations[edgeID] = try normalizedCurveSamples(sampledBoundedCurveSamples(curve: curve,
+                    startParameter: trim.start,endParameter: trim.end,options: options,proofBudget: proofBudget,
+                    requiredParameters: required,forcedPublishedPoints: forced,
+                    requiredSurfaceParameters: forcedUV, retainedNativeIsoStations: samples),
+                    startParameter: trim.start,endParameter: trim.end)
+            }
+        }
+    }
+
+    private func gridParameter(_ grid: ParametricGrid, axisU: Bool, index: Int) -> Double {
+        if let stations = axisU ? grid.uStations : grid.vStations { return stations[index] }
+        let bounds = axisU ? grid.uBounds : grid.vBounds
+        return interpolatedParameter(lowerBound: bounds.lower,upperBound: bounds.upper,
+            index: index,count: axisU ? grid.steps.u : grid.steps.v)
+    }
+
+    private func originalPositionGap(_ bounds: IntervalVector3DBounds, from point: Point3D) throws -> Double {
+        let coordinates = CoordinateEnclosure3D(
+            x: try ScalarInterval(lower: bounds.x.lower, upper: bounds.x.upper),
+            y: try ScalarInterval(lower: bounds.y.lower, upper: bounds.y.upper),
+            z: try ScalarInterval(lower: bounds.z.lower, upper: bounds.z.upper))
+        return originalPositionGap(coordinates, from: point)
+    }
+
+    private func originalPositionGap(_ bounds: CoordinateEnclosure3D, from point: Point3D) -> Double {
+        let x = OutwardScalarInterval(lower: bounds.x.lower,upper: bounds.x.upper) - .exact(point.x)
+        let y = OutwardScalarInterval(lower: bounds.y.lower,upper: bounds.y.upper) - .exact(point.y)
+        let z = OutwardScalarInterval(lower: bounds.z.lower,upper: bounds.z.upper) - .exact(point.z)
+        return OriginalDistanceMagnitude.bounds(x.absoluteUpperBound,
+            y.absoluteUpperBound,z.absoluteUpperBound).upper
+    }
+
+    /// Publishes shared spatial edge stations in each retained original tensor chart.
+    private func originalIsoBoundary(_ curve: SurfaceParameterCurve, on surface: Surface3D,
+        proofBudget: TessellationProofBudget, depth: Int = 0) throws
+        -> (axisU: Bool, fixed: Double, start: Double, end: Double)? {
+        try proofBudget.charge()
+        guard depth <= 16 else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Original iso boundary exhausted the unchanged source nesting ceiling.")
+        }
+        switch curve {
+        case .constantU(let u, let a, let b): return (false, u, a, b)
+        case .constantV(let v, let a, let b): return (true, v, a, b)
+        case .affine, .bSpline, .originalImage:
+            if case .originalImage(let image) = curve,
+                !preservesOriginalNativeUV(image.targetImage) { return nil }
+            guard let endpoints = try ExactRectangularPcurveDomainResolver().axisAlignedEndpoints(
+                of: curve, on: surface, remainingSourceDepth: 16 - depth,
+                consumeWork: { try proofBudget.charge(depth: $0) },
+                consumeStorage: { try proofBudget.chargeStorageBytes($0) }, tolerance: tolerance) else { return nil }
+            let axisU = endpoints.start.v == endpoints.end.v
+            return axisU ? (true, endpoints.start.v, endpoints.start.u, endpoints.end.u)
+                : (false, endpoints.start.u, endpoints.start.v, endpoints.end.v)
+        case let .polyline(points):
+            guard let first = points.first, let last = points.last, points.count >= 2 else { return nil }
+            var fixedU = true, fixedV = true, increasingU = true, decreasingU = true
+            var increasingV = true, decreasingV = true
+            var previous = first
+            for point in points.dropFirst() {
+                try proofBudget.charge()
+                fixedU = fixedU && point.u == first.u; fixedV = fixedV && point.v == first.v
+                increasingU = increasingU && point.u >= previous.u
+                decreasingU = decreasingU && point.u <= previous.u
+                increasingV = increasingV && point.v >= previous.v
+                decreasingV = decreasingV && point.v <= previous.v
+                previous = point
+            }
+            if fixedV, !fixedU, increasingU || decreasingU { return (true, first.v, first.u, last.u) }
+            if fixedU, !fixedV, increasingV || decreasingV { return (false, first.u, first.v, last.v) }
+            return nil
+        case let .originalAffineWord(image):
+            try GeometryStructuralComparisonWork.charge(parameterCurve: curve,
+                using: { try proofBudget.charge($0) })
+            try GeometryStructuralComparisonWork.charge(surface: surface,
+                using: { try proofBudget.charge($0) })
+            guard surface == .procedural(.originalAffineWord(image.target)),
+                image.source.surface == image.target.source else { return nil }
+            let forward = image.startFraction == 0 && image.endFraction == 1
+            let reverse = image.startFraction == 1 && image.endFraction == 0
+            guard forward || reverse,
+                let original = try originalIsoBoundary(image.source.parameterCurve,
+                    on: image.source.surface, proofBudget: proofBudget, depth: depth+1) else { return nil }
+            return reverse ? (original.axisU, original.fixed, original.end, original.start) : original
+        default: return nil
+        }
+    }
+
+    private func hasOriginalLiftParameterization(_ curve: Curve3D, on surface: Surface3D,
+        parameterCurve: SurfaceParameterCurve, proofBudget: TessellationProofBudget,
+        depth: Int = 0) throws -> Bool {
+        try proofBudget.charge()
+        guard depth <= 16 else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Original lift binding exhausted the unchanged source nesting ceiling.")
+        }
+        try GeometryStructuralComparisonWork.charge(curve: curve, using: { try proofBudget.charge($0) })
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: { try proofBudget.charge($0) })
+        try GeometryStructuralComparisonWork.charge(parameterCurve: parameterCurve,
+            using: { try proofBudget.charge($0) })
+        if case let .surfaceLift(lift) = curve {
+            return lift.surface == surface && lift.parameterCurve == parameterCurve
+        }
+        guard case let .originalAffineWord(image) = curve,
+            case .procedural(.originalAffineWord(let support)) = surface,
+            case let .originalAffineWord(traversal) = parameterCurve,
+            image.operationWord == support.operationWord,
+            traversal.target == support, traversal.source.surface == support.source,
+            traversal.startFraction == 0, traversal.endFraction == 1 else { return false }
+        return try hasOriginalLiftParameterization(image.source, on: support.source,
+            parameterCurve: traversal.source.parameterCurve, proofBudget: proofBudget, depth: depth+1)
+    }
+
+    private func installOriginalGridBoundaryStations(preparations: inout [FaceID: FaceUsageEstimate],
+        canonicalStations: [EdgeID: [CurveTessellationSample]], model: BRepModel,
+        edgeOptions: [EdgeID: TessellationOptions], proofBudget: TessellationProofBudget) throws {
+        for faceID in preparations.keys.sorted() {
+            try proofBudget.charge()
+            guard var estimate = preparations[faceID],let face = model.faces[faceID],
+                let surface = model.geometry.surfaces[face.surfaceID] else { throw TessellationError.unsupportedFace(faceID) }
+            var grids = estimate.nativeGrids ?? []
+            if let grid = estimate.grid { grids.append(grid) }
+            guard !grids.isEmpty else { continue }
+            var uValues: Set<Double> = [],vValues: Set<Double> = []
+            for grid in grids {
+                for index in 0...grid.steps.u { try proofBudget.charge(); uValues.insert(gridParameter(grid,axisU: true,index: index)) }
+                for index in 0...grid.steps.v { try proofBudget.charge(); vValues.insert(gridParameter(grid,axisU: false,index: index)) }
+            }
+            var bindings: [SurfaceParameter: Point3D] = [:]
+            let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface,tolerance: tolerance,
+                remainingSourceDepth: 16,maximumSubdivisionDepth: 32,consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+            func position(_ parameter: SurfaceParameter) throws -> IntervalVector3DBounds {
+                try prepared.positionBounds(over: SurfaceParameterBox(
+                    u: ScalarInterval(lower: parameter.u,upper: parameter.u),
+                    v: ScalarInterval(lower: parameter.v,upper: parameter.v)),tolerance: tolerance,
+                    maximumSpanCount: 262_144,maximumSubdivisionDepth: 32,remainingSourceDepth: 16,
+                    consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) })
+            }
+            for loopID in face.loops {
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Missing original grid loop.") }
+                for use in loop.coedges {
+                    try proofBudget.charge()
+                    guard let pcurve = use.surfaceParameterCurve,let edge = model.edges[use.edgeID],
+                        let curve = model.geometry.curves[edge.curveID],let options = edgeOptions[edge.id] else {
+                        throw TopologyError.missingReference("Missing original grid boundary source.")
+                    }
+                    guard let iso = try originalIsoBoundary(pcurve, on: surface, proofBudget: proofBudget) else {
+                        // FIXME(INCOMPLETE_IMPLEMENTATION): Public tensor-grid boundary
+                        // publication still requires retained general/image UV inverse
+                        // chart binding. Complete M3 cannot be inferred from the iso
+                        // chart consumer or from its coordinate buffer alone.
+                        continue
+                    }
+                    let axisU = iso.axisU, fixed = iso.fixed, start = iso.start, end = iso.end
+                    if try edgeGeometryClassifier(proofBudget: proofBudget).kind(of: edge,in: model,tolerance: tolerance) == .singular { continue }
+                    let trim = try orientedTrimParameters(edge: edge,coedge: use,in: model)
+                    let identity: Bool
+                    if edge.trim?.startParameter == 0,edge.trim?.endParameter == 1 {
+                        let directed = use.orientation == .forward ? pcurve : try pcurve.reversed(tolerance: tolerance)
+                        identity = try hasOriginalLiftParameterization(curve, on: surface,
+                            parameterCurve: directed, proofBudget: proofBudget)
+                    } else { identity = false }
+                    let correspondence = identity ? nil : try OriginalSurfaceStationCorrespondence(curve: curve,
+                        from: trim.start,to: trim.end,surface: surface,parameterCurve: pcurve,tolerance: tolerance,
+                        maximumSpanCount: max(1,proofBudget.remaining),maximumSubdivisionDepth: 32,remainingSourceDepth: 16,
+                        consumeWork: { try proofBudget.charge() })
+                    let allocation = (options.linearTolerance/16).nextDown
+                    guard allocation > 0 else { throw TessellationError.invalidTolerance }
+                    let samples = try sampledCurveSamples(for: use,in: model,options: options,
+                        canonicalStations: canonicalStations,proofBudget: proofBudget)
+                    var previousUpper = 0.0
+                    for sample in samples {
+                        try proofBudget.charge()
+                        guard let native = sample.originalParameter else { throw TopologyError.missingReference("Original shared station lost its native parameter.") }
+                        if identity, let parameter = sample.originalSurfaceParameter {
+                            let value = axisU ? parameter.u : parameter.v
+                            guard (axisU ? parameter.v : parameter.u) == fixed,
+                                value >= min(start,end), value <= max(start,end),
+                                try originalPositionGap(position(parameter), from: sample.point) <= allocation else {
+                                throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
+                                    message: "Original native iso station does not bind its retained boundary chart and spatial allocation.")
+                            }
+                            if let point = bindings[parameter], point != sample.point {
+                                throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
+                                    message: "Original native iso station has inconsistent canonical corner positions.")
+                            }
+                            bindings[parameter] = sample.point
+                            if axisU { uValues.insert(parameter.u) } else { vValues.insert(parameter.v) }
+                            continue
+                        }
+                        let fraction: Double, fractionBounds: ScalarInterval
+                        if let correspondence {
+                            let receipt = try correspondence.resolve(stationParameter: native,maximumDeviation: allocation,
+                                maximumSubdivisionDepth: 32,consumeWork: { try proofBudget.charge() })
+                            guard receipt.orientation == 1,receipt.fractions.lower >= previousUpper else {
+                                throw KernelError(phase: .geometry,code: .ambiguousSelection,tolerance: tolerance,
+                                    message: "Original tensor boundary stations lack one ordered pcurve branch.")
+                            }
+                            previousUpper = receipt.fractions.upper
+                            fraction = receipt.normalizedFraction; fractionBounds = receipt.fractions
+                        } else {
+                            if native == trim.start {
+                                fraction = 0; fractionBounds = try ScalarInterval(lower: 0,upper: 0)
+                            } else if native == trim.end {
+                                fraction = 1; fractionBounds = try ScalarInterval(lower: 1,upper: 1)
+                            } else {
+                                guard let original = (OutwardScalarInterval.exact(native) - .exact(trim.start))
+                                    .divided(by: .exact(trim.end) - .exact(trim.start)),original.isFinite else {
+                                    throw TessellationError.unsupportedFace(faceID)
+                                }
+                                fraction = (native-trim.start)/(trim.end-trim.start)
+                                fractionBounds = try ScalarInterval(lower: max(0,original.lower),upper: min(1,original.upper))
+                            }
+                        }
+                        let range = OutwardScalarInterval.exact(start)
+                            + (.exact(end)-.exact(start))*OutwardScalarInterval(lower: fractionBounds.lower,upper: fractionBounds.upper)
+                        let candidate = try pcurve.parameter(atNormalizedFraction: fraction,tolerance: tolerance)
+                        var selected = candidate
+                        let axisValues = axisU ? uValues : vValues
+                        for value in try axisValues.sorted(by: { a,b in try proofBudget.charge(); return a < b }) {
+                            try proofBudget.charge()
+                            guard value >= range.lower,value <= range.upper else { continue }
+                            let parameter = axisU ? SurfaceParameter(u: value,v: fixed) : SurfaceParameter(u: fixed,v: value)
+                            if try originalPositionGap(position(parameter),from: sample.point) <= allocation {
+                                selected = parameter; break
+                            }
+                        }
+                        guard try originalPositionGap(position(selected),from: sample.point) <= allocation else {
+                            throw KernelError(phase: .geometry,code: .classificationFailure,tolerance: tolerance,
+                                message: "Shared original tensor boundary point exceeds its complete source displacement allocation.")
+                        }
+                        if let retained = bindings[selected],retained != sample.point {
+                            throw KernelError(phase: .geometry,code: .classificationFailure,tolerance: tolerance,
+                                message: "Original incident edges do not publish one canonical corner point.")
+                        }
+                        bindings[selected] = sample.point
+                        if axisU { uValues.insert(selected.u) } else { vValues.insert(selected.v) }
+                    }
+                }
+            }
+            let allU = try uValues.sorted(by: { a,b in try proofBudget.charge(); return a < b })
+            let allV = try vValues.sorted(by: { a,b in try proofBudget.charge(); return a < b })
+            var vertices = 0,indices = 0
+            for index in grids.indices {
+                var grid = grids[index]
+                var us: [Double] = [],vs: [Double] = []
+                for value in allU { try proofBudget.charge(); if value >= grid.uBounds.lower,value <= grid.uBounds.upper { us.append(value) } }
+                for value in allV { try proofBudget.charge(); if value >= grid.vBounds.lower,value <= grid.vBounds.upper { vs.append(value) } }
+                guard us.count >= 2,vs.count >= 2,us.count <= 65_537,vs.count <= 65_537 else { throw TessellationError.unsupportedFace(faceID) }
+                grid.uStations = us; grid.vStations = vs; grid.steps = (us.count-1,vs.count-1)
+                grid.boundaryPoints = [:]; grid.poleNormals = [:]; grid.collapsedStations = [:]
+                for (parameter,point) in bindings {
+                    try proofBudget.charge()
+                    if parameter.u >= grid.uBounds.lower,parameter.u <= grid.uBounds.upper,
+                        parameter.v >= grid.vBounds.lower,parameter.v <= grid.vBounds.upper,
+                        parameter.u == grid.uBounds.lower || parameter.u == grid.uBounds.upper
+                            || parameter.v == grid.vBounds.lower || parameter.v == grid.vBounds.upper {
+                        grid.boundaryPoints[parameter] = point
+                    }
+                }
+                let usage = try gridUsageEstimate(uSteps: grid.steps.u,vSteps: grid.steps.v)
+                let vertexSum = vertices.addingReportingOverflow(usage.vertices)
+                let indexSum = indices.addingReportingOverflow(usage.indices)
+                guard !vertexSum.overflow,!indexSum.overflow else { throw TessellationError.unsupportedFace(faceID) }
+                vertices = vertexSum.partialValue; indices = indexSum.partialValue
+                grids[index] = grid
+            }
+            if estimate.grid != nil { estimate.grid = grids[0] }
+            else { estimate.nativeGrids = grids }
+            estimate.vertices = vertices; estimate.indices = indices
+            preparations[faceID] = estimate
+        }
+    }
+
+    /// Re-proves the actual displaced triangles before any mesh is published.
+    private func certifyPublishedOriginalGridFacets(preparations: inout [FaceID: FaceUsageEstimate],
+        model: BRepModel,faceOptions: [FaceID: TessellationOptions],
+        proofBudget: TessellationProofBudget) throws -> Bool {
+        var refined = false
+        for faceID in preparations.keys.sorted() {
+            try proofBudget.charge()
+            guard var estimate = preparations[faceID],let face = model.faces[faceID],
+                let surface = model.geometry.surfaces[face.surfaceID],let options = faceOptions[faceID] else {
+                throw TessellationError.unsupportedFace(faceID)
+            }
+            var grids = estimate.nativeGrids ?? []
+            if let grid = estimate.grid { grids.append(grid) }
+            guard !grids.isEmpty else { continue }
+            let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface,tolerance: tolerance,
+                remainingSourceDepth: 16,maximumSubdivisionDepth: 32,consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+            for index in grids.indices {
+                var grid = grids[index]
+                var uCuts: Set<Double> = [],vCuts: Set<Double> = []
+                func sourcePosition(_ parameter: SurfaceParameter) throws -> CoordinateEnclosure3D {
+                    try prepared.positionBounds(over: SurfaceParameterBox(
+                        u: ScalarInterval(lower: parameter.u,upper: parameter.u),
+                        v: ScalarInterval(lower: parameter.v,upper: parameter.v)),tolerance: tolerance,
+                        maximumSpanCount: 262_144,maximumSubdivisionDepth: 32,remainingSourceDepth: 16,
+                        consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) })
+                }
+                func point(_ u: Int,_ v: Int) throws -> Point3D {
+                    try proofBudget.charge()
+                    let parameter = SurfaceParameter(u: gridParameter(grid,axisU: true,index: u),
+                        v: gridParameter(grid,axisU: false,index: v))
+                    let station = v*(grid.steps.u+1)+u
+                    if grid.poleNormals[station] == nil {
+                        var usage = TessellationExactProofAdmission(budget: proofBudget)
+                        let field = try prepared.unitNormalBounds(over: SurfaceParameterBox(
+                            u: ScalarInterval(lower: parameter.u,upper: parameter.u),
+                            v: ScalarInterval(lower: parameter.v,upper: parameter.v)),tolerance: tolerance,
+                            maximumSpanCount: max(1,proofBudget.remaining),maximumSubdivisionDepth: 32,
+                            remainingSourceDepth: 16,owningNativeSpan: grid.owningSpan,
+                            storageByteStride: TessellationExactProofAdmission.storageByteStride,usage: &usage)
+                        let bounds = CoordinateEnclosure3D(x: try ScalarInterval(lower: field.x.lower,upper: field.x.upper),
+                            y: try ScalarInterval(lower: field.y.lower,upper: field.y.upper),
+                            z: try ScalarInterval(lower: field.z.lower,upper: field.z.upper))
+                        let normal = try OriginalSelectionAngleBounds.representative(bounds,tolerance: tolerance)
+                        let deviation = try OriginalSelectionAngleBounds.enclose(bounds,
+                            OriginalSelectionAngleBounds.exact(normal),tolerance: tolerance)
+                        guard deviation.upper <= (options.angularTolerance/2).nextDown else {
+                            throw KernelError(phase: .geometry,code: .classificationFailure,tolerance: tolerance,
+                                message: "Original grid station normal cannot attain its retained angular allocation.")
+                        }
+                        grid.poleNormals[station] = normal
+                    }
+                    if let collapsed = grid.collapsedStations[station] { return collapsed.point }
+                    if let retained = grid.boundaryPoints[parameter] { return retained }
+                    let bounds = try sourcePosition(parameter)
+                    let retained = Point3D(x: bounds.x.midpoint,y: bounds.y.midpoint,z: bounds.z.midpoint)
+                    try proofBudget.charge()
+                    grid.boundaryPoints[parameter] = retained
+                    return retained
+                }
+                for v in 0..<grid.steps.v {
+                    for u in 0..<grid.steps.u {
+                        try proofBudget.charge(depth: grid.refinementDepth)
+                        let lowerU = gridParameter(grid,axisU: true,index: u),upperU = gridParameter(grid,axisU: true,index: u+1)
+                        let lowerV = gridParameter(grid,axisU: false,index: v),upperV = gridParameter(grid,axisU: false,index: v+1)
+                        let box = SurfaceParameterBox(u: try ScalarInterval(lower: lowerU,upper: upperU),
+                            v: try ScalarInterval(lower: lowerV,upper: upperV))
+                        let bounds: SurfaceTessellationDifferentialBounds
+                        if let retained = grid.nativeBounds { bounds = retained }
+                        else {
+                            bounds = try proofBudget.withRemainingCells { remaining in
+                                try DefaultSurfaceDifferentialEncloser().tessellationBounds(of: surface,over: box,
+                                    tolerance: tolerance,remainingCells: &remaining)
+                            }
+                        }
+                        let center = SurfaceParameter(u: box.u.midpoint,v: box.v.midpoint)
+                        var usage = TessellationExactProofAdmission(budget: proofBudget)
+                        var sourceNormal: CoordinateEnclosure3D?
+                        do {
+                            let field = try prepared.unitNormalBounds(over: box,tolerance: tolerance,
+                                maximumSpanCount: max(1,proofBudget.remaining),maximumSubdivisionDepth: 32,
+                                remainingSourceDepth: 16,owningNativeSpan: grid.owningSpan,
+                            storageByteStride: TessellationExactProofAdmission.storageByteStride,usage: &usage)
+                            sourceNormal = CoordinateEnclosure3D(x: try ScalarInterval(lower: field.x.lower,upper: field.x.upper),
+                                y: try ScalarInterval(lower: field.y.lower,upper: field.y.upper),
+                                z: try ScalarInterval(lower: field.z.lower,upper: field.z.upper))
+                        } catch let error as KernelError where error.code == .singularSystem || error.code == .singularGeometry {
+                            sourceNormal = nil
+                        }
+                        let points = [try point(u,v),try point(u+1,v),try point(u+1,v+1),try point(u,v+1)]
+                        let params = [SurfaceParameter(u: lowerU,v: lowerV),SurfaceParameter(u: upperU,v: lowerV),
+                            SurfaceParameter(u: upperU,v: upperV),SurfaceParameter(u: lowerU,v: upperV)]
+                        var cornerError = 0.0
+                        for corner in points.indices {
+                            try proofBudget.charge()
+                            cornerError = max(cornerError,try originalPositionGap(sourcePosition(params[corner]),from: points[corner]))
+                        }
+                        let du = OutwardScalarInterval.exact(upperU) - .exact(lowerU)
+                        let dv = OutwardScalarInterval.exact(upperV) - .exact(lowerV)
+                        let interpolation: OutwardScalarInterval = .exact(bounds.secondDerivativeUUMagnitudeUpperBound) * du * du
+                            + .exact(2) * .exact(bounds.secondDerivativeUVMagnitudeUpperBound) * du * dv
+                            + .exact(bounds.secondDerivativeVVMagnitudeUpperBound) * dv * dv
+                        let linear = (interpolation + .exact(cornerError)).upper
+                        var accepted = sourceNormal != nil && linear.isFinite && linear <= options.linearTolerance
+                        for triangle in [(0,1,2),(0,2,3)] {
+                            let local = [triangle.0,triangle.1,triangle.2]
+                            let stationIDs = local.map { corner in
+                                let uu = corner == 1 || corner == 2 ? u+1 : u
+                                let vv = corner >= 2 ? v+1 : v
+                                return vv*(grid.steps.u+1)+uu
+                            }
+                            let collapsed = [(0,1),(1,2),(2,0)].contains { pair in
+                                if let a = grid.collapsedStations[stationIDs[pair.0]],
+                                    let b = grid.collapsedStations[stationIDs[pair.1]] { return a.key == b.key }
+                                return false
+                            }
+                            if collapsed { continue }
+                            let first = try OriginalSelectionAngleBounds.difference(points[triangle.1],points[triangle.0])
+                            let second = try OriginalSelectionAngleBounds.difference(points[triangle.2],points[triangle.0])
+                            let actualNormal = try OriginalSelectionAngleBounds.crossDirection(first,second,tolerance: tolerance)
+                            do {
+                                if let sourceNormal {
+                                    let angle = try OriginalSelectionAngleBounds.enclose(sourceNormal,actualNormal,tolerance: tolerance)
+                                    accepted = accepted && angle.upper.isFinite && angle.upper <= options.angularTolerance
+                                        && angle.upper < (Double.pi / 2).nextDown
+                                }
+                            } catch let error as KernelError where error.code == .singularGeometry {
+                                accepted = false
+                            }
+                            if let maximum = options.maxEdgeLength {
+                                for pair in [(0,1),(1,2),(2,0)] {
+                                    let a = points[local[pair.0]],b = points[local[pair.1]]
+                                    let length = try OriginalSelectionAngleBounds.difference(a,b)
+                                    let x = OutwardScalarInterval.exact(max(abs(length.x.lower),abs(length.x.upper)))
+                                    let y = OutwardScalarInterval.exact(max(abs(length.y.lower),abs(length.y.upper)))
+                                    let z = OutwardScalarInterval.exact(max(abs(length.z.lower),abs(length.z.upper)))
+                                    accepted = accepted && sqrt((x*x+y*y+z*z).upper).nextUp <= maximum
+                                }
+                            }
+                        }
+                        if !accepted {
+                            guard grid.refinementDepth < 32,center.u > lowerU,center.u < upperU,
+                                center.v > lowerV,center.v < upperV else {
+                                throw KernelError(phase: .geometry,code: .resourceLimitExceeded,tolerance: tolerance,
+                                    message: "Actual canonical facet proof exhausted the original source subdivision depth or representable chart.")
+                            }
+                            uCuts.insert(center.u); vCuts.insert(center.v)
+                        }
+                    }
+                }
+                if !uCuts.isEmpty || !vCuts.isEmpty {
+                    var us: Set<Double> = [],vs: Set<Double> = []
+                    for index in 0...grid.steps.u { try proofBudget.charge(); us.insert(gridParameter(grid,axisU: true,index: index)) }
+                    for index in 0...grid.steps.v { try proofBudget.charge(); vs.insert(gridParameter(grid,axisU: false,index: index)) }
+                    for value in uCuts { try proofBudget.charge(); us.insert(value) }
+                    for value in vCuts { try proofBudget.charge(); vs.insert(value) }
+                    grid.uStations = try us.sorted(by: { a,b in try proofBudget.charge(); return a < b })
+                    grid.vStations = try vs.sorted(by: { a,b in try proofBudget.charge(); return a < b })
+                    guard let us = grid.uStations,let vs = grid.vStations,us.count <= 65_537,vs.count <= 65_537 else { throw TessellationError.unsupportedFace(faceID) }
+                    grid.steps = (us.count-1,vs.count-1); grid.refinementDepth += 1
+                    grid.poleNormals = [:]; grid.collapsedStations = [:]
+                    refined = true
+                }
+                grids[index] = grid
+            }
+            if estimate.grid != nil { estimate.grid = grids[0] } else { estimate.nativeGrids = grids }
+            var vertices = 0,indices = 0
+            for grid in grids {
+                let usage = try gridUsageEstimate(uSteps: grid.steps.u,vSteps: grid.steps.v)
+                let a = vertices.addingReportingOverflow(usage.vertices),b = indices.addingReportingOverflow(usage.indices)
+                guard !a.overflow,!b.overflow else { throw TessellationError.unsupportedFace(faceID) }
+                vertices = a.partialValue; indices = b.partialValue
+            }
+            estimate.vertices = vertices; estimate.indices = indices; preparations[faceID] = estimate
+        }
+        return refined
+    }
+
+    private func collectOriginalGridBoundaryStations(preparations: [FaceID: FaceUsageEstimate],
+        canonicalStations: inout [EdgeID: [CurveTessellationSample]], model: BRepModel,
+        edgeOptions: [EdgeID: TessellationOptions], proofBudget: TessellationProofBudget) throws -> Set<EdgeID> {
+        var changed: Set<EdgeID> = []
+        func fraction(_ parameter: SurfaceParameter,
+            on iso: (axisU: Bool, fixed: Double, start: Double, end: Double)) throws
+            -> (candidate: Double,bounds: ScalarInterval)? {
+            guard (iso.axisU ? parameter.v : parameter.u) == iso.fixed else { return nil }
+            let lower = iso.start, upper = iso.end, value = iso.axisU ? parameter.u : parameter.v
+            guard lower != upper,value >= min(lower,upper),value <= max(lower,upper) else { return nil }
+            if value == lower { return (0,try ScalarInterval(lower: 0,upper: 0)) }
+            if value == upper { return (1,try ScalarInterval(lower: 1,upper: 1)) }
+            guard let enclosed = (OutwardScalarInterval.exact(value) - .exact(lower))
+                .divided(by: .exact(upper) - .exact(lower)),enclosed.isFinite else { return nil }
+            let candidate = (value-lower)/(upper-lower)
+            guard candidate.isFinite,candidate >= 0,candidate <= 1 else { return nil }
+            return (candidate,try ScalarInterval(lower: max(0,enclosed.lower),upper: min(1,enclosed.upper)))
+        }
+        func gap(_ box: IntervalVector3DBounds,from point: Point3D) -> Double {
+            let x = OutwardScalarInterval(lower: box.x.lower,upper: box.x.upper) - .exact(point.x)
+            let y = OutwardScalarInterval(lower: box.y.lower,upper: box.y.upper) - .exact(point.y)
+            let z = OutwardScalarInterval(lower: box.z.lower,upper: box.z.upper) - .exact(point.z)
+            let scale = max(x.absoluteUpperBound,y.absoluteUpperBound,z.absoluteUpperBound)
+            guard scale.isFinite else { return .infinity }
+            if scale == 0 { return 0 }
+            let a = OutwardScalarInterval.exact((x.absoluteUpperBound/scale).nextUp)
+            let b = OutwardScalarInterval.exact((y.absoluteUpperBound/scale).nextUp)
+            let c = OutwardScalarInterval.exact((z.absoluteUpperBound/scale).nextUp)
+            return (OutwardScalarInterval.exact(sqrt(max(0,(a*a+b*b+c*c).upper)).nextUp)
+                * .exact(scale)).upper
+        }
+        for faceID in preparations.keys.sorted() {
+            try proofBudget.charge()
+            guard let recipe = preparations[faceID],let face = model.faces[faceID],
+                let surface = model.geometry.surfaces[face.surfaceID] else { throw TessellationError.unsupportedFace(faceID) }
+            var grids = recipe.nativeGrids ?? []
+            if let grid = recipe.grid { grids.append(grid) }
+            guard !grids.isEmpty || recipe.trimmedPlan != nil else { continue }
+            var requested: Set<SurfaceParameter> = []
+            if let trim = recipe.trimmedPlan {
+                for parameter in trim.parameters {
+                    try proofBudget.charge()
+                    requested.insert(parameter)
+                }
+            }
+            for grid in grids {
+                for uIndex in 0...grid.steps.u {
+                    try proofBudget.charge()
+                    let u = gridParameter(grid,axisU: true,index: uIndex)
+                    requested.insert(.init(u: u,v: grid.vBounds.lower)); requested.insert(.init(u: u,v: grid.vBounds.upper))
+                }
+                for vIndex in 0...grid.steps.v {
+                    try proofBudget.charge()
+                    let v = gridParameter(grid,axisU: false,index: vIndex)
+                    requested.insert(.init(u: grid.uBounds.lower,v: v)); requested.insert(.init(u: grid.uBounds.upper,v: v))
+                }
+            }
+            let ordered = try requested.sorted { a,b in
+                try proofBudget.charge(); return a.u == b.u ? a.v < b.v : a.u < b.u
+            }
+            let sourceSurface = try PreparedSurfaceDifferentialEncloser(surface: surface,tolerance: tolerance,
+                remainingSourceDepth: 16,maximumSubdivisionDepth: 32,consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+            for loopID in face.loops {
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Missing station-request loop.") }
+                for use in loop.coedges {
+                    try proofBudget.charge()
+                    guard let pcurve = use.surfaceParameterCurve,let edge = model.edges[use.edgeID],
+                        let curve = model.geometry.curves[edge.curveID],let options = edgeOptions[edge.id] else {
+                        throw TopologyError.missingReference("Missing original station-request source.")
+                    }
+                    guard let iso = try originalIsoBoundary(pcurve, on: surface, proofBudget: proofBudget) else {
+                        // FIXME(INCOMPLETE_IMPLEMENTATION): Original grid/trim station
+                        // collection still needs the complete retained UV inverse for
+                        // general chart images, graph and nonlinear pcurves. Full M3
+                        // sharing requires every original boundary request to reach
+                        // the canonical edge and each incident retained facet plan.
+                        continue
+                    }
+                    if try edgeGeometryClassifier(proofBudget: proofBudget).kind(of: edge,in: model,tolerance: tolerance) == .singular { continue }
+                    let trim = try orientedTrimParameters(edge: edge,coedge: use,in: model)
+                    let canonicalTrim = try orientedTrimParameters(edge: edge,
+                        coedge: Coedge(edgeID: edge.id,orientation: .forward),in: model)
+                    let sourceCurve = try PreparedCurveDifferentialEncloser(curve: curve,tolerance: tolerance,
+                        remainingSourceDepth: 16,maximumSubdivisionDepth: 32,consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+                    let originalIdentity: Bool
+                    if edge.trim?.startParameter == 0,edge.trim?.endParameter == 1 {
+                        let directed = use.orientation == .forward ? pcurve : try pcurve.reversed(tolerance: tolerance)
+                        originalIdentity = try hasOriginalLiftParameterization(curve, on: surface,
+                            parameterCurve: directed, proofBudget: proofBudget)
+                    } else { originalIdentity = false }
+                    let correspondence = originalIdentity ? nil : try OriginalSurfaceStationCorrespondence(curve: curve,
+                        from: trim.start,to: trim.end,surface: surface,parameterCurve: pcurve,tolerance: tolerance,
+                        maximumSpanCount: max(1,proofBudget.remaining),maximumSubdivisionDepth: 32,remainingSourceDepth: 16,
+                        consumeWork: { try proofBudget.charge() })
+                    let allocation = (options.linearTolerance/16).nextDown
+                    guard allocation > 0 else { throw TessellationError.invalidTolerance }
+                    requests: for parameter in ordered {
+                        try proofBudget.charge()
+                        guard let proposal = try fraction(parameter,on: iso) else { continue }
+                        let native: Double
+                        let admittedNative: ScalarInterval
+                        if let correspondence {
+                            let receipt = try correspondence.resolve(liftFraction: proposal.candidate,maximumDeviation: allocation,
+                                maximumSubdivisionDepth: 32,consumeWork: { try proofBudget.charge() })
+                            guard receipt.orientation == 1,receipt.maximumDeviation <= allocation else {
+                                throw KernelError(phase: .geometry,code: .ambiguousSelection,tolerance: tolerance,
+                                    message: "Original grid station does not bind one directed native edge branch.")
+                            }
+                            native = receipt.nativeParameter
+                            admittedNative = receipt.nativeParameters
+                        } else {
+                            native = trim.start+(trim.end-trim.start)*proposal.candidate
+                            let range = OutwardScalarInterval.exact(trim.start)
+                                + (.exact(trim.end) - .exact(trim.start))
+                                * OutwardScalarInterval(lower: proposal.bounds.lower,upper: proposal.bounds.upper)
+                            admittedNative = try ScalarInterval(lower: range.lower,upper: range.upper)
+                        }
+                        let target = try sourceSurface.positionBounds(over: SurfaceParameterBox(
+                            u: ScalarInterval(lower: parameter.u,upper: parameter.u),
+                            v: ScalarInterval(lower: parameter.v,upper: parameter.v)),tolerance: tolerance,
+                            maximumSpanCount: 262_144,maximumSubdivisionDepth: 32,remainingSourceDepth: 16,
+                            consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) })
+                        for retained in canonicalStations[edge.id] ?? [] {
+                            try proofBudget.charge()
+                            if originalIdentity, retained.originalSurfaceParameter == parameter,
+                                gap(target, from: retained.point) <= allocation { continue requests }
+                            guard let station = retained.originalParameter,admittedNative.contains(station) else { continue }
+                            let original = try sourceCurve.positionBounds(over: ScalarInterval(lower: station,upper: station),
+                                tolerance: tolerance,maximumSpanCount: 65_536,maximumSubdivisionDepth: 32,
+                                remainingSourceDepth: 16,consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) })
+                            let sourceError = gap(original,from: retained.point),targetError = gap(target,from: retained.point)
+                            if sourceError.isFinite,targetError.isFinite,
+                                (OutwardScalarInterval.exact(sourceError) + .exact(targetError)).upper <= allocation {
+                                // The whole receipt and both original position boxes
+                                // admit this one already retained native station.
+                                continue requests
+                            }
+                        }
+                        let original = try sourceCurve.positionBounds(over: ScalarInterval(lower: native,upper: native),
+                            tolerance: tolerance,maximumSpanCount: 65_536,maximumSubdivisionDepth: 32,
+                            remainingSourceDepth: 16,consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) })
+                        let point = Point3D(x: original.x.midpoint,y: original.y.midpoint,z: original.z.midpoint)
+                        let sourceError = gap(original,from: point),targetError = gap(target,from: point)
+                        guard sourceError.isFinite,targetError.isFinite,
+                            (OutwardScalarInterval.exact(sourceError) + .exact(targetError)).upper <= allocation else {
+                            throw KernelError(phase: .geometry,code: .classificationFailure,
+                                residual: max(sourceError,targetError),tolerance: tolerance,
+                                message: "Original grid and canonical edge station do not close their complete physical discrepancy.")
+                        }
+                        let normalized = (native-canonicalTrim.start)/(canonicalTrim.end-canonicalTrim.start)
+                        guard normalized.isFinite,normalized >= 0,normalized <= 1 else { throw TessellationError.unsupportedFace(faceID) }
+                        try proofBudget.charge()
+                        canonicalStations[edge.id,default: []].append(.init(normalizedFraction: normalized,point: point,originalParameter: native,
+                            originalSurfaceParameter: originalIdentity ? parameter : nil))
+                        changed.insert(edge.id)
+                    }
+                }
+            }
+        }
+        for edgeID in changed.sorted() {
+            try proofBudget.charge()
+            guard let edge = model.edges[edgeID],
+                let curve = model.geometry.curves[edge.curveID],var options = edgeOptions[edgeID],
+                let samples = canonicalStations[edgeID] else { throw TopologyError.missingReference("Missing joined station source.") }
+            let trim = try orientedTrimParameters(edge: edge,
+                coedge: Coedge(edgeID: edgeID,orientation: .forward),in: model)
+            options.linearTolerance = (options.linearTolerance/4).nextDown
+            options.angularTolerance = (options.angularTolerance/2).nextDown
+            guard options.linearTolerance > 0,options.angularTolerance > 0 else { throw TessellationError.invalidTolerance }
+            let required = try samples.map { sample -> Double in
+                try proofBudget.charge()
+                guard let original = sample.originalParameter else { throw TopologyError.missingReference("Canonical station lost its native authority.") }
+                return original
+            }
+            canonicalStations[edgeID] = try normalizedCurveSamples(sampledBoundedCurveSamples(curve: curve,
+                startParameter: trim.start,endParameter: trim.end,options: options,
+                proofBudget: proofBudget,requiredParameters: required,
+                forcedPublishedPoints: try samples.reduce(into: [:]) { result,sample in
+                    try proofBudget.charge()
+                    guard let native = sample.originalParameter else { throw TopologyError.missingReference("Canonical forced point lost native authority.") }
+                    result[native] = sample.point
+                }, requiredSurfaceParameters: try samples.reduce(into: [:]) { result, sample in
+                    try proofBudget.charge()
+                    if let native = sample.originalParameter, let uv = sample.originalSurfaceParameter { result[native] = uv }
+                }, retainedNativeIsoStations: samples),startParameter: trim.start,endParameter: trim.end)
+        }
+        return changed
+    }
+
+    private func resolvedFaceOptions(model: BRepModel, options: TessellationOptions) throws -> [FaceID: TessellationOptions] {
+        guard Set(options.faceOverrides.keys).isSubset(of: Set(model.faces.keys)) else { throw TessellationError.invalidTolerance }
+        var resolved: [FaceID: TessellationOptions] = [:]
+        for face in model.faces.values {
+            var local = options.faceOverrides[face.id] ?? options
+            local.faceOverrides = [:]; local.featureOverrides = [:]
+            resolved[face.id] = local
+        }
+        return resolved
+    }
+
+    private func resolvedEdgeOptions(
+        model: BRepModel,
+        faceOptions: [FaceID: TessellationOptions]
+    ) -> [EdgeID: TessellationOptions] {
+        var resolved: [EdgeID: TessellationOptions] = [:]
+        for face in model.faces.values {
+            guard let local = faceOptions[face.id] else { continue }
+            for loopID in face.loops {
+                for use in model.loops[loopID]?.coedges ?? [] {
+                    var joined = resolved[use.edgeID] ?? local
+                    joined.linearTolerance = min(joined.linearTolerance, local.linearTolerance)
+                    joined.angularTolerance = min(joined.angularTolerance, local.angularTolerance)
+                    if let length = local.maxEdgeLength {
+                        joined.maxEdgeLength = min(joined.maxEdgeLength ?? length, length)
+                    }
+                    resolved[use.edgeID] = joined
+                }
+            }
+        }
+        return resolved
+    }
+
     private struct FaceUsageEstimate {
         var vertices: Int
         var indices: Int
         var planarBoundary: PlanarBoundary? = nil
         var grid: ParametricGrid? = nil
         var nativeGrids: [ParametricGrid]? = nil
+        var graphPlan: OriginalGraphBandMeshPlan? = nil
+        var trimmedPlan: TrimmedFacetPlan? = nil
+    }
+
+    private struct CollapsedBoundaryKey: Hashable {
+        let constantU: Bool
+        let nativeParameter: Double
+    }
+
+    private struct CollapsedStation {
+        let key: CollapsedBoundaryKey
+        let point: Point3D
     }
 
     private struct ParametricGrid {
         let uBounds: (lower: Double, upper: Double)
         let vBounds: (lower: Double, upper: Double)
-        let steps: (u: Int, v: Int)
+        var steps: (u: Int, v: Int)
+        var uStations: [Double]? = nil
+        var vStations: [Double]? = nil
+        var boundaryPoints: [SurfaceParameter: Point3D] = [:]
+        var refinementDepth: Int = 0
         var owningSpan: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan? = nil
+        var nativeBounds: SurfaceTessellationDifferentialBounds? = nil
+        var poleNormals: [Int: Vector3D] = [:]
+        var collapsedStations: [Int: CollapsedStation] = [:]
     }
 
     private struct PlanarBoundary {
@@ -182,7 +1011,10 @@ public struct MeshTessellator: Tessellating {
     private func estimatedFaceUsage(
         faceID: FaceID,
         model: BRepModel,
-        options: TessellationOptions
+        options: TessellationOptions,
+        edgeOptions: [EdgeID: TessellationOptions],
+        canonicalStations: [EdgeID: [CurveTessellationSample]],
+        proofBudget: TessellationProofBudget
     ) throws -> FaceUsageEstimate {
         guard let face = model.faces[faceID] else {
             throw TessellationError.unsupportedFace(faceID)
@@ -209,7 +1041,10 @@ public struct MeshTessellator: Tessellating {
             let outer = try sampledPoints(
                 for: loop,
                 in: model,
-                options: options
+                options: options,
+                edgeOptions: edgeOptions,
+                canonicalStations: canonicalStations,
+                proofBudget: proofBudget
             )
             var inner: [[Point3D]] = []
             var boundaryPointCount = outer.count
@@ -217,7 +1052,10 @@ public struct MeshTessellator: Tessellating {
                 let points = try sampledPoints(
                     for: innerLoopID,
                     in: model,
-                    options: options
+                    options: options,
+                    edgeOptions: edgeOptions,
+                    canonicalStations: canonicalStations,
+                    proofBudget: proofBudget
                 )
                 boundaryPointCount += points.count
                 inner.append(points)
@@ -230,31 +1068,87 @@ public struct MeshTessellator: Tessellating {
             return estimate
         }
 
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, remainingSourceDepth: 16,
+            maximumSubdivisionDepth: 32, consumeWork: { try proofBudget.charge(depth: $0) },
+            consumeStorage: { try proofBudget.chargeStorageBytes($0) })
         if innerLoopIDs.isEmpty,
            let bounds = try rectangularParameterBounds(
                for: loop,
                on: surface,
                in: model,
                options: options,
-               faceID: faceID
+               faceID: faceID,edgeOptions: edgeOptions,canonicalStations: canonicalStations,proofBudget: proofBudget
            ) {
-            if case let .bSpline(spline) = surface,
-               try requiresOriginalNativePanels(spline) {
-                return try estimatedOriginalNativePanelUsage(surface: spline,
-                    uBounds: bounds.u, vBounds: bounds.v, options: options)
+            var gridOptions = options
+            gridOptions.linearTolerance = (options.linearTolerance/2).nextDown
+            gridOptions.angularTolerance = (options.angularTolerance/2).nextDown
+            guard gridOptions.linearTolerance > 0,gridOptions.angularTolerance > 0 else { throw TessellationError.invalidTolerance }
+            if let native = try originalNativeUVSupport(surface, proofBudget: proofBudget),
+               try requiresOriginalNativePanels(native.surface,proofBudget: proofBudget) {
+                return try estimatedOriginalNativePanelUsage(surface: native.surface,
+                    uBounds: bounds.u, vBounds: bounds.v, options: gridOptions,
+                    proofBudget: proofBudget, spatialImages: native.images)
             }
             let stepCounts = try parametricGridStepCounts(
                 surface: surface,
                 uBounds: bounds.u,
                 vBounds: bounds.v,
-                options: options
+                options: gridOptions,
+                proofBudget: proofBudget
             )
             var estimate = try gridUsageEstimate(uSteps: stepCounts.u, vSteps: stepCounts.v)
             estimate.grid = ParametricGrid(uBounds: bounds.u, vBounds: bounds.v, steps: stepCounts)
             return estimate
         }
 
+        if innerLoopIDs.isEmpty, case let .bSpline(spline) = surface,
+           let plan = try OriginalGraphBandMeshAssembler().prepare(face: face, loop: loop,
+               surface: spline, model: model, options: options, tolerance: tolerance,
+               proofBudget: proofBudget,
+               preferredCounts: { bounds, u, proofOptions, minimum in
+                   try certifiedBSplineGridStepCounts(bounds: bounds,
+                       uBounds: (u.0, u.1), vBounds: (0, 1), options: proofOptions,
+                       minimumSteps: (minimum.0, minimum.1), proofBudget: proofBudget)
+               }) {
+            var estimate = FaceUsageEstimate(vertices: plan.vertexCount, indices: plan.indexCount)
+            estimate.graphPlan = plan
+            return estimate
+        }
+        let outerStations = try sampledParameterStations(for: loop, on: surface, in: model,
+            options: options, faceID: faceID, edgeOptions: edgeOptions,
+            canonicalStations: canonicalStations, proofBudget: proofBudget)
+        var boundaryPoints: [SurfaceParameter: Point3D] = [:]
+        func retain(_ stations: [SurfaceParameterStation]) throws -> [SurfaceParameter] {
+            for station in stations {
+                try proofBudget.charge()
+                if let previous = boundaryPoints[station.parameter], previous != station.point {
+                    throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
+                        message: "One original trim station has incompatible canonical shared positions.")
+                }
+                boundaryPoints[station.parameter] = station.point
+            }
+            return stations.map(\.parameter)
+        }
+        let outerParameters = try retain(outerStations)
+        let innerParameters = try innerLoopIDs.map { id -> [SurfaceParameter] in
+            guard let inner = model.loops[id] else { throw TopologyError.missingReference("Missing adaptive trim loop.") }
+            return try retain(sampledParameterStations(for: inner, on: surface, in: model,
+                options: options, faceID: faceID, edgeOptions: edgeOptions,
+                canonicalStations: canonicalStations, proofBudget: proofBudget))
+        }
+        let trimmedPlan = try preparedTrimmedFacets(surface: surface, outer: outerParameters,
+            holes: innerParameters, options: options, faceID: faceID,proofBudget: proofBudget,
+            boundaryPoints: boundaryPoints)
+        var trimmedEstimate = FaceUsageEstimate(vertices: trimmedPlan.parameters.count,
+            indices: try multiplied(trimmedPlan.triangles.count, 3, as: .indexCount))
+        trimmedEstimate.trimmedPlan = trimmedPlan
+        return trimmedEstimate
+    }
+
+    private func legacyBoundaryUsageEstimate(
+        surface: Surface3D, loop: Loop, innerLoopIDs: [LoopID], model: BRepModel,
+        options: TessellationOptions, faceID: FaceID
+    ) throws -> FaceUsageEstimate {
         var boundaryPointCount = try sampledParameters(
             for: loop,
             on: surface,
@@ -412,7 +1306,7 @@ public struct MeshTessellator: Tessellating {
 
     private func append(
         faceID: FaceID,
-        preparation: FaceUsageEstimate,
+        preparation: inout FaceUsageEstimate,
         shellOrientation: Orientation,
         model: BRepModel,
         options: TessellationOptions,
@@ -441,6 +1335,23 @@ public struct MeshTessellator: Tessellating {
         }
         guard let loop = model.loops[firstLoopID] else {
             throw TopologyError.missingReference("Missing loop \(firstLoopID).")
+        }
+        if let plan = preparation.trimmedPlan {
+            try appendTrimmedFacets(plan: plan, surface: surface, face: face,
+                shellOrientation: shellOrientation, faceID: faceID,
+                positions: &positions, normals: &normals, indices: &indices, budget: &budget)
+            return
+        }
+        if var plan = preparation.graphPlan {
+            try OriginalGraphBandMeshAssembler().append(plan: &plan, model: model,
+                faceID: faceID, shellOrientation: shellOrientation,
+                options: options, tolerance: tolerance,
+                positions: &positions, normals: &normals, indices: &indices, budget: &budget,
+                parameter: { lower, upper, index, count in
+                    interpolatedParameter(lowerBound: lower, upperBound: upper, index: index, count: count)
+                }, appendTriangle: appendTriangle)
+            preparation.graphPlan = plan
+            return
         }
         if case .plane = surface {
             guard let planarBoundary else {
@@ -1560,25 +2471,34 @@ public struct MeshTessellator: Tessellating {
     private func sampledPoints(
         for loopID: LoopID,
         in model: BRepModel,
-        options: TessellationOptions
+        options: TessellationOptions,
+        edgeOptions: [EdgeID: TessellationOptions] = [:],
+        canonicalStations: [EdgeID: [CurveTessellationSample]] = [:],
+        proofBudget: TessellationProofBudget
     ) throws -> [Point3D] {
         guard let loop = model.loops[loopID] else {
             throw TopologyError.missingReference("Missing loop \(loopID).")
         }
-        return try sampledPoints(for: loop, in: model, options: options)
+        return try sampledPoints(for: loop, in: model, options: options, edgeOptions: edgeOptions,
+            canonicalStations: canonicalStations, proofBudget: proofBudget)
     }
 
     private func sampledPoints(
         for loop: Loop,
         in model: BRepModel,
-        options: TessellationOptions
+        options: TessellationOptions,
+        edgeOptions: [EdgeID: TessellationOptions] = [:],
+        canonicalStations: [EdgeID: [CurveTessellationSample]] = [:],
+        proofBudget: TessellationProofBudget
     ) throws -> [Point3D] {
         var points: [Point3D] = []
         for orientedEdge in loop.edges {
             let edgePoints = try sampledPoints(
                 for: orientedEdge,
                 in: model,
-                options: options
+                options: edgeOptions[orientedEdge.edgeID] ?? options,
+                canonicalStations: canonicalStations,
+                proofBudget: proofBudget
             )
             guard let first = edgePoints.first else {
                 continue
@@ -1785,7 +2705,6 @@ public struct MeshTessellator: Tessellating {
         indices: inout [UInt32],
         budget: inout TessellationBudget
     ) throws {
-        try surface.validate(tolerance: tolerance)
         if let nativeGrids {
             for grid in nativeGrids {
                 try Task.checkCancellation()
@@ -1810,38 +2729,8 @@ public struct MeshTessellator: Tessellating {
             return
         }
 
-        let outerParameters = try sampledParameters(
-            for: outerLoop,
-            on: surface,
-            in: model,
-            options: options,
-            faceID: faceID
-        )
-        let innerParameterLoops = try innerLoopIDs.map { innerLoopID -> [SurfaceParameter] in
-            guard let innerLoop = model.loops[innerLoopID] else {
-                throw TopologyError.missingReference("Missing loop \(innerLoopID).")
-            }
-            return try sampledParameters(
-                for: innerLoop,
-                on: surface,
-                in: model,
-                options: options,
-                faceID: faceID
-            )
-        }
-        try appendTrimmedParametricFace(
-            surface: surface,
-            options: options,
-            outerParameters: outerParameters,
-            innerParameterLoops: innerParameterLoops,
-            face: face,
-            faceID: faceID,
-            shellOrientation: shellOrientation,
-            positions: &positions,
-            normals: &normals,
-            indices: &indices,
-            budget: &budget
-        )
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+            message: "Nonplanar mesh emission requires its retained complete preflight recipe.")
     }
 
     private func appendParametricGridFace(
@@ -1869,31 +2758,25 @@ public struct MeshTessellator: Tessellating {
         try budget.charge(vertices: pointCount, indices: 0)
         var pointIteration = 0
         for vIndex in 0...vSteps {
-            let v = interpolatedParameter(
-                lowerBound: vBounds.lower,
-                upperBound: vBounds.upper,
-                index: vIndex,
-                count: vSteps
-            )
+            let v = gridParameter(grid,axisU: false,index: vIndex)
             for uIndex in 0...uSteps {
                 if pointIteration & 0xFF == 0 {
                     try Task.checkCancellation()
                 }
                 pointIteration += 1
-                let u = interpolatedParameter(
-                    lowerBound: uBounds.lower,
-                    upperBound: uBounds.upper,
-                    index: uIndex,
-                    count: uSteps
-                )
-                let point = try surface.point(u: u, v: v, tolerance: tolerance)
+                let u = gridParameter(grid,axisU: true,index: uIndex)
+                let point = try grid.collapsedStations[vIndex*(uSteps+1)+uIndex]?.point
+                    ?? grid.boundaryPoints[SurfaceParameter(u: u,v: v)]
+                    ?? surface.point(u: u, v: v, tolerance: tolerance)
                 // Trust the surface normal composed with face and shell
                 // orientation. The previous first-vertex hemisphere heuristic
                 // silently flipped normals (and therefore winding) on patches
                 // whose normals turn more than 90 degrees, corrupting the mesh
                 // orientation the divergence volume relies on.
                 let sourceNormal: Vector3D
-                if let span = grid.owningSpan {
+                if let retained = grid.poleNormals[vIndex*(uSteps+1)+uIndex] {
+                    sourceNormal = retained
+                } else if let span = grid.owningSpan {
                     guard case let .bSpline(spline) = surface else {
                         throw TessellationError.unsupportedFace(faceID)
                     }
@@ -1928,29 +2811,21 @@ public struct MeshTessellator: Tessellating {
                 let lowerRight = lowerLeft + 1
                 let upperLeft = lowerLeft + UInt32(uSteps + 1)
                 let upperRight = upperLeft + 1
-                let appendedFirst = try appendTriangleWithNormalFallback(
-                    lowerLeft,
-                    lowerRight,
-                    upperRight,
-                    positions: &positions,
-                    normals: &normals,
-                    indices: &indices,
-                    budget: &budget
-                )
-                let appendedSecond = try appendTriangleWithNormalFallback(
-                    lowerLeft,
-                    upperRight,
-                    upperLeft,
-                    positions: &positions,
-                    normals: &normals,
-                    indices: &indices,
-                    budget: &budget
-                )
-                // A silently skipped quad leaves a hole that mesh compaction
-                // hides from validation; fail loudly instead.
-                guard appendedFirst, appendedSecond else {
-                    throw TessellationError.degenerateFace(face.id)
+                func append(_ a: UInt32, _ b: UInt32, _ c: UInt32) throws {
+                    let stations = [Int(a-baseIndex), Int(b-baseIndex), Int(c-baseIndex)]
+                    for pair in [(0,1),(1,2),(2,0)] {
+                        if let first = grid.collapsedStations[stations[pair.0]],
+                            let second = grid.collapsedStations[stations[pair.1]], first.key == second.key {
+                            return
+                        }
+                    }
+                    guard try appendCertifiedTriangle(a,b,c,positions: positions,
+                        reversed: face.orientation != shellOrientation,indices: &indices,budget: &budget) else {
+                        throw TessellationError.degenerateFace(face.id)
+                    }
                 }
+                try append(lowerLeft, lowerRight, upperRight)
+                try append(lowerLeft, upperRight, upperLeft)
             }
         }
     }
@@ -1959,86 +2834,16 @@ public struct MeshTessellator: Tessellating {
         surface: Surface3D,
         uBounds: (lower: Double, upper: Double),
         vBounds: (lower: Double, upper: Double),
-        options: TessellationOptions
+        options: TessellationOptions,
+        proofBudget: TessellationProofBudget = TessellationProofBudget()
     ) throws -> (u: Int, v: Int) {
-        let uSpan = abs(uBounds.upper - uBounds.lower)
-        let vSpan = abs(vBounds.upper - vBounds.lower)
         switch surface {
-        case .plane:
-            return (
-                linearStepCount(length: uSpan, options: options),
-                linearStepCount(length: vSpan, options: options)
-            )
-        case let .cylinder(cylinder):
-            return (
-                try circularStepCount(
-                    radius: cylinder.radius,
-                    angleSpan: uSpan,
-                    options: options
-                ),
-                linearStepCount(length: vSpan, options: options)
-            )
-        case let .analytic(analyticSurface):
-            switch analyticSurface {
-            case .plane:
-                return (
-                    linearStepCount(length: uSpan, options: options),
-                    linearStepCount(length: vSpan, options: options)
-                )
-            case let .cylinder(_, _, radius):
-                return (
-                    try circularStepCount(
-                        radius: radius,
-                        angleSpan: uSpan,
-                        options: options
-                    ),
-                    linearStepCount(length: vSpan, options: options)
-                )
-            case let .cone(_, _, halfAngle):
-                let maximumRadius = max(abs(vBounds.lower), abs(vBounds.upper)) * sin(halfAngle)
-                let uSteps = maximumRadius > tolerance.distance
-                    ? try circularStepCount(
-                        radius: maximumRadius,
-                        angleSpan: uSpan,
-                        options: options
-                    )
-                    : 1
-                return (
-                    uSteps,
-                    linearStepCount(length: vSpan, options: options)
-                )
-            case let .sphere(_, radius):
-                let perDirection = boundsPerCurvedDirection(options)
-                return (
-                    try circularStepCount(
-                        radius: radius,
-                        angleSpan: uSpan,
-                        options: perDirection
-                    ),
-                    try circularStepCount(
-                        radius: radius,
-                        angleSpan: vSpan,
-                        options: perDirection
-                    )
-                )
-            case let .torus(_, _, majorRadius, minorRadius):
-                let perDirection = boundsPerCurvedDirection(options)
-                return (
-                    try circularStepCount(
-                        radius: majorRadius + minorRadius,
-                        angleSpan: uSpan,
-                        options: perDirection
-                    ),
-                    try circularStepCount(
-                        radius: minorRadius,
-                        angleSpan: vSpan,
-                        options: perDirection
-                    )
-                )
-            }
+        case .plane, .cylinder, .analytic:
+            return try certifiedProceduralSurfaceStepCounts(surface: surface,
+                uBounds: uBounds, vBounds: vBounds, options: options, proofBudget: proofBudget)
         case let .bSpline(spline):
             return try certifiedBSplineSurfaceStepCounts(
-                surface: spline, uBounds: uBounds, vBounds: vBounds, options: options)
+                surface: spline, uBounds: uBounds, vBounds: vBounds, options: options, proofBudget: proofBudget)
         case let .procedural(.offset(offset)):
             if let equivalent = try offset.exactChartPreservingSurface(
                 tolerance: tolerance
@@ -2047,73 +2852,95 @@ public struct MeshTessellator: Tessellating {
                     surface: equivalent,
                     uBounds: uBounds,
                     vBounds: vBounds,
-                    options: options
+                    options: options,
+                    proofBudget: proofBudget
                 )
             }
             return try certifiedProceduralSurfaceStepCounts(
                 surface: surface,
                 uBounds: uBounds,
                 vBounds: vBounds,
-                options: options
+                options: options,
+                proofBudget: proofBudget
             )
-        case .procedural(.ruled), .procedural(.rollingBall):
+        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalAngularTransport), .procedural(.originalAffineWord), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             return try certifiedProceduralSurfaceStepCounts(
                 surface: surface,
                 uBounds: uBounds,
                 vBounds: vBounds,
-                options: options
+                options: options,
+                proofBudget: proofBudget
             )
         }
     }
 
     /// The original C1 chart and its complete differential bounds authorize every emitted
-    /// triangle. The procedural policy remains separate because its existing edge contract
-    /// checks axis edges, whereas this admission must additionally bound the diagonal.
+    /// triangle. Original procedural charts compose the same complete-facet policy.
     private func certifiedBSplineSurfaceStepCounts(
         surface: BSplineSurface3D,
         uBounds: (lower: Double, upper: Double),
         vBounds: (lower: Double, upper: Double),
-        options: TessellationOptions
+        options: TessellationOptions,
+        proofBudget: TessellationProofBudget = TessellationProofBudget()
     ) throws -> (u: Int, v: Int) {
-        func hasClampedC1Basis(_ knots: [Double], degree: Int) -> Bool {
+        func hasClampedC1Basis(_ knots: [Double], degree: Int) throws -> Bool {
             let lower = knots[degree], upper = knots[knots.count - degree - 1]
-            guard knots.prefix(degree + 1).allSatisfy({ $0 == lower }),
-                  knots.suffix(degree + 1).allSatisfy({ $0 == upper }) else { return false }
+            for value in knots.prefix(degree + 1) { try proofBudget.charge(); if value != lower { return false } }
+            for value in knots.suffix(degree + 1) { try proofBudget.charge(); if value != upper { return false } }
             var index = degree + 1
             while index < knots.count - degree - 1 {
+                try proofBudget.charge()
                 let value = knots[index]
                 var end = index + 1
-                while end < knots.count - degree - 1, knots[end] == value { end += 1 }
+                while end < knots.count - degree - 1 {
+                    try proofBudget.charge()
+                    guard knots[end] == value else { break }
+                    end += 1
+                }
                 if value > lower && value < upper && end - index > degree - 1 { return false }
                 index = end
             }
             return true
         }
         func hasPeriodicC1Basis(_ knots: [Double], degree: Int,
-                                direction: SurfaceParameterDirection) -> Bool {
+                                direction: SurfaceParameterDirection) throws -> Bool {
+            // The immutable validated source owns seam validity; the selected
+            // original multiplicities establish this chart's smoothness order.
+            try proofBudget.charge()
             guard let seamOrder = surface.periodicSeamContinuityOrder(direction: direction),
                   seamOrder >= 1 else { return false }
             let lower = knots[degree], upper = knots[knots.count - degree - 1]
             var index = degree + 1
             while index < knots.count - degree - 1 {
+                try proofBudget.charge()
                 let value = knots[index]
                 var end = index + 1
-                while end < knots.count - degree - 1, knots[end] == value { end += 1 }
+                while end < knots.count - degree - 1 {
+                    try proofBudget.charge()
+                    guard knots[end] == value else { break }
+                    end += 1
+                }
                 if value > lower && value < upper && end - index > degree - 1 { return false }
                 index = end
             }
             return true
         }
-        let uC1 = surface.isUPeriodic
+        let uC1 = try surface.isUPeriodic
             ? hasPeriodicC1Basis(surface.uKnots, degree: surface.uDegree, direction: .u)
             : hasClampedC1Basis(surface.uKnots, degree: surface.uDegree)
-        let vC1 = surface.isVPeriodic
+        let vC1 = try surface.isVPeriodic
             ? hasPeriodicC1Basis(surface.vKnots, degree: surface.vDegree, direction: .v)
             : hasClampedC1Basis(surface.vKnots, degree: surface.vDegree)
+        var positiveWeights = true
+        for row in surface.weights {
+            for weight in row {
+                try proofBudget.charge()
+                if weight <= 0 { positiveWeights = false }
+            }
+        }
         // Nonclamped and C0 rectangles use the retained selected-native-panel route.
         // This whole-chart route consumes the original clamped/periodic C1 authority.
-        guard uC1, vC1,
-              surface.weights.allSatisfy({ $0.allSatisfy({ $0 > 0 }) }) else {
+        guard uC1, vC1, positiveWeights else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                               message: "Rectangular B-spline tessellation requires original C1 authority.")
         }
@@ -2122,17 +2949,13 @@ public struct MeshTessellator: Tessellating {
             u: ScalarInterval(lower: uBounds.lower, upper: uBounds.upper),
             v: ScalarInterval(lower: vBounds.lower, upper: vBounds.upper))
         let encloser = DefaultSurfaceDifferentialEncloser()
-        let bounds: SurfaceTessellationDifferentialBounds
-        if surface.isUPeriodic && surface.isVPeriodic {
-            bounds = try encloser.originalDoublePeriodicTessellationBounds(
-                of: surface, over: parameters, tolerance: tolerance)
-        } else {
-            bounds = try encloser.tessellationBounds(
-                of: .bSpline(surface), over: parameters, tolerance: tolerance)
+        let bounds = try proofBudget.withRemainingCells { remaining in
+            try encloser.tessellationBounds(of: .bSpline(surface), over: parameters,
+                tolerance: tolerance, remainingCells: &remaining)
         }
         try Task.checkCancellation()
         return try certifiedBSplineGridStepCounts(bounds: bounds, uBounds: uBounds,
-                                                  vBounds: vBounds, options: options)
+                                                  vBounds: vBounds, options: options, proofBudget: proofBudget)
     }
 
     private func certifiedBSplineGridStepCounts(
@@ -2140,7 +2963,8 @@ public struct MeshTessellator: Tessellating {
         uBounds: (lower: Double, upper: Double),
         vBounds: (lower: Double, upper: Double),
         options: TessellationOptions,
-        minimumSteps: (u: Int, v: Int) = (1, 1)
+        minimumSteps: (u: Int, v: Int) = (1, 1),
+        proofBudget: TessellationProofBudget
     ) throws -> (u: Int, v: Int) {
         let maximumStepCount = 65_536
         var uSteps = minimumSteps.u, vSteps = minimumSteps.v
@@ -2157,7 +2981,7 @@ public struct MeshTessellator: Tessellating {
             var previous = bounds.lower
             var maximum = 0.0
             for index in 1...count {
-                if index & 0xFF == 0 { try Task.checkCancellation() }
+                try proofBudget.charge()
                 let next = interpolatedParameter(lowerBound: bounds.lower, upperBound: bounds.upper, index: index, count: count)
                 guard next > previous else {
                     throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -2207,28 +3031,86 @@ public struct MeshTessellator: Tessellating {
         }
     }
 
-    private func requiresOriginalNativePanels(_ surface: BSplineSurface3D) throws -> Bool {
-        try OriginalBSplineRectangleBasisAdmission().requiresNativePanels(surface, tolerance: tolerance)
+    private func requiresOriginalNativePanels(_ surface: BSplineSurface3D,
+        proofBudget: TessellationProofBudget) throws -> Bool {
+        try OriginalBSplineRectangleBasisAdmission().requiresNativePanels(surface,tolerance: tolerance,
+            consumeWork: { try proofBudget.charge(depth: $0) })
     }
 
     private func hasOriginalC0Knots(_ surface: BSplineSurface3D) -> Bool {
         OriginalBSplineRectangleBasisAdmission.containsC0Knots(surface)
     }
 
+    private enum OriginalNativeSpatialImage {
+        case word(OriginalAffineWordSurface3D)
+        case identityUVImage(OriginalImageSurface3D)
+    }
+
+    private func preservesOriginalNativeUV(_ image: OriginalImageSurface3D) -> Bool {
+        image.uParameterGain == .binary(1) && image.vParameterGain == .binary(1)
+            && image.uOffset == 0 && image.vOffset == 0 && !image.swapAxes
+    }
+
+    private func originalNativeUVSupport(_ surface: Surface3D,
+        proofBudget: TessellationProofBudget) throws
+        -> (surface: BSplineSurface3D, images: [OriginalNativeSpatialImage])? {
+        var source = surface
+        var images: [OriginalNativeSpatialImage] = []
+        while true {
+            try proofBudget.charge()
+            switch source {
+            case .bSpline(let spline): return (spline, images)
+            case .procedural(.originalAffineWord(let image)):
+                guard images.count < 16 else { throw TessellationError.invalidTolerance }
+                images.append(.word(image)); source = image.source
+            case .procedural(.originalImage(let image)):
+                guard preservesOriginalNativeUV(image) else { return nil }
+                guard images.count < 16 else { throw TessellationError.invalidTolerance }
+                images.append(.identityUVImage(image)); source = image.source
+            default: return nil
+            }
+        }
+    }
+
     private func estimatedOriginalNativePanelUsage(
         surface: BSplineSurface3D,
         uBounds: (lower: Double, upper: Double),
         vBounds: (lower: Double, upper: Double),
-        options: TessellationOptions
+        options: TessellationOptions,
+        proofBudget: TessellationProofBudget = TessellationProofBudget(),
+        spatialImages: [OriginalNativeSpatialImage] = []
     ) throws -> FaceUsageEstimate {
-        guard try OriginalBSplineRectangleBasisAdmission().requiresNativePanels(surface, tolerance: tolerance) else {
+        guard try requiresOriginalNativePanels(surface,proofBudget: proofBudget) else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "Original native panel tessellation requires a selected-panel basis route.")
         }
-        let panels = try DefaultSurfaceDifferentialEncloser().originalNativeSpanTessellationBounds(
-            of: surface, over: SurfaceParameterBox(
-                u: ScalarInterval(lower: uBounds.lower, upper: uBounds.upper),
-                v: ScalarInterval(lower: vBounds.lower, upper: vBounds.upper)), tolerance: tolerance)
+        var transports: [OriginalAffineWordDifferentialTransport] = []
+        for image in spatialImages {
+            var usage = TessellationExactProofAdmission(budget: proofBudget)
+            switch image {
+            case .word(let word):
+                transports.append(try OriginalAffineWordDifferentialTransport(image: word, usage: &usage))
+            case .identityUVImage(let affine):
+                transports.append(try OriginalAffineWordDifferentialTransport(image: affine,
+                    tolerance: tolerance, usage: &usage))
+            }
+        }
+        func imageBounds(_ original: SurfaceTessellationDifferentialBounds) throws -> SurfaceTessellationDifferentialBounds {
+            var result = original
+            for transport in transports.reversed() {
+                result = try transport.bounds(result, consumeWork: { try proofBudget.charge() })
+            }
+            return result
+        }
+        let panels = try proofBudget.withRemainingCells { remaining in
+            var usage = try OriginalTessellationProofUsage(maximumCellCount: remaining, tolerance: tolerance)
+            defer { remaining -= usage.usedCellCount }
+            return try DefaultSurfaceDifferentialEncloser().originalNativeSpanTessellationBounds(
+                of: surface, over: SurfaceParameterBox(
+                    u: ScalarInterval(lower: uBounds.lower, upper: uBounds.upper),
+                    v: ScalarInterval(lower: vBounds.lower, upper: vBounds.upper)),
+                tolerance: tolerance, proofUsage: &usage)
+        }
         struct AxisPanel: Hashable {
             let spanIndex: Int
             let cycle: Int
@@ -2237,9 +3119,9 @@ public struct MeshTessellator: Tessellating {
         var vCounts: [AxisPanel: Int] = [:]
         for (index, panel) in panels.enumerated() {
             if index & 0xFF == 0 { try Task.checkCancellation() }
-            let counts = try certifiedBSplineGridStepCounts(bounds: panel.bounds,
+            let counts = try certifiedBSplineGridStepCounts(bounds: imageBounds(panel.bounds),
                 uBounds: (panel.parameters.u.lower, panel.parameters.u.upper),
-                vBounds: (panel.parameters.v.lower, panel.parameters.v.upper), options: options)
+                vBounds: (panel.parameters.v.lower, panel.parameters.v.upper), options: options, proofBudget: proofBudget)
             let u = AxisPanel(spanIndex: panel.span.uSpanIndex, cycle: panel.span.uCycle)
             let v = AxisPanel(spanIndex: panel.span.vSpanIndex, cycle: panel.span.vCycle)
             uCounts[u] = max(uCounts[u] ?? 1, counts.u)
@@ -2257,8 +3139,9 @@ public struct MeshTessellator: Tessellating {
             }
             let u = (lower: panel.parameters.u.lower, upper: panel.parameters.u.upper)
             let v = (lower: panel.parameters.v.lower, upper: panel.parameters.v.upper)
-            let checked = try certifiedBSplineGridStepCounts(bounds: panel.bounds,
-                uBounds: u, vBounds: v, options: options, minimumSteps: (uSteps, vSteps))
+            let bounds = try imageBounds(panel.bounds)
+            let checked = try certifiedBSplineGridStepCounts(bounds: bounds,
+                uBounds: u, vBounds: v, options: options, minimumSteps: (uSteps, vSteps), proofBudget: proofBudget)
             guard checked.u == uSteps, checked.v == vSteps else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                                   message: "Native panel tessellation could not certify its compatible retained stations.")
@@ -2266,7 +3149,7 @@ public struct MeshTessellator: Tessellating {
             let usage = try gridUsageEstimate(uSteps: uSteps, vSteps: vSteps)
             estimate.vertices = try added(estimate.vertices, usage.vertices, as: .vertexCount)
             estimate.indices = try added(estimate.indices, usage.indices, as: .indexCount)
-            grids.append(ParametricGrid(uBounds: u, vBounds: v, steps: (uSteps, vSteps), owningSpan: panel.span))
+            grids.append(ParametricGrid(uBounds: u, vBounds: v, steps: (uSteps, vSteps), owningSpan: panel.span,nativeBounds: bounds))
         }
         estimate.nativeGrids = grids
         return estimate
@@ -2276,7 +3159,8 @@ public struct MeshTessellator: Tessellating {
         surface: Surface3D,
         uBounds: (lower: Double, upper: Double),
         vBounds: (lower: Double, upper: Double),
-        options: TessellationOptions
+        options: TessellationOptions,
+        proofBudget: TessellationProofBudget = TessellationProofBudget()
     ) throws -> (u: Int, v: Int) {
         let uInterval = try ScalarInterval(
             lower: min(uBounds.lower, uBounds.upper),
@@ -2286,79 +3170,14 @@ public struct MeshTessellator: Tessellating {
             lower: min(vBounds.lower, vBounds.upper),
             upper: max(vBounds.lower, vBounds.upper)
         )
-        let bounds = try DefaultSurfaceDifferentialEncloser().tessellationBounds(
-            of: surface,
-            over: SurfaceParameterBox(u: uInterval, v: vInterval),
-            tolerance: tolerance
-        )
-        let uSpan = uInterval.width
-        let vSpan = vInterval.width
-        let maximumStepCount = 65_536
-        var uSteps = 1
-        var vSteps = 1
-        if let maximumEdgeLength = options.maxEdgeLength {
-            uSteps = clampedSampleCount(
-                bounds.tangentUMagnitudeUpperBound * uSpan / maximumEdgeLength,
-                minimum: 1,
-                maximum: maximumStepCount
-            )
-            vSteps = clampedSampleCount(
-                bounds.tangentVMagnitudeUpperBound * vSpan / maximumEdgeLength,
-                minimum: 1,
-                maximum: maximumStepCount
-            )
+        let bounds = try proofBudget.withRemainingCells { remaining in
+            try DefaultSurfaceDifferentialEncloser().tessellationBounds(of: surface,
+                over: SurfaceParameterBox(u: uInterval, v: vInterval),
+                tolerance: tolerance, remainingCells: &remaining)
         }
-
-        while true {
-            let uStep = uSpan / Double(uSteps)
-            let vStep = vSpan / Double(vSteps)
-            let mixedContribution = 2.0
-                * bounds.secondDerivativeUVMagnitudeUpperBound
-                * uStep * vStep
-            let linearErrorBound = (
-                bounds.secondDerivativeUUMagnitudeUpperBound * uStep * uStep
-                    + mixedContribution
-                    + bounds.secondDerivativeVVMagnitudeUpperBound * vStep * vStep
-            ).nextUp
-            let angularErrorBound = (
-                bounds.unitNormalDerivativeUMagnitudeUpperBound * uStep
-                    + bounds.unitNormalDerivativeVMagnitudeUpperBound * vStep
-            ).nextUp
-            let uEdgeLength = bounds.tangentUMagnitudeUpperBound * uStep
-            let vEdgeLength = bounds.tangentVMagnitudeUpperBound * vStep
-            let satisfiesEdgeLength = options.maxEdgeLength.map {
-                uEdgeLength <= $0 && vEdgeLength <= $0
-            } ?? true
-            if linearErrorBound <= options.linearTolerance,
-               angularErrorBound <= options.angularTolerance,
-               satisfiesEdgeLength {
-                return (uSteps, vSteps)
-            }
-            guard uSteps < maximumStepCount || vSteps < maximumStepCount else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .resourceLimitExceeded,
-                    tolerance: tolerance,
-                    message: "Procedural surface tessellation exceeded its certified grid budget."
-                )
-            }
-            let uContribution = bounds.secondDerivativeUUMagnitudeUpperBound
-                    * uStep * uStep
-                + bounds.secondDerivativeUVMagnitudeUpperBound * uStep * vStep
-                + bounds.unitNormalDerivativeUMagnitudeUpperBound * uStep
-                + uEdgeLength
-            let vContribution = bounds.secondDerivativeVVMagnitudeUpperBound
-                    * vStep * vStep
-                + bounds.secondDerivativeUVMagnitudeUpperBound * uStep * vStep
-                + bounds.unitNormalDerivativeVMagnitudeUpperBound * vStep
-                + vEdgeLength
-            if (uContribution >= vContribution && uSteps < maximumStepCount)
-                || vSteps == maximumStepCount {
-                uSteps = min(maximumStepCount, uSteps * 2)
-            } else {
-                vSteps = min(maximumStepCount, vSteps * 2)
-            }
-        }
+        return try certifiedBSplineGridStepCounts(bounds: bounds,
+            uBounds: (uInterval.lower, uInterval.upper), vBounds: (vInterval.lower, vInterval.upper),
+            options: options, proofBudget: proofBudget)
     }
 
     private func circularStepCount(
@@ -2421,37 +3240,16 @@ public struct MeshTessellator: Tessellating {
         uBounds: (lower: Double, upper: Double),
         vBounds: (lower: Double, upper: Double)
     ) throws -> Vector3D {
-        do {
-            return try surface.normal(
-                u: u,
-                v: v,
-                tolerance: tolerance
-            )
-        } catch let error as KernelError
-            where error.code == .singularSystem
-                && (
-                    uIndex == 0
-                        || uIndex == uSteps
-                        || vIndex == 0
-                        || vIndex == vSteps
-                ) {
-            let normalU = interpolatedParameter(
-                lowerBound: uBounds.lower,
-                upperBound: uBounds.upper,
-                index: min(max(uIndex, 1), uSteps - 1),
-                count: uSteps
-            )
-            let normalV = interpolatedParameter(
-                lowerBound: vBounds.lower,
-                upperBound: vBounds.upper,
-                index: min(max(vIndex, 1), vSteps - 1),
-                count: vSteps
-            )
-            return try surface.normal(
-                u: normalU,
-                v: normalV,
-                tolerance: tolerance
-            )
+        switch surface {
+        case .analytic(.sphere(let center, _)):
+            return try (surface.point(u: u, v: v, tolerance: tolerance)-center).normalized(tolerance: tolerance.distance)
+        case .analytic(.cone) where v == 0:
+            throw KernelError(phase: .geometry,code: .singularGeometry,tolerance: tolerance,
+                message: "An original cone apex requires its retained one-sided pole-normal receipt before emission.")
+        default:
+            // Original tensor poles already carry a preflight normal receipt.
+            // A different singularity must propagate its original failure.
+            return try surface.normal(u: u, v: v, tolerance: tolerance)
         }
     }
 
@@ -2470,6 +3268,7 @@ public struct MeshTessellator: Tessellating {
         return max(minimum, Int(bounded))
     }
 
+    @available(*, deprecated, message: "Use the retained original trimmed-facet preflight plan.")
     private func appendTrimmedParametricFace(
         surface: Surface3D,
         options: TessellationOptions,
@@ -2507,7 +3306,9 @@ public struct MeshTessellator: Tessellating {
         let baseIndex = UInt32(positions.count)
         try budget.charge(vertices: parameters.count, indices: 0)
         // FIXME(INCOMPLETE_IMPLEMENTATION): Singular boundary shading normals use a nearby
-        // regular parameter in the production trimmed-face tessellation path. This does not
+        // regular parameter in this deprecated private trim implementation, which has no
+        // production caller. Its removal follows final retained-plan behavior verification.
+        // This does not
         // certify a unique one-sided normal limit or its angular error; those guarantees
         // and direction-dependent singularity rejection are required before full support.
         let middle = parameters.isEmpty ? SurfaceParameter(u: 0, v: 0) : SurfaceParameter(
@@ -2671,6 +3472,817 @@ public struct MeshTessellator: Tessellating {
                 throw TessellationError.degenerateFace(faceID)
             }
         }
+    }
+
+    private struct TrimmedFacetPlan {
+        var parameters: [SurfaceParameter]
+        var triangles: [TriangleIndex]
+        var boundaryPoints: [SurfaceParameter: Point3D] = [:]
+        var positions: [Point3D] = []
+        var differentialBounds: [SurfaceTessellationDifferentialBounds] = []
+        var refinementDepth = 0
+        var poleNormals: [Int: Vector3D] = [:]
+        var nativeOwners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan] = []
+        var nativeCornerNormals: [Vector3D] = []
+        var collapsedStations: [Int: CollapsedStation] = [:]
+    }
+
+    private func hasSingularBoundary(faceID: FaceID, model: BRepModel,
+        proofBudget: TessellationProofBudget) throws -> Bool {
+        guard let face = model.faces[faceID] else { throw TessellationError.unsupportedFace(faceID) }
+        for loopID in face.loops {
+            guard let loop = model.loops[loopID] else { throw TessellationError.unsupportedFace(faceID) }
+            for use in loop.coedges {
+                try proofBudget.charge()
+                guard let edge = model.edges[use.edgeID] else { throw TessellationError.unsupportedFace(faceID) }
+                if try edgeGeometryClassifier(proofBudget: proofBudget).kind(of: edge, in: model, tolerance: tolerance) == .singular {
+                    return true
+                }
+            }
+        }
+        return false
+    }
+
+    private func preparePoleNormals(faceID: FaceID, estimate: inout FaceUsageEstimate,
+        model: BRepModel, options: TessellationOptions,
+        canonicalStations: [EdgeID: [CurveTessellationSample]] = [:],
+        proofBudget: TessellationProofBudget) throws {
+        guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else { return }
+        var nativeSurface = surface
+        var images: [OriginalImageSurface3D] = []
+        enum PoleImageLayer {
+            case chart(OriginalImageSurface3D)
+            case word(OriginalAffineWordSurface3D)
+        }
+        var imageLayers: [PoleImageLayer] = []
+        while true {
+            try proofBudget.charge()
+            switch nativeSurface {
+            case .procedural(.originalImage(let image)):
+                guard imageLayers.count < 16 else { throw TessellationError.unsupportedFace(faceID) }
+                images.append(image); imageLayers.append(.chart(image)); nativeSurface = image.source
+            case .procedural(.originalAffineWord(let image)):
+                guard imageLayers.count < 16 else { throw TessellationError.unsupportedFace(faceID) }
+                imageLayers.append(.word(image)); nativeSurface = image.source
+            default: break
+            }
+            if case .procedural(.originalImage) = nativeSurface { continue }
+            if case .procedural(.originalAffineWord) = nativeSurface { continue }
+            break
+        }
+        let spline: BSplineSurface3D?
+        let analyticPole: Bool
+        let angularPole: Bool
+        let revolution: OriginalRevolutionSurface3D?
+        switch nativeSurface {
+        case .bSpline(let value): spline = value; analyticPole = false; angularPole = false; revolution = nil
+        case .analytic(.sphere), .analytic(.cone): spline = nil; analyticPole = true; angularPole = false; revolution = nil
+        case .procedural(.originalAngularTransport(let image)) where image.vTransport.isIntrinsic:
+            spline = nil; analyticPole = true; angularPole = true; revolution = nil
+        case .procedural(.originalRevolution(let value)): spline = nil; analyticPole = false; angularPole = false; revolution = value
+        default: return
+        }
+
+        var poleTolerance = tolerance
+        poleTolerance.angle = min(tolerance.angle, (options.angularTolerance / 4).nextDown)
+        try poleTolerance.validate()
+        var collapsedU = Set<Double>(), collapsedV = Set<Double>()
+        if let spline, case .closed(let low, let high) = spline.uDomain {
+            for (parameter,column) in [(low,0),(high,spline.uControlPointCount-1)] {
+                let knots = column == 0 ? spline.uKnots.prefix(spline.uDegree+1) : spline.uKnots.suffix(spline.uDegree+1)
+                var clamped = true
+                for knot in knots { try proofBudget.charge(); if knot != parameter { clamped = false } }
+                guard clamped else { continue }
+                let point = spline.controlPoints[0][column]
+                var collapsed = true
+                for row in spline.controlPoints {
+                    try proofBudget.charge()
+                    if row[column] != point { collapsed = false; break }
+                }
+                if collapsed { collapsedU.insert(parameter) }
+            }
+        }
+        if let spline, case .closed(let low, let high) = spline.vDomain {
+            for (parameter,rowIndex) in [(low,0),(high,spline.vControlPointCount-1)] {
+                let knots = rowIndex == 0 ? spline.vKnots.prefix(spline.vDegree+1) : spline.vKnots.suffix(spline.vDegree+1)
+                var clamped = true
+                for knot in knots { try proofBudget.charge(); if knot != parameter { clamped = false } }
+                guard clamped else { continue }
+                let row = spline.controlPoints[rowIndex]
+                guard let point = row.first else { continue }
+                var collapsed = true
+                for value in row {
+                    try proofBudget.charge()
+                    if value != point { collapsed = false; break }
+                }
+                if collapsed { collapsedV.insert(parameter) }
+            }
+        }
+        if analyticPole { collapsedV.formUnion(SurfaceParameterTopology(surface: nativeSurface).uSingularVValues) }
+        if let revolution {
+            if revolution.hasOriginalAxisEndpoint(atEnd: false) { collapsedV.insert(0) }
+            if revolution.hasOriginalAxisEndpoint(atEnd: true) { collapsedV.insert(1) }
+        }
+        var coneNappe: OriginalAnalyticPoleNormal.ConeNappe?
+        if case .analytic(.cone) = nativeSurface {
+            let foreignBox: SurfaceParameterBox
+            if let grid = estimate.grid {
+                foreignBox = SurfaceParameterBox(u: try ScalarInterval(lower: grid.uBounds.lower, upper: grid.uBounds.upper),
+                    v: try ScalarInterval(lower: grid.vBounds.lower, upper: grid.vBounds.upper))
+            } else if let plan = estimate.trimmedPlan, let first = plan.parameters.first {
+                var lowerU = first.u, upperU = first.u, lowerV = first.v, upperV = first.v
+                for parameter in plan.parameters {
+                    try proofBudget.charge()
+                    lowerU = min(lowerU, parameter.u); upperU = max(upperU, parameter.u)
+                    lowerV = min(lowerV, parameter.v); upperV = max(upperV, parameter.v)
+                }
+                foreignBox = SurfaceParameterBox(u: try ScalarInterval(lower: lowerU, upper: upperU),
+                    v: try ScalarInterval(lower: lowerV, upper: upperV))
+            } else { throw TessellationError.unsupportedFace(faceID) }
+            var nativeBox = foreignBox
+            for image in images {
+                try proofBudget.charge()
+                nativeBox = try image.nativeBox(nativeBox, consumeWork: { try proofBudget.charge() },
+                    consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+            }
+            if nativeBox.v.lower >= 0, nativeBox.v.upper > 0 { coneNappe = .positive }
+            else if nativeBox.v.upper <= 0, nativeBox.v.lower < 0 { coneNappe = .negative }
+            else { throw TessellationError.unsupportedFace(faceID) }
+        }
+        var hasForeignBounds = false
+        var foreignLowerU = 0.0, foreignUpperU = 0.0
+        var foreignLowerV = 0.0, foreignUpperV = 0.0
+        func retainBounds(_ parameter: SurfaceParameter) throws {
+            try proofBudget.charge()
+            if hasForeignBounds {
+                foreignLowerU = min(foreignLowerU, parameter.u); foreignUpperU = max(foreignUpperU, parameter.u)
+                foreignLowerV = min(foreignLowerV, parameter.v); foreignUpperV = max(foreignUpperV, parameter.v)
+            } else {
+                foreignLowerU = parameter.u; foreignUpperU = parameter.u
+                foreignLowerV = parameter.v; foreignUpperV = parameter.v
+                hasForeignBounds = true
+            }
+        }
+        func retainBounds(_ grid: ParametricGrid) throws {
+            try retainBounds(.init(u: grid.uBounds.lower, v: grid.vBounds.lower))
+            try retainBounds(.init(u: grid.uBounds.upper, v: grid.vBounds.upper))
+        }
+        if let grid = estimate.grid { try retainBounds(grid) }
+        if let grids = estimate.nativeGrids { for grid in grids { try retainBounds(grid) } }
+        if let plan = estimate.trimmedPlan { for parameter in plan.parameters { try retainBounds(parameter) } }
+        guard hasForeignBounds else { return }
+        var collapsedPoints: [CollapsedBoundaryKey: CollapsedStation] = [:]
+        func collapsedStation(_ parameter: SurfaceParameter) throws -> CollapsedStation? {
+            var originalBox = SurfaceParameterBox(u: try ScalarInterval(lower: parameter.u, upper: parameter.u),
+                v: try ScalarInterval(lower: parameter.v, upper: parameter.v))
+            for image in images {
+                originalBox = try image.nativeBox(originalBox, consumeWork: { try proofBudget.charge() },
+                    consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+            }
+            let direction: OriginalBSplinePoleNormal.Direction
+            let key: CollapsedBoundaryKey
+            if originalBox.u.width == 0, collapsedU.contains(originalBox.u.lower) {
+                direction = .constantU; key = .init(constantU: true, nativeParameter: originalBox.u.lower)
+            } else if originalBox.v.width == 0, collapsedV.contains(originalBox.v.lower) {
+                direction = .constantV; key = .init(constantU: false, nativeParameter: originalBox.v.lower)
+            } else { return nil }
+            if let retained = collapsedPoints[key] { return .init(key: key, point: retained.point) }
+            var foreignDirection = direction
+            for image in images.reversed() where image.swapAxes {
+                foreignDirection = foreignDirection == .constantU ? .constantV : .constantU
+            }
+            let box = SurfaceParameterBox(
+                u: try ScalarInterval(lower: foreignDirection == .constantU ? parameter.u : foreignLowerU,
+                    upper: foreignDirection == .constantU ? parameter.u : foreignUpperU),
+                v: try ScalarInterval(lower: foreignDirection == .constantV ? parameter.v : foreignLowerV,
+                    upper: foreignDirection == .constantV ? parameter.v : foreignUpperV))
+            let receipt = try OriginalSurfaceCollapsedBoundaryPoint.prepare(of: surface, over: box,
+                direction: foreignDirection, remainingSourceDepth: 16, tolerance: tolerance,
+                consumeWork: { try proofBudget.charge() })
+            guard receipt.positionDeviationUpperBound <= (options.linearTolerance / 2).nextDown else {
+                throw TessellationError.unsupportedFace(faceID)
+            }
+            var point = receipt.point
+            for loopID in face.loops {
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Missing collapsed source loop.") }
+                for use in loop.coedges {
+                    try proofBudget.charge()
+                    guard let edge = model.edges[use.edgeID],let pcurve = use.surfaceParameterCurve,
+                        let retained = canonicalStations[edge.id]?.first else { continue }
+                    guard try edgeGeometryClassifier(proofBudget: proofBudget).kind(of: edge,in: model,tolerance: tolerance) == .singular else { continue }
+                    let endpoint = try pcurve.parameter(atNormalizedFraction: 0,tolerance: tolerance)
+                    var native = SurfaceParameterBox(u: try ScalarInterval(lower: endpoint.u,upper: endpoint.u),
+                        v: try ScalarInterval(lower: endpoint.v,upper: endpoint.v))
+                    for image in images {
+                        native = try image.nativeBox(native, consumeWork: { try proofBudget.charge() },
+                            consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+                    }
+                    let matched = key.constantU ? native.u.width == 0 && native.u.lower == key.nativeParameter
+                        : native.v.width == 0 && native.v.lower == key.nativeParameter
+                    guard matched else { continue }
+                    guard originalPositionGap(receipt.positionBounds,from: retained.point) <= (options.linearTolerance/16).nextDown else {
+                        throw KernelError(phase: .geometry,code: .classificationFailure,tolerance: tolerance,
+                            message: "Original collapsed boundary cannot admit its canonical shared vertex within the mesh station allocation.")
+                    }
+                    point = retained.point
+                }
+            }
+            let station = CollapsedStation(key: key,point: point)
+            collapsedPoints[key] = station
+            return station
+        }
+        var prepared: OriginalBSplinePoleNormal?
+        var nativePrepared: PreparedBSplineSurfaceDifferentialEncloser?
+        var exactFactors: [(boundary: Double, direction: OriginalBSplinePoleNormal.Direction,
+            factor: OriginalExactBSplinePoleNormal)] = []
+        var revolutionFactors: [Bool: OriginalRevolutionPoleNormal] = [:]
+        var transportedPoleSource: PreparedSurfaceDifferentialEncloser?
+        func normal(_ parameter: SurfaceParameter,
+            owning: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan? = nil) throws -> Vector3D? {
+            var originalBox = SurfaceParameterBox(
+                u: try ScalarInterval(lower: parameter.u, upper: parameter.u),
+                v: try ScalarInterval(lower: parameter.v, upper: parameter.v))
+            for image in images {
+                try proofBudget.charge()
+                originalBox = try image.nativeBox(originalBox, consumeWork: { try proofBudget.charge() },
+                    consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+            }
+            let originalDirection: OriginalBSplinePoleNormal.Direction?
+            if originalBox.u.width == 0, collapsedU.contains(originalBox.u.lower) { originalDirection = .constantU }
+            else if originalBox.v.width == 0, collapsedV.contains(originalBox.v.lower) { originalDirection = .constantV }
+            else { originalDirection = nil }
+            guard let direction = originalDirection else { return nil }
+            if angularPole {
+                if transportedPoleSource == nil {
+                    transportedPoleSource = try PreparedSurfaceDifferentialEncloser(surface: surface,
+                        tolerance: poleTolerance, remainingSourceDepth: 16, maximumSubdivisionDepth: 32,
+                        consumeWork: { try proofBudget.charge() },
+                        consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+                }
+                guard let transportedPoleSource else { throw TessellationError.unsupportedFace(faceID) }
+                var usage = TessellationExactProofAdmission(budget: proofBudget)
+                let box = SurfaceParameterBox(u: try ScalarInterval(lower: parameter.u, upper: parameter.u),
+                    v: try ScalarInterval(lower: parameter.v, upper: parameter.v))
+                let field = try transportedPoleSource.unitNormalBounds(over: box, tolerance: poleTolerance,
+                    maximumSpanCount: max(1, proofBudget.remaining), maximumSubdivisionDepth: 32,
+                    remainingSourceDepth: 16, storageByteStride: TessellationExactProofAdmission.storageByteStride,
+                    usage: &usage)
+                let bounds = CoordinateEnclosure3D(x: try ScalarInterval(lower: field.x.lower, upper: field.x.upper),
+                    y: try ScalarInterval(lower: field.y.lower, upper: field.y.upper),
+                    z: try ScalarInterval(lower: field.z.lower, upper: field.z.upper))
+                let candidate = try OriginalSelectionAngleBounds.representative(bounds, tolerance: poleTolerance)
+                let deviation = try OriginalSelectionAngleBounds.enclose(bounds,
+                    OriginalSelectionAngleBounds.exact(candidate), tolerance: poleTolerance)
+                guard deviation.upper <= (options.angularTolerance / 2).nextDown else {
+                    throw TessellationError.unsupportedFace(faceID)
+                }
+                return candidate
+            }
+            var receipt: OriginalSurfacePoleNormalReceipt
+            if let spline {
+                if prepared == nil {
+                    prepared = try OriginalBSplinePoleNormal(surface: spline, tolerance: poleTolerance,
+                        consumeWork: { try proofBudget.charge() })
+                }
+                guard let prepared else { throw TessellationError.unsupportedFace(faceID) }
+                let spans: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan]
+                if let owning { spans = [owning] }
+                else {
+                    if nativePrepared == nil {
+                        nativePrepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: spline,
+                            tolerance: poleTolerance, consumeWork: { try proofBudget.charge() })
+                    }
+                    guard let nativePrepared else { throw TessellationError.unsupportedFace(faceID) }
+                    spans = try nativePrepared.originalNativeSpans(over: originalBox, tolerance: poleTolerance,
+                        maximumSpanCount: max(1, proofBudget.remaining), consumeWork: { try proofBudget.charge() })
+                }
+                var panels: [OriginalSurfacePoleNormalPanel] = []
+                for span in spans {
+                    try proofBudget.charge()
+                    let lowerU = max(originalBox.u.lower, span.uBounds.lower)
+                    let upperU = min(originalBox.u.upper, span.uBounds.upper)
+                    let lowerV = max(originalBox.v.lower, span.vBounds.lower)
+                    let upperV = min(originalBox.v.upper, span.vBounds.upper)
+                    guard lowerU <= upperU, lowerV <= upperV else { continue }
+                    let panelBox = SurfaceParameterBox(u: try ScalarInterval(lower: lowerU, upper: upperU),
+                        v: try ScalarInterval(lower: lowerV, upper: upperV))
+                    let nativePanel: OriginalBSplinePoleNormalPanel
+                    do {
+                        nativePanel = try prepared.panelBounds(over: panelBox, direction: direction,
+                            owning: span, consumeWork: { try proofBudget.charge() })
+                    } catch let error as KernelError where error.code == .singularGeometry {
+                        let boundary = direction == .constantU ? originalBox.u.lower : originalBox.v.lower
+                        var cached: OriginalExactBSplinePoleNormal?
+                        for entry in exactFactors {
+                            try proofBudget.charge()
+                            if entry.boundary == boundary, entry.direction == direction,
+                                entry.factor.span.uSpanIndex == span.uSpanIndex,
+                                entry.factor.span.vSpanIndex == span.vSpanIndex,
+                                entry.factor.span.uCycle == span.uCycle, entry.factor.span.vCycle == span.vCycle {
+                                cached = entry.factor; break
+                            }
+                        }
+                        var usage = TessellationExactProofAdmission(budget: proofBudget)
+                        let factor: OriginalExactBSplinePoleNormal
+                        if let cached { factor = cached }
+                        else {
+                            factor = try prepared.prepareExactPanel(over: SurfaceParameterBox(
+                                u: direction == .constantU ? originalBox.u : span.uBounds,
+                                v: direction == .constantV ? originalBox.v : span.vBounds),
+                                direction: direction, owning: span, usage: &usage)
+                            exactFactors.append((boundary: boundary, direction: direction, factor: factor))
+                        }
+                        nativePanel = try factor.panelBounds(over: panelBox, tolerance: poleTolerance, usage: &usage)
+                    }
+                    panels.append(OriginalSurfacePoleNormalPanel(native: nativePanel))
+                }
+                receipt = try OriginalSurfacePoleNormalReceipt(panels: panels, over: originalBox,
+                    consumeWork: { try proofBudget.charge() })
+            } else if let revolution {
+                guard direction == .constantV, originalBox.v.width == 0,
+                    originalBox.v.lower == 0 || originalBox.v.lower == 1 else { throw TessellationError.unsupportedFace(faceID) }
+                let atEnd = originalBox.v.lower == 1
+                var usage = TessellationExactProofAdmission(budget: proofBudget)
+                let factor: OriginalRevolutionPoleNormal
+                if let retained = revolutionFactors[atEnd] { factor = retained }
+                else {
+                    factor = try OriginalRevolutionPoleNormal(surface: revolution, atEnd: atEnd,
+                        maximumSubdivisionDepth: 32, tolerance: poleTolerance, usage: &usage)
+                    revolutionFactors[atEnd] = factor
+                }
+                let panel = try factor.panelBounds(over: originalBox, tolerance: poleTolerance,
+                    storageByteStride: TessellationExactProofAdmission.storageByteStride, usage: &usage)
+                receipt = try OriginalSurfacePoleNormalReceipt(panel: panel)
+            } else {
+                guard let panel = try OriginalAnalyticPoleNormal().panelBounds(of: nativeSurface,
+                    over: originalBox, coneNappe: coneNappe, tolerance: poleTolerance,
+                    consumeWork: { try proofBudget.charge() }) else { throw TessellationError.unsupportedFace(faceID) }
+                receipt = try OriginalSurfacePoleNormalReceipt(panel: panel)
+            }
+            for layer in imageLayers.reversed() {
+                switch layer {
+                case .chart(let image):
+                    receipt = try OriginalImagePoleNormalTransport().normal(source: receipt, image: image,
+                        tolerance: poleTolerance, consumeWork: { try proofBudget.charge() })
+                case .word(let image):
+                    var usage = TessellationExactProofAdmission(budget: proofBudget)
+                    receipt = try receipt.transformed(through: image, tolerance: poleTolerance, usage: &usage)
+                }
+            }
+            guard receipt.parameters.u.contains(parameter.u), receipt.parameters.v.contains(parameter.v) else {
+                throw TessellationError.unsupportedFace(faceID)
+            }
+            guard receipt.angularDeviationUpperBound.isFinite,
+                receipt.angularDeviationUpperBound <= (options.angularTolerance / 2).nextDown else {
+                throw TessellationError.unsupportedFace(faceID)
+            }
+            return receipt.normal
+        }
+        func prepare(_ grid: inout ParametricGrid) throws {
+            func station(_ uIndex: Int, _ vIndex: Int) throws {
+                try proofBudget.charge()
+                let parameter = SurfaceParameter(u: gridParameter(grid,axisU: true,index: uIndex),
+                    v: gridParameter(grid,axisU: false,index: vIndex))
+                let index = vIndex*(grid.steps.u+1)+uIndex
+                if let value = try normal(parameter, owning: grid.owningSpan) { grid.poleNormals[index] = value }
+                if let value = try collapsedStation(parameter) { grid.collapsedStations[index] = value }
+            }
+            for uIndex in 0...grid.steps.u {
+                try station(uIndex,0)
+                if grid.steps.v > 0 { try station(uIndex,grid.steps.v) }
+            }
+            if grid.steps.v > 1 {
+                for vIndex in 1..<grid.steps.v {
+                    try station(0,vIndex)
+                    if grid.steps.u > 0 { try station(grid.steps.u,vIndex) }
+                }
+            }
+        }
+        if var grid = estimate.grid { try prepare(&grid); estimate.grid = grid }
+        if var grids = estimate.nativeGrids {
+            for index in grids.indices { try prepare(&grids[index]) }
+            estimate.nativeGrids = grids
+        }
+        if var plan = estimate.trimmedPlan {
+            plan.nativeCornerNormals.removeAll(keepingCapacity: true)
+            for (index, parameter) in plan.parameters.enumerated() {
+                try proofBudget.charge()
+                if let value = try collapsedStation(parameter) { plan.collapsedStations[index] = value }
+            }
+            if let spline, !plan.nativeOwners.isEmpty {
+                guard plan.nativeOwners.count == plan.triangles.count else { throw TessellationError.unsupportedFace(faceID) }
+                let completeNormalSource = try PreparedSurfaceDifferentialEncloser(surface: surface,
+                    tolerance: tolerance, remainingSourceDepth: 16, maximumSubdivisionDepth: 32,
+                    consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+                for (triangleIndex, triangle) in plan.triangles.enumerated() {
+                    let owner = plan.nativeOwners[triangleIndex]
+                    for index in [triangle.first, triangle.second, triangle.third] {
+                        try proofBudget.charge()
+                        let parameter = plan.parameters[index]
+                        let value: Vector3D
+                        if let pole = try normal(parameter, owning: owner) { value = pole }
+                        else {
+                            var usage = TessellationExactProofAdmission(budget: proofBudget)
+                            let field = try completeNormalSource.unitNormalBounds(over: SurfaceParameterBox(
+                                u: ScalarInterval(lower: parameter.u, upper: parameter.u),
+                                v: ScalarInterval(lower: parameter.v, upper: parameter.v)), tolerance: tolerance,
+                                maximumSpanCount: max(1, proofBudget.remaining), maximumSubdivisionDepth: 32,
+                                remainingSourceDepth: 16, owningNativeSpan: owner,
+                                storageByteStride: TessellationExactProofAdmission.storageByteStride, usage: &usage)
+                            let bounds = CoordinateEnclosure3D(x: try ScalarInterval(lower: field.x.lower, upper: field.x.upper),
+                                y: try ScalarInterval(lower: field.y.lower, upper: field.y.upper),
+                                z: try ScalarInterval(lower: field.z.lower, upper: field.z.upper))
+                            value = try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance)
+                            let deviation = try OriginalSelectionAngleBounds.enclose(bounds,
+                                OriginalSelectionAngleBounds.exact(value), tolerance: tolerance)
+                            guard deviation.upper <= (options.angularTolerance / 2).nextDown else {
+                                throw TessellationError.unsupportedFace(faceID)
+                            }
+                        }
+                        plan.nativeCornerNormals.append(value)
+                    }
+                }
+                estimate.vertices = try multiplied(plan.triangles.count, 3, as: .vertexCount)
+            } else {
+                for (index, parameter) in plan.parameters.enumerated() {
+                    if let value = try normal(parameter) { plan.poleNormals[index] = value }
+                }
+            }
+            estimate.trimmedPlan = plan
+        }
+    }
+
+    private func preparedTrimmedFacets(surface: Surface3D, outer: [SurfaceParameter],
+        holes: [[SurfaceParameter]], options: TessellationOptions, faceID: FaceID,
+        proofBudget: TessellationProofBudget,
+        boundaryPoints: [SurfaceParameter: Point3D] = [:]) throws -> TrimmedFacetPlan {
+        let polygon = try bridgedPlanarFacePoints(outerPoints: outer.map(parameterPoint),
+            innerPointLoops: holes.map { $0.map(parameterPoint) }, normal: .unitZ, faceID: faceID)
+        var parameters = polygon.map(surfaceParameter)
+        var triangles = try planarFaceTriangles(points: polygon, normal: .unitZ, faceID: faceID)
+        var nativeOwners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan] = []
+        var imageSource = surface
+        var imageDepth = 0
+        var wordTransports: [OriginalAffineWordDifferentialTransport] = []
+        var sourceImageDepth = 0
+        while true {
+            try proofBudget.charge()
+            switch imageSource {
+            case .procedural(.originalImage(let image)):
+                guard sourceImageDepth < 16 else { throw TessellationError.unsupportedFace(faceID) }
+                sourceImageDepth += 1
+                if preservesOriginalNativeUV(image) {
+                    var usage = TessellationExactProofAdmission(budget: proofBudget)
+                    wordTransports.append(try OriginalAffineWordDifferentialTransport(image: image,
+                        tolerance: tolerance, usage: &usage))
+                } else {
+                    imageDepth += 1
+                }
+                imageSource = image.source
+            case .procedural(.originalAffineWord(let image)):
+                guard sourceImageDepth < 16 else { throw TessellationError.unsupportedFace(faceID) }
+                sourceImageDepth += 1
+                var usage = TessellationExactProofAdmission(budget: proofBudget)
+                wordTransports.append(try OriginalAffineWordDifferentialTransport(image: image, usage: &usage))
+                imageSource = image.source
+            default: break
+            }
+            if case .procedural(.originalImage) = imageSource { continue }
+            if case .procedural(.originalAffineWord) = imageSource { continue }
+            break
+        }
+        if imageDepth > 0, case .bSpline(let spline) = imageSource,
+            hasOriginalC0Knots(spline)
+                || (spline.isUPeriodic && spline.periodicSeamContinuityOrder(direction: .u) == 0)
+                || (spline.isVPeriodic && spline.periodicSeamContinuityOrder(direction: .v) == 0) {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Public trimmed image meshes still
+            // need Geometry's retained foreign native-knot partition chart. An inverse
+            // rounded knot value cannot select an original owning side. Complete
+            // image partition and one-sided source normals are required before this
+            // branch may authorize triangle fidelity across an original C0 join.
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Original image trim requires a retained native knot partition chart.")
+        }
+        if imageDepth == 0, case .bSpline(let spline) = imageSource {
+            let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: spline,
+                tolerance: tolerance, consumeWork: { try proofBudget.charge() })
+            let box = SurfaceParameterBox(u: try ScalarInterval(lower: parameters.map(\.u).min()!,
+                upper: parameters.map(\.u).max()!), v: try ScalarInterval(lower: parameters.map(\.v).min()!,
+                upper: parameters.map(\.v).max()!))
+            let spans = try prepared.originalNativeSpans(over: box, tolerance: tolerance,
+                maximumSpanCount: max(1, proofBudget.remaining), consumeWork: { try proofBudget.charge() })
+            let partition = try TrimmedNativePartition().partition(parameters: parameters,
+                triangles: triangles.map { .init(first: $0.first, second: $0.second, third: $0.third) },
+                spans: spans, budget: proofBudget, tolerance: tolerance)
+            parameters = partition.parameters
+            triangles = partition.triangles.map { .init(first: $0.first, second: $0.second, third: $0.third) }
+            nativeOwners = partition.owners
+        }
+        for depth in 0...32 {
+            try Task.checkCancellation()
+            var needsRefinement = false
+            var differentialBounds: [SurfaceTessellationDifferentialBounds] = []
+            for (triangleIndex, triangle) in triangles.enumerated() {
+                try proofBudget.charge()
+                let vertices = [parameters[triangle.first], parameters[triangle.second], parameters[triangle.third]]
+                let minU = vertices.map(\.u).min()!, maxU = vertices.map(\.u).max()!
+                let minV = vertices.map(\.v).min()!, maxV = vertices.map(\.v).max()!
+                let du = (maxU-minU).nextUp, dv = (maxV-minV).nextUp
+                let box = SurfaceParameterBox(u: try ScalarInterval(lower: minU, upper: maxU),
+                    v: try ScalarInterval(lower: minV, upper: maxV))
+                let bounds: SurfaceTessellationDifferentialBounds
+                if imageDepth == 0, case .bSpline(let spline) = imageSource, !nativeOwners.isEmpty {
+                    let owner = nativeOwners[triangleIndex]
+                    let panels = try proofBudget.withRemainingCells { remaining in
+                        var usage = try OriginalTessellationProofUsage(maximumCellCount: remaining, tolerance: tolerance)
+                        defer { remaining -= usage.usedCellCount }
+                        return try DefaultSurfaceDifferentialEncloser().originalNativeSpanTessellationBounds(
+                            of: spline, over: box, tolerance: tolerance, proofUsage: &usage)
+                    }
+                    guard panels.count == 1, let panel = panels.first,
+                        panel.span.uSpanIndex == owner.uSpanIndex, panel.span.vSpanIndex == owner.vSpanIndex,
+                        panel.span.uCycle == owner.uCycle, panel.span.vCycle == owner.vCycle,
+                        panel.parameters.u == box.u, panel.parameters.v == box.v else {
+                        throw TessellationError.unsupportedFace(faceID)
+                    }
+                    var transported = panel.bounds
+                    for transport in wordTransports.reversed() {
+                        transported = try transport.bounds(transported, consumeWork: { try proofBudget.charge(depth: depth) })
+                    }
+                    bounds = transported
+                } else {
+                    bounds = try proofBudget.withRemainingCells { remaining in
+                        try DefaultSurfaceDifferentialEncloser().tessellationBounds(of: surface,
+                            over: box, tolerance: tolerance, remainingCells: &remaining)
+                    }
+                }
+                func product(_ a: Double, _ b: Double) -> Double { a == 0 || b == 0 ? 0 : (a*b).nextUp }
+                func sum(_ a: Double, _ b: Double) -> Double { a == 0 && b == 0 ? 0 : (a+b).nextUp }
+                let error = sum(sum(product(bounds.secondDerivativeUUMagnitudeUpperBound, product(du,du)),
+                    product(2, product(bounds.secondDerivativeUVMagnitudeUpperBound, product(du,dv)))),
+                    product(bounds.secondDerivativeVVMagnitudeUpperBound, product(dv,dv)))
+                let angle = sum(product(bounds.unitNormalDerivativeUMagnitudeUpperBound, du),
+                    product(bounds.unitNormalDerivativeVMagnitudeUpperBound, dv))
+                let edge = sum(product(bounds.tangentUMagnitudeUpperBound, du), product(bounds.tangentVMagnitudeUpperBound, dv))
+                try proofBudget.charge()
+                differentialBounds.append(bounds)
+                if error > options.linearTolerance || angle > options.angularTolerance || !(options.maxEdgeLength.map { edge <= $0 } ?? true) { needsRefinement = true }
+            }
+            if !needsRefinement {
+                return TrimmedFacetPlan(parameters: parameters, triangles: triangles,
+                    boundaryPoints: boundaryPoints, differentialBounds: differentialBounds,
+                    refinementDepth: depth, nativeOwners: nativeOwners)
+            }
+            guard depth < 32 else { throw TessellationError.resourceExhausted(.triangleCount, requested: 262_145, limit: 262_144) }
+            let count = triangles.count.multipliedReportingOverflow(by: 4)
+            guard !count.overflow, count.partialValue <= proofBudget.remaining else { throw TessellationError.resourceExhausted(.triangleCount, requested: count.partialValue, limit: proofBudget.remaining) }
+            var midpoints: [String: Int] = [:]
+            func midpoint(_ a: Int, _ b: Int) throws -> Int {
+                let key = "\(min(a,b)):\(max(a,b))"
+                if let index = midpoints[key] { return index }
+                guard parameters.count < 262_144 else { throw TessellationError.resourceExhausted(.vertexCount, requested: 262_145, limit: 262_144) }
+                let first = parameters[a], second = parameters[b]
+                let index = parameters.count
+                parameters.append(SurfaceParameter(u: first.u + (second.u-first.u)/2,
+                    v: first.v + (second.v-first.v)/2))
+                midpoints[key] = index
+                return index
+            }
+            var refined: [TriangleIndex] = []
+            var refinedOwners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan] = []
+            refined.reserveCapacity(count.partialValue)
+            for (triangleIndex, t) in triangles.enumerated() {
+                let ab = try midpoint(t.first,t.second), bc = try midpoint(t.second,t.third), ca = try midpoint(t.third,t.first)
+                refined.append(TriangleIndex(first:t.first,second:ab,third:ca))
+                refined.append(TriangleIndex(first:ab,second:t.second,third:bc))
+                refined.append(TriangleIndex(first:ca,second:bc,third:t.third))
+                refined.append(TriangleIndex(first:ab,second:bc,third:ca))
+                if !nativeOwners.isEmpty {
+                    for _ in 0..<4 { refinedOwners.append(nativeOwners[triangleIndex]) }
+                }
+            }
+            triangles = refined
+            nativeOwners = refinedOwners
+        }
+        throw TessellationError.degenerateFace(faceID)
+    }
+
+    /// Certifies the retained points and triangle planes actually used by trim emission.
+    private func certifyPublishedTrimmedFacets(preparations: inout [FaceID: FaceUsageEstimate],
+        model: BRepModel, faceOptions: [FaceID: TessellationOptions],
+        proofBudget: TessellationProofBudget) throws -> Bool {
+        var refined = false
+        for faceID in preparations.keys.sorted() {
+            try proofBudget.charge()
+            guard var estimate = preparations[faceID], var plan = estimate.trimmedPlan else { continue }
+            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],
+                let options = faceOptions[faceID], plan.differentialBounds.count == plan.triangles.count,
+                plan.nativeOwners.isEmpty || plan.nativeOwners.count == plan.triangles.count else {
+                throw TessellationError.unsupportedFace(faceID)
+            }
+            let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32,
+                consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+            func stationBox(_ parameter: SurfaceParameter) throws -> SurfaceParameterBox {
+                SurfaceParameterBox(u: try ScalarInterval(lower: parameter.u, upper: parameter.u),
+                    v: try ScalarInterval(lower: parameter.v, upper: parameter.v))
+            }
+            func position(_ parameter: SurfaceParameter) throws -> IntervalVector3DBounds {
+                try prepared.positionBounds(over: stationBox(parameter), tolerance: tolerance,
+                    maximumSpanCount: max(1, proofBudget.remaining), maximumSubdivisionDepth: 32,
+                    remainingSourceDepth: 16, consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) })
+            }
+            plan.positions.removeAll(keepingCapacity: true)
+            for (index, parameter) in plan.parameters.enumerated() {
+                try proofBudget.charge()
+                let point: Point3D
+                if let collapsed = plan.collapsedStations[index] { point = collapsed.point }
+                else if let canonical = plan.boundaryPoints[parameter] { point = canonical }
+                else {
+                    let original = try position(parameter)
+                    point = Point3D(x: original.x.midpoint, y: original.y.midpoint, z: original.z.midpoint)
+                }
+                try point.validate()
+                plan.positions.append(point)
+                if plan.nativeOwners.isEmpty, plan.poleNormals[index] == nil {
+                    var usage = TessellationExactProofAdmission(budget: proofBudget)
+                    let field = try prepared.unitNormalBounds(over: stationBox(parameter), tolerance: tolerance,
+                        maximumSpanCount: max(1, proofBudget.remaining), maximumSubdivisionDepth: 32,
+                        remainingSourceDepth: 16, storageByteStride: TessellationExactProofAdmission.storageByteStride,
+                        usage: &usage)
+                    let bounds = CoordinateEnclosure3D(x: try ScalarInterval(lower: field.x.lower, upper: field.x.upper),
+                        y: try ScalarInterval(lower: field.y.lower, upper: field.y.upper),
+                        z: try ScalarInterval(lower: field.z.lower, upper: field.z.upper))
+                    let normal = try OriginalSelectionAngleBounds.representative(bounds, tolerance: tolerance)
+                    let deviation = try OriginalSelectionAngleBounds.enclose(bounds,
+                        OriginalSelectionAngleBounds.exact(normal), tolerance: tolerance)
+                    guard deviation.upper <= (options.angularTolerance / 2).nextDown else {
+                        throw TessellationError.unsupportedFace(faceID)
+                    }
+                    plan.poleNormals[index] = normal
+                }
+            }
+            var needsRefinement = false
+            for (triangleIndex, triangle) in plan.triangles.enumerated() {
+                try proofBudget.charge(depth: plan.refinementDepth)
+                if hasCollapsedPair(triangle, stations: plan.collapsedStations) { continue }
+                let ids = [triangle.first, triangle.second, triangle.third]
+                let uv = ids.map { plan.parameters[$0] }
+                let points = ids.map { plan.positions[$0] }
+                let box = SurfaceParameterBox(u: try ScalarInterval(lower: uv.map(\.u).min()!, upper: uv.map(\.u).max()!),
+                    v: try ScalarInterval(lower: uv.map(\.v).min()!, upper: uv.map(\.v).max()!))
+                let bounds = plan.differentialBounds[triangleIndex]
+                var cornerError = 0.0
+                for corner in uv.indices {
+                    try proofBudget.charge()
+                    cornerError = max(cornerError, try originalPositionGap(position(uv[corner]), from: points[corner]))
+                }
+                let du = OutwardScalarInterval.exact(box.u.upper) - .exact(box.u.lower)
+                let dv = OutwardScalarInterval.exact(box.v.upper) - .exact(box.v.lower)
+                let interpolation: OutwardScalarInterval = .exact(bounds.secondDerivativeUUMagnitudeUpperBound) * du * du
+                    + .exact(2) * .exact(bounds.secondDerivativeUVMagnitudeUpperBound) * du * dv
+                    + .exact(bounds.secondDerivativeVVMagnitudeUpperBound) * dv * dv
+                let linear = (interpolation + .exact(cornerError)).upper
+                var accepted = linear.isFinite && linear <= options.linearTolerance
+                do {
+                    var usage = TessellationExactProofAdmission(budget: proofBudget)
+                    let owner = plan.nativeOwners.isEmpty ? nil : plan.nativeOwners[triangleIndex]
+                    let field = try prepared.unitNormalBounds(over: box, tolerance: tolerance,
+                        maximumSpanCount: max(1, proofBudget.remaining), maximumSubdivisionDepth: 32,
+                        remainingSourceDepth: 16, owningNativeSpan: owner,
+                        storageByteStride: TessellationExactProofAdmission.storageByteStride, usage: &usage)
+                    let originalNormal = CoordinateEnclosure3D(x: try ScalarInterval(lower: field.x.lower, upper: field.x.upper),
+                        y: try ScalarInterval(lower: field.y.lower, upper: field.y.upper),
+                        z: try ScalarInterval(lower: field.z.lower, upper: field.z.upper))
+                    let first = try OriginalSelectionAngleBounds.difference(points[1], points[0])
+                    let second = try OriginalSelectionAngleBounds.difference(points[2], points[0])
+                    let actual = try OriginalSelectionAngleBounds.crossDirection(first, second, tolerance: tolerance)
+                    let angle = try OriginalSelectionAngleBounds.enclose(originalNormal, actual, tolerance: tolerance)
+                    accepted = accepted && angle.upper <= options.angularTolerance
+                        && angle.upper < (Double.pi / 2).nextDown
+                } catch let error as KernelError where error.code == .singularGeometry || error.code == .singularSystem {
+                    accepted = false
+                }
+                if let maximum = options.maxEdgeLength {
+                    for pair in [(0,1),(1,2),(2,0)] {
+                        let delta = try OriginalSelectionAngleBounds.difference(points[pair.0], points[pair.1])
+                        let x = OutwardScalarInterval.exact(max(abs(delta.x.lower), abs(delta.x.upper)))
+                        let y = OutwardScalarInterval.exact(max(abs(delta.y.lower), abs(delta.y.upper)))
+                        let z = OutwardScalarInterval.exact(max(abs(delta.z.lower), abs(delta.z.upper)))
+                        accepted = accepted && sqrt((x*x+y*y+z*z).upper).nextUp <= maximum
+                    }
+                }
+                if !accepted { needsRefinement = true }
+            }
+            if needsRefinement {
+                guard plan.refinementDepth < 32 else {
+                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                        message: "Published original trim facets exhausted the unchanged subdivision ceiling.")
+                }
+                let count = plan.triangles.count.multipliedReportingOverflow(by: 4)
+                guard !count.overflow, count.partialValue <= proofBudget.remaining else {
+                    throw TessellationError.resourceExhausted(.triangleCount, requested: count.partialValue,
+                        limit: proofBudget.remaining)
+                }
+                var midpoints: [UInt64: Int] = [:]
+                func midpoint(_ a: Int, _ b: Int) throws -> Int {
+                    try proofBudget.charge()
+                    guard let lower = UInt32(exactly: min(a,b)), let upper = UInt32(exactly: max(a,b)) else {
+                        throw TessellationError.unsupportedFace(faceID)
+                    }
+                    let key = (UInt64(lower) << 32) | UInt64(upper)
+                    if let retained = midpoints[key] { return retained }
+                    guard plan.parameters.count < 262_144 else {
+                        throw TessellationError.resourceExhausted(.vertexCount, requested: 262_145, limit: 262_144)
+                    }
+                    let first = plan.parameters[a], second = plan.parameters[b]
+                    let uv = SurfaceParameter(u: first.u + (second.u-first.u)/2, v: first.v + (second.v-first.v)/2)
+                    guard uv != first, uv != second else {
+                        throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                            message: "Original trim refinement has no representable interior midpoint.")
+                    }
+                    let index = plan.parameters.count
+                    plan.parameters.append(uv); midpoints[key] = index
+                    return index
+                }
+                var triangles: [TriangleIndex] = []
+                var owners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan] = []
+                var differentials: [SurfaceTessellationDifferentialBounds] = []
+                for (index, triangle) in plan.triangles.enumerated() {
+                    let a = triangle.first, b = triangle.second, c = triangle.third
+                    let ab = try midpoint(a,b), bc = try midpoint(b,c), ca = try midpoint(c,a)
+                    for child in [TriangleIndex(first: a, second: ab, third: ca),
+                        TriangleIndex(first: ab, second: b, third: bc),
+                        TriangleIndex(first: ca, second: bc, third: c),
+                        TriangleIndex(first: ab, second: bc, third: ca)] {
+                        try proofBudget.charge()
+                        triangles.append(child); differentials.append(plan.differentialBounds[index])
+                        if !plan.nativeOwners.isEmpty { owners.append(plan.nativeOwners[index]) }
+                    }
+                }
+                plan.triangles = triangles; plan.nativeOwners = owners; plan.differentialBounds = differentials
+                plan.refinementDepth += 1
+                plan.positions.removeAll(keepingCapacity: true)
+                plan.nativeCornerNormals.removeAll(keepingCapacity: true)
+                plan.poleNormals.removeAll(keepingCapacity: true)
+                plan.collapsedStations.removeAll(keepingCapacity: true)
+                refined = true
+            }
+            estimate.vertices = plan.nativeOwners.isEmpty ? plan.parameters.count
+                : try multiplied(plan.triangles.count, 3, as: .vertexCount)
+            estimate.indices = try multiplied(plan.triangles.count, 3, as: .indexCount)
+            estimate.trimmedPlan = plan; preparations[faceID] = estimate
+        }
+        return refined
+    }
+
+    private func appendTrimmedFacets(plan: TrimmedFacetPlan, surface: Surface3D, face: Face,
+        shellOrientation: Orientation, faceID: FaceID, positions: inout [Point3D], normals: inout [Vector3D],
+        indices: inout [UInt32], budget: inout TessellationBudget) throws {
+        guard plan.positions.count == plan.parameters.count else {
+            throw TessellationError.unsupportedFace(faceID)
+        }
+        if !plan.nativeOwners.isEmpty {
+            guard plan.nativeCornerNormals.count == plan.triangles.count * 3 else { throw TessellationError.unsupportedFace(faceID) }
+            for (triangleIndex, triangle) in plan.triangles.enumerated() {
+                try Task.checkCancellation()
+                if hasCollapsedPair(triangle, stations: plan.collapsedStations) { continue }
+                let base = positions.count
+                guard let first = UInt32(exactly: base), let second = UInt32(exactly: base+1),
+                    let third = UInt32(exactly: base+2) else { throw TessellationError.unsupportedFace(faceID) }
+                try budget.charge(vertices: 3, indices: 0)
+                for (corner,index) in [triangle.first, triangle.second, triangle.third].enumerated() {
+                    positions.append(plan.positions[index])
+                    normals.append(try oriented(plan.nativeCornerNormals[triangleIndex*3+corner], face: face,
+                        shellOrientation: shellOrientation))
+                }
+                guard try appendCertifiedTriangle(first,second,third,positions: positions,
+                    reversed: face.orientation != shellOrientation,indices: &indices,budget: &budget) else { throw TessellationError.degenerateFace(faceID) }
+            }
+            return
+        }
+        let base = positions.count
+        try budget.charge(vertices: plan.parameters.count, indices: 0)
+        for index in plan.parameters.indices {
+            try Task.checkCancellation()
+            positions.append(plan.positions[index])
+            guard let normal = plan.poleNormals[index] else { throw TessellationError.unsupportedFace(faceID) }
+            normals.append(try oriented(normal, face: face, shellOrientation: shellOrientation))
+        }
+        for t in plan.triangles {
+            if hasCollapsedPair(t, stations: plan.collapsedStations) { continue }
+            guard let a = UInt32(exactly: base+t.first), let b = UInt32(exactly: base+t.second),
+                  let c = UInt32(exactly: base+t.third) else { throw TessellationError.unsupportedFace(faceID) }
+            guard try appendCertifiedTriangle(a,b,c,positions: positions,
+                reversed: face.orientation != shellOrientation,indices: &indices,budget: &budget) else { throw TessellationError.degenerateFace(faceID) }
+        }
+    }
+
+    private func hasCollapsedPair(_ triangle: TriangleIndex, stations: [Int: CollapsedStation]) -> Bool {
+        for pair in [(triangle.first,triangle.second),(triangle.second,triangle.third),(triangle.third,triangle.first)] {
+            if let first = stations[pair.0], let second = stations[pair.1], first.key == second.key { return true }
+        }
+        return false
     }
 
     private struct ParametricFanCenter {
@@ -2860,12 +4472,15 @@ public struct MeshTessellator: Tessellating {
         on surface: Surface3D,
         in model: BRepModel,
         options: TessellationOptions,
-        faceID: FaceID
+        faceID: FaceID,
+        edgeOptions: [EdgeID: TessellationOptions],
+        canonicalStations: [EdgeID: [CurveTessellationSample]],
+        proofBudget: TessellationProofBudget
     ) throws -> (u: (lower: Double, upper: Double), v: (lower: Double, upper: Double))? {
-        if case let .bSpline(spline) = surface,
-           spline.isUPeriodic || spline.isVPeriodic || hasOriginalC0Knots(spline)
-            || OriginalBSplineRectangleBasisAdmission().hasNonclampedOpenAxis(spline) {
-            return try originalBSplineRectangleBounds(for: loop, on: spline, in: model)
+        if let native = try originalNativeUVSupport(surface, proofBudget: proofBudget),
+           native.surface.isUPeriodic || native.surface.isVPeriodic || (try requiresOriginalNativePanels(native.surface,proofBudget: proofBudget)) {
+            return try originalBSplineRectangleBounds(for: loop, on: native.surface,
+                pcurveSupport: surface, in: model, proofBudget: proofBudget)
         }
         guard loop.edges.count == 4 else {
             return nil
@@ -2893,7 +4508,7 @@ public struct MeshTessellator: Tessellating {
         let parameters: [SurfaceParameter]
         if periodic {
             parameters = try sampledParameters(for: loop, on: surface, in: model,
-                options: options, faceID: faceID)
+                options: options, faceID: faceID,edgeOptions: edgeOptions,canonicalStations: canonicalStations,proofBudget: proofBudget)
         } else {
             // Constant-coordinate parameter curves are affine, so extrema
             // occur at endpoints regardless of spatial curve complexity.
@@ -2938,17 +4553,62 @@ public struct MeshTessellator: Tessellating {
     /// edge is reversed. Preserve its native unwrapped endpoints rather than choosing a
     /// spatially equivalent chart by samples or nearest-period adjustment.
     private func originalBSplineRectangleBounds(
-        for loop: Loop, on surface: BSplineSurface3D, in model: BRepModel
+        for loop: Loop, on surface: BSplineSurface3D, pcurveSupport: Surface3D,
+        in model: BRepModel, proofBudget: TessellationProofBudget
     ) throws -> (u: (lower: Double, upper: Double), v: (lower: Double, upper: Double)) {
         func refusal() -> KernelError {
             KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                         message: "B-spline tessellation requires four connected original monotone rectangle sides within its native domain.")
         }
-        func originalAxis(_ curve: SurfaceParameterCurve) -> RectangularParameterAxis? {
+        func originalAxis(_ curve: SurfaceParameterCurve) throws -> RectangularParameterAxis? {
+            try proofBudget.charge()
+            func controlAxis<Points: RandomAccessCollection>(_ points: Points,
+                coordinates: (Points.Element) -> Point2D) throws -> RectangularParameterAxis? {
+                guard let firstValue = points.first, let lastValue = points.last else { return nil }
+                let first = coordinates(firstValue), last = coordinates(lastValue)
+                let fixedU = first.x == last.x, fixedV = first.y == last.y
+                guard fixedU != fixedV else { return nil }
+                let increasing = fixedU ? last.y > first.y : last.x > first.x
+                var previous = fixedU ? first.y : first.x
+                for value in points {
+                    try proofBudget.charge()
+                    let point = coordinates(value)
+                    guard fixedU ? point.x == first.x : point.y == first.y else { return nil }
+                    let coordinate = fixedU ? point.y : point.x
+                    guard increasing ? coordinate >= previous : coordinate <= previous else { return nil }
+                    previous = coordinate
+                }
+                return fixedU ? .u : .v
+            }
             switch curve {
             case .constantU: return .u
             case .constantV: return .v
-            case let .periodicTranslation(base, _, _): return originalAxis(base)
+            case .affine(_, let direction, let start, let end):
+                guard start != end else { return nil }
+                if direction.x == 0, direction.y != 0 { return .u }
+                if direction.y == 0, direction.x != 0 { return .v }
+                return nil
+            case .polyline(let points):
+                return try controlAxis(points) { Point2D(x: $0.u, y: $0.v) }
+            case .bSpline(let spline):
+                guard case .closed(let lower, let upper) = spline.domain else { return nil }
+                for knot in spline.knots.prefix(spline.degree + 1) {
+                    try proofBudget.charge(); guard knot == lower else { return nil }
+                }
+                for knot in spline.knots.suffix(spline.degree + 1) {
+                    try proofBudget.charge(); guard knot == upper else { return nil }
+                }
+                for weight in spline.weights {
+                    try proofBudget.charge(); guard weight.isFinite, weight > 0 else { return nil }
+                }
+                return try controlAxis(spline.controlPoints) { $0 }
+            case let .periodicTranslation(base, _, _): return try originalAxis(base)
+            case .originalAffineWord(let image): return try originalAxis(image.source.parameterCurve)
+            case .originalImage(let image):
+                guard preservesOriginalNativeUV(image.targetImage),
+                    (image.startFraction == 0 && image.endFraction == 1)
+                        || (image.startFraction == 1 && image.endFraction == 0) else { return nil }
+                return try originalAxis(image.source.parameterCurve)
             default: return nil
             }
         }
@@ -2973,11 +4633,18 @@ public struct MeshTessellator: Tessellating {
         var firstVertexID: VertexID?
         var previousVertexID: VertexID?
         for (index, coedge) in loop.coedges.enumerated() {
+            try proofBudget.charge()
             if index & 0xFF == 0 { try Task.checkCancellation() }
-            guard let curve = coedge.surfaceParameterCurve, let axis = originalAxis(curve),
+            guard let curve = coedge.surfaceParameterCurve, let axis = try originalAxis(curve),
                   let edge = model.edges[coedge.edgeID] else { throw refusal() }
-            let start = try curve.parameter(atNormalizedFraction: 0, tolerance: tolerance)
-            let end = try curve.parameter(atNormalizedFraction: 1, tolerance: tolerance)
+            guard let endpoints = try ExactRectangularPcurveDomainResolver().axisAlignedEndpoints(
+                of: curve, on: pcurveSupport, remainingSourceDepth: 16,
+                consumeWork: { try proofBudget.charge(depth: $0) },
+                consumeStorage: { try proofBudget.chargeStorageBytes($0) }, tolerance: tolerance) else {
+                throw refusal()
+            }
+            let start = endpoints.start
+            let end = endpoints.end
             let startID = coedge.orientation == .forward ? edge.startVertexID : edge.endVertexID
             let endID = coedge.orientation == .forward ? edge.endVertexID : edge.startVertexID
             guard [start.u, start.v, end.u, end.v].allSatisfy(\.isFinite),
@@ -3011,6 +4678,7 @@ public struct MeshTessellator: Tessellating {
         guard sides.count == 4, let first = sides.first else { throw refusal() }
         var minU = first.start.u, maxU = minU, minV = first.start.v, maxV = minV
         for side in sides {
+            try proofBudget.charge()
             minU = min(minU, side.start.u, side.end.u)
             maxU = max(maxU, side.start.u, side.end.u)
             minV = min(minV, side.start.v, side.end.v)
@@ -3018,6 +4686,7 @@ public struct MeshTessellator: Tessellating {
         }
         guard maxU > minU, maxV > minV else { throw refusal() }
         for index in sides.indices {
+            try proofBudget.charge()
             let side = sides[index]
             guard side.axis != sides[(index + 1) % 4].axis else { throw refusal() }
             switch side.axis {
@@ -3036,6 +4705,7 @@ public struct MeshTessellator: Tessellating {
         }
         func certifyPeriodicWidth(lower periodicLower: Double, upper periodicUpper: Double,
                                   domain periodicDomain: ParameterDomain) throws {
+            try proofBudget.charge()
             let periodicWidth = periodicUpper - periodicLower
             guard case let .periodic(period) = periodicDomain,
                   periodicWidth.isFinite, periodicWidth > 0, periodicWidth <= period else { throw refusal() }
@@ -3082,6 +4752,17 @@ public struct MeshTessellator: Tessellating {
             return rectangularParameterAxis(base)
         case let .offsetSurfaceImage(image):
             return rectangularParameterAxis(image.source)
+        case let .originalImage(image):
+            guard let axis = rectangularParameterAxis(image.source.parameterCurve) else { return nil }
+            return image.targetImage.swapAxes ? (axis == .u ? .v : .u) : axis
+        case let .originalAffineWord(image):
+            return rectangularParameterAxis(image.source.parameterCurve)
+        case let .originalBSplineContinuation(continuation):
+            guard let first = continuation.original.controlPoints.first else { return nil }
+            let constantU = continuation.original.controlPoints.allSatisfy { $0.x == first.x }
+            let constantV = continuation.original.controlPoints.allSatisfy { $0.y == first.y }
+            guard constantU != constantV else { return nil }
+            return constantU ? .u : .v
         case .affine, .harmonic, .polyline, .bSpline, .sphericalGreatCircle,
              .certifiedImplicit, .certifiedAnalyticImplicit,
              .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:
@@ -3094,81 +4775,112 @@ public struct MeshTessellator: Tessellating {
         on surface: Surface3D,
         in model: BRepModel,
         options: TessellationOptions,
-        faceID: FaceID
+        faceID: FaceID,
+        edgeOptions: [EdgeID: TessellationOptions] = [:],
+        canonicalStations: [EdgeID: [CurveTessellationSample]] = [:],
+        proofBudget: TessellationProofBudget = TessellationProofBudget()
     ) throws -> [SurfaceParameter] {
-        var parameters: [SurfaceParameter] = []
-        for orientedEdge in loop.edges {
+        try sampledParameterStations(for: loop, on: surface, in: model, options: options,
+            faceID: faceID, edgeOptions: edgeOptions, canonicalStations: canonicalStations,
+            proofBudget: proofBudget).map(\.parameter)
+    }
+
+    private struct SurfaceParameterStation {
+        let parameter: SurfaceParameter
+        let point: Point3D
+    }
+
+    private func sampledParameterStations(for loop: Loop, on surface: Surface3D,
+        in model: BRepModel, options: TessellationOptions, faceID: FaceID,
+        edgeOptions: [EdgeID: TessellationOptions],
+        canonicalStations: [EdgeID: [CurveTessellationSample]],
+        proofBudget: TessellationProofBudget) throws -> [SurfaceParameterStation] {
+        var originalCurves: [SurfaceParameterCurve] = []
+        for use in loop.coedges {
+            try proofBudget.charge()
+            guard let curve = use.surfaceParameterCurve else { throw TessellationError.unsupportedFace(faceID) }
+            originalCurves.append(curve)
+        }
+        let charts = try SurfaceParameterLoopUnwrapper().unwrap(originalCurves, on: surface,
+            tolerance: tolerance, context: "Original mesh trim boundary",
+            maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
+            consumeWork: { try proofBudget.charge(depth: $0) })
+        guard charts.count == loop.coedges.count else { throw TessellationError.unsupportedFace(faceID) }
+        var parameters: [SurfaceParameterStation] = []
+        for (useIndex, orientedEdge) in loop.edges.enumerated() {
             guard let parameterCurve = orientedEdge.surfaceParameterCurve else {
                 throw TessellationError.unsupportedFace(faceID)
             }
             let edgeSamples = try sampledCurveSamples(
                 for: orientedEdge,
                 in: model,
-                options: options
+                options: edgeOptions[orientedEdge.edgeID] ?? options,
+                canonicalStations: canonicalStations,
+                proofBudget: proofBudget
             )
-            let edgeParameters = try edgeSamples.map { sample in
-                try parameterCurve.parameter(
-                    atNormalizedFraction: sample.normalizedFraction,
-                    tolerance: tolerance
-                )
+            guard let edge = model.edges[orientedEdge.edgeID],let curve = model.geometry.curves[edge.curveID] else {
+                throw TopologyError.missingReference("Original station use has no spatial edge.")
+            }
+            let trim = try orientedTrimParameters(edge: edge,coedge: orientedEdge, in: model)
+            let singular = try edgeGeometryClassifier(proofBudget: proofBudget).kind(of: edge,in: model,tolerance: tolerance) == .singular
+            let originalLiftIdentity: Bool
+            if edge.trim?.startParameter == 0,edge.trim?.endParameter == 1 {
+                let canonical = orientedEdge.orientation == .forward ? parameterCurve : try parameterCurve.reversed(tolerance: tolerance)
+                originalLiftIdentity = try hasOriginalLiftParameterization(curve, on: surface,
+                    parameterCurve: canonical, proofBudget: proofBudget)
+            } else { originalLiftIdentity = false }
+            let correspondence = singular || originalLiftIdentity ? nil : try OriginalSurfaceStationCorrespondence(curve: curve,
+                from: trim.start,to: trim.end,surface: surface,parameterCurve: parameterCurve,
+                tolerance: tolerance,maximumSpanCount: max(1,proofBudget.remaining),
+                maximumSubdivisionDepth: 32,remainingSourceDepth: 16,
+                consumeWork: { try proofBudget.charge() })
+            var previousUpper = 0.0
+            let deviation = ((edgeOptions[orientedEdge.edgeID] ?? options).linearTolerance/16).nextDown
+            let edgeParameters = try edgeSamples.enumerated().map { index,sample -> SurfaceParameterStation in
+                try proofBudget.charge()
+                let fraction: Double
+                if let correspondence {
+                    let station = sample.originalParameter ?? (trim.start+(trim.end-trim.start)*sample.normalizedFraction)
+                    let gap = index > 0 ? (sample.point-edgeSamples[index-1].point).length : .infinity
+                    let stationDeviation = min(deviation,gap/8)
+                    let receipt = try correspondence.resolve(stationParameter: station,maximumDeviation: stationDeviation,
+                        maximumSubdivisionDepth: 32,consumeWork: { try proofBudget.charge() })
+                    guard receipt.orientation == 1,receipt.fractions.lower >= previousUpper,
+                        receipt.maximumDeviation <= stationDeviation else {
+                        throw KernelError(phase: .geometry,code: .ambiguousSelection,tolerance: tolerance,
+                            message: "Original edge stations do not establish one ordered face-local correspondence.")
+                    }
+                    previousUpper = receipt.fractions.upper
+                    fraction = receipt.normalizedFraction
+                } else { fraction = sample.normalizedFraction }
+                let chart = charts[useIndex]
+                let parameter: SurfaceParameter
+                if originalLiftIdentity, chart.uShift == 0, chart.vShift == 0,
+                    let retained = sample.originalSurfaceParameter {
+                    parameter = retained
+                } else {
+                    parameter = try chart.translatedCurve.parameter(
+                        atNormalizedFraction: fraction,tolerance: tolerance)
+                }
+                return SurfaceParameterStation(parameter: parameter, point: sample.point)
             }
             guard let first = edgeParameters.first else {
                 continue
             }
-            if parameters.last.map({ $0.isApproximatelyEqual(to: first, tolerance: tolerance.distance) }) != true {
+            if parameters.last?.parameter != first.parameter {
                 parameters.append(first)
             }
             parameters.append(contentsOf: edgeParameters.dropFirst().dropLast())
         }
         if let first = parameters.first,
            let last = parameters.last,
-           first.isApproximatelyEqual(to: last, tolerance: tolerance.distance) {
+           first.parameter == last.parameter {
             parameters.removeLast()
         }
         guard parameters.count >= 3 else {
             throw TessellationError.unsupportedFace(faceID)
         }
-        return unwrappedPeriodicParameters(parameters, on: surface)
-    }
-
-    private func unwrappedPeriodicParameters(
-        _ parameters: [SurfaceParameter],
-        on surface: Surface3D
-    ) -> [SurfaceParameter] {
-        guard let first = parameters.first else {
-            return []
-        }
-        var result = [first]
-        result.reserveCapacity(parameters.count)
-        for parameter in parameters.dropFirst() {
-            let previous = result[result.count - 1]
-            result.append(SurfaceParameter(
-                u: unwrappedPeriodicParameter(
-                    parameter.u,
-                    relativeTo: previous.u,
-                    domain: surface.uDomain
-                ),
-                v: unwrappedPeriodicParameter(
-                    parameter.v,
-                    relativeTo: previous.v,
-                    domain: surface.vDomain
-                )
-            ))
-        }
-        return result
-    }
-
-    private func unwrappedPeriodicParameter(
-        _ parameter: Double,
-        relativeTo previous: Double,
-        domain: ParameterDomain
-    ) -> Double {
-        guard case let .periodic(period) = domain,
-              period.isFinite,
-              period > 0.0 else {
-            return parameter
-        }
-        return parameter + ((previous - parameter) / period).rounded() * period
+        return parameters
     }
 
     private func parameterPoint(_ parameter: SurfaceParameter) -> Point3D {
@@ -3203,144 +4915,116 @@ public struct MeshTessellator: Tessellating {
     private func sampledPoints(
         for orientedEdge: Coedge,
         in model: BRepModel,
-        options: TessellationOptions
+        options: TessellationOptions,
+        canonicalStations: [EdgeID: [CurveTessellationSample]] = [:],
+        proofBudget: TessellationProofBudget
     ) throws -> [Point3D] {
         try sampledCurveSamples(
             for: orientedEdge,
             in: model,
-            options: options
+            options: options,
+            canonicalStations: canonicalStations,
+            proofBudget: proofBudget
         ).map(\.point)
+    }
+
+    private func edgeGeometryClassifier(proofBudget: TessellationProofBudget?) -> BRepEdgeGeometryClassifier {
+        guard let proofBudget else { return BRepEdgeGeometryClassifier() }
+        return BRepEdgeGeometryClassifier(maximumSubdivisionDepth: 32, remainingSourceDepth: 16,
+            consumeWork: { try proofBudget.charge(depth: $0) })
     }
 
     private struct CurveTessellationSample {
         let normalizedFraction: Double
         let point: Point3D
+        var originalParameter: Double? = nil
+        var originalSurfaceParameter: SurfaceParameter? = nil
     }
 
     private struct ParameterizedCurveTessellationSample {
         let parameter: Double
         let point: Point3D
+        var originalSurfaceParameter: SurfaceParameter? = nil
     }
 
     private func sampledCurveSamples(
         for orientedEdge: Coedge,
         in model: BRepModel,
-        options: TessellationOptions
+        options: TessellationOptions,
+        canonicalStations: [EdgeID: [CurveTessellationSample]] = [:],
+        proofBudget: TessellationProofBudget? = nil
     ) throws -> [CurveTessellationSample] {
+        if let samples = canonicalStations[orientedEdge.edgeID] {
+            if orientedEdge.orientation == .forward { return samples }
+            return samples.reversed().map {
+                CurveTessellationSample(normalizedFraction: 1-$0.normalizedFraction,
+                    point: $0.point, originalParameter: $0.originalParameter, originalSurfaceParameter: $0.originalSurfaceParameter)
+            }
+        }
+        if orientedEdge.orientation == .reversed {
+            let forward = Coedge(edgeID: orientedEdge.edgeID, orientation: .forward)
+            return try sampledCurveSamples(for: forward,in: model,options: options,proofBudget: proofBudget).reversed().map {
+                CurveTessellationSample(normalizedFraction: 1-$0.normalizedFraction,point: $0.point,originalParameter: $0.originalParameter,originalSurfaceParameter: $0.originalSurfaceParameter)
+            }
+        }
         guard let edge = model.edges[orientedEdge.edgeID],
               let curve = model.geometry.curves[edge.curveID] else {
             throw TopologyError.missingReference("Missing edge curve \(orientedEdge.edgeID).")
         }
-        let startPoint = try point(for: startVertexID(for: orientedEdge, edge: edge), in: model)
-        let endPoint = try point(for: endVertexID(for: orientedEdge, edge: edge), in: model)
-        switch curve {
-        case .line:
-            return [
-                CurveTessellationSample(normalizedFraction: 0.0, point: startPoint),
-                CurveTessellationSample(normalizedFraction: 1.0, point: endPoint),
-            ]
-        case let .circle(circle):
-            let (startParameter, endParameter) = try orientedTrimParameters(
-                edge: edge,
-                coedge: orientedEdge
-            )
-            let span = endParameter - startParameter
-            let segmentCount = try CircularCurveSamplingPolicy.standard
-                .boundedTessellationArcSegmentCount(
-                    radius: circle.radius,
-                    angleSpan: abs(span),
-                    angularTolerance: options.angularTolerance,
-                    linearTolerance: options.linearTolerance,
-                    modelingTolerance: tolerance
-                )
-            return try (0...segmentCount).map { index in
-                let ratio = Double(index) / Double(segmentCount)
-                return CurveTessellationSample(
-                    normalizedFraction: ratio,
-                    point: try point(
-                        on: circle,
-                        at: startParameter + span * ratio
-                    )
-                )
+        if try edgeGeometryClassifier(proofBudget: proofBudget).kind(of: edge,in: model,tolerance: tolerance) == .singular {
+            let trim = try orientedTrimParameters(edge: edge, coedge: orientedEdge, in: model)
+            let prepared = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
+                remainingSourceDepth: 16, maximumSubdivisionDepth: 32,
+                consumeWork: { try proofBudget?.charge(); try Task.checkCancellation() },
+                consumeStorage: { try proofBudget?.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+            let position = try prepared.positionBounds(over: ScalarInterval(
+                lower: min(trim.start,trim.end), upper: max(trim.start,trim.end)),
+                tolerance: tolerance, maximumSpanCount: 65_536, maximumSubdivisionDepth: 32,
+                remainingSourceDepth: 16,
+                consumeWork: { try proofBudget?.charge(); try Task.checkCancellation() },
+                consumeStorage: { try proofBudget?.chargeStorageBytes($0) })
+            let originalPoint = Point3D(x: position.x.midpoint, y: position.y.midpoint, z: position.z.midpoint)
+            try originalPoint.validate()
+            let deviation = try originalPositionGap(position, from: originalPoint)
+            guard deviation.isFinite, deviation <= options.linearTolerance else {
+                throw KernelError(phase: .geometry, code: .classificationFailure, residual: deviation,
+                    tolerance: tolerance, message: "Original collapsed edge position cannot attain the requested linear fidelity.")
             }
-        case let .analytic(analyticCurve):
-            if case .line = analyticCurve {
-                return [
-                    CurveTessellationSample(normalizedFraction: 0.0, point: startPoint),
-                    CurveTessellationSample(normalizedFraction: 1.0, point: endPoint),
-                ]
-            }
-            let (startParameter, endParameter) = try orientedTrimParameters(
-                edge: edge,
-                coedge: orientedEdge
-            )
-            let span = endParameter - startParameter
-            let radius: Double
-            switch analyticCurve {
-            case .line:
-                return [
-                    CurveTessellationSample(normalizedFraction: 0.0, point: startPoint),
-                    CurveTessellationSample(normalizedFraction: 1.0, point: endPoint),
-                ]
-            case let .circle(_, _, value), let .arc(_, _, value, _, _):
-                radius = value
-            case let .ellipse(_, _, _, majorRadius, _):
-                radius = majorRadius
-            case .hyperbola, .parabola, .planeTorus:
-                return try normalizedCurveSamples(
-                    try sampledBoundedCurveSamples(
-                        curve: curve,
-                        startParameter: startParameter,
-                        endParameter: endParameter,
-                        options: options
-                    ),
-                    startParameter: startParameter,
-                    endParameter: endParameter
-                )
-            }
-            let segmentCount = try CircularCurveSamplingPolicy.standard
-                .boundedTessellationArcSegmentCount(
-                    radius: radius,
-                    angleSpan: abs(span),
-                    angularTolerance: options.angularTolerance,
-                    linearTolerance: options.linearTolerance,
-                    modelingTolerance: tolerance
-                )
-            return try (0...segmentCount).map { index in
-                let ratio = Double(index) / Double(segmentCount)
-                return CurveTessellationSample(
-                    normalizedFraction: ratio,
-                    point: try curve.point(
-                        at: startParameter + span * ratio,
-                        tolerance: tolerance
-                    )
-                )
-            }
-        case .bSpline, .implicit, .surfaceLift, .certifiedIntersection,
-             .rigidImage, .affineImage:
-            let (startParameter, endParameter) = try orientedTrimParameters(
-                edge: edge,
-                coedge: orientedEdge
-            )
-            return try normalizedCurveSamples(
-                try sampledBoundedCurveSamples(
-                    curve: curve,
-                    startParameter: startParameter,
-                    endParameter: endParameter,
-                    options: options
-                ),
-                startParameter: startParameter,
-                endParameter: endParameter
-            )
+            // Whole source collapse and its position enclosure authorize this one image.
+            return [CurveTessellationSample(normalizedFraction: 0, point: originalPoint, originalParameter: trim.start),
+                CurveTessellationSample(normalizedFraction: 1, point: originalPoint, originalParameter: trim.end)]
         }
+        let trim = try orientedTrimParameters(edge: edge, coedge: orientedEdge, in: model)
+        return try normalizedCurveSamples(
+            sampledBoundedCurveSamples(curve: curve, startParameter: trim.start,
+                endParameter: trim.end, options: options, proofBudget: proofBudget),
+            startParameter: trim.start, endParameter: trim.end)
     }
 
     private func orientedTrimParameters(
         edge: Edge,
-        coedge: Coedge
+        coedge: Coedge,
+        in model: BRepModel
     ) throws -> (start: Double, end: Double) {
-        guard let trim = edge.trim else {
-            throw TopologyError.invalidTrim(edge.id)
+        let trim: CurveTrim
+        if let original = edge.trim { trim = original }
+        else {
+            guard let curve = model.geometry.curves[edge.curveID] else {
+                throw TopologyError.missingReference("Missing original directed edge curve.")
+            }
+            let start: Double, end: Double
+            switch curve.parameterDomain {
+            case .closed(let lower, let upper): start = lower; end = upper
+            case .periodic(let period): start = 0; end = period
+            case .unbounded:
+                guard let first = model.vertices[edge.startVertexID]?.point,
+                      let last = model.vertices[edge.endVertexID]?.point else {
+                    throw TopologyError.missingReference("Unbounded directed edge requires original endpoint incidence.")
+                }
+                start = try curve.parameterProjection(of: first, tolerance: tolerance).parameter
+                end = try curve.parameterProjection(of: last, tolerance: tolerance).parameter
+            }
+            trim = CurveTrim(startParameter: start, endParameter: end)
         }
         switch coedge.orientation {
         case .forward:
@@ -3356,7 +5040,7 @@ public struct MeshTessellator: Tessellating {
         endParameter: Double
     ) throws -> [CurveTessellationSample] {
         let span = endParameter - startParameter
-        guard span.isFinite, abs(span) > Double.ulpOfOne else {
+        guard span.isFinite, span != 0 else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
@@ -3364,147 +5048,423 @@ public struct MeshTessellator: Tessellating {
                 message: "Curve tessellation requires a nonzero finite oriented trim span."
             )
         }
-        return samples.map { sample in
-            CurveTessellationSample(
-                normalizedFraction: min(max(
-                    (sample.parameter - startParameter) / span,
-                    0.0
-                ), 1.0),
-                point: sample.point
-            )
+        return try samples.map { sample in
+            guard sample.parameter.isFinite,
+                sample.parameter >= min(startParameter, endParameter),
+                sample.parameter <= max(startParameter, endParameter) else {
+                throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
+                    message: "A retained canonical station is outside its original directed trim.")
+            }
+            let fraction: Double
+            if sample.parameter == startParameter { fraction = 0 }
+            else if sample.parameter == endParameter { fraction = 1 }
+            else {
+                fraction = (sample.parameter - startParameter) / span
+                guard fraction.isFinite, fraction >= 0, fraction <= 1 else {
+                    throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
+                        message: "A native station has no finite normalized trim candidate.")
+                }
+            }
+            return CurveTessellationSample(normalizedFraction: fraction,
+                point: sample.point, originalParameter: sample.parameter,
+                originalSurfaceParameter: sample.originalSurfaceParameter)
         }
     }
 
     private func sampledBoundedCurveSamples(
-        curve: Curve3D,
-        startParameter: Double,
-        endParameter: Double,
-        options: TessellationOptions
+        curve: Curve3D, startParameter: Double, endParameter: Double,
+        options: TessellationOptions, proofBudget: TessellationProofBudget? = nil,
+        requiredParameters: [Double] = [],forcedPublishedPoints: [Double: Point3D] = [:],
+        requiredSurfaceParameters: [Double: SurfaceParameter] = [:],
+        retainedNativeIsoStations: [CurveTessellationSample] = [],
+        nativeIsoPieceMode: Bool = false, consumeCurveCell: (() throws -> Void)? = nil
     ) throws -> [ParameterizedCurveTessellationSample] {
-        let lower = min(startParameter, endParameter)
-        let upper = max(startParameter, endParameter)
-        guard lower.isFinite, upper.isFinite, upper > lower else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "Bounded curve tessellation requires a positive finite parameter interval."
-            )
+        let lower = min(startParameter,endParameter), upper = max(startParameter,endParameter)
+        guard lower.isFinite,upper.isFinite,upper > lower else {
+            throw KernelError(phase: .geometry,code: .invalidInput,tolerance: tolerance,
+                message: "Original curve tessellation requires a positive finite native interval.")
         }
-        struct PendingInterval {
-            let interval: ScalarInterval
-            let upperPoint: Point3D
-            let subdivisionDepth: Int
-            let inheritedSecondDerivativeMagnitudeUpperBound: Double?
+        func visit() throws { try proofBudget?.charge(); try Task.checkCancellation() }
+        let prepared = try PreparedCurveDifferentialEncloser(curve: curve,tolerance: tolerance,
+            remainingSourceDepth: 16,maximumSubdivisionDepth: 32,consumeWork: visit, consumeStorage: { try proofBudget?.chargeStorageBytes($0) }, maximumAlgebraicDepth: 32)
+        func jets(_ range: ScalarInterval) throws -> PreparedCurveDifferentialEncloser.ClosedNativeJet {
+            try prepared.closedNativeJets(over: range,tolerance: tolerance,
+                maximumSpanCount: 65_536,maximumSubdivisionDepth: 32,remainingSourceDepth: 16,consumeWork: visit, consumeStorage: { try proofBudget?.chargeStorageBytes($0) })
         }
-        let validatedCurve = try ValidatedCurve3D(
-            curve,
-            tolerance: tolerance
-        )
-        // A containing derivative bound remains correct for every child, but
-        // can become too loose to prove the requested angular tolerance. Exact
-        // rational-image curves retain a Bernstein certificate that can be
-        // restricted efficiently, so cap how long one enclosure is inherited.
-        let maximumDerivativeCertificateInheritanceDepth = 4
-        let localizesDerivativeCertificate =
-            curve.supportsEfficientLocalizedTessellationDerivativeBounds
-        let interval = try ScalarInterval(lower: lower, upper: upper)
-        let lowerPoint = try validatedCurve.point(at: lower)
-        let upperPoint = try validatedCurve.point(at: upper)
-        var pending = [PendingInterval(
-            interval: interval,
-            upperPoint: upperPoint,
-            subdivisionDepth: 0,
-            inheritedSecondDerivativeMagnitudeUpperBound: nil
-        )]
-        var samples = [ParameterizedCurveTessellationSample(
-            parameter: lower,
-            point: lowerPoint
-        )]
-        samples.reserveCapacity(64)
-        let maximumSegmentCount = 65_536
-        var processedIntervalCount = 0
-        while let current = pending.popLast() {
-            if processedIntervalCount & 0xFF == 0 {
-                try Task.checkCancellation()
+        func normUpper(_ x: OutwardScalarInterval,_ y: OutwardScalarInterval,_ z: OutwardScalarInterval) -> Double {
+            let scale = max(x.absoluteUpperBound,y.absoluteUpperBound,z.absoluteUpperBound)
+            guard scale.isFinite else { return .infinity }
+            if scale == 0 { return 0 }
+            let a = OutwardScalarInterval.exact((x.absoluteUpperBound/scale).nextUp)
+            let b = OutwardScalarInterval.exact((y.absoluteUpperBound/scale).nextUp)
+            let c = OutwardScalarInterval.exact((z.absoluteUpperBound/scale).nextUp)
+            return (OutwardScalarInterval.exact(sqrt(max(0,(a*a+b*b+c*c).upper)).nextUp)
+                * .exact(scale)).upper
+        }
+        func endpoint(_ parameter: Double) throws -> (point: Point3D,error: Double) {
+            let original = try jets(ScalarInterval(lower: parameter,upper: parameter))
+            var x: OutwardScalarInterval?,y: OutwardScalarInterval?,z: OutwardScalarInterval?
+            for owner in original.spans {
+                try visit()
+                x = x.map { $0.union(owner.jet.x.value) } ?? owner.jet.x.value
+                y = y.map { $0.union(owner.jet.y.value) } ?? owner.jet.y.value
+                z = z.map { $0.union(owner.jet.z.value) } ?? owner.jet.z.value
             }
-            processedIntervalCount += 1
-            guard processedIntervalCount <= maximumSegmentCount * 2 - 1 else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .resourceLimitExceeded,
-                    tolerance: tolerance,
-                    message: "Certified curve tessellation exceeded its interval budget."
-                )
+            guard let x,let y,let z,x.isFinite,y.isFinite,z.isFinite else {
+                throw KernelError(phase: .geometry,code: .classificationFailure,tolerance: tolerance,
+                    message: "Original edge station has no complete finite position enclosure.")
             }
-            let evaluation = try validatedCurve.tessellationIntervalEvaluation(
-                current.interval,
-                usingCertifiedSecondDerivativeMagnitudeUpperBound:
-                    localizesDerivativeCertificate
-                        && current.subdivisionDepth.isMultiple(
-                            of: maximumDerivativeCertificateInheritanceDepth
-                        )
-                        ? nil
-                        : current.inheritedSecondDerivativeMagnitudeUpperBound
-            )
-            let bounds = evaluation.bounds
-            let satisfiesEdgeLength = options.maxEdgeLength.map {
-                bounds.arcLengthUpperBound <= $0
-            } ?? true
-            if bounds.chordDeviationUpperBound <= options.linearTolerance,
-               bounds.tangentDeviationUpperBound <= options.angularTolerance,
-               satisfiesEdgeLength {
-                samples.append(ParameterizedCurveTessellationSample(
-                    parameter: current.interval.upper,
-                    point: current.upperPoint
-                ))
-                guard samples.count <= maximumSegmentCount + 1 else {
-                    throw KernelError(
-                        phase: .geometry,
-                        code: .resourceLimitExceeded,
-                        tolerance: tolerance,
-                        message: "Certified curve tessellation exceeded its segment budget."
-                    )
+            let point = forcedPublishedPoints[parameter] ?? Point3D(x: x.midpoint,y: y.midpoint,z: z.midpoint)
+            try point.validate()
+            let error = normUpper(x - .exact(point.x),y - .exact(point.y),z - .exact(point.z))
+            guard error.isFinite,error <= options.linearTolerance else {
+                throw KernelError(phase: .geometry,code: .classificationFailure,residual: error,tolerance: tolerance,
+                    message: "Original edge station uncertainty exceeds the unchanged linear fidelity goal.")
+            }
+            return (point,error)
+        }
+        struct Cell {
+            let range: ScalarInterval
+            let first: Point3D
+            let last: Point3D
+            let endpointError: Double
+            let depth: Int
+        }
+        let complete = try jets(ScalarInterval(lower: lower,upper: upper))
+        enum IsoSpatialAction {
+            case word(OriginalAffineOperationWord)
+            case affine(AffineTransform3D)
+        }
+        var isoSource = curve
+        var isoImages: [IsoSpatialAction] = []
+        var isoIsReversed = false
+        isoImagesLoop: while true {
+            try visit()
+            switch isoSource {
+            case .originalAffineWord(let image):
+                guard isoImages.count < 16 else { throw TessellationError.invalidTolerance }
+                isoImages.append(.word(image.operationWord)); isoSource = image.source
+            case .affineImage(let image):
+                guard isoImages.count < 16 else { throw TessellationError.invalidTolerance }
+                isoImages.append(.affine(image.transform)); isoSource = image.source
+            case .surfaceLift(let lift):
+                if case .originalImage(let image) = lift.parameterCurve {
+                    guard preservesOriginalNativeUV(image.targetImage),
+                        (image.startFraction == 0 && image.endFraction == 1)
+                            || (image.startFraction == 1 && image.endFraction == 0) else { break isoImagesLoop }
+                    try GeometryStructuralComparisonWork.charge(surface: lift.surface,
+                        using: { try proofBudget?.charge($0) })
+                    guard lift.surface == .parameterImage(image.targetImage),
+                        image.source.surface == image.targetImage.source else { throw TessellationError.invalidTolerance }
+                    guard isoImages.count < 16 else { throw TessellationError.invalidTolerance }
+                    isoImages.append(.affine(image.targetImage.transform))
+                    isoIsReversed = isoIsReversed != (image.startFraction == 1)
+                    isoSource = .surfaceLift(image.source)
+                } else if case .originalAffineWord(let image) = lift.parameterCurve {
+                    guard (image.startFraction == 0 && image.endFraction == 1)
+                        || (image.startFraction == 1 && image.endFraction == 0) else { break isoImagesLoop }
+                    try GeometryStructuralComparisonWork.charge(surface: lift.surface,
+                        using: { try proofBudget?.charge($0) })
+                    guard lift.surface == .procedural(.originalAffineWord(image.target)),
+                        image.source.surface == image.target.source else { throw TessellationError.invalidTolerance }
+                    guard isoImages.count < 16 else { throw TessellationError.invalidTolerance }
+                    isoImages.append(.word(image.target.operationWord))
+                    isoIsReversed = isoIsReversed != (image.startFraction == 1)
+                    isoSource = .surfaceLift(image.source)
+                } else { break isoImagesLoop }
+            default: break isoImagesLoop
+            }
+        }
+        if !nativeIsoPieceMode, lower == 0, upper == 1,
+            case .surfaceLift(let lift) = isoSource, case .bSpline = lift.surface {
+            let alongU: Bool, start: Double, end: Double
+            func isoAxis(_ chart: SurfaceParameterCurve, depth: Int = 0) throws -> (alongU: Bool, increasing: Bool)? {
+                try visit()
+                guard depth < 16 else { throw TessellationError.invalidTolerance }
+                switch chart {
+                case .constantU(_, let first, let last): return (false, last > first)
+                case .constantV(_, let first, let last): return (true, last > first)
+                case .affine(_, let direction, let first, let last):
+                    guard first != last else { return nil }
+                    if direction.x == 0, direction.y != 0 { return (false, (direction.y > 0) == (last > first)) }
+                    if direction.y == 0, direction.x != 0 { return (true, (direction.x > 0) == (last > first)) }
+                    return nil
+                case .polyline(let points):
+                    guard let first = points.first, let last = points.last else { return nil }
+                    let fixedU = first.u == last.u, fixedV = first.v == last.v
+                    guard fixedU != fixedV else { return nil }
+                    let increasing = fixedU ? last.v > first.v : last.u > first.u
+                    var previous = fixedU ? first.v : first.u
+                    for point in points {
+                        try visit()
+                        guard fixedU ? point.u == first.u : point.v == first.v else { return nil }
+                        let value = fixedU ? point.v : point.u
+                        guard increasing ? value >= previous : value <= previous else { return nil }
+                        previous = value
+                    }
+                    return (!fixedU, increasing)
+                case .periodicTranslation(let source, _, _): return try isoAxis(source, depth: depth + 1)
+                default: return nil
+                }
+            }
+            guard let axis = try isoAxis(lift.parameterCurve) else {
+                return try sampledBoundedCurveSamples(curve: curve, startParameter: startParameter,
+                endParameter: endParameter, options: options, proofBudget: proofBudget,
+                requiredParameters: requiredParameters, forcedPublishedPoints: forcedPublishedPoints,
+                requiredSurfaceParameters: requiredSurfaceParameters, retainedNativeIsoStations: retainedNativeIsoStations,
+                nativeIsoPieceMode: true, consumeCurveCell: consumeCurveCell)
+            }
+            alongU = axis.alongU
+            let increasing = axis.increasing != isoIsReversed
+            var portions: [SurfaceLiftCurve3D] = []
+            var seenPortions = Set<SurfaceParameterCurve>()
+            for owner in complete.spans {
+                try visit()
+                guard var portion = owner.originalIsoTraversal else { continue }
+                if isoIsReversed {
+                    let reversed: SurfaceParameterCurve
+                    switch portion.parameterCurve {
+                    case .constantU(let u, let first, let last):
+                        reversed = .constantU(u: u, vStart: last, vEnd: first)
+                    case .constantV(let v, let first, let last):
+                        reversed = .constantV(v: v, uStart: last, uEnd: first)
+                    default:
+                        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                            message: "Original native iso reversal requires its retained constant-axis traversal.")
+                    }
+                    portion = SurfaceLiftCurve3D(surface: portion.surface, parameterCurve: reversed)
+                }
+                if seenPortions.insert(portion.parameterCurve).inserted { portions.append(portion) }
+            }
+            func coordinate(_ parameter: SurfaceParameter) -> Double { alongU ? parameter.u : parameter.v }
+            portions = try portions.sorted { a, b in
+                try visit()
+                let av = coordinate(try a.parameterCurve.startParameter(tolerance: tolerance))
+                let bv = coordinate(try b.parameterCurve.startParameter(tolerance: tolerance))
+                return increasing ? av < bv : av > bv
+            }
+            guard let firstPortion = portions.first, let lastPortion = portions.last else {
+                throw TessellationError.invalidTolerance
+            }
+            start = coordinate(try firstPortion.parameterCurve.startParameter(tolerance: tolerance))
+            end = coordinate(try lastPortion.parameterCurve.endParameter(tolerance: tolerance))
+            guard start != end, (end > start) == increasing else { throw TessellationError.invalidTolerance }
+            var requested: [(SurfaceParameter, Point3D?)] = []
+            var requestedParameters = Set<Double>()
+            for retained in retainedNativeIsoStations {
+                try visit()
+                guard let uv = retained.originalSurfaceParameter, let parameter = retained.originalParameter else { continue }
+                var point = retained.point
+                if coordinate(uv) == start, let forced = forcedPublishedPoints[0] { point = forced }
+                if coordinate(uv) == end, let forced = forcedPublishedPoints[1] { point = forced }
+                requested.append((uv, point)); requestedParameters.insert(parameter)
+            }
+            for parameter in requiredParameters {
+                if requestedParameters.contains(parameter) { continue }
+                try visit()
+                guard parameter >= 0, parameter <= 1, parameter.isFinite else { throw TessellationError.invalidTolerance }
+                let sourceFraction = isoIsReversed ? 1 - parameter : parameter
+                let uv = try requiredSurfaceParameters[parameter] ?? lift.parameterCurve.parameter(
+                    atNormalizedFraction: sourceFraction, tolerance: tolerance)
+                requested.append((uv, forcedPublishedPoints[parameter])); requestedParameters.insert(parameter)
+            }
+            for (parameter, point) in forcedPublishedPoints where !requestedParameters.contains(parameter) {
+                try visit()
+                let sourceFraction = isoIsReversed ? 1 - parameter : parameter
+                let uv = try requiredSurfaceParameters[parameter] ?? lift.parameterCurve.parameter(
+                    atNormalizedFraction: sourceFraction, tolerance: tolerance)
+                requested.append((uv, point))
+            }
+            var emitted: [ParameterizedCurveTessellationSample] = []
+            var cells = 0
+            func admitCell() throws {
+                try consumeCurveCell?(); cells += 1
+                guard cells <= 131_071 else {
+                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                        message: "Original native iso portions exceeded the shared edge cell allowance.")
+                }
+            }
+            for portion in portions {
+                try visit()
+                let firstUV = try portion.parameterCurve.startParameter(tolerance: tolerance)
+                let lastUV = try portion.parameterCurve.endParameter(tolerance: tolerance)
+                let a = coordinate(firstUV), b = coordinate(lastUV)
+                if let previous = emitted.last?.originalSurfaceParameter {
+                    guard previous == firstUV else {
+                        throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
+                            message: "Original native iso portions do not provide one exact connected UV cover.")
+                    }
+                } else {
+                    guard a == start else { throw TessellationError.invalidTolerance }
+                }
+                var required: [Double] = [], forced: [Double: Point3D] = [:]
+                for (uv, point) in requested {
+                    try visit()
+                    let value = coordinate(uv)
+                    guard value >= min(a,b), value <= max(a,b) else { continue }
+                    let fraction = value == a ? 0 : value == b ? 1 : (value-a)/(b-a)
+                    guard fraction.isFinite, fraction >= 0, fraction <= 1 else { throw TessellationError.invalidTolerance }
+                    required.append(fraction); if let point { forced[fraction] = point }
+                }
+                if let previous = emitted.last { forced[0] = previous.point }
+                var localCurve: Curve3D = .surfaceLift(portion)
+                for image in isoImages.reversed() {
+                    switch image {
+                    case .word(let word):
+                        guard let proofBudget else { throw TessellationError.invalidTolerance }
+                        var usage = TessellationExactProofAdmission(budget: proofBudget)
+                        localCurve = .originalAffineWord(try OriginalAffineWordCurve3D(source: localCurve,
+                            operationWord: word, tolerance: tolerance,
+                            remainingSourceDepth: 16, maximumSubdivisionDepth: 32, usage: &usage))
+                    case .affine(let transform):
+                        let storage: ((Int) throws -> Void)?
+                        if let proofBudget { storage = { try proofBudget.chargeStorageBytes($0) } }
+                        else { storage = nil }
+                        localCurve = .affineImage(try AffineImageCurve3D(source: localCurve,
+                            transform: transform, tolerance: tolerance, remainingSourceDepth: 16,
+                            maximumSubdivisionDepth: 32, consumeWork: visit, consumeStorage: storage,
+                            maximumAlgebraicDepth: 32))
+                    }
+                }
+                let local = try sampledBoundedCurveSamples(curve: localCurve, startParameter: 0,
+                    endParameter: 1, options: options, proofBudget: proofBudget,
+                    requiredParameters: required, forcedPublishedPoints: forced,
+                    nativeIsoPieceMode: true, consumeCurveCell: admitCell)
+                for (index, sample) in local.enumerated() {
+                    try visit()
+                    if !emitted.isEmpty, index == 0 { continue }
+                    let uv = sample.parameter == 0 ? firstUV : sample.parameter == 1 ? lastUV :
+                        try portion.parameterCurve.parameter(atNormalizedFraction: sample.parameter, tolerance: tolerance)
+                    let value = coordinate(uv)
+                    let parameter = value == start ? 0 : value == end ? 1 : (value-start)/(end-start)
+                    guard parameter.isFinite, parameter >= 0, parameter <= 1 else { throw TessellationError.invalidTolerance }
+                    // Inverse affine arithmetic proposes a native parameter;
+                    // only the original closed-position law can bind that
+                    // candidate to this published physical station.
+                    let originalPosition = try endpoint(parameter)
+                    let candidateGap = normUpper(.exact(originalPosition.point.x) - .exact(sample.point.x),
+                        .exact(originalPosition.point.y) - .exact(sample.point.y),
+                        .exact(originalPosition.point.z) - .exact(sample.point.z))
+                    let sourceStationError = (candidateGap + originalPosition.error).nextUp
+                    guard sourceStationError.isFinite,sourceStationError <= options.linearTolerance else {
+                        throw KernelError(phase:.geometry,code:.classificationFailure,residual:sourceStationError,
+                            tolerance:tolerance,message:"An original native iso parameter cannot certify its published station within linear fidelity.")
+                    }
+                    emitted.append(.init(parameter: parameter, point: sample.point, originalSurfaceParameter: uv))
+                    guard emitted.count <= 65_537 else {
+                        throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                            message: "Original native iso portions exceeded the shared edge segment allowance.")
+                    }
+                }
+            }
+            guard let lastUV = emitted.last?.originalSurfaceParameter, coordinate(lastUV) == end else {
+                throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
+                    message: "Original native iso portions omit the authored UV endpoint.")
+            }
+            if startParameter > endParameter { emitted.reverse() }
+            return emitted
+        }
+        var cuts: Set<Double> = [lower,upper]
+        for parameter in requiredParameters {
+            try visit()
+            guard parameter.isFinite,parameter >= lower,parameter <= upper else {
+                throw KernelError(phase: .geometry,code: .invalidInput,tolerance: tolerance,
+                    message: "A canonical station request is outside its retained original edge trim.")
+            }
+            cuts.insert(parameter)
+        }
+        for owner in complete.spans {
+            try visit()
+            if let box = owner.originalSurfaceParameters, box.u.width == 0, box.v.width == 0 { continue }
+            if owner.parameters.lower > lower,owner.parameters.lower < upper { cuts.insert(owner.parameters.lower) }
+            if owner.parameters.upper > lower,owner.parameters.upper < upper { cuts.insert(owner.parameters.upper) }
+        }
+        guard cuts.count <= 65_537 else {
+            throw KernelError(phase: .geometry,code: .resourceLimitExceeded,tolerance: tolerance,
+                message: "Original owning edge partition exceeds its retained segment allowance.")
+        }
+        let ordered = try cuts.sorted { first,last in try visit(); return first < last }
+        var points: [(point: Point3D,error: Double)] = []
+        for cut in ordered { try visit(); points.append(try endpoint(cut)) }
+        var pending: [Cell] = []
+        for index in (0..<(ordered.count-1)).reversed() {
+            try visit()
+            pending.append(Cell(range: try ScalarInterval(lower: ordered[index],upper: ordered[index+1]),
+                first: points[index].point,last: points[index+1].point,
+                endpointError: max(points[index].error,points[index+1].error),depth: 0))
+        }
+        var samples = [ParameterizedCurveTessellationSample(parameter: lower,point: points[0].point)]
+        var visited = 0
+        while let cell = pending.popLast() {
+            try visit(); try consumeCurveCell?(); visited += 1
+            guard visited <= 131_071 else {
+                throw KernelError(phase: .geometry,code: .resourceLimitExceeded,tolerance: tolerance,
+                    message: "Original edge tessellation exceeded its existing cell allowance.")
+            }
+            let original = try jets(cell.range)
+            var dx: OutwardScalarInterval?,dy: OutwardScalarInterval?,dz: OutwardScalarInterval?
+            var ddx: OutwardScalarInterval?,ddy: OutwardScalarInterval?,ddz: OutwardScalarInterval?
+            for owner in original.spans where owner.parameters.width > 0 {
+                if let box = owner.originalSurfaceParameters, box.u.width == 0, box.v.width == 0 { continue }
+                try visit()
+                dx = dx.map { $0.union(owner.jet.x.derivativeU) } ?? owner.jet.x.derivativeU
+                dy = dy.map { $0.union(owner.jet.y.derivativeU) } ?? owner.jet.y.derivativeU
+                dz = dz.map { $0.union(owner.jet.z.derivativeU) } ?? owner.jet.z.derivativeU
+                ddx = ddx.map { $0.union(owner.jet.x.secondDerivativeUU) } ?? owner.jet.x.secondDerivativeUU
+                ddy = ddy.map { $0.union(owner.jet.y.secondDerivativeUU) } ?? owner.jet.y.secondDerivativeUU
+                ddz = ddz.map { $0.union(owner.jet.z.secondDerivativeUU) } ?? owner.jet.z.secondDerivativeUU
+            }
+            guard let dx,let dy,let dz,let ddx,let ddy,let ddz else {
+                throw KernelError(phase: .geometry,code: .classificationFailure,tolerance: tolerance,
+                    message: "Original curve cell has no positive-width owning derivative law.")
+            }
+            let width = OutwardScalarInterval.exact(cell.range.upper) - .exact(cell.range.lower)
+            let deviation = (OutwardScalarInterval.exact(normUpper(ddx,ddy,ddz))*width*width
+                * .exact(0.125) + .exact(cell.endpointError)).upper
+            let lengthUpper = (OutwardScalarInterval.exact(normUpper(dx,dy,dz))*width).upper
+            let direction = CoordinateEnclosure3D(x: try .init(lower: dx.lower,upper: dx.upper),
+                y: try .init(lower: dy.lower,upper: dy.upper),z: try .init(lower: dz.lower,upper: dz.upper))
+            let chord = try OriginalSelectionAngleBounds.difference(cell.last,cell.first)
+            let publishedLengthUpper = normUpper(
+                .init(lower: chord.x.lower,upper: chord.x.upper),
+                .init(lower: chord.y.lower,upper: chord.y.upper),
+                .init(lower: chord.z.lower,upper: chord.z.upper))
+            var angleUpper: Double?
+            do {
+                try visit()
+                angleUpper = try OriginalSelectionAngleBounds.enclose(direction,chord,tolerance: tolerance).upper
+            } catch let error as KernelError where error.code == .singularGeometry || error.code == .singularSystem {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public canonical edge sampling
+                // resolves ordinary enclosure uncertainty by original subdivision.
+                // A persistent zero-derivative endpoint additionally needs its
+                // original higher-order tangent germ before full M2 singular-curve
+                // support can be claimed; sampled directions never certify it.
+                angleUpper = nil
+            }
+            if deviation.isFinite,deviation <= options.linearTolerance,
+                let angleUpper,angleUpper <= options.angularTolerance,
+                lengthUpper.isFinite,publishedLengthUpper.isFinite,
+                options.maxEdgeLength.map({ lengthUpper <= $0 && publishedLengthUpper <= $0 }) ?? true {
+                try visit()
+                samples.append(.init(parameter: cell.range.upper,point: cell.last))
+                guard samples.count <= 65_537 else {
+                    throw KernelError(phase: .geometry,code: .resourceLimitExceeded,tolerance: tolerance,
+                        message: "Original edge tessellation exceeded its existing segment allowance.")
                 }
                 continue
             }
-            let middle = current.interval.midpoint
-            guard middle > current.interval.lower,
-                  middle < current.interval.upper else {
-                throw KernelError(
-                    phase: .geometry,
-                    code: .resourceLimitExceeded,
-                    tolerance: tolerance,
-                    message: "Certified curve tessellation reached floating-point subdivision resolution before satisfying its error budget."
-                )
+            let middle = cell.range.midpoint
+            guard cell.depth < 32,middle > cell.range.lower,middle < cell.range.upper else {
+                throw KernelError(phase: .geometry,code: .resourceLimitExceeded,tolerance: tolerance,
+                    message: "Original edge proof cannot attain unchanged linear/angular fidelity within its depth and representable stations.")
             }
-            let middlePoint = evaluation.midpointPoint
-            let reusableSecondDerivativeBound =
-                bounds.secondDerivativeMagnitudeUpperBound.isFinite
-                    ? bounds.secondDerivativeMagnitudeUpperBound
-                    : nil
-            pending.append(PendingInterval(
-                interval: try ScalarInterval(
-                    lower: middle,
-                    upper: current.interval.upper
-                ),
-                upperPoint: current.upperPoint,
-                subdivisionDepth: current.subdivisionDepth + 1,
-                inheritedSecondDerivativeMagnitudeUpperBound: reusableSecondDerivativeBound
-            ))
-            pending.append(PendingInterval(
-                interval: try ScalarInterval(
-                    lower: current.interval.lower,
-                    upper: middle
-                ),
-                upperPoint: middlePoint,
-                subdivisionDepth: current.subdivisionDepth + 1,
-                inheritedSecondDerivativeMagnitudeUpperBound: reusableSecondDerivativeBound
-            ))
+            let center = try endpoint(middle)
+            pending.append(Cell(range: try .init(lower: middle,upper: cell.range.upper),first: center.point,
+                last: cell.last,endpointError: max(cell.endpointError,center.error),depth: cell.depth+1))
+            pending.append(Cell(range: try .init(lower: cell.range.lower,upper: middle),first: cell.first,
+                last: center.point,endpointError: max(cell.endpointError,center.error),depth: cell.depth+1))
         }
-        if startParameter > endParameter {
-            samples.reverse()
-        }
+        if startParameter > endParameter { samples.reverse() }
         return samples
     }
 
@@ -3571,11 +5531,11 @@ public struct MeshTessellator: Tessellating {
             return .bSpline
         case .surfaceLift:
             return .bSpline
-        case .certifiedIntersection:
+        case .certifiedIntersection, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
             return .bSpline
         case let .rigidImage(image):
             return edgeCurveKind(for: image.source)
-        case .affineImage:
+        case .affineImage, .parameterImage, .originalAffineWord:
             return curve.exactLinearLocus == nil ? .bSpline : .line
         }
     }
@@ -3753,6 +5713,24 @@ public struct MeshTessellator: Tessellating {
             indices.append(second)
             indices.append(third)
         }
+        return true
+    }
+
+    /// Emits a source-oriented triangle after complete retained preflight.
+    @discardableResult
+    private func appendCertifiedTriangle(_ first: UInt32, _ second: UInt32, _ third: UInt32,
+        positions: [Point3D], reversed: Bool, indices: inout [UInt32],
+        budget: inout TessellationBudget) throws -> Bool {
+        let firstEdge = positions[Int(second)] - positions[Int(first)]
+        let secondEdge = positions[Int(third)] - positions[Int(first)]
+        let area = firstEdge.cross(secondEdge).length
+        let adoptionGate = max(tolerance.distance * tolerance.distance,
+            minimumMeaningfulCross(firstEdge.length, secondEdge.length))
+        guard area.isFinite, area > adoptionGate else { return false }
+        try budget.charge(vertices: 0, indices: 3)
+        indices.append(first)
+        indices.append(reversed ? third : second)
+        indices.append(reversed ? second : third)
         return true
     }
 

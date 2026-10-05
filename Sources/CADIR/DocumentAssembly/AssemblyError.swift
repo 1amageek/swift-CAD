@@ -6,6 +6,7 @@ public enum AssemblyError: Error, Equatable, Sendable {
     case missingFeature(FeatureID)
     case cycle(AssemblyDefinitionID)
     case invalidPlacement
+    case unsupportedOriginalPlacementOperation
     case resourceLimitExceeded(String)
     case unresolvedOutput(FeatureID)
     case inconsistentArtifact(String)

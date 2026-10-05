@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -49,6 +50,7 @@ struct CoincidentFaceOverlapTester {
         let secondEdges = secondPatch.loops.flatMap(\.edges)
 
         let intersector = ExactTrimEdgeIntersector()
+        var endpointWitness: Point3D?
         for firstEdge in firstEdges {
             for secondEdge in secondEdges {
                 switch try intersector.intersections(
@@ -57,72 +59,51 @@ struct CoincidentFaceOverlapTester {
                     tolerance: tolerance
                 ) {
                 case .coincident:
-                    return firstEdge.startPoint
+                    let kind = try BRepEdgeGeometryClassifier().kind(curve: firstEdge.curve,
+                        from: firstEdge.startParameter, to: firstEdge.endParameter, tolerance: tolerance)
+                    if kind != .singular {
+                        return try firstEdge.curve.point(at: firstEdge.startParameter
+                            + (firstEdge.endParameter - firstEdge.startParameter) * 0.5, tolerance: tolerance)
+                    }
+                    if endpointWitness == nil { endpointWitness = firstEdge.startPoint }
                 case let .subdivisionPoints(points) where points.isEmpty == false:
-                    return points.sorted(by: pointOrder).first
+                    if endpointWitness == nil { endpointWitness = points.sorted(by: pointOrder).first }
                 case .subdivisionPoints:
                     continue
                 }
             }
         }
 
-        for edge in firstEdges where try containsOnCoincidentSupport(
-            edge.startPoint,
-            on: secondFaceID,
-            in: model,
-            tolerance: tolerance
-        ) {
-            return edge.startPoint
+        for (edges, oppositeFaceID) in [(firstEdges, secondFaceID), (secondEdges, firstFaceID)] {
+            for edge in edges {
+                let kind = try BRepEdgeGeometryClassifier().kind(curve: edge.curve,
+                    from: edge.startParameter, to: edge.endParameter, tolerance: tolerance)
+                if kind != .singular {
+                    let middle = try edge.curve.point(at: edge.startParameter
+                        + (edge.endParameter - edge.startParameter) * 0.5, tolerance: tolerance)
+                    if try containsOnCoincidentSupport(middle, on: oppositeFaceID, in: model, tolerance: tolerance) {
+                        return middle
+                    }
+                }
+                if endpointWitness == nil,
+                   try containsOnCoincidentSupport(edge.startPoint, on: oppositeFaceID,
+                       in: model, tolerance: tolerance) {
+                    endpointWitness = edge.startPoint
+                }
+            }
         }
-        for edge in secondEdges where try containsOnCoincidentSupport(
-            edge.startPoint,
-            on: firstFaceID,
-            in: model,
-            tolerance: tolerance
-        ) {
-            return edge.startPoint
-        }
-        return nil
+        return endpointWitness
     }
 
-    /// Whether two coincident faces share area, not only a boundary they touch along: a point
-    /// just inside one face beside one of its edges lies inside the other. Points are taken at a
-    /// quarter, half and three quarters along each edge of each face, a small step to either
-    /// side, keeping the side inside the face's own trim.
+    /// Classifies finite area using the complete original trim-event partition.
     func overlapsInArea(
         _ firstFaceID: FaceID,
         _ secondFaceID: FaceID,
         in model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> Bool {
-        for (own, other) in [(firstFaceID, secondFaceID), (secondFaceID, firstFaceID)] {
-            guard let face = model.faces[own], let surface = model.geometry.surfaces[face.surfaceID] else {
-                throw TopologyError.missingReference("A coincident face is missing.")
-            }
-            let edges = try patch(faceID: own, stableID: "coincident-area", model: model, tolerance: tolerance).loops.flatMap(\.edges)
-            for edge in edges {
-                let span = edge.endParameter - edge.startParameter
-                for fraction in [0.25, 0.5, 0.75] {
-                    let parameter = edge.startParameter + span * fraction
-                    let geometry = try edge.curve.differentialGeometry(at: parameter, tolerance: tolerance)
-                    let normal = try SurfaceFootResolver().foot(of: geometry.position, on: surface, tolerance: tolerance).normal
-                    let length = (edge.endPoint - edge.startPoint).length
-                    let step = max(length * 1e-3, tolerance.distance * 100)
-                    let crossing = normal.cross(geometry.firstDerivative)
-                    // A point where the edge stops turning has no side to step to.
-                    guard crossing.length > Double.ulpOfOne * 1_024 else { continue }
-                    let across = crossing * (1 / crossing.length)
-                    for side in [across, across * -1] {
-                        let point = geometry.position + side * step
-                        if try containsOnCoincidentSupport(point, on: own, in: model, tolerance: tolerance),
-                           try containsOnCoincidentSupport(point, on: other, in: model, tolerance: tolerance) {
-                            return true
-                        }
-                    }
-                }
-            }
-        }
-        return false
+        try FiniteCoincidentFaceAreaClassifier().overlaps(firstFaceID, secondFaceID,
+            model: model, tolerance: tolerance)
     }
 
     private func containsOnCoincidentSupport(

@@ -37,3 +37,10 @@ The callback's typed exhaustion/cancellation propagates before the affected trav
 ## Verification and Change Impact
 
 Dedicated Geometry behavioral tests cover unequal positive-weight B-spline arrays, nested original wrappers, private variable certificate payloads where constructible, fixed-size families, exact-budget and one-less refusal, cancellation, and no geometry mutation. Kernel integration proves source and actual signature cost admission occurs before comparison and complete target-key hashing, and a live same-kind target with changed original geometry fails. Changes to concrete equality/hash payloads require updating this local traversal and the consuming Kernel tests.
+
+Persistent parameter gains charge every original factor or directed-difference
+translation descendant. Root traversals charge raw source and endpoint rational
+word arrays, excluding derived root/Taylor/preparation caches. Original Coons and
+Revolution charge their retained traversal sources before structural identity.
+
+Construction charts charge the original source, authored labels, law and both canonical rational fraction payloads, or the retained traversal's original endpoint payloads. Parameter-polynomial root constraints charge every original coefficient word and power before structural comparison. Derived preparation and Sturm caches remain excluded.

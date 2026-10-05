@@ -88,6 +88,16 @@ struct DefaultCurveSurfaceSearchRangeResolver:
                 ),
                 metricScale: hyperbola.conjugateRadius
             )
+        case let .parameterImage(image):
+            let native = try derivedUnboundedRange(curve: image.source, surface: surface,
+                tolerance: tolerance)
+            let a = (native.lower - image.offset) / image.gain
+            let b = (native.upper - image.offset) / image.gain
+            guard a.isFinite, b.isFinite else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Foreign parameter search range exceeded finite arithmetic.")
+            }
+            return try ScalarInterval(lower: min(a,b).nextDown, upper: max(a,b).nextUp)
         case let .rigidImage(image):
             let inverse = image.transform.inverted()
             return try derivedUnboundedRange(

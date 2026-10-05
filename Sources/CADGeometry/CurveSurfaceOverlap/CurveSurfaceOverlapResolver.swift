@@ -164,6 +164,132 @@ struct CurveSurfaceOverlapResolver {
         return CurveSurfaceIntersectionResult(points: uniquePoints, overlaps: overlaps)
     }
 
+    /// Resolves retained original incidence without the legacy overlap ledger.
+    func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
+        tolerance: ModelingTolerance, intersector: DefaultCurveSurfaceIntersector,
+        invocation: CurveSurfaceQueryInvocation) throws -> CurveSurfaceIntersectionResult {
+        try options.validate(tolerance: tolerance)
+        try invocation.consumeFixedWork()
+        guard case .bSpline(let spline) = curve, case .plane(let plane) = surface,
+            plane.uDirection != nil else {
+            let points = try intersector.intersections(curve: curve, surface: surface, options: options,
+                tolerance: tolerance, maximumSpanCount: invocation.maximumSpanCount,
+                maximumSubdivisionDepth: invocation.maximumSubdivisionDepth,
+                remainingSourceDepth: invocation.remainingSourceDepth,
+                consumeWork: invocation.consume, consumeStorage: invocation.consumeStorage,
+                maximumAlgebraicDepth: invocation.maximumAlgebraicDepth)
+            try invocation.reserve(count: 1, stride: MemoryLayout<CurveSurfaceIntersectionResult>.stride)
+            return .init(points: points, overlaps: [])
+        }
+        let interval: ScalarInterval
+        if let requested = options.curveRange { interval = requested }
+        else {
+            guard case .closed(let lower, let upper) = spline.domain else {
+                throw failure(.invalidInput, "Original plane overlaps require an authored base-native range.", tolerance)
+            }
+            interval = try .init(lower: lower, upper: upper)
+        }
+        guard interval.lower.isFinite, interval.upper.isFinite, interval.lower < interval.upper,
+            spline.degree <= options.maximumPolynomialDegree else {
+            throw failure(.invalidInput, "Original plane overlaps require a finite positive range and admitted source degree.", tolerance)
+        }
+        let contacts = try OriginalNativePlaneContactProducer().contacts(source: spline,
+            over: interval, plane: plane, tolerance: tolerance, invocation: invocation)
+        // FIXME(INCOMPLETE_IMPLEMENTATION): This caller-admitted richer route
+        // composes retained base-native/authored-U plane components. Periodic
+        // translated carriers and general support coincidence still need their
+        // original complete sector producers; this branch adds no authority to
+        // numerical ranges or legacy overlap counters.
+        let preparedPlane = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
+            remainingSourceDepth: invocation.remainingSourceDepth,
+            maximumSubdivisionDepth: invocation.maximumSubdivisionDepth,
+            consumeWork: invocation.consumeFixedWork, consumeStorage: invocation.consumeStorage,
+            maximumAlgebraicDepth: invocation.maximumAlgebraicDepth)
+        typealias Clip = OriginalNativePlaneContactProducer.Overlap.ClipResult
+        try invocation.reserve(count: contacts.overlaps.count, stride: MemoryLayout<Clip>.stride)
+        var clips: [Clip] = []; clips.reserveCapacity(contacts.overlaps.count)
+        var pointCount = contacts.isolated.count
+        var sectorCount = 0
+        for overlap in contacts.overlaps {
+            try invocation.consumeFixedWork()
+            let clip = try overlap.clipped(uRange: options.surfaceURange,
+                vRange: options.surfaceVRange, invocation: invocation)
+            let points = pointCount.addingReportingOverflow(clip.isolated.count)
+            let sectors = sectorCount.addingReportingOverflow(clip.sectors.count)
+            guard !points.overflow, !sectors.overflow else {
+                throw failure(.resourceLimitExceeded, "Original plane overlap result count overflows.", tolerance)
+            }
+            pointCount = points.partialValue; sectorCount = sectors.partialValue
+            let total = pointCount.addingReportingOverflow(sectorCount)
+            guard !total.overflow else {
+                throw failure(.resourceLimitExceeded, "Original plane overlap result count overflows.", tolerance)
+            }
+            try checkCount(total.partialValue, options: options, tolerance: tolerance)
+            clips.append(clip)
+        }
+        try checkCount(pointCount, options: options, tolerance: tolerance)
+        typealias Sector = OriginalNativePlaneContactProducer.Overlap.Sector
+        typealias Contact = OriginalNativePlaneContactProducer.Isolated
+        try invocation.reserve(count: sectorCount, stride: MemoryLayout<Sector>.stride)
+        var sectors: [Sector] = []; sectors.reserveCapacity(sectorCount)
+        for clip in clips {
+            for sector in clip.sectors { try invocation.consumeFixedWork(); sectors.append(sector) }
+        }
+        try invocation.reserve(count: pointCount, stride: MemoryLayout<Contact>.stride)
+        var events: [Contact] = []; events.reserveCapacity(pointCount)
+        func admit(_ contact: Contact) throws {
+            for sector in sectors {
+                if try sector.hasEndpoint(contact, invocation: invocation) { return }
+            }
+            if try contact.nativeKnotStation(invocation: invocation) != nil {
+                for index in events.indices {
+                    if let combined = try events[index].mergingNativeKnotEvent(contact, invocation: invocation) {
+                        events[index] = combined
+                        return
+                    }
+                }
+            }
+            events.append(contact)
+        }
+        for contact in contacts.isolated { try admit(contact) }
+        for clip in clips { for contact in clip.isolated { try admit(contact) } }
+        try invocation.reserve(count: events.count, stride: MemoryLayout<CurveSurfaceIntersection>.stride)
+        try invocation.reserve(count: sectorCount, stride: MemoryLayout<CurveSurfaceOverlap>.stride)
+        var points: [CurveSurfaceIntersection] = []; points.reserveCapacity(events.count)
+        var overlaps: [CurveSurfaceOverlap] = []; overlaps.reserveCapacity(sectorCount)
+        for contact in events {
+            if let event = try intersector.publishOriginalNativePlaneContact(contact,
+                preparedPlane: preparedPlane, options: options, tolerance: tolerance, invocation: invocation) {
+                points.append(event)
+            }
+        }
+        let width = max(Double.leastNonzeroMagnitude,
+            interval.upper * 0.5 - interval.lower * 0.5)
+        guard width.isFinite, width > 0 else {
+            throw failure(.resourceLimitExceeded, "Original plane overlap has no finite localization width.", tolerance)
+        }
+        try invocation.reserve(count: sectorCount, stride: MemoryLayout<Sector>.stride)
+        var component: [Sector] = []; component.reserveCapacity(sectorCount)
+        func publishComponent() throws {
+            guard !component.isEmpty else { return }
+            let prepared = try OriginalNativePlaneContactProducer.Overlap.PreparedSector.joining(component,
+                maximumParameterWidth: width, invocation: invocation)
+            try invocation.reserve(count: 1, stride: MemoryLayout<OriginalNativePlaneOverlapCorrespondence>.stride)
+            overlaps.append(try .init(original: .init(sector: prepared, preparedPlane: preparedPlane,
+                options: options, tolerance: tolerance, invocation: invocation, maximumParameterWidth: width)))
+            component.removeAll(keepingCapacity: true)
+        }
+        for sector in sectors {
+            if let preceding = component.last, try !preceding.joins(sector, invocation: invocation) {
+                try publishComponent()
+            }
+            component.append(sector)
+        }
+        try publishComponent()
+        try invocation.reserve(count: 1, stride: MemoryLayout<CurveSurfaceIntersectionResult>.stride)
+        return .init(points: points, overlaps: overlaps)
+    }
+
     private func membershipBound(curve: Curve3D, surface: Surface3D, support: Surface3D,
                                  range: ScalarInterval, options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> Double {
         if try OverlapSourceMembershipResolver().isExactSource(surface, of: curve, tolerance: tolerance) {

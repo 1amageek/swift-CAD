@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceOperationTargetReference: Codable, Hashable, Sendable {
+public struct SurfaceOperationTargetReference: Hashable, Sendable {
     public let featureID: FeatureID
     public let face: StableSubshapeReference
 
@@ -25,11 +25,14 @@ public struct SurfaceOperationTargetReference: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
         case face
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID, .face], in: decoder)
@@ -40,11 +43,18 @@ public struct SurfaceOperationTargetReference: Codable, Hashable, Sendable {
         )
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(featureID, forKey: .featureID)
         try container.encode(face, forKey: .face)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceOperationTargetReference: Codable {}
+#endif

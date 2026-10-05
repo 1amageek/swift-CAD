@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BooleanFaceSplitComponentID: Codable, Hashable, Sendable, Comparable {
+public struct BooleanFaceSplitComponentID: Hashable, Sendable, Comparable {
     public let ordinal: Int
 
     public init(ordinal: Int) {
@@ -25,3 +25,7 @@ public struct BooleanFaceSplitComponentID: Codable, Hashable, Sendable, Comparab
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanFaceSplitComponentID: Codable {}
+#endif

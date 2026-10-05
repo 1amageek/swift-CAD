@@ -1,6 +1,6 @@
 import CADCore
 
-public enum SectionReference: Codable, Hashable, Sendable {
+public enum SectionReference: Hashable, Sendable {
     case profile(ProfileReference)
     case curve(CurveSectionReference)
     /// A planar face of a body or sheet: a closed region like a profile.
@@ -63,12 +63,15 @@ public enum SectionReference: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case profile
         case curve
         case face
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case featureID
@@ -78,7 +81,9 @@ public enum SectionReference: Codable, Hashable, Sendable {
         case face
         case bodyRole
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.kind, .featureID, .profileIndex, .parameterDomain, .isReversed, .face, .bodyRole], in: decoder)
@@ -116,7 +121,9 @@ public enum SectionReference: Codable, Hashable, Sendable {
         }
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -137,4 +144,9 @@ public enum SectionReference: Codable, Hashable, Sendable {
             try container.encode(face.bodyRole, forKey: .bodyRole)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SectionReference: Codable {}
+#endif

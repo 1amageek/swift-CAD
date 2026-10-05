@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable, Sendable {
+public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Hashable, Sendable {
     public let intersection: CertifiedAnalyticBSplineIntersectionCurve
     public let startFraction: Double
     public let endFraction: Double
@@ -330,12 +330,15 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
         lower + (upper - lower) * fraction
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case intersection
         case startFraction
         case endFraction
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -353,7 +356,9 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
             tolerance: intersection.implicitCurve.certificationTolerance
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(
             on: intersection.analyticSurface,
@@ -364,4 +369,9 @@ public struct CertifiedAnalyticImplicitSurfaceParameterCurve: Codable, Hashable,
         try container.encode(startFraction, forKey: .startFraction)
         try container.encode(endFraction, forKey: .endFraction)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedAnalyticImplicitSurfaceParameterCurve: Codable {}
+#endif

@@ -138,7 +138,7 @@ public struct EvaluatedDocument: Codable, Sendable {
     var incrementalEvaluationState: IncrementalEvaluationState?
     var validatedBRep: ValidatedBRepModel?
     /// Producer-retained source authority for exact snapshots that intentionally omit caches.
-    var validatedSourceReceipt: ValidatedCADDocument?
+    let validatedSourceReceipt: ValidatedCADDocument?
 
     public init(
         document: CADDocument,

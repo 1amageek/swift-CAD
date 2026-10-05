@@ -6,6 +6,7 @@ public struct CurveSurfaceOverlap: Sendable {
     public let start: CurveSurfaceOverlapEndpoint
     public let end: CurveSurfaceOverlapEndpoint
     public let maximumSpatialDeviation: Double
+    public var originalTraversal: OriginalCurveRootSpan3D? { originalPlane?.sector.traversal }
     private let curve: Curve3D
     private let surface: Surface3D
     private let tolerance: ModelingTolerance
@@ -13,6 +14,7 @@ public struct CurveSurfaceOverlap: Sendable {
     private let vRange: ScalarInterval?
     private let isoparametric: OverlapIsoparametricCorrespondence?
     private let graph: OverlapRegularGraphCorrespondence?
+    private let originalPlane: OriginalNativePlaneOverlapCorrespondence?
 
     init(curve: Curve3D, surface: Surface3D, range: ScalarInterval, deviation: Double,
          options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
@@ -22,6 +24,7 @@ public struct CurveSurfaceOverlap: Sendable {
         self.tolerance = tolerance
         self.isoparametric = isoparametric
         self.graph = nil
+        self.originalPlane = nil
         curveRange = range
         maximumSpatialDeviation = deviation
         uRange = options.surfaceURange
@@ -44,6 +47,7 @@ public struct CurveSurfaceOverlap: Sendable {
         self.surface = surface
         self.tolerance = tolerance
         self.graph = graph
+        self.originalPlane = nil
         isoparametric = nil
         curveRange = range
         maximumSpatialDeviation = deviation
@@ -55,10 +59,42 @@ public struct CurveSurfaceOverlap: Sendable {
             uRange: uRange, vRange: vRange, tolerance: tolerance, graph: graph, budget: &budget)
     }
 
+    init(original: OriginalNativePlaneOverlapCorrespondence) throws {
+        originalPlane = original
+        curve = original.sector.traversal.source
+        surface = .plane(original.sector.plane)
+        tolerance = original.tolerance
+        graph = nil; isoparametric = nil
+        uRange = original.options.surfaceURange; vRange = original.options.surfaceVRange
+        curveRange = try original.sourceBounds()
+        maximumSpatialDeviation = 0
+        start = try original.endpoint(at: 0)
+        end = try original.endpoint(at: 1)
+    }
+
+    /// Evaluates the original normalized traversal, including algebraic ends.
+    public func correspondence(atNormalizedFraction fraction: Double) throws -> CurveSurfaceOverlapEndpoint {
+        guard let originalPlane else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Existing regular-graph overlap
+            // consumers retain native source parameters. Their exact normalized
+            // endpoint transport must be issued before this new facade can use it.
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Overlap has no retained normalized original sector correspondence.")
+        }
+        return try originalPlane.endpoint(at: fraction)
+    }
+
     /// Evaluates owned correspondence in the certified range, including its endpoints.
     /// Coordinates use the requested periodic representative or the canonical chart.
     public func correspondence(at curveParameter: Double) throws -> CurveSurfaceOverlapEndpoint {
         try Task.checkCancellation()
+        if originalPlane != nil {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Native parameter inversion for
+            // algebraic clipped sectors requires exact endpoint transport. Use
+            // the retained normalized correspondence instead of rounded cuts.
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Original clipped sector correspondence requires a normalized fraction.")
+        }
         guard curveRange.contains(curveParameter) else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "Overlap correspondence requires a parameter inside its certified source interval.")

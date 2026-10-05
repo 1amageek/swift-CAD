@@ -1,9 +1,10 @@
 import CADCore
 import CADGeometry
 
-// FIXME(INCOMPLETE_IMPLEMENTATION): Only machining tests currently consume this
-// builder. Global intersection, closed-solid and lineage admission are required
-// before these boundaries may be published by a fillet feature.
+// FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary KernelRollingBallFilletEvaluator
+// consumes this cap builder through RollingBallFilletRequestBuilder in its
+// admitted original cap-chain domain. General cap/rim interactions, whole-solid
+// validity and lineage behavior must pass before complete fillet support.
 package struct RollingBallCapPatchBuilder {
     package init() {}
 

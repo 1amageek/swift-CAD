@@ -3,7 +3,7 @@ import CADCore
 /// A sheet filling an opening of a target's open boundary, the loop through `boundarySeed`: a
 /// surface built over the loop, or with `insertedSheet` (Plasticity's Insert Sheet, Trim to hole)
 /// the part of that sheet the loop encloses, the loop's edges lying on it.
-public struct SurfaceFillFeature: Codable, Hashable, Sendable {
+public struct SurfaceFillFeature: Hashable, Sendable {
     public let targetFeatureID: FeatureID
     public let boundarySeed: StableSubshapeReference
     /// The sheet trimmed to the opening, nil for a built fill.
@@ -38,12 +38,15 @@ public struct SurfaceFillFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case targetFeatureID
         case boundarySeed
         case insertedSheet
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.targetFeatureID, .boundarySeed, .insertedSheet], in: decoder)
@@ -52,7 +55,9 @@ public struct SurfaceFillFeature: Codable, Hashable, Sendable {
         insertedSheet = try container.decodeIfPresent(FeatureID.self, forKey: .insertedSheet)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -60,4 +65,9 @@ public struct SurfaceFillFeature: Codable, Hashable, Sendable {
         try container.encode(boundarySeed, forKey: .boundarySeed)
         try container.encodeIfPresent(insertedSheet, forKey: .insertedSheet)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceFillFeature: Codable {}
+#endif

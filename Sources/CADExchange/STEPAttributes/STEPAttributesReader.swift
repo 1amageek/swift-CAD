@@ -20,7 +20,7 @@ public struct STEPAttributesReader: STEPAttributesReading {
     }
 }
 
-private extension STEPAttributesReader {
+extension STEPAttributesReader {
     struct Builder {
         let syntax: any STEPFieldReading
         let entities: [Int: String]
@@ -29,6 +29,11 @@ private extension STEPAttributesReader {
         let resolver: any ProductAttributeResolving
         var budget: ProductAttributeBudget
         let duration: ExchangeProcessingBudget
+        var metadataIdentities: [Int: ProductMetadataID] = [:]
+        var metadataRoles: [Int: String] = [:]
+        var metadataRoleDescriptions: [Int: String] = [:]
+        var metadataAspectIDs = Set<Int>()
+        var metadataTargets: [Int: ProductAttributeTarget] = [:]
         var names: [Int: String] = [:]
         var geometry: [Int: ProductAttributeTarget] = [:]
         var assignments: [ProductAttributeAssignment] = []
@@ -36,6 +41,7 @@ private extension STEPAttributesReader {
         var itemCharacterizations: [ProductItemCharacterization] = []
         var shapeElementDescriptions: [ProductShapeElementDescription] = []
         var physicalGeometry: [Int: ProductAttributeTarget] = [:]
+        var materialIdentityByTarget: [ProductAttributeTarget: PhysicalMaterialID] = [:]
         var styleProperties: [Int: [ProductAttributeValue.Property: ProductAttributeID]] = [:]
         var styleTargets: [Int: ProductAttributeTarget] = [:]
         var buildingStyles = Set<Int>()
@@ -76,8 +82,14 @@ private extension STEPAttributesReader {
         mutating func physicalOwner(_ item: Int) throws -> ProductAttributeTarget {
             try check()
             if let target = globalPhysicalGeometry[item] { return target }
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP physical import cannot retain contextual or chain-based characterized-item owners yet.
-            // Their complete standard source scope and equivalent egress must be preserved before those owners can succeed.
+            if names[item] == "PRODUCT_DEFINITION_SHAPE" {
+                let a = try args(item, 3), owner = try syntax.reference(a[2])
+                guard let usage = transfer.usages[owner],
+                      let occurrence = evaluated.assembly?.occurrences.first(where: { $0.path.components.last == usage }) else {
+                    throw ProductAttributeError.unsupportedSemantics("Physical occurrence owner requires a validated NAUO path.")
+                }
+                return ProductAttributeTarget(kind: .occurrence, path: occurrence.path)
+            }
             guard transfer.definitions[item] != nil || transfer.usages[item] != nil || names[item] == "SHAPE_ASPECT" else {
                 throw ProductAttributeError.unsupportedSemantics("Physical property requires a legal characterized-definition owner.")
             }
@@ -170,6 +182,7 @@ private extension STEPAttributesReader {
                 try check()
                 let usage = try args(id, 5), aspect = try syntax.reference(usage[2])
                 let representation = try syntax.reference(usage[3]), item = try syntax.reference(usage[4])
+                if metadataAspectIDs.contains(aspect) { continue }
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP qualified shape-element import cannot retain subtype or chained metadata/name lifetimes yet.
                 // Their independent source authority and equivalent standard egress are required before those GISU definitions can succeed.
                 guard names[aspect] == "SHAPE_ASPECT" else {
@@ -262,13 +275,17 @@ private extension STEPAttributesReader {
                 }
                 components.append(occurrence)
             }
-            var candidates: [AssemblyOccurrencePath] = []
+            var exactCandidates: [AssemblyOccurrencePath] = []
+            var suffixCandidates: [AssemblyOccurrencePath] = []
             for occurrence in evaluated.assembly?.occurrences ?? [] {
                 try check(occurrence.path.components.count)
-                if occurrence.path.components == components || Array(occurrence.path.components.dropFirst()) == components {
-                    try budget.charge(targets: 1); candidates.append(occurrence.path)
+                if occurrence.path.components == components {
+                    try budget.charge(targets: 1); exactCandidates.append(occurrence.path)
+                } else if Array(occurrence.path.components.dropFirst()) == components {
+                    try budget.charge(targets: 1); suffixCandidates.append(occurrence.path)
                 }
             }
+            let candidates = exactCandidates.isEmpty ? suffixCandidates : exactCandidates
             guard candidates.count == 1, let result = candidates.first else { throw ProductAttributeError.ambiguousProperty("Contextual occurrence path.") }
             return result
         }
@@ -305,6 +322,26 @@ private extension STEPAttributesReader {
                 throw ProductAttributeError.missingTarget("Direct usage style carrier does not select its child definition.")
             }
             return ProductAttributeTarget(kind: .directUsage, usageID: usage)
+        }
+        mutating func uniqueOccurrenceTarget(_ context: Int, item: Int) throws -> ProductAttributeTarget? {
+            guard let usage = transfer.usageContexts[context] else { return nil }
+            let definitions: Set<AssemblyDefinitionID>
+            if let definition = transfer.partCarriers[item] {
+                definitions = [definition]
+            } else if let represented = transfer.representations[item], represented.count == 1 {
+                definitions = represented
+            } else {
+                return nil
+            }
+            try check(evaluated.assembly?.occurrences.count ?? 0)
+            let candidates = (evaluated.assembly?.occurrences ?? []).filter {
+                definitions.contains($0.definitionID) && $0.path.components.last == usage
+            }
+            guard candidates.count <= 1 else {
+                throw ProductAttributeError.ambiguousProperty("Contextual occurrence path.")
+            }
+            guard let occurrence = candidates.first else { return nil }
+            return ProductAttributeTarget(kind: .occurrence, path: occurrence.path)
         }
         mutating func styleValues(_ assignmentID: Int) throws -> [ProductAttributeValue.Property: ProductAttributeValue] {
             let contextual = names[assignmentID] == "PRESENTATION_STYLE_BY_CONTEXT"
@@ -380,6 +417,16 @@ private extension STEPAttributesReader {
             }
             throw ProductAttributeError.unsupportedSemantics("Unsupported color representation.")
         }
+        mutating func isDeclaredLayerMember(_ style: Int) throws -> Bool {
+            try check(entities.count)
+            for id in entities.keys where names[id] == "PRESENTATION_LAYER_ASSIGNMENT" {
+                try check()
+                let a = try args(id, 3), items = try syntax.list(a[2])
+                try check(items.count)
+                if items.contains(style) { return true }
+            }
+            return false
+        }
         mutating func readStyle(_ id: Int, depth: Int = 0) throws {
             if styleProperties[id] != nil { return }
             guard depth < budget.limits.maximumDepth else { throw ProductAttributeError.resourceLimitExceeded("STEP style override depth.") }
@@ -405,8 +452,31 @@ private extension STEPAttributesReader {
                 if transfer.usageContexts[context] != nil { contextUsage = context }
                 else { contextCarrier = context }
             }
+            let predecessor = a.count >= 4 ? try syntax.reference(a[3]) : nil
+            let values = try styleValues(psa)
+            let supportingDefinition: AssemblyDefinitionID?
+            if let definition = transfer.partCarriers[item] {
+                supportingDefinition = definition
+            } else if let definitions = transfer.representations[item], definitions.count == 1 {
+                supportingDefinition = definitions.first
+            } else {
+                supportingDefinition = nil
+            }
+            try check(evaluated.assembly?.occurrences.count ?? 0)
+            if predecessor == nil, values.isEmpty, !contextual,
+               let context = contextUsage, let carrierDefinition = supportingDefinition,
+               let usage = transfer.usageContexts[context],
+               let usageDefinition = evaluated.assembly?.occurrences.first(where: { $0.path.components.last == usage })?.definitionID,
+               usageDefinition != carrierDefinition {
+                // This is the unreferenced parent baseline of a nested NULL_STYLE
+                // chain. It is not a source assignment or a layer member.
+                styleProperties[id] = [:]
+                styleTargets[id] = ProductAttributeTarget(kind: .directUsage, usageID: usage)
+                return
+            }
             var target: ProductAttributeTarget
-            if !contextual, geometry[item] == nil, transfer.partCarriers[item] == nil {
+            if !contextual, geometry[item] == nil, transfer.partCarriers[item] == nil,
+               !(contextUsage != nil && transfer.representations[item] != nil) {
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP import has no direct styled mapped-usage correspondence yet.
                 // A real assembly MAPPED_ITEM must retain complete instance scope before it can be admitted; PD/representation pseudo-targets are invalid.
                 throw ProductAttributeError.unsupportedSemantics("Styled item requires an actual body, face, or structural whole-part carrier target.")
@@ -418,6 +488,26 @@ private extension STEPAttributesReader {
                         throw ProductAttributeError.ambiguousProperty("Competing direct usage style contexts.")
                     }
                     target = try usageTarget(context, item: item)
+                } else if contexts.count == 1, let relationship = contexts.first,
+                   let usage = transfer.relationships[relationship] {
+                    guard contextUsage == nil else {
+                        throw ProductAttributeError.ambiguousProperty("Competing direct usage style contexts.")
+                    }
+                    let definitions: Set<AssemblyDefinitionID>
+                    if let definition = transfer.partCarriers[item] {
+                        definitions = [definition]
+                    } else if let represented = transfer.representations[item], represented.count == 1 {
+                        definitions = represented
+                    } else {
+                        throw ProductAttributeError.missingTarget("Contextual occurrence carrier.")
+                    }
+                    let candidates = (evaluated.assembly?.occurrences ?? []).filter {
+                        definitions.contains($0.definitionID) && $0.path.components.last == usage
+                    }
+                    guard candidates.count == 1, let occurrence = candidates.first else {
+                        throw ProductAttributeError.ambiguousProperty("Contextual occurrence path.")
+                    }
+                    target = ProductAttributeTarget(kind: .occurrence, path: occurrence.path)
                 } else if contexts.contains(where: { names[$0] == "CONTEXT_DEPENDENT_SHAPE_REPRESENTATION" }) {
                     // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP direct-usage appearance admits one validated CDSR context, not mixed or chained usage selectors.
                     // A persistent equivalent compound scope and standard egress must be established before these contexts can succeed.
@@ -434,20 +524,56 @@ private extension STEPAttributesReader {
                         guard evaluated.assembly?.occurrences.contains(where: { $0.path == target.path && definitions.contains($0.definitionID) }) == true else {
                             throw ProductAttributeError.missingTarget("Contextual style component representation.")
                         }
+                    } else if let definition = transfer.partCarriers[item] {
+                        let path = try contextPath(a[4])
+                        target = ProductAttributeTarget(kind: .occurrence, path: path)
+                        guard evaluated.assembly?.occurrences.contains(where: {
+                            $0.path == path && $0.definitionID == definition
+                        }) == true else {
+                            throw ProductAttributeError.missingTarget("Contextual style whole-part carrier.")
+                        }
                     } else {
                         let mapped = try self.target(item)
                         guard let geometry = mapped.geometry else { throw ProductAttributeError.unsupportedSemantics("Unsupported contextual style target.") }
                         target = ProductAttributeTarget(kind: mapped.kind, geometry: geometry, path: try contextPath(a[4]))
                     }
                 }
-            } else if let context = contextUsage { target = try usageTarget(context, item: item) }
+            } else if let context = contextUsage {
+                // A CDSR with the validated child carrier selects one direct
+                // source usage, even when several parent paths expand it.
+                // A representation-only null predecessor carries no appearance.
+                if values.isEmpty, transfer.partCarriers[item] == nil {
+                    guard let occurrence = try uniqueOccurrenceTarget(context, item: item) else {
+                        throw ProductAttributeError.missingTarget("Null occurrence representation context.")
+                    }
+                    target = occurrence
+                } else {
+                    target = try usageTarget(context, item: item)
+                }
+            }
             else if let carrier = contextCarrier { target = try carrierTarget(carrier, item: item) }
             else { target = try self.target(item) }
-            let predecessor = a.count >= 4 ? try syntax.reference(a[3]) : nil
             var inherited: [ProductAttributeValue.Property: ProductAttributeID] = [:]
             if let predecessor { try readStyle(predecessor, depth: depth + 1); inherited = styleProperties[predecessor] ?? [:] }
-            let values = try styleValues(psa)
-            if predecessor != nil, values.isEmpty { throw ProductAttributeError.unsupportedSemantics("Null overriding style visibility semantics.") }
+            if predecessor != nil, values.isEmpty {
+                guard contextual else {
+                    throw ProductAttributeError.unsupportedSemantics("Null overriding style visibility semantics.")
+                }
+                let contexts = try syntax.list(a[4])
+                guard !contexts.isEmpty, contexts.allSatisfy({ transfer.relationships[$0] != nil }),
+                      target.kind == .occurrence else {
+                    throw ProductAttributeError.unsupportedSemantics("Null overriding style visibility semantics.")
+                }
+                if contexts.count == 1 {
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Public STEP null overrides admit complete root-path layer selection only.
+                    // General null visibility changes require a retained visibility source and standard egress before they can succeed.
+                    guard inherited.isEmpty, try isDeclaredLayerMember(id) else {
+                        throw ProductAttributeError.unsupportedSemantics("Null overriding style visibility semantics.")
+                    }
+                }
+                styleProperties[id] = inherited; styleTargets[id] = target
+                return
+            }
             for property in values.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
                 guard let value = values[property] else { throw ProductAttributeError.invalidSource("Missing style property.") }
                 try budget.charge(targets: 1)
@@ -482,10 +608,36 @@ private extension STEPAttributesReader {
                 let value = try string(name)
                 if !value.isEmpty { try budget.charge(targets: 1); assignments.append(ProductAttributeAssignment(target: target, value: .name(value))) }
             }
+            try prepareMetadataIdentities()
             if hasPhysicalGeometry { try preparePhysicalGeometry() }
             if hasGlobalPhysicalGeometry { try prepareGlobalPhysicalGeometry() }
+            for id in entities.keys.sorted() where names[id] == "MATERIAL_DESIGNATION" {
+                try check()
+                guard let materialID = transfer.materialIdentities[id] else {
+                    throw ProductAttributeError.missingTarget("Material designation identity.")
+                }
+                let designation = try args(id, 2)
+                let definitions = try syntax.list(designation[1])
+                if metadataRoles[id] == "materialDescriptor" { continue }
+                guard !definitions.isEmpty else {
+                    throw ProductAttributeError.invalidSource("Material designation requires a characterized definition.")
+                }
+                try check(definitions.count)
+                for definition in definitions {
+                    let target = try physicalOwner(definition)
+                    guard materialIdentityByTarget.updateValue(materialID, forKey: target) == nil else {
+                        throw ProductAttributeError.ambiguousProperty("Competing material designation identities.")
+                    }
+                }
+            }
             let styles = entities.keys.filter { ["STYLED_ITEM", "OVER_RIDING_STYLED_ITEM", "CONTEXT_DEPENDENT_OVER_RIDING_STYLED_ITEM"].contains(names[$0] ?? "") }.sorted()
-            let containers = entities.keys.filter { ["DRAUGHTING_MODEL", "MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION"].contains(names[$0] ?? "") }
+            var containers: [Int] = []
+            let styleSet = Set(styles)
+            for representation in entities.keys.sorted() where ["DRAUGHTING_MODEL", "MECHANICAL_DESIGN_GEOMETRIC_PRESENTATION_REPRESENTATION"].contains(names[representation] ?? "") {
+                let arguments = try args(representation,3), members = try syntax.list(arguments[1])
+                try check(members.count)
+                if members.contains(where:styleSet.contains) { containers.append(representation) }
+            }
             if !styles.isEmpty {
                 guard containers.count == 1, let container = containers.first else { throw ProductAttributeError.ambiguousProperty("Global styling container.") }
                 let a = try args(container, 3)
@@ -537,6 +689,8 @@ private extension STEPAttributesReader {
             for id in entities.keys.sorted() where names[id] == "PROPERTY_DEFINITION" {
                 try check()
                 let property = try args(id, 3), propertyName = try string(property[0]), label = property[1] == "$" ? "" : try string(property[1])
+                if propertyName == "geometric validation property" || propertyName == "geometric tolerance modifier" { continue }
+                if metadataRoles[id] == "physicalAssignment" || metadataRoles[id] == "materialDescriptorProperty" { continue }
                 guard propertyName == "material property", label == "material name" || label == "density" else {
                     throw ProductAttributeError.unsupportedSemantics("Unknown physical property semantics.")
                 }
@@ -564,18 +718,38 @@ private extension STEPAttributesReader {
                     guard densities.updateValue(value, forKey: owner) == nil else { throw ProductAttributeError.ambiguousProperty("Competing density properties.") }
                 }
             }
-            var materials: [PhysicalMaterialDescriptor] = []
+            if !materialIdentityByTarget.isEmpty {
+                try budget.charge(work: materialIdentityByTarget.count, targets: materialIdentityByTarget.count)
+                guard materialIdentityByTarget.keys.allSatisfy({ materialValues[$0] != nil }) else {
+                    throw ProductAttributeError.missingTarget("Material designation property attachment.")
+                }
+            }
+            var materialsByID: [PhysicalMaterialID: PhysicalMaterialDescriptor] = [:]
             for (target, value) in materialValues {
                 try budget.charge(targets: 1)
-                let material = PhysicalMaterialDescriptor(name: value.0, description: value.1, density: densities[target])
-                materials.append(material); assignments.append(ProductAttributeAssignment(target: target, value: .material(material.id)))
+                let materialID = materialIdentityByTarget[target] ?? PhysicalMaterialID()
+                let material = PhysicalMaterialDescriptor(id: materialID, name: value.0, description: value.1, density: densities[target])
+                if let existing = materialsByID[materialID], existing.name != material.name || existing.description != material.description || existing.density != material.density {
+                    throw ProductAttributeError.ambiguousProperty("Material designation has conflicting descriptor values.")
+                }
+                materialsByID[materialID] = material
+                assignments.append(ProductAttributeAssignment(target: target, value: .material(material.id)))
                 if densities[target] != nil { assignments.append(ProductAttributeAssignment(target: target, value: .descriptorDensity(material.id))) }
             }
+            let originalPhysical = try readPhysicalSource()
+            for descriptor in originalPhysical.materials {
+                guard materialsByID[descriptor.id] == nil else { throw ProductAttributeError.invalidSource("Competing original physical descriptor owners.") }
+                materialsByID[descriptor.id] = descriptor
+            }
+            assignments.append(contentsOf:originalPhysical.assignments)
+            let materials = materialsByID.values.sorted { $0.id < $1.id }
             for (target, density) in densities where materialValues[target] == nil {
                 try budget.charge(targets: 1); assignments.append(ProductAttributeAssignment(target: target, value: .density(density)))
             }
+            let metadata = try readMetadata()
             let result = ProductAttributes(materials: materials, assignments: assignments, layers: layers,
-                itemCharacterizations: itemCharacterizations, shapeElementDescriptions: shapeElementDescriptions)
+                itemCharacterizations: itemCharacterizations, shapeElementDescriptions: shapeElementDescriptions,
+                manufacturingInformation: metadata.0, viewMetadata: metadata.1)
             var document = evaluated.document; document.productAttributes = result
             try ProductAttributesValidator().validate(result, in: document, budget: &budget)
             return result

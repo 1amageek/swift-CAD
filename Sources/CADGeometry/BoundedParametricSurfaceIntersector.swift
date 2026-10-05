@@ -11,24 +11,52 @@ struct BoundedParametricSurfaceIntersector: Sendable {
     first: Surface3D,
     second: Surface3D,
     options: SurfaceSurfaceIntersectionOptions,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws -> [SurfaceSurfaceIntersection] {
     try options.validate(tolerance: tolerance)
-    try first.validate(tolerance: tolerance)
-    try second.validate(tolerance: tolerance)
-    let domains = try BoundedSurfaceParameterDomainMap(
-      first: first,
-      second: second,
-      tolerance: tolerance
-    )
-    let preparedFirstSurface = try PreparedSurfaceDifferentialEncloser(
-      surface: first,
-      tolerance: tolerance
-    )
-    let preparedSecondSurface = try PreparedSurfaceDifferentialEncloser(
-      surface: second,
-      tolerance: tolerance
-    )
+    try admission.step()
+    let preparedFirstSurface = try admission.prepare(first, tolerance: tolerance)
+    let preparedSecondSurface = try admission.prepare(second, tolerance: tolerance)
+    let domains = try BoundedSurfaceParameterDomainMap(first: first, second: second,
+      tolerance: tolerance, admission: admission,
+      preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface)
+    return try intersections(first: preparedFirstSurface, second: preparedSecondSurface,
+      domains: domains, options: options, tolerance: tolerance, admission: admission)
+  }
+
+  func intersections(first: Surface3D, over firstBox: SurfaceParameterBox,
+    second: Surface3D, over secondBox: SurfaceParameterBox,
+    options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission) throws -> [SurfaceSurfaceIntersection] {
+    try options.validate(tolerance: tolerance); try admission.step()
+    let domains = try BoundedSurfaceParameterDomainMap(first: first, over: firstBox,
+      second: second, over: secondBox, tolerance: tolerance, admission: admission)
+    let preparedFirst = try admission.prepare(first, tolerance: tolerance)
+    let preparedSecond = try admission.prepare(second, tolerance: tolerance)
+    return try intersections(first: preparedFirst, second: preparedSecond,
+      domains: domains, options: options, tolerance: tolerance, admission: admission)
+  }
+
+  func intersections(first: PreparedSurfaceDifferentialEncloser, over firstBox: SurfaceParameterBox,
+    second: PreparedSurfaceDifferentialEncloser, over secondBox: SurfaceParameterBox,
+    options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission) throws -> [SurfaceSurfaceIntersection] {
+    try options.validate(tolerance: tolerance); try admission.step()
+    guard first.preparationTolerance == tolerance, second.preparationTolerance == tolerance else {
+      throw GeometryConversionError.invalidInput("An original domain-pair query cannot replace its preparation tolerance.")
+    }
+    let domains = try BoundedSurfaceParameterDomainMap(first: first.surface, over: firstBox,
+      second: second.surface, over: secondBox, tolerance: tolerance, admission: admission)
+    return try intersections(first: first, second: second, domains: domains,
+      options: options, tolerance: tolerance, admission: admission)
+  }
+
+  private func intersections(first preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
+    second preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
+    domains: BoundedSurfaceParameterDomainMap, options: SurfaceSurfaceIntersectionOptions,
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission) throws -> [SurfaceSurfaceIntersection] {
+    let first = preparedFirstSurface.surface, second = preparedSecondSurface.surface
     var remainingCells = options.maximumSubdivisionCells
     var remainingRootAttempts = options.maximumRootAttempts
     var remainingAtlasCells = options.maximumBoundarySubdivisionCells
@@ -40,25 +68,32 @@ struct BoundedParametricSurfaceIntersector: Sendable {
       second: preparedSecondSurface,
       domains: domains,
       options: options,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission
     )
     let tracer = ParametricSurfaceIntersectionComponentTracer(
       first: first,
       second: second,
       domains: domains,
       options: options,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission,
+      preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
     )
     let atlasBuilder = try ParametricSurfaceIntersectionGraphAtlasBuilder(
       first: preparedFirstSurface,
       second: preparedSecondSurface,
       domains: domains,
       options: options,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission
     )
     while true {
-      let existingRecords = atlases.flatMap {
-        $0.flatMap(\.coverageRecords)
+      try admission.step()
+      var existingRecords: [ParametricSurfaceIntersectionGraphCellRecord] = []
+      for atlas in atlases {
+        try admission.step()
+        for entry in atlas {
+          try admission.reserve(count: entry.coverageRecords.count, stride: MemoryLayout<ParametricSurfaceIntersectionGraphCellRecord>.stride)
+          for record in entry.coverageRecords { try admission.step(); existingRecords.append(record) }
+        }
       }
       switch try verifier.firstUncoveredSeed(
         atlas: existingRecords,
@@ -71,7 +106,7 @@ struct BoundedParametricSurfaceIntersector: Sendable {
           atlases: atlases,
           first: preparedFirstSurface,
           second: preparedSecondSurface,
-          tolerance: tolerance
+          tolerance: tolerance, admission: admission
         )
       case .uncoveredSeed(let seed):
         guard components.count < options.maximumSeedCount else {
@@ -83,10 +118,10 @@ struct BoundedParametricSurfaceIntersector: Sendable {
           )
         }
         guard
-          represents(
+          try represents(
             seed,
             components: components,
-            tolerance: tolerance
+            tolerance: tolerance, admission: admission
           ) == false
         else {
           throw KernelError(
@@ -106,6 +141,8 @@ struct BoundedParametricSurfaceIntersector: Sendable {
           remainingRootAttempts: &remainingRootAttempts,
           remainingCellAttempts: &remainingAtlasCells
         )
+        try admission.reserve(count: 1, stride: MemoryLayout<ParametricSurfaceIntersectionTracedComponent>.stride
+          + MemoryLayout<[ParametricSurfaceIntersectionGraphAtlasBuilder.Entry]>.stride)
         components.append(component)
         atlases.append(atlas)
       case .unresolved(let reason):
@@ -125,16 +162,22 @@ struct BoundedParametricSurfaceIntersector: Sendable {
     atlases: [[ParametricSurfaceIntersectionGraphAtlasBuilder.Entry]],
     first preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
     second preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission
   ) throws -> [SurfaceSurfaceIntersection] {
+    guard components.count == atlases.count else {
+      throw GeometryConversionError.invalidInput("Original SSI publication requires one complete atlas per component.")
+    }
+    try admission.reserve(count: components.count, stride: MemoryLayout<SurfaceSurfaceIntersection>.stride)
     return try zip(components, atlases).map { component, atlas in
-      let cells = atlas.map(\.cell)
+      try admission.reserve(count: atlas.count, stride: MemoryLayout<CertifiedImplicitIntersectionGraphCell>.stride)
+      let cells = try atlas.map { entry in try admission.step(); return entry.cell }
       return try intersection(
         cells: cells,
         isClosed: component.isClosed,
         first: preparedFirstSurface,
         second: preparedSecondSurface,
-        tolerance: tolerance
+        tolerance: tolerance, admission: admission
       )
     }
   }
@@ -144,7 +187,8 @@ struct BoundedParametricSurfaceIntersector: Sendable {
     isClosed: Bool,
     first preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
     second preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission
   ) throws -> SurfaceSurfaceIntersection {
     let first = preparedFirstSurface.surface
     let second = preparedSecondSurface.surface
@@ -155,7 +199,7 @@ struct BoundedParametricSurfaceIntersector: Sendable {
         secondSurface: preparedSecondSurface,
         validatedCells: cells,
         isClosed: isClosed,
-        tolerance: tolerance
+        tolerance: tolerance, admission: admission
       )
     } catch let error as KernelError {
       throw KernelError(
@@ -187,16 +231,8 @@ struct BoundedParametricSurfaceIntersector: Sendable {
       tolerance: tolerance
     )
     let anchor = cells[0].startAnchor
-    let firstPoint = try first.point(
-      u: anchor.first.u,
-      v: anchor.first.v,
-      tolerance: tolerance
-    )
-    let secondPoint = try second.point(
-      u: anchor.second.u,
-      v: anchor.second.v,
-      tolerance: tolerance
-    )
+    let firstPoint = try admission.numericalSample(preparedFirstSurface, at: anchor.first, tolerance: tolerance).position
+    let secondPoint = try admission.numericalSample(preparedSecondSurface, at: anchor.second, tolerance: tolerance).position
     let residual = (firstPoint - secondPoint).length * 0.5
     return .curve(
       try SurfaceSurfaceIntersectionCurve(
@@ -222,12 +258,14 @@ struct BoundedParametricSurfaceIntersector: Sendable {
   private func represents(
     _ seed: PairSample,
     components: [ParametricSurfaceIntersectionTracedComponent],
-    tolerance: ModelingTolerance
-  ) -> Bool {
-    components.contains { component in
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission
+  ) throws -> Bool {
+    try components.contains { component in
       guard component.samples.count >= 2 else { return false }
-      return (1..<component.samples.count).contains { index in
-        pointSegmentDistance(
+      try admission.step()
+      return try (1..<component.samples.count).contains { index in
+        try admission.step()
+        return pointSegmentDistance(
           seed.point,
           component.samples[index - 1].point,
           component.samples[index].point

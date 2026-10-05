@@ -25,22 +25,35 @@ public struct BSplineBasis {
 
     static func nonzeroIntervalDerivativeValues(parameter: Double, degree: Int,
         throughDerivativeOrder order: Int, knots: [Double], count: Int,
-        owningSpan: Int, tolerance: ModelingTolerance) throws -> [NonzeroIntervalValues] {
+        owningSpan: Int, tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeStorage: ((Int) throws -> Void)? = nil) throws -> [NonzeroIntervalValues] {
         try validateSelectedSpan(parameter: parameter, degree: degree, order: order,
-            knots: knots, count: count, span: owningSpan, tolerance: tolerance)
+            knots: knots, count: count, span: owningSpan, tolerance: tolerance, consumeWork: consumeWork)
         typealias Interval = OutwardScalarInterval
+        for _ in 0...order { try consumeWork() }
+        try OriginalCoefficientAllocation.reserve(count: order + 1, of: [Interval].self, consumeStorage: consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count: 1, of: Interval.self, consumeStorage: consumeStorage)
         var previous = Array(repeating: [Interval.exact(0)], count: order + 1)
         previous[0][0] = .exact(1)
         if degree > 0 {
             for p in 1...degree {
-                try Task.checkCancellation()
+                try Task.checkCancellation(); try consumeWork()
                 let start = owningSpan - p
+                for _ in 0...order {
+                    for _ in 0...p { try consumeWork() }
+                }
+                try OriginalCoefficientAllocation.reserve(count: order + 1, of: [Interval].self, consumeStorage: consumeStorage)
+                for _ in 0...order {
+                    try OriginalCoefficientAllocation.reserve(count: p + 1, of: Interval.self, consumeStorage: consumeStorage)
+                }
                 var next = Array(repeating: Array(repeating: Interval.exact(0), count: p + 1), count: order + 1)
                 func value(_ derivative: Int, _ index: Int) -> Interval {
                     guard index > start, index <= owningSpan else { return .exact(0) }
                     return previous[derivative][index - start - 1]
                 }
                 for offset in 0...p {
+                    try consumeWork()
                     let i = start + offset
                     let left = Interval.exact(knots[i + p]) - .exact(knots[i])
                     let right = Interval.exact(knots[i + p + 1]) - .exact(knots[i + 1])
@@ -51,6 +64,7 @@ public struct BSplineBasis {
                         }
                         next[0][offset] = next[0][offset] + factor * value(0, i)
                         for derivative in 1...max(1, min(p, order)) where derivative <= order {
+                            try consumeWork()
                             next[derivative][offset] = next[derivative][offset] + scale * value(derivative - 1, i)
                         }
                     }
@@ -61,6 +75,7 @@ public struct BSplineBasis {
                         }
                         next[0][offset] = next[0][offset] + factor * value(0, i + 1)
                         for derivative in 1...max(1, min(p, order)) where derivative <= order {
+                            try consumeWork()
                             next[derivative][offset] = next[derivative][offset] - scale * value(derivative - 1, i + 1)
                         }
                     }
@@ -68,16 +83,27 @@ public struct BSplineBasis {
                 previous = next
             }
         }
-        guard previous.joined().allSatisfy(\.isFinite) else {
-            throw selectedFailure(.resourceLimitExceeded, "Original interval basis derivatives exceed finite arithmetic.", tolerance)
+        try OriginalCoefficientAllocation.reserve(count: order + 1, of: NonzeroIntervalValues.self, consumeStorage: consumeStorage)
+        var result: [NonzeroIntervalValues] = []
+        result.reserveCapacity(order + 1)
+        for row in previous {
+            for coefficient in row {
+                try consumeWork()
+                guard coefficient.isFinite else {
+                    throw selectedFailure(.resourceLimitExceeded, "Original interval basis derivatives exceed finite arithmetic.", tolerance)
+                }
+            }
+            try consumeWork()
+            result.append(NonzeroIntervalValues(startIndex: owningSpan - degree, values: row))
         }
-        return previous.map { NonzeroIntervalValues(startIndex: owningSpan - degree, values: $0) }
+        return result
     }
 
     private static func validateSelectedSpan(parameter: Double, degree: Int, order: Int,
-        knots: [Double], count: Int, span: Int, tolerance: ModelingTolerance) throws {
+        knots: [Double], count: Int, span: Int, tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
         try tolerance.validate()
-        try Task.checkCancellation()
+        try Task.checkCancellation(); try consumeWork()
         let sum = count.addingReportingOverflow(degree)
         let length = sum.partialValue.addingReportingOverflow(1)
         let rows = order.addingReportingOverflow(1)
@@ -88,9 +114,15 @@ public struct BSplineBasis {
         }
         guard degree >= 0, count > degree, order >= 0, knots.count == length.partialValue,
               span >= degree, span < count, parameter.isFinite,
-              knots.allSatisfy(\.isFinite), zip(knots, knots.dropFirst()).allSatisfy({ $0.0 <= $0.1 }),
               knots[span] < knots[span + 1], parameter >= knots[span], parameter <= knots[span + 1] else {
             throw selectedFailure(.invalidInput, "A selected original basis requires its actual finite closed native span.", tolerance)
+        }
+        for index in knots.indices {
+            try consumeWork()
+            guard knots[index].isFinite,
+                  index == 0 || knots[index - 1] <= knots[index] else {
+                throw selectedFailure(.invalidInput, "A selected original basis requires finite ordered original knots.", tolerance)
+            }
         }
     }
 

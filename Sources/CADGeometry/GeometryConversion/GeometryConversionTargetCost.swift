@@ -20,7 +20,7 @@ enum GeometryConversionTargetCost {
         case .curve(let curve):
             let n = try order(curve.degree, count: curve.controlPointCount)
             if curve.isPeriodic { return } // Requested-window extraction is charged per probe.
-            let patches = spanCount(curve.knots, degree: curve.degree, count: curve.controlPointCount)
+            let patches = try spanCount(curve.knots, degree: curve.degree, count: curve.controlPointCount, budget: &budget)
             let simple = curve.controlPointCount == n && patches == 1
             let slots = simple ? try product(patches, n, 16)
                 : try product(patches, n, n, n, sum(curve.controlPointCount, n), 16)
@@ -31,8 +31,8 @@ enum GeometryConversionTargetCost {
             // Fundamental periodic restriction includes padded cycles and knot insertion copies.
             let cu = surface.isUPeriodic ? try product(surface.uControlPointCount, 8) : surface.uControlPointCount
             let cv = surface.isVPeriodic ? try product(surface.vControlPointCount, 8) : surface.vControlPointCount
-            let patches = try product(spanCount(surface.uKnots, degree: surface.uDegree, count: surface.uControlPointCount),
-                spanCount(surface.vKnots, degree: surface.vDegree, count: surface.vControlPointCount))
+            let patches = try product(try spanCount(surface.uKnots, degree: surface.uDegree, count: surface.uControlPointCount, budget: &budget),
+                try spanCount(surface.vKnots, degree: surface.vDegree, count: surface.vControlPointCount, budget: &budget))
             let groups = surface.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }) ? 1 : 4
             let simple = !surface.isUPeriodic && !surface.isVPeriodic && cu == n && cv == m && patches == 1
             let slots: Int
@@ -55,7 +55,7 @@ enum GeometryConversionTargetCost {
 
     func chargeProbe(over interval: ScalarInterval, tolerance: ModelingTolerance, budget: inout GeometryConversionBudget) throws {
         if case .polynomialCurve(let curve) = self {
-            let patches = spanCount(curve.knots, degree: curve.degree, count: curve.controlPointCount, interval: interval)
+            let patches = try spanCount(curve.knots, degree: curve.degree, count: curve.controlPointCount, interval: interval, budget: &budget)
             try PolynomialConversionTargetPatch.chargeProbe(uDegree: curve.degree, vDegree: 0, curve: true,
                 patches: patches, scans: curve.knots.count, budget: &budget)
             return
@@ -76,7 +76,7 @@ enum GeometryConversionTargetCost {
                 product(patches, curveProbeSlots(n: n)))
             try charge(slots: slots, budget: &budget)
         } else {
-            let patches = spanCount(curve.knots, degree: curve.degree, count: curve.controlPointCount, interval: interval)
+            let patches = try spanCount(curve.knots, degree: curve.degree, count: curve.controlPointCount, interval: interval, budget: &budget)
             // Two homogeneous splits, shrinking derivative arrays, and scalar evaluation levels.
             try charge(slots: product(patches, curveProbeSlots(n: n)), workPerSlot: 8, budget: &budget)
         }
@@ -92,10 +92,10 @@ enum GeometryConversionTargetCost {
         guard case .surface(let surface) = self else { throw GeometryConversionError.invalidInput("Surface probe requires a surface target.") }
         let n = try order(surface.uDegree, count: surface.uControlPointCount)
         let m = try order(surface.vDegree, count: surface.vControlPointCount)
-        let u = spanCount(surface.uKnots, degree: surface.uDegree, count: surface.uControlPointCount,
-            interval: surface.isUPeriodic ? nil : box.u)
-        let v = spanCount(surface.vKnots, degree: surface.vDegree, count: surface.vControlPointCount,
-            interval: surface.isVPeriodic ? nil : box.v)
+        let u = try spanCount(surface.uKnots, degree: surface.uDegree, count: surface.uControlPointCount,
+            interval: surface.isUPeriodic ? nil : box.u, budget: &budget)
+        let v = try spanCount(surface.vKnots, degree: surface.vDegree, count: surface.vControlPointCount,
+            interval: surface.isVPeriodic ? nil : box.v, budget: &budget)
         // A periodic axis maps to at most two fundamental intervals, including seam limits.
         let patches = try product(u, v, surface.isUPeriodic ? 2 : 1, surface.isVPeriodic ? 2 : 1)
         let groups = surface.weights.allSatisfy({ $0.allSatisfy { $0 == 1 } }) ? 1 : 4
@@ -130,10 +130,13 @@ enum GeometryConversionTargetCost {
         }
         return result
     }
-    private func spanCount(_ knots: [Double], degree: Int, count: Int, interval: ScalarInterval? = nil) -> Int {
+    private func spanCount(_ knots: [Double], degree: Int, count: Int, interval: ScalarInterval? = nil,
+        budget: inout GeometryConversionBudget) throws -> Int {
         guard degree >= 0, count > degree, count < knots.count else { return 0 }
         var result = 0
-        for i in degree..<count where knots[i + 1] > knots[i] {
+        for i in degree..<count {
+            try budget.charge(work: 1)
+            guard knots[i + 1] > knots[i] else { continue }
             // Closed overlap includes both knot-side limits and any stable-anchor expansion.
             if let interval, knots[i + 1] < interval.lower || knots[i] > interval.upper { continue }
             result += 1

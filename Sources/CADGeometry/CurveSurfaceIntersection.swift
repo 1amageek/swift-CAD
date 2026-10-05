@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveSurfaceIntersection: Codable, Hashable, Sendable {
+public struct CurveSurfaceIntersection: Hashable, Sendable {
     public let point: Point3D
     public let curveParameter: Double
     public let surfaceU: Double
@@ -8,6 +8,8 @@ public struct CurveSurfaceIntersection: Codable, Hashable, Sendable {
     public let kind: CurveSurfaceIntersectionKind
     public let residual: Double
     public let iterations: Int
+    /// Original native parameter-root authority; numerical fields remain representatives.
+    public let originalCurveBoundary: OriginalCurveRootBoundary?
 
     public init(
         point: Point3D,
@@ -16,7 +18,8 @@ public struct CurveSurfaceIntersection: Codable, Hashable, Sendable {
         surfaceV: Double,
         kind: CurveSurfaceIntersectionKind,
         residual: Double,
-        iterations: Int
+        iterations: Int,
+        originalCurveBoundary: OriginalCurveRootBoundary? = nil
     ) throws {
         try point.validate()
         guard curveParameter.isFinite,
@@ -40,5 +43,10 @@ public struct CurveSurfaceIntersection: Codable, Hashable, Sendable {
         self.kind = kind
         self.residual = residual
         self.iterations = iterations
+        self.originalCurveBoundary = originalCurveBoundary
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveSurfaceIntersection: Codable {}
+#endif

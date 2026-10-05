@@ -64,4 +64,31 @@ public struct DefaultShapeOperator: ShapeOperating {
         try ShapeClosureResolver().validate(root: source.root, in: model, tolerance: tolerance)
         return Shape(root: source.root, model: model)
     }
+    public func transformed(
+        validatedModel: ValidatedBRepModel,
+        by transforms: [AffineTransform3D],
+        maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable (Int) throws -> Void
+    ) throws -> BRepModel {
+        try ShapeAffineImageBuilder().transform(validatedModel.model,
+            by: transforms, tolerance: validatedModel.tolerance,
+            maximumSubdivisionDepth: maximumSubdivisionDepth,
+            remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
+    }
+
+    public func transformed(
+        validatedModel: ValidatedBRepModel,
+        by operationWord: OriginalAffineOperationWord,
+        maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable (Int) throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)? = nil
+    ) throws -> BRepModel {
+        try ShapeAffineWordImageBuilder().transform(validatedModel.model,
+            by: operationWord, tolerance: validatedModel.tolerance,
+            maximumSubdivisionDepth: maximumSubdivisionDepth,
+            remainingSourceDepth: remainingSourceDepth,
+            consumeWork: consumeWork, consumeStorage: consumeStorage)
+    }
 }

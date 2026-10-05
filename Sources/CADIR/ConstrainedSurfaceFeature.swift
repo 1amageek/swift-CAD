@@ -1,23 +1,27 @@
 import CADCore
 
-public struct ConstrainedSurfaceFeature: Codable, Hashable, Sendable {
-    public struct PointConstraint: Codable, Hashable, Sendable {
+public struct ConstrainedSurfaceFeature: Hashable, Sendable {
+    public struct PointConstraint: Hashable, Sendable {
         public var position: Point3D
 
         public init(position: Point3D) {
             self.position = position
         }
 
+#if !hasFeature(Embedded)
         private enum CodingKeys: String, CodingKey { case position }
+#endif
 
+#if !hasFeature(Embedded)
         public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             try container.validateOnlyExpectedKeys([.position], in: decoder)
             position = try container.decode(Point3D.self, forKey: .position)
         }
+#endif
     }
 
-    public enum Optimization: String, Codable, CaseIterable, Sendable {
+    public enum Optimization: String, CaseIterable, Sendable {
         case performance
         case smoothness
     }
@@ -46,10 +50,13 @@ public struct ConstrainedSurfaceFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case points, positionTolerance, angularTolerance, optimization
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.points, .positionTolerance, .angularTolerance, .optimization], in: decoder)
@@ -59,4 +66,11 @@ public struct ConstrainedSurfaceFeature: Codable, Hashable, Sendable {
         optimization = try container.decode(Optimization.self, forKey: .optimization)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension ConstrainedSurfaceFeature: Codable {}
+extension ConstrainedSurfaceFeature.PointConstraint: Codable {}
+extension ConstrainedSurfaceFeature.Optimization: Codable {}
+#endif

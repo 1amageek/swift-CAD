@@ -1,7 +1,7 @@
 import CADCore
 
 /// Independent metadata of a global item characterization, distinct from the item's name and optional physical properties.
-public struct ProductItemCharacterization: Codable, Hashable, Sendable {
+public struct ProductItemCharacterization: Hashable, Sendable {
     public let target: ProductAttributeTarget
     public let name: String
     public let description: String?
@@ -30,7 +30,12 @@ public struct ProductItemCharacterization: Codable, Hashable, Sendable {
         }
     }
 
+    #if !hasFeature(Embedded)
+
     private enum CodingKeys: String, CodingKey { case target, name, description }
+    #endif
+
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.target, .name, .description], in: decoder)
@@ -41,10 +46,18 @@ public struct ProductItemCharacterization: Codable, Hashable, Sendable {
         }
         description = try c.decodeIfPresent(String.self, forKey: .description)
     }
+    #endif
+
+    #if !hasFeature(Embedded)
 
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(target, forKey: .target); try c.encode(name, forKey: .name)
         try c.encode(description, forKey: .description)
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension ProductItemCharacterization: Codable {}
+#endif

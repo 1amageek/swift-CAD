@@ -31,6 +31,27 @@ Original support + exact ordered constant-coordinate rectangle
 
 ## Contracts and Invariants
 
+Rectangular admission describes the original geometric UV domain, independently
+of its authored pcurve representation. Exact affine axis directions, collinear
+directed polylines and clamped positive-weight native B-spline axis sides retain
+their original source. Fixed control coordinates and directed monotone control
+coordinates prove those native side images without sampling. Original physical
+station correspondence and selected owning-span fidelity remain required before
+those admitted charts may publish a mesh; numeric normalized knot fractions do
+not establish either proof.
+Flat spatial-word images keep native UV exactly. Their rectangular route partitions
+the unchanged original B-spline support, retains its owning tokens, and transports
+each native seven-field bound through exact invocation-prepared word condition
+bounds. Final station normals and positions are proved on the complete imaged
+support before emission. Source factor count never becomes chart nesting depth.
+Original binary affine images with both gains exactly binary one, zero offsets
+and no axis swap use the same native-panel route. They retain their actual image
+source and prepare an exact quantitative action once per invocation, in original
+outer-to-inner order. Full directed image pcurves obtain exact source-bound axis
+endpoints from Topology before rectangle admission; rounded inverse or endpoint
+evaluation does not establish that authority. Nonidentity UV images retain the
+foreign native-knot chart dependency.
+
 A source is validated under the caller modeling tolerance before basis classification. Stored finite positive weights retain the BSplineSurface3D contract. Internal active knot multiplicity cannot exceed degree; unresolved source discontinuity is explicit refusal. A nonclamped nonperiodic axis retains its actual native domain knots[degree]...knots[count], not the outer knot-vector ends and not a normalized replacement chart.
 
 All nonclamped open rectangles use exact ordered constant-coordinate coedge-use endpoints, connected directed vertex identities, alternating monotone sides and complete original ranges. Those exact source conditions supply rectangle ownership; sampled endpoints or spatial tolerance do not substitute for UV connectivity. Split sides retain their existing exact contract.
@@ -60,3 +81,50 @@ Invalid sources retain their original typed failure. Discontinuous basis, inexac
 Full M1 requires public Native/normal-WASM/Embedded behavior with fixed Swift6.4/matching SDKs, source-derived capability/domain consistency, and verified main integration. This nonperiodic sprint is not full M1 completion. Mesh is pure scalar logic, so SwiftPM Native tests own this path; no Metal implementation is introduced. Root owns graph/integration/commit and the module design index.
 
 Mixed periodic/open fixtures independently retain literal cardinal or diamond cycles scaled by an original nonclamped parabolic or C0 tent radius with original height t. [OriginalMixedPeriodicTessellationTests](../../../Tests/CADGeometryTests/OriginalMixedPeriodicTessellationTests.swift) owns exact lower closed jets, zero-width seam/open endpoint incidents, foreign-token and shared cover/cancellation refusal. The Kernel fidelity suite covers both axis roles, full periods and unwrapped seam crossings, source C0 sides and all emitted triangle edges; FaceRun and budget suites verify original extraction and cumulative/cancel publication. The periodic width, exact shift, native derivative scaling and ordinary normal selection contracts remain unchanged.
+
+### Final Original Owning-Panel Publication
+
+Each native grid retains the seven-field differential bound from its original
+owning panel. Re-proving a refined cell uses that bound and the selected token's
+original closed interval jet; a zero-width neighboring C0 owner cannot enlarge
+its normal authority. Shared original positions remain common at a crease, while
+stored corner normals retain the grid's one-sided token. Nonuniform axis station
+unions never cross a native knot boundary. Complete published triangle normals,
+corner-position discrepancy and every output edge are admitted before emission.
+
+### Exact Native Iso Edge Partition
+
+Original SurfaceLift constant-coordinate edges retain exact native UV knot stations and the owning original iso traversal issued with each closed curve span. A normalized knot fraction is only an outward localization proposal and is never an exact join cut. The composition samples each retained original native iso portion under its one-sided source law, joins the physical endpoint once, and retains its UV station for grid publication. All pieces share the edge cell/segment allowance and the invocation proof owner. Zero-width knot neighbors participate in endpoint position coverage, but never supply positive-width tangent/Hessian authority.
+
+Axis-aligned authored affine UV traversals consume the same retained native iso
+pieces as literal constant-coordinate charts. Exact Geometry source arithmetic
+owns representable endpoint coordinates; Kernel reads the first/last native
+piece endpoints instead of reevaluating rounded affine UV endpoints. Directed
+source signs order the native pieces without a rounded product. Nonrepresentable
+UV endpoint relations retain their explicit rational-carrier dependency.
+
+Mesh original curve/support preparation explicitly forwards independent
+algebra32 alongside existing source16 and subdivision32. Nested lifted polyline
+charts retain their exact Euclidean clock and cannot obtain their algebra depth
+from geometric subdivision. The same proof owner pays their visits and bytes.
+
+Published native iso samples retain original UV stations. A normalized source
+parameter obtained by inverse affine arithmetic is a candidate: its original
+closed curve position enclosure must contain the published point within the
+existing linear goal before that parameter is attached. This point admission
+does not issue an exact nonrepresentable knot parameter or a global inverse
+chart receipt; those retain the lower station-correspondence dependency.
+
+Canonical native iso sampling also consumes full forward/reverse hosted
+identity-UV images. It retains original iso pieces and exact reversed endpoint
+roles, then reapplies the original affine/word stack to every local physical
+piece before its closed-curve proof. Original UV stations remain unchanged;
+only the independently checked source-position discrepancy can bind a proposed
+normalized parameter to its published physical station. Partial fractions and
+foreign charts do not acquire this native-owner authority.
+
+Monotone axis polylines use Geometry's exact Euclidean-length telescoping
+authority to share the endpoint affine clock, including zero-length duplicate
+stations in the unchanged source list. They consume the same native iso pieces
+and physical source-position checks as literal constant-axis charts. This
+equivalence does not apply to nonlinear native B-spline clocks.

@@ -1,7 +1,7 @@
 import Foundation
 import CADCore
 
-public struct SurfaceParameter: Codable, Sendable, Hashable {
+public struct SurfaceParameter: Sendable, Hashable {
     public var u: Double
     public var v: Double
 
@@ -21,19 +21,19 @@ public struct SurfaceParameter: Codable, Sendable, Hashable {
     }
 }
 
-public enum SurfaceParameterBoundary: String, Codable, Sendable, Hashable, CaseIterable {
+public enum SurfaceParameterBoundary: String, Sendable, Hashable, CaseIterable {
     case uLower
     case uUpper
     case vLower
     case vUpper
 }
 
-public enum SurfaceParameterCurveDirection: String, Codable, Sendable, Hashable {
+public enum SurfaceParameterCurveDirection: String, Sendable, Hashable {
     case forward
     case reversed
 }
 
-public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
+public enum SurfaceParameterCurve: Sendable, Hashable {
     case affine(
         origin: Point2D,
         direction: Point2D,
@@ -57,10 +57,13 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
     )
     case polyline([SurfaceParameter])
     case bSpline(BSplineCurve2D)
+    case originalBSplineContinuation(OriginalBSplineCurve2DContinuation)
     case certifiedImplicit(CertifiedImplicitSurfaceParameterCurve)
     case certifiedAnalyticImplicit(CertifiedAnalyticImplicitSurfaceParameterCurve)
     case certifiedAnalyticPair(CertifiedAnalyticPairSurfaceParameterCurve)
     indirect case projectedAnalytic(ProjectedAnalyticSurfaceParameterCurve)
+    indirect case originalAffineWord(OriginalAffineWordSurfaceParameterCurve)
+    indirect case originalImage(OriginalImageSurfaceParameterCurve)
     indirect case rigidImage(RigidImageSurfaceParameterCurve)
     indirect case offsetSurfaceImage(OffsetSurfaceParameterCurveImage)
     indirect case periodicTranslation(
@@ -196,6 +199,15 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             guard totalLength > Double.ulpOfOne else {
                 throw GeometryError.invalidDistance(totalLength)
             }
+        case let .originalBSplineContinuation(curve):
+            try curve.validate(tolerance: tolerance)
+            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+            for (value, domain) in [(jet.u.value, surface.uDomain), (jet.v.value, surface.vDomain)] {
+                if case .closed(let lower, let upper) = domain,
+                    value.lower < lower || value.upper > upper {
+                    throw GeometryConversionError.invalidInput("An original continuation leaves its complete hosting chart domain.")
+                }
+            }
         case let .bSpline(curve):
             try curve.validate(tolerance: tolerance)
             for controlPoint in curve.controlPoints {
@@ -212,6 +224,10 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .certifiedAnalyticPair(curve):
             try curve.validate(on: surface, tolerance: tolerance)
         case let .projectedAnalytic(curve):
+            try curve.validate(on: surface, tolerance: tolerance)
+        case let .originalAffineWord(curve):
+            try curve.validate(on: surface, tolerance: tolerance)
+        case let .originalImage(curve):
             try curve.validate(on: surface, tolerance: tolerance)
         case let .rigidImage(curve):
             try curve.validate(on: surface, tolerance: tolerance)
@@ -275,6 +291,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             )
         case let .polyline(points):
             return try polylineParameter(points: points, fraction: clampedFraction)
+        case let .originalBSplineContinuation(curve):
+            return try curve.parameter(atNormalizedFraction: clampedFraction, tolerance: tolerance)
         case let .bSpline(curve):
             let bounds = try Self.closedBounds(curve.domain, tolerance: tolerance)
             let parameter = interpolated(bounds.lower, bounds.upper, fraction: clampedFraction)
@@ -299,6 +317,16 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 tolerance: tolerance
             )
         case let .projectedAnalytic(curve):
+            return try curve.parameter(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .originalAffineWord(curve):
+            return try curve.parameter(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .originalImage(curve):
             return try curve.parameter(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
@@ -352,6 +380,9 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 startParameter: startParameter,
                 endParameter: endParameter
             )
+        case let .originalBSplineContinuation(curve):
+            return try curve.parameter(atNormalizedFraction: (parameter - curve.startParameter)
+                / (curve.endParameter - curve.startParameter), tolerance: tolerance)
         case let .bSpline(curve):
             let pcurveParameter: Double
             if case .periodic = curveDomain {
@@ -413,6 +444,24 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .projectedAnalytic(curve):
             return try curve.parameter(
                 atCurveParameter: parameter,
+                tolerance: tolerance
+            )
+        case let .originalAffineWord(curve):
+            return try curve.parameter(
+                atNormalizedFraction: normalizedFraction(
+                    parameter,
+                    domain: curveDomain,
+                    tolerance: tolerance
+                ),
+                tolerance: tolerance
+            )
+        case let .originalImage(curve):
+            return try curve.parameter(
+                atNormalizedFraction: normalizedFraction(
+                    parameter,
+                    domain: curveDomain,
+                    tolerance: tolerance
+                ),
                 tolerance: tolerance
             )
         case let .rigidImage(curve):
@@ -494,6 +543,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             )
         case let .polyline(points):
             return .polyline(Array(points.reversed()))
+        case let .originalBSplineContinuation(curve):
+            return .originalBSplineContinuation(try curve.reversed(tolerance: tolerance))
         case let .bSpline(curve):
             return .bSpline(try curve.reversed(tolerance: tolerance))
         case let .certifiedImplicit(curve):
@@ -504,6 +555,10 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             return .certifiedAnalyticPair(try curve.reversed(tolerance: tolerance))
         case let .projectedAnalytic(curve):
             return .projectedAnalytic(try curve.reversed(tolerance: tolerance))
+        case let .originalAffineWord(curve):
+            return .originalAffineWord(try curve.reversed(tolerance: tolerance))
+        case let .originalImage(curve):
+            return .originalImage(try curve.reversed(tolerance: tolerance))
         case let .rigidImage(curve):
             return .rigidImage(try curve.reversed(tolerance: tolerance))
         case let .offsetSurfaceImage(curve):
@@ -569,7 +624,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 vShift: vShift + nestedVShift
             ).materializingPeriodicTranslation()
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
-             .certifiedAnalyticPair, .projectedAnalytic, .rigidImage,
+             .certifiedAnalyticPair, .projectedAnalytic, .originalBSplineContinuation, .originalAffineWord, .originalImage, .rigidImage,
              .offsetSurfaceImage:
             return .periodicTranslation(
                 base: base,
@@ -659,6 +714,9 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 curveDomain: curveDomain,
                 tolerance: tolerance
             )
+        case let .originalBSplineContinuation(curve):
+            return .originalBSplineContinuation(try OriginalBSplineCurve2DContinuation(original: curve.original,
+                startParameter: startParameter, endParameter: endParameter, tolerance: tolerance))
         case let .bSpline(curve):
             // A closed spline (a circle's) read on past its seam, as its periodic curve runs.
             return .bSpline(try curve.trimmedAcrossSeam(
@@ -691,6 +749,38 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             return .projectedAnalytic(try curve.trimmed(
                 from: startParameter,
                 to: endParameter,
+                tolerance: tolerance
+            ))
+        case let .originalAffineWord(curve):
+            let lower = try normalizedFraction(
+                startParameter,
+                domain: curveDomain,
+                tolerance: tolerance
+            )
+            let upper = try normalizedFraction(
+                endParameter,
+                domain: curveDomain,
+                tolerance: tolerance
+            )
+            return .originalAffineWord(try curve.subcurve(
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
+                tolerance: tolerance
+            ))
+        case let .originalImage(curve):
+            let lower = try normalizedFraction(
+                startParameter,
+                domain: curveDomain,
+                tolerance: tolerance
+            )
+            let upper = try normalizedFraction(
+                endParameter,
+                domain: curveDomain,
+                tolerance: tolerance
+            )
+            return .originalImage(try curve.subcurve(
+                fromNormalizedFraction: lower,
+                toNormalizedFraction: upper,
                 tolerance: tolerance
             ))
         case let .rigidImage(curve):
@@ -730,6 +820,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case origin
@@ -747,18 +838,23 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case endParameter
         case points
         case bSpline
+        case originalBSplineContinuation
         case certifiedImplicit
         case certifiedAnalyticImplicit
         case certifiedAnalyticPair
         case sphericalGreatCircle
         case projectedAnalytic
+        case originalAffineWord
+        case originalImage
         case rigidImage
         case offsetSurfaceImage
         case base
         case uShift
         case vShift
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case affine
         case constantU
@@ -766,16 +862,21 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case harmonic
         case polyline
         case bSpline
+        case originalBSplineContinuation
         case certifiedImplicit
         case certifiedAnalyticImplicit
         case certifiedAnalyticPair
         case sphericalGreatCircle
         case projectedAnalytic
+        case originalAffineWord
+        case originalImage
         case rigidImage
         case offsetSurfaceImage
         case periodicTranslation
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -864,12 +965,22 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
                 startParameter: try container.decode(Double.self, forKey: .startParameter),
                 endParameter: try container.decode(Double.self, forKey: .endParameter)
             )
+        case .originalBSplineContinuation:
+            try container.validateOnlyExpectedKeys([.kind, .originalBSplineContinuation], in: decoder)
+            self = .originalBSplineContinuation(try container.decode(OriginalBSplineCurve2DContinuation.self,
+                forKey: .originalBSplineContinuation))
         case .projectedAnalytic:
             try container.validateOnlyExpectedKeys([.kind, .projectedAnalytic], in: decoder)
             self = .projectedAnalytic(try container.decode(
                 ProjectedAnalyticSurfaceParameterCurve.self,
                 forKey: .projectedAnalytic
             ))
+        case .originalAffineWord:
+            try container.validateOnlyExpectedKeys([.kind, .originalAffineWord], in: decoder)
+            self = .originalAffineWord(try container.decode(OriginalAffineWordSurfaceParameterCurve.self, forKey: .originalAffineWord))
+        case .originalImage:
+            try container.validateOnlyExpectedKeys([.kind, .originalImage], in: decoder)
+            self = .originalImage(try container.decode(OriginalImageSurfaceParameterCurve.self, forKey: .originalImage))
         case .rigidImage:
             try container.validateOnlyExpectedKeys([.kind, .rigidImage], in: decoder)
             self = .rigidImage(try container.decode(
@@ -897,7 +1008,9 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -927,6 +1040,9 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .polyline(points):
             try container.encode(Kind.polyline, forKey: .kind)
             try container.encode(points, forKey: .points)
+        case let .originalBSplineContinuation(curve):
+            try container.encode(Kind.originalBSplineContinuation, forKey: .kind)
+            try container.encode(curve, forKey: .originalBSplineContinuation)
         case let .bSpline(curve):
             try container.encode(Kind.bSpline, forKey: .kind)
             try container.encode(curve, forKey: .bSpline)
@@ -948,6 +1064,12 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         case let .projectedAnalytic(curve):
             try container.encode(Kind.projectedAnalytic, forKey: .kind)
             try container.encode(curve, forKey: .projectedAnalytic)
+        case let .originalAffineWord(curve):
+            try container.encode(Kind.originalAffineWord, forKey: .kind)
+            try container.encode(curve, forKey: .originalAffineWord)
+        case let .originalImage(curve):
+            try container.encode(Kind.originalImage, forKey: .kind)
+            try container.encode(curve, forKey: .originalImage)
         case let .rigidImage(curve):
             try container.encode(Kind.rigidImage, forKey: .kind)
             try container.encode(curve, forKey: .rigidImage)
@@ -961,6 +1083,7 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
             try container.encode(vShift, forKey: .vShift)
         }
     }
+#endif
 
     private static func closedBounds(
         _ domain: ParameterDomain,
@@ -1021,6 +1144,11 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         }
     }
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Common numerical pcurve evaluation
+    // still uses rounded length proposals. The original polyline law is exact
+    // Euclidean prefix/total length; this evaluator must use cancellation-checked
+    // outward length refinement before it can claim continuous original stations.
+    // Exact bounds and trim events consume the separate admitted exact law.
     private func polylineParameter(points: [SurfaceParameter], fraction: Double) throws -> SurfaceParameter {
         guard let first = points.first,
               let last = points.last else {
@@ -1083,8 +1211,8 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         var longitude = atan2(-longitudeDirection.x, longitudeDirection.y)
         if longitude < 0.0 { longitude += 2.0 * Double.pi }
         return SurfaceParameter(
-            u: longitude,
-            v: asin(min(max(radial.z, -1.0), 1.0))
+            u: CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: longitude),
+            v: CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: asin(min(max(radial.z, -1.0), 1.0)))
         )
     }
 
@@ -1364,3 +1492,10 @@ public enum SurfaceParameterCurve: Codable, Sendable, Hashable {
         start + (end - start) * fraction
     }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceParameter: Codable {}
+extension SurfaceParameterBoundary: Codable {}
+extension SurfaceParameterCurveDirection: Codable {}
+extension SurfaceParameterCurve: Codable {}
+#endif

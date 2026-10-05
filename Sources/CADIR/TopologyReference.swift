@@ -1,11 +1,12 @@
 import CADCore
 
-public enum TopologyReference: Hashable, Codable, Sendable {
+public enum TopologyReference: Hashable, Sendable {
     case body(BodyID)
     case face(FaceID)
     case edge(EdgeID)
     case vertex(VertexID)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case bodyID
@@ -13,14 +14,18 @@ public enum TopologyReference: Hashable, Codable, Sendable {
         case edgeID
         case vertexID
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case body
         case face
         case edge
         case vertex
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -39,7 +44,9 @@ public enum TopologyReference: Hashable, Codable, Sendable {
             self = .vertex(try container.decode(VertexID.self, forKey: .vertexID))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -57,4 +64,9 @@ public enum TopologyReference: Hashable, Codable, Sendable {
             try container.encode(vertexID, forKey: .vertexID)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension TopologyReference: Codable {}
+#endif

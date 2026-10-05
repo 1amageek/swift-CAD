@@ -146,8 +146,20 @@ public extension SurfaceParameterCurve {
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance
             ))
+        case let .originalBSplineContinuation(curve):
+            return .originalBSplineContinuation(try curve.subcurve(fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction, tolerance: tolerance))
         case let .projectedAnalytic(curve):
             return .projectedAnalytic(try curve.subcurve(
+                fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction,
+                tolerance: tolerance
+            ))
+        case let .originalAffineWord(curve):
+            return .originalAffineWord(try curve.subcurve(fromNormalizedFraction: lowerFraction,
+                toNormalizedFraction: upperFraction, tolerance: tolerance))
+        case let .originalImage(curve):
+            return .originalImage(try curve.subcurve(
                 fromNormalizedFraction: lowerFraction,
                 toNormalizedFraction: upperFraction,
                 tolerance: tolerance

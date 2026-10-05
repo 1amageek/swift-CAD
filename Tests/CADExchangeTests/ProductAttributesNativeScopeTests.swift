@@ -33,7 +33,7 @@ struct ProductAttributesNativeScopeTests {
         let store = NativePackageStore(tolerance: .standard), sink = DataByteSink()
         try store.writePackage(for: document, to: sink)
         let loaded = try store.loadDocument(from: sink.bytes)
-        #expect(loaded == document && loaded.schemaVersion == SchemaVersion(major: 0, minor: 11, patch: 0))
+        #expect(loaded == document && loaded.schemaVersion == SchemaVersion(major: 0, minor: 12, patch: 0))
         #expect(loaded.designGraph.nodes.count == 1)
         #expect(loaded.assembly?.definitions.allSatisfy { $0.features == [featureID] } == true)
         let evaluated = try evaluator.evaluateExact(loaded), view = try resolver.resolve(evaluated)

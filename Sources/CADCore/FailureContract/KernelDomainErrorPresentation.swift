@@ -18,8 +18,19 @@ enum KernelDomainErrorPresentation {
         case let value as ExportError: export(value)
         case let value as ImportError: importError(value)
         case let value as PortableIdentityError: identity(value)
+        case let value as PortableSourceEncodingError: sourceEncoding(value)
         case is CancellationError: "CancellationError()"
         default: "Unclassified source error; reflective diagnostic payload is unavailable on Embedded Swift."
+        }
+    }
+
+    private static func sourceEncoding(_ value: PortableSourceEncodingError) -> String {
+        switch value {
+        case .invalidLimits: "PortableSourceEncodingError.invalidLimits"
+        case let .resourceLimitExceeded(message):
+            "PortableSourceEncodingError.resourceLimitExceeded(\(quoted(message)))"
+        case .nonfiniteScalar: "PortableSourceEncodingError.nonfiniteScalar"
+        case .canonicalKeyCollision: "PortableSourceEncodingError.canonicalKeyCollision"
         }
     }
 

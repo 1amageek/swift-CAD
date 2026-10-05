@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BooleanCurveUVSample: Codable, Hashable, Sendable {
+public struct BooleanCurveUVSample: Hashable, Sendable {
     public let curveParameter: Double
     public let uvPoint: BooleanUVPoint
 
@@ -22,3 +22,7 @@ public struct BooleanCurveUVSample: Codable, Hashable, Sendable {
         self.uvPoint = uvPoint
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanCurveUVSample: Codable {}
+#endif

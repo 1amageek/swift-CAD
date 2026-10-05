@@ -1,8 +1,8 @@
 import Foundation
 import CADCore
 
-public struct BSplineCurve2D: Codable, Sendable, Hashable {
-    public struct DifferentialGeometry: Codable, Sendable, Hashable {
+public struct BSplineCurve2D: Sendable, Hashable {
+    public struct DifferentialGeometry: Sendable, Hashable {
         public var position: Point2D
         public var firstDerivative: Point2D
         public var secondDerivative: Point2D
@@ -31,6 +31,7 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
         self.weights = weights ?? Array(repeating: 1.0, count: controlPoints.count)
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -45,7 +46,9 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
             weights: try container.decode([Double].self, forKey: .weights)
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(degree, forKey: .degree)
@@ -53,6 +56,7 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
         try container.encode(controlPoints, forKey: .controlPoints)
         try container.encode(weights, forKey: .weights)
     }
+#endif
 
     public var order: Int {
         degree + 1
@@ -204,34 +208,41 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try tolerance.validate()
-        guard degree >= 1,
-              controlPoints.count >= degree + 1,
-              controlPoints.allSatisfy({ $0.x.isFinite && $0.y.isFinite }),
-              weights.count == controlPointCount,
-              weights.allSatisfy({ $0.isFinite && $0 > 0.0 }),
-              knots.count == controlPointCount + degree + 1,
-              knots.allSatisfy(\.isFinite) else {
-            throw GeometryError.invalidDistance(0.0)
+        try validate(tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+    }
+
+    package func validate(tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws {
+        try tolerance.validate(); try consumeWork()
+        guard degree >= 1, controlPoints.count >= degree + 1,
+              weights.count == controlPointCount, knots.count == controlPointCount + degree + 1 else {
+            throw GeometryError.invalidDistance(0)
         }
-        for index in 1..<knots.count where knots[index] < knots[index - 1] {
-            throw GeometryError.invalidDistance(knots[index] - knots[index - 1])
+        for point in controlPoints {
+            try consumeWork()
+            guard point.x.isFinite, point.y.isFinite else { throw GeometryError.invalidDistance(0) }
         }
-        let lowerBound = knots[degree]
-        let upperBound = knots[knots.count - degree - 1]
-        guard upperBound > lowerBound else {
-            throw GeometryError.invalidDistance(upperBound - lowerBound)
+        for weight in weights {
+            try consumeWork()
+            guard weight.isFinite, weight > 0 else { throw GeometryError.invalidDistance(0) }
         }
+        for index in knots.indices {
+            try consumeWork()
+            guard knots[index].isFinite else { throw GeometryError.invalidDistance(0) }
+            if index > 0, knots[index] < knots[index - 1] {
+                throw GeometryError.invalidDistance(knots[index] - knots[index - 1])
+            }
+        }
+        let lowerBound = knots[degree], upperBound = knots[knots.count - degree - 1]
+        guard upperBound > lowerBound else { throw GeometryError.invalidDistance(upperBound - lowerBound) }
         var runStart = 0
         while runStart < knots.count {
+            try consumeWork()
             var runEnd = runStart + 1
             while runEnd < knots.count, knots[runEnd] == knots[runStart] {
-                runEnd += 1
+                try consumeWork(); runEnd += 1
             }
             let value = knots[runStart]
-            let maximumMultiplicity = value > lowerBound && value < upperBound
-                ? degree
-                : degree + 1
+            let maximumMultiplicity = value > lowerBound && value < upperBound ? degree : degree + 1
             guard runEnd - runStart <= maximumMultiplicity else {
                 throw GeometryError.invalidDistance(Double(runEnd - runStart))
             }
@@ -356,12 +367,14 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
         )
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case degree
         case knots
         case controlPoints
         case weights
     }
+#endif
 
     private struct WeightedPoint {
         var x: Double
@@ -437,3 +450,8 @@ public struct BSplineCurve2D: Codable, Sendable, Hashable {
     }
 
 }
+
+#if !hasFeature(Embedded)
+extension BSplineCurve2D: Codable {}
+extension BSplineCurve2D.DifferentialGeometry: Codable {}
+#endif

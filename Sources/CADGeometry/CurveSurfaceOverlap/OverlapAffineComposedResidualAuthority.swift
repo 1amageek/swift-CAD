@@ -80,6 +80,7 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
 
     static func certificate(source: BSplineCurve3D, target: BSplineSurface3D,
                             pair: OverlapRegularGraphCell.Pair,
+                            predictor: (start: SurfaceParameter, end: SurfaceParameter)? = nil,
                             budget: inout OverlapProofBudget) throws -> Self? {
         guard !source.isPeriodic, !target.isUPeriodic, !target.isVPeriodic,
               source.degree > 0, source.degree < Int.max,
@@ -125,14 +126,34 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
             }
             return nil
         }
-        guard let first = corner(source.controlPoints[0]),
-              let last = corner(source.controlPoints[source.controlPointCount - 1]) else { return nil }
-        func basis(index: Int, degree: Int, start: Int, end: Int) -> Polynomial {
+        let start: SurfaceParameter, end: SurfaceParameter
+        let uBasis: [Polynomial]?, vBasis: [Polynomial]?
+        let first = corner(source.controlPoints[0])
+        let last = corner(source.controlPoints[source.controlPointCount - 1])
+        if let first, let last {
+            start = SurfaceParameter(u: first.u == 0 ? ul : uh, v: first.v == 0 ? vl : vh)
+            end = SurfaceParameter(u: last.u == 0 ? ul : uh, v: last.v == 0 ? vl : vh)
+            uBasis = nil; vBasis = nil
+        } else if let predictor {
+            func contained(_ value: SurfaceParameter) -> Bool {
+                value.u.isFinite && value.v.isFinite && value.u >= ul && value.u <= uh
+                    && value.v >= vl && value.v <= vh
+            }
+            guard contained(predictor.start), contained(predictor.end) else { return nil }
+            start = predictor.start; end = predictor.end
+            // Original UV seeds are only hints. Charge every complete polynomial
+            // operation before allocating their outward Bernstein representations.
+            try budget.work(try predictorPreparationWork(uDegree: target.uDegree,
+                vDegree: target.vDegree, tolerance: budget.tolerance))
+            uBasis = try affineBasis(degree: target.uDegree, start: start.u, end: end.u,
+                lower: ul, upper: uh, budget: budget)
+            vBasis = try affineBasis(degree: target.vDegree, start: start.v, end: end.v,
+                lower: vl, upper: vh, budget: budget)
+        } else { return nil }
+        func cornerBasis(index: Int, degree: Int, start: Int, end: Int) -> Polynomial {
             if start == end {
-                // A constant corner parameter selects exactly one native basis.
                 return Polynomial(repeating: .exact(index == (start == 0 ? 0 : degree) ? 1 : 0), count: degree + 1)
             }
-            // B_i(t) and B_i(1-t) have an exact unit Bernstein coefficient.
             var values = Polynomial(repeating: .exact(0), count: degree + 1)
             values[start == 0 ? index : degree - index] = .exact(1)
             return values
@@ -142,9 +163,16 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
         for row in 0...target.vDegree {
             for column in 0...target.uDegree {
                 try Task.checkCancellation()
-                let composedBasis = try multiply(
-                    basis(index: column, degree: target.uDegree, start: first.u, end: last.u),
-                    basis(index: row, degree: target.vDegree, start: first.v, end: last.v),
+                let u: Polynomial, v: Polynomial
+                if let uBasis, let vBasis {
+                    u = uBasis[column]; v = vBasis[row]
+                } else if let first, let last {
+                    u = cornerBasis(index: column, degree: target.uDegree, start: first.u, end: last.u)
+                    v = cornerBasis(index: row, degree: target.vDegree, start: first.v, end: last.v)
+                } else {
+                    throw failure(.intersectionFailure, "An affine predictor lost its complete native basis authority.", budget)
+                }
+                let composedBasis = try multiply(u, v,
                     maximumDegree: budget.options.maximumPolynomialDegree, budget: budget)
                 let weight = Interval.exact(target.weights[row][column])
                 for axis in 0..<4 {
@@ -186,8 +214,7 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
             errors.append(quotient.upper)
         }
         return Self(source: source, target: target, pair: pair,
-            start: SurfaceParameter(u: first.u == 0 ? ul : uh, v: first.v == 0 ? vl : vh),
-            end: SurfaceParameter(u: last.u == 0 ? ul : uh, v: last.v == 0 ? vl : vh),
+            start: start, end: end,
             sourceDomain: try ScalarInterval(lower: source.knots[source.degree], upper: source.knots[source.controlPointCount]),
             errors: errors)
     }
@@ -205,13 +232,69 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
         }
         func axis(_ start: Double, _ end: Double) throws -> ScalarInterval {
             let value = Interval.exact(start) + parameter * (Interval.exact(end) - .exact(start))
-            // The original affine hint is a convex combination of native corners.
+            // The represented affine hint remains in its original native endpoint hull.
             guard let retained = value.intersection(with: Interval(lower: min(start, end), upper: max(start, end))), retained.isFinite else {
-                throw Self.failure(.intersectionFailure, "An affine residual hint lost its original native corner hull.", budget)
+                throw Self.failure(.intersectionFailure, "An affine residual hint lost its original native endpoint hull.", budget)
             }
             return try ScalarInterval(lower: retained.lower, upper: retained.upper)
         }
         return SurfaceParameterBox(u: try axis(start.u, end.u), v: try axis(start.v, end.v))
+    }
+
+    private static func predictorPreparationWork(uDegree: Int, vDegree: Int,
+                                                 tolerance: ModelingTolerance) throws -> Int {
+        var total = 64
+        for degree in [uDegree, vDegree] {
+            let count = degree.addingReportingOverflow(1)
+            let square = count.partialValue.multipliedReportingOverflow(by: count.partialValue)
+            let cube = square.partialValue.multipliedReportingOverflow(by: count.partialValue)
+            let fee = cube.partialValue.multipliedReportingOverflow(by: 128)
+            let next = total.addingReportingOverflow(fee.partialValue)
+            guard degree > 0, !count.overflow, !square.overflow, !cube.overflow,
+                  !fee.overflow, !next.overflow else { throw overflow(tolerance) }
+            // Each axis owns two complete power tables, all basis products and
+            // binomial recurrences. Their scalar arithmetic and scratch storage
+            // are bounded by 128*(degree+1)^3 before any work is performed.
+            total = next.partialValue
+        }
+        return total
+    }
+
+    private static func affineBasis(degree: Int, start: Double, end: Double,
+                                    lower: Double, upper: Double,
+                                    budget: OverlapProofBudget) throws -> [Polynomial] {
+        let width = Interval.exact(upper) - .exact(lower)
+        guard width.isFinite, width.lower > 0,
+              let first = (Interval.exact(start) - .exact(lower)).divided(by: width),
+              let last = (Interval.exact(end) - .exact(lower)).divided(by: width),
+              let a = first.intersection(with: Interval(lower: 0, upper: 1)),
+              let b = last.intersection(with: Interval(lower: 0, upper: 1)) else {
+            throw failure(.resourceLimitExceeded, "An affine predictor has no finite original-axis normalization.", budget)
+        }
+        let parameter: Polynomial = [a, b]
+        let complement: Polynomial = [.exact(1) - a, .exact(1) - b]
+        var powers: [Polynomial] = [[.exact(1)]]
+        var complements: [Polynomial] = [[.exact(1)]]
+        for _ in 1...degree {
+            try Task.checkCancellation()
+            powers.append(try multiply(powers[powers.count - 1], parameter,
+                maximumDegree: budget.options.maximumPolynomialDegree, budget: budget))
+            complements.append(try multiply(complements[complements.count - 1], complement,
+                maximumDegree: budget.options.maximumPolynomialDegree, budget: budget))
+        }
+        let coefficients = try binomials(degree, budget: budget)
+        var bases: [Polynomial] = []
+        for index in 0...degree {
+            try Task.checkCancellation()
+            let product = try multiply(powers[index], complements[degree - index],
+                maximumDegree: budget.options.maximumPolynomialDegree, budget: budget)
+            let values = product.map { $0 * coefficients[index] }
+            guard values.allSatisfy(\.isFinite) else {
+                throw failure(.resourceLimitExceeded, "An affine native Bernstein basis exceeds finite arithmetic.", budget)
+            }
+            bases.append(values)
+        }
+        return bases
     }
 
     private static func multiply(_ a: Polynomial, _ b: Polynomial, maximumDegree: Int,

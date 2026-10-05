@@ -6,7 +6,7 @@ import CADTopology
 /// neighbouring edges joined as `gapFill` says, and imprinted on the faces; a chain that stops
 /// short of a face's boundary carries on to it. Symmetric offsets also go over the face on the
 /// other side of each edge.
-public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
+public struct EdgeOffsetFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var edges: [StableSubshapeReference]
     public var supportFaces: [StableSubshapeReference]
@@ -46,10 +46,13 @@ public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
         try distance.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, edges, supportFaces, distance, isSymmetric, gapFill
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .edges, .supportFaces, .distance, .isSymmetric, .gapFill], in: decoder)
@@ -61,7 +64,9 @@ public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
         gapFill = try container.decode(OffsetGapFill.self, forKey: .gapFill)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -72,10 +77,11 @@ public struct EdgeOffsetFeature: Codable, Hashable, Sendable {
         try container.encode(isSymmetric, forKey: .isSymmetric)
         try container.encode(gapFill, forKey: .gapFill)
     }
+#endif
 }
 
 /// How the offsets of two edges meeting at a corner are joined where they part.
-public enum OffsetGapFill: String, Codable, Hashable, Sendable {
+public enum OffsetGapFill: String, Hashable, Sendable {
     /// An arc around the corner at the offset distance.
     case round
     /// Straight lines carrying each offset on until they meet, a sharp corner of edges of their own
@@ -85,3 +91,8 @@ public enum OffsetGapFill: String, Codable, Hashable, Sendable {
     /// Natural).
     case natural
 }
+
+#if !hasFeature(Embedded)
+extension EdgeOffsetFeature: Codable {}
+extension OffsetGapFill: Codable {}
+#endif

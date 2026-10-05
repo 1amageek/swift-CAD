@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-public struct BooleanFaceSurfaceIntersection: Codable, Hashable, Sendable {
+public struct BooleanFaceSurfaceIntersection: Hashable, Sendable {
     public let facePair: BooleanFacePairCandidate
     public let geometry: SurfaceSurfaceIntersection
 
@@ -13,3 +13,7 @@ public struct BooleanFaceSurfaceIntersection: Codable, Hashable, Sendable {
         self.geometry = geometry
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanFaceSurfaceIntersection: Codable {}
+#endif

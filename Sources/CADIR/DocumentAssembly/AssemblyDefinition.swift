@@ -1,6 +1,6 @@
 import CADCore
 
-public struct AssemblyDefinition: Codable, Equatable, Sendable {
+public struct AssemblyDefinition: Equatable, Sendable {
     public let id: AssemblyDefinitionID
     public var formationID: AssemblyProductFormationID
     public var identifier: String
@@ -19,7 +19,10 @@ public struct AssemblyDefinition: Codable, Equatable, Sendable {
             && AssemblySourceText.equal(lhs.definitionDescription, rhs.definitionDescription)
             && lhs.features == rhs.features && lhs.children == rhs.children
     }
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case id, formationID, identifier, definitionDescription, features, children }
+#endif
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         try c.validateOnlyExpectedKeys([.id, .formationID, .identifier, .definitionDescription, .features, .children], in: decoder)
@@ -30,10 +33,17 @@ public struct AssemblyDefinition: Codable, Equatable, Sendable {
         features = try c.decode([FeatureID].self, forKey: .features)
         children = try c.decode([AssemblyOccurrence].self, forKey: .children)
     }
+#endif
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: CodingKeys.self)
         try c.encode(id, forKey: .id); try c.encode(formationID, forKey: .formationID)
         try c.encode(identifier, forKey: .identifier); try c.encode(definitionDescription, forKey: .definitionDescription)
         try c.encode(features, forKey: .features); try c.encode(children, forKey: .children)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension AssemblyDefinition: Codable {}
+#endif

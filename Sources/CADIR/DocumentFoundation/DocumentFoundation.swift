@@ -1,11 +1,12 @@
 import CADCore
 
-public struct DocumentFoundation: Codable, Hashable, Sendable {
+public struct DocumentFoundation: Hashable, Sendable {
     public private(set) var attributes: [DocumentAttribute]
 
     public init(attributes: [DocumentAttribute] = []) {
         self.attributes = attributes.sorted { $0.id < $1.id }
     }
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case attributes }
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -13,6 +14,8 @@ public struct DocumentFoundation: Codable, Hashable, Sendable {
         self.init(attributes: try c.decode([DocumentAttribute].self, forKey: .attributes))
         _ = try attributeIndex()
     }
+
+    #endif
 
     public func attribute(id: DocumentAttributeID) -> DocumentAttribute? {
         attributes.first { $0.id == id }
@@ -85,3 +88,7 @@ public struct DocumentFoundation: Codable, Hashable, Sendable {
         guard exists else { throw DocumentFoundationError.missingTarget(reference) }
     }
 }
+
+#if !hasFeature(Embedded)
+extension DocumentFoundation: Codable {}
+#endif

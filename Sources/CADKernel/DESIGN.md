@@ -33,6 +33,15 @@ section planes remain typed failures. Placement measurements consume these
 oriented segments so fractional lengths follow the constructed end of a sweep.
 Core's placed sweep tests own the cross-package ordering/measurement check.
 
+Sweep construction preflight consumes the original face loop and directed edge
+source from `ResolvedModelingSection.face` through the
+[Section Resolution](../CADModeling/SectionResolution/DESIGN.md) contract and
+`ExactBSplineCurveSpanBuilder.loopSpans(from:section)`. Face and profile sections
+retain closed-region and exact source-plane policy; curve sections retain their
+authored open/closed flag. Face references require their evaluated source feature
+in the same supplied snapshot and tolerance. A profile facade or a legacy Profile
+conversion does not replace face source authority during construction admission. One sweep planning invocation owns one existing `CurvedSweepSourceBudget`: original span admission, certified curved open/closed paths, twist admission and face-section resolution share that same owner. Throws propagate through the same allowance, and a phase does not create a fresh proof budget. Mitred construction retains its explicit lower-port accounting gap until its actual producer accepts this admission; the composition does not claim whole-ledger completion from an outer debit.
+
 `SketchCurveIntersector` is the public sketch curve intersection. It converts
 each `SketchCurveGeometry2D` (line, circle, arc, cubic Bezier chain) to its exact
 rational B-spline, intersects the pair with the certified two-dimensional curve
@@ -214,6 +223,19 @@ session in the surface's own parameters (`requireInsideFaceTrim`). A line meetin
 the part of the support the face does not cover. `DirectionalProjectionTrimTests`
 own this.
 
+Original affine operation-word curve and surface queries retain the original
+source and its factor sequence through the general closest/directional
+producers. Control-point queries retain original native B-spline index, knots
+and spans and apply the word only to the requested numerical value; conic-center
+queries likewise transform the retained original center. A rounded transformed
+control net never replaces query source authority. Existing convenience-query
+policy gains no new hidden ceiling; bounded image/service callers retain their
+explicit original invocation ledgers and lower failure contracts.
+
+Original endpoint connector queries use the same complete original closest and
+directional producers. Control-point, knot, span and exact-center shortcuts
+cannot promote the connector construction spline into the corrected source law.
+
 `BodySectionCurveEvaluator.sections(between:and:in:)` is where two bodies' faces
 meet: the Boolean pipeline's union intersection graph (disjoint bodies give no face
 pair) split and trimmed to both faces by its UV split graph, as curve pieces: a
@@ -235,13 +257,20 @@ partway fail. `PlanarCurveExtrusionIntersectorTests` own it.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [Swift-CAD package](../../DESIGN.md) | parent | immutable exact evaluation | Defines kernel composition and Mesh separation. | Do not re-evaluate during a read. |
+| [Whole Body Boolean](WholeBodyBoolean/DESIGN.md) | child | complete non-crossing operand selection and coincident representative ancestry | Composes original material and complete trim correspondence into one sewing request. | Vertex-only agreement is not whole coincidence. |
 | [CADIR](../CADIR/DESIGN.md) | depends on | complete stable signature value | Provides validated reference values. | Every topology entry is eligible for a reference. |
 | [CADModeling](../CADModeling/DESIGN.md) | depends on | exact generated B-rep | Supplies source topology and lineage. | Seam/pole topology remains present. |
 | [Assembly Evaluation](AssemblyEvaluation/DESIGN.md) | child | retained local base, placed world topology and occurrence correspondence | Composes local feature evaluation with assembly source placement. | Incremental rollback uses local geometry; final indexes and meshes use world geometry. |
 | [Product Attribute Resolution](ProductAttributeResolution/DESIGN.md) | child | immutable resolved properties, source chains and local/world target maps | Resolves CADIR-owned product attachments across every selected-definition occurrence of common geometry. | Retained exact source/cache/assembly correspondence must match; explicit override provenance follows the child contract. |
 | [Rectangular B-spline Mesh](RectangularBSplineMesh/DESIGN.md) | child | original native rectangular basis and adaptive fidelity | Owns basis admission and selected-panel composition for the public tessellator. | Checked cumulative limits and cancellation remain in MeshTessellator; curved trims belong to separate contracts. |
 | [RollingBallFillet](RollingBallFillet/DESIGN.md) | child | complete solid sewing request | Composes native source-face arrangements and blend boundaries. | A request is not a validated or publishable result. |
+| [OriginalGraphBandMesh](OriginalGraphBandMesh/DESIGN.md) | child | source-bound correspondence and complete original reference-facet admission | Owns bounded graph-band topology binding, checked retained grids and mesh publication. | Actual Draft admission and public coverage remain required; lower receipts alone do not complete the mesh path. |
 | [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated body and Mesh measurements; edge queries; sketch curve intersections | Consumes the same snapshot outputs and certified sketch intersections. | Volume authority stays in exact B-rep; Core computes no intersection itself. |
+
+The bounded graph-band branch retains its checked plan from preflight through
+emission. Candidate chain labels are not proof: publication uses the child
+receipts and preserves original selected normals under the existing face/shell
+orientation sign. Its full contract belongs to the linked child design.
 
 ## Architecture
 
@@ -300,8 +329,8 @@ The following records the first bounded M1 implementation and its original
 verification scope. Its old family refusals are superseded by the later
 selected C0, double-periodic and periodic-C0 contracts below. Current M1
 composition and remaining family boundaries are owned by
-[Rectangular B-spline Mesh](RectangularBSplineMesh/DESIGN.md).
-Curved trimmed interiors have separate M2 proof obligations.
+[Rectangular B-spline Mesh](RectangularBSplineMesh/DESIGN.md);
+[Original Graph-band Mesh](OriginalGraphBandMesh/DESIGN.md) separately owns M2.
 
 The bounded M1 rectangular B-spline grid admits positive-weight supports with
 clamped C1 axes or one validated original periodic C1 axis and one clamped C1
@@ -404,6 +433,14 @@ procedural fidelity regressions verify any shared grid-policy change.
    `DocumentEvaluationConfiguration` carries purpose and limits into every
    newly materialized `MeshCache`. `CADIR` owns the cache-boundary value
    contract; see `Sources/CADIR/DESIGN.md`.
+   Admission of an unchanged body's artifact first checks the previous
+   original source, its cache metadata and the exact retained mesh, then the
+   current fidelity, purpose and limits. Immutable invocations own independent
+   proof and storage ledgers; original body, face, use and station traversal is
+   deterministic under the same backend. Parallel calls share no mutable plans
+   and retain the same synchronization contract. Sequential per-document body
+   reservation owns cumulative limits. Numerical reproducibility across
+   backends requires separate target verification.
 
 8. An `ImportedBRepFeature` retains its exchange IDs as source data, but the
    evaluator re-identifies every body, shell, face, loop, edge, vertex, curve,
@@ -672,6 +709,8 @@ identity, and RupaCore snapshot measurement.
 
 ## Boolean operands and material
 
+Default Push Face composition injects the same `BRepSewing` and `ExactBooleanOperationApplicator` into [Face Offset](../CADModeling/FaceOffset/DESIGN.md). Intermediate growth uses deterministic `.pushFaceGrow` stage identities; temporary tool and stage identities cannot be published as feature identities or lineage parents. The child owns multi-face profile retention and final staged publication.
+
 One Boolean pass (`BooleanPipeline.evaluate`) combines targets with one tool, each
 operand's material taken as a `BooleanMaterials` pair says. The pass resolves a
 `BooleanOperandSolidity` per operand from its body kind, role and material, and
@@ -848,7 +887,9 @@ subshape in it is replaced. `BRepFaceCurveClipper` gives the pieces of a
 parameter curve inside a face (split where it crosses the face's edges and kept
 where its middle is inside), halving a piece that closes on itself; a curve
 along one of the face's own edges is refused, or yields nothing when the caller
-expects that (Untrim keeping edges). `BRepImprintCompletion` carries a curve on
+expects that (Untrim keeping edges). Its edge endpoints use the original
+lift evaluation so an original-image pcurve retains its exact source-space
+spatial law without a rounded inverse-UV roundtrip. `BRepImprintCompletion` carries a curve on
 from an end inside its face along its own direction in the parameters until the
 face's boundary or another curve (`ImprintCompletion.edge`).
 
@@ -865,73 +906,19 @@ the exact Boolean intersection of a tool's faces with a target's
 at once, each tool's crossings completed among themselves so one tool's lines run on across
 another's; a placed tool is first moved into the target's frame in an unpublished
 `imprintToolPlacement` stage, and Imprint Curve Body imprints a placed curve as
-its rigid image, so both imprint where they are shown; a tool face lying on a
-target face is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
-`UntrimFaceFeatureEvaluator` builds a sheet of a face's surface bounded by four
-parameter lines, the surface's own domain where bounded and the face's extent
-where unbounded or periodic (the whole period, meeting in a seam, when the face
-goes around), turned to the face's side; keeping edges imprints the face's own
-boundary on it and traces that lineage past the unpublished bare sheet. A side
-that collapses to a point is refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`).
-`ImprintCurvesFeatureEvaluator` projects curves onto a target. Along a vector,
-each curve is swept into a sheet reaching past the target (both ways when
-bidirectional) and imprinted where it crosses the target
-(`ImprintBodyFeatureEvaluator.crossingPairs`). A line sweeps a plane and a circle
-along its axis a cylinder, which intersect exactly; any other curve sweeps its
-exact ruled B-spline form, on that form's own chart; a closed curve is swept in
-two halves, whose crossings meet end to end. A placed curve is its rigid image, so a
-placed line or circle is still swept exactly. Hiding occlusion keeps a crossing
-only when no other crossing lies nearer the curve along the sweep, each point's
-curve parameter and sweep distance found in the model rather than in the
-sheet's parameters; a crossing hidden along part of its length is split where it
-passes behind the target (bisected along the crossing) and only its seen pieces kept.
-Along the normal, each sample of the curve goes to the closest point of the
-target's faces (`BRepFaceClosestPointProjector`, Newton's method within each
-face's parameter extent), runs of samples on one face become a cubic parameter
-curve through them (`ParameterPointInterpolator`), and where the projection
-passes to a neighbour both runs end at the point of their shared edge the
-projection crosses. The sweep sheet is never published, so its subshapes are
-dropped from the crossings' lineage. Completion is `.none`, `.edge` (stopping at
-the first other curve) or `.boundary` (reaching the face's boundary across other
-curves). Under `.none` a curve with an end inside its face, on neither the face's
-boundary nor another kept curve, divides nothing and is left out, as Plasticity draws
-no line for it; the imprint is refused only when no curve is left. `ImprintFeatureTests` own these contracts.
+its rigid image, so both imprint where they are shown. Coincident finite tool
+outlines consume the shared original trim arrangement; unresolved contact or
+correspondence remains a typed failure.
+`UntrimFaceFeatureEvaluator` composes original native sheet production,
+face-local closed/singular sewing admission, and kept-edge imprint publication
+through [Singular Sheet Boundary](SingularSheetBoundary/DESIGN.md). That child
+owns domain policy, pole/apex handling and source lineage; the source target
+body remains retained.
+[Original Imprint](OriginalImprint/DESIGN.md) owns curve/tool sweep preparation, original complete reach bounds, finite coincident outlines and scratch-source lineage. The module composes its retained curves through BRepFaceImprinter and completion. Partial occlusion and normal projection still require complete original whole-interval producers; sampled candidates are not their completion evidence. Existing ImprintFeatureTests own deferred behavior.
 
 ## Edge Offset
 
-`BRepEdgeChainOffsetter` offsets chosen edges of a face over the face, as curves
-for `BRepFaceImprinter`. The edges are taken in the order the face's loops run
-(matched by the patch builder's stable keys, so seams and split circles resolve
-by identity), neighbours forming a chain and a whole loop a closed chain. Each
-edge is offset point by point to the face's side (left of it seen from the
-face's outer side) in four steps each projected back onto the surface
-(`BRepFaceClosestPointProjector`), exact on a plane and along the surface on a
-curved face, and the points become a cubic parameter curve. Neighbouring offsets
-that cross are cut at the crossing; offsets that part are joined by
-`OffsetGapFill`, Plasticity's three: Round, an arc of the offset distance around
-the corner; Linear, straight lines carrying both offsets on until they meet, a
-sharp corner of edges of their own (a straight bridge where they never meet
-ahead); Natural, the offsets themselves running on to where they meet, no edge
-added: straight ones along their lines, a curved one along the circle through its
-last points (an arc's offset along its own circle) over the face, both cut at the
-first sampled crossing of the carried-on parts within half a turn or sixteen gaps' reach.
-Curved continuation is presently a sampled osculating-circle construction,
-not a certified continuation of a general source curve or a complete first-crossing
-isolation. It retains an explicit `FIXME(INCOMPLETE_IMPLEMENTATION)` condition;
-no discovered sampled crossing yields typed refusal rather than silently changing
-the curved Natural request into a straight bridge. `EdgeOffsetFeatureTests` own
-the reflex corner of an L and of an arc's offset meeting a side. An offset that closes
-on itself is halved. `EdgeOffsetFeatureEvaluator` offsets each edge over the one
-of its support faces it bounds (a chain across a top and a slope runs over both, each face's
-run completed to its boundary), refusing an edge bounding none or two, and with symmetry over
-the face across each edge;
-`FaceLoopOffsetFeatureEvaluator` offsets faces' outer loops into the faces, over
-the faces around them, or both (`FaceLoopOffsetSide`), each face's own outline
-or, combined, the outline of the chosen faces together. Open chain ends are
-carried to the face's boundary (`BRepImprintCompletion`, which leaves an end
-another curve already joins). They replace the earlier planar, line-only
-evaluators and work on solids and sheets alike. `EdgeOffsetFeatureTests` own
-these contracts.
+[Original Edge Offset](OriginalEdgeOffset/DESIGN.md) owns the selected original-curve offset producer composed by EdgeOffset and FaceLoopOffset. It consumes Modeling's whole native planar offset certificate and exact original face pcurve correspondence before imprint publication. [Natural Curve Join](../CADModeling/NaturalCurveJoin/DESIGN.md) owns endpoint-law continuation. General surface metric offsets and complete gap laws remain source gaps; sampled projection is not their publication authority. Existing EdgeOffsetFeatureTests own deferred route behavior.
 
 ## Hollow
 
@@ -1130,35 +1117,7 @@ parabola's length.
 
 ## Extend Sheet
 
-`SheetExtendFeatureEvaluator` carries a sheet's chosen open edges on by a distance, or, for a
-negative distance (Plasticity's drag below zero), moves them back into the sheet, which it then
-always modifies: straight edges of planar faces by cutting the sheet in turn at the plane square
-to the face that far inside each (`BodyHalfSpaceCutting`, staged), boundary edges of a one-face
-B-spline sheet by trimming its surface's domain where the length across the edge's middle reaches
-the distance; curved edges of planar faces and B-spline faces of several-face sheets are refused
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`), and a limit takes no negative distance. Each edge
-gets one strip patch: on a planar face the rectangle beside a straight edge or the ring sector
-around an arc, every shape alike; on a B-spline face, along one of its parameter boundaries,
-the extension `BSplineSurfaceBoundaryExtender` builds past that boundary — the surface's last
-span continued by blossoming (natural), the straight strip along the cross-boundary derivative
-(linear), or the stretch before the boundary mirrored control row by control row across
-the plane perpendicular to the row's end tangent, as Extend Curve mirrors a curve's end
-(reflective), or the cubic strip matching the cross-boundary first and second derivatives with its
-second derivative fading to none at the far end (soft, decided 2026-10-02) — as far as the
-distance measured along the surface across the edge's middle. Modifying makes one sheet with no
-line at the old edge, as Plasticity's Modify does: a one-face B-spline sheet covering its whole
-surface becomes that surface run on past each chosen boundary in turn (each by its own reach under
-a Limit), one face; otherwise the
-sheet's patches (`DefaultBRepFacePatchExtractor`) and the strips are sewn into one sheet in its
-place and, when every face lies on a plane, faces on one plane merge (`RedundantTopologyRemover`,
-identities carried);
-otherwise the strips are sewn into a sheet of their own beside it, the sheet kept. With a Limit (`SheetExtensionLimit`, decided 2026-10-02) the distance is where straight extensions (planar faces, or Linear) reach a body: rays across the edge from nine points along it meet the body's faces (`BRepRayFaceCrossings`) — the least first meeting (Minimal), the greatest first meeting (Inside) or the greatest first leaving (Outside); curved extensions run to a body are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Two
-straight edges of a planar face meeting at a convex corner are joined by a corner patch: the
-quadrilateral from the corner along each strip's side to where the far edges' lines meet.
-Chosen edges of curved faces meeting at a corner, faces on other surfaces and edges inside a
-B-spline domain are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). `SheetExtendTests` prove a
-planar sheet grown in place (one face) and beside it, a bilinear sheet continued exactly, each shape
-of a parabolic arch (one face), and a rectangle's two edges grown together into one larger face.
+[Natural Sheet Extension](NaturalSheetExtension/DESIGN.md) owns the SheetExtend public evaluator, retained original support strips, complete-side rectangular inward trimming, and reach-proof limits. The module composes its output through sewing and body replacement; optional planar half-space cutting remains a separate injected producer. Original B-spline continuation uses the Geometry boundary extender. General non-isoparametric shortening, curved corner laws and whole limit-contact proof remain explicit source gaps. Existing SheetExtendTests own deferred behavior checks; current source snapshots do not establish their results.
 
 ## Reverse Sheet
 
@@ -1308,41 +1267,18 @@ path. Full M1 and portable closure remain separately owned.
 
 FaceRebuild's tolerance method owns a distance-only approximation request. DefaultFeatureEvaluator accepts caller-visible nativeSurfacePositionCertificationLimits and injects them into FaceRebuildFeatureEvaluator; DocumentEvaluator's existing featureEvaluator injection supplies these limits without new engine state. The immutable native-chart fitted output remains a candidate until the [Geometry Conversion position contract](../CADGeometry/GeometryConversion/DESIGN.md#native-position-only-surface-publication-parg6pos1) proves complete original-source position error.
 
-With zero requested extensions, a candidate containing the entire original native domain is certified on that complete original domain, covering the exact validated original face. The fitter's outward halo receives no position guarantee. Otherwise certification requires the actual requested fit rectangle strictly inside both original source and candidate. Periodic input, source continuation and unproved coverage currently refuse explicitly; their actual production path and missing original-law proof retain an incomplete implementation marker. Other non-native source families retain their explicit marker; original plane/cylinder publication is certified by the analytic owner below. No fitted native candidate is installed before its position certificate succeeds, and tangent/curvature or general G6 completion is not inferred.
+For nonperiodic input with zero requested extensions, a candidate containing the entire original native domain is certified on that complete original domain, covering the exact validated original face. The fitter's outward halo receives no position guarantee. The nonperiodic contained-source route otherwise requires the actual requested fit rectangle strictly inside both original source and candidate. Original periodic requests consume the separate complete requested-rectangle contract below; polynomial continuation consumes PAR.G6CONT1. Unproved source laws and coverage retain explicit incomplete paths. The remaining non-native source families retain their explicit marker; original analytic publication is owned by PAR.G6ANALYTIC1 below. No fitted native candidate is installed before its position certificate succeeds, and tangent/curvature or general G6 completion is not inferred.
 
 Lower invalid/resource/tolerance failures map to KernelError with feature/tolerance context: invalidInput, resourceLimitExceeded and approximationToleranceRejected (numerical indeterminacy). Native KernelError detail and task cancellation remain preserved. Candidate rejection does not assert approximation impossibility. Certification budgets are separate from the existing bounded candidate-fitting owner. Tests in [native publication](../../Tests/SwiftCADTests/FaceRebuildPositionCertificationTests.swift) exercise actual DocumentBuilder/CADPipeline publication, the literal9-by-9 interior bump missed by Greville/quarter stations, native plane success, caller resource refusal and outside-chart extension refusal; immutable source and emitted topology remain checked. Native public4tests, the incremental test and original explicit/box/cylinder3 regressions pass8tests53.410s on the pure indexed Swift6.4 release snapshot. The original continued-law success oracles remain requirements of full PARG.G6 rather than being weakened to match this bounded refusal.
 
-Incremental provenance uses swift-cad.document-evaluator-native-position-certification-v1. The prior dev epoch fails reusableState admission and rebuilds every feature; exact topology validation alone is not position evidence. Current-epoch unchanged-source reuse remains valid. EvaluatedDocument persistence omits incremental state, so this boundary covers retained in-memory state. [Incremental provenance](../../Tests/SwiftCADTests/FaceRebuildIncrementalPositionCertificationTests.swift) executes the actual default evaluator and checks full rebuilt/reused counts for faithful old-epoch state versus current reuse. Native failure-contract7tests pass.003s, including serialization of every declared cause and original categories. Portable consumer closure remains task integration work.
+The original Native sprint introduced incremental provenance swift-cad.document-evaluator-native-position-certification-v1. Analytic publication subsequently requires the v2 epoch specified below. The prior dev epoch fails reusableState admission and rebuilds every feature; exact topology validation alone is not position evidence. Current-epoch unchanged-source reuse remains valid. EvaluatedDocument persistence omits incremental state, so this boundary covers retained in-memory state. [Incremental provenance](../../Tests/SwiftCADTests/FaceRebuildIncrementalPositionCertificationTests.swift) executes the actual default evaluator and checks full rebuilt/reused counts for faithful old-epoch state versus current reuse. Native failure-contract7tests pass.003s, including serialization of every declared cause and original categories. Portable consumer closure remains task integration work.
 
-
-### Polynomial Continued-Law Rebuild Publication (PAR.G6CONT1)
-
-For a real nonzero extension outside the original source chart, resolve the request and obtain Geometry's prepared continuation request before adaptive fitting. Pass that same receipt to post-fit candidate certification so source admission, candidate validation and whole-law proof share one caller allowance. A zero-extension request keeps the existing contained whole-original path even when the extent resolver includes a numerical halo. Unsupported source families must refuse before fitting; the consumer does not duplicate Geometry's weight, knot or coefficient predicates.
-
-For tolerance Rebuild on an original native B-spline, the candidate is still constructed on the actual requested native rectangle before any surface is installed. Zero-extension whole-original publication retains PAR.G6POS1 and its contained certifier. A finite request extending outside the original nonperiodic closed chart can publish only after Geometry's explicit original polynomial continuation certifier proves the complete requested rectangle against that actual candidate under the existing evaluator-injected NativeSurfacePositionCertificationLimits. The request resolver owns actual feature extent/extension arithmetic; it does not establish source continuation authority. Unsupported source/candidate families, uncontained candidate support, nonfinite input, definite excess, original resource exhaustion and cancellation refuse before installation with existing typed causes and original FeatureID. No sample, fitter halo, rebuilt trimming curve, exact topology validation or rounded continued net substitutes for the lower certificate. The lower continuation owner now admits finite nonperiodic exact-clamped common-positive-weight multi-span tensors under PAR.G6MULT1, preserving original C0 partitions and both outer end-span laws. Public consumer admission and output behavior must be verified on that lower snapshot before this extension closes. Full periodic/varying-weight/foreign-chart continuation remains explicitly marked incomplete; analytic and other unproved tolerance-source families retain their existing marker.
-
-For an admitted continued source whose original U and V degrees are at most three, tolerance Rebuild explicitly selects the Geometry-owned native-knot constructor through `GeometryPolynomialSurfaceContinuationConstructing`. It requests bicubic degrees with the existing 128-span and 131-control-point per-axis authoring ceilings. The producer returns the actual candidate together with its complete certificate, carrying source preparation, coefficient authoring and proof costs in one allowance; Kernel does not certify that result a second time. Kernel depends only on this producer guarantee and verifies returned request coverage and finite distance evidence before replacement. The original higher-degree continued-source route still uses the mapped fitter followed by the existing whole-law certifier. Family selection occurs before construction, and construction or proof failures propagate without a sampled retry. Explicit layouts, nominal cuts, given surfaces and zero-extension contained-source certification retain their existing owners. See the [Geometry candidate contract](../CADGeometry/GeometryConversion/DESIGN.md#native-knot-polynomial-continuation-candidate-construction) for source admission, coefficient ownership and cumulative costs. Actual public output and failure tests own this composition evidence; its verification is pending.
-
-The fitted-candidate consumer uses GeometryPolynomialSurfaceContinuationPositionCertifying.certifyContinuationPosition through CertifiedPolynomialSurfaceContinuationPositionCertifier and relies on its full original-law contract, without duplicating coefficient logic. Each face must certify before entering the replacement dictionary; final topology and trimming retain their existing independent owners. Existing native-position incremental provenance remains valid for unchanged contained certificates: implementations before PAR.G6CONT1 could not publish outside-source continuation documents; previously certified single-polynomial results retain the same original law and distance guarantee after PAR.G6MULT1, prior dev state is already rejected, custom evaluators disable incremental reuse, and serialized EvaluatedDocument omits incremental state. This strictly expands a previously refused source operation and does not weaken the current retained-state evidence; no new epoch is required for this bounded extension.
-
-Prior PAR.G6CONT1 Native production verification passed 28 Geometry declarations/33 cases and seven public cases on its frozen implementation: unchanged original anExtendedSheetReachesPastItsEdgesAndKeepsThem and removingTheNominalSurfaceCutsTheSplineToItsEdges pass, as does the original zero-extension multi-span whole-domain route. Public low-budget/cancellation and unsupported-continuation cases refuse before publication with original immutable inputs. The contained certifier prepares original common-weight polynomial basis operators once per native axis and checks all initial cells before refining retained unresolved residuals; original bump failures retain toleranceRejected. A 256-cell literal comparison consumes737692 scalars/3538442 work under unchanged standard allowances and certifies an error upper bound2.000000699776224e-9. Varying-weight native preparation remains unchanged. See [Geometry owner](../CADGeometry/GeometryConversion/DESIGN.md) for its original coefficient and paid resource contract. Normal-WASM/Embedded and general G6 publication remain open task integration owners.
-
-
-### Reblend Whole-Law Admission (PAR.CL11A1)
-
-The Wrap evaluator consumes CADIR's explicit reblends request. Before source mapping/fitting/output mutation, a true request must either possess a producer-owned whole original rolling-ball radius, support incidence and tangency certificate or fail with typed unsupportedCapability carrying the original FeatureID. A FIXME(INCOMPLETE_IMPLEMENTATION) marker at the refusal branch identifies the absent nonlinear closed-chain producer and its completion conditions. The inspected incoming c0c8e3b prototype applies different linear endpoint corrections to Newton section center/contact points, which does not preserve their ball radius or source incidence, and independently sample-fits the round surface/rails. Its few point residuals and final topology/volume checks are not continuous rolling-ball evidence. That prototype and the absent sampled pcurve helper are retained only as an immutable incoming snapshot, not installed on the production success path. Existing false/default Wrap continues independently; this bounded request/persistence unit does not claim Reblend geometry completion.
-
-
-### Original Periodic C0 Rectangle Tessellation (PAR.M1PC1)
-
-After Geometry's selected-span/lift authority passes lower evidence, MeshTessellator may compose compatible panels from complete original periodic-C0 rectangles. Panel keys retain actual lifted interval/cycle identity and all owning sides. Every triangle stays inside one original panel; compatible edge stations join positions while C0 creases/seams retain independently selected one-sided normal/index duplicates. Existing whole-panel position/normal/curvature bounds, exact cumulative vertices/indices/bytes/preflight reservations, cancellation, face provenance and one FaceRun remain mandatory. No guard-only admission, seam coordinate relabeling, canonical-right normal or copied source authorizes success. Existing C1 periodic and nonperiodic-C0 routes retain their original behavior. Literal single-axis U/V diamond extrusions and double-periodic bilinear tensors verify original stations/normals, seam/corner panel incidence, strict period refusal and cumulative resources before this bounded scope can close.
-
-PAR.G6MULT1 public composition now passes seven declarations/eight cases on an immutable committed production graph plus the exact candidate/consumer overlay. Both common-weight1/7 multi-span continuations match independent literal left/right native quadratic laws at interior and outer chart positions, retain the requested rectangle and immutable inputs, and publish only after the producer certificate. Original extension and nominal-cut oracles plus contained-source, resource, cancellation and varying-weight refusal cases pass unchanged. The [Geometry construction owner](../CADGeometry/GeometryConversion/DESIGN.md#native-knot-polynomial-continuation-candidate-construction) retains its separate lower proof evidence. This closes the bounded Native continuation path; normal-WASM, Embedded and full G6 remain task integration requirements.
 
 ### Original Analytic Rebuild Position Publication (PAR.G6ANALYTIC1)
 
-The non-native `.tolerance` Rebuild path retains an original ordinary/analytic
-plane or cylinder and the exact finite native UV rectangle passed to its fitter.
+The non-native `.tolerance` Rebuild path retains an original ordinary plane or
+cylinder, or an analytic plane, cylinder, cone, sphere or torus, and the exact
+finite native UV rectangle passed to its fitter.
 Before inserting the fitted candidate into the replacement dictionary it consumes
 [Geometry's original analytic position contract](../CADGeometry/GeometryConversion/DESIGN.md#original-analytic-rebuild-position-parg6analytic1)
 through `GeometryAnalyticSurfacePositionCertifying`. The certificate must cover
@@ -1350,8 +1286,14 @@ that complete rectangle within the previously validated requested distance;
 losing that distance is typed invalid input rather than a default allowance.
 Original angular U coordinates, caller fitting degree/control limits, immutable
 inputs, edge/topology handling and feature-scoped failures remain unchanged.
-Other analytic/procedural source families retain their marked incomplete path.
+Other procedural source families retain their marked incomplete path.
 Rebuild does not acquire an unrequested tangent/curvature approximation contract.
+
+Cone, sphere and torus composition consumes the Geometry owner's original-law
+position certificate through the same request, failure mapping and publication
+gate. Their source-dependent preparation charges share the existing injected
+limits. The previous plane/cylinder evidence does not verify these new source
+families; their public success, refusal and portable behavior remain unverified.
 
 Incremental provenance is now
 `swift-cad.document-evaluator-native-position-certification-v2`. The previous v1
@@ -1371,5 +1313,149 @@ old-v1 rejection versus current-v2 full reuse metrics. The existing dev-epoch
 native Rebuild regression remains independently required. Lower preparation,
 compile or a topology-only certificate is not public completion evidence.
 
+### Original Periodic Rebuild Position Consumption
 
-Current analytic publication supersedes all historical v1 reuse claims in this document. The prior continuation contracts retain their geometric law, while the current evaluator admits retained state only under v2.
+Tolerance Rebuild retains the original periodic source and resolves its finite
+requested rectangle from the face extent or original fundamental domains.
+Periodic coordinates are evaluated with the original periodic basis law,
+never with an extrapolated end-span polynomial. A nonperiodic axis requested
+outside its domain still belongs to the existing continuation owner; periodic
+source admission does not authorize that separate operation.
+
+Before replacement, the actual fitted candidate must pass
+`GeometrySurfacePositionCertifying` on the complete requested native rectangle.
+The lower owner proves exact original periodic continuity, both sides of C0
+knots, complete position coverage and cumulative injected limits. Kernel does
+not infer proof from a fit, periodic flags or exact topology. Existing
+nonperiodic publication and retained-state provenance remain unchanged.
+Public periodic success, refusal and portable evidence are pending.
+
+### Polynomial Continued-Law Rebuild Publication (PAR.G6CONT1)
+
+For a real nonzero extension outside the original source chart, resolve the request and obtain Geometry's prepared continuation request before adaptive fitting. Pass that same receipt to post-fit candidate certification so source admission, candidate validation and whole-law proof share one caller allowance. A zero-extension request keeps the existing contained whole-original path even when the extent resolver includes a numerical halo. Unsupported source families must refuse before fitting; the consumer does not duplicate Geometry's weight, knot or coefficient predicates.
+
+For tolerance Rebuild on an original native B-spline, the candidate is still constructed on the actual requested native rectangle before any surface is installed. Zero-extension whole-original publication retains PAR.G6POS1 and its contained certifier. A finite request extending outside the original nonperiodic closed chart can publish only after Geometry's explicit original polynomial continuation certifier proves the complete requested rectangle against that actual candidate under the existing evaluator-injected NativeSurfacePositionCertificationLimits. The request resolver owns actual feature extent/extension arithmetic; it does not establish source continuation authority. Unsupported source/candidate families, uncontained candidate support, nonfinite input, definite excess, original resource exhaustion and cancellation refuse before installation with existing typed causes and original FeatureID. No sample, fitter halo, rebuilt trimming curve, exact topology validation or rounded continued net substitutes for the lower certificate. The lower continuation owner now admits finite nonperiodic exact-clamped common-positive-weight multi-span tensors under PAR.G6MULT1, preserving original C0 partitions and both outer end-span laws. Public consumer admission and output behavior must be verified on that lower snapshot before this extension closes. Full periodic/varying-weight/foreign-chart continuation remains explicitly marked incomplete; other unproved tolerance-source families retain their existing marker; analytic plane/cylinder publication uses the contract above.
+
+For an admitted continued source whose original U and V degrees are at most three, tolerance Rebuild explicitly selects the Geometry-owned native-knot constructor through `GeometryPolynomialSurfaceContinuationConstructing`. It requests bicubic degrees with the existing 128-span and 131-control-point per-axis authoring ceilings. The producer returns the actual candidate together with its complete certificate, carrying source preparation, coefficient authoring and proof costs in one allowance; Kernel does not certify that result a second time. Kernel depends only on this producer guarantee and verifies returned request coverage and finite distance evidence before replacement. The original higher-degree continued-source route still uses the mapped fitter followed by the existing whole-law certifier. Family selection occurs before construction, and construction or proof failures propagate without a sampled retry. Explicit layouts, nominal cuts, given surfaces and zero-extension contained-source certification retain their existing owners. See the [Geometry candidate contract](../CADGeometry/GeometryConversion/DESIGN.md#native-knot-polynomial-continuation-candidate-construction) for source admission, coefficient ownership and cumulative costs. Actual public output and failure tests own this composition evidence; its verification is pending.
+
+The fitted-candidate consumer uses GeometryPolynomialSurfaceContinuationPositionCertifying.certifyContinuationPosition through CertifiedPolynomialSurfaceContinuationPositionCertifier and relies on its full original-law contract, without duplicating coefficient logic. Each face must certify before entering the replacement dictionary; final topology and trimming retain their existing independent owners. For the historical PAR.G6CONT1/PAR.G6MULT1 extension, the then-current native-position incremental provenance remained valid for unchanged contained certificates: implementations before PAR.G6CONT1 could not publish outside-source continuation documents; previously certified single-polynomial results retain the same original law and distance guarantee after PAR.G6MULT1, prior dev state is already rejected, custom evaluators disable incremental reuse, and serialized EvaluatedDocument omits incremental state. This strictly expands a previously refused source operation and does not weaken the current retained-state evidence; no new epoch was required for that bounded extension. Current analytic publication requires the v2 epoch above and supersedes v1 reuse.
+
+Prior PAR.G6CONT1 Native production verification passed 28 Geometry declarations/33 cases and seven public cases on its frozen implementation: unchanged original anExtendedSheetReachesPastItsEdgesAndKeepsThem and removingTheNominalSurfaceCutsTheSplineToItsEdges pass, as does the original zero-extension multi-span whole-domain route. Public low-budget/cancellation and unsupported-continuation cases refuse before publication with original immutable inputs. The contained certifier prepares original common-weight polynomial basis operators once per native axis and checks all initial cells before refining retained unresolved residuals; original bump failures retain toleranceRejected. A 256-cell literal comparison consumes737692 scalars/3538442 work under unchanged standard allowances and certifies an error upper bound2.000000699776224e-9. Varying-weight native preparation remains unchanged. See [Geometry owner](../CADGeometry/GeometryConversion/DESIGN.md) for its original coefficient and paid resource contract. Normal-WASM/Embedded and general G6 publication remain open task integration owners.
+
+
+### Reblend Whole-Law Admission (PAR.CL11A1)
+
+The Wrap evaluator consumes CADIR's explicit reblends request. Before source mapping/fitting/output mutation, a true request must either possess a producer-owned whole original rolling-ball radius, support incidence and tangency certificate or fail with typed unsupportedCapability carrying the original FeatureID. A FIXME(INCOMPLETE_IMPLEMENTATION) marker at the refusal branch identifies the absent nonlinear closed-chain producer and its completion conditions. The inspected incoming c0c8e3b prototype applies different linear endpoint corrections to Newton section center/contact points, which does not preserve their ball radius or source incidence, and independently sample-fits the round surface/rails. Its few point residuals and final topology/volume checks are not continuous rolling-ball evidence. That prototype and the absent sampled pcurve helper are retained only as an immutable incoming snapshot, not installed on the production success path. Existing false/default Wrap continues independently; this bounded request/persistence unit does not claim Reblend geometry completion.
+
+
+### Original Periodic C0 Rectangle Tessellation (PAR.M1PC1)
+
+After Geometry's selected-span/lift authority passes lower evidence, MeshTessellator may compose compatible panels from complete original periodic-C0 rectangles. Panel keys retain actual lifted interval/cycle identity and all owning sides. Every triangle stays inside one original panel; compatible edge stations join positions while C0 creases/seams retain independently selected one-sided normal/index duplicates. Existing whole-panel position/normal/curvature bounds, exact cumulative vertices/indices/bytes/preflight reservations, cancellation, face provenance and one FaceRun remain mandatory. No guard-only admission, seam coordinate relabeling, canonical-right normal or copied source authorizes success. Existing C1 periodic and nonperiodic-C0 routes retain their original behavior. Literal single-axis U/V diamond extrusions and double-periodic bilinear tensors verify original stations/normals, seam/corner panel incidence, strict period refusal and cumulative resources before this bounded scope can close.
+
+PAR.G6MULT1 public composition now passes seven declarations/eight cases on an immutable committed production graph plus the exact candidate/consumer overlay. Both common-weight1/7 multi-span continuations match independent literal left/right native quadratic laws at interior and outer chart positions, retain the requested rectangle and immutable inputs, and publish only after the producer certificate. Original extension and nominal-cut oracles plus contained-source, resource, cancellation and varying-weight refusal cases pass unchanged. The [Geometry construction owner](../CADGeometry/GeometryConversion/DESIGN.md#native-knot-polynomial-continuation-candidate-construction) retains its separate lower proof evidence. This closes the bounded Native continuation path; normal-WASM, Embedded and full G6 remain task integration requirements.
+
+### Prepared Boolean Intersections
+
+[Prepared Boolean Operation](PreparedBooleanOperation/DESIGN.md) owns immutable full-graph preparation, operation-independent reuse and complete section publication. BooleanPipeline validates the preparation binding before consumption; its existing classification, exact materialization, sewing and lineage remain the production output path.
+
+### Coincident Region and Imprint Outlines
+
+[Coincident Face Patch Merge](CoincidentFacePatchMerge/DESIGN.md) owns duplicate arranged region elimination before cell extraction. Region Boolean projects both operands' coincident trim outlines into their shared arrangement before provenance-aware merging. Imprint consumes the same clipped exact outline builder, excludes already-existing target boundary spans, and retains both target/tool parameter correspondence. Partial vector projection occlusion retains the existing split-and-filter production path; its continuous visibility certification remains a separate gap.
+
+### Adaptive Trimmed Mesh and Geometric Measurement Children
+
+[Adaptive Trimmed Mesh](AdaptiveTrimmedMesh/DESIGN.md) owns face-specific fidelity preparation and strictest shared-edge fidelity across connected components. [Geometric Measurement](GeometricMeasurement/DESIGN.md) owns geometric measurement publication. Public `KernelQuery.massProperties` and Q4–Q7 query routes compose that child's accuracy, SI units, density, and cumulative work/depth contracts through the runtime adapter; their detailed publication and failure guarantees remain child authority. These component owners provide their implementation and source/behavioral verification contracts; the parent indexes them without duplicating their detailed guarantees.
+
+### Drawing and Document Topology Selection Children
+
+[BRep Drawing](BRepDrawing/DESIGN.md) owns current exact B-rep drawing preparation and source-retaining projected edges. [Document Topology Selection](DocumentTopologySelection/DESIGN.md) owns immutable source/document/B-rep/Mesh/configuration identity binding and triangle-to-persistent-face selection. Their component contracts remain their sole detailed authority.
+
+### Natural Sheet Continuation
+
+[Natural Sheet Extension](NaturalSheetExtension/DESIGN.md) owns exact analytic/procedural support strips along iso-parameter edges. SheetExtend dispatches Natural requests to this retained-support producer before the native B-spline boundary extender. Arbitrary trimmed boundaries, other extension laws and global limit contact certification remain separate producer gaps. DefaultFeatureEvaluator exposes `naturalSheetExtensionLimits: NaturalSheetExtensionLimits` and forwards it unchanged to SheetExtendFeatureEvaluator. The linked child owns the invocation allowance for reach candidates and original arclength proofs; Boolean and sewing keep their own resource owners.
+
+- [Singular Sheet Boundary](SingularSheetBoundary/DESIGN.md): exact closed-span and pole/apex sewing admission.
+
+## Document Cache and Evaluation Report Composition
+
+The module composition roots `DocumentCacheMaterializer` and `EvaluationReport`
+preserve the complete assembly artifact, producer validation, and incremental
+receipts. A successful report covers exactly the source graph's feature IDs,
+retains the source equality binding, and admits only suppression-compatible
+states. Empty state collections and foreign feature keys cannot establish
+success. Failure reports retain graph-scoped failed and blocked feature IDs.
+Native serialization is platform-specific; the value and validation contracts
+remain common to Native, WASM, and Embedded consumers. Changes require renewed
+cache round-trip and complete/suppressed/failed graph evidence during the
+verification phase.
+
+`DocumentCacheValidation` uses the common `PortableSourceEncoder` contract from
+[CADIR](../CADIR/DESIGN.md) for complete original geometry content signatures;
+Native JSON and base64 representations do not define cache equality. Ordered
+topology and geometry multisets compare independent of allocated topology IDs
+while retaining every original source leaf value. One invocation accumulator
+covers both cached and expected signatures under an explicit encoding limit;
+leaf comparisons cannot reset it. This source-encoding limit is independent of
+tessellation limits. The legacy convenience entry retains its existing
+unbounded (`Int.max`) source-fingerprint policy instead of adding a new default
+ceiling.
+
+[Cache Content Identity](CacheContentIdentity/DESIGN.md) owns the immutable
+ID-independent original B-rep content traversal consumed by cache validation's
+single portable source-encoding invocation.
+
+- [Bridge Surface Wall Trim](BridgeSurfaceWallTrim/DESIGN.md): finite-face intersection and unique connected bridge region publication.
+
+`DefaultFeatureEvaluator.bridgeSourceAdmission` forwards the identical optional caller admission to the [Bridge Surface](../CADModeling/BridgeSurface/DESIGN.md) construction contract. Selected original-source preparation and final semantic certification reuse that work/BYTES owner with independent source, subdivision and algebra capabilities. Nil preserves the legacy route without creating a private aggregate allowance. This composition does not claim whole F7 wall-trim/sewing/resource completion from the selected construction port.
+
+- [Shared Boundary Face Rebuild](SharedBoundaryFaceRebuild/DESIGN.md): joint rebuilt supports with mixed free/shared native boundaries.
+
+
+Common query and result values retain identical fields, validation and Sendable contracts on Native, WASM and Embedded targets. Dedicated Codable keys, discriminators, decoder initializers and encoders are Native adapters; conditional serialization cannot change the common query path or its value authority.
+
+- [Loft Finite Cap Contact](LoftFiniteCapContact/DESIGN.md) owns finite original cap/side intersection admission through the Modeling port, preserving shared topology contact authority.
+
+- [Sketch Source Chart](SketchSourceChart/DESIGN.md) owns exact authored chart use in sketch curve and profile extraction, including source translation.
+
+Boolean phase, capability, preflight, plan-result and topology-summary values follow the same common-value contract: all stored fields, existing equality/hashability, enum cases and Sendable semantics remain identical on Native, WASM and Embedded. Only Native serialization conformances and their codec bodies are conditional adapters; the Boolean planning and execution algorithm is common.
+
+[BRep Ray Classification](BRepRayClassification/DESIGN.md) owns finite original face UV extent forwarding and actual finite ray-event admission for solid and sheet-side classification.
+
+[Original BRep Bounds](OriginalBRepBounds/DESIGN.md) owns finite original face and body spatial enclosure and caller-bound original position-cell refinement used by query and classification preparation.
+
+[Finite Face Containment](FiniteFaceContainment/DESIGN.md) owns immutable authored-trim preparation and whole original loop containment used by ray classification and finite surface queries.
+
+[Original Solid Classification](OriginalSolidClassification/DESIGN.md) owns
+source-bound material parity and immutable bounded classification sessions for
+Boolean and public distance queries. Its lower producer and cumulative admission
+contracts remain child authority.
+
+- [Original Offset Feasibility](OriginalOffsetFeasibility/DESIGN.md): injected original result-face contact admission for Surface Offset, Thicken and caller-admitted generated sheets. The concrete validator consumes the actual sewn result receipt and borrows the generating invocation's admission; [Original Surface Embedding](../CADGeometry/OriginalSurfaceEmbedding/DESIGN.md) supplies its neutral immutable self-atlas preparation. Shared-boundary and critical lower gaps remain governed by the child contracts.
+`DefaultFeatureEvaluator` supplies `DefaultOffsetResultValidator` to Surface
+Offset, Thicken, and generated drafted Extrude sheets. These default production
+dispatches share the configured validator, and generated sheets borrow their
+generating invocation's admission. The child retains responsibility for complete caller admission and
+the remaining same-face/critical-sector source obligations.
+The additive `offsetFeasibilityLimits` constructor input configures this shared
+validator with the same policy value. Nil cumulative limits preserve the
+legacy per-proof policies; they cannot establish a bounded aggregate receipt.
+
+- [Finite Curve Clipping](FiniteCurveClipping/DESIGN.md): original finite trim contact partition, proved closed spans and endpoint ancestry for imprint/edit routes.
+
+[Original Trim Contact](OriginalTrimContact/DESIGN.md) owns complete directed sewing-edge contact reductions used by Boolean, Imprint and Natural joins. Its child contract retains whole authored ranges at endpoint contacts and tracks complete critical-root and caller-admission dependencies.
+
+[Original Planar Contours](OriginalPlanarContours/DESIGN.md) owns directed glyph source/contact preparation and nonzero region composition. Native commands supply original line/quadratic/cubic laws; exact Geometry cuts retain original root spans, and Exchange owns legal filled boundary publication.
+
+Edge/face-loop offset composition accepts an optional `EdgeOffsetConversionLimits` policy and forwards it to both evaluators. The invocation-scoped original conversion contract and its limited resource guarantee belong to [Original Edge Offset](OriginalEdgeOffset/DESIGN.md); nil retains historical per-proof conversion policy.
+
+[Original Geometry Query](OriginalGeometryQuery/DESIGN.md) owns same-ledger current source resolution and original knot/span preparation. The query composition preserves source feature/output identity and native span ordinals through original image families; source, subdivision and algebra ceilings remain separate, and no transformed control net supplies query authority.
+
+The original plane-derivative curve/surface family follows that child's general original closest/directional query contract. Its retained traversal and support constraints are source authority; a construction control net or primitive center is not inferred from the corrected law.
+
+[Original Evaluation Source Binding](OriginalEvaluationSourceBinding/DESIGN.md)
+owns immutable binding of an evaluated snapshot to its producer-issued original
+source receipt. Evaluation and cache materialization derive the document from
+that receipt and retain the binding through immutable copies. Publicly created
+or decoded snapshots retain no trusted producer binding; read-only consumers
+require bounded original semantic validation or an explicit failure before
+granting equivalent source authority.

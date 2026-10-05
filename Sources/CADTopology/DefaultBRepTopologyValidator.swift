@@ -53,14 +53,19 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
         case .pcurves:
             pcurveDiagnostics(model: model, tolerance: tolerance)
         case .orientation:
-            orientationDiagnostics(model: model)
+            orientationDiagnostics(model: model, tolerance: tolerance)
         case .manifold:
-            manifoldDiagnostics(model: model)
+            manifoldDiagnostics(model: model, tolerance: tolerance)
         case .watertight:
-            watertightDiagnostics(model: model)
+            watertightDiagnostics(model: model, tolerance: tolerance)
         case .volume:
             volumeDiagnostics(model: model, tolerance: tolerance)
         }
+    }
+
+    private func geometryKind(_ edge: Edge, model: BRepModel, tolerance: ModelingTolerance) -> BRepEdgeGeometryKind {
+        do { return try BRepEdgeGeometryClassifier().kind(of: edge, in: model, tolerance: tolerance) }
+        catch { return .open }
     }
 
     private func referenceDiagnostics(
@@ -199,7 +204,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
             }
             referencedCurves.insert(edge.curveID)
             referencedVertices.formUnion([edge.startVertexID, edge.endVertexID])
-            if edge.startVertexID == edge.endVertexID {
+            if edge.startVertexID == edge.endVertexID && geometryKind(edge, model: model, tolerance: tolerance) == .open {
                 result.append(diagnostic(
                     scope: .references,
                     code: .topologyFailure,
@@ -417,9 +422,9 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
         }
         let prerequisites = referenceDiagnostics(model: model, tolerance: tolerance)
             + loopDiagnostics(model: model, tolerance: tolerance)
-            + orientationDiagnostics(model: model)
-            + manifoldDiagnostics(model: model)
-            + watertightDiagnostics(model: model)
+            + orientationDiagnostics(model: model, tolerance: tolerance)
+            + manifoldDiagnostics(model: model, tolerance: tolerance)
+            + watertightDiagnostics(model: model, tolerance: tolerance)
         if prerequisites.isEmpty, result.isEmpty {
             do {
                 try model.validatePcurves(tolerance: tolerance)
@@ -441,7 +446,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
         return result
     }
 
-    private func orientationDiagnostics(model: BRepModel) -> [TopologyValidationDiagnostic] {
+    private func orientationDiagnostics(model: BRepModel, tolerance: ModelingTolerance) -> [TopologyValidationDiagnostic] {
         var result: [TopologyValidationDiagnostic] = []
         for (shellID, shell) in sorted(model.shells) {
             for (edgeID, use) in edgeUses(shell: shell, model: model)
@@ -457,15 +462,16 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
         return result
     }
 
-    private func manifoldDiagnostics(model: BRepModel) -> [TopologyValidationDiagnostic] {
+    private func manifoldDiagnostics(model: BRepModel, tolerance: ModelingTolerance) -> [TopologyValidationDiagnostic] {
         var result: [TopologyValidationDiagnostic] = []
         let bodyKinds = shellBodyKinds(model: model)
         for (shellID, shell) in sorted(model.shells) {
             let kind = bodyKinds[shellID]
             for (edgeID, use) in edgeUses(shell: shell, model: model) {
-                let valid = kind == .sheet
+                let singular = model.edges[edgeID].map { geometryKind($0, model: model, tolerance: tolerance) == .singular } ?? false
+                let valid = singular ? use.total == 1 : (kind == .sheet
                     ? use.total == 1 || use.total == 2
-                    : use.total == 2
+                    : use.total == 2)
                 if valid == false {
                     result.append(diagnostic(
                         scope: .manifold,
@@ -479,7 +485,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
         return result
     }
 
-    private func watertightDiagnostics(model: BRepModel) -> [TopologyValidationDiagnostic] {
+    private func watertightDiagnostics(model: BRepModel, tolerance: ModelingTolerance) -> [TopologyValidationDiagnostic] {
         var result: [TopologyValidationDiagnostic] = []
         for (bodyID, body) in sorted(model.bodies) {
             if body.shellIDs.isEmpty {
@@ -502,7 +508,9 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
                     ))
                 }
                 for (edgeID, use) in edgeUses(shell: shell, model: model)
-                    where use.total != 2 {
+                    where use.total != 2 && !(model.edges[edgeID].map {
+                        geometryKind($0, model: model, tolerance: tolerance) == .singular && use.total == 1
+                    } ?? false) {
                     result.append(diagnostic(
                         scope: .watertight,
                         code: .topologyFailure,
@@ -522,9 +530,9 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
         guard model.bodies.values.contains(where: { $0.kind == .solid }) else { return [] }
         let prerequisites = referenceDiagnostics(model: model, tolerance: tolerance)
             + loopDiagnostics(model: model, tolerance: tolerance)
-            + orientationDiagnostics(model: model)
-            + manifoldDiagnostics(model: model)
-            + watertightDiagnostics(model: model)
+            + orientationDiagnostics(model: model, tolerance: tolerance)
+            + manifoldDiagnostics(model: model, tolerance: tolerance)
+            + watertightDiagnostics(model: model, tolerance: tolerance)
         guard prerequisites.isEmpty else {
             return [diagnostic(
                 scope: .volume,

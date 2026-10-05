@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveMatchFeature: Codable, Hashable, Sendable {
+public struct CurveMatchFeature: Hashable, Sendable {
     public let source: CurveOutputReference
     public let sourceEnd: CurveEndpointEnd
     public let target: CurveOutputReference
@@ -37,6 +37,7 @@ public struct CurveMatchFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source
         case sourceEnd
@@ -45,7 +46,9 @@ public struct CurveMatchFeature: Codable, Hashable, Sendable {
         case targetOrientation
         case continuity
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -63,7 +66,9 @@ public struct CurveMatchFeature: Codable, Hashable, Sendable {
         continuity = try container.decode(CurveContinuityLevel.self, forKey: .continuity)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -74,4 +79,9 @@ public struct CurveMatchFeature: Codable, Hashable, Sendable {
         try container.encode(targetOrientation, forKey: .targetOrientation)
         try container.encode(continuity, forKey: .continuity)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CurveMatchFeature: Codable {}
+#endif

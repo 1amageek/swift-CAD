@@ -24,7 +24,11 @@ data and never claims successful geometry evaluation.
 | [SwiftCAD](../DESIGN.md) | parent | DocumentEditing public facade | Hosts the transaction session | Existing Editor and Pipeline retain their owners |
 | [CADIR](../../CADIR/DESIGN.md) | depends on | CADCommand, CADDocument validation and value ownership | Owns command legality and source graph | Commands must remain legal in their supplied order |
 | [DocumentFoundation](../../CADIR/DocumentFoundation/DESIGN.md) | depends on | Attribute ownership and persistent references | Full source snapshots preserve records and IDs | External symbolic references are preserved, not implicitly resolved |
+| [IndependentShapeSource](../../CADIR/IndependentShapeSource/DESIGN.md) | depends on | Complete original geometry source and its validation | Nonempty independent sources remain part of every source snapshot | Transactions preserve the original records and identities without projecting or materializing them |
 | [CADKernel](../../CADKernel/DESIGN.md) | depends on | ExactDocumentEvaluating and EvaluatedDocument | Supplies exact evaluated geometry | Deferred output must not be passed to materialized-artifact validation |
+| [PortableIdentity](../../CADCore/PortableIdentity/DESIGN.md) | depends on | Immutable 128-bit identity | Identifies opaque session and draft capabilities on every target | Tokens have no persistence or UUID adapter requirement |
+| [CurrentTaskCancellation](../../CADCore/CurrentTaskCancellation/DESIGN.md) | depends on | CurrentTaskCancellationChecking requirement | Observes current-task cancellation before mutation and publication | Keep the same typed cancellation and caller task on every target |
+| [DocumentTransactionProof](../../A2DocumentTransactionSmoke/DocumentTransactionProof/DESIGN.md) | used by | Public transaction witness operations and complete snapshots | Executes the same public proof on Native, normal WASM and Embedded | Lower source/evaluation graph portability is an independent prerequisite |
 
 ## Architecture
 
@@ -45,7 +49,7 @@ flowchart LR
 - Initial source validation and exact evaluation must succeed before a session
   exists. Native exact evaluation rejects an empty geometry result according to
   its existing contract; the session does not invent an initial success value.
-- `begin(expectedEpoch:)` admits one active draft. Its opaque UUID token belongs
+- `begin(expectedEpoch:)` admits one active draft. Its opaque 128-bit token belongs
   to this session, this draft and its committed base epoch. Foreign, rolled-back
   or committed tokens fail. A stale epoch cannot reopen an older state.
 - `stage(_:in:)` applies a nonempty ordered command batch to a local source
@@ -68,7 +72,9 @@ flowchart LR
   Undo/redo restores those values without rebuilding geometry or generating new
   identities. Source metadata, dependency edges, revisions, attributes,
   references, resolved parameters, B-rep, subshapes, lineage and evaluator state
-  are restored together.
+  are restored together. Entire document equality includes every current source
+  field, including nullable independent-shape sources; a source-envelope update
+  must not project history onto a subset of document fields.
 - Undo/redo rejects an active draft and requires the current epoch. Successful
   commit, undo and redo advance the session epoch monotonically; undo cannot
   cause ABA. Begin, stage, preview and rollback do not change committed epoch.
@@ -87,10 +93,10 @@ undo(epoch) / redo(epoch) -> restore complete retained snapshot -> advance epoch
 
 ## State, Ownership, and Lifecycle
 
-The actor owns committed state, an optional draft, session UUID, monotonically
+The actor owns committed state, an optional draft, session identity, monotonically
 increasing epoch and two history stacks. Inputs and snapshots are Sendable owned
 values with native copy-on-write backing. The actor retains injected Sendable
-editor and evaluator values. Their methods are synchronous; a transaction
+editor, evaluator and cancellation checker values. Their methods are synchronous; a transaction
 operation contains no suspension point during validation, evaluation or
 publication, so actor reentrancy cannot interleave a draft mutation with commit.
 There are no tasks, streams, pointers, external storage or shutdown resources.
@@ -99,6 +105,14 @@ There are no tasks, streams, pointers, external storage or shutdown resources.
 |---|---|---|---|---|
 | committed, draft, epoch, history | Identical actor-owned values | Actor | Protocol requirements on the same actor | Actor lifetime |
 | injected services and limits | Immutable Sendable values | Actor-owned references | Synchronous service requirements | Actor lifetime |
+
+`PortableIdentity128` backs both token identities on every target. Native UUID
+adapters are not used by this component. Cancellation is invoked through the
+`CurrentTaskCancellationChecking` witness requirement; the default checker has
+one shared implementation using the current task's cancellation flag. There is
+no Embedded-specific state, weakened Sendable conformance, or cancellation
+fallback. Source Codable/Foundation adapters retain their lower owners; this
+component operates on the complete source values without serializing them.
 
 ## Failure, Concurrency, and Constraints
 
@@ -124,6 +138,12 @@ owns atomic ordered batch failure, rollback, actual primitive geometry rejection
 complete undo/redo snapshot and metadata/reference/dependency restoration,
 generated identity preservation, redo-branch replacement, stale ABA/foreign
 tokens, concurrent begin, explicit limits and cancellation after evaluation.
+The history fixture includes a validated, nonempty independent original line
+source and checks its complete retention through publication and restoration.
+The production [proof](../../A2DocumentTransactionSmoke/DocumentTransactionProof/DESIGN.md)
+uses actual source editing and exact evaluation through `any DocumentTransacting`
+and verifies complete source/evaluation restoration and typed refusals. Source
+value equality alone or epoch/count assertions alone do not prove restoration.
 The root task owns native and WASM/Embedded compile/link/runtime and integration
 evidence. Parent facade and capability publication must reflect the tested
 transaction scope. Changes to command validation or exact-evaluation lifetime

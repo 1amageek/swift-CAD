@@ -19,6 +19,19 @@ struct CRC32 {
         return checksum.finalize()
     }
 
+
+    static func checksum(_ data: Data, consumeWork: @Sendable (Int) throws -> Void) throws -> UInt32 {
+        var checksum = CRC32()
+        for byte in data { try consumeWork(1); checksum.update(byte) }
+        return checksum.finalize()
+    }
+
+    mutating func update(_ bytes: UnsafeRawBufferPointer, consumeWork: @Sendable (Int) throws -> Void) throws {
+        // The borrowed input remains owned by ByteSink.write for this entire loop.
+        // The callback never retains the pointer; admission precedes each byte visit.
+        for byte in bytes { try consumeWork(1); update(byte) }
+    }
+
     private var crc: UInt32 = 0xffffffff
 
     init() {}

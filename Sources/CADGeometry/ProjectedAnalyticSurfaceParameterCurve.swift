@@ -1,6 +1,6 @@
 import CADCore
 
-public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendable {
+public struct ProjectedAnalyticSurfaceParameterCurve: Hashable, Sendable {
     public let curve: Curve3D
     public let surface: Surface3D
     public let startParameter: Double
@@ -307,6 +307,7 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
         )
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case curve
         case surface
@@ -314,7 +315,9 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
         case endParameter
         case certificationTolerance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -335,7 +338,9 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
             tolerance: certificationTolerance
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(on: surface, tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -345,9 +350,14 @@ public struct ProjectedAnalyticSurfaceParameterCurve: Codable, Hashable, Sendabl
         try container.encode(endParameter, forKey: .endParameter)
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
     }
+#endif
 
     private static func unwrappedAngle(_ angle: Double, nearest reference: Double) -> Double {
         let period = 2.0 * Double.pi
         return angle + period * ((reference - angle) / period).rounded()
     }
 }
+
+#if !hasFeature(Embedded)
+extension ProjectedAnalyticSurfaceParameterCurve: Codable {}
+#endif

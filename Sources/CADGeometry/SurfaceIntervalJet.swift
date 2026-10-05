@@ -1,19 +1,48 @@
 import CADCore
 import Foundation
 
-struct SurfaceIntervalJet: Sendable {
-    let value: OutwardScalarInterval
-    let derivativeU: OutwardScalarInterval
-    let derivativeV: OutwardScalarInterval
-    let secondDerivativeUU: OutwardScalarInterval
-    let secondDerivativeUV: OutwardScalarInterval
-    let secondDerivativeVV: OutwardScalarInterval
-    let thirdDerivativeUUU: OutwardScalarInterval
-    let thirdDerivativeUUV: OutwardScalarInterval
-    let thirdDerivativeUVV: OutwardScalarInterval
-    let thirdDerivativeVVV: OutwardScalarInterval
+package struct SurfaceIntervalJet: Sendable {
+    package let value: OutwardScalarInterval
+    package let derivativeU: OutwardScalarInterval
+    package let derivativeV: OutwardScalarInterval
+    package let secondDerivativeUU: OutwardScalarInterval
+    package let secondDerivativeUV: OutwardScalarInterval
+    package let secondDerivativeVV: OutwardScalarInterval
+    package let thirdDerivativeUUU: OutwardScalarInterval
+    package let thirdDerivativeUUV: OutwardScalarInterval
+    package let thirdDerivativeUVV: OutwardScalarInterval
+    package let thirdDerivativeVVV: OutwardScalarInterval
 
-    static func constant(_ value: Double) -> SurfaceIntervalJet {
+    package init(value: OutwardScalarInterval,
+        derivativeU: OutwardScalarInterval,
+        derivativeV: OutwardScalarInterval,
+        secondDerivativeUU: OutwardScalarInterval,
+        secondDerivativeUV: OutwardScalarInterval,
+        secondDerivativeVV: OutwardScalarInterval,
+        thirdDerivativeUUU: OutwardScalarInterval,
+        thirdDerivativeUUV: OutwardScalarInterval,
+        thirdDerivativeUVV: OutwardScalarInterval,
+        thirdDerivativeVVV: OutwardScalarInterval) {
+        self.value = value
+        self.derivativeU = derivativeU
+        self.derivativeV = derivativeV
+        self.secondDerivativeUU = secondDerivativeUU
+        self.secondDerivativeUV = secondDerivativeUV
+        self.secondDerivativeVV = secondDerivativeVV
+        self.thirdDerivativeUUU = thirdDerivativeUUU
+        self.thirdDerivativeUUV = thirdDerivativeUUV
+        self.thirdDerivativeUVV = thirdDerivativeUVV
+        self.thirdDerivativeVVV = thirdDerivativeVVV
+    }
+
+    package static func constant(_ value: OutwardScalarInterval) -> SurfaceIntervalJet {
+        let zero = OutwardScalarInterval.exact(0)
+        return .init(value: value, derivativeU: zero, derivativeV: zero,
+            secondDerivativeUU: zero, secondDerivativeUV: zero, secondDerivativeVV: zero,
+            thirdDerivativeUUU: zero, thirdDerivativeUUV: zero, thirdDerivativeUVV: zero, thirdDerivativeVVV: zero)
+    }
+
+    package static func constant(_ value: Double) -> SurfaceIntervalJet {
         let zero = OutwardScalarInterval(0.0)
         return SurfaceIntervalJet(
             value: OutwardScalarInterval(value),
@@ -29,7 +58,7 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    static func parameterU(_ interval: ScalarInterval) -> SurfaceIntervalJet {
+    package static func parameterU(_ interval: ScalarInterval) -> SurfaceIntervalJet {
         let zero = OutwardScalarInterval(0.0)
         return SurfaceIntervalJet(
             value: OutwardScalarInterval(lower: interval.lower, upper: interval.upper),
@@ -45,7 +74,7 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    static func parameterV(_ interval: ScalarInterval) -> SurfaceIntervalJet {
+    package static func parameterV(_ interval: ScalarInterval) -> SurfaceIntervalJet {
         let zero = OutwardScalarInterval(0.0)
         return SurfaceIntervalJet(
             value: OutwardScalarInterval(lower: interval.lower, upper: interval.upper),
@@ -61,7 +90,7 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    static func + (lhs: SurfaceIntervalJet, rhs: SurfaceIntervalJet) -> SurfaceIntervalJet {
+    package static func + (lhs: SurfaceIntervalJet, rhs: SurfaceIntervalJet) -> SurfaceIntervalJet {
         SurfaceIntervalJet(
             value: lhs.value + rhs.value,
             derivativeU: lhs.derivativeU + rhs.derivativeU,
@@ -76,11 +105,11 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    static func - (lhs: SurfaceIntervalJet, rhs: SurfaceIntervalJet) -> SurfaceIntervalJet {
+    package static func - (lhs: SurfaceIntervalJet, rhs: SurfaceIntervalJet) -> SurfaceIntervalJet {
         lhs + (-rhs)
     }
 
-    static prefix func - (value: SurfaceIntervalJet) -> SurfaceIntervalJet {
+    package static prefix func - (value: SurfaceIntervalJet) -> SurfaceIntervalJet {
         SurfaceIntervalJet(
             value: -value.value,
             derivativeU: -value.derivativeU,
@@ -95,7 +124,7 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    static func * (lhs: SurfaceIntervalJet, rhs: SurfaceIntervalJet) -> SurfaceIntervalJet {
+    package static func * (lhs: SurfaceIntervalJet, rhs: SurfaceIntervalJet) -> SurfaceIntervalJet {
         SurfaceIntervalJet(
             value: lhs.value * rhs.value,
             derivativeU: lhs.derivativeU * rhs.value + lhs.value * rhs.derivativeU,
@@ -141,7 +170,7 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    func reciprocal() -> SurfaceIntervalJet? {
+    package func reciprocal() -> SurfaceIntervalJet? {
         guard value.lower > 0.0 else {
             return nil
         }
@@ -188,7 +217,7 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    func squareRoot() -> SurfaceIntervalJet? {
+    package func squareRoot() -> SurfaceIntervalJet? {
         guard value.lower > 0.0 else {
             return nil
         }
@@ -213,91 +242,59 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    static func sine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
-        applyingUnaryFunction(
-            to: argument,
-            value: trigonometricRange(
-                cosineCoefficient: 0.0,
-                sineCoefficient: 1.0,
-                parameter: argument.value
-            ),
-            firstDerivative: trigonometricRange(
-                cosineCoefficient: 1.0,
-                sineCoefficient: 0.0,
-                parameter: argument.value
-            ),
-            secondDerivative: -trigonometricRange(
-                cosineCoefficient: 0.0,
-                sineCoefficient: 1.0,
-                parameter: argument.value
-            ),
-            thirdDerivative: -trigonometricRange(
-                cosineCoefficient: 1.0,
-                sineCoefficient: 0.0,
-                parameter: argument.value
-            )
-        )
+    package static func sine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
+        sine(of: argument, consumeWork: {})
     }
 
-    static func cosine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
-        applyingUnaryFunction(
-            to: argument,
-            value: trigonometricRange(
-                cosineCoefficient: 1.0,
-                sineCoefficient: 0.0,
-                parameter: argument.value
-            ),
-            firstDerivative: -trigonometricRange(
-                cosineCoefficient: 0.0,
-                sineCoefficient: 1.0,
-                parameter: argument.value
-            ),
-            secondDerivative: -trigonometricRange(
-                cosineCoefficient: 1.0,
-                sineCoefficient: 0.0,
-                parameter: argument.value
-            ),
-            thirdDerivative: trigonometricRange(
-                cosineCoefficient: 0.0,
-                sineCoefficient: 1.0,
-                parameter: argument.value
-            )
-        )
+    package static func sine(of argument: SurfaceIntervalJet,
+        consumeWork: () throws -> Void) rethrows -> SurfaceIntervalJet {
+        let sine = try trigonometricRange(cosineCoefficient: 0, sineCoefficient: 1,
+            parameter: argument.value, consumeWork: consumeWork)
+        let cosine = try trigonometricRange(cosineCoefficient: 1, sineCoefficient: 0,
+            parameter: argument.value, consumeWork: consumeWork)
+        return applyingUnaryFunction(to: argument, value: sine, firstDerivative: cosine,
+            secondDerivative: -sine, thirdDerivative: -cosine)
     }
 
-    static func hyperbolicSine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
-        applyingUnaryFunction(
-            to: argument,
-            value: hyperbolicRange(
-                function: sinh,
-                parameter: argument.value
-            ),
-            firstDerivative: hyperbolicCosineRange(argument.value),
-            secondDerivative: hyperbolicRange(
-                function: sinh,
-                parameter: argument.value
-            ),
-            thirdDerivative: hyperbolicCosineRange(argument.value)
-        )
+    package static func cosine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
+        cosine(of: argument, consumeWork: {})
     }
 
-    static func hyperbolicCosine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
-        applyingUnaryFunction(
-            to: argument,
-            value: hyperbolicCosineRange(argument.value),
-            firstDerivative: hyperbolicRange(
-                function: sinh,
-                parameter: argument.value
-            ),
-            secondDerivative: hyperbolicCosineRange(argument.value),
-            thirdDerivative: hyperbolicRange(
-                function: sinh,
-                parameter: argument.value
-            )
-        )
+    package static func cosine(of argument: SurfaceIntervalJet,
+        consumeWork: () throws -> Void) rethrows -> SurfaceIntervalJet {
+        let cosine = try trigonometricRange(cosineCoefficient: 1, sineCoefficient: 0,
+            parameter: argument.value, consumeWork: consumeWork)
+        let sine = try trigonometricRange(cosineCoefficient: 0, sineCoefficient: 1,
+            parameter: argument.value, consumeWork: consumeWork)
+        return applyingUnaryFunction(to: argument, value: cosine, firstDerivative: -sine,
+            secondDerivative: -cosine, thirdDerivative: sine)
     }
 
-    func union(_ other: SurfaceIntervalJet) -> SurfaceIntervalJet {
+    package static func hyperbolicSine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
+        hyperbolicSine(of: argument, consumeWork: {})
+    }
+
+    package static func hyperbolicSine(of argument: SurfaceIntervalJet,
+        consumeWork: () throws -> Void) rethrows -> SurfaceIntervalJet {
+        let sine = try hyperbolicRange(function: sinh, parameter: argument.value, consumeWork: consumeWork)
+        let cosine = try hyperbolicCosineRange(argument.value, consumeWork: consumeWork)
+        return applyingUnaryFunction(to: argument, value: sine, firstDerivative: cosine,
+            secondDerivative: sine, thirdDerivative: cosine)
+    }
+
+    package static func hyperbolicCosine(of argument: SurfaceIntervalJet) -> SurfaceIntervalJet {
+        hyperbolicCosine(of: argument, consumeWork: {})
+    }
+
+    package static func hyperbolicCosine(of argument: SurfaceIntervalJet,
+        consumeWork: () throws -> Void) rethrows -> SurfaceIntervalJet {
+        let sine = try hyperbolicRange(function: sinh, parameter: argument.value, consumeWork: consumeWork)
+        let cosine = try hyperbolicCosineRange(argument.value, consumeWork: consumeWork)
+        return applyingUnaryFunction(to: argument, value: cosine, firstDerivative: sine,
+            secondDerivative: cosine, thirdDerivative: sine)
+    }
+
+    package func union(_ other: SurfaceIntervalJet) -> SurfaceIntervalJet {
         SurfaceIntervalJet(
             value: value.union(other.value),
             derivativeU: derivativeU.union(other.derivativeU),
@@ -312,7 +309,7 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    func differentiatedUThroughSecondOrder() -> SurfaceIntervalJet {
+    package func differentiatedUThroughSecondOrder() -> SurfaceIntervalJet {
         let zero = OutwardScalarInterval(0.0)
         return SurfaceIntervalJet(
             value: derivativeU,
@@ -328,7 +325,7 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    func differentiatedVThroughSecondOrder() -> SurfaceIntervalJet {
+    package func differentiatedVThroughSecondOrder() -> SurfaceIntervalJet {
         let zero = OutwardScalarInterval(0.0)
         return SurfaceIntervalJet(
             value: derivativeV,
@@ -344,7 +341,7 @@ struct SurfaceIntervalJet: Sendable {
         )
     }
 
-    private static func applyingUnaryFunction(
+    static func applyingUnaryFunction(
         to argument: SurfaceIntervalJet,
         value: OutwardScalarInterval,
         firstDerivative: OutwardScalarInterval,
@@ -413,66 +410,66 @@ struct SurfaceIntervalJet: Sendable {
     private static func trigonometricRange(
         cosineCoefficient: Double,
         sineCoefficient: Double,
-        parameter: OutwardScalarInterval
-    ) -> OutwardScalarInterval {
+        parameter: OutwardScalarInterval,
+        consumeWork: () throws -> Void
+    ) rethrows -> OutwardScalarInterval {
+        try consumeWork()
         let amplitude = hypot(cosineCoefficient, sineCoefficient)
         let period = 2.0 * Double.pi
-        guard amplitude.isFinite,
-              parameter.isFinite,
+        guard amplitude.isFinite, parameter.isFinite,
               parameter.upper - parameter.lower < period,
               max(abs(parameter.lower), abs(parameter.upper)) <= 1.0e12 else {
-            return OutwardScalarInterval(
-                lower: (-amplitude).nextDown,
-                upper: amplitude.nextUp
-            )
+            return OutwardScalarInterval(lower: (-amplitude).nextDown, upper: amplitude.nextUp)
         }
-        var values = [
-            cosineCoefficient * cos(parameter.lower)
-                + sineCoefficient * sin(parameter.lower),
-            cosineCoefficient * cos(parameter.upper)
-                + sineCoefficient * sin(parameter.upper),
-        ]
+        try consumeWork()
+        let first = cosineCoefficient * cos(parameter.lower) + sineCoefficient * sin(parameter.lower)
+        try consumeWork()
+        let last = cosineCoefficient * cos(parameter.upper) + sineCoefficient * sin(parameter.upper)
+        var lower = min(first, last), upper = max(first, last)
         let maximumParameter = atan2(sineCoefficient, cosineCoefficient)
-        for (base, extremum) in [
-            (maximumParameter, amplitude),
-            (maximumParameter + Double.pi, -amplitude),
-        ] {
+        for index in 0..<2 {
+            try consumeWork()
+            let base = index == 0 ? maximumParameter : maximumParameter + Double.pi
+            let extremum = index == 0 ? amplitude : -amplitude
             let firstIndex = ceil((parameter.lower - base) / period)
             let candidate = base + firstIndex * period
             if candidate <= parameter.upper {
-                values.append(extremum)
+                lower = min(lower, extremum); upper = max(upper, extremum)
             }
         }
-        return OutwardScalarInterval.enclosing(values)
+        return .init(lower: lower.nextDown, upper: upper.nextUp)
     }
 
-    private static func hyperbolicRange(
-        function: (Double) -> Double,
-        parameter: OutwardScalarInterval
-    ) -> OutwardScalarInterval {
-        OutwardScalarInterval.enclosing([
-            function(parameter.lower),
-            function(parameter.upper),
-        ])
+    private static func hyperbolicRange(function: (Double) -> Double,
+        parameter: OutwardScalarInterval, consumeWork: () throws -> Void) rethrows -> OutwardScalarInterval {
+        try consumeWork(); let first = function(parameter.lower)
+        try consumeWork(); let last = function(parameter.upper)
+        return .init(lower: min(first, last).nextDown, upper: max(first, last).nextUp)
     }
 
-    private static func hyperbolicCosineRange(
-        _ parameter: OutwardScalarInterval
-    ) -> OutwardScalarInterval {
-        var values = [cosh(parameter.lower), cosh(parameter.upper)]
-        if parameter.lower <= 0.0, parameter.upper >= 0.0 {
-            values.append(1.0)
-        }
-        return OutwardScalarInterval.enclosing(values)
+    private static func hyperbolicCosineRange(_ parameter: OutwardScalarInterval,
+        consumeWork: () throws -> Void) rethrows -> OutwardScalarInterval {
+        try consumeWork(); let first = cosh(parameter.lower)
+        try consumeWork(); let last = cosh(parameter.upper)
+        var lower = min(first, last)
+        let upper = max(first, last)
+        try consumeWork()
+        if parameter.lower <= 0, parameter.upper >= 0 { lower = min(lower, 1) }
+        return .init(lower: lower.nextDown, upper: upper.nextUp)
     }
+
 }
 
-struct SurfaceIntervalVectorJet: Sendable {
-    let x: SurfaceIntervalJet
-    let y: SurfaceIntervalJet
-    let z: SurfaceIntervalJet
+package struct SurfaceIntervalVectorJet: Sendable {
+    package let x: SurfaceIntervalJet
+    package let y: SurfaceIntervalJet
+    package let z: SurfaceIntervalJet
 
-    static func constant(_ point: Point3D) -> SurfaceIntervalVectorJet {
+    package init(x: SurfaceIntervalJet, y: SurfaceIntervalJet, z: SurfaceIntervalJet) {
+        self.x = x; self.y = y; self.z = z
+    }
+
+    package static func constant(_ point: Point3D) -> SurfaceIntervalVectorJet {
         SurfaceIntervalVectorJet(
             x: .constant(point.x),
             y: .constant(point.y),
@@ -480,7 +477,11 @@ struct SurfaceIntervalVectorJet: Sendable {
         )
     }
 
-    static func constant(_ vector: Vector3D) -> SurfaceIntervalVectorJet {
+    package static func constant(_ vector: IntervalVector3DBounds) -> SurfaceIntervalVectorJet {
+        .init(x: .constant(vector.x), y: .constant(vector.y), z: .constant(vector.z))
+    }
+
+    package static func constant(_ vector: Vector3D) -> SurfaceIntervalVectorJet {
         SurfaceIntervalVectorJet(
             x: .constant(vector.x),
             y: .constant(vector.y),
@@ -488,7 +489,7 @@ struct SurfaceIntervalVectorJet: Sendable {
         )
     }
 
-    static func + (
+    package static func + (
         lhs: SurfaceIntervalVectorJet,
         rhs: SurfaceIntervalVectorJet
     ) -> SurfaceIntervalVectorJet {
@@ -499,11 +500,11 @@ struct SurfaceIntervalVectorJet: Sendable {
         )
     }
 
-    static prefix func - (value: SurfaceIntervalVectorJet) -> SurfaceIntervalVectorJet {
+    package static prefix func - (value: SurfaceIntervalVectorJet) -> SurfaceIntervalVectorJet {
         SurfaceIntervalVectorJet(x: -value.x, y: -value.y, z: -value.z)
     }
 
-    static func * (
+    package static func * (
         lhs: SurfaceIntervalVectorJet,
         rhs: SurfaceIntervalJet
     ) -> SurfaceIntervalVectorJet {
@@ -514,11 +515,11 @@ struct SurfaceIntervalVectorJet: Sendable {
         )
     }
 
-    func dot(_ other: SurfaceIntervalVectorJet) -> SurfaceIntervalJet {
+    package func dot(_ other: SurfaceIntervalVectorJet) -> SurfaceIntervalJet {
         x * other.x + y * other.y + z * other.z
     }
 
-    func cross(_ other: SurfaceIntervalVectorJet) -> SurfaceIntervalVectorJet {
+    package func cross(_ other: SurfaceIntervalVectorJet) -> SurfaceIntervalVectorJet {
         SurfaceIntervalVectorJet(
             x: y * other.z - z * other.y,
             y: z * other.x - x * other.z,
@@ -526,7 +527,7 @@ struct SurfaceIntervalVectorJet: Sendable {
         )
     }
 
-    func normalized() -> SurfaceIntervalVectorJet? {
+    package func normalized() -> SurfaceIntervalVectorJet? {
         guard let length = dot(self).squareRoot(),
               let inverseLength = length.reciprocal() else {
             return nil
@@ -534,7 +535,7 @@ struct SurfaceIntervalVectorJet: Sendable {
         return self * inverseLength
     }
 
-    func differentiatedUThroughSecondOrder() -> SurfaceIntervalVectorJet {
+    package func differentiatedUThroughSecondOrder() -> SurfaceIntervalVectorJet {
         SurfaceIntervalVectorJet(
             x: x.differentiatedUThroughSecondOrder(),
             y: y.differentiatedUThroughSecondOrder(),
@@ -542,7 +543,7 @@ struct SurfaceIntervalVectorJet: Sendable {
         )
     }
 
-    func differentiatedVThroughSecondOrder() -> SurfaceIntervalVectorJet {
+    package func differentiatedVThroughSecondOrder() -> SurfaceIntervalVectorJet {
         SurfaceIntervalVectorJet(
             x: x.differentiatedVThroughSecondOrder(),
             y: y.differentiatedVThroughSecondOrder(),
@@ -550,7 +551,7 @@ struct SurfaceIntervalVectorJet: Sendable {
         )
     }
 
-    func union(_ other: SurfaceIntervalVectorJet) -> SurfaceIntervalVectorJet {
+    package func union(_ other: SurfaceIntervalVectorJet) -> SurfaceIntervalVectorJet {
         SurfaceIntervalVectorJet(
             x: x.union(other.x),
             y: y.union(other.y),

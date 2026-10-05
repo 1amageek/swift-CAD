@@ -59,3 +59,45 @@ composition path. `Tests/SwiftCADTests/DocumentTransactionTests.swift` owns the
 transaction path, including actual geometry failure and complete undo/redo
 restoration. Changes to source validation, editor behavior or exact evaluation
 require rerunning the affected composition fixtures and transaction guarantees.
+
+### Original document drawing and feature facade contracts
+
+[DocumentDrawing](DocumentDrawing/DESIGN.md) owns complete-source admission and
+the public retained B-rep edge geometry facade. Mesh strokes do not establish
+original geometric drawing or visibility evidence.
+The bridge-surface facade forwards the original start/end continuity requests,
+start/end tensions, width and actual wall references to BridgeSurfaceFeature;
+the modeling producer owns exact correspondence and continuity admission.
+No builder reduces the caller continuity order or substitutes a wall.
+
+The extrusion facade forwards an optional independent `draftDirection` unchanged
+through every profile, curve, face and parameter-distance overload. A missing
+pull direction retains the producer-defined extrusion axis; a present finite
+nonzero pull vector is owned and validated by ExtrudeFeature and DraftedSection.
+
+DocumentBuilder authors current metadata through the common fallible
+DocumentMetadata.current(name:) clock boundary on every target. Clock failure
+propagates before CADDocument publication; Native Date is a serialization and
+client adapter, not the common stored authoring representation.
+
+### Explicit exchange transport composition
+
+The package's NativeExchange trait defines CAD_EXCHANGE for SwiftCAD and admits
+the CADExchange dependency. Under that capability the existing exchange service
+injection, native byte/URL methods and re-export remain available. Without it,
+CADPipeline still owns the same evaluator/query/editor values and source
+contracts; only transport adapters and their stored service fields are absent.
+No mutable state, Sendable contract or synchronization primitive changes by
+target. The shared initializer offers the existing non-transport dependencies.
+Unsupported transport is absent from that build's API, never a no-op success.
+
+## Original Mass Query Composition
+
+CADPipeline.execute(.massProperties) validates the original query and evaluates exact source once, then calls the kernel MassPropertyEvaluator using the evaluated document’s authored length unit. Caller accuracy, work/depth limits, original components/placements and density precedence pass unchanged. The result publishes SI mass, centroid and inertia plus integration/error/work receipts; rendering mesh estimators never supply this query. Native coding remains owned by query/result adapters.
+
+The public `CADPipeline.evaluateExact` operation uses the same retained evaluator
+and original tolerance/resource configuration as kernel queries, with evaluation
+failure normalization. It publishes exact B-rep evaluation without requiring
+render mesh materialization. Original drawing composition uses this operation
+when a pipeline is explicitly injected, rather than silently constructing another
+default evaluator. Query dispatch delegates this same exact operation.

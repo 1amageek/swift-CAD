@@ -42,8 +42,9 @@ Curve trims retain their ordered start/end and may reverse traversal. Line
 trims are converted between native length parameters and file length units;
 foreign lines must use a unit-magnitude STEP VECTOR. Other line parameter laws
 are explicitly refused rather than silently normalized. Names
-use printable ASCII STEP strings with doubled apostrophes; other encodings
-throw explicitly. Coordinates are internal meters; the declared length unit
+use the shared STEPStringCoding contract, retaining Unicode scalars and standard
+escape directives without normalization. Actual decoded work and storage are
+charged after the lexical scanner's paid prefix in the same caller allowance. Coordinates are internal meters; the declared length unit
 controls file conversion. Plane angles are radians; other contexts are refused.
 All representation items must be admitted. Product metadata is refused because
 these geometry-only values cannot retain it. Mixed B-rep/mesh/instance inputs,
@@ -90,3 +91,5 @@ representation selection. Native verification executes the fourteen independent
 capability tests and four unchanged original ExactSTEPExchangeTests together.
 This proof covers the committed integration snapshot, not the parent's broader
 ongoing uncommitted source batch.
+
+The standalone reader receives the actual lexical scanner iteration receipt, parsed entity count and original deadline. It forwards the remaining cumulative work and byte allowance to each name decoder before named source publication. The writer uses the existing EntityTable quotedString entry and its operation-local string ledger.

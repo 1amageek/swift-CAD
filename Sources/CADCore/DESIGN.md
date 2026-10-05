@@ -15,15 +15,32 @@ Its Native/normal-WASM Codable capability boundary is owned by
 [Native Codec Capability](NativeCodecCapability/DESIGN.md).
 Evaluation and kind checking belong to CADIR and CADModeling.
 The source envelope number is owned by [SchemaVersion.current](SchemaVersion.swift);
-the current source baseline is 0.11.0. ProductAttributes requires both the
+the current source baseline is 0.16.0. CADIR's required nullable independent
+shape field retains the complete original source graph, including required
+curveLinearSources with original LINE/VECTOR records and curveSplineSources /
+surfaceSplineSources with original spline declarations and shared named control
+points. Group records also require original family and actual backPointerMembers; ordered
+traversals and inverse membership remain source meanings. Prior envelopes
+through 0.15.0 are rejected without migration.
+The active development independent shape graph also requires
+`originalSTEPGroups`, retaining every actual STEP GROUP owner including owners
+without assignments. Assignment records refer to that distinct source identity;
+the owning contract is [Original STEP Group](../CADIR/IndependentShapeSource/OriginalSTEPGroup/DESIGN.md).
+ProductAttributes requires both the
 itemCharacterizations and shapeElementDescriptions arrays, preserving the
 separate nullable physical description and required shape-element description
-contracts. Prior envelopes through 0.10.0 are rejected without migration. Definition-qualified
+contracts. Definition-qualified
 body/face targets retain their existing selector authority. CADIR owns required
 source payloads and CADExchange owns strict native transport admission.
 A baseline change must verify those contracts together without implicit migration.
 PAR.SDESC1 verifies this source baseline through current strict Native admission,
 independent source/resolution fixtures and public STEP generations.
+
+
+The target-common explicit original-value source framing is owned by
+[Portable Source Encoding](PortableSourceEncoding/DESIGN.md). It is independent
+of Native Codable and supplies complete IR fingerprint bytes, cumulative
+resource admission and canonical ordering without reflection.
 
 ## Related Designs
 
@@ -36,7 +53,6 @@ independent source/resolution fixtures and public STEP generations.
 | [Portable Identity](PortableIdentity/DESIGN.md) | child | Foundation-free 128-bit identity and strict UUID text codec | Supplies the storage and textual identity contract used by tagged persistent IDs; `TaggedID` owns explicit Native UUID/Codable adapters | CADExchange owns strict Native/STEP wire and schema admission; Embedded does not claim Codable support |
 | [Current Task Cancellation](CurrentTaskCancellation/DESIGN.md) | child | Foundation-free current-task cancellation check | Preserves typed `CancellationError` across supported targets | Consumer placement and domain mapping remain outside this component |
 | [Native Codec Capability](NativeCodecCapability/DESIGN.md) | child | Common Core values and explicit Native/normal codec adapters | Separates genuinely unavailable Embedded codec capability without changing value storage or meaning | Complete CADCore target proof is required; full document/A2 portability remains separate |
-
 
 ## Architecture
 

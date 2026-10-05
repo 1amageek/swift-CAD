@@ -1,7 +1,7 @@
 import CADCore
 
 /// A symbolic persistent identity. Resolution requires an explicit document snapshot.
-public struct DocumentObjectReference: Codable, Hashable, Sendable {
+public struct DocumentObjectReference: Hashable, Sendable {
     public var documentID: DocumentID
     public var target: DocumentObjectTarget
 
@@ -10,6 +10,7 @@ public struct DocumentObjectReference: Codable, Hashable, Sendable {
         self.target = target
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case documentID, target }
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -17,4 +18,9 @@ public struct DocumentObjectReference: Codable, Hashable, Sendable {
         documentID = try c.decode(DocumentID.self, forKey: .documentID)
         target = try c.decode(DocumentObjectTarget.self, forKey: .target)
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension DocumentObjectReference: Codable {}
+#endif

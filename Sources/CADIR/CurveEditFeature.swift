@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveEditFeature: Codable, Hashable, Sendable {
+public struct CurveEditFeature: Hashable, Sendable {
     public var source: CurveOutputReference
     public var edits: [CurveEdit]
 
@@ -23,11 +23,14 @@ public struct CurveEditFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source
         case edits
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.source, .edits], in: decoder)
@@ -35,33 +38,41 @@ public struct CurveEditFeature: Codable, Hashable, Sendable {
         edits = try container.decode([CurveEdit].self, forKey: .edits)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(source, forKey: .source)
         try container.encode(edits, forKey: .edits)
     }
+#endif
 }
 
-public enum CurveEdit: Codable, Hashable, Sendable {
+public enum CurveEdit: Hashable, Sendable {
     case setControlPoint(CurveControlPointEdit)
     case setKnot(CurveKnotEdit)
     case setWeight(CurveWeightEdit)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case controlPoint
         case knot
         case weight
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case setControlPoint
         case setKnot
         case setWeight
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -77,7 +88,9 @@ public enum CurveEdit: Codable, Hashable, Sendable {
             self = .setWeight(try container.decode(CurveWeightEdit.self, forKey: .weight))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -92,6 +105,7 @@ public enum CurveEdit: Codable, Hashable, Sendable {
             try container.encode(edit, forKey: .weight)
         }
     }
+#endif
 
     public func validate(on source: CurveOutputReference, tolerance: ModelingTolerance) throws {
         switch self {
@@ -105,7 +119,7 @@ public enum CurveEdit: Codable, Hashable, Sendable {
     }
 }
 
-public struct CurveControlPointEdit: Codable, Hashable, Sendable {
+public struct CurveControlPointEdit: Hashable, Sendable {
     public var target: CurveControlPointReference
     public var point: Point3D
 
@@ -122,11 +136,14 @@ public struct CurveControlPointEdit: Codable, Hashable, Sendable {
         try point.validate()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case point
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .point], in: decoder)
@@ -135,7 +152,9 @@ public struct CurveControlPointEdit: Codable, Hashable, Sendable {
         try target.validate()
         try point.validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try target.validate()
         try point.validate()
@@ -143,9 +162,10 @@ public struct CurveControlPointEdit: Codable, Hashable, Sendable {
         try container.encode(target, forKey: .target)
         try container.encode(point, forKey: .point)
     }
+#endif
 }
 
-public struct CurveKnotEdit: Codable, Hashable, Sendable {
+public struct CurveKnotEdit: Hashable, Sendable {
     public var target: CurveKnotReference
     public var value: Double
 
@@ -164,11 +184,14 @@ public struct CurveKnotEdit: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case value
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .value], in: decoder)
@@ -179,7 +202,9 @@ public struct CurveKnotEdit: Codable, Hashable, Sendable {
             throw GeometryError.invalidCoordinate(value)
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try target.validate()
         guard value.isFinite else {
@@ -189,9 +214,10 @@ public struct CurveKnotEdit: Codable, Hashable, Sendable {
         try container.encode(target, forKey: .target)
         try container.encode(value, forKey: .value)
     }
+#endif
 }
 
-public struct CurveWeightEdit: Codable, Hashable, Sendable {
+public struct CurveWeightEdit: Hashable, Sendable {
     public var target: CurveControlPointReference
     public var value: Double
 
@@ -213,11 +239,14 @@ public struct CurveWeightEdit: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case value
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .value], in: decoder)
@@ -228,7 +257,9 @@ public struct CurveWeightEdit: Codable, Hashable, Sendable {
             throw GeometryError.invalidDistance(value)
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try target.validate()
         guard value.isFinite, value > 0.0 else {
@@ -238,4 +269,13 @@ public struct CurveWeightEdit: Codable, Hashable, Sendable {
         try container.encode(target, forKey: .target)
         try container.encode(value, forKey: .value)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CurveEditFeature: Codable {}
+extension CurveEdit: Codable {}
+extension CurveControlPointEdit: Codable {}
+extension CurveKnotEdit: Codable {}
+extension CurveWeightEdit: Codable {}
+#endif

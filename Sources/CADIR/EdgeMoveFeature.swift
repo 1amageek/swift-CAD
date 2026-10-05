@@ -1,6 +1,6 @@
 import CADCore
 
-public struct EdgeMoveFeature: Codable, Hashable, Sendable {
+public struct EdgeMoveFeature: Hashable, Sendable {
     public let target: EdgeMoveTargetReference
     public let edge: StableSubshapeReference
     public let translation: DirectMoveVector
@@ -21,12 +21,15 @@ public struct EdgeMoveFeature: Codable, Hashable, Sendable {
         try translation.validate(tolerance: tolerance)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case edge
         case translation
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .edge, .translation], in: decoder)
@@ -35,7 +38,9 @@ public struct EdgeMoveFeature: Codable, Hashable, Sendable {
         translation = try container.decode(DirectMoveVector.self, forKey: .translation)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -43,4 +48,9 @@ public struct EdgeMoveFeature: Codable, Hashable, Sendable {
         try container.encode(edge, forKey: .edge)
         try container.encode(translation, forKey: .translation)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension EdgeMoveFeature: Codable {}
+#endif

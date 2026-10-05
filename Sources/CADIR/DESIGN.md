@@ -63,6 +63,11 @@ value contract and the package-versioned constants.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [Independent Shape Source](IndependentShapeSource/DESIGN.md) | child | Complete immutable original shape graph and bounded validation | CADDocument owns its required nullable independentShapes field and real representation-to-product-definition ownership | Equality, strict encoding, source fingerprint and copied validated edits retain the whole source |
+| [Portable Source Encoding](PortableSourceEncoding/DESIGN.md) | child | Explicit complete original source records | Encodes source identity on every target without reflection or Native codecs | Caller bytes, work and depth allowances remain cumulative |
+| [Imported Source Translation](ImportedSourceTranslation/DESIGN.md) | child | Atomic exact source-frame affine transformation | Transforms imported curves, supports and vertices while retaining topology and original charts | A copied document publishes only after complete validation |
+| [Product Manufacturing Information](ProductManufacturingInformation/DESIGN.md) | child | Typed datums, dimensions, tolerances and annotations | Persists authored semantic and graphical manufacturing meaning | Targets are original source references; transport belongs to CADExchange |
+| [Product View Metadata](ProductViewMetadata/DESIGN.md) | child | Saved cameras, clipping, annotation placement and validation properties | Persists authored presentation and validation values | Rendered pixels do not establish source geometry or measurement authority |
 | [Swift-CAD package](../../DESIGN.md) | parent | stable topology contract | Defines complete signature retention. | A signature is not a live topology authority. |
 | [Document Foundation](DocumentFoundation/DESIGN.md) | child | typed attributes and persistent reference validation | Owns source attribute identity and local integrity. | Strict current envelope owned by CADCore; symbolic external links require explicit resolution. |
 | [Product Attributes](ProductAttributes/DESIGN.md) | child | typed product attachments, explicit property graph and source validation | Owns persistent product metadata and physical material meaning, including definition selectors for common source geometry. | Required non-null source container; selector membership follows the child contract and evaluated/STEP semantics belong to consumers. |
@@ -71,6 +76,33 @@ value contract and the package-versioned constants.
 | [CADKernel](../CADKernel/DESIGN.md) | used by | snapshot signature construction | Supplies exact signatures for current subshapes. | No partial or Mesh-derived signatures. |
 
 ## Architecture
+
+The document envelope retains `independentShapes: IndependentShapeSource?` as
+a required nullable field. Full validation invokes the child validator with
+its standard cumulative limits and the common current-task cancellation
+checker by default. The document supplies its original DesignGraph as the child
+validator's explicit imported body-source context. Mixed representation members
+retain source SubshapeID selectors; the child checks their real imported feature
+and declared solid/sheet output under the same cumulative allowance. Standalone
+validation without that context cannot admit body references. The explicit caller
+overload forwards independent-shape limits and its checking callback to the same child validator and returns
+only its completed accounting. A bounded exchange operation charges that
+accounting into its existing ledger; it neither treats accounting as a
+source-bound validation receipt nor silently resets the caller allowance.
+The complete source encoding participates in the document source
+fingerprint. Graph-only validated edits copy this immutable source unchanged,
+revalidate any retained imported body selectors against the changed graph, and
+mint a fresh fingerprint memo. Native round trips must
+preserve nonempty source, original laws, item/frame/map identities and text;
+missing-field, old-schema, foreign-reference and fingerprint-change fixtures
+own the parent composition evidence. This source does not fabricate evaluated
+B-rep bodies or alter feature graph evaluation.
+
+`ValidatedCADDocument` graph-stable replacements and appends retain the original
+immutable geometry proof and invoke the child's body-source association check
+before their private validated publication. This new graph-edit invocation owns
+only changed-graph reference admission under the source association limits;
+it does not rerun unaffected geometry or reuse accounting as a geometry receipt.
 
 ```mermaid
 flowchart LR
@@ -88,6 +120,59 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
+
+### Source-First Full-Requirement Composition
+
+The current implementation phase completes all original requirement source
+paths before new build, runtime verification, review, commit or main integration.
+Source readiness does not constitute behavioral completion.
+
+Cache metadata exposes a package-only paid-source validator to the Kernel cache
+owner. Its supplied fingerprint is computed from the same immutable document
+and requested tolerance once in that invocation; cache-provided or foreign
+fingerprints are not authority. Public validators retain their complete source
+fingerprint computation. This port shares source work across body caches without
+changing their source/configuration/failure contract.
+
+Source value storage is common across Native, WASM and Embedded. Native
+Codable conformances and decoder/encoder witnesses are conditional transport
+adapters; they neither replace common values nor weaken Sendable or isolation.
+Document metadata timestamps retain finite seconds since the existing reference
+date in common storage. Explicit Native Date adapters retain their wire meaning.
+Portable document authoring obtains wall-clock time through a fallible C clock
+boundary, or accepts explicitly supplied metadata. Clock failure is an error,
+never an invented timestamp. The metadata remains excluded from geometry source
+identity exactly as before.
+
+`ExtrudeFeature.draftDirection` retains the optional independent pull direction
+in the source frame. A supplied vector is finite and nonzero; evaluation
+normalizes it once. Nil derives the pull direction from the extrusion axis.
+Drafted walls satisfy the original wall-normal angle against that pull
+direction throughout the native section, with the continuous solution branch
+from the undrafted wall. The expression angle and the pull direction remain
+distinct authored inputs through persistence and reference remapping.
+
+`TessellationOptions.faceOverrides` retains face-specific geometric fidelity
+beside feature-specific fidelity. Override values cannot contain another
+override map. Face identity is resolved against the actual evaluated snapshot
+by the mesh owner; unknown faces fail explicitly. Shared edges must satisfy
+every incident face's requested bounds under one original caller allowance.
+The complete options value participates in derived-artifact identity.
+
+`BridgeSurfaceFeature` retains separate boundary continuity levels, positive
+dimensionless tensions, optional positive width in source length units, and
+optional stable supporting-wall face references. A nil width derives its law
+from the original boundary separation; nil wall references use original
+incident support ownership. Every explicit wall joins the source dependency
+list and stable-reference remapping. Positional defaults preserve ordinary
+bridge authoring; tangency/curvature success requires the modeling owner's
+whole-boundary certificate and actual trimming against the retained walls.
+
+Product manufacturing information and saved-view/validation metadata remain
+inside the product-attribute source container. Canonical source fingerprints,
+validated copied edits and Native persistence retain their complete meaning. Independent representations retain original product-definition associations and validate them against the same document assembly under the original source allowance.
+The new source format is development schema 0.13.0; earlier schemas do not
+silently acquire absent required source metadata.
 
 ### Feature references
 
@@ -294,13 +379,15 @@ claimed.
     on-disk format and adding a recorded field needs no migration.
 15. `CADDocument.translatingSources(by:tolerance:)` must either translate every
     source-owned geometry value or fail with a typed
-    `KernelErrorCode.unsupportedCapability`. An imported exact B-rep has no
-    complete translation utility at this layer, so it is refused rather than
-    silently left in place. Translation works on a local document copy and
+    `KernelErrorCode.unsupportedCapability`. Imported exact B-rep translation
+    is owned by [Imported Source Translation](ImportedSourceTranslation/DESIGN.md),
+    including the public ImportedBRepFeature.applying affine source authority, retained original charts and source topology identities.
+    Translation works on a local document copy and
     publishes only after all operations validate; a mixed document therefore
     cannot expose a partially translated result.
-    The imported-BRep capability is executable but `partial`: the public source
-    translation path explicitly refuses it until exact translation is implemented.
+    Source implementation does not establish the imported-BRep capability's
+    runtime completion; the public source translation path needs its deferred
+    behavioral evidence before that status changes.
 16. `Mesh.faceRuns` is the mesh's record of which B-rep face generated which
     triangles. It is a value carried with the mesh, not a separately indexed
     side table, so the provenance cannot be separated from the triangles it
@@ -316,17 +403,29 @@ claimed.
     provenance, which is the truthful state of a mesh an exchange reader built
     from a triangle soup; it is not a fallback that a CAD consumer may accept
     silently. `CADKernel` owns which face produced which run.
-17. The source fingerprint is SHA-256 over the sorted-key JSON of the
-    fingerprint payload (`sha256-cad-source-dev`). A `ValidatedCADDocument`
+17. The source fingerprint is SHA-256 over the common portable binary source
+    payload (`sha256-cad-source-binary-v1`). The [source encoding child](PortableSourceEncoding/DESIGN.md)
+    owns its explicit typed record, enum, field and container framing. Identity
+    includes the original design graph, parameter source, document foundation,
+    product attributes, independent shapes, assembly, selection dimensions,
+    schema and units. Authored sketch entity order is semantic. Document display
+    identity, display metadata timestamps and cache revisions are excluded.
+    Canonical maps and unordered collections use encoded source keys; integer
+    words are big-endian, floating-point values retain their original bit
+    patterns, and UTF-8 strings and optional values have explicit framing.
+    Native Codable transport does not define source identity. An explicit
+    encoding allowance always admits a new invocation cumulatively; memoized
+    identity cannot waive a stricter caller allowance. A `ValidatedCADDocument`
     computes it at most once, on first use, and every copy of that validated
     document reads the same value
     (`ValidatedCADDocumentSourceFingerprintMemo`): the validated document never
     changes, so the evaluation engine, a cache seed and a freshness check
     reading one validated document hash its source once. A mutation
     (`replacingGraphStableFeatures`, `appendingFeatures`) is a new validated
-    document with an empty memo. The memo stores through `Mutex`, so before
-    macOS 15, iOS 18 and visionOS 2 it stores nothing and each read hashes the
-    same value again. `CADDocument.sourceFingerprint(tolerance:)`
+    document with an empty memo. All targets use the same `Mutex` and immutable
+    identity storage. Computation
+    and fallible encoding execute outside the critical section; publication
+    through the memo retains a completed value only. `CADDocument.sourceFingerprint(tolerance:)`
     validates a new document and therefore hashes again; a caller that already
     holds the validated document reads it there. `SHA256Digest` is written in
     Swift so the fingerprint exists on WASI, and hashes in place: one stack
@@ -463,6 +562,10 @@ and refuses it at 3.125e-3.
 `CADKernel` constructs the signature from one immutable model, and this module
 validates and encodes it. Resolution back to a live topology is owned by
 `CADKernel`/`CADModeling`.
+`GeometrySignatureValidation.tolerance` is package-visible so bounded original
+signature admission uses the same source-structural policy as Native decoding.
+Current query SI tolerance remains a separate authority for approximate vertex
+matching; it does not replace the stored signature's structural policy.
 
 ## State, Ownership, and Lifecycle
 
@@ -603,3 +706,33 @@ owns geometric continuity and localization; persistence does not infer either.
 ### Reblend Request Source (PAR.CL11A1)
 
 WrapOptions owns the explicit reblends Boolean authoring request from immutable Claude c0c8e3b. Its default is false; Codable and structural equality/hash preserve an explicitly selected true request through the actual feature/document source. This field owns intent, not rolling-ball geometry evidence. Until a certified producer exists, Kernel must reject true before mapping or publication with an explicit unsupportedCapability and original FeatureID; silently ignoring the flag or emitting deformed rounds as recomputed rounds violates the request. Existing false/default Wrap paths retain their actual geometry behavior. Source round-trip/default/malformed tests and the public true-request refusal path establish this bounded persistence/admission unit; successful nonlinear rolling-ball geometry remains PAR.CL11's separate open producer obligation.
+
+### Foreign angular source authority
+
+[Independent Shape Source](IndependentShapeSource/DESIGN.md) owns original
+foreign angular unit chains and numeric angular item measures. The context
+`units.angle` remains the document/native evaluation convention. A nonnil
+`originalAngularSource` is the sole foreign numeric angular law for represented
+items; the source's ambient angular law serves actual unassociated primitive/frame
+items. Original IDs, factors, dimensions and base chains remain source values.
+Geometry's retained factor products consume that law under the same exchange
+ledger. A degree semantic node requires exact equality with the existing degree
+conversion factor, not a unit name; other factors retain their original binary
+values. Native persistence and portable source identity include the owning
+child's required nullable descriptors and original item measure carriers.
+
+The independent source also retains each actual STEP GROUP owner, including
+unassigned owners, separately from membership assignments. Source ownership and
+reference coherence belong to [Original STEP Group](IndependentShapeSource/OriginalSTEPGroup/DESIGN.md);
+document copies and source identity retain that complete child value.
+
+### Cache Content Encoding Composition
+
+The Kernel owns ID-independent cache content comparison, including every original
+geometry carrier. It composes CADIR portable source writers rather than Native
+Codable JSON. An explicit source encoding allowance admits one entire cached and
+expected comparison cumulatively; helper calls cannot reset that allowance. The
+legacy convenience entry preserves the existing no-additional-source-ceiling
+contract of source fingerprint convenience APIs. Tessellation limits remain an
+independent mesh contract. Kernel's cache design owns traversal, sorting and
+semantic comparison; this relation does not redefine persistent source identity.

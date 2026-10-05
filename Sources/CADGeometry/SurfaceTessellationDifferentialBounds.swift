@@ -14,6 +14,19 @@ package struct SurfaceTessellationDifferentialBounds: Sendable {
   package let secondDerivativeVVMagnitudeUpperBound: Double
   package let unitNormalDerivativeUMagnitudeUpperBound: Double
   package let unitNormalDerivativeVMagnitudeUpperBound: Double
+
+  package init(tangentUMagnitudeUpperBound: Double, tangentVMagnitudeUpperBound: Double,
+    secondDerivativeUUMagnitudeUpperBound: Double, secondDerivativeUVMagnitudeUpperBound: Double,
+    secondDerivativeVVMagnitudeUpperBound: Double, unitNormalDerivativeUMagnitudeUpperBound: Double,
+    unitNormalDerivativeVMagnitudeUpperBound: Double) {
+    self.tangentUMagnitudeUpperBound = tangentUMagnitudeUpperBound
+    self.tangentVMagnitudeUpperBound = tangentVMagnitudeUpperBound
+    self.secondDerivativeUUMagnitudeUpperBound = secondDerivativeUUMagnitudeUpperBound
+    self.secondDerivativeUVMagnitudeUpperBound = secondDerivativeUVMagnitudeUpperBound
+    self.secondDerivativeVVMagnitudeUpperBound = secondDerivativeVVMagnitudeUpperBound
+    self.unitNormalDerivativeUMagnitudeUpperBound = unitNormalDerivativeUMagnitudeUpperBound
+    self.unitNormalDerivativeVMagnitudeUpperBound = unitNormalDerivativeVMagnitudeUpperBound
+  }
 }
 
 extension DefaultSurfaceDifferentialEncloser {
@@ -112,10 +125,12 @@ extension DefaultSurfaceDifferentialEncloser {
     }
     try parameters.validate(for: .bSpline(surface), tolerance: tolerance)
     try Task.checkCancellation()
-    let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
+    let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance,
+      consumeWork:{ try proofUsage.consume(depth:0,tolerance:tolerance) })
     try Task.checkCancellation()
-    let spans = try prepared.originalNativeSpans(over: parameters, tolerance: tolerance,
-                                                  maximumSpanCount: proofUsage.remainingCellCount)
+    let spans = try prepared.originalNativeSpans(over:parameters,tolerance:tolerance,
+      maximumSpanCount:proofUsage.remainingCellCount,
+      consumeWork:{ try proofUsage.consume(depth:0,tolerance:tolerance) })
     typealias Span = PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan
     struct Panel {
       let span: Span
@@ -130,6 +145,7 @@ extension DefaultSurfaceDifferentialEncloser {
     let maximumDepth = 32
     var panels: [Panel] = []
     for (index, span) in spans.enumerated() {
+      try proofUsage.consume(depth:0,tolerance:tolerance)
       if index & 0xFF == 0 { try Task.checkCancellation() }
       let uLower = max(parameters.u.lower, span.uBounds.lower)
       let uUpper = min(parameters.u.upper, span.uBounds.upper)
@@ -157,6 +173,11 @@ extension DefaultSurfaceDifferentialEncloser {
         jet = nil
       }
       if let jet, let local = try certifiedTessellationBounds(jet: jet, tolerance: tolerance) {
+        panels[cell.panelIndex].aggregate = panels[cell.panelIndex].aggregate.map { union($0, local) } ?? local
+        continue
+      }
+      if let local = try originalPolePanelBounds(surface: surface, parameters: cell.parameters,
+          span: span, prepared: prepared, tolerance: tolerance, depth:cell.depth, proofUsage:&proofUsage) {
         panels[cell.panelIndex].aggregate = panels[cell.panelIndex].aggregate.map { union($0, local) } ?? local
         continue
       }
@@ -191,13 +212,111 @@ extension DefaultSurfaceDifferentialEncloser {
     }
   }
 
+  private func originalPolePanelBounds(surface: BSplineSurface3D,
+    parameters: SurfaceParameterBox,
+    span: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
+    prepared: PreparedBSplineSurfaceDifferentialEncloser,
+    tolerance: ModelingTolerance, depth:Int, proofUsage:inout OriginalTessellationProofUsage) throws -> SurfaceTessellationDifferentialBounds? {
+    guard case .closed(let u0, let u1) = surface.uDomain,
+          case .closed(let v0, let v1) = surface.vDomain else { return nil }
+    var directions: [OriginalBSplinePoleNormal.Direction] = []
+    if parameters.u.lower == u0 || parameters.u.upper == u1 { directions.append(.constantU) }
+    if parameters.v.lower == v0 || parameters.v.upper == v1 { directions.append(.constantV) }
+    let pole = OriginalBSplinePoleNormal(surface: surface, tolerance: tolerance, prepared: prepared)
+    for direction in directions {
+      do {
+        return try pole.panelBounds(over: parameters, direction: direction, owning: span,
+          consumeWork:{ try proofUsage.consume(depth:depth,tolerance:tolerance) }).differentialBounds
+      } catch let error as KernelError where error.code == .invalidInput || error.code == .singularGeometry {
+        var exactUsage = OriginalPoleExactProofUsage(proofUsage:proofUsage,depth:depth,tolerance:tolerance)
+        defer { proofUsage = exactUsage.proofUsage }
+        do {
+          let exact = try pole.prepareExactPanel(over:parameters,direction:direction,owning:span,usage:&exactUsage)
+          return try exact.panelBounds(over:parameters,tolerance:tolerance,usage:&exactUsage).differentialBounds
+        } catch let exactError as KernelError where exactError.code == .invalidInput || exactError.code == .singularGeometry {
+          // Only a retained exact collapse/factor law may authorize the panel.
+          // A zero remaining hull follows this same original cell subdivision.
+          continue
+        }
+      }
+    }
+    return nil
+  }
+
   package func tessellationBounds(
     of surface: Surface3D,
     over parameters: SurfaceParameterBox,
     tolerance: ModelingTolerance
   ) throws -> SurfaceTessellationDifferentialBounds {
+    var remainingCells = 262_144
+    return try tessellationBounds(of: surface, over: parameters,
+      tolerance: tolerance, remainingCells: &remainingCells)
+  }
+
+  /// Every caller-owned triangle/face debits the same invocation's cell count.
+  package func tessellationBounds(
+    of surface: Surface3D,
+    over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance,
+    remainingCells: inout Int
+  ) throws -> SurfaceTessellationDifferentialBounds {
+    guard remainingCells > 0 else {
+      throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+        message: "Surface tessellation exhausted its shared certified cell budget.")
+    }
     try tolerance.validate()
     try parameters.validate(for: surface, tolerance: tolerance)
+    if case .procedural(.originalAffineWord(let image)) = surface {
+      let proof = try OriginalTessellationProofUsage(maximumCellCount: remainingCells, tolerance: tolerance)
+      var usage = OriginalPoleExactProofUsage(proofUsage: proof, depth: 0, tolerance: tolerance)
+      let transport: OriginalAffineWordDifferentialTransport
+      do {
+        transport = try .init(image: image, usage: &usage)
+      } catch {
+        remainingCells -= usage.proofUsage.usedCellCount
+        throw error
+      }
+      remainingCells -= usage.proofUsage.usedCellCount
+      let original = try tessellationBounds(of: image.source, over: parameters,
+        tolerance: tolerance, remainingCells: &remainingCells)
+      guard remainingCells >= 7 else {
+        throw GeometryConversionError.resourceLimitExceeded("Original word differential action exhausted the shared visit allowance.")
+      }
+      return try transport.bounds(original, consumeWork: { remainingCells -= 1 })
+    }
+    if case .procedural(.originalImage(let image)) = surface {
+      remainingCells -= 1
+      let native = try image.sourceParameterBounds(over: parameters, tolerance: tolerance)
+      let original = try tessellationBounds(of: image.source, over: native,
+        tolerance: tolerance, remainingCells: &remainingCells)
+      return try OriginalImagePoleNormalTransport().differentialBounds(original,
+        through: image, consumeWork: { try Task.checkCancellation() })
+    }
+    if case .analytic(let analytic) = surface {
+      switch analytic {
+      case .sphere, .cone:
+        remainingCells -= 1
+        if let bounds = try OriginalAnalyticPoleNormal().tessellationBounds(of:surface,over:parameters,
+          tolerance:tolerance,consumeWork:{ try Task.checkCancellation() }) { return bounds }
+      default: break
+      }
+    }
+    if case .bSpline(let native) = surface {
+      var usage = try OriginalTessellationProofUsage(maximumCellCount: remainingCells, tolerance: tolerance)
+      defer { remainingCells -= usage.usedCellCount }
+      let panels = try originalNativeSpanTessellationBounds(of: native, over: parameters,
+        tolerance: tolerance, proofUsage: &usage)
+      guard let first = panels.first else {
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+          message: "Original tessellation native panel cover is empty.")
+      }
+      return panels.dropFirst().reduce(first.bounds) { union($0, $1.bounds) }
+    }
+    if case .procedural(.originalRevolution(let original)) = surface,
+       original.hasOriginalAxisEndpoint(atEnd:false) || original.hasOriginalAxisEndpoint(atEnd:true) {
+      return try originalRevolutionPoleTessellationBounds(original,over:parameters,
+        tolerance:tolerance,remainingCells:&remainingCells)
+    }
     let prepared = try PreparedSurfaceDifferentialEncloser(
       surface: surface,
       tolerance: tolerance
@@ -209,8 +328,6 @@ extension DefaultSurfaceDifferentialEncloser {
     }
 
     let maximumDepth = 32
-    let maximumCellCount = 262_144
-    var remainingCells = maximumCellCount
     var pending = [Cell(parameters: parameters, depth: 0)]
     var aggregate: SurfaceTessellationDifferentialBounds?
 
@@ -285,6 +402,41 @@ extension DefaultSurfaceDifferentialEncloser {
         message: "Surface tessellation requires a nonempty parameter region."
       )
     }
+    return aggregate
+  }
+
+  private func originalRevolutionPoleTessellationBounds(_ source:OriginalRevolutionSurface3D,
+    over parameters:SurfaceParameterBox,tolerance:ModelingTolerance,remainingCells:inout Int) throws -> SurfaceTessellationDifferentialBounds {
+    let proof = try OriginalTessellationProofUsage(maximumCellCount:remainingCells,tolerance:tolerance)
+    var usage = OriginalPoleExactProofUsage(proofUsage:proof,depth:0,tolerance:tolerance)
+    defer { remainingCells -= usage.proofUsage.usedCellCount }
+    let lower = source.hasOriginalAxisEndpoint(atEnd:false)
+      ? try OriginalRevolutionPoleNormal(surface:source,atEnd:false,maximumSubdivisionDepth:32,tolerance:tolerance,usage:&usage) : nil
+    let upper = source.hasOriginalAxisEndpoint(atEnd:true)
+      ? try OriginalRevolutionPoleNormal(surface:source,atEnd:true,maximumSubdivisionDepth:32,tolerance:tolerance,usage:&usage) : nil
+    struct Cell { let box:SurfaceParameterBox;let depth:Int }
+    var pending = [Cell(box:parameters,depth:0)]
+    var aggregate:SurfaceTessellationDifferentialBounds?
+    while let cell = pending.popLast() {
+      try usage.proofUsage.consume(depth:cell.depth,tolerance:tolerance)
+      let pole = cell.box.v.lower == 0 ? lower : cell.box.v.upper == 1 ? upper : nil
+      var local:SurfaceTessellationDifferentialBounds?
+      if let pole {
+        do { local = try pole.panelBounds(over:cell.box,tolerance:tolerance,storageByteStride:OriginalPoleExactProofUsage.storageByteStride,usage:&usage).differentialBounds }
+        catch let error as KernelError where error.code == .singularSystem { local = nil }
+      } else {
+        let jet = try source.intervalJet(over:cell.box,tolerance:tolerance,consumeWork:{ try usage.consumeExactWork(1) })
+        local = try certifiedTessellationBounds(jet:jet,tolerance:tolerance)
+      }
+      if let local { aggregate = aggregate.map { union($0,local) } ?? local;continue }
+      guard cell.depth < 32 else {
+        throw KernelError(phase:.geometry,code:.resourceLimitExceeded,tolerance:tolerance,
+          message:"Original factored revolution normal could not close its whole-panel bound.")
+      }
+      let children = try subdivided(cell.box,surface:.procedural(.originalRevolution(source)),depth:cell.depth+1)
+      pending.append(contentsOf:children.reversed().map { Cell(box:$0,depth:cell.depth+1) })
+    }
+    guard let aggregate else { throw GeometryConversionError.invalidInput("Original revolution normal cover is empty.") }
     return aggregate
   }
 
@@ -433,6 +585,13 @@ extension DefaultSurfaceDifferentialEncloser {
     case .procedural(.offset): return "offset surface"
     case .procedural(.ruled): return "ruled surface"
     case .procedural(.rollingBall): return "rolling-ball blend surface"
+    case .procedural(.originalAffineWord): return "original affine word image"
+    case .procedural(.originalImage): return "original surface image"
+    case .procedural(.originalRevolution): return "original root traversal revolution"
+    case .procedural(.originalCoons): return "original four-boundary Coons source"
+    case .procedural(.originalBoundaryCorrected): return "original boundary-corrected Hermite source"
+    case .procedural(.originalPlaneDerivative): return "original support-plane derivative source"
+    case .procedural(.originalDrafted): return "original drafted ruling source"
     }
   }
 

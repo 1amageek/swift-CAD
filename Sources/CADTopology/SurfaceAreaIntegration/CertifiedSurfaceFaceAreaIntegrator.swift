@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// Certified exact-surface integration, independent of tessellation.
 struct CertifiedSurfaceFaceAreaIntegrator {
@@ -54,7 +62,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             let charts = try curves.map { try SurfaceAreaParameterChartEncloser(curve:$0,on:surface,
                 maximumControlPointCount:options.maximumControlPointCount,
                 maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance,
-                consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }) }
+                maximumSubdivisionDepth:options.maximumSubdivisionDepth,remainingSourceDepth:16,maximumAlgebraicDepth:32,
+                consumeWork:{ _ in try consumeWork(&work,options:options,tolerance:tolerance) }) }
             loops.append((loop.role, curves, charts, nil, nil))
         }
         let usesImplicitWork = loops.contains { $0.charts.contains { $0.requiresCallerWork } }
@@ -116,7 +125,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 let charts = try curves.map { try SurfaceAreaParameterChartEncloser(curve:$0,on:surface,
                     maximumControlPointCount:options.maximumControlPointCount,
                     maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance,
-                    consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }) }
+                    maximumSubdivisionDepth:options.maximumSubdivisionDepth,remainingSourceDepth:16,maximumAlgebraicDepth:32,
+                    consumeWork:{ _ in try consumeWork(&work,options:options,tolerance:tolerance) }) }
                 loops[index] = (loops[index].role,curves,charts,nil,nil)
             }
         }
@@ -129,7 +139,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         let reference = try surface.point(u: anchor.u, v: anchor.v, tolerance: tolerance)
         let prepared = try PreparedSurfaceAreaIntegrand(surface: surface, tolerance: tolerance,
                                                         maximumControlPointCount: options.maximumControlPointCount,
-            consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
+            consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) },
+            maximumSubdivisionDepth:options.maximumSubdivisionDepth,remainingSourceDepth:16,maximumAlgebraicDepth:32)
         // The estimate allocates effort only. Certified final intervals own acceptance.
         var estimatedArea = 0.0
         for loop in loops {
@@ -209,7 +220,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                         }
                         try consumeWork(&work,options:options,tolerance:tolerance)
                         let correction = try prepared.affineBoundaryCorrection(start:endpoints[index].start,
-                            end:endpoints[index].end,anchor:anchor,reference:reference,tolerance:tolerance)
+                            end:endpoints[index].end,anchor:anchor,reference:reference,tolerance:tolerance,
+                            consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
                         for field in contribution.indices { contribution[field] = contribution[field] + correction[field] }
                     }
                     for i in 0..<4 { accumulated[i] = accumulated[i] + contribution[i] }
@@ -374,7 +386,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     }
                     let pair = try prepared.centeredFanBounds(using:proof,curve:curve,parameterChart:parameterChart,
                         anchor:anchor,reference:reference,boundaryFraction:cell.t,radialFraction:cell.r,
-                        tolerance:tolerance)
+                        tolerance:tolerance,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
                     bounds = pair.range
                     midpoint = pair.midpoint
                 } else {
@@ -471,10 +484,22 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         let domains: [SurfaceAreaNativeSpanDomain]?
         if let rectangle {
             domains = try prepared.nativeRectangleDomains(over:rectangle,
-                maximumCount:options.maximumCellCount-work,tolerance:tolerance)
+                maximumCount:options.maximumCellCount-work,tolerance:tolerance,
+                maximumSubdivisionDepth:options.maximumSubdivisionDepth,consumeWork:{ depth in
+                    guard depth <= options.maximumSubdivisionDepth else {
+                        throw failure(.resourceLimitExceeded,tolerance,"Original rectangle partition exceeded the caller subdivision depth.")
+                    }
+                    try consumeWork(&work,options:options,tolerance:tolerance)
+                })
         } else {
             domains = try prepared.nativeFanDomains(curve:curve,anchor:anchor,
-                maximumCount:options.maximumCellCount-work,tolerance:tolerance,parameterChart:parameterChart)
+                maximumCount:options.maximumCellCount-work,tolerance:tolerance,parameterChart:parameterChart,
+                maximumSubdivisionDepth:options.maximumSubdivisionDepth,consumeWork:{ depth in
+                    guard depth <= options.maximumSubdivisionDepth else {
+                        throw failure(.resourceLimitExceeded,tolerance,"Original fan partition exceeded the caller subdivision depth.")
+                    }
+                    try consumeWork(&work,options:options,tolerance:tolerance)
+                })
         }
         let cells: [Adaptive.Cell]
         if let domains {
@@ -499,7 +524,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 if let rectangle = cell.rectangle, cell.r.lower == 0, cell.r.upper == 1,
                    let integral = try prepared.originalRuledRectangleIntegral(
                     rectangle: rectangle, fraction: cell.t, reference: reference,
-                    tolerance: tolerance, domain: cell.domain) {
+                    tolerance: tolerance, domain: cell.domain,
+                    consumeWork:{ try consumeWork(&queryWork,options:options,tolerance:tolerance) }) {
                     return Adaptive.Evaluation(contribution: integral, splitT: true)
                 }
                 let bounds: [SurfaceAreaIntegrandBounds]
@@ -713,6 +739,31 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         case .procedural(.rollingBall(let blend)):
             try admit(blend.firstContact, options: options, tolerance: tolerance, depth: depth + 1)
             try admit(blend.secondContact, options: options, tolerance: tolerance, depth: depth + 1)
+        case .procedural(.originalRevolution(let revolution)):
+            try admit(revolution.generator.source, options: options, tolerance: tolerance, depth: depth + 1)
+        case .procedural(.originalCoons(let coons)):
+            try admit(coons.vMinimumBoundary.source, options: options, tolerance: tolerance, depth: depth + 1)
+            try admit(coons.vMaximumBoundary.source, options: options, tolerance: tolerance, depth: depth + 1)
+            try admit(coons.uMinimumBoundary.source, options: options, tolerance: tolerance, depth: depth + 1)
+            try admit(coons.uMaximumBoundary.source, options: options, tolerance: tolerance, depth: depth + 1)
+        case .procedural(.originalDrafted(let drafted)):
+            try admit(.originalDrafted(drafted.start),options:options,tolerance:tolerance,depth:depth+1)
+        case .procedural(.originalPlaneDerivative(let corrected)):
+            try admit(.procedural(.originalBoundaryCorrected(corrected.construction)),options:options,tolerance:tolerance,depth:depth+1)
+            try admit(.procedural(.originalCoons(corrected.boundaries)),options:options,tolerance:tolerance,depth:depth+1)
+            for constraint in corrected.startConstraints { try admit(constraint.surface,options:options,tolerance:tolerance,depth:depth+1) }
+            for constraint in corrected.endConstraints { try admit(constraint.surface,options:options,tolerance:tolerance,depth:depth+1) }
+        case .procedural(.originalBoundaryCorrected(let corrected)):
+            try admit(.bSpline(corrected.construction), options: options,
+                tolerance: tolerance, depth: depth + 1)
+            try admit(.procedural(.originalCoons(corrected.boundaries)), options: options,
+                tolerance: tolerance, depth: depth + 1)
+        case .procedural(.originalAngularTransport(let image)):
+            try admit(image.source, options: options, tolerance: tolerance, depth: depth + 1)
+        case .procedural(.originalImage(let image)):
+            try admit(image.source, options: options, tolerance: tolerance, depth: depth + 1)
+        case .procedural(.originalAffineWord(let image)):
+            try admit(image.source, options: options, tolerance: tolerance, depth: depth + 1)
         case .procedural(.offset(let offset)):
             try admit(offset.source, options: options, tolerance: tolerance, depth: depth + 1)
         default: break
@@ -730,10 +781,41 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                        tolerance: ModelingTolerance, depth: Int) throws {
         guard depth <= 16 else { throw failure(.resourceLimitExceeded, tolerance, "Area curve nesting limit exceeded.") }
         switch curve {
+        case .originalPolyline(let polyline):
+            guard polyline.points.count <= options.maximumControlPointCount else {
+                throw failure(.resourceLimitExceeded, tolerance, "Area original polyline point admission exceeded.")
+            }
         case .bSpline(let spline):
             try admitSplineDimensions(controlCount: spline.controlPoints.count, degree: spline.degree,
                 knotCount: spline.knots.count, weightCount: spline.weights.count,
                 options: options, tolerance: tolerance)
+        case .originalGuideEndpointConnector(let connector):
+            try admit(connector.source.source,options:options,tolerance:tolerance,depth:depth+2)
+            try admit(connector.startBoundary.source,options:options,tolerance:tolerance,depth:depth+2)
+            try admit(connector.endBoundary.source,options:options,tolerance:tolerance,depth:depth+2)
+        case .originalGuideTraversalChain(let chain):
+            for traversal in chain.traversals {
+                try Task.checkCancellation()
+                try admit(traversal.source,options:options,tolerance:tolerance,depth:depth+2)
+            }
+        case .originalDrafted(let drafted):
+            try admit(drafted.generator.source,options:options,tolerance:tolerance,depth:depth+2)
+        case .originalPlaneDerivative(let connector):
+            try admit(connector.source.source,options:options,tolerance:tolerance,depth:depth+2)
+            for constraint in connector.startConstraints { try admit(constraint.surface,options:options,tolerance:tolerance,depth:depth+1) }
+            for constraint in connector.endConstraints { try admit(constraint.surface,options:options,tolerance:tolerance,depth:depth+1) }
+        case .originalEndpointConnector(let connector):
+            try admit(.bSpline(connector.construction), options: options, tolerance: tolerance, depth: depth + 1)
+            try admit(connector.startBoundary.source, options: options, tolerance: tolerance, depth: depth + 1)
+            try admit(connector.endBoundary.source, options: options, tolerance: tolerance, depth: depth + 1)
+        case .originalConstructionChart(let image):
+            try admit(image.source, options: options, tolerance: tolerance, depth: depth + 1)
+        case .originalAngularTransport(let image):
+            try admit(image.source, options: options, tolerance: tolerance, depth: depth + 1)
+        case .parameterImage(let image):
+            try admit(image.source, options: options, tolerance: tolerance, depth: depth + 1)
+        case .originalAffineWord(let image):
+            try admit(image.source, options: options, tolerance: tolerance, depth: depth + 1)
         case .surfaceLift(let lift):
             try admit(lift.surface, options: options, tolerance: tolerance, depth: depth + 1)
             try SurfaceAreaParameterChartEncloser.validateAdmission(curve:lift.parameterCurve,on:lift.surface,

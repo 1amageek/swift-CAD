@@ -2,8 +2,8 @@ import CADCore
 import Foundation
 import Synchronization
 
-public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable {
-    public enum ComponentKind: String, Codable, Hashable, Sendable {
+public struct CertifiedPlaneTorusIntersectionCurve: Hashable, Sendable {
+    public enum ComponentKind: String, Hashable, Sendable {
         case negativeFullBranch
         case positiveFullBranch
         case boundedMinorAngle
@@ -2241,6 +2241,7 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         )
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case planeSurface
         case torusSurface
@@ -2249,7 +2250,9 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         case upperMinorAngle
         case certificationTolerance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -2275,7 +2278,9 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
             )
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -2286,4 +2291,10 @@ public struct CertifiedPlaneTorusIntersectionCurve: Codable, Hashable, Sendable 
         try container.encode(upperMinorAngle, forKey: .upperMinorAngle)
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedPlaneTorusIntersectionCurve: Codable {}
+extension CertifiedPlaneTorusIntersectionCurve.ComponentKind: Codable {}
+#endif

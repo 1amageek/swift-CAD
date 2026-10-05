@@ -28,6 +28,9 @@ public enum KernelErrorCode: String, Hashable, Sendable, CaseIterable {
     case approximationToleranceRejected
     case emptyResult
     case topologyFailure
+    case filletThicknessExceeded
+    case filletSelfIntersection
+    case filletFaceDisappeared
     case nonManifoldResult
     case resourceLimitExceeded
     case cancelled
@@ -40,7 +43,7 @@ public enum KernelErrorCode: String, Hashable, Sendable, CaseIterable {
     public var category: KernelFailureCategory {
         switch self {
         case .invalidInput, .sweepInvalidGuideConstraintCount,
-             .sweepBooleanRequiresSolid, .sweepMixedNormalAdvance:
+             .sweepBooleanRequiresSolid, .sweepMixedNormalAdvance, .filletThicknessExceeded:
             .invalidInput
         case .missingReference:
             .missingReference
@@ -62,7 +65,7 @@ public enum KernelErrorCode: String, Hashable, Sendable, CaseIterable {
             .nonDiscreteResult
         case .emptyResult:
             .emptyResult
-        case .topologyFailure, .nonManifoldResult:
+        case .topologyFailure, .nonManifoldResult, .filletSelfIntersection, .filletFaceDisappeared:
             .invalidTopology
         case .resourceLimitExceeded:
             .resourceExhaustion

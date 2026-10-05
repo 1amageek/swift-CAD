@@ -25,8 +25,21 @@ struct OverlapRegularGraphCertifier {
             root = OverlapRegularGraphRootCertifier(curve: preparedCurve, surface: preparedSurface, tolerance: tolerance)
         }
         let pair = try selectPair(root: root, range: range, budget: &budget)
-        let coefficient = try OverlapAffineComposedResidualAuthority.certificate(source: curve, target: surface,
+        var coefficient = try OverlapAffineComposedResidualAuthority.certificate(source: curve, target: surface,
             pair: pair, budget: &budget)
+        if coefficient == nil, curve.controlPointCount == curve.degree + 1,
+           surface.uControlPointCount == surface.uDegree + 1,
+           surface.vControlPointCount == surface.vDegree + 1,
+           let start = try root.seed(at: curve.knots[curve.degree], pair: pair,
+               initial: domainCenter(surface), budget: &budget),
+           let end = try root.seed(at: curve.knots[curve.controlPointCount], pair: pair,
+               initial: domainCenter(surface), budget: &budget) {
+            // Newton stations propose a predictor only. Its complete original
+            // coefficient residual is transferred exclusively to already proved
+            // roots; neither endpoint convergence nor interpolation grants existence.
+            coefficient = try OverlapAffineComposedResidualAuthority.certificate(source: curve, target: surface,
+                pair: pair, predictor: (start: start, end: end), budget: &budget)
+        }
         var cuts = [range.lower]
         for knot in curve.knots where knot > range.lower && knot < range.upper && cuts.last != knot {
             try budget.work()
@@ -64,7 +77,8 @@ struct OverlapRegularGraphCertifier {
                     } else if proof.authority.isSmooth {
                         let provisional = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
                             derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: .infinity,
-                            authority: proof.authority)
+                            authority: proof.authority,
+                            stationaryU: proof.stationaryParameters.u, stationaryV: proof.stationaryParameters.v)
                         let center = try root.pointProof(at: item.range.midpoint, cell: provisional, budget: &budget)
                         guard center.authority.isSmooth else {
                             throw failure(.intersectionFailure, "A smooth Taylor center lost its differential authority.", tolerance)
@@ -86,7 +100,8 @@ struct OverlapRegularGraphCertifier {
                         } else {
                             let provisional = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
                                 derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: .infinity,
-                                authority: proof.authority)
+                                authority: proof.authority,
+                                stationaryU: proof.stationaryParameters.u, stationaryV: proof.stationaryParameters.v)
                             // The source-width gate prunes only position localization.
                             // Complete first jets independently bound the Lipschitz residual.
                             localResidual = try root.collarResidual(cell: provisional, proof: proof, budget: &budget)
@@ -111,7 +126,8 @@ struct OverlapRegularGraphCertifier {
                                 else { derivative = (proof.u[0], proof.v[0]) }
                                 leaf = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
                                     derivativeU: derivative.u, derivativeV: derivative.v, maximumDeviation: residual.absoluteUpperBound,
-                                    authority: proof.authority)
+                                    authority: proof.authority,
+                                stationaryU: proof.stationaryParameters.u, stationaryV: proof.stationaryParameters.v)
                             } else { provedOutside = true }
                         }
                     }

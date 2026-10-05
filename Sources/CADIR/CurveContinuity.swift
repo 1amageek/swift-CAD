@@ -1,7 +1,15 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADIR numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
-public enum CurveContinuityLevel: Int, Codable, Sendable, Hashable, Comparable, CaseIterable {
+public enum CurveContinuityLevel: Int, Sendable, Hashable, Comparable, CaseIterable {
     case positional = 0
     case tangent = 1
     case curvature = 2
@@ -13,12 +21,12 @@ public enum CurveContinuityLevel: Int, Codable, Sendable, Hashable, Comparable, 
     }
 }
 
-public enum CurveFrameOrientation: String, Codable, Sendable, Hashable {
+public enum CurveFrameOrientation: String, Sendable, Hashable {
     case forward
     case reversed
 }
 
-public struct CurveContinuityTolerances: Codable, Sendable, Hashable {
+public struct CurveContinuityTolerances: Sendable, Hashable {
     public var positionDistance: Double
     public var tangentAngle: Double
     public var curvatureVector: Double
@@ -55,7 +63,7 @@ public struct CurveContinuityTolerances: Codable, Sendable, Hashable {
     }
 }
 
-public struct CurveContinuityFrame: Codable, Sendable, Hashable {
+public struct CurveContinuityFrame: Sendable, Hashable {
     public var parameter: Double
     public var position: Point3D
     public var tangent: Vector3D
@@ -81,7 +89,7 @@ public struct CurveContinuityFrame: Codable, Sendable, Hashable {
     }
 }
 
-public struct CurveContinuityTarget: Codable, Sendable, Hashable {
+public struct CurveContinuityTarget: Sendable, Hashable {
     public var curve: Curve3D
     public var parameter: Double
     public var orientation: CurveFrameOrientation
@@ -140,7 +148,7 @@ public struct CurveContinuityTarget: Codable, Sendable, Hashable {
     }
 }
 
-public struct CurveContinuityRequest: Codable, Sendable, Hashable {
+public struct CurveContinuityRequest: Sendable, Hashable {
     public var first: CurveContinuityTarget
     public var second: CurveContinuityTarget
     public var requiredLevel: CurveContinuityLevel
@@ -159,7 +167,7 @@ public struct CurveContinuityRequest: Codable, Sendable, Hashable {
     }
 }
 
-public struct CurveContinuityDeviation: Codable, Sendable, Hashable {
+public struct CurveContinuityDeviation: Sendable, Hashable {
     public var positionDistance: Double
     public var tangentAngle: Double
     public var curvatureVectorDistance: Double
@@ -179,7 +187,7 @@ public struct CurveContinuityDeviation: Codable, Sendable, Hashable {
     }
 }
 
-public struct CurveContinuityResult: Codable, Sendable, Hashable {
+public struct CurveContinuityResult: Sendable, Hashable {
     public var requiredLevel: CurveContinuityLevel
     public var achievedLevel: CurveContinuityLevel?
     public var firstFrame: CurveContinuityFrame
@@ -276,3 +284,14 @@ public struct CurveContinuityEvaluator: Sendable {
         return .curvatureVariation
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveContinuityLevel: Codable {}
+extension CurveFrameOrientation: Codable {}
+extension CurveContinuityTolerances: Codable {}
+extension CurveContinuityFrame: Codable {}
+extension CurveContinuityTarget: Codable {}
+extension CurveContinuityRequest: Codable {}
+extension CurveContinuityDeviation: Codable {}
+extension CurveContinuityResult: Codable {}
+#endif

@@ -2,7 +2,7 @@ import CADCore
 import CADGeometry
 import CADIR
 
-public struct EvaluatedCurve: Codable, Sendable, Hashable {
+public struct EvaluatedCurve: Sendable, Hashable {
     public var sourceFeatureID: FeatureID
     public var source: EvaluatedCurveSource
     public var kind: EvaluatedCurveKind
@@ -173,3 +173,7 @@ public struct EvaluatedCurve: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension EvaluatedCurve: Codable {}
+#endif

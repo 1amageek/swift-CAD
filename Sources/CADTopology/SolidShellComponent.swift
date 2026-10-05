@@ -1,7 +1,7 @@
 import CADCore
 
 /// One connected solid region represented by an outer shell and its owned void shells.
-public struct SolidShellComponent: Codable, Equatable, Sendable {
+public struct SolidShellComponent: Equatable, Sendable {
     public let outerShellID: ShellID
     public let voidShellIDs: [ShellID]
 
@@ -14,30 +14,37 @@ public struct SolidShellComponent: Codable, Equatable, Sendable {
         [outerShellID] + voidShellIDs
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case outerShellID
         case voidShellIDs
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.outerShellID, .voidShellIDs], in: decoder)
         outerShellID = try container.decode(ShellID.self, forKey: .outerShellID)
         voidShellIDs = try container.decode([ShellID].self, forKey: .voidShellIDs)
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(outerShellID, forKey: .outerShellID)
         try container.encode(voidShellIDs, forKey: .voidShellIDs)
     }
+    #endif
 }
 
 public extension BRepModel {
     /// Returns the explicit material components owned by a solid body.
     func solidShellComponents(
         for bodyID: BodyID,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        consumeWork: (@Sendable (Int) throws -> Void)? = nil
     ) throws -> [SolidShellComponent] {
         try tolerance.validate()
         guard let body = bodies[bodyID] else {
@@ -60,6 +67,8 @@ public extension BRepModel {
             )
         }
         for component in components {
+            try Task.checkCancellation()
+            try consumeWork?(0)
             guard let outerShell = shells[component.outerShellID] else {
                 throw TopologyError.missingReference(
                     "Missing solid outer shell \(component.outerShellID)."
@@ -74,6 +83,8 @@ public extension BRepModel {
                 )
             }
             for voidShellID in component.voidShellIDs {
+                try Task.checkCancellation()
+                try consumeWork?(0)
                 guard let voidShell = shells[voidShellID] else {
                     throw TopologyError.missingReference(
                         "Missing solid void shell \(voidShellID)."
@@ -92,3 +103,7 @@ public extension BRepModel {
         return components
     }
 }
+
+#if !hasFeature(Embedded)
+extension SolidShellComponent: Codable {}
+#endif

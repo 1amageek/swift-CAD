@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BSplineSurfaceFeature: Codable, Sendable, Hashable {
+public struct BSplineSurfaceFeature: Sendable, Hashable {
     public var surface: BSplineSurface3D
     public var material: MaterialID?
     public var parameterDomain: SurfaceParameterDomain2D?
@@ -30,12 +30,15 @@ public struct BSplineSurfaceFeature: Codable, Sendable, Hashable {
         return try SurfaceParameterDomain2D.fullDomain(of: surface, tolerance: tolerance)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case surface
         case material
         case parameterDomain
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.surface, .material, .parameterDomain], in: decoder)
@@ -47,7 +50,9 @@ public struct BSplineSurfaceFeature: Codable, Sendable, Hashable {
         )
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -55,4 +60,9 @@ public struct BSplineSurfaceFeature: Codable, Sendable, Hashable {
         try container.encodeIfPresent(material, forKey: .material)
         try container.encodeIfPresent(parameterDomain, forKey: .parameterDomain)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension BSplineSurfaceFeature: Codable {}
+#endif

@@ -1,23 +1,28 @@
 import CADCore
 
-public enum MeasurementQueryResult: Codable, Sendable, Hashable {
+public enum MeasurementQueryResult: Sendable, Hashable {
     case point(SelectionMeasurementPoint)
     case distance(SelectionDistanceMeasurement)
     case angle(SelectionAngleMeasurement)
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case point
         case distance
         case angle
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case point
         case distance
         case angle
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -33,7 +38,9 @@ public enum MeasurementQueryResult: Codable, Sendable, Hashable {
             self = .angle(try container.decode(SelectionAngleMeasurement.self, forKey: .angle))
         }
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -48,4 +55,9 @@ public enum MeasurementQueryResult: Codable, Sendable, Hashable {
             try container.encode(result, forKey: .angle)
         }
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension MeasurementQueryResult: Codable {}
+#endif

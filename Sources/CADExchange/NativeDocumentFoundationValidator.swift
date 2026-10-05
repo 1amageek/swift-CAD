@@ -14,12 +14,20 @@ func validateNativeDocumentFoundationObject(_ object: [String: Any], path: Strin
         try foundationReference(foundationObject(record["owner"], path: "\(recordPath).owner"), path: "\(recordPath).owner")
         let value = try foundationObject(record["value"], path: "\(recordPath).value")
         guard let kind = value["kind"] as? String,
-              ["boolean", "integer", "real", "text", "quantity", "integers", "reals", "texts", "bytes", "reference", "references"].contains(kind) else {
+              ["boolean", "integer", "real", "text", "quantity", "integers", "reals", "texts", "bytes", "reference", "references", "subshapeReference", "subshapeReferences"].contains(kind) else {
             throw SchemaError.invalidPackage("Unknown document attribute value kind at \(recordPath).value.")
         }
         try foundationKeys(value, allowed: ["kind", kind], path: "\(recordPath).value")
         guard value[kind] != nil else { throw SchemaError.invalidPackage("Attribute payload is missing at \(recordPath).value.") }
-        if kind == "quantity" {
+        if kind == "subshapeReference" {
+            try validateStableSubshapeReferenceObject(foundationObject(value[kind], path: "\(recordPath).value.subshapeReference"), path: "\(recordPath).value.subshapeReference")
+        } else if kind == "subshapeReferences" {
+            guard let references = value[kind] as? [[String: Any]] else { throw SchemaError.invalidPackage("Subshape witnesses must be an array.") }
+            for (index, reference) in references.enumerated() {
+                try Task.checkCancellation()
+                try validateStableSubshapeReferenceObject(reference, path: "\(recordPath).value.subshapeReferences[\(index)]")
+            }
+        } else if kind == "quantity" {
             try foundationKeys(foundationObject(value[kind], path: "\(recordPath).value.quantity"), allowed: ["value", "kind"], path: "\(recordPath).value.quantity")
         } else if kind == "reference" {
             try foundationReference(foundationObject(value[kind], path: "\(recordPath).value.reference"), path: "\(recordPath).value.reference")

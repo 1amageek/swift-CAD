@@ -181,3 +181,7 @@ foreign origin or changed loop/pcurve signature refuses even with a fresh genuin
 source receipt. The general stable resolver and assignment lineage policy are not
 changed by this bounded metadata owner. Source-signature mismatch is a typed
 inconsistent artifact; no geometry retargeting or tolerance-based replacement.
+
+### Manufacturing and View Metadata Targets
+
+The same invocation-local paid `localGeometry` map owns PMI, datum, dimension, annotation and validation-value references. Metadata source signatures are admitted before hashing, resolved through the existing stable-source resolver, compared against actual current geometry and retained in the map only on successful correspondence. Producer receipt equality and source fingerprint checks include both source containers. Metadata values do not become appearance precedence candidates. Source validation owns ordered datum and annotation-reference integrity.

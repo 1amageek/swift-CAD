@@ -1,7 +1,7 @@
 import CADCore
 
 /// The exact UV transfer across one chart-preserving offset relation.
-public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
+public struct OffsetSurfaceParameterCurveImage: Hashable, Sendable {
     public let source: SurfaceParameterCurve
     public let offset: OffsetSurface3D
     public let isPullback: Bool
@@ -52,6 +52,37 @@ public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
                 message: "An offset-surface pcurve image requires the destination of its directed offset chart relation."
             )
         }
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded source validation and chart
+    // lifting consume retained procedural/pullback/zero offset relations here.
+    // Legacy materialized analytic targets require exact original radius/origin
+    // and normal equality before this port admits those optimized charts.
+    package func validateOriginalRelation(on surface: Surface3D,
+        tolerance: ModelingTolerance, remainingSourceDepth: Int,
+        maximumSubdivisionDepth: Int, consumeWork: () throws -> Void) throws {
+        guard remainingSourceDepth > 0, maximumSubdivisionDepth >= 0 else {
+            throw GeometryConversionError.resourceLimitExceeded("Original offset chart relation needs caller source admission.")
+        }
+        try tolerance.validate(); try consumeWork()
+        let retainedSource = isPullback ? Surface3D.procedural(.offset(offset)) : offset.source
+        let retainedTarget = isPullback || offset.distance == 0
+            ? offset.source : .procedural(.offset(offset))
+        try retainedSource.validateOriginalSource(tolerance: tolerance,
+            remainingSourceDepth: remainingSourceDepth - 1,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try consumeWork() })
+        try source.validateOriginalSource(on: retainedSource, tolerance: tolerance,
+            remainingSourceDepth: remainingSourceDepth - 1,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try consumeWork() })
+        func charge(_ count: Int) throws { for _ in 0..<count { try consumeWork(); try Task.checkCancellation() } }
+        try GeometryStructuralComparisonWork.charge(surface: surface, using: charge)
+        try GeometryStructuralComparisonWork.charge(surface: retainedTarget, using: charge)
+        guard surface == retainedTarget else {
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Materialized offset chart target lacks an exact original directed source relation.")
+        }
+        // The procedural offset's original UV law is structurally identical to
+        // its source. No rounded analytic substitute supplies this theorem.
     }
 
     public func parameter(
@@ -133,12 +164,15 @@ public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
         )
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source
         case offset
         case isPullback
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.source, .offset, .isPullback], in: decoder)
@@ -147,13 +181,16 @@ public struct OffsetSurfaceParameterCurveImage: Codable, Hashable, Sendable {
         isPullback = container.contains(.isPullback)
             ? try container.decode(Bool.self, forKey: .isPullback) : false
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(source, forKey: .source)
         try container.encode(offset, forKey: .offset)
         if isPullback { try container.encode(true, forKey: .isPullback) }
     }
+#endif
 }
 
 extension OffsetSurface3D {
@@ -179,3 +216,7 @@ extension OffsetSurface3D {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension OffsetSurfaceParameterCurveImage: Codable {}
+#endif

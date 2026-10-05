@@ -18,7 +18,7 @@ struct OverlapChartCurveReducer {
         }
         remaining -= 1
         switch curve {
-        case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
+        case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline, .originalBSplineContinuation:
             return curve
         case let .periodicTranslation(base, uShift, vShift):
             guard let reduced = try reduce(base, depth: depth + 1, remaining: &remaining,
@@ -32,7 +32,7 @@ struct OverlapChartCurveReducer {
             return try reduce(image.sourceParameterCurve(tolerance: tolerance), depth: depth + 1,
                               remaining: &remaining, options: options, tolerance: tolerance)
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
-             .certifiedAnalyticPair, .projectedAnalytic:
+             .certifiedAnalyticPair, .projectedAnalytic, .originalImage:
             return nil
         }
     }

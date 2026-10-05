@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BRepRepairDiagnostic: Codable, Equatable, Sendable {
+public struct BRepRepairDiagnostic: Equatable, Sendable {
     public let action: BRepRepairAction
     public let code: KernelErrorCode
     public let entityID: String?
@@ -18,13 +18,16 @@ public struct BRepRepairDiagnostic: Codable, Equatable, Sendable {
         self.message = message
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case action
         case code
         case entityID
         case message
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -38,7 +41,9 @@ public struct BRepRepairDiagnostic: Codable, Equatable, Sendable {
             message: try container.decode(String.self, forKey: .message)
         )
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(action, forKey: .action)
@@ -46,4 +51,9 @@ public struct BRepRepairDiagnostic: Codable, Equatable, Sendable {
         try container.encodeIfPresent(entityID, forKey: .entityID)
         try container.encode(message, forKey: .message)
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension BRepRepairDiagnostic: Codable {}
+#endif

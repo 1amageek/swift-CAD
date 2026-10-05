@@ -131,6 +131,33 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
         )
     }
 
+    /// Exact opposing trim outline split at every source-boundary crossing and clipped to the source face.
+    func outlineEdges(of opposingFaceID: FaceID, onto sourceFaceID: FaceID,
+                      reference: BooleanFaceSplitComponentReference, model: BRepModel,
+                      sourceSubshapes: [SubshapeID: TopologyReference],
+                      tolerance: ModelingTolerance) throws -> [BRepSewingEdge] {
+        let sourceFace = try face(sourceFaceID, model: model, tolerance: tolerance)
+        guard let sourceSurface = model.geometry.surfaces[sourceFace.surfaceID] else {
+            throw missingReference(tolerance: tolerance)
+        }
+        let sourcePatch = try SourceBRepFacePatchBuilder().build(faceID: sourceFaceID,
+            stableID: "coincident-outline:target:\(sourceFaceID)", from: model,
+            sourceSubshapes: sourceSubshapes, tolerance: tolerance).patch
+        let opposingPatch = try SourceBRepFacePatchBuilder().build(faceID: opposingFaceID,
+            stableID: "coincident-outline:tool:\(opposingFaceID)", from: model,
+            sourceSubshapes: sourceSubshapes, tolerance: tolerance).patch
+        var cache = FacePointContainmentPreparationCache()
+        var result: [BRepSewingEdge] = []
+        for (ordinal, loop) in opposingPatch.loops.enumerated() {
+            result += try clippedProjectedEdges(loop.edges, loopIndex: ordinal, reference: reference,
+                sourceFace: sourceFace, sourcePatch: sourcePatch, sourceSurface: sourceSurface,
+                faceParents: parentSubshapeIDs(for: [.face(sourceFaceID), .face(opposingFaceID)],
+                                             in: sourceSubshapes), model: model,
+                containmentCache: &cache, tolerance: tolerance)
+        }
+        return result
+    }
+
     private func projectedBoundaries(
         reference: BooleanFaceSplitComponentReference,
         sourceFace: Face,
@@ -451,7 +478,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                 Point2D(x: points[0].u, y: points[0].v),
                 Point2D(x: points[1].u, y: points[1].v)
             )
-        case .harmonic, .polyline, .bSpline, .certifiedImplicit,
+        case .harmonic, .polyline, .bSpline, .originalBSplineContinuation, .originalImage, .certifiedImplicit,
              .certifiedAnalyticImplicit, .sphericalGreatCircle,
              .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:
             return nil

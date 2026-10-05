@@ -1,11 +1,19 @@
 import Foundation
 import CADCore
+import CADGeometry
 import CADIR
 import CADTopology
+import CADKernel
 
-public struct IGESExchange: Sendable {
+public struct IGESExchange: Sendable, CertifiedDocumentGeometryExchanging {
     private let resourceLimits: ExchangeResourceLimits
     private let tolerance: ModelingTolerance
+    private let surfaceOverrides: [Surface3D: BSplineSurface3D]
+    private let curveConversions: ExchangeCurveConversionPlan
+    private let processingBudgetOverride: ExchangeProcessingBudget?
+    private let allowsReportedPlacementProjection: Bool
+    private let allowsReportedGroupProjection: Bool
+    private let allowsReportedAttributeLoss: Bool
 
     public init(
         tolerance: ModelingTolerance,
@@ -13,6 +21,76 @@ public struct IGESExchange: Sendable {
     ) {
         self.tolerance = tolerance
         self.resourceLimits = resourceLimits
+        surfaceOverrides = [:]; curveConversions = .init(); processingBudgetOverride = nil
+        allowsReportedGroupProjection = false; allowsReportedPlacementProjection = false; allowsReportedAttributeLoss = false
+    }
+
+    init(tolerance: ModelingTolerance, resourceLimits: ExchangeResourceLimits, surfaceOverrides: [Surface3D: BSplineSurface3D], curveConversions: ExchangeCurveConversionPlan = .init(), processingBudget: ExchangeProcessingBudget? = nil, allowsReportedPlacementProjection: Bool = false, allowsReportedAttributeLoss: Bool = false, allowsReportedGroupProjection: Bool = false) {
+        self.tolerance = tolerance; self.resourceLimits = resourceLimits; self.surfaceOverrides = surfaceOverrides; self.curveConversions = curveConversions; processingBudgetOverride = processingBudget
+        self.allowsReportedGroupProjection = allowsReportedGroupProjection; self.allowsReportedPlacementProjection = allowsReportedPlacementProjection; self.allowsReportedAttributeLoss = allowsReportedAttributeLoss
+    }
+    func permittingReportedIndependentProjection(_ report: ExchangePreservationReport) -> Self {
+        let attributes: Set<ExchangeInformationDomain> = [.appearance, .physicalProperties, .manufacturingInformation, .savedViews, .validationProperties]
+        return Self(tolerance: tolerance, resourceLimits: resourceLimits, surfaceOverrides: surfaceOverrides,
+            curveConversions: curveConversions, processingBudget: processingBudgetOverride,
+            allowsReportedPlacementProjection: report.lostDomains.contains(.placement),
+            allowsReportedAttributeLoss: !report.lostDomains.intersection(attributes).isEmpty,
+            allowsReportedGroupProjection: report.lostDomains.contains(.independentShapes))
+    }
+    public func write(brep: BRepModel, units: UnitSystem = .meters,
+        geometryPolicy: ExchangeGeometryConversionPolicy, to sink: any ByteSink) throws -> [ExchangeSurfaceConversionGuarantee] {
+        try conversionWrite(brep: brep, units: units, policy: geometryPolicy, permitsCurveReports: false, to: sink).surfaceConversions
+    }
+    public func writeConverting(brep: BRepModel, units: UnitSystem = .meters,
+        geometryPolicy: ExchangeGeometryConversionPolicy, to sink: any ByteSink) throws -> ExchangeGeometryConversionReport {
+        try conversionWrite(brep: brep, units: units, policy: geometryPolicy, permitsCurveReports: true, to: sink)
+    }
+    private func conversionWrite(brep: BRepModel, units: UnitSystem, policy: ExchangeGeometryConversionPolicy,
+        permitsCurveReports: Bool, to sink: any ByteSink) throws -> ExchangeGeometryConversionReport {
+        try brep.validate(level: .exact, tolerance: tolerance)
+        let ledger = try ExchangeConversionLedger(limits: resourceLimits, format: .iges)
+        let surfaces = try ExchangeSurfaceConversionPlanner().plan(stores: [brep.geometry], policy: policy,
+            format: .iges, tolerance: tolerance, limits: resourceLimits, ledger: ledger)
+        let curves = try ExchangeCurveConversionPlanner().plan(breps: [brep], independent: nil, policy: policy,
+            tolerance: tolerance, ledger: ledger, surfaceOverrides: surfaces.overrides)
+        guard permitsCurveReports || curves.guarantees.isEmpty else {
+            throw IndependentShapeExchangeError.unsupportedSemantics("The legacy surface-only result cannot report a curve conversion; use writeConverting.")
+        }
+        let remainingLimits = try ledger.remainingLimits()
+        let output = DataByteSink()
+        try IGESExchange(tolerance: tolerance, resourceLimits: remainingLimits,
+            surfaceOverrides: surfaces.overrides, curveConversions: curves, processingBudget: surfaces.budget, allowsReportedPlacementProjection: allowsReportedPlacementProjection, allowsReportedAttributeLoss: allowsReportedAttributeLoss, allowsReportedGroupProjection: allowsReportedGroupProjection).write(brep: brep, units: units, to: output)
+        try ledger.snapshot().checkTime(); try sink.write(output.bytes)
+        return .init(curveConversions: curves.guarantees, surfaceConversions: surfaces.guarantees)
+    }
+    public func write(_ document: CADDocument, units: UnitSystem? = nil,
+        geometryPolicy: ExchangeGeometryConversionPolicy, to sink: any ByteSink) throws -> [ExchangeSurfaceConversionGuarantee] {
+        try conversionWrite(document, units: units, policy: geometryPolicy, permitsCurveReports: false, to: sink).surfaceConversions
+    }
+    public func writeConverting(_ document: CADDocument, units: UnitSystem? = nil,
+        geometryPolicy: ExchangeGeometryConversionPolicy, to sink: any ByteSink) throws -> ExchangeGeometryConversionReport {
+        try conversionWrite(document, units: units, policy: geometryPolicy, permitsCurveReports: true, to: sink)
+    }
+    private func conversionWrite(_ document: CADDocument, units: UnitSystem?, policy: ExchangeGeometryConversionPolicy,
+        permitsCurveReports: Bool, to sink: any ByteSink) throws -> ExchangeGeometryConversionReport {
+        guard let independent = document.independentShapes else {
+            return try conversionWrite(brep: DocumentEvaluator(tolerance: tolerance).evaluateExact(document).brep,
+                units: units ?? document.units, policy: policy, permitsCurveReports: permitsCurveReports, to: sink)
+        }
+        let ledger = try ExchangeConversionLedger(limits: resourceLimits, format: .iges)
+        let surfaces = try ExchangeSurfaceConversionPlanner().plan(stores: [independent.geometry], policy: policy,
+            format: .iges, tolerance: tolerance, limits: resourceLimits, ledger: ledger)
+        let curves = try ExchangeCurveConversionPlanner().plan(breps: [], independent: independent, policy: policy,
+            tolerance: tolerance, ledger: ledger, surfaceOverrides: surfaces.overrides)
+        guard permitsCurveReports || curves.guarantees.isEmpty else {
+            throw IndependentShapeExchangeError.unsupportedSemantics("The legacy surface-only result cannot report a curve conversion; use writeConverting.")
+        }
+        let remainingLimits = try ledger.remainingLimits()
+        let output = DataByteSink()
+        try IGESExchange(tolerance: tolerance, resourceLimits: remainingLimits,
+            surfaceOverrides: surfaces.overrides, curveConversions: curves, processingBudget: surfaces.budget, allowsReportedPlacementProjection: allowsReportedPlacementProjection, allowsReportedAttributeLoss: allowsReportedAttributeLoss, allowsReportedGroupProjection: allowsReportedGroupProjection).write(document, units: units, to: output)
+        try ledger.snapshot().checkTime(); try sink.write(output.bytes)
+        return .init(curveConversions: curves.guarantees, surfaceConversions: surfaces.guarantees)
     }
 
     public func write(
@@ -26,7 +104,7 @@ public struct IGESExchange: Sendable {
         try brep.validate(level: .exact, tolerance: tolerance)
         try ExactIGESWriter(
             resourceLimits: resourceLimits,
-            tolerance: tolerance
+            tolerance: tolerance, surfaceOverrides: surfaceOverrides, curveConversions: curveConversions, processingBudget: processingBudgetOverride
         ).write(brep: brep, units: units, to: sink)
     }
 
@@ -41,6 +119,26 @@ public struct IGESExchange: Sendable {
             message: "IGES export accepts exact B-rep only; mesh-to-IGES conversion is forbidden."
         )
 
+    }
+
+    public func write(_ document:CADDocument,units:UnitSystem? = nil,to sink:any ByteSink) throws {
+        let outputUnits = units ?? document.units
+        if let source = document.independentShapes {
+            guard document.designGraph.nodes.isEmpty, document.assembly == nil, document.productAttributes.isEmpty || allowsReportedAttributeLoss else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public IGES export has not yet composed independent source with product/feature source graphs.
+                // Retain every real selected source owner before a mixed document can publish.
+                throw IndependentShapeExchangeError.unsupportedSemantics("Mixed independent and feature/product IGES source is not implemented.")
+            }
+            var usage = try IndependentShapeExchangeUsage(limits:resourceLimits,format:.iges,processing:processingBudgetOverride ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration),consumedEntities:0,consumedWork:0,consumedBytes:0)
+            try usage.validateDocument(document,tolerance:tolerance)
+            try ExactIGESWriter(resourceLimits:resourceLimits,tolerance:tolerance,surfaceOverrides:surfaceOverrides,curveConversions:curveConversions,processingBudget:processingBudgetOverride,allowsReportedPlacementProjection:allowsReportedPlacementProjection,allowsReportedGroupProjection:allowsReportedGroupProjection).writeIndependent(source,units:outputUnits,to:sink,usage:&usage)
+        } else {
+            guard document.assembly == nil, document.productAttributes.isEmpty else {
+                throw IndependentShapeExchangeError.unsupportedSemantics("IGES does not retain this product source/attribute graph.")
+            }
+            let evaluated = try DocumentEvaluator(tolerance:tolerance).evaluateExact(document)
+            try write(brep:evaluated.brep,units:outputUnits,to:sink)
+        }
     }
 
     public func `import`(_ source: any ByteSource) throws -> ImportedExchangeModel {
@@ -64,11 +162,24 @@ public struct IGESExchange: Sendable {
         }
     }
 
+    public func `import`(_ source: any ByteSource, policy: ExchangeImportPolicy) throws -> ImportedExchangeModel {
+        if case .strict = policy { return try self.import(source) }
+        try tolerance.validate(); try resourceLimits.validate()
+        let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
+        return try source.withNoCopyData { data in
+            try budget.check(format: .iges)
+            guard data.count <= resourceLimits.maximumBytes else { throw exchangeResourceLimitError(format: .iges, detail: "partial input exceeds byte ceiling") }
+            guard let text = String(data: data, encoding: .utf8) else { throw ImportError.invalidData("IGES data is not UTF-8.") }
+            return try importText(text, budget: budget, policy: policy)
+        }
+    }
+
     private func importText(
         _ text: String,
-        budget: ExchangeProcessingBudget
+        budget: ExchangeProcessingBudget,
+        policy: ExchangeImportPolicy = .strict
     ) throws -> ImportedExchangeModel {
-        try validateIGESResourceBudget(text, budget: budget)
+        let lexicalWork = try validateIGESResourceBudget(text, budget: budget)
         try budget.check(format: .iges)
         try validateIGESRecordTable(in: text)
         try budget.check(format: .iges)
@@ -84,24 +195,19 @@ public struct IGESExchange: Sendable {
 
         let unit = try igesLengthUnit(in: text)
         try budget.check(format: .iges)
-        let brep = try ExactIGESReader(
+        return try ExactIGESReader(
             text: text,
             lengthUnit: unit,
             processingBudget: budget,
             tolerance: tolerance
-        ).read()
-        try budget.check(format: .iges)
-        return ImportedExchangeModel(
-            format: .iges,
-            brep: brep,
-            units: UnitSystem(length: unit, angle: .radian)
-        )
+        ).readExchange(resourceLimits: resourceLimits, policy: policy, paidLexicalWork: lexicalWork)
     }
 
+    @discardableResult
     private func validateIGESResourceBudget(
         _ text: String,
         budget: ExchangeProcessingBudget
-    ) throws {
+    ) throws -> Int {
         let limits = resourceLimits
         let iterations = text.count
         guard iterations <= limits.maximumIterations else {
@@ -137,6 +243,7 @@ public struct IGESExchange: Sendable {
     guard depth == 0 else {
         throw ImportError.invalidData("IGES exchange contains an unterminated tuple.")
     }
+    return iterations
 }
 
 }
@@ -392,7 +499,7 @@ private func validateIGESDirectoryRecords(_ records: [IGESRecord]) throws {
         let supportedEntityTypes: Set<Int> = [
             100, 104, 110, 116, 123, 124, 126, 128, 140, 142,
             186, 190, 192, 194, 196, 198,
-            402, 502, 504, 508, 510, 514,
+            308, 402, 408, 502, 504, 508, 510, 514,
         ]
         guard supportedEntityTypes.contains(firstEntityType) else {
             throw ImportError.invalidData("Unsupported IGES directory entity type \(firstEntityType).")
@@ -475,7 +582,7 @@ private func igesGlobalParameters(in text: String) throws -> [String] {
     return parameters
 }
 
-private func readIGESGlobalParameter(in text: String, index: inout String.Index) throws -> String {
+func readIGESGlobalParameter(in text: String, index: inout String.Index) throws -> String {
     let start = index
     var cursor = index
     while cursor < text.endIndex, text[cursor].isNumber {
@@ -486,7 +593,8 @@ private func readIGESGlobalParameter(in text: String, index: inout String.Index)
        text[cursor] == "H",
        let count = Int(text[start..<cursor]) {
         var end = text.index(after: cursor)
-        for _ in 0..<count {
+        for offset in 0..<count {
+            if offset.isMultiple(of:4096) { try CurrentTaskCancellationChecker().checkCancellation() }
             guard end < text.endIndex else {
                 throw ImportError.invalidData("IGES Hollerith global parameter is truncated.")
             }

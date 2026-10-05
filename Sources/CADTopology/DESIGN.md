@@ -5,7 +5,9 @@
 `CADTopology` owns validated B-rep topology and topology-level queries. It is a
 child of the [Swift-CAD package design](../../DESIGN.md) and owns
 [OpenBoundaryLoop](OpenBoundaryLoop/DESIGN.md) and
-[SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md).
+[SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md),
+[BoundedRepair](BoundedRepair/DESIGN.md), [GeometricExtrema](GeometricExtrema/DESIGN.md),
+[VolumeMoments](VolumeMoments/DESIGN.md), [OriginalSourceValidation](OriginalSourceValidation/DESIGN.md), and [OrthographicEdgeProjection](OrthographicEdgeProjection/DESIGN.md).
 
 ## Responsibilities and Boundaries
 
@@ -45,6 +47,21 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Original Vertex Position Authority
+
+`Vertex.originalPoint` optionally retains the original authored binary point
+and its ordered original affine operation word through Geometry's
+`OriginalAffineWordPoint3D`. When absent, `Vertex.point` retains its historical
+binary source meaning. When present, `point` is only a numeric localization;
+validation, position queries and canonical mesh junctions consume the original
+whole D0 enclosure under their unchanged physical tolerance and caller budgets.
+Transformations append original operations to the retained word rather than
+transforming an earlier rounded localization. Source equality and native
+transport retain the optional law. Missing exact enclosure or unachievable
+localization accuracy fails explicitly; a numeric point cannot erase the law.
+Original source nesting, spatial subdivision, exact algebra and optional bytes
+retain their independent composing caller policies.
+
 - An eligible edge has exactly one coedge use in exactly one face owned by the
   requested body.
 - A returned loop is connected, closed, has no repeated edge, and every vertex
@@ -73,6 +90,79 @@ flowchart LR
   hyperbolic edge on a floor or a side wall integrates on the chart its
   neighbouring pcurves share; `DraftFaceTests` own it by a cone-drafted wall's
   volume.
+
+### Geometry Store Bounded Admission
+
+`GeometryStore.validate` forwards one caller work callback and optional byte
+callback to every bounded original curve and support validator. Entity visits
+occur before traversal; descendant source and algebra admission remain owned by
+Geometry. The store introduces no allowance or allocation estimate. Original
+source depth and geometric subdivision caps remain separate from retained
+ordered-field/root depth. `OriginalBRepValidationInvocation` composes this port
+with the same source invocation used for topology and correspondence checks.
+
+### Original UV Rectangle Images
+
+`ExactRectangularPcurveDomainResolver` recognizes full directed native UV
+traversals hosted by `OriginalAffineWordSurfaceParameterCurve`. Recognition
+requires the face support to equal the retained target and the original lift
+support to equal the target source. Only source fractions 0→1 or 1→0 are
+transparent; reverse traversal reverses the original endpoint order. Spatial
+word factors do not change UV bounds. Partial fractions require an original
+exact endpoint carrier and are not inferred from rounded interpolation.
+Nested word images retain these bindings at every layer. Natural sheet resizing
+and rectangular contact refinement consume the same original rectangle.
+
+Full directed `originalImage` carriers use the same source/target bindings.
+`axisAlignedEndpoints` publishes an immutable receipt retaining the original
+pcurve, support and tolerance together with its ordered exact endpoints. Natural
+sheet consumers reuse this producer to select the physical original axis;
+they do not duplicate inverse-gain calculations or interpolate source fractions.
+Each foreign UV endpoint is issued only after exact original rational subtraction,
+gain division and optional axis swap reproduce a finite represented Double.
+Nonrepresentable endpoint images remain on the general certified enclosure route;
+a rounded inverse does not authorize a rectangle. Affine and periodic translated
+endpoints use the same exact scalar authority. Native spline sides require
+clamped authored endpoint roles, positive weights and monotone axis controls;
+control equality alone and evaluated rounded endpoints are insufficient.
+
+The additive bounded resolver accepts the original work/depth and optional byte
+callbacks. Every source/knot/control/weight visit and requested endpoint buffer
+uses that invocation. Child-source recursion retains the caller source-depth
+limit; exact algebra visits are depth zero source charges. An injected legacy
+resolver cannot silently satisfy the bounded requirement. Requested typed bytes
+remain distinct from allocator capacity and overhead. Recognition refusal selects
+the existing complete original enclosure/integration path and does not change
+its fidelity, cancellation or failure contract.
+
+
+### Original Face Extent Witness Bounds
+
+Face extent refinement uses original singleton UV value boxes as reached-point
+witnesses. The upper endpoint of each box bounds the true minimum from above;
+the lower endpoint bounds the true maximum from below. Rounded representative
+parameters cannot enlarge this inner witness extent. Complete original curve
+boxes remain the outer extent authority. The historical 1e-7 relative overhang,
+65536 visited-cell cap and depth48 ceiling remain unchanged, with caller depth
+and independent algebra32 applied more strictly. Every retained curve/cell buffer
+is admitted through the same optional requested-byte callback before growth.
+
+### Retained Angular Transport Sources
+
+Original angular transport curves/supports consume their own retained prepared
+jets and domains. Foreign physical-radian transports have no intrinsic binary
+period receipt; classifiers and trim paths cannot descend to an underlying ideal
+circle/sphere to invent seam or full-turn authority. Primitive/construction
+shortcuts decline these families and retain generic original source producers.
+
+### Original Boundary-Corrected Supports
+
+`originalBoundaryCorrected` retains both its native construction and the original
+Coons boundaries. Generic original position/jet, flux and tessellation producers
+consume the corrected law; analytic, translation and native-tensor shortcuts
+cannot substitute the construction alone. Area admission checks both retained
+source children under its existing dimensional and nesting limits. Lower source
+validation/higher-order completion remains an explicit dependency of these routes.
 
 ## Verification and Change Impact
 
@@ -311,3 +401,72 @@ pcurve patch coverage, insufficient work/width and cancellation accompany the
 change. Existing V-C0 prefix and generic rational seam tests remain regression
 evidence. The original 178-U-span Draft pcurves, support proofs, 15-minute public
 limits and volume oracle remain unchanged and are verified by the upper owner.
+
+### Portable value and serialization boundary
+
+The common Native/WASM/Embedded topology types preserve the same stored source,
+Sendable, Hashable and ownership contracts. Foundation-free common geometry
+algorithms import the platform C math implementation explicitly. Codable,
+Encoder/Decoder and CodingKeys belong to native transport adapters guarded by
+`!hasFeature(Embedded)`; this split never changes state, synchronization or
+source authority. The portable source writer consumes the same public stored
+values rather than selecting another topology implementation.
+
+### Caller-Owned Face Extent Proof Work
+
+`FaceParameterExtentResolver(maximumSubdivisionDepth:consumeWork:)` retains its
+original relative extent resolution of `1e-7` and `65_536` visited-cell ceiling.
+The optional callback debits the calling query before each curve, endpoint,
+extent cell, and lower enclosure cell is evaluated. Caller subdivision depth
+is a stricter admission bound, including enclosure subdivision below an extent
+cell; it never replaces the historical component ceiling with a larger value.
+`DefaultFaceParameterBoundsResolver` and the certified loop predicate forward
+the same callback and remaining depth to original pcurve enclosures. Specialized
+analytic enclosure producers share that callback rather than granting each
+curve a new query allowance. A typed depth/work failure is preserved through
+face bounds, classification, and original B-rep bounding-box callers.
+
+```mermaid
+flowchart LR
+    Query[Caller proof ledger] --> Extent[Face extent cells]
+    Extent --> Curve[Original pcurve enclosures]
+    Curve --> Native[Native or retained chart bounds]
+    Query --> Predicate[Loop containment cells]
+    Predicate --> Curve
+```
+
+The existing `FaceParameterExtentResolverTests` own the extent-resolution
+contract; source-only wiring is not behavioral evidence for shared budgets.
+
+Retained original Coons surfaces compose the generic original chart contracts for validation, area and volume flux. Each boundary root span is admitted recursively under the existing source nesting and coefficient limits; no analytic-family shortcut or fitted tensor replaces the source.
+
+Certified parameter loop queries expose signed integer winding as well as nonzero containment. The same original curve boxes establish a homotopy excluding the query before exact directed half-open ray crossings are summed. Boundary remains a distinct result; summing contours never replaces boundary by a winding value. Original curve order, orientation, callback and subdivision limits are retained.
+
+Original plane-derivative curves and surfaces retain both their generated
+construction and original support constraints. Generic original jet producers
+own their corrected geometry; native or analytic volume shortcuts cannot
+substitute the construction net. Dimension admission visits original rails,
+constraints and corrected support fields under the same source ceiling.
+
+Original drafted curves and walls retain the directed generator, raw normal,
+axis, pull, physical angle and authored heights. Generic original closed jets
+are their geometry authority; analytic and native construction shortcuts
+decline this family. Source dimension admission visits the generator under the
+existing nesting ceiling. Area smoothness uses the original drafted first-order
+continuity issuer over the complete query and never infers higher continuity
+from a derivative hull or a fitted native candidate.
+
+Original guide traversal chains remain normalized source curves in trim,
+measurement, mesh and volume dispatch. Their raw traversals and exact station
+partition are retained; primitive volume shortcuts do not substitute any fitted
+control net or infer spatial linearity from the traversal list.
+
+Exact rectangular polyline admission permits repeated identical stations within
+a nonzero directed axis run. Every source segment remains on the fixed axis and
+never reverses direction; Geometry owns the exact Euclidean telescoping proof
+used by native iso consumers. No distinct endpoint or source point is removed.
+
+Original guide endpoint connectors retain the authored guide and section
+endpoint expressions through generic trim, area, volume and mesh routes.
+Primitive recognition cannot infer an uncorrected source locus from that
+connector; its corrected original law supplies every position and derivative.

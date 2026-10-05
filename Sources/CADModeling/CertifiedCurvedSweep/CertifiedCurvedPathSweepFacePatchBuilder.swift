@@ -29,7 +29,9 @@ package struct CertifiedCurvedPathSweepFacePatchBuilder {
         // A closed path closes the tube on itself: no caps.
         if resultKind == .solid, plan.pathIsClosed == false {
             caps.append(try cap(plan, atEnd: false, outerWindingSign: windingSigns[0], patches: patches))
-            caps.append(try cap(plan, atEnd: true, outerWindingSign: windingSigns[0], patches: patches))
+            if !plan.terminalSectionCollapsed {
+                caps.append(try cap(plan, atEnd: true, outerWindingSign: windingSigns[0], patches: patches))
+            }
         }
         let sides = try plan.profileSpanLoops.indices.map { loopIndex in
             let orientation: Orientation = plan.sectionIsClosed

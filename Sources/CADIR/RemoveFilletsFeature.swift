@@ -3,7 +3,7 @@ import CADCore
 /// Remove Fillets From Shell: every fillet of a solid no wider than `maximumRadius` (any, when
 /// nil) and of the chosen convexity is taken out, and the faces it joined grow to meet where it
 /// was.
-public struct RemoveFilletsFeature: Codable, Hashable, Sendable {
+public struct RemoveFilletsFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var maximumRadius: CADExpression?
     public var convexity: FilletConvexity
@@ -19,10 +19,13 @@ public struct RemoveFilletsFeature: Codable, Hashable, Sendable {
         try maximumRadius?.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, maximumRadius, convexity
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .maximumRadius, .convexity], in: decoder)
@@ -31,7 +34,9 @@ public struct RemoveFilletsFeature: Codable, Hashable, Sendable {
         convexity = try container.decode(FilletConvexity.self, forKey: .convexity)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -39,12 +44,18 @@ public struct RemoveFilletsFeature: Codable, Hashable, Sendable {
         try container.encodeIfPresent(maximumRadius, forKey: .maximumRadius)
         try container.encode(convexity, forKey: .convexity)
     }
+#endif
 }
 
 /// Which fillets Remove Fillets takes: any, those rounding an outside edge (whose centre lies in
 /// the material), or those filling an inside corner.
-public enum FilletConvexity: String, Codable, Hashable, Sendable, CaseIterable {
+public enum FilletConvexity: String, Hashable, Sendable, CaseIterable {
     case any
     case convex
     case concave
 }
+
+#if !hasFeature(Embedded)
+extension RemoveFilletsFeature: Codable {}
+extension FilletConvexity: Codable {}
+#endif

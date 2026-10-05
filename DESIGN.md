@@ -43,10 +43,12 @@ or bounds data.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [Portable Kernel Verification](Sources/CADWASMSmoke/DESIGN.md) | child | Actual whole-production executable runtime | Awaits public mesh verification before final success | Compile and Native evidence do not establish portable runtime |
 | [Portable Geometry Verification](Sources/CADGeometryWASMSmoke/DESIGN.md) | child | G1 geometry and signature runtime checks | Verifies periodic geometry on the exact emitted WASM artifact | Whole-kernel and Embedded evidence remain required |
 | [Portable Contract Verification](Sources/CADContractWASMSmoke/DESIGN.md) | child | Capability and failure runtime checks | Verifies portable contract behavior independently of geometry compilation | Whole-kernel and Embedded evidence remain required |
-| [Core Portability Verification](Sources/CADCorePortabilitySmoke/DESIGN.md) | child | Actual complete CADCore fixed-target behavior | Exercises unchanged values, COW, errors and available Native codecs | Full Embedded A2 remains a separate requirement |
 | [CADCore](Sources/CADCore/DESIGN.md) | child | Common values, typed failures and Native codec capability | Owns the actual Core module and its explicit platform adapters. | Embedded codec absence does not weaken common value or ownership semantics. |
+| [Core Portability Verification](Sources/CADCorePortabilitySmoke/DESIGN.md) | child | Actual complete CADCore fixed-target behavior | Exercises unchanged values, COW, errors and available Native codecs | Full Embedded A2 remains a separate requirement |
+| [Portable Transaction Verification](Sources/A2DocumentTransactionSmoke/DESIGN.md) | child | Complete public transaction runtime proof | Executes the same exact evaluator and actor snapshot contracts on Native, normal WASM and Embedded | Whole production source/evaluation dependencies must compile and run; a subset probe is insufficient |
 | [CADGeometry](Sources/CADGeometry/DESIGN.md) | child | analytic surface and pcurve validation | Owns parameter-domain and structural geometric validity. | Structural validity is not silently relaxed for a model tolerance. |
 | [CADModeling](Sources/CADModeling/DESIGN.md) | child | exact primitive construction | Owns generated primitive B-rep topology and analytic seam/pole pcurves. | Generated references must remain valid through the shared geometry contract. |
 | [CADIR](Sources/CADIR/DESIGN.md) | child | stable signature value and Codable contract | Owns serialized geometry signatures and their rejection rules. | Signatures retain geometry; they do not identify a new body by themselves. |
@@ -183,6 +185,20 @@ has no UI or Agent scheduler and does not retry a failed or cancelled
 tessellation.
 
 ### Normal-WASI Foundation Environment
+
+The `NativeExchange` SwiftPM trait is enabled by default and owns the optional
+SwiftCAD-to-CADExchange transport dependency. Native and normal-WASM complete
+exchange builds retain that default. The Embedded document authoring and
+transaction profile explicitly disables default traits, so its public SwiftCAD
+document/evaluation/transaction dependency graph excludes Foundation/OpenUSD
+transport modules. This selection changes transport availability only; common
+source values, source encoding, state ownership, Sendable, cancellation and
+transaction semantics remain the same. SwiftCAD exposes Native exchange
+adapters under `CAD_EXCHANGE`; their absence never substitutes another exporter
+or a fabricated persistence result. The A2 proof executable selects the same
+SwiftCAD public document API under the fixed Embedded SDK and this declared
+transport-free package profile. Compilation and runtime proof are deferred
+until the complete source implementation phase has finished.
 
 The fixed Swift 6.4.0 normal-WASM SDK provides Foundation and CoreFoundation.
 CADExchange uses both to distinguish JSON booleans from numeric values in glTF;

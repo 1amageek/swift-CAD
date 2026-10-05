@@ -3,6 +3,7 @@ import CADIR
 import CADTopology
 
 public struct ImportedExchangeModel: Sendable {
+    public var preservationReport: ExchangePreservationReport
     public var format: ExchangeFileFormat
     public var document: CADDocument?
     public var brep: BRepModel?
@@ -14,8 +15,10 @@ public struct ImportedExchangeModel: Sendable {
         document: CADDocument? = nil,
         brep: BRepModel? = nil,
         meshes: [BodyID: Mesh] = [:],
-        units: UnitSystem = .meters
+        units: UnitSystem = .meters,
+        preservationReport: ExchangePreservationReport = .init()
     ) {
+        self.preservationReport = preservationReport
         self.format = format
         self.document = document
         self.brep = brep

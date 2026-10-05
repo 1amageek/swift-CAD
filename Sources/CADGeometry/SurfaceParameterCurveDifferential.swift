@@ -180,7 +180,16 @@ public extension SurfaceParameterCurve {
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance
             )
+        case let .originalBSplineContinuation(curve):
+            return try curve.differential(atNormalizedFraction: clampedFraction, tolerance: tolerance)
         case let .projectedAnalytic(curve):
+            return try curve.differential(
+                atNormalizedFraction: clampedFraction,
+                tolerance: tolerance
+            )
+        case let .originalAffineWord(curve):
+            return try curve.differential(atNormalizedFraction: clampedFraction, tolerance: tolerance)
+        case let .originalImage(curve):
             return try curve.differential(
                 atNormalizedFraction: clampedFraction,
                 tolerance: tolerance

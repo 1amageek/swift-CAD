@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// Certifies the Green boundary integral `integral Q(u, v) dv` for explicit
 /// pcurves on analytic surfaces. Adaptive subdivision is bounded and returns a
@@ -31,6 +39,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   }
 
   private let maximumWorkItems: Int
+  private let consumeWork: (@Sendable (Int) throws -> Void)?
   private let maximumDepth: Int
   private let evaluationCache: EvaluationCache
 
@@ -93,10 +102,12 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   init(
     maximumWorkItems: Int = 65_536,
     maximumDepth: Int = 48,
-    evaluationCache: EvaluationCache = EvaluationCache()
+    evaluationCache: EvaluationCache = EvaluationCache(),
+    consumeWork: (@Sendable (Int) throws -> Void)? = nil
   ) {
     self.maximumWorkItems = maximumWorkItems
     self.maximumDepth = maximumDepth
+    self.consumeWork = consumeWork
     self.evaluationCache = evaluationCache
   }
 
@@ -107,6 +118,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     maximumWidth: Double,
     tolerance: ModelingTolerance
   ) throws -> [SurfaceParameterCurveEnclosure] {
+    try consumeWork?(0)
     try tolerance.validate()
     guard lowerFraction.isFinite,
       upperFraction.isFinite,
@@ -253,7 +265,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       )
     case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline,
       .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-      .rigidImage:
+      .rigidImage, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       throw KernelError(
         phase: .topology,
         code: .invalidInput,
@@ -1600,7 +1612,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       .certifiedAnalyticImplicit,
       .certifiedAnalyticPair,
       .projectedAnalytic,
-      .rigidImage:
+      .rigidImage, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return nil
     case .offsetSurfaceImage(let image):
       return try polynomialBounds(
@@ -1910,7 +1922,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     case .sphericalGreatCircle,
       .certifiedAnalyticImplicit,
       .certifiedAnalyticPair,
-      .projectedAnalytic:
+      .projectedAnalytic, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return nil
     case .rigidImage(let image):
       guard
@@ -2197,9 +2209,16 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         requestedWidth: requestedWidth,
         tolerance: tolerance
       )
+    // FIXME(INCOMPLETE_IMPLEMENTATION): This procedural flux strategy still
+    // returns no enclosure for the retained implicit/image/continuation trims
+    // below. Original shell-volume validation reaches this branch through
+    // TrimmedParametricSurfaceVolumeEvaluator, including rolling-ball blend
+    // neighbour trims. Complete whole original pcurve flux and convergence
+    // under unchanged caller error/work/depth are required before full curved
+    // solid volume support may be claimed; nil is not a successful integral.
     case .sphericalGreatCircle, .certifiedImplicit,
       .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-      .projectedAnalytic:
+      .projectedAnalytic, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return nil
     }
   }
@@ -2349,7 +2368,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       .certifiedImplicit,
       .certifiedAnalyticImplicit,
       .certifiedAnalyticPair,
-      .projectedAnalytic:
+      .projectedAnalytic, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return nil
     case .rigidImage(let image):
       guard
@@ -4698,6 +4717,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     var result: [SurfaceParameterCurveEnclosure] = []
     var workItemCount = 0
     while let item = pending.popLast() {
+      try consumeWork?(item.depth)
       workItemCount += 1
       guard workItemCount <= maximumWorkItems else {
         throw resourceFailure(

@@ -1,7 +1,7 @@
 import CADCore
 import CADTopology
 
-public struct SubshapeIndex: Codable, Equatable, Sendable {
+public struct SubshapeIndex: Equatable, Sendable {
     public var entries: [SubshapeID: TopologyReference]
 
     public init(_ entries: [SubshapeID: TopologyReference] = [:]) {
@@ -96,3 +96,7 @@ public struct SubshapeIndex: Codable, Equatable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SubshapeIndex: Codable {}
+#endif
