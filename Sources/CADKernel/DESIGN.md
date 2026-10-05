@@ -270,6 +270,14 @@ all along, so they cross only where they end (`ExactTrimEdgeIntersector`;
 `CrossedCylindersTests` own it with the drill's seam turned 0, 45 and 90
 degrees).
 
+An intersection curve may touch a face's boundary edge without entering the
+neighbouring face (two equal cylinders in a tee touch on the line between the
+upright's halves). The neighbour is carried whole, so
+`ClosedIntersectionUnsplitFaceMaterializer` cuts each carried edge at the split
+patches' vertices lying inside it, matching the split face's copy of the shared
+edge (`CrossedCylindersTests`: equal tee and cross; a pipe half sunk in a box
+face, joined or grooved).
+
 Implicit contact/isoparametric crossing classification first uses the existing
 whole-interval UV jet to exclude separated coordinate ranges, retaining the
 same parameter-overlap resolution. An overlapping range is not admitted as a

@@ -18,12 +18,20 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         toolBodyID: BodyID,
         splitFaceIDs: Set<FaceID>,
         forcedActions: [FaceID: BooleanRegionSelectionAction] = [:],
+        splitPatches: [BRepSewingFacePatch] = [],
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         operands: BooleanOperandContext,
         tolerance: ModelingTolerance
     ) throws -> [BRepSewingFacePatch] {
         try tolerance.validate()
+        // An intersection curve may only touch a face's boundary edge (two equal cylinders
+        // meeting in a tee touch along the line where the upright's halves meet) and not enter
+        // the neighbouring face, which is then carried whole while the split face's copy of the
+        // shared edge is cut at the touching point. The carried edge is cut there too.
+        let junctionPoints = splitPatches.flatMap { patch in
+            patch.loops.flatMap { loop in loop.edges.flatMap { [$0.startPoint, $0.endPoint] } }
+        }
         guard targetBodyIDs.isEmpty == false,
               Set(targetBodyIDs).count == targetBodyIDs.count,
               targetBodyIDs.contains(toolBodyID) == false else {
@@ -80,6 +88,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             operation: operation,
             stablePrefix: "closed-intersection:carried:target",
             forcedActions: forcedActions,
+            junctionPoints: junctionPoints,
             model: model,
             sourceSubshapes: sourceSubshapes,
             classificationSessions: classificationSessions,
@@ -94,6 +103,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             operation: operation,
             stablePrefix: "closed-intersection:carried:tool",
             forcedActions: forcedActions,
+            junctionPoints: junctionPoints,
             model: model,
             sourceSubshapes: sourceSubshapes,
             classificationSessions: classificationSessions,
@@ -111,6 +121,7 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         operation: BooleanOperation,
         stablePrefix: String,
         forcedActions: [FaceID: BooleanRegionSelectionAction],
+        junctionPoints: [Point3D],
         model: BRepModel,
         sourceSubshapes: [SubshapeID: TopologyReference],
         classificationSessions: SolidPointClassificationSessionSet?,
@@ -178,13 +189,17 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
                 )
             }
             let stableID = "\(stablePrefix):face:\(faceIndex)"
-            let source = try SourceBRepFacePatchBuilder().build(
-                faceID: faceID,
-                stableID: stableID,
-                from: model,
-                sourceSubshapes: sourceSubshapes,
+            let source = try cutAtJunctions(
+                SourceBRepFacePatchBuilder().build(
+                    faceID: faceID,
+                    stableID: stableID,
+                    from: model,
+                    sourceSubshapes: sourceSubshapes,
+                    tolerance: tolerance
+                ).patch,
+                junctionPoints: junctionPoints,
                 tolerance: tolerance
-            ).patch
+            )
             let orientation = action == .keepReversed
                 ? reversed(face.orientation)
                 : face.orientation
@@ -195,6 +210,44 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
             ))
         }
         return patches
+    }
+
+    private func cutAtJunctions(
+        _ patch: BRepSewingFacePatch,
+        junctionPoints: [Point3D],
+        tolerance: ModelingTolerance
+    ) throws -> BRepSewingFacePatch {
+        guard junctionPoints.isEmpty == false else { return patch }
+        let subdivider = BRepSewingEdgeSubdivider()
+        var changed = false
+        let loops = try patch.loops.map { loop in
+            BRepSewingLoop(
+                stableID: loop.stableID,
+                role: loop.role,
+                edges: try loop.edges.flatMap { edge -> [BRepSewingEdge] in
+                    let interior = junctionPoints.filter {
+                        ($0 - edge.startPoint).length > tolerance.distance
+                            && ($0 - edge.endPoint).length > tolerance.distance
+                    }
+                    guard interior.isEmpty == false else { return [edge] }
+                    let contained = try subdivider.containedPoints(
+                        from: interior,
+                        on: edge,
+                        tolerance: tolerance
+                    )
+                    guard contained.isEmpty == false else { return [edge] }
+                    changed = true
+                    return try subdivider.subdivide(edge, at: contained, tolerance: tolerance)
+                })
+        }
+        guard changed else { return patch }
+        return BRepSewingFacePatch(
+            stableID: patch.stableID,
+            surface: patch.surface,
+            orientation: patch.orientation,
+            loops: loops,
+            parentSubshapeIDs: patch.parentSubshapeIDs
+        )
     }
 
     private func faceIDs(

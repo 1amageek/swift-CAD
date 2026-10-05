@@ -84,6 +84,7 @@ struct ClosedIntersectionFacePatchMaterializer {
             toolBodyID: toolBodyID,
             splitFaceIDs: splitFaceIDs,
             forcedActions: coincidentFaceActions,
+            splitPatches: splitPatches,
             model: model,
             sourceSubshapes: sourceSubshapes,
             operands: operands,

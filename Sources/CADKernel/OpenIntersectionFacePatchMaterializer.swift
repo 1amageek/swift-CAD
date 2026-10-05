@@ -107,6 +107,7 @@ struct OpenIntersectionFacePatchMaterializer {
                 toolBodyID: toolBodyID,
                 splitFaceIDs: splitFaceIDs,
                 forcedActions: coincidentFaceActions,
+                splitPatches: splitPatches,
                 model: model,
                 sourceSubshapes: sourceSubshapes,
                 operands: operands,
