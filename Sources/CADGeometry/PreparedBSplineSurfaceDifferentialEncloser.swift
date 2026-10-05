@@ -227,11 +227,9 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     let lower = knots[degree], upper = knots[count]
     func refusal() -> KernelError {
       Self.liftFailure(.unsupportedCapability,
-        "Original periodic selected spans require exact translated C0 knots, clamped open axes, and at most one period.", tolerance)
+        "Original periodic selected spans require exact translated C0 knots, continuous native open axes, and at most one period.", tolerance)
     }
     guard periodic else {
-      guard knots.prefix(degree + 1).allSatisfy({ $0 == lower }),
-            knots.suffix(degree + 1).allSatisfy({ $0 == upper }) else { throw refusal() }
       var i = degree + 1
       while i < count {
         var end = i + 1

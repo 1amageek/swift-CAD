@@ -411,6 +411,79 @@ struct TessellationBudgetTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func mixedPeriodicOpenPanelsKeepCumulativeStorageAdmission(fullPeriod: Bool) throws {
+        let single = try mixedPeriodicOpenBSplineSheet(direction: .u, periodicC0: true, openC0: true, fullPeriod: fullPeriod)
+        let pair = try mixedPeriodicOpenBSplineSheet(direction: .u, periodicC0: true, openC0: true, fullPeriod: fullPeriod, copies: 2)
+        let original = pair
+        let options = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.08, maxEdgeLength: 0.25)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let one = try #require(try tessellator.tessellate(model: single, options: options).values.first)
+        var limits = TessellationLimits.standard
+        limits.maximumVertexCount = 2 * one.positions.count - 1
+        do {
+            _ = try MeshTessellator(tolerance: .standard, limits: limits).tessellate(model: pair, options: options)
+            Issue.record("Original mixed native panels exceeded the cumulative vertex ceiling.")
+        } catch let error as TessellationError {
+            let actual = try #require(Self.exhaustion(of: error))
+            #expect(actual.0 == .vertexCount && actual.requested > actual.limit)
+        }
+        #expect(pair == original)
+        #expect(try tessellator.tessellate(model: pair, options: options).count == 2)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v])
+    func cancelledMixedPeriodicOpenPublicationProducesNoMesh(direction: CADGeometry.SurfaceParameterDirection) async throws {
+        let model = try mixedPeriodicOpenBSplineSheet(direction: direction, periodicC0: true, openC0: true, fullPeriod: true)
+        let original = model
+        let (gate, opened) = AsyncStream.makeStream(of: Void.self)
+        let task = Task {
+            for await _ in gate { break }
+            return try MeshTessellator(tolerance: .standard).tessellate(model: model)
+        }
+        task.cancel(); opened.yield(); opened.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        #expect(model == original)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func nonclampedPanelAdmissionPreservesCumulativeStorageAndSources(c0: Bool) throws {
+        let surface = nonclampedTessellationSurface(direction: .u, c0: c0)
+        let single = try rectangularBSplineSheet(surface: surface)
+        let pair = try rectangularBSplineSheet(surface: surface, copies: 2)
+        let original = pair
+        let options = TessellationOptions(linearTolerance: 1e-4, angularTolerance: 0.03, maxEdgeLength: 0.25)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let oneMesh = try #require(try tessellator.tessellate(model: single, options: options).values.first)
+        var limits = TessellationLimits.standard
+        limits.maximumVertexCount = 2 * oneMesh.positions.count - 1
+        do {
+            _ = try MeshTessellator(tolerance: .standard, limits: limits).tessellate(model: pair, options: options)
+            Issue.record("Original nonclamped panels exceeded their cumulative caller vertex allowance.")
+        } catch let error as TessellationError {
+            let reported = try #require(Self.exhaustion(of: error))
+            #expect(reported.0 == .vertexCount && reported.requested > reported.limit)
+        }
+        #expect(pair == original)
+        #expect(try tessellator.tessellate(model: pair, options: options).count == 2)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func cancelledNonclampedPanelAdmissionPublishesNoMesh(c0: Bool) async throws {
+        let model = try rectangularBSplineSheet(surface: nonclampedTessellationSurface(direction: .v, c0: c0))
+        let original = model
+        let (gate, opened) = AsyncStream.makeStream(of: Void.self)
+        let task = Task {
+            for await _ in gate { break }
+            return try MeshTessellator(tolerance: .standard).tessellate(model: model)
+        }
+        task.cancel()
+        opened.yield()
+        opened.finish()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+        #expect(model == original)
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func adaptiveSplineAdmissionChargesAllBodiesAndPreservesOriginalInputOnRefusal() throws {
         let surface = parabolicTessellationSurface(rise: 0.2)

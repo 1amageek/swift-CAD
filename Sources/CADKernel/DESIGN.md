@@ -239,6 +239,7 @@ partway fail. `PlanarCurveExtrusionIntersectorTests` own it.
 | [CADModeling](../CADModeling/DESIGN.md) | depends on | exact generated B-rep | Supplies source topology and lineage. | Seam/pole topology remains present. |
 | [Assembly Evaluation](AssemblyEvaluation/DESIGN.md) | child | retained local base, placed world topology and occurrence correspondence | Composes local feature evaluation with assembly source placement. | Incremental rollback uses local geometry; final indexes and meshes use world geometry. |
 | [Product Attribute Resolution](ProductAttributeResolution/DESIGN.md) | child | immutable resolved properties, source chains and local/world target maps | Resolves CADIR-owned product attachments across every selected-definition occurrence of common geometry. | Retained exact source/cache/assembly correspondence must match; explicit override provenance follows the child contract. |
+| [Rectangular B-spline Mesh](RectangularBSplineMesh/DESIGN.md) | child | original native rectangular basis and adaptive fidelity | Owns basis admission and selected-panel composition for the public tessellator. | Checked cumulative limits and cancellation remain in MeshTessellator; curved trims belong to separate contracts. |
 | [RollingBallFillet](RollingBallFillet/DESIGN.md) | child | complete solid sewing request | Composes native source-face arrangements and blend boundaries. | A request is not a validated or publishable result. |
 | [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated body and Mesh measurements; edge queries; sketch curve intersections | Consumes the same snapshot outputs and certified sketch intersections. | Volume authority stays in exact B-rep; Core computes no intersection itself. |
 
@@ -293,6 +294,15 @@ in cache identity; tessellation reserves prior bodies' usage before the next bod
 Tests must show changed subdivision with identical exact geometry, independent
 body quality, and cumulative resource refusal.
 
+### Historical first rectangular adaptive admission
+
+The following records the first bounded M1 implementation and its original
+verification scope. Its old family refusals are superseded by the later
+selected C0, double-periodic and periodic-C0 contracts below. Current M1
+composition and remaining family boundaries are owned by
+[Rectangular B-spline Mesh](RectangularBSplineMesh/DESIGN.md).
+Curved trimmed interiors have separate M2 proof obligations.
+
 The bounded M1 rectangular B-spline grid admits positive-weight supports with
 clamped C1 axes or one validated original periodic C1 axis and one clamped C1
 axis; original internal knot multiplicities prove continuity. The geometry-owned original differential enclosure must
@@ -305,9 +315,10 @@ bounds drive curvature-dependent refinement; point samples do not authorize
 fidelity. The existing checked cumulative storage/count reservation, actual
 emission charging, face provenance and upper cooperative cancellation contract
 remain authoritative. No new lower-proof cancellation response-time guarantee
-or private budget is introduced. Periodic C0, nonclamped C0, doubly-periodic and unproved regularity remain typed
-incomplete refusals for this bounded route; trimmed interiors, adjacent-face
-agreement and full M1 remain separate proof gaps.
+or private budget is introduced. The first bounded route refused periodic C0, nonclamped C0, double-periodic
+and unproved regularity. Later selected-native contracts replace those family
+refusals only where their own evidence applies. Trimmed interiors, adjacent-face
+agreement and full M1 retain separate proof obligations.
 The bounded periodic M1 extension admits exactly one periodic axis with validated
 original-cycle C1 continuity; the other axis remains clamped C1. Periodic
 B-spline rectangle admission uses original constant-U/V coedges with their

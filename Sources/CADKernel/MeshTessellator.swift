@@ -240,7 +240,7 @@ public struct MeshTessellator: Tessellating {
                faceID: faceID
            ) {
             if case let .bSpline(spline) = surface,
-               requiresOriginalNativePanels(spline) {
+               try requiresOriginalNativePanels(spline) {
                 return try estimatedOriginalNativePanelUsage(surface: spline,
                     uBounds: bounds.u, vBounds: bounds.v, options: options)
             }
@@ -2110,9 +2110,8 @@ public struct MeshTessellator: Tessellating {
         let vC1 = surface.isVPeriodic
             ? hasPeriodicC1Basis(surface.vKnots, degree: surface.vDegree, direction: .v)
             : hasClampedC1Basis(surface.vKnots, degree: surface.vDegree)
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Nonclamped open and discontinuous periodic charts
-        // lack native rectangle authority. Public mesh preflight refuses these remaining
-        // supports until complete original endpoint/continuity contracts certify them.
+        // Nonclamped and C0 rectangles use the retained selected-native-panel route.
+        // This whole-chart route consumes the original clamped/periodic C1 authority.
         guard uC1, vC1,
               surface.weights.allSatisfy({ $0.allSatisfy({ $0 > 0 }) }) else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
@@ -2208,27 +2207,12 @@ public struct MeshTessellator: Tessellating {
         }
     }
 
-    private func requiresOriginalNativePanels(_ surface: BSplineSurface3D) -> Bool {
-        hasOriginalC0Knots(surface)
-            || (surface.isUPeriodic && surface.periodicSeamContinuityOrder(direction: .u) == 0)
-            || (surface.isVPeriodic && surface.periodicSeamContinuityOrder(direction: .v) == 0)
+    private func requiresOriginalNativePanels(_ surface: BSplineSurface3D) throws -> Bool {
+        try OriginalBSplineRectangleBasisAdmission().requiresNativePanels(surface, tolerance: tolerance)
     }
 
     private func hasOriginalC0Knots(_ surface: BSplineSurface3D) -> Bool {
-        func hasC0(_ knots: [Double], degree: Int) -> Bool {
-            let lower = knots[degree], upper = knots[knots.count - degree - 1]
-            var index = degree + 1
-            while index < knots.count - degree - 1 {
-                let value = knots[index]
-                var end = index + 1
-                while end < knots.count - degree - 1, knots[end] == value { end += 1 }
-                if value > lower && value < upper && end - index == degree { return true }
-                index = end
-            }
-            return false
-        }
-        return hasC0(surface.uKnots, degree: surface.uDegree)
-            || hasC0(surface.vKnots, degree: surface.vDegree)
+        OriginalBSplineRectangleBasisAdmission.containsC0Knots(surface)
     }
 
     private func estimatedOriginalNativePanelUsage(
@@ -2237,18 +2221,9 @@ public struct MeshTessellator: Tessellating {
         vBounds: (lower: Double, upper: Double),
         options: TessellationOptions
     ) throws -> FaceUsageEstimate {
-        func isClamped(_ knots: [Double], degree: Int) -> Bool {
-            let lower = knots[degree], upper = knots[knots.count - degree - 1]
-            return knots.prefix(degree + 1).allSatisfy { $0 == lower }
-                && knots.suffix(degree + 1).allSatisfy { $0 == upper }
-        }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Nonclamped open C0 rectangles have not established
-        // retained native-boundary composition in the public mesh route. Complete full M1
-        // only after original open endpoint ownership and compatible grids certify them.
-        guard surface.isUPeriodic || isClamped(surface.uKnots, degree: surface.uDegree),
-              surface.isVPeriodic || isClamped(surface.vKnots, degree: surface.vDegree) else {
-            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                              message: "Native panel tessellation requires original clamped C0 rectangle authority.")
+        guard try OriginalBSplineRectangleBasisAdmission().requiresNativePanels(surface, tolerance: tolerance) else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                              message: "Original native panel tessellation requires a selected-panel basis route.")
         }
         let panels = try DefaultSurfaceDifferentialEncloser().originalNativeSpanTessellationBounds(
             of: surface, over: SurfaceParameterBox(
@@ -2888,7 +2863,8 @@ public struct MeshTessellator: Tessellating {
         faceID: FaceID
     ) throws -> (u: (lower: Double, upper: Double), v: (lower: Double, upper: Double))? {
         if case let .bSpline(spline) = surface,
-           spline.isUPeriodic || spline.isVPeriodic || hasOriginalC0Knots(spline) {
+           spline.isUPeriodic || spline.isVPeriodic || hasOriginalC0Knots(spline)
+            || OriginalBSplineRectangleBasisAdmission().hasNonclampedOpenAxis(spline) {
             return try originalBSplineRectangleBounds(for: loop, on: spline, in: model)
         }
         guard loop.edges.count == 4 else {
