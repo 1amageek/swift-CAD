@@ -86,7 +86,7 @@ struct ExtrudeDraftTests {
         let expected = 9e-6 + (operation == .union ? tool : -tool)
         #expect(abs(try evaluated.brep.volume(tolerance: .standard) - expected) < 1e-12)
         // The boundary lies on the box's six planes, the tool's four drafted walls and its far
-        // cap, each facing out of the result.
+        // cap, each facing out of the result, the Boolean's coplanar fragments joined.
         var planes: [(normal: Vector3D, offset: Double)] = []
         for face in evaluated.brep.faces.values {
             guard case let .plane(plane)? = evaluated.brep.geometry.surfaces[face.surfaceID] else {
@@ -100,6 +100,9 @@ struct ExtrudeDraftTests {
             }
         }
         #expect(planes.count == 11)
+        // One face per plane, the sketched face holding the pocket's mouth or the boss's foot.
+        #expect(evaluated.brep.faces.count == 11)
+        #expect(evaluated.brep.faces.values.filter { $0.loops.count == 2 }.count == 1)
     }
 
     @Test(.timeLimit(.minutes(2)))

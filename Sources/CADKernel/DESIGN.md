@@ -635,8 +635,11 @@ every phase reads the same `BooleanOperandContext`.
   winding from its own vertices and turns it counterclockwise about the face's outward
   normal, since a body extruded against its section's normal winds every loop the other way
   with its caps left `forward` (a drafted pocket sunk from a top face,
-  `aDraftedToolCutsOrJoinsABoxExactly`); it emits each BSP fragment as its own face, so
-  coplanar fragments of one plane stay separate faces. A revolved tool standing on a cap of a convex
+  `aDraftedToolCutsOrJoinsABoxExactly`). Its BSP fragments that lie on one plane and share
+  edges are joined into one face (`PlanarBooleanFragmentMerger`): the shared edges cancel, the
+  rest chain into one outline and its holes, and a vertex left on exactly two faces in the middle
+  of a straight edge goes; a coplanar region whose edges do not chain into one outline (two
+  outlines touching at a vertex) keeps its fragments as separate faces. A revolved tool standing on a cap of a convex
   planar target from outside, its own cap's disc inside that face (a boss drawn on the
   face, joined by Union or Extrude Join), is the revolved union of a tool protruding
   from that cap; any other boundary contact is refused as non-manifold (`BossJoinTests`).
