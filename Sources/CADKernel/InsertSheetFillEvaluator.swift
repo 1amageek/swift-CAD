@@ -300,8 +300,9 @@ struct InsertSheetFillEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
             throw failure(.topologyFailure, feature.id, tolerance, "Trim to sheet leaves the inserted sheet apart from the sheet around it.")
         }
         let sewn = try DefaultBRepSewer().sew(BRepSewingRequest(featureID: feature.id, bodyKind: .sheet, shells: shells), tolerance: tolerance)
-        var result = context.brep
-        try BRepModelCombiner().merge(sewn.brep, into: &result)
+        // The sewn sheet takes the target's place: the target is consumed, not joined afterwards.
+        let result = try BRepBodyModelReplacer().replacing(bodyID: base.id, with: sewn.bodyID, from: sewn.brep, in: context.brep)
+        let removed = try BodyTopologyScope(bodyID: base.id, model: context.brep).subshapeIDs(in: context.subshapes)
         // The inserted sheet's faces carry on from it; the trimmed target's come from the unpublished
         // stage, so they are generated.
         let published = Set(context.subshapes.entries.keys)
@@ -310,7 +311,7 @@ struct InsertSheetFillEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
             return TopologyLineage(output: entry.output, parents: parents,
                                    relation: parents.isEmpty ? .generated : parents.count == 1 ? .preserved : .merged)
         }
-        return EvaluationResult(brep: result, subshapes: sewn.subshapes, lineage: lineage)
+        return EvaluationResult(brep: result, subshapes: sewn.subshapes, removedSubshapeIDs: removed, lineage: lineage)
     }
 
     private func failure(_ code: KernelErrorCode, _ featureID: FeatureID, _ tolerance: ModelingTolerance, _ message: String) -> KernelError {
