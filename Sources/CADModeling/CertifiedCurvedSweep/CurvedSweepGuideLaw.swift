@@ -26,7 +26,7 @@ package struct CurvedSweepGuideLaw {
     private let sectionOrigin: Point3D
     private let sectionAxes: (first: Vector3D, second: Vector3D)
     /// The guide's start offset in the start frame's lateral coordinates.
-    private let start: (first: Double, second: Double)
+    package let start: (first: Double, second: Double)
     private let tolerance: ModelingTolerance
 
     package init(method: SweepGuideMethod, guide: [BSplineCurve3D], section: [BSplineCurve3D], pathStart: Point3D,
@@ -70,6 +70,34 @@ package struct CurvedSweepGuideLaw {
         func failure(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .sweepGuideContactUnavailable, featureID: featureID, tolerance: tolerance, message: message)
         }
+        let (g, found) = try crossing(at: point, tangent: tangent, axes: axes, from: state, featureID: featureID)
+        let distance = hypot(g.first, g.second)
+        var contact = state.contact
+        let scale: Double
+        switch method {
+        case .point:
+            scale = distance / hypot(start.first, start.second)
+        case .chord:
+            scale = 1
+        case .curve:
+            scale = 1
+            guard let reached = try reaching(distance, near: state.contact) else {
+                throw failure("A Curve guide runs farther from the path than the section reaches.")
+            }
+            contact = reached
+        }
+        var angle = atan2(g.second, g.first) - atan2(contact.second, contact.first)
+        angle += ((state.angle - angle) / (2 * Double.pi)).rounded() * 2 * Double.pi
+        return (angle, scale, State(span: found.span, parameter: found.parameter, contact: contact, angle: angle))
+    }
+
+    /// Where the guide crosses the plane across the path at the station `point`, as an offset in
+    /// the station's lateral axes, searching on from where `state` last met it.
+    package func crossing(at point: Point3D, tangent: Vector3D, axes: (first: Vector3D, second: Vector3D), from state: State,
+                          featureID: FeatureID?) throws -> (offset: (first: Double, second: Double), at: (span: Int, parameter: Double)) {
+        func failure(_ message: String) -> KernelError {
+            KernelError(phase: .evaluation, code: .sweepGuideContactUnavailable, featureID: featureID, tolerance: tolerance, message: message)
+        }
         // Where the guide crosses the station's plane, searching on from where it was last met.
         func across(_ span: Int, _ parameter: Double) throws -> Double {
             (try Curve3D.bSpline(spans[span]).point(at: parameter, tolerance: tolerance) - point).dot(tangent)
@@ -102,26 +130,9 @@ package struct CurvedSweepGuideLaw {
         }
         guard let found else { throw failure("A curved sweep's guide does not reach a station of the path.") }
         let offset = try Curve3D.bSpline(spans[found.span]).point(at: found.parameter, tolerance: tolerance) - point
-        let g = (offset.dot(axes.first), offset.dot(axes.second))
-        let distance = hypot(g.0, g.1)
-        guard distance > tolerance.distance else { throw failure("A curved sweep's guide meets the path.") }
-        var contact = state.contact
-        let scale: Double
-        switch method {
-        case .point:
-            scale = distance / hypot(start.first, start.second)
-        case .chord:
-            scale = 1
-        case .curve:
-            scale = 1
-            guard let reached = try reaching(distance, near: state.contact) else {
-                throw failure("A Curve guide runs farther from the path than the section reaches.")
-            }
-            contact = reached
-        }
-        var angle = atan2(g.1, g.0) - atan2(contact.second, contact.first)
-        angle += ((state.angle - angle) / (2 * Double.pi)).rounded() * 2 * Double.pi
-        return (angle, scale, State(span: found.span, parameter: found.parameter, contact: contact, angle: angle))
+        let g = (first: offset.dot(axes.first), second: offset.dot(axes.second))
+        guard hypot(g.first, g.second) > tolerance.distance else { throw failure("A curved sweep's guide meets the path.") }
+        return (g, found)
     }
 
     /// The section's boundary point as far from the path as `distance`, in the start's lateral
