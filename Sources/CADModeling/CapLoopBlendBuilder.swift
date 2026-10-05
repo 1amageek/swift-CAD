@@ -56,7 +56,7 @@ package struct CapLoopBlendBuilder {
             switch self {
             case let .round(radius): (radius, radius)
             case let .chamfer(cap, wall): (cap, wall)
-            case let .profile(setback, _, _, _): (setback, setback)
+            case let .profile(setback, _, _, steps): (setback * (steps.first?.cap ?? 1), setback * (steps.last?.wall ?? 1))
             }
         }
     }
@@ -124,7 +124,8 @@ package struct CapLoopBlendBuilder {
     }
 
     package func request(featureID: FeatureID, bodyID: BodyID, selected: [(edgeID: EdgeID, subshapeID: SubshapeID)],
-                         section shape: Section, context: EvaluationContext) throws -> BRepSewingRequest {
+                         section requestedShape: Section, context: EvaluationContext) throws -> BRepSewingRequest {
+        var shape = requestedShape
         let (dc, dw) = shape.distances
         let model = context.brep
         func refuse(_ message: String) -> KernelError {
@@ -153,12 +154,40 @@ package struct CapLoopBlendBuilder {
             }
         }
         let chainEdgeIDs = Set(loops.flatMap { $0.segments.map(\.edgeID) })
+        // Sharp corners with chains blended on both sides meet at a mitre: both bands end on the
+        // plane through the corner bisecting the two lines (normal a + b, a the line into the
+        // corner, b the one out of it: it reflects one line running into the corner onto the
+        // other), each band's section carried along its line onto it.
+        var mitres: [(vertex: Point3D, normal: Vector3D)] = []
         for end in loops.flatMap(\.ends) where chainEdgeIDs.contains(end.neighbourEdgeID) {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): chains blended on both sides of a sharp corner of
-            // their cap meet at a mitre between their bands, which is not built, so they are
-            // refused. Production path: CapLoopBlendBuilder from Fillet and Chamfer. Complete only
-            // when such corners close, verified by a D's whole rim rounded.
-            throw refuse("Blended chains of a cap meet at its sharp corners.")
+            guard end.segment.arc == nil,
+                  let neighbour = loops.flatMap(\.segments).first(where: { $0.edgeID == end.neighbourEdgeID }), neighbour.arc == nil else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): a sharp corner between an arc and another
+                // segment, both blended, meets at a curved mitre between a torus or cone band and
+                // the other, which is not built, so it is refused. Production path:
+                // CapLoopBlendBuilder from Fillet and Chamfer. Complete only when such corners
+                // close, verified by a D's whole rim rounded.
+                throw refuse("Blended chains of a cap meet at its sharp corners between lines.")
+            }
+            let atEnd = end.vertex.isApproximatelyEqual(to: end.segment.end, tolerance: tolerance.distance)
+            let (into, outOf) = atEnd ? (end.segment, neighbour) : (neighbour, end.segment)
+            let a = try (into.end - into.start).normalized(tolerance: tolerance.distance)
+            let b = try (outOf.end - outOf.start).normalized(tolerance: tolerance.distance)
+            if mitres.contains(where: { $0.vertex.isApproximatelyEqual(to: end.vertex, tolerance: tolerance.distance) }) { continue }
+            mitres.append((end.vertex, try (a + b).normalized(tolerance: tolerance.distance)))
+        }
+        func mitre(at point: Point3D) -> Vector3D? {
+            mitres.first { $0.vertex.isApproximatelyEqual(to: point, tolerance: tolerance.distance) }?.normal
+        }
+        // Mitred bands take their sections as rational Bézier curves throughout (a round's quarter
+        // circle exactly), so a section carried onto a mitre plane stays exact and every band's
+        // trimming curves are its own lines.
+        if mitres.isEmpty == false, case let .round(radius) = shape {
+            shape = .profile(setback: radius, degree: 2, weights: [1, 0.5.squareRoot(), 1],
+                             points: [Section.Step(cap: 1, wall: 0), Section.Step(cap: 0, wall: 0), Section.Step(cap: 0, wall: 1)])
+        } else if mitres.isEmpty == false, case let .chamfer(cap, wall) = shape {
+            shape = .profile(setback: cap, degree: 1, weights: [1, 1],
+                             points: [Section.Step(cap: 1, wall: 0), Section.Step(cap: 0, wall: wall / cap)])
         }
         let selectedParent = Dictionary(selected.map { ($0.edgeID, $0.subshapeID) }, uniquingKeysWith: { first, _ in first })
         var patches: [BRepSewingFacePatch] = []
@@ -227,8 +256,16 @@ package struct CapLoopBlendBuilder {
                                           arc: (Circle3D(center: arc.circle.center + wall * dw, normal: arc.circle.normal,
                                                          radius: arc.circle.radius), arc.from, arc.to))
                 } else {
-                    capSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + mStart * dc,
-                                         end: segment.end + mEnd * dc, arc: nil)
+                    // At a mitre the cap contact runs on along its line to the mitre plane, where it
+                    // meets the next line's.
+                    let along = try (segment.end - segment.start).normalized(tolerance: tolerance.distance)
+                    func carried(_ point: Point3D, from vertex: Point3D) -> Point3D {
+                        guard let plane = mitre(at: vertex) else { return point }
+                        return point + along * (-((point - vertex).dot(plane)) / along.dot(plane))
+                    }
+                    capSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID,
+                                         start: carried(segment.start + mStart * dc, from: segment.start),
+                                         end: carried(segment.end + mEnd * dc, from: segment.end), arc: nil)
                     wallSegment = Segment(edgeID: segment.edgeID, wallFaceID: segment.wallFaceID, start: segment.start + wall * dw,
                                           end: segment.end + wall * dw, arc: nil)
                 }
@@ -238,10 +275,12 @@ package struct CapLoopBlendBuilder {
                 segmentMoves[segment.wallFaceID, default: []].append((segment, wallSegment))
                 patches.append(try bandPatch(stableID: stableID, shape: shape, segment: segment, cap: capSegment, wall: wallSegment,
                                              inward: (mStart, mEnd), inwardAt: { try inward(segment, at: $0) },
+                                             mitres: (segment.arc == nil ? mitre(at: segment.start) : nil,
+                                                      segment.arc == nil ? mitre(at: segment.end) : nil),
                                              normal: n, rise: loop.rise, parents: parents,
                                              faceParents: [loop.capFaceID, segment.wallFaceID].flatMap { context.subshapeIDs(for: .face($0)) }))
             }
-            for (endIndex, end) in loop.ends.enumerated() {
+            for (endIndex, end) in loop.ends.enumerated() where mitre(at: end.vertex) == nil {
                 let m = try inward(end.segment, at: end.vertex)
                 let (capPoint, wallPoint) = (end.vertex + m * dc, end.vertex + wall * dw)
                 let parents = selectedParent[end.segment.edgeID].map { [$0] } ?? context.subshapeIDs(for: .edge(end.segment.edgeID))
@@ -445,6 +484,7 @@ package struct CapLoopBlendBuilder {
     /// contact `wall` and the two sections, facing away from the material.
     private func bandPatch(stableID: String, shape: Section, segment: Segment, cap: Segment, wall: Segment,
                            inward: (start: Vector3D, end: Vector3D), inwardAt: (Point3D) throws -> Vector3D,
+                           mitres: (start: Vector3D?, end: Vector3D?) = (nil, nil),
                            normal n: Vector3D, rise: Double,
                            parents: [SubshapeID], faceParents: [SubshapeID]) throws -> BRepSewingFacePatch {
         let (dc, dw) = shape.distances
@@ -470,6 +510,8 @@ package struct CapLoopBlendBuilder {
             return try spherePatch(stableID: stableID, center: center, radius: d, edges: edges, parents: faceParents)
         }
         let surface: Surface3D
+        // The rows a line band ends on at its mitres, for the end sections.
+        var mitredRows: (start: [Point3D]?, end: [Point3D]?) = (nil, nil)
         if case let .profile(_, degree, weights, _) = shape {
             let startRow = profileCurve(shape, at: segment.start, inward: inward.start, wallDirection: wallDirection).controlPoints
             let knots = Array(repeating: 0.0, count: degree + 1) + Array(repeating: 1.0, count: degree + 1)
@@ -505,10 +547,18 @@ package struct CapLoopBlendBuilder {
                 try spline.validate(tolerance: tolerance)
                 surface = .bSpline(spline)
             } else {
-                // The section carried along the line.
+                // The section carried along the line; at a mitre each control point carried on along
+                // the line to the mitre plane (an affine image, so the curve there is exact).
                 let endRow = profileCurve(shape, at: segment.end, inward: inward.end, wallDirection: wallDirection).controlPoints
+                let along = try (segment.end - segment.start).normalized(tolerance: tolerance.distance)
+                func mitred(_ row: [Point3D], at vertex: Point3D, _ plane: Vector3D?) -> [Point3D] {
+                    guard let plane else { return row }
+                    return row.map { $0 + along * (-(($0 - vertex).dot(plane)) / along.dot(plane)) }
+                }
+                let (first, last) = (mitred(startRow, at: segment.start, mitres.start), mitred(endRow, at: segment.end, mitres.end))
+                mitredRows = (mitres.start == nil ? nil : first, mitres.end == nil ? nil : last)
                 let spline = BSplineSurface3D(uDegree: degree, vDegree: 1, uKnots: knots, vKnots: [0, 0, 1, 1],
-                                              controlPoints: [startRow, endRow], weights: [weights, weights])
+                                              controlPoints: [first, last], weights: [weights, weights])
                 try spline.validate(tolerance: tolerance)
                 surface = .bSpline(spline)
             }
@@ -545,11 +595,24 @@ package struct CapLoopBlendBuilder {
         func tangent(at point: Point3D) throws -> Vector3D { try segmentTangent(segment, at: point) }
         // The loop: cap contact forward, the end's section to the wall, wall contact back, the start's
         // section up to the cap; pcurves from the band's own parameters.
+        /// A mitred end's section: the band's row there as its Bézier curve, cap contact to wall's.
+        func mitreEdge(_ name: String, row: [Point3D], reversed: Bool) throws -> BRepSewingEdge {
+            guard case let .profile(_, degree, weights, _) = shape, let first = row.first, let last = row.last else {
+                throw KernelError(phase: .evaluation, code: .invalidInput, tolerance: tolerance, message: "A mitred band's section is a profile.")
+            }
+            let curve = BSplineCurve3D(degree: degree, knots: Array(repeating: 0.0, count: degree + 1) + Array(repeating: 1.0, count: degree + 1),
+                                       controlPoints: row, weights: weights)
+            return BRepSewingEdge(stableID: "\(stableID):\(name)", curve: .bSpline(curve), startParameter: reversed ? 1 : 0,
+                                  endParameter: reversed ? 0 : 1, startPoint: reversed ? last : first, endPoint: reversed ? first : last,
+                                  surfaceParameterCurve: .polyline([]), parentSubshapeIDs: parents)
+        }
         var edges = [
             try contactEdge("\(stableID):cap", cap, forward: true, parents: parents),
-            try sectionEdge("end", at: segment.end, inward: inward.end, tangent: try tangent(at: segment.end), reversed: false),
+            try mitredRows.end.map { try mitreEdge("end", row: $0, reversed: false) }
+                ?? sectionEdge("end", at: segment.end, inward: inward.end, tangent: try tangent(at: segment.end), reversed: false),
             try contactEdge("\(stableID):wall", wall, forward: false, parents: parents),
-            try sectionEdge("start", at: segment.start, inward: inward.start, tangent: try tangent(at: segment.start), reversed: true),
+            try mitredRows.start.map { try mitreEdge("start", row: $0, reversed: true) }
+                ?? sectionEdge("start", at: segment.start, inward: inward.start, tangent: try tangent(at: segment.start), reversed: true),
         ]
         if case .profile = shape {
             // The band's own lines: the section across in u, the chain along in v.
@@ -792,7 +855,25 @@ package struct CapLoopBlendBuilder {
                 while smooth[cursor], reach.insert((cursor + 1) % count).inserted { cursor = (cursor + 1) % count }
                 cursor = index
                 while smooth[(cursor - 1 + count) % count], reach.insert((cursor - 1 + count) % count).inserted { cursor = (cursor - 1 + count) % count }
-                guard reach.contains(where: { runs[$0].arc != nil }) else { continue }
+                // A run of lines alone is taken when the whole loop, holding an arc, is blended (each
+                // edge selected or reached smoothly from one that is): its ends mitre with the chains
+                // beside it.
+                func blended(_ i: Int) -> Bool {
+                    if selected.contains(loop.edges[i].edgeID) { return true }
+                    var cursor = i
+                    while smooth[cursor], (cursor + 1) % count != i {
+                        cursor = (cursor + 1) % count
+                        if selected.contains(loop.edges[cursor].edgeID) { return true }
+                    }
+                    cursor = i
+                    while smooth[(cursor - 1 + count) % count], (cursor - 1 + count) % count != i {
+                        cursor = (cursor - 1 + count) % count
+                        if selected.contains(loop.edges[cursor].edgeID) { return true }
+                    }
+                    return false
+                }
+                guard reach.contains(where: { runs[$0].arc != nil })
+                        || (runs.contains { $0.arc != nil } && (0..<count).allSatisfy(blended)) else { continue }
                 let tangent = (0..<count).map { i in
                     smooth[i] && (followsTangents || (selected.contains(loop.edges[i].edgeID) && selected.contains(loop.edges[(i + 1) % count].edgeID)))
                 }

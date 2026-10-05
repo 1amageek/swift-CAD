@@ -925,13 +925,23 @@ struct FilletShapeTests {
         let alongX = try edges(of: block, in: before, builder) { abs($0.y - 0.01) < 1e-12 && $0.x > 0.01 - 1e-12 && abs($0.z - h) < 1e-12 }
         let alongY = try edges(of: block, in: before, builder) { abs($0.x - 0.01) < 1e-12 && $0.y > 0.01 - 1e-12 && abs($0.z - h) < 1e-12 }
         #expect(inside.count == 1 && alongX.count == 1 && alongY.count == 1)
-        // With every top edge, the outer corners meet blended edges at convex corners: refused.
+        // With every top edge, the run round the inside round goes on all round the top, its lines
+        // meeting at mitres at the five convex corners: each straight band is the section's prism cut
+        // by the mitre planes, as long at the section's centroid as its edge less the centroid's
+        // inset at each mitre; the band round the inside round turns the section at its centroid.
         var everyTop = builder
         let top = try edges(of: block, in: before, everyTop) { abs($0.z - h) < 1e-12 }
         #expect(top.count == 6)
         _ = try everyTop.fillet(target: block, edges: inside + top, radius: length(r))
-        #expect(throws: KernelError.self) {
-            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try everyTop.build(name: "l"))
+        let mitred = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try everyTop.build(name: "l"))
+        try mitred.brep.validate(level: .volumetric, tolerance: .standard)
+        do {
+            let section = r * r * (1 - Double.pi / 4)
+            let inset = r * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+            let straight = 0.08 - 2 * r - 10 * inset
+            let expected = 0.0003 * h + section * h - section * (straight + Double.pi / 2 * (r + inset))
+            let volume = try mitred.brep.volume(tolerance: .standard)
+            #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
         }
         _ = try builder.fillet(target: block, edges: inside + alongX + alongY, radius: length(r))
         let rounded = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "l"))
@@ -1135,6 +1145,43 @@ struct FilletShapeTests {
         let added = (F(c, xb) - F(c, c)) + r * (centre - xb) - (F(r, 0) - F(r, xb - centre))
         let expected = (a * a + Double.pi * c * c / 2 + added) * height
         let volume = try filled.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
+    }
+
+    /// A block with one upright corner rounded: its whole top rim blended runs round the arc and
+    /// meets at mitres at the three sharp corners, each straight band the section's prism cut by
+    /// the mitre planes (as long at the section's centroid as its edge less the centroid's inset at
+    /// each mitre) and the arc's band the section turned at its centroid.
+    @Test(.timeLimit(.minutes(3)), arguments: [false, true])
+    func aTopRimWithSharpCornersMitresRoundItsArc(chamfers: Bool) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let (side, radius, height, d) = (0.02, 0.005, 0.01, 0.002)
+        let sketch = try builder.sketch(on: .xy) { sketch in
+            func p(_ x: Double, _ y: Double) -> SketchPoint { SketchPoint(x: length(x), y: length(y)) }
+            _ = sketch.line(from: p(0, 0), to: p(side, 0))
+            _ = sketch.line(from: p(side, 0), to: p(side, side - radius))
+            _ = sketch.arc(center: p(side - radius, side - radius), radius: length(radius),
+                           startAngle: .constant(.angle(0, unit: .degree)), endAngle: .constant(.angle(90, unit: .degree)))
+            _ = sketch.line(from: p(side - radius, side), to: p(0, side))
+            _ = sketch.line(from: p(0, side), to: p(0, 0))
+        }.featureID
+        let block = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(height))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "r"))
+        let top = try edges(of: block, in: before, builder) { abs($0.z - height) < 1e-12 }
+        #expect(top.count == 5)
+        if chamfers {
+            _ = try builder.chamfer(target: block, edges: top, distance: length(d))
+        } else {
+            _ = try builder.fillet(target: block, edges: top, radius: length(d))
+        }
+        let blended = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "r"))
+        try blended.brep.validate(level: .volumetric, tolerance: .standard)
+        let section = chamfers ? d * d / 2 : d * d * (1 - Double.pi / 4)
+        let inset = chamfers ? d / 3 : d * (10 - 3 * Double.pi) / (12 - 3 * Double.pi)
+        let solid = (side * side - (1 - Double.pi / 4) * radius * radius) * height
+        let centroidLength = 2 * (side - 2 * inset) + 2 * (side - radius - inset) + Double.pi / 2 * (radius - inset)
+        let expected = solid - section * centroidLength
+        let volume = try blended.brep.volume(tolerance: .standard)
         #expect(abs(volume - expected) < 5e-12, "\(volume) vs \(expected)")
     }
 
