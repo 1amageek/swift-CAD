@@ -51,7 +51,8 @@ package struct XNurbsSurfaceFitter {
     }
 
     package func fit(boundaries: [Boundary], guides: [BSplineCurve3D], flatness: Double, spans initialSpans: Int,
-                     satisfying limits: (position: Double, angle: Double)?, featureID: FeatureID) throws -> Result {
+                     satisfying limits: (position: Double, angle: Double)?, minimizesArea: Bool = false,
+                     featureID: FeatureID) throws -> Result {
         guard boundaries.count >= 2 else {
             throw failure(.invalidInput, "XNURBS frames an opening with two or more boundary curves.", featureID)
         }
@@ -115,13 +116,25 @@ package struct XNurbsSurfaceFitter {
 
         let order = boundaries.contains { $0.support?.order == .curvature } ? 2 : boundaries.contains { $0.support != nil } ? 1 : 0
         var spans = max(1, initialSpans)
+        let held = Array(zip(guidePoints, guideParameters))
+        let degree = order == 2 ? 5 : 3
         while true {
-            let surface = try fitted(boundaries: boundaries, pcurves: pcurves, guides: Array(zip(guidePoints, guideParameters)),
-                                     flatness: flatness, spans: spans, degree: order == 2 ? 5 : 3, order: order, featureID: featureID)
-            let (position, angleDeviation) = try deviation(of: surface, boundaries: boundaries, pcurves: pcurves)
+            // The spans are those the membrane (for the least-area sheet) or the fair sheet needs to
+            // meet the tolerances; the least-area sheet is then iterated once at them.
+            var surface = try fitted(boundaries: boundaries, pcurves: pcurves, guides: held, flatness: minimizesArea ? 0 : flatness,
+                                     spans: spans, degree: degree, order: order, featureID: featureID)
+            var (position, angleDeviation) = try deviation(of: surface, boundaries: boundaries, pcurves: pcurves)
             let met = limits.map { position <= $0.position && angleDeviation <= $0.angle } ?? true
-            if met {
-                return Result(surface: surface, pcurves: pcurves, guidePcurves: guidePcurves, positionDeviation: position, angleDeviation: angleDeviation, spans: spans)
+            if met || spans >= Self.maximumSpans || limits == nil {
+                if minimizesArea {
+                    surface = try leastArea(from: surface, boundaries: boundaries, pcurves: pcurves, guides: held, spans: spans,
+                                            degree: degree, order: order, featureID: featureID)
+                    (position, angleDeviation) = try deviation(of: surface, boundaries: boundaries, pcurves: pcurves)
+                }
+                if limits.map({ position <= $0.position && angleDeviation <= $0.angle }) ?? true {
+                    return Result(surface: surface, pcurves: pcurves, guidePcurves: guidePcurves, positionDeviation: position,
+                                  angleDeviation: angleDeviation, spans: spans)
+                }
             }
             guard spans < Self.maximumSpans, let limits else {
                 throw failure(.classificationFailure,
@@ -132,10 +145,28 @@ package struct XNurbsSurfaceFitter {
         }
     }
 
+    /// The least-area sheet from the membrane `start`: refitted with the area its last fit's metric
+    /// freezes until the area settles (the area is blind to sliding the sheet along itself, so its
+    /// settling, not the control points', ends the iteration).
+    private func leastArea(from start: BSplineSurface3D, boundaries: [Boundary], pcurves: [BSplineCurve2D], guides: [(Point3D, Point2D)],
+                           spans: Int, degree: Int, order: Int, featureID: FeatureID) throws -> BSplineSurface3D {
+        var surface = start
+        var area = try trimmedArea(of: surface, pcurves: pcurves)
+        for _ in 0..<64 {
+            surface = try fitted(boundaries: boundaries, pcurves: pcurves, guides: guides, flatness: 0, spans: spans,
+                                 degree: degree, order: order, areaOf: surface, featureID: featureID)
+            let next = try trimmedArea(of: surface, pcurves: pcurves)
+            if abs(area - next) <= 1e-9 * next { return surface }
+            area = next
+        }
+        throw failure(.classificationFailure, "The least-area XNURBS sheet does not settle.", featureID)
+    }
+
     // MARK: - Fit
 
     private func fitted(boundaries: [Boundary], pcurves: [BSplineCurve2D], guides: [(Point3D, Point2D)], flatness: Double,
-                        spans: Int, degree: Int, order: Int, featureID: FeatureID) throws -> BSplineSurface3D {
+                        spans: Int, degree: Int, order: Int, areaOf reference: BSplineSurface3D? = nil,
+                        featureID: FeatureID) throws -> BSplineSurface3D {
         let knots = Array(repeating: 0.0, count: degree + 1) + (1..<spans).map { Double($0) / Double(spans) }
             + Array(repeating: 1.0, count: degree + 1)
         let n = knots.count - degree - 1
@@ -166,7 +197,34 @@ package struct XNurbsSurfaceFitter {
         var previous: BSplineSurface3D?
         for pass in 0...order {
             var rows = FairSurfaceSystem()
-            try rows.addFairness(uBasis: basis, vBasis: basis, flatness: flatness)
+            if let reference {
+                // The trimmed region: the trimming curves sampled into one polygon on the square.
+                let region = try pcurves.flatMap { pcurve -> [Point2D] in
+                    guard case let .closed(lower, upper) = pcurve.domain else { return [] }
+                    return try (0..<32).map { try pcurve.point(at: lower + (upper - lower) * Double($0) / 32, tolerance: tolerance) }
+                }
+                func inside(_ u: Double, _ v: Double) -> Bool {
+                    var crossings = false
+                    for (p, q) in zip(region, region.dropFirst() + region.prefix(1)) where (p.y > v) != (q.y > v) {
+                        if u < p.x + (v - p.y) * (q.x - p.x) / (q.y - p.y) { crossings.toggle() }
+                    }
+                    return crossings
+                }
+                let n = reference.uControlPointCount
+                try rows.addAreaFairness(uBasis: basis, vBasis: basis) { u, v in
+                    guard inside(u, v) else { return nil }
+                    let bu = basis.derivatives(at: u, order: 1), bv = basis.derivatives(at: v, order: 1)
+                    func sum(_ du: Int, _ dv: Int) -> Vector3D {
+                        FairSurfaceSystem.product(bu, bv, du: du, dv: dv, nu: n).reduce(Vector3D.zero) {
+                            $0 + (reference.controlPoints[$1.0 / n][$1.0 % n] - .origin) * $1.1
+                        }
+                    }
+                    let (su, sv) = (sum(1, 0), sum(0, 1))
+                    return (su.dot(su), su.dot(sv), sv.dot(sv))
+                }
+            } else {
+                try rows.addFairness(uBasis: basis, vBasis: basis, flatness: flatness)
+            }
             for station in stations {
                 let scale = (weight * station.weight).squareRoot()
                 let bu = basis.derivatives(at: station.uv.x, order: 2), bv = basis.derivatives(at: station.uv.y, order: 2)
@@ -210,6 +268,36 @@ package struct XNurbsSurfaceFitter {
         }
         guard let previous else { throw failure(.invalidInput, "XNURBS made no sheet.", featureID) }
         return previous
+    }
+
+    /// The sheet's area inside its trimming curves: Gauss points of a 64-by-64 grid over the
+    /// square, those inside the sampled trimming polygon summed.
+    private func trimmedArea(of surface: BSplineSurface3D, pcurves: [BSplineCurve2D]) throws -> Double {
+        let region = try pcurves.flatMap { pcurve -> [Point2D] in
+            guard case let .closed(lower, upper) = pcurve.domain else { return [] }
+            return try (0..<32).map { try pcurve.point(at: lower + (upper - lower) * Double($0) / 32, tolerance: tolerance) }
+        }
+        let n = surface.uControlPointCount
+        let basis = FairSurfaceSystem.Basis(knots: surface.uKnots, degree: surface.uDegree, count: n)
+        var total = 0.0
+        let grid = (0...64).map { Double($0) / 64 }
+        for (u, wu) in try FairSurfaceSystem.gaussPoints(knots: grid, count: 3) {
+            for (v, wv) in try FairSurfaceSystem.gaussPoints(knots: grid, count: 3) {
+                var inside = false
+                for (p, q) in zip(region, region.dropFirst() + region.prefix(1)) where (p.y > v) != (q.y > v) {
+                    if u < p.x + (v - p.y) * (q.x - p.x) / (q.y - p.y) { inside.toggle() }
+                }
+                guard inside else { continue }
+                let bu = basis.derivatives(at: u, order: 1), bv = basis.derivatives(at: v, order: 1)
+                func sum(_ du: Int, _ dv: Int) -> Vector3D {
+                    FairSurfaceSystem.product(bu, bv, du: du, dv: dv, nu: n).reduce(Vector3D.zero) {
+                        $0 + (surface.controlPoints[$1.0 / n][$1.0 % n] - .origin) * $1.1
+                    }
+                }
+                total += sum(1, 0).cross(sum(0, 1)).length * wu * wv
+            }
+        }
+        return total
     }
 
     /// The largest distance from the boundary to the sheet along its trimming curves, and the

@@ -89,7 +89,7 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, Cu
         return try trimmedSheet(loop: loop.map { ($0.curve, boundaries[$0.index].continuity) }, guides: guides,
                                 flatness: xnurbs.flatness, spans: xnurbs.quality.spans,
                                 satisfying: xnurbs.satisfiesTolerances ? (xnurbs.positionTolerance, xnurbs.angleTolerance) : nil,
-                                divides: xnurbs.dividesAlongGuides, feature: feature, context: context)
+                                divides: xnurbs.dividesAlongGuides, minimizesArea: xnurbs.minimizesArea, feature: feature, context: context)
     }
 
     /// Patch's smooth fill of a loop with more than four corners: XNURBS's G0 trimmed sheet at its
@@ -103,7 +103,7 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, Cu
     /// trimming curve.
     private func trimmedSheet(loop: [(curve: BSplineCurve3D, continuity: SurfaceEdgeContinuity?)], guides: [BSplineCurve3D],
                               flatness: Double, spans: Int, satisfying: (position: Double, angle: Double)?, divides: Bool,
-                              feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
+                              minimizesArea: Bool = false, feature: FeatureNode, context: EvaluationContext) throws -> EvaluationResult {
         let tolerance = context.tolerance
         let centroid = try loop.map { try ends($0.curve, tolerance).0 }.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * (1 / Double(loop.count))
         let boundaries = try loop.map { entry -> XNurbsSurfaceFitter.Boundary in
@@ -119,7 +119,8 @@ struct XNurbsFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating, Cu
             ))
         }
         let fit = try XNurbsSurfaceFitter(tolerance: tolerance).fit(
-            boundaries: boundaries, guides: guides, flatness: flatness, spans: spans, satisfying: satisfying, featureID: feature.id
+            boundaries: boundaries, guides: guides, flatness: flatness, spans: spans, satisfying: satisfying,
+            minimizesArea: minimizesArea, featureID: feature.id
         )
         // One face trimmed by the loop, each edge the sheet along its curve's trimming curve.
         let surface = Surface3D.bSpline(fit.surface)

@@ -360,7 +360,13 @@ loosely; a face refits as an untrimmed four-sided face with its sides' deviation
 N-sided opening as one trimmed sheet over a coarse grid (Quality), within its position and angle
 tolerances (Satisfy tolerances), and as Square's untrimmed sheet with Quad sided; one closed curve
 frames it alone as its exact spans halved to four or more sides, the sheet's domain holding every
-trimming curve's control points.
+trimming curve's control points. `XNurbsFeature.minimizesArea` (Patch's Faces Minimal, inferred with
+the user 2026-10-05) takes the least-area sheet through the boundary and guides instead of the fair
+one: the spans the membrane needs to meet the tolerances, then refits with the area each fit's first
+fundamental form freezes, ∫(G|Su|² − 2F Su·Sv + E|Sv|²)/(2√(EG − F²)) inside the trimming loop
+(`FairSurfaceSystem.addAreaFairness`, the membrane outside it holding the untrimmed corners), until
+the trimmed area changes by under 10⁻⁹ (64 refits at most, then refused); `LeastAreaXNurbsTests`
+own Enneper's surface over the disc of radius ½ (its exact area within 0.2 %, below the fair sheet's).
 
 Decided 2026-10-04 by the user: the dialog's Degree × Spans is honoured exactly, as in the videos.
 When the exact sheet does not lie in that net, the net's sheet through the exact sheet's points at
