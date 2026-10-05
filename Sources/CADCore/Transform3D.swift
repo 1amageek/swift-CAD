@@ -1,4 +1,4 @@
-public struct Transform3D: Codable, Hashable, Sendable {
+public struct Transform3D: Hashable, Sendable {
     public var matrix: Matrix4x4
 
     public init(matrix: Matrix4x4 = .identity) {
@@ -11,3 +11,7 @@ public struct Transform3D: Codable, Hashable, Sendable {
 
     public static let identity = Transform3D()
 }
+
+#if !hasFeature(Embedded)
+extension Transform3D: Codable {}
+#endif

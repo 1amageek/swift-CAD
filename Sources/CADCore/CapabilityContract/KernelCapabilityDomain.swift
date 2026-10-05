@@ -1,6 +1,6 @@
 /// Declared inputs and known limitations of one registered operation.
 /// This value documents coverage; it is not a per-shape admission certificate.
-public struct KernelCapabilityDomain: Codable, Equatable, Sendable {
+public struct KernelCapabilityDomain: Equatable, Sendable {
     public let capability: KernelCapability
     public let knownLimitations: [KernelDomainLimitation]
 
@@ -13,3 +13,7 @@ public struct KernelCapabilityDomain: Codable, Equatable, Sendable {
         knownLimitations.filter { $0.dimensions.contains(dimension) }
     }
 }
+
+#if !hasFeature(Embedded)
+extension KernelCapabilityDomain: Codable {}
+#endif

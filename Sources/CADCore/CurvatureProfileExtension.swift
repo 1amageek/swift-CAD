@@ -1,4 +1,12 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADCore numeric algorithms require the target C math module.")
+#endif
 
 /// A planar curve continuing a curve end by a curvature profile over its arc length, as Bezier
 /// spans: Extend Curve's Arc (the end's curvature held) and Soft (that curvature fading linearly

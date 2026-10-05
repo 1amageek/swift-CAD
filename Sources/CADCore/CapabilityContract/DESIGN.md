@@ -20,6 +20,7 @@ CADCapabilities owns the catalog and its links to production implementations.
 | [CADCore](../DESIGN.md) | parent | Immutable capability domain | Publishes value types | No shared mutable state |
 | [CADCapabilities](../../CADCapabilities/DESIGN.md) | used by | Domain and limitation records | Binds source conditions to operations | A declaration does not prove geometric coverage |
 | [Failure Contract](../FailureContract/DESIGN.md) | depends on | Typed failure codes | Describes failure obligations | No diagnostic text parsing at runtime |
+| [Native Codec Capability](../NativeCodecCapability/DESIGN.md) | coordinates with | Native/normal Codable and unavailable Embedded codec boundary | Preserves common values while isolating codec interfaces | No change to shared state, typed failures or geometric support |
 
 ## Architecture
 
@@ -36,7 +37,7 @@ Declared capability inputs ------> KernelCapabilityCatalog.domain(operation:)
   dimensions, condition text and an original source location.
 - Surface, boundary, connection and degeneracy filters expose relevant conditions;
   an empty result is not a claim that every input succeeds.
-- Domain lookup rejects unknown operations. Codable transport preserves all records.
+- Domain lookup rejects unknown operations. Native/normal Codable transport preserves all records; Embedded retains the common records without that unavailable adapter.
 - Source comments own condition text; generated records must match those comments.
 - New markers, removed markers and changed conditions fail source consistency
   verification until the generated catalog is refreshed.

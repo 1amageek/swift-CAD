@@ -21,6 +21,7 @@ ranges; this component classifies their reported failures.
 | [CADCore](../DESIGN.md) | parent | Typed error values | Publishes the failure contract | Domain errors remain owned by their defining types |
 | [CADKernel](../../CADKernel/DESIGN.md) | used by | KernelError.wrapping | Normalizes evaluation boundaries | Classification never fabricates successful geometry |
 | [CADCapabilities](../../CADCapabilities/DESIGN.md) | used by | KernelErrorCode categories | Publishes documented failure causes | Catalog declarations do not prove geometric coverage |
+| [Native Codec Capability](../NativeCodecCapability/DESIGN.md) | coordinates with | Native/normal Codable and unavailable Embedded codec boundary | Preserves common values while isolating codec interfaces | No change to shared state, typed failures or geometric support |
 
 ## Architecture
 
@@ -42,6 +43,32 @@ Domain failure -> KernelError.wrapping -> immutable code and diagnostic context
 - Classification operates on typed causes. Diagnostic wording is not a predicate.
 - User-facing descriptions return the diagnostic message; debug descriptions
   retain phase, code and context. Callers inspect codes rather than parsing text.
+
+### Target Diagnostic Capability
+
+Native and normal WASM retain the existing `String(describing: error)` source
+presentation. Embedded Swift 6.4.0 does not provide that reflective initializer.
+For Embedded, the module-internal `KernelDomainErrorPresentation` presents each
+Core-owned domain enum using an exhaustive case switch and all actual associated
+values. Tagged IDs use their existing canonical description; quantity/resource
+kinds use their raw values; schema/vector fields and scalars are explicit. Array
+values retain order and duplicates. This is diagnostic text, not a wire codec or
+an input admission authority. No new public protocol or state owner is added.
+
+The earlier `KernelError` branch preserves its message and complete context on
+every target. Classification and cancellation are unchanged. An unknown foreign
+error remains `unclassifiedFailure`; Embedded uses the explicit message
+`Unclassified source error; reflective diagnostic payload is unavailable on Embedded Swift.`
+Its missing reflective payload is an intentional target capability difference,
+not successful input, an invalid-input reclassification, or a substitute source
+record. Native and normal WASM continue to retain their original reflective text.
+
+Verification uses the actual complete CADCore product to test known associated
+values (including structured values/IDs/arrays), unknown foreign errors and an
+existing fully populated KernelError. Embedded compile/link/runtime remain
+required. Adding a Core domain error case requires updating its exhaustive
+structural presentation and affected behavioral fixtures.
+
 
 ## State, Ownership, and Lifecycle
 
@@ -65,9 +92,11 @@ checks real document evaluation, tessellation resource exhaustion, invalid
 geometry and task cancellation through CADPipeline. CADWASMSmoke exercises
 resource and unsupported contracts on normal WASM with the matching release
 toolchain/SDK. Embedded runtime verification remains required by the task-wide
-integration contract: its current build stops at an existing Foundation import
-because the matching Embedded SDK does not provide Foundation. No Embedded
-success is inferred from native or normal WASM results. Changes to codes
+integration contract. The [actual Core portability proof](../../CADCorePortabilitySmoke/CorePortabilityProof/DESIGN.md)
+owns known associated-value diagnostics, unknown foreign errors and existing
+KernelError context on fixed Native/normal/Embedded targets. Complete Embedded
+compile/link/runtime is required; Native/normal evidence does not establish it.
+Changes to codes
 require exhaustive category handling and downstream capability review.
 
 

@@ -21,9 +21,12 @@ public extension KernelError {
 
         let code: KernelErrorCode
         switch error {
-        case is GeometryError, is UnitError, is MaterialError, is MeshArtifactPurposeError,
-             is DecodingError, is EncodingError:
+        case is GeometryError, is UnitError, is MaterialError, is MeshArtifactPurposeError:
             code = .invalidInput
+        #if !hasFeature(Embedded)
+        case is DecodingError, is EncodingError:
+            code = .invalidInput
+        #endif
         case let schemaError as SchemaError:
             switch schemaError {
             case .unsupportedVersion:
@@ -129,12 +132,18 @@ public extension KernelError {
             code = .unclassifiedFailure
         }
 
+        #if hasFeature(Embedded)
+        let message = KernelDomainErrorPresentation.message(for: error)
+        #else
+        let message = String(describing: error)
+        #endif
+
         return KernelError(
             phase: phase,
             code: code,
             featureID: featureID,
             tolerance: tolerance,
-            message: String(describing: error)
+            message: message
         )
     }
 }

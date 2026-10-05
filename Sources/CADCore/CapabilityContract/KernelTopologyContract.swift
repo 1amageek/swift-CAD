@@ -1,4 +1,4 @@
-public enum KernelTopologyContract: String, Codable, Equatable, Hashable, Sendable, CaseIterable {
+public enum KernelTopologyContract: String, Equatable, Hashable, Sendable, CaseIterable {
     case notApplicable
     case sketch
     case curve
@@ -12,3 +12,7 @@ public enum KernelTopologyContract: String, Codable, Equatable, Hashable, Sendab
     case document
     case polygonMesh
 }
+
+#if !hasFeature(Embedded)
+extension KernelTopologyContract: Codable {}
+#endif

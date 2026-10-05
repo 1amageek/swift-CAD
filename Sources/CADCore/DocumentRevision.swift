@@ -1,4 +1,4 @@
-public struct DocumentRevision: Codable, Hashable, Sendable, Comparable {
+public struct DocumentRevision: Hashable, Sendable, Comparable {
     public var value: Int
 
     public init(_ value: Int = 0) {
@@ -20,3 +20,7 @@ public struct DocumentRevision: Codable, Hashable, Sendable, Comparable {
         lhs.value < rhs.value
     }
 }
+
+#if !hasFeature(Embedded)
+extension DocumentRevision: Codable {}
+#endif

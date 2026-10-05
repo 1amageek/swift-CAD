@@ -1,4 +1,4 @@
-public struct ModelingTolerance: Codable, Hashable, Sendable {
+public struct ModelingTolerance: Hashable, Sendable {
     public var distance: Double
     public var angle: Double
     public var relative: Double
@@ -34,3 +34,7 @@ public struct ModelingTolerance: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension ModelingTolerance: Codable {}
+#endif

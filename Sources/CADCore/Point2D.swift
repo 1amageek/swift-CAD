@@ -1,4 +1,4 @@
-public struct Point2D: Codable, Hashable, Sendable {
+public struct Point2D: Hashable, Sendable {
     public var x: Double
     public var y: Double
 
@@ -7,3 +7,7 @@ public struct Point2D: Codable, Hashable, Sendable {
         self.y = y
     }
 }
+
+#if !hasFeature(Embedded)
+extension Point2D: Codable {}
+#endif

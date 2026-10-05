@@ -1,4 +1,4 @@
-public struct TopologyLineage: Codable, Equatable, Sendable {
+public struct TopologyLineage: Equatable, Sendable {
     public let output: SubshapeID
     public let parents: [SubshapeID]
     public let relation: TopologyLineageRelation
@@ -15,7 +15,7 @@ public struct TopologyLineage: Codable, Equatable, Sendable {
 
     public var isStructurallyValid: Bool {
         output.isValid
-            && parents.allSatisfy(\.isValid)
+            && parents.allSatisfy { $0.isValid }
             && !parents.contains(output)
             && parents == Array(Set(parents)).sorted()
             && hasValidParentCardinality
@@ -32,3 +32,7 @@ public struct TopologyLineage: Codable, Equatable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension TopologyLineage: Codable {}
+#endif

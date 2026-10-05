@@ -1,4 +1,4 @@
-public indirect enum CADExpression: Codable, Sendable, Hashable {
+public indirect enum CADExpression: Sendable, Hashable {
     case constant(Quantity)
     case reference(ParameterID)
     case variable(String, QuantityKind)
@@ -15,6 +15,37 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
     case cos(CADExpression)
     case tan(CADExpression)
 
+    public func validateLiteralQuantities() throws {
+        switch self {
+        case let .constant(quantity):
+            try quantity.validate()
+        case .reference, .variable:
+            return
+        case let .add(left, right),
+             let .subtract(left, right),
+             let .multiply(left, right),
+             let .divide(left, right),
+             let .hypot(left, right):
+            try left.validateLiteralQuantities()
+            try right.validateLiteralQuantities()
+        case let .bezierNaturalExtension(coordinates, length, index):
+            try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
+            for coordinate in coordinates { try coordinate.validateLiteralQuantities() }
+            try length.validateLiteralQuantities()
+        case let .bezierShapedExtension(shape, coordinates, length, index):
+            try BezierShapedExtension.validateCoordinateForm(shape: shape, count: coordinates.count, index: index)
+            for coordinate in coordinates { try coordinate.validateLiteralQuantities() }
+            try length.validateLiteralQuantities()
+        case let .sin(argument),
+             let .cos(argument),
+             let .tan(argument):
+            try argument.validateLiteralQuantities()
+        }
+    }
+}
+
+#if !hasFeature(Embedded)
+extension CADExpression: Codable {
     private enum CodingKeys: String, CodingKey {
         case kind
         case quantity
@@ -181,32 +212,5 @@ public indirect enum CADExpression: Codable, Sendable, Hashable {
         try container.encode(kind, forKey: .kind)
         try container.encode(argument, forKey: .argument)
     }
-
-    public func validateLiteralQuantities() throws {
-        switch self {
-        case let .constant(quantity):
-            try quantity.validate()
-        case .reference, .variable:
-            return
-        case let .add(left, right),
-             let .subtract(left, right),
-             let .multiply(left, right),
-             let .divide(left, right),
-             let .hypot(left, right):
-            try left.validateLiteralQuantities()
-            try right.validateLiteralQuantities()
-        case let .bezierNaturalExtension(coordinates, length, index):
-            try NaturalBezierContinuation.validateCoordinateForm(count: coordinates.count, index: index)
-            for coordinate in coordinates { try coordinate.validateLiteralQuantities() }
-            try length.validateLiteralQuantities()
-        case let .bezierShapedExtension(shape, coordinates, length, index):
-            try BezierShapedExtension.validateCoordinateForm(shape: shape, count: coordinates.count, index: index)
-            for coordinate in coordinates { try coordinate.validateLiteralQuantities() }
-            try length.validateLiteralQuantities()
-        case let .sin(argument),
-             let .cos(argument),
-             let .tan(argument):
-            try argument.validateLiteralQuantities()
-        }
-    }
 }
+#endif

@@ -10,7 +10,9 @@ Public capability domains are owned by the
 
 ## Responsibilities and Boundaries
 
-CADCore owns Codable expression structure, literal validation and dependency discovery.
+CADCore owns expression structure, literal validation and dependency discovery.
+Its Native/normal-WASM Codable capability boundary is owned by
+[Native Codec Capability](NativeCodecCapability/DESIGN.md).
 Evaluation and kind checking belong to CADIR and CADModeling.
 The source envelope number is owned by [SchemaVersion.current](SchemaVersion.swift);
 the current source baseline is 0.11.0. ProductAttributes requires both the
@@ -33,6 +35,8 @@ independent source/resolution fixtures and public STEP generations.
 | [CADModeling](../CADModeling/DESIGN.md) | used by | Expression resolution | Evaluates source and variables | Preserve evaluation equivalence |
 | [Portable Identity](PortableIdentity/DESIGN.md) | child | Foundation-free 128-bit identity and strict UUID text codec | Supplies the storage and textual identity contract used by tagged persistent IDs; `TaggedID` owns explicit Native UUID/Codable adapters | CADExchange owns strict Native/STEP wire and schema admission; Embedded does not claim Codable support |
 | [Current Task Cancellation](CurrentTaskCancellation/DESIGN.md) | child | Foundation-free current-task cancellation check | Preserves typed `CancellationError` across supported targets | Consumer placement and domain mapping remain outside this component |
+| [Native Codec Capability](NativeCodecCapability/DESIGN.md) | child | Common Core values and explicit Native/normal codec adapters | Separates genuinely unavailable Embedded codec capability without changing value storage or meaning | Complete CADCore target proof is required; full document/A2 portability remains separate |
+
 
 ## Architecture
 

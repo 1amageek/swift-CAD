@@ -1,11 +1,7 @@
-import Foundation
-
 /// A kernel error reads as its message wherever it is shown or interpolated, so a refusal
 /// reaches the person as "Fillet radius must fit both endpoint edges." rather than as the
 /// value's fields; the phase, code and context stay in its debug description.
-extension KernelError: LocalizedError, CustomStringConvertible, CustomDebugStringConvertible {
-    public var errorDescription: String? { message }
-
+extension KernelError: CustomStringConvertible, CustomDebugStringConvertible {
     public var description: String { message }
 
     public var debugDescription: String {
@@ -18,3 +14,11 @@ extension KernelError: LocalizedError, CustomStringConvertible, CustomDebugStrin
         return "KernelError(\(fields.joined(separator: ", ")))"
     }
 }
+
+#if !hasFeature(Embedded)
+import Foundation
+
+extension KernelError: LocalizedError {
+    public var errorDescription: String? { message }
+}
+#endif

@@ -1,4 +1,4 @@
-public struct KernelError: Error, Codable, Equatable, Sendable {
+public struct KernelError: Error, Equatable, Sendable {
     public let phase: KernelPhase
     public let code: KernelErrorCode
     public let featureID: FeatureID?
@@ -45,3 +45,7 @@ public struct KernelError: Error, Codable, Equatable, Sendable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension KernelError: Codable {}
+#endif

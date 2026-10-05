@@ -62,6 +62,10 @@ let package = Package(
       name: "CADContractWASMSmoke",
       targets: ["CADContractWASMSmoke"]
     ),
+    .executable(
+      name: "CADCorePortabilitySmoke",
+      targets: ["CADCorePortabilitySmoke"]
+    ),
   ],
   dependencies: [
     .package(
@@ -171,6 +175,21 @@ let package = Package(
           ["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],
           .when(platforms: [.custom("wasi")])
         )
+      ]
+    ),
+    .executableTarget(
+      name: "CADCorePortabilitySmoke",
+      dependencies: [
+        "CADCore",
+        .product(name: "HashTreeCollections", package: "swift-collections"),
+      ],
+      cSettings: [
+        .define("_WASI_EMULATED_SIGNAL", .when(platforms: [.custom("wasi")])),
+        .define("_WASI_EMULATED_MMAN", .when(platforms: [.custom("wasi")])),
+      ],
+      linkerSettings: [
+        .linkedLibrary("wasi-emulated-signal", .when(platforms: [.custom("wasi")])),
+        .linkedLibrary("wasi-emulated-mman", .when(platforms: [.custom("wasi")])),
       ]
     ),
     .testTarget(

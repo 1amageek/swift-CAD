@@ -1,4 +1,4 @@
-public struct KernelCapability: Codable, Equatable, Hashable, Sendable {
+public struct KernelCapability: Equatable, Hashable, Sendable {
     public let id: String
     public let operation: String
     public let status: KernelCapabilityStatus
@@ -34,3 +34,7 @@ public struct KernelCapability: Codable, Equatable, Hashable, Sendable {
         self.testFixtures = testFixtures
     }
 }
+
+#if !hasFeature(Embedded)
+extension KernelCapability: Codable {}
+#endif

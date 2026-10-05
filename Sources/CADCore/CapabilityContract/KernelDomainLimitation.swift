@@ -1,6 +1,6 @@
 /// A condition retained from an incomplete production implementation.
 /// Its text is descriptive; callers must not parse it to decide geometric validity.
-public struct KernelDomainLimitation: Codable, Hashable, Sendable {
+public struct KernelDomainLimitation: Hashable, Sendable {
     public let id: String
     public let operations: [String]
     public let dimensions: [KernelDomainDimension]
@@ -34,3 +34,7 @@ public struct KernelDomainLimitation: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension KernelDomainLimitation: Codable {}
+#endif

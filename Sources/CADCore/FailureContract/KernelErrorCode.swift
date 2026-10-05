@@ -1,4 +1,4 @@
-public enum KernelErrorCode: String, Codable, Hashable, Sendable, CaseIterable {
+public enum KernelErrorCode: String, Hashable, Sendable, CaseIterable {
     case invalidInput
     case missingReference
     case unsupportedCapability
@@ -81,3 +81,7 @@ public enum KernelErrorCode: String, Codable, Hashable, Sendable, CaseIterable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension KernelErrorCode: Codable {}
+#endif

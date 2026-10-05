@@ -1,5 +1,3 @@
-import Foundation
-
 /// Extensions of a cubic Bezier chain, or of any Bezier end segment, past one of its ends.
 public struct NaturalBezierContinuation: Sendable {
     /// Which end of the chain is extended.

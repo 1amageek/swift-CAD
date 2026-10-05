@@ -1,6 +1,14 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADCore numeric algorithms require the target C math module.")
+#endif
 
-public struct Vector3D: Codable, Hashable, Sendable {
+public struct Vector3D: Hashable, Sendable {
     public var x: Double
     public var y: Double
     public var z: Double
@@ -101,3 +109,7 @@ private func validateCoordinate(_ value: Double) throws {
         throw GeometryError.invalidCoordinate(value)
     }
 }
+
+#if !hasFeature(Embedded)
+extension Vector3D: Codable {}
+#endif

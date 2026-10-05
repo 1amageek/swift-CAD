@@ -1,4 +1,4 @@
-public struct SchemaVersion: Codable, Hashable, Sendable, Comparable {
+public struct SchemaVersion: Hashable, Sendable, Comparable {
     public var major: Int
     public var minor: Int
     public var patch: Int
@@ -28,3 +28,7 @@ public struct SchemaVersion: Codable, Hashable, Sendable, Comparable {
         return lhs.patch < rhs.patch
     }
 }
+
+#if !hasFeature(Embedded)
+extension SchemaVersion: Codable {}
+#endif

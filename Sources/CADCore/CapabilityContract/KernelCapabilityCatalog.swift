@@ -1,4 +1,4 @@
-public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
+public struct KernelCapabilityCatalog: Equatable, Sendable {
     public let capabilities: [KernelCapability]
     public let knownLimitations: [KernelDomainLimitation]
 
@@ -66,7 +66,7 @@ public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
             try validateUnique(capability.testFixtures, field: "testFixtures", capabilityID: capability.id)
             try capability.tolerance.validate()
         }
-        let operations = Set(capabilities.map(\.operation))
+        let operations = Set(capabilities.map { $0.operation })
         var limitationIDs = Set<String>()
         for limitation in knownLimitations {
             try limitation.validate(registeredOperations: operations)
@@ -157,3 +157,7 @@ public struct KernelCapabilityCatalog: Codable, Equatable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension KernelCapabilityCatalog: Codable {}
+#endif

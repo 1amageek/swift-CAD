@@ -1,6 +1,6 @@
 /// The cause family used to interpret a kernel failure across operation boundaries.
 /// A category describes a reported failure; it does not establish geometric validity.
-public enum KernelFailureCategory: String, Codable, Hashable, Sendable, CaseIterable {
+public enum KernelFailureCategory: String, Hashable, Sendable, CaseIterable {
     case invalidInput
     case missingReference
     case unsupportedDomain
@@ -19,3 +19,7 @@ public enum KernelFailureCategory: String, Codable, Hashable, Sendable, CaseIter
     case securityRefusal
     case unclassified
 }
+
+#if !hasFeature(Embedded)
+extension KernelFailureCategory: Codable {}
+#endif
