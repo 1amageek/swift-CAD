@@ -160,6 +160,36 @@ struct ConicalRimBlendTests {
         #expect(abs(volume - expected) < 1e-15, "\(volume) vs \(expected)")
     }
 
+    @Test(.timeLimit(.minutes(4)), arguments: [false, true])
+    func aConeStandingOnAPlateJoinsItAndItsFootBlends(chamfers: Bool) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A 30 mm plate 10 mm thick, a pointed cone of 10 mm base radius standing 20 mm on its middle.
+        let plate = try builder.box(width: length(0.03), depth: length(0.03), height: length(0.01))
+        let cone = try builder.cone(placement: PrimitivePlacement(origin: Point3D(x: 0.015, y: 0.015, z: 0.03), axis: Vector3D(x: 0, y: 0, z: -1),
+                                                                  referenceDirection: .unitX),
+                                    baseRadius: length(0.01), height: length(0.02))
+        let joined = try builder.boolean(targets: [plate], tool: cone, operation: .union)
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "cone"))
+        try before.brep.validate(level: .volumetric, tolerance: .standard)
+        let plateAndCone = 0.03 * 0.03 * 0.01 + Double.pi * 0.01 * 0.01 * 0.02 / 3
+        #expect(before.brep.bodies.count == 1)
+        #expect(abs(try before.brep.volume(tolerance: .standard) - plateAndCone) < 1e-15)
+        let foot = try rimEdges(of: joined, center: Point3D(x: 0.015, y: 0.015, z: 0.01), axis: .unitZ, radius: 0.01, in: before, builder: builder)
+        #expect(foot.isEmpty == false)
+        if chamfers {
+            _ = try builder.chamfer(target: joined, edges: [foot[0]], distance: length(0.001))
+        } else {
+            _ = try builder.fillet(target: joined, edges: [foot[0]], radius: length(0.001))
+        }
+        let after = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "cone"))
+        try after.brep.validate(level: .volumetric, tolerance: .standard)
+        let region = cornerRegion(corner: (0.01, 0), cap: (1, 0), wall: unit(-0.01, 0.02),
+                                  round: chamfers ? nil : 0.001, chamfer: chamfers ? 0.001 : nil)
+        let expected = plateAndCone + 2 * Double.pi * region.radial * region.area
+        let volume = try after.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 1e-15, "\(volume) vs \(expected)")
+    }
+
     @Test(.timeLimit(.minutes(2)))
     func aRoundWiderThanTheBaseIsRefused() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)

@@ -5,7 +5,7 @@ import CADIR
 import CADModeling
 import CADTopology
 
-/// A revolved solid (a cylinder or cone frustum) standing on a planar face of another solid from
+/// A revolved solid (a cylinder, a cone frustum or a pointed cone) standing on a planar face of another solid from
 /// outside, its cap's disc inside that face clear of the face's edges, the face's plane bounding
 /// the other solid (a boss on a plate, holes and all; a smaller cylinder stacked on a larger).
 /// Their union keeps every face of both but the standing solid's cap: the face it stands on takes
@@ -44,18 +44,7 @@ struct StandingRevolvedUnionPlan: Sendable {
     /// The face of `larger` the revolved `smaller` stands on and `smaller`'s cap on it.
     private static func standing(_ smaller: BodyID, on larger: BodyID, model: BRepModel,
                                  tolerance: ModelingTolerance) throws -> (face: FaceID, cap: FaceID, flush: Bool, circle: (center: Point3D, radius: Double))? {
-        let operand: RevolvedSolidOperand
-        do {
-            operand = try RevolvedSolidOperand(bodyID: smaller, model: model, tolerance: tolerance)
-        } catch let error as KernelError where error.code == .unsupportedCapability {
-            return nil
-        }
-        let axis = operand.axis
-        for (coordinate, other) in [(operand.lowerCoordinate, operand.upperCoordinate), (operand.upperCoordinate, operand.lowerCoordinate)] {
-            let center = operand.center(at: coordinate)
-            let radius = operand.radius(at: coordinate)
-            // The face's outward normal points from the larger solid into the standing one.
-            let outward = axis * (other > coordinate ? 1 : -1)
+        for (axis, center, radius, outward) in try ends(of: smaller, model: model, tolerance: tolerance) {
             guard let stoodOn = try face(of: larger, at: center, outward: outward, model: model, tolerance: tolerance),
                   try bounds(larger, plane: (center, outward), model: model, tolerance: tolerance),
                   let cap = try face(of: smaller, at: center, outward: outward * -1, model: model, tolerance: tolerance) else { continue }
@@ -72,6 +61,70 @@ struct StandingRevolvedUnionPlan: Sendable {
             return (stoodOn, cap, false, (center, radius))
         }
         return nil
+    }
+
+    /// The ends a revolved body can stand on: its axis, the end's centre and radius, and the
+    /// direction from that end into the body (the outward normal of the face it stands on). A
+    /// cylinder or frustum has two; a pointed cone has its base.
+    private static func ends(of bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance) throws
+        -> [(axis: Vector3D, center: Point3D, radius: Double, outward: Vector3D)] {
+        do {
+            let operand = try RevolvedSolidOperand(bodyID: bodyID, model: model, tolerance: tolerance)
+            let axis = operand.axis
+            return [(operand.lowerCoordinate, operand.upperCoordinate), (operand.upperCoordinate, operand.lowerCoordinate)].map { coordinate, other in
+                (axis, operand.center(at: coordinate), operand.radius(at: coordinate), axis * (other > coordinate ? 1 : -1))
+            }
+        } catch let error as KernelError where error.code == .unsupportedCapability {
+            return try pointedConeBase(of: bodyID, model: model, tolerance: tolerance).map { [$0] } ?? []
+        }
+    }
+
+    /// A pointed cone's base: a body bounded by faces of one cone and planar faces of one plane
+    /// square to its axis, every vertex its apex or on the base's circle.
+    private static func pointedConeBase(of bodyID: BodyID, model: BRepModel, tolerance: ModelingTolerance) throws
+        -> (axis: Vector3D, center: Point3D, radius: Double, outward: Vector3D)? {
+        guard let body = model.bodies[bodyID], body.kind == .solid, body.shellIDs.count == 1 else { return nil }
+        var cone: (apex: Point3D, axis: Vector3D, halfAngle: Double)?
+        var base: (origin: Point3D, normal: Vector3D)?
+        for faceID in try faces(of: bodyID, model: model) {
+            guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
+                throw TopologyError.missingReference("A face is missing.")
+            }
+            if case let .analytic(.cone(apex, axis, halfAngle)) = surface {
+                let unit = try axis.normalized(tolerance: tolerance.distance)
+                if let cone {
+                    guard cone.apex.isApproximatelyEqual(to: apex, tolerance: tolerance.distance),
+                          abs(abs(cone.axis.dot(unit)) - 1) <= tolerance.angle, abs(cone.halfAngle - halfAngle) <= tolerance.angle else { return nil }
+                } else {
+                    cone = (apex, unit, halfAngle)
+                }
+            } else if let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) {
+                let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+                if let base {
+                    guard abs(abs(base.normal.dot(normal)) - 1) <= tolerance.angle,
+                          abs((plane.origin - base.origin).dot(base.normal)) <= tolerance.distance else { return nil }
+                } else {
+                    base = (plane.origin, normal)
+                }
+            } else {
+                return nil
+            }
+        }
+        guard let cone, let base, abs(abs(cone.axis.dot(base.normal)) - 1) <= tolerance.angle else { return nil }
+        let depth = (base.origin - cone.apex).dot(cone.axis)
+        guard abs(depth) > tolerance.distance else { return nil }
+        let center = cone.apex + cone.axis * depth
+        let radius = abs(depth) * tan(cone.halfAngle)
+        let scope = try BodyTopologyScope(bodyID: bodyID, model: model)
+        for reference in scope.references {
+            guard case let .vertex(vertexID) = reference else { continue }
+            guard let point = model.vertices[vertexID]?.point else { throw TopologyError.missingReference("A vertex is missing.") }
+            let offset = point - center
+            let onBase = abs(offset.dot(cone.axis)) <= tolerance.distance && abs(offset.length - radius) <= tolerance.distance
+            guard onBase || point.isApproximatelyEqual(to: cone.apex, tolerance: tolerance.distance) else { return nil }
+        }
+        // From the base toward the apex.
+        return (cone.axis, center, radius, cone.axis * (depth > 0 ? -1 : 1))
     }
 
     /// Whether a body is a revolved solid coaxial with the standing one, of its radius at `center`.

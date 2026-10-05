@@ -647,6 +647,10 @@ every phase reads the same `BooleanOperandContext`.
   inside the face clear of its edges and holes and the face's plane bounding that solid (a
   boss on a holed plate, a stepped shaft), joins it (`StandingRevolvedUnionPlan`): every face
   of both is carried but the standing cap, the face taking the cap's boundary edges as a hole.
+  A pointed cone (one cone's faces and its base's coplanar caps, every vertex its apex or on the
+  base circle) stands on its base the same way; a box target reaches the plan once the convex
+  planar and revolved plans refuse its tool, before the disjoint union
+  (`aConeStandingOnAPlateJoinsItAndItsFootBlends`).
   Flush on a coaxial revolved solid's cap of its own radius (equal cylinders stacked), both caps
   go and each wall's rim on the shared circle is split where the other's is
   (`equalCylindersStackedJoinIntoOne`); any other disc reaching the face's edges is refused

@@ -333,21 +333,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             if operation == .union, targetBodyIDs.count == 1,
                let standing = try StandingRevolvedUnionPlan(targetBodyID: targetBodyIDs[0], toolBodyID: toolBodyID,
                                                           model: model, tolerance: tolerance) {
-                let request = try standing.request(featureID: FeatureID(), model: model, subshapes: [:], tolerance: tolerance)
-                let topology = try OrthogonalBooleanFacePatchBuilder(tolerance: tolerance).topology(for: request)
-                return BRepBooleanOperationPlan(
-                    summary: BRepBooleanPlan(
-                        operandKind: .standingRevolvedSolid,
-                        outputTopologyKind: .revolvedUnion,
-                        topologyNameSchemes: [.body, .curvedBoundaryTopology],
-                        topologySlots: topology.slots,
-                        topologyCounts: topology.counts,
-                        targetCellCount: 1,
-                        toolCellCount: 1,
-                        resultPrimitiveCount: 1
-                    ),
-                    shape: .standingRevolvedUnion(standing)
-                )
+                return try standingRevolvedUnionOperationPlan(standing, model: model, tolerance: tolerance)
             }
             if supportsConvexPlanarMaterialization(operation), targetBodyIDs.count == 1 {
                 do {
@@ -434,6 +420,13 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             }
             guard operation == .union else {
                 throw error
+            }
+            // A revolved solid the revolved plans do not take (a pointed cone) standing on a face of
+            // the target joins it.
+            if targetBodyIDs.count == 1,
+               let standing = try StandingRevolvedUnionPlan(targetBodyID: targetBodyIDs[0], toolBodyID: toolBodyID,
+                                                          model: model, tolerance: tolerance) {
+                return try standingRevolvedUnionOperationPlan(standing, model: model, tolerance: tolerance)
             }
             let plan = try BRepDisjointUnionEvaluator().plan(
                 targetBodyIDs: targetBodyIDs,
@@ -805,6 +798,26 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         _ operation: BooleanOperation
     ) -> Bool {
         operation == .union || operation == .difference || operation == .intersect
+    }
+
+    /// The plan of a revolved solid standing on a face of the other, joined.
+    private func standingRevolvedUnionOperationPlan(_ standing: StandingRevolvedUnionPlan, model: BRepModel,
+                                                    tolerance: ModelingTolerance) throws -> BRepBooleanOperationPlan {
+        let request = try standing.request(featureID: FeatureID(), model: model, subshapes: [:], tolerance: tolerance)
+        let topology = try OrthogonalBooleanFacePatchBuilder(tolerance: tolerance).topology(for: request)
+        return BRepBooleanOperationPlan(
+            summary: BRepBooleanPlan(
+                operandKind: .standingRevolvedSolid,
+                outputTopologyKind: .revolvedUnion,
+                topologyNameSchemes: [.body, .curvedBoundaryTopology],
+                topologySlots: topology.slots,
+                topologyCounts: topology.counts,
+                targetCellCount: 1,
+                toolCellCount: 1,
+                resultPrimitiveCount: 1
+            ),
+            shape: .standingRevolvedUnion(standing)
+        )
     }
 
     private func supportsConvexPlanarMaterialization(
