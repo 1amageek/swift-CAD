@@ -299,6 +299,24 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                            prepared: PreparedSurfaceAreaIntegrand, goals: [Double],
                            options: FaceAreaIntegrationOptions, work: inout Int,
                            tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
+        if let rectangle, prepared.hasOriginalOffsetRectangleIntegral {
+            try consumeWork(&work,options:options,tolerance:tolerance)
+            if let integral = try prepared.originalOffsetRectangleIntegral(over:rectangle,
+                reference:reference,tolerance:tolerance,
+                consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) }) {
+                guard integral.count == goals.count else {
+                    throw failure(.classificationFailure,tolerance,"Original offset rectangle lost a physical moment field.")
+                }
+                guard integral.allSatisfy({ $0.isFinite }) else {
+                    throw failure(.classificationFailure, tolerance,
+                        "Original offset rectangle produced a nonfinite physical moment field.")
+                }
+                if integral.indices.allSatisfy({
+                    ((integral[$0].upper-integral[$0].lower)*0.5).nextUp <= goals[$0] }) {
+                    return integral
+                }
+            }
+        }
         if prepared.hasNativeDensityJumps || parameterChart.hasNativeJoins {
             return try integrateNativeSpans(curve:curve,parameterChart:parameterChart,rectangle:rectangle,anchor:anchor,reference:reference,
                 prepared:prepared,goals:goals,options:options,work:&work,tolerance:tolerance)
@@ -321,10 +339,12 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                 let midpoint: [SurfaceAreaIntegrandBounds]
                 if let rectangle {
                     bounds = try prepared.rectangularTranslationBounds(rectangle: rectangle,
-                        fraction: cell.t, reference: reference, tolerance: tolerance)
+                        fraction: cell.t, reference: reference, tolerance: tolerance,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
                     midpoint = try prepared.rectangularTranslationBounds(rectangle: rectangle,
                         fraction: ScalarInterval(lower: cell.t.midpoint, upper: cell.t.midpoint),
-                        reference: reference, tolerance: tolerance)
+                        reference: reference, tolerance: tolerance,
+                        consumeWork:{ try consumeWork(&work,options:options,tolerance:tolerance) })
                 } else if greenBoundary {
                     let pair = try prepared.centeredAffineBoundaryBounds(parameterChart:parameterChart,
                         anchor:anchor,reference:reference,boundaryFraction:cell.t,tolerance:tolerance,

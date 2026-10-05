@@ -60,6 +60,32 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       }
     }
 
+    /// Retains the original homogeneous value net after this token admits the
+    /// original closed query and its exact periodic one-sided lift.
+    package func originalCoefficientReceipt(overClosedBox box: SurfaceParameterBox,
+        on source: BSplineSurface3D, tolerance callerTolerance: ModelingTolerance,
+        consumeWork: () throws -> Void) throws -> SurfaceAreaOriginalCoefficientReceipt {
+      try validate(on:source,over:box,tolerance:callerTolerance)
+      try consumeWork()
+      let cover = try baseBox(box,tolerance:callerTolerance)
+      func station(_ query: ScalarInterval, translation: Double,
+                   cover: ScalarInterval) throws -> ScalarInterval {
+        guard query.lower == query.upper else { return cover }
+        let exact = try PreparedBSplineSurfaceDifferentialEncloser.exactDifference(
+          query.lower,translation,tolerance:callerTolerance)
+        // A zero expansion tail proves the real original station is exactly
+        // represented. Other singleton queries retain the original whole cover.
+        guard exact.tail == 0 else { return cover }
+        return try ScalarInterval(lower:exact.head,upper:exact.head)
+      }
+      let base = SurfaceParameterBox(
+        u:try station(box.u,translation:uTranslation,cover:cover.u),
+        v:try station(box.v,translation:vTranslation,cover:cover.v))
+      return try RationalBezierSurfaceJetEncloser().originalCoefficientReceipt(of:patch,
+        source:source,tolerance:callerTolerance,query:box,
+        baseQuery:base,uSpanIndex:uSpanIndex,vSpanIndex:vSpanIndex)
+    }
+
     func intervalJet(overClosedBox box: SurfaceParameterBox, on source: BSplineSurface3D,
                      tolerance callerTolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
       try validate(on: source, over: box, tolerance: callerTolerance)
@@ -167,9 +193,20 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     try originalNativeSpans(over: box, tolerance: tolerance, maximumSpanCount: 262_144)
   }
 
+  /// Q3 preparation and queries pay original cover scans and token storage before allocation.
+  package func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
+                                  consumeWork: () throws -> Void) throws -> [OriginalNativeSpan] {
+    try originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:262_144,consumeWork:consumeWork)
+  }
+
   /// The selected-cover ceiling is shared by all axis lifts, not reset per cycle.
   func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
                            maximumSpanCount: Int) throws -> [OriginalNativeSpan] {
+    try originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:maximumSpanCount,consumeWork:{})
+  }
+
+  private func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
+                                  maximumSpanCount: Int, consumeWork: () throws -> Void) throws -> [OriginalNativeSpan] {
     try tolerance.validate()
     try Task.checkCancellation()
     guard (1...262_144).contains(maximumSpanCount) else {
@@ -180,22 +217,23 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     if !surface.isUPeriodic && !surface.isVPeriodic {
       var result: [OriginalNativeSpan] = []
       for span in originalSpans {
-        try Task.checkCancellation()
+        try Task.checkCancellation(); try consumeWork()
         if max(box.u.lower, span.uBounds.lower) <= min(box.u.upper, span.uBounds.upper),
            max(box.v.lower, span.vBounds.lower) <= min(box.v.upper, span.vBounds.upper) {
           guard result.count < maximumSpanCount else {
             throw Self.liftFailure(.resourceLimitExceeded, "Original native span cover exhausted its aggregate ceiling.", tolerance)
           }
+          try consumeWork()
           result.append(span)
         }
       }
       return result
     }
-    let us = try selectedLifts(over: box.u, direction: .u, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
-    let vs = try selectedLifts(over: box.v, direction: .v, tolerance: tolerance, maximumSpanCount: maximumSpanCount)
+    let us = try selectedLifts(over: box.u, direction: .u, tolerance: tolerance, maximumSpanCount: maximumSpanCount, consumeWork:consumeWork)
+    let vs = try selectedLifts(over: box.v, direction: .v, tolerance: tolerance, maximumSpanCount: maximumSpanCount, consumeWork:consumeWork)
     var result: [OriginalNativeSpan] = []
     for u in us { for v in vs { for span in originalSpans {
-      try Task.checkCancellation()
+      try Task.checkCancellation(); try consumeWork()
       let ub = try Self.translated(span.uBounds, by: u.translation, tolerance: tolerance)
       let vb = try Self.translated(span.vBounds, by: v.translation, tolerance: tolerance)
       guard max(box.u.lower, ub.lower) <= min(box.u.upper, ub.upper),
@@ -203,6 +241,7 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       guard result.count < maximumSpanCount else {
         throw Self.liftFailure(.resourceLimitExceeded, "Original native span cover exhausted its aggregate ceiling.", tolerance)
       }
+      try consumeWork()
       result.append(OriginalNativeSpan(surface: surface, tolerance: tolerance,
         uSpanIndex: span.uSpanIndex, vSpanIndex: span.vSpanIndex,
         uBounds: span.uBounds, vBounds: span.vBounds, patch: span.patch,
@@ -219,7 +258,8 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   }
 
   private func selectedLifts(over interval: ScalarInterval, direction: SurfaceParameterDirection,
-                             tolerance: ModelingTolerance, maximumSpanCount: Int) throws -> [AxisLift] {
+                             tolerance: ModelingTolerance, maximumSpanCount: Int,
+                             consumeWork: () throws -> Void) throws -> [AxisLift] {
     let periodic = direction == .u ? surface.isUPeriodic : surface.isVPeriodic
     let knots = direction == .u ? surface.uKnots : surface.vKnots
     let degree = direction == .u ? surface.uDegree : surface.vDegree
@@ -232,25 +272,28 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     guard periodic else {
       var i = degree + 1
       while i < count {
+        try Task.checkCancellation(); try consumeWork()
         var end = i + 1
-        while end < count, knots[end] == knots[i] { end += 1 }
+        while end < count, knots[end] == knots[i] { try consumeWork(); end += 1 }
         guard end - i <= degree else { throw refusal() }
         i = end
       }
+      try consumeWork()
       return [AxisLift(cycle: 0, translation: 0)]
     }
     let period = try Self.exactDifference(upper, lower, tolerance: tolerance)
     guard period.head > 0, period.tail == 0 else { throw refusal() }
     let cycleCount = count - degree
     for i in 0..<(knots.count - cycleCount) {
-      try Task.checkCancellation()
+      try Task.checkCancellation(); try consumeWork()
       let delta = try Self.exactDifference(knots[i + cycleCount], knots[i], tolerance: tolerance)
       guard delta.head == period.head, delta.tail == 0 else { throw refusal() }
     }
     var i = 0
     while i < knots.count {
+      try Task.checkCancellation(); try consumeWork()
       var end = i + 1
-      while end < knots.count, knots[end] == knots[i] { end += 1 }
+      while end < knots.count, knots[end] == knots[i] { try consumeWork(); end += 1 }
       guard end - i <= degree else { throw refusal() }
       i = end
     }
@@ -270,7 +313,7 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     }
     var lifts: [AxisLift] = []
     for cycle in Int(first)...Int(last) {
-      try Task.checkCancellation()
+      try Task.checkCancellation(); try consumeWork()
       let translation = Double(cycle) * period.head
       guard translation.isFinite, (-translation).addingProduct(Double(cycle), period.head) == 0 else {
         throw Self.liftFailure(.resourceLimitExceeded, "Original periodic span translation is not exactly representable.", tolerance)
@@ -284,6 +327,7 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
           throw Self.liftFailure(.resourceLimitExceeded,
             "Original periodic axis lifts exhausted the caller's aggregate cover ceiling.", tolerance)
         }
+        try consumeWork()
         lifts.append(AxisLift(cycle: cycle, translation: translation))
       }
     }

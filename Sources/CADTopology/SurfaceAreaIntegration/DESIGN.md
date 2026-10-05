@@ -278,3 +278,28 @@ remain unchanged. Holes and orientation retain original signed loop ownership.
 A nil admission keeps the original native range/midpoint adaptive route;
 invalid authority or numerical failure propagates. No new allowance or
 geometric sampling is introduced, and full Q3/portable remain open.
+
+### Caller-Paid Original Higher-Order Offset Fields
+
+The existing translated rectangle range and midpoint calls both forward the
+same invocation's nonescaping `consumeWork` callback to the
+[Geometry integrand owner](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md).
+Original native cover preparation, requested-order coefficient storage and
+nested offset recurrences therefore consume the existing shared cell/work
+quantity before their allocations. Topology retains the same error goals,
+cell/depth/control admission, cancellation, reference and final XYZ centroid
+acceptance. It neither reconstructs coefficients nor supplies missing source
+orders. Behavioral ownership is
+[NestedOffsetSurfaceAreaIntegrationTests](../../../Tests/CADTopologyTests/NestedOffsetSurfaceAreaIntegrationTests.swift).
+Native, normal WASM and Embedded proof remain distinct; source changes alone
+do not establish the runtime contract.
+
+Original offset translation authority may return complete physical rectangle
+area and all three reference-relative moments after its original monotone
+straight-rail proof. The shared query owner pays this invocation and its
+original endpoint evaluation work; unchanged per-field goals decide whether
+that complete interval is accepted. Missing moment fields or nonfinite integral
+fields are explicit classification failures; they do not select another algorithm.
+Finite intervals wider than the unchanged goals, and other rectangles, retain
+the existing adaptive path. The geometry [child contract](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md)
+owns the exact whole-law and monotonicity proof, rather than this caller.

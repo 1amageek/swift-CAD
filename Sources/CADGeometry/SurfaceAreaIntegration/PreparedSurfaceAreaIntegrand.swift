@@ -45,12 +45,29 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         case direct(PreparedSurfaceDifferentialEncloser)
         case translatedRollingBall(SurfaceAreaTranslatedRollingBallJet)
         case nativeRollingBall(SurfaceAreaNativeRollingBallPartition)
+        case nativeOffset(SurfaceAreaNativeOffsetTaylorPartition)
     }
     package let surface: Surface3D
     private let storage: Storage
     private let derivativeOrder: Int
     private let preparationTolerance: ModelingTolerance
-    package let translationDirection: SurfaceAreaTranslationCertificate?
+    private let originalTranslationDirection: SurfaceAreaTranslationCertificate?
+    package var translationDirection: SurfaceAreaTranslationCertificate? {
+        if case .nativeOffset(let partition) = storage { return partition.translationDirection ?? originalTranslationDirection }
+        return originalTranslationDirection
+    }
+    package var hasOriginalOffsetRectangleIntegral: Bool {
+        if case .nativeOffset(let partition) = storage { return partition.hasOriginalPlanarRectangle }
+        return false
+    }
+    package func originalOffsetRectangleIntegral(over rectangle: SurfaceParameterBox,reference: Point3D,
+        tolerance: ModelingTolerance,consumeWork: () throws -> Void) throws -> [OutwardScalarInterval]? {
+        if case .nativeOffset(let partition) = storage {
+            return try partition.originalPlanarRectangleIntegral(over:rectangle,reference:reference,
+                tolerance:tolerance,consumeWork:consumeWork)
+        }
+        return nil
+    }
 
     package init(surface: Surface3D, tolerance: ModelingTolerance, maximumControlPointCount: Int = 65_536,
                  consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws {
@@ -58,7 +75,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         try surface.validate(tolerance: tolerance)
         self.surface = surface
         preparationTolerance = tolerance
-        translationDirection = SurfaceAreaTranslationCertificate.direction(of: surface)
+        originalTranslationDirection = SurfaceAreaTranslationCertificate.direction(of: surface)
         switch surface {
         case .bSpline(let spline):
             let partition = try SurfaceAreaNativeSpanPartition(surface:spline,tolerance:tolerance)
@@ -69,11 +86,17 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                 let prepared = try PreparedSurfaceAreaIntegrand(surface: exact, tolerance: tolerance, maximumControlPointCount: maximumControlPointCount, consumeWork:consumeWork)
                 storage = prepared.storage
                 derivativeOrder = prepared.derivativeOrder
+            } else if !SurfaceAreaTranslationCertificate.fourthDerivativesAreExactlyZero(of:offset.source),
+                let native = try SurfaceAreaNativeOffsetTaylorPartition(surface:surface,
+                    tolerance:tolerance,consumeWork:consumeWork) {
+                storage = .nativeOffset(native)
+                derivativeOrder = 3
             } else {
                 let source = try PreparedSurfaceAreaIntegrand(surface: offset.source, tolerance: tolerance, maximumControlPointCount: maximumControlPointCount, consumeWork:consumeWork)
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Sources below third order, including
-                // uncertified nested offsets, lack derivatives for production face-area/centroid integration.
-                // Complete only after higher source interval jets and offset integral fixtures certify.
+                // sources outside the original B-spline higher-coefficient family,
+                // lack derivatives for production face-area/centroid integration.
+                // Complete only after original higher source jets and integral fixtures certify.
                 guard source.derivativeOrder >= 3 else {
                     throw Self.failure(.unsupportedCapability, tolerance,
                         "Offset area density gradients require certified third source derivatives.")
@@ -356,6 +379,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     package var hasNativeDensityJumps: Bool {
         if case .nativeRollingBall = storage { return true }
+        if case .nativeOffset(let partition) = storage { return partition.hasNativeJoins }
         if let partition = nativePartition { return partition.derivativeOrder == 1 }
         return false
     }
@@ -382,6 +406,9 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                 throw Self.failure(.classificationFailure,tolerance,"Native area partition cannot discard an out-of-support part of the original rectangle.")
             }
         }
+        if case .nativeOffset(let partition) = storage {
+            return try partition.rectangleDomains(over:box,maximumCount:maximumCount,tolerance:tolerance)
+        }
         if case .nativeRollingBall(let partition) = storage {
             return try partition.rectangleDomains(over:box,maximumCount:maximumCount,tolerance:tolerance)
         }
@@ -396,6 +423,12 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                                   parameterChart: SurfaceAreaParameterChartEncloser? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         if let parameterChart, parameterChart.curve != curve || parameterChart.support != surface {
             throw Self.failure(.invalidInput,tolerance,"Native fan chart authority belongs to another retained trim or support.")
+        }
+        if case .nativeOffset(let partition) = storage {
+            let boundary = parameterChart?.exactIsoBoundary ?? curve
+            guard let domains = try partition.fanDomains(curve:boundary,anchor:anchor,maximumCount:maximumCount,tolerance:tolerance) else { return nil }
+            return domains.map { .init(rectangle:$0.rectangle,radialRange:$0.radialRange,
+                index:$0.index,source:$0.source,curve:curve,anchor:anchor) }
         }
         if case .nativeRollingBall(let partition) = storage {
             let boundary = parameterChart?.exactIsoBoundary ?? curve
@@ -879,7 +912,9 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                                    tolerance: ModelingTolerance,
                                    consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork,
                                    _ consume: (SurfaceIntervalVectorJet,Int) throws -> Void) throws {
-        if case .nativeRollingBall(let partition) = storage {
+        if case .nativeOffset(let partition) = storage {
+            try partition.forEachJet(over:box,domain:domain,tolerance:tolerance,consumeWork:consumeWork,consume)
+        } else if case .nativeRollingBall(let partition) = storage {
             try partition.forEachJet(over:box,domain:domain,tolerance:tolerance,consumeWork:consumeWork,consume)
         } else if let partition = nativePartition {
             try partition.forEachJet(over:box,domain:domain,tolerance:tolerance,consume)
@@ -893,6 +928,13 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                             tolerance: ModelingTolerance,
                             consumeWork: () throws -> Void = SurfaceAreaParameterChartEncloser.requireCallerWork) throws -> SurfaceIntervalVectorJet {
         switch storage {
+        case .nativeOffset(let partition):
+            var result: SurfaceIntervalVectorJet?
+            try partition.forEachJet(over:box,domain:nil,tolerance:tolerance,consumeWork:consumeWork) { jet,_ in
+                result = result.map { $0.union(jet) } ?? jet
+            }
+            guard let result else { throw Self.failure(.classificationFailure,tolerance,"Nested offset area box misses every original native span.") }
+            return result
         case .nativeRollingBall(let partition):
             var result: SurfaceIntervalVectorJet?
             try partition.forEachJet(over:box,domain:nil,tolerance:tolerance,consumeWork:consumeWork) { jet,_ in

@@ -27,6 +27,19 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         fileprivate let originalCommonWeight: Double?
     }
 
+    /// The native-span owner has already validated source, tolerance and lift.
+    /// Immutable array ownership retains the existing original net without extraction.
+    func originalCoefficientReceipt(of patch: PreparedPatch, source: BSplineSurface3D,
+        tolerance: ModelingTolerance, query: SurfaceParameterBox, baseQuery: SurfaceParameterBox,
+        uSpanIndex: Int, vSpanIndex: Int) throws -> SurfaceAreaOriginalCoefficientReceipt {
+        return SurfaceAreaOriginalCoefficientReceipt(source:source,tolerance:tolerance,query:query,
+            baseQuery:baseQuery,baseDomain:SurfaceParameterBox(
+                u:try ScalarInterval(lower:patch.uLower,upper:patch.uUpper),
+                v:try ScalarInterval(lower:patch.vLower,upper:patch.vUpper)),
+            uSpanIndex:uSpanIndex,vSpanIndex:vSpanIndex,origin:patch.origin,
+            commonWeight:patch.originalCommonWeight,net:patch.controls.value)
+    }
+
     func enclosure(
         of patch: RationalBezierSurfacePatch3D,
         tolerance: ModelingTolerance

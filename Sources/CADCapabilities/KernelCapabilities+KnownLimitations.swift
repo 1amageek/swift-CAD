@@ -368,25 +368,25 @@ extension KernelCapabilities {
             sourcePath: "Sources/CADGeometry/RollingBall/RollingBallSectionEvaluator.swift", sourceLine: 69
         ),
         KernelDomainLimitation(
-            id: "condition-0c6b71106c467b84",
+            id: "condition-d40fa086407d39ac",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Sources below third order, including uncertified nested offsets, lack derivatives for production face-area/centroid integration. Complete only after higher source interval jets and offset integral fixtures certify.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 74
+            condition: "Sources below third order, including sources outside the original B-spline higher-coefficient family, lack derivatives for production face-area/centroid integration. Complete only after original higher source jets and integral fixtures certify.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 96
         ),
         KernelDomainLimitation(
             id: "condition-b44cf98308011fb0",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Non-C1 ruled supports outside the original same-degree/knot/domain/weight tensor family remain unsupported on production face-area/centroid queries. Complete only after original piecewise boundary authority and successful/failure integral fixtures.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 96
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 119
         ),
         KernelDomainLimitation(
             id: "condition-70e1db5ebce47591",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Non-C1 rolling-ball rails outside the original same-basis/denominator constant-radial family remain unsupported in production area/centroid queries. Complete only after original piecewise radial laws and integral/error fixtures certify.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 119
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 142
         ),
         KernelDomainLimitation(
             id: "condition-1348d8034135b5b0",

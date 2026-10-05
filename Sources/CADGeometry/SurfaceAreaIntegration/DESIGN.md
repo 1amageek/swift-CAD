@@ -40,6 +40,77 @@ and the invocation's preparation tolerance. Topology supplies a synchronous,
 non-escaping work callback; geometry retains no callback or independent budget.
 
 ## Contracts and Invariants
+- Higher-order offset composition consumes an immutable
+  `SurfaceAreaOriginalCoefficientReceipt` issued by the original native-span
+  owner. That owner validates original source, exact preparation tolerance,
+  closed query containment, periodic lift and selected one-sided support before
+  exposing its retained original homogeneous value net through checked accessors.
+  The receipt keeps the existing net alive by immutable copy-on-write ownership;
+  Q3 never re-extracts or converts a Cartesian net. A bivariate interval Taylor
+  provider differentiates that finite-degree homogeneous net by exact Bernstein
+  finite differences and native widths, then forms the rational quotient through
+  the requested total order. Only derivatives above the homogeneous degree are
+  structurally zero; reciprocal composition retains nonzero rational derivatives.
+  Normalization uses interval product, square-root and reciprocal recurrences.
+  Each genuine offset needs one extra source order; nesting therefore requests
+  the actual fourth and higher source derivatives. No numeric point Taylor jet
+  supplies interval authority. Preparation and temporary requested-order payloads
+  are overflow checked and paid before allocation by the caller's existing work
+  owner. Singular normal/denominator and foreign receipts are typed failures.
+  Evaluation restricts each derivative Bernstein net to the complete outward
+  normalized query rectangle, then uses its convex coefficient hull. Endpoint
+  subdivision retains every restricted control, including mixed derivatives;
+  the two occurrences of an interval parameter are not treated as independent
+  blend weights for a whole-box range. A singleton still evaluates its original
+  point. Full native axes need no restriction allocation. Restriction scratch,
+  retained row/column slots and every subdivision transition are paid before
+  allocation or execution by the same caller; no local work limit is introduced.
+  An original degree-one translation authority may retain the exact law
+  `S(u,v)=C(u)+T(v-v0)` (or the transposed law), proved from equal original
+  positive weight rows and identical expansion-exact control differences. The
+  two-control translation axis uses its actual native knot interval, including
+  nonclamped exterior knots. Its generating rail is the first row/column of the
+  same retained original homogeneous net, not a Cartesian reconstruction.
+  Requested-order rail jets and genuine offset normals then depend only on the
+  varying native axis; mixed translation derivatives vanish by that whole law.
+  Scalar storage and recurrence loops contain only the actual unary coefficients.
+  The affine translation term is restored to the original full closed query
+  after the entire offset chain. Original constant rail coordinates are exact
+  partition-of-unity identities, not assumed zero higher rational derivatives;
+  the varying rational coordinate retains its actual fourth and fifth orders.
+  A singleton retained weight hull proves a constant homogeneous denominator
+  during the already-paid coefficient scan; no source-wide fallback scan occurs.
+
+  A straight generating rail grants a constant-normal rectangle integral only
+  after exact constant-coordinate and strict control-order proof on its original
+  single Bernstein span. Positive rational Bernstein weights and increasing
+  controls prove a strictly monotone physical coordinate: the derivative sign
+  is the positive pair sum of `(j-i)(Pj-Pi) wi wj Bi Bj / (W² t(1-t))`;
+  strict adjacent endpoint differences certify the closed endpoints as well.
+  The physical rectangle area is the cross product of original endpoint
+  displacement and translation displacement. Its centroid is their midpoint
+  plus the sum of genuine offsets along the certified constant unit normal.
+  Endpoint evaluations use the same original coefficient owner and native
+  fractions. No sampled normal, changed trim, tolerance-based collinearity or
+  parameter-affine assumption grants this integral. Other rails retain the
+  original requested-order composition and adaptive integration. Every admission
+  read, output/scratch slot and executed recurrence remains caller-paid.
+  Existing first-order and third-order contracts remain unchanged.
+  The original native owner also issues a paid selected cover; every original
+  span/knot scan, periodic lift and retained token slot uses the same callback.
+  `SurfaceAreaNativeOffsetTaylorPartition` retains one requested-order provider
+  per original base span and reuses it for every validated periodic lift. Its
+  preparation admission follows the concrete lower surface basis matrices,
+  tensor accumulations, Bernstein scaling and retained third-order nets before
+  that lower constructor allocates. Input control-point admission retains its
+  existing quantity. Scalar Taylor operations pay each output slot before
+  allocation and each convolution/reciprocal recurrence through the same work
+  owner. A nonzero offset of an original B-spline, including nesting, consumes
+  the genuine higher-order chain from innermost to outermost; zero distances
+  retain the same chart without consuming derivative order. Owning native
+  rectangles/fans grant smooth third-order density support. A box covering more
+  than one selected span has only value authority. Other unproved source families
+  retain their existing explicit incomplete branch.
 - Original C0 rolling-ball supports may use `SurfaceAreaNativeRollingBallPartition`
   when their three nonperiodic B-spline rails have exactly identical degree,
   knots and positive weights, normalized native domain, and exact constant
@@ -544,3 +615,43 @@ The independent four-field bounds must contain literals with existing64ulp
 precision; final query acceptance still owns the original single error budget.
 Public original rectangle/hole/reverse/rigid/genuine-weight cases retain their
 unchanged geometry, tolerances, work/depth limits and60s test limits.
+
+## State, Ownership, and Lifecycle
+
+| Higher-order state | Native / WASM / Embedded storage | Isolation | Read / mutation entry | Release |
+|---|---|---|---|---|
+| Original coefficient receipt | Immutable COW source and homogeneous net | Value ownership | Checked coefficient accessor; no mutation | Last retained value release |
+| Prepared Taylor derivative nets | Immutable COW interval arrays | Value ownership | Validated original receipt query; no mutation | Prepared invocation release |
+| Scalar algebra scratch | Invocation-local COW value arrays | Exclusive local mutation | Checked `set` inside synchronous operation; callback retained nowhere | Return or throw releases local values |
+| Work quantity | Caller's original query owner | Same nonescaping callback on every target | No component-local counter or budget reset | Caller query lifetime |
+
+No target condition changes this storage, Sendable, ownership or failure contract.
+Higher-order behavioral ownership is
+[SurfaceAreaHigherCoefficientTaylorTests](../../../Tests/CADGeometryTests/SurfaceAreaHigherCoefficientTaylorTests.swift)
+and [NestedOffsetSurfaceAreaIntegrationTests](../../../Tests/CADTopologyTests/NestedOffsetSurfaceAreaIntegrationTests.swift).
+Native, normal WASM and Embedded results are recorded separately; source-only
+preparation does not establish target compile/link/runtime success.
+
+### Remaining Public Q3 Completion Boundary
+
+[OCCT requirement Q3](../../../OCCT_REQUIREMENTS.md) requires general
+free-surface area and area centroid through `BRepModel.faceAreaMeasurement`.
+Higher-order coefficient tests establish their lower contract only. The public
+completion matrix below reuses unchanged earlier proofs and names the remaining
+consumer gaps; it does not add adjacent intersection-generation features.
+
+| Required input family | Existing consumer evidence | Remaining public completion evidence |
+|---|---|---|
+| B-spline, including rational, nonclamped, periodic and C0 native spans | Polynomial, periodic and C0 rectangle/fan/hole fixtures exist; ordinary `.spline` still prepares Cartesian decomposed patches | Route the ordinary partition through original coefficient authority; one independent rational nonclamped area/XYZ case and affected existing native-domain cases |
+| Genuine and nested B-spline offsets | Native19 proves original requested-order derivatives, rational nested and curved forward/reverse public area/XYZ under unchanged tolerances and shared work; existing single polynomial offset integrals | Periodic lift and C0 owning-span public area/XYZ cases |
+| Ruled surfaces | Smooth direct rails and original same-basis/denominator C0 tensor fixtures | Original piecewise unequal denominator or basis rails with independent area/XYZ; current explicit admission marker remains open |
+| Rolling-ball surfaces | Smooth rails and original C0 constant-radial same-basis quarter-cylinder proof | Original piecewise varying radial or unequal denominator rails with independent area/XYZ; current explicit admission marker remains open |
+| Required trim/support domains | Numeric trims, holes/reversal/rigid fractions, affine and open original implicit graph family proofs | Periodic/multispan, mixed-coordinate/direction, closed and procedural implicit chart admission remains explicitly incomplete; public integrals must consume original supplied charts |
+| Failure and target authority | Shared query work, control admission, depth and cancellation proofs; immutable retained coefficient state | Preserve typed failures and source/tolerance/side/lift ownership; Native, normal WASM, Embedded and main integration are separate terminal obligations |
+
+Native verification of this higher-offset snapshot passes 14 declarations and
+19 cases, including all three former shared-work refusals, the unchanged area
+and XYZ centroid oracles, and an original rational nonclamped translation law.
+The original 262144 query-work ceiling, precision, cancellation and resource
+assertions are unchanged. The public nested-offset cases now publish certified
+measurements; this evidence does not close the remaining rows or other targets.
