@@ -154,9 +154,12 @@ public struct CertifiedGeometryConverter: GeometryConverting {
         guard candidate.degree <= requirements.maximumDegree, candidate.controlPointCount <= requirements.maximumControlPointCount else {
             throw GeometryConversionError.resourceLimitExceeded("The curve exceeds the requested degree or control-point count.")
         }
-        let targetCost = GeometryConversionTargetCost.curve(candidate)
+        let polynomial = PolynomialCurveConversionTarget.accepts(candidate)
+        let targetCost = polynomial ? GeometryConversionTargetCost.polynomialCurve(candidate) : .curve(candidate)
         try targetCost.chargePreparation(budget: &budget)
-        let target = try NativeCurveConversionSource(.bSpline(candidate), tolerance: tolerance)
+        let target: any GeometryCurveConversionSource = polynomial
+            ? try PolynomialCurveConversionTarget(candidate, tolerance: tolerance)
+            : try NativeCurveConversionSource(.bSpline(candidate), tolerance: tolerance)
         try target.validate(over: parameters, tolerance: tolerance)
         return try GeometryConversionCertification().curve(source: source, target: target, parameters: parameters,
             requirements: requirements, tolerance: tolerance, targetCost: targetCost, budget: &budget)
@@ -164,10 +167,13 @@ public struct CertifiedGeometryConverter: GeometryConverting {
     private func certify(source: any GeometrySurfaceConversionSource, candidate: BSplineSurface3D, parameters: SurfaceParameterBox,
         requirements: GeometryConversionRequirements, tolerance: ModelingTolerance,
         budget: inout GeometryConversionBudget) throws -> GeometryConversionGuarantee {
-        let targetCost = GeometryConversionTargetCost.surface(candidate)
+        let polynomial = PolynomialSurfaceConversionTarget.accepts(candidate)
+        let targetCost = polynomial ? GeometryConversionTargetCost.polynomialSurface(candidate) : .surface(candidate)
         try targetCost.chargePreparation(budget: &budget)
         try validate(candidate: candidate, parameters: parameters, requirements: requirements, tolerance: tolerance)
-        let target = try NativeSurfaceConversionSource(.bSpline(candidate), tolerance: tolerance)
+        let target: any GeometrySurfaceConversionSource = polynomial
+            ? try PolynomialSurfaceConversionTarget(candidate, tolerance: tolerance)
+            : try NativeSurfaceConversionSource(.bSpline(candidate), tolerance: tolerance)
         return try GeometryConversionCertification().surface(source: source, target: target, parameters: parameters,
             requirements: requirements, tolerance: tolerance, targetCost: targetCost, budget: &budget)
     }

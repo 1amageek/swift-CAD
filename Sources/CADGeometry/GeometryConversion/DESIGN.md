@@ -137,6 +137,73 @@ The package task owns native/WASM runtime and consumer migration evidence.
 Changes affect the CADGeometry parent index and mapped fitting consumers; their
 claims must match the common certificate before G6 can close globally.
 
+### Default-Budget Curved Conversion and Publication Cancellation
+
+The common converter must execute curved analytic, positive-weight NURBS and
+procedural source construction and full three-field admission under its existing
+default scalar/work/control/box limits. Candidate refinement retains one cumulative
+budget and the original source chart and allowances; increasing defaults or
+substituting sampled source authority cannot establish this contract. A definite
+candidate violation may request a finer layout, while source failures and unresolved
+resource exhaustion retain their typed failure contract.
+Resource-admission diagnostics identify the requested and remaining scalar/work
+charges and visited certification boxes, so an actual exhaustion can be traced
+to construction, preparation or traversal without weakening its allowance.
+
+The final source enclosure callback is a cancellation boundary. Curve and surface
+certification must check cancellation after complete admission and immediately
+before publishing a guarantee, including a source callback that returns valid
+evidence while cancelling the current task. Dedicated public-protocol tests own
+this failure path together with unchanged-default curved conversion evidence.
+These proofs close only this common conversion boundary; mapped consumer migration,
+periodic/rational continuation and portable consumer evidence remain G6 work.
+
+#### Original Polynomial Target Jets
+
+Converter-owned degree-at-most-three, common-positive-weight targets select an
+immutable polynomial target adapter when a curve's stored knots isolate complete
+Bezier polygons or a surface is one exactly clamped Bezier tensor. Family selection
+precedes preparation; failure in the selected adapter propagates. Other target
+families retain the native differential adapter and its existing cost owner.
+Partition of unity cancels the common stored weight exactly. The adapter retains
+the actual candidate and derives outward power coefficients directly from its
+stored Cartesian controls, relative to each original polygon's first point:
+`A[i,j] = C(p,i) C(q,j) sum(a<=i,b<=j) (-1)^(i+j-a-b)
+ C(i,a) C(j,b) (P[a,b]-origin)`.
+Exact native endpoint differences normalize the requested chart; outward Horner
+evaluation and exact falling-factorial differentiation enclose value and all
+first/second derivatives. Closed overlapping curve spans retain both knot sides.
+No rounded extracted Cartesian polygon replaces original target authority.
+
+```text
+actual candidate stored controls + admitted structural family
+  -> paid outward power coefficients retained once
+    -> paid scalar Horner value / first / second jet queries
+      -> unchanged complete-domain three-field admission
+```
+
+Preparation reservations count retained coefficient payloads, array owners,
+coefficient contractions and interval multiplication scratch. Per-probe reservations
+count each executed derivative polynomial term and native chart scaling, returned
+jet payloads and span scans. Third derivatives and homogeneous split arrays are
+absent from this selected path and are not charged as if they were generated.
+Surface refinement prioritizes the larger outward first-derivative-difference
+contribution to the position bound; either selected direction still requires
+complete cell coverage and all three original allowances before publication.
+
+Native Swift 6.4.0 verification on the frozen original production dependency
+graph passes seventeen declarations/nineteen cases, including the unchanged ten
+conversion regressions, four default-budget curved public conversions, two
+independent literal polynomial jet oracles and three curve publication cancellation
+cases. A test-only addition relinks the same production objects and passes all
+three surface publication cancellation cases in a targeted run. The default
+analytic circle/cylinder, varying-weight rational curve and procedural ruled
+surface retain their original position, tangent and principal-curvature allowances.
+The dedicated owners are [default admission tests](../../../Tests/CADGeometryTests/GeometryConversionDefaultAdmissionTests.swift)
+and [publication cancellation tests](../../../Tests/CADGeometryTests/GeometryConversionPublicationCancellationTests.swift).
+This evidence covers the common native conversion boundary; normal WASM,
+Embedded, mapped consumers and full G6 completion remain separate obligations.
+
 
 ### Native Position-Only Surface Publication (PAR.G6POS1)
 

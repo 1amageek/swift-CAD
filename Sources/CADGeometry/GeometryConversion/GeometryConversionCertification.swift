@@ -69,6 +69,7 @@ struct GeometryConversionCertification {
             stack.append(try ScalarInterval(lower: mid, upper: box.upper))
             stack.append(try ScalarInterval(lower: box.lower, upper: mid))
         }
+        try Task.checkCancellation()
         return GeometryConversionGuarantee(positionErrorUpperBound: position, tangentAngleUpperBound: tangent,
             curvatureErrorUpperBound: curvature, certifiedBoxCount: budget.visited - initial)
     }
@@ -96,9 +97,10 @@ struct GeometryConversionCertification {
             } else { centerCurvature = nil }
             try rejectDefiniteDifference(position: centerDifference, curvature: centerCurvature, requirements: r)
             let u = outwardOffset(box.u, center: box.u.midpoint), v = outwardOffset(box.v, center: box.v.midpoint)
-            let difference = centerDifference
-                + (VectorBounds(a.tangentU) - VectorBounds(b.tangentU)) * u
-                + (VectorBounds(a.tangentV) - VectorBounds(b.tangentV)) * v
+            let differenceU = VectorBounds(a.tangentU) - VectorBounds(b.tangentU)
+            let differenceV = VectorBounds(a.tangentV) - VectorBounds(b.tangentV)
+            let contributionU = differenceU * u, contributionV = differenceV * v
+            let difference = centerDifference + contributionU + contributionV
             if let angular = surfaceAngle(a, b), let ka = principalCurvatures(a), let kb = principalCurvatures(b) {
                 let curvatureBound = max((ka.0 - kb.0).absoluteUpperBound, (ka.1 - kb.1).absoluteUpperBound)
                 let bound = Bounds(position: difference.norm.upper, tangent: angular, curvature: curvatureBound)
@@ -107,7 +109,10 @@ struct GeometryConversionCertification {
                     continue
                 }
             }
-            if box.u.width / parameters.u.width >= box.v.width / parameters.v.width {
+            let refineU = contributionU.norm.upper > contributionV.norm.upper
+                || (contributionU.norm.upper == contributionV.norm.upper
+                    && box.u.width / parameters.u.width >= box.v.width / parameters.v.width)
+            if refineU {
                 let mid = box.u.midpoint
                 guard mid > box.u.lower, mid < box.u.upper else { throw GeometryConversionAdmissionRejection.candidate }
                 stack.append(try SurfaceParameterBox(u: ScalarInterval(lower: mid, upper: box.u.upper), v: box.v))
@@ -119,6 +124,7 @@ struct GeometryConversionCertification {
                 stack.append(try SurfaceParameterBox(u: box.u, v: ScalarInterval(lower: box.v.lower, upper: mid)))
             }
         }
+        try Task.checkCancellation()
         return GeometryConversionGuarantee(positionErrorUpperBound: position, tangentAngleUpperBound: tangent,
             curvatureErrorUpperBound: curvature, certifiedBoxCount: budget.visited - initial)
     }

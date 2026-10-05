@@ -6,9 +6,17 @@ import CADCore
 enum GeometryConversionTargetCost {
     case curve(BSplineCurve3D)
     case surface(BSplineSurface3D)
+    case polynomialCurve(BSplineCurve3D)
+    case polynomialSurface(BSplineSurface3D)
 
     func chargePreparation(budget: inout GeometryConversionBudget) throws {
         switch self {
+        case .polynomialCurve(let curve):
+            try PolynomialConversionTargetPatch.chargePreparation(uDegree: curve.degree, vDegree: 0,
+                patches: (curve.controlPointCount - 1) / curve.degree, knots: curve.knots.count, budget: &budget)
+        case .polynomialSurface(let surface):
+            try PolynomialConversionTargetPatch.chargePreparation(uDegree: surface.uDegree, vDegree: surface.vDegree,
+                patches: 1, knots: surface.uKnots.count + surface.vKnots.count, budget: &budget)
         case .curve(let curve):
             let n = try order(curve.degree, count: curve.controlPointCount)
             if curve.isPeriodic { return } // Requested-window extraction is charged per probe.
@@ -46,6 +54,12 @@ enum GeometryConversionTargetCost {
     }
 
     func chargeProbe(over interval: ScalarInterval, tolerance: ModelingTolerance, budget: inout GeometryConversionBudget) throws {
+        if case .polynomialCurve(let curve) = self {
+            let patches = spanCount(curve.knots, degree: curve.degree, count: curve.controlPointCount, interval: interval)
+            try PolynomialConversionTargetPatch.chargeProbe(uDegree: curve.degree, vDegree: 0, curve: true,
+                patches: patches, scans: curve.knots.count, budget: &budget)
+            return
+        }
         guard case .curve(let curve) = self else { throw GeometryConversionError.invalidInput("Curve probe requires a curve target.") }
         let n = try order(curve.degree, count: curve.controlPointCount)
         if curve.isPeriodic {
@@ -70,6 +84,11 @@ enum GeometryConversionTargetCost {
     }
 
     func chargeProbe(over box: SurfaceParameterBox, tolerance: ModelingTolerance, budget: inout GeometryConversionBudget) throws {
+        if case .polynomialSurface(let surface) = self {
+            try PolynomialConversionTargetPatch.chargeProbe(uDegree: surface.uDegree, vDegree: surface.vDegree, curve: false,
+                patches: 1, scans: surface.uKnots.count + surface.vKnots.count, budget: &budget)
+            return
+        }
         guard case .surface(let surface) = self else { throw GeometryConversionError.invalidInput("Surface probe requires a surface target.") }
         let n = try order(surface.uDegree, count: surface.uControlPointCount)
         let m = try order(surface.vDegree, count: surface.vControlPointCount)

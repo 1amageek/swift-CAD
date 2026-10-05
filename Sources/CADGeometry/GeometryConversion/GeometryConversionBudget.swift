@@ -11,7 +11,8 @@ struct GeometryConversionBudget {
     }
     mutating func charge(scalars count: Int = 0, work units: Int = 0) throws {
         guard count >= 0, units >= 0, count <= scalars, units <= work else {
-            throw GeometryConversionError.resourceLimitExceeded("Conversion exceeded its cumulative scalar or work budget.")
+            throw GeometryConversionError.resourceLimitExceeded(
+                "Conversion resource admission rejected \(count) scalar slots with \(scalars) remaining and \(units) work units with \(work) remaining after \(visited) certification boxes.")
         }
         scalars -= count; work -= units
     }
