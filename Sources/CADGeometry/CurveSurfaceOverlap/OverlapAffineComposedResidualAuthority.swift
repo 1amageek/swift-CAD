@@ -41,35 +41,82 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
         return total
     }
 
+    static func preparationWork(sourceDegree: Int, uDegree: Int, vDegree: Int,
+                                sourceKnots: Int, targetKnots: Int,
+                                tolerance: ModelingTolerance) throws -> Int {
+        if uDegree == 1 && vDegree == 1 {
+            return try preparationWork(degree: sourceDegree, sourceKnots: sourceKnots,
+                targetKnots: targetKnots, tolerance: tolerance)
+        }
+        var total = 512
+        func sum(_ a: Int, _ b: Int) throws -> Int {
+            let result = a.addingReportingOverflow(b)
+            guard a >= 0, b >= 0, !result.overflow else { throw overflow(tolerance) }
+            return result.partialValue
+        }
+        func product(_ a: Int, _ b: Int) throws -> Int {
+            let result = a.multipliedReportingOverflow(by: b)
+            guard a >= 0, b >= 0, !result.overflow else { throw overflow(tolerance) }
+            return result.partialValue
+        }
+        func add(_ count: Int, _ factor: Int) throws {
+            total = try sum(total, product(count, factor))
+        }
+        guard sourceDegree > 0, uDegree > 0, vDegree > 0 else { throw overflow(tolerance) }
+        let targetDegree = try sum(uDegree, vDegree)
+        let outputCount = try sum(sum(sourceDegree, targetDegree), 1)
+        let tensorCount = try product(sum(uDegree, 1), sum(vDegree, 1))
+        try add(sum(sourceKnots, targetKnots), 2)
+        // Every live source/result scratch array and all six binomial recurrences.
+        try add(outputCount, 128)
+        // Each tensor basis product has at most tensorCount terms; accumulation
+        // and its three binomial recurrences are bounded by the target degree.
+        try add(product(tensorCount, tensorCount), 16)
+        try add(product(tensorCount, sum(targetDegree, 1)), 32)
+        // Six complete numerator products, including outward normalization.
+        try add(product(sum(sourceDegree, 1), sum(targetDegree, 1)), 96)
+        return total
+    }
+
     static func certificate(source: BSplineCurve3D, target: BSplineSurface3D,
                             pair: OverlapRegularGraphCell.Pair,
                             budget: inout OverlapProofBudget) throws -> Self? {
         guard !source.isPeriodic, !target.isUPeriodic, !target.isVPeriodic,
-              source.degree > 0, source.degree <= budget.options.maximumPolynomialDegree,
+              source.degree > 0, source.degree < Int.max,
+              source.degree <= budget.options.maximumPolynomialDegree,
               source.controlPointCount == source.degree + 1,
               source.weights.count == source.controlPointCount,
-              target.uDegree == 1, target.vDegree == 1,
-              target.uControlPointCount == 2, target.vControlPointCount == 2,
-              target.weights.count == 2, target.weights.allSatisfy({ $0.count == 2 }),
-              target.controlPoints.allSatisfy({ $0.count == 2 }) else { return nil }
-        let composedDegree = source.degree.addingReportingOverflow(2)
-        guard !composedDegree.overflow, composedDegree.partialValue <= budget.options.maximumPolynomialDegree else {
+              target.uDegree > 0, target.vDegree > 0,
+              target.uDegree < Int.max, target.vDegree < Int.max,
+              target.uControlPointCount == target.uDegree + 1,
+              target.vControlPointCount == target.vDegree + 1,
+              target.weights.count == target.vControlPointCount,
+              target.controlPoints.count == target.vControlPointCount else { return nil }
+        let targetDegree = target.uDegree.addingReportingOverflow(target.vDegree)
+        let composedDegree = source.degree.addingReportingOverflow(targetDegree.partialValue)
+        guard !targetDegree.overflow, !composedDegree.overflow,
+              composedDegree.partialValue <= budget.options.maximumPolynomialDegree else {
             throw failure(.resourceLimitExceeded, "Affine composed residual exceeds the caller polynomial degree budget.", budget)
         }
         let targetKnots = target.uKnots.count.addingReportingOverflow(target.vKnots.count)
         guard !targetKnots.overflow else { throw overflow(budget.tolerance) }
-        try budget.work(try preparationWork(degree: source.degree, sourceKnots: source.knots.count,
+        try budget.work(try preparationWork(sourceDegree: source.degree,
+            uDegree: target.uDegree, vDegree: target.vDegree, sourceKnots: source.knots.count,
             targetKnots: targetKnots.partialValue, tolerance: budget.tolerance))
         guard clampedSingle(source.knots, degree: source.degree),
-              clampedSingle(target.uKnots, degree: 1), clampedSingle(target.vKnots, degree: 1),
+              clampedSingle(target.uKnots, degree: target.uDegree),
+              clampedSingle(target.vKnots, degree: target.vDegree),
+              target.weights.allSatisfy({ $0.count == target.uControlPointCount }),
+              target.controlPoints.allSatisfy({ $0.count == target.uControlPointCount }),
               source.weights.allSatisfy({ $0.isFinite && $0 > 0 }),
               target.weights.allSatisfy({ $0.allSatisfy({ $0.isFinite && $0 > 0 }) }),
               source.controlPoints.allSatisfy(finite), target.controlPoints.allSatisfy({ $0.allSatisfy(finite) }) else { return nil }
-        let ul = target.uKnots[1], uh = target.uKnots[2], vl = target.vKnots[1], vh = target.vKnots[2]
+        let ul = target.uKnots[target.uDegree], uh = target.uKnots[target.uControlPointCount]
+        let vl = target.vKnots[target.vDegree], vh = target.vKnots[target.vControlPointCount]
         func corner(_ point: Point3D) -> (u: Int, v: Int)? {
             for v in 0..<2 {
                 for u in 0..<2 {
-                    let candidate = target.controlPoints[v][u]
+                    let candidate = target.controlPoints[v == 0 ? 0 : target.vDegree][u == 0 ? 0 : target.uDegree]
                     if OverlapRegularGraphCell.coordinate(point, pair.first) == OverlapRegularGraphCell.coordinate(candidate, pair.first),
                        OverlapRegularGraphCell.coordinate(point, pair.second) == OverlapRegularGraphCell.coordinate(candidate, pair.second) {
                         return (u, v)
@@ -80,22 +127,31 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
         }
         guard let first = corner(source.controlPoints[0]),
               let last = corner(source.controlPoints[source.controlPointCount - 1]) else { return nil }
-        let u: Polynomial = [.exact(Double(first.u)), .exact(Double(last.u))]
-        let v: Polynomial = [.exact(Double(first.v)), .exact(Double(last.v))]
-        let oneMinusU = u.map { Interval.exact(1) - $0 }, oneMinusV = v.map { Interval.exact(1) - $0 }
+        func basis(index: Int, degree: Int, start: Int, end: Int) -> Polynomial {
+            if start == end {
+                // A constant corner parameter selects exactly one native basis.
+                return Polynomial(repeating: .exact(index == (start == 0 ? 0 : degree) ? 1 : 0), count: degree + 1)
+            }
+            // B_i(t) and B_i(1-t) have an exact unit Bernstein coefficient.
+            var values = Polynomial(repeating: .exact(0), count: degree + 1)
+            values[start == 0 ? index : degree - index] = .exact(1)
+            return values
+        }
         let origin = source.controlPoints[0]
-        var composed = [[Interval]](repeating: [.exact(0), .exact(0), .exact(0)], count: 4)
-        for row in 0..<2 {
-            for column in 0..<2 {
+        var composed = [[Interval]](repeating: Polynomial(repeating: .exact(0), count: targetDegree.partialValue + 1), count: 4)
+        for row in 0...target.vDegree {
+            for column in 0...target.uDegree {
                 try Task.checkCancellation()
-                let basis = try multiply(column == 0 ? oneMinusU : u, row == 0 ? oneMinusV : v,
+                let composedBasis = try multiply(
+                    basis(index: column, degree: target.uDegree, start: first.u, end: last.u),
+                    basis(index: row, degree: target.vDegree, start: first.v, end: last.v),
                     maximumDegree: budget.options.maximumPolynomialDegree, budget: budget)
                 let weight = Interval.exact(target.weights[row][column])
                 for axis in 0..<4 {
                     let coefficient = axis == 3 ? weight :
                         (Interval.exact(OverlapRegularGraphCell.coordinate(target.controlPoints[row][column], axis))
                             - .exact(OverlapRegularGraphCell.coordinate(origin, axis))) * weight
-                    for index in basis.indices { composed[axis][index] = composed[axis][index] + coefficient * basis[index] }
+                    for index in composedBasis.indices { composed[axis][index] = composed[axis][index] + coefficient * composedBasis[index] }
                 }
             }
         }

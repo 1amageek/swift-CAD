@@ -1142,3 +1142,49 @@ without a private retry allowance or source/tolerance expansion. The independent
 forward/reverse literal has first UV derivatives exactly +1/-1; dedicated tests
 require their containment and strict sign, and the unchanged public whole/clip/
 corner cases establish that the original clipping guard is reached with proof.
+
+### Complete Original Higher-Order Tensor Composition
+
+The affine-UV residual owner admits every positive, nonperiodic, single-clamped
+original tensor net with positive U/V degrees `p,q`, and every positive original
+single-clamped source net of degree `n`, when the existing caller degree and work
+limits admit the complete computation. There is no new fixed degree or tensor
+count ceiling. Exact selected-coordinate endpoint matches at native corners
+remain only an affine-UV hint; the existing closed-face or strict-K proof owns
+root existence, and global uniqueness, residual transfer, joins and clipping
+remain separate mandatory proofs.
+
+In normalized original source coordinates, a corner-to-corner U hint is `t`,
+`1-t`, or a constant native endpoint. Each original U Bernstein basis therefore
+has its exact degree-`p` coefficient vector: a unit coefficient at its forward
+index, at its reversed index, or the constant zero/one vector. V uses the same
+rule at degree `q`. Complete outward Bernstein products of these original basis
+vectors compose every original homogeneous tensor coefficient into degree
+`p+q`. Cross-products with the original source homogeneous coefficients have
+degree `n+p+q`. The existing positive original weight minima bound both whole
+denominators; original stored Cartesian/weight products, including representation
+roundoff, are enclosed rather than replaced by an ideal or fitted net.
+
+Before any coefficient allocation, the owner checks degree/count arithmetic and
+charges original scans, every tensor basis product, four-coordinate accumulation,
+six source cross-products, binomial normalization and all live scratch to the
+same invocation budget. The bilinear fee definition remains unchanged. Higher
+order fees are deterministic upper bounds on the performed scalar work and
+scratch, with checked arithmetic and cancellation at the existing charged and
+per-row boundaries. Missing original-net eligibility returns no residual hint;
+degree/work/finite-arithmetic exhaustion throws explicitly, and cannot publish
+an overlap. The opaque transfer's operands, source fraction/orientation, convex
+original domain, strict contraction, root-distance tube and complete first-jet
+cover are unchanged by target degree.
+
+`OriginalGeneralClosedOverlapTests` owns the independent higher-order public
+oracle. The biquadratic positive rational tensor represents
+`S=(u(1+v),v(1+u),2uv+u^2v^2)/(1+uv)` and the quartic source represents
+`C=(t+t^2,t+t^2,2t^2+t^4)/(1+t^2)`, with the independently known UV path `(t,t)`.
+Their original stored coefficients are compared to these literal expressions
+with explicit rounding error, and the production whole-coefficient certificate
+must enclose that error. Reverse, whole/clip/corner ownership, a positive middle
+Z perturbation, exact higher-order fee/fee-minus-one, degree refusal and
+cancellation provide behavioral evidence. This closes higher-order affine-UV
+composition only; non-affine predictors, arbitrary source/target atlases,
+periodic graphs and contacts remain required full-G4 work.

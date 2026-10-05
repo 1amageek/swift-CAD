@@ -200,6 +200,166 @@ struct OriginalGeneralClosedOverlapTests {
         await #expect(throws: CancellationError.self) { _ = try await task.value }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func higherOrderTensorRetainsWholeOriginalCorrespondence(reversed: Bool) throws {
+        var source = higherOrderSource(reversed: reversed), target = higherOrderTarget()
+        let originalSource = source, originalTarget = target
+        let result = try resolver.intersectionResult(curve: .bSpline(source), surface: .bSpline(target),
+            options: options(), tolerance: .standard)
+        #expect(result.points.isEmpty && result.overlaps.count == 1)
+        let overlap = try #require(result.overlaps.first)
+        #expect(overlap.curveRange == (try ScalarInterval(lower: 0, upper: 1)))
+        #expect(overlap.maximumSpatialDeviation <= ModelingTolerance.standard.distance)
+        source.controlPoints[2].z = 7
+        target.controlPoints[1][1].z = 9
+        for t in [0.0, 0.125, 0.5, 0.875, 1.0] {
+            try verifyHigherOrder(overlap.correspondence(at: t), t: t, reversed: reversed,
+                source: originalSource, target: originalTarget)
+        }
+        #expect(overlap.start.surfaceParameter == SurfaceParameter(u: reversed ? 1 : 0, v: reversed ? 1 : 0))
+        #expect(overlap.end.surfaceParameter == SurfaceParameter(u: reversed ? 0 : 1, v: reversed ? 0 : 1))
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func higherOrderTensorClipRetainsLiteralEndpoints(reversed: Bool) throws {
+        let source = higherOrderSource(reversed: reversed), target = higherOrderTarget()
+        var request = options()
+        request.surfaceURange = try ScalarInterval(lower: 0.25, upper: 0.75)
+        request.surfaceVRange = request.surfaceURange
+        let result = try resolver.intersectionResult(curve: .bSpline(source), surface: .bSpline(target),
+            options: request, tolerance: .standard)
+        #expect(result.points.isEmpty && result.overlaps.count == 1)
+        let overlap = try #require(result.overlaps.first)
+        #expect(abs(overlap.curveRange.lower - 0.25) < 1e-8)
+        #expect(abs(overlap.curveRange.upper - 0.75) < 1e-8)
+        for t in [overlap.curveRange.lower, 0.5, overlap.curveRange.upper] {
+            try verifyHigherOrder(overlap.correspondence(at: t), t: t, reversed: reversed,
+                source: source, target: target)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [0.0, 1.0])
+    func higherOrderNativeCornerRetainsIsolatedIncidence(boundary: Double) throws {
+        var request = options()
+        request.surfaceURange = try ScalarInterval(lower: boundary, upper: boundary)
+        request.surfaceVRange = request.surfaceURange
+        let result = try resolver.intersectionResult(curve: .bSpline(higherOrderSource()), surface: .bSpline(higherOrderTarget()),
+            options: request, tolerance: .standard)
+        #expect(result.overlaps.isEmpty && result.points.count == 1)
+        let event = try #require(result.points.first)
+        #expect(event.curveParameter == boundary && event.surfaceU == boundary && event.surfaceV == boundary)
+        #expect(event.residual <= ModelingTolerance.standard.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func higherOrderResidualConsumesCompleteCoefficientsAndExactFee() throws {
+        let source = higherOrderSource(), target = higherOrderTarget()
+        let pair = OverlapRegularGraphCell.Pair(first: 0, second: 1)
+        let fee = try OverlapAffineComposedResidualAuthority.preparationWork(sourceDegree: source.degree,
+            uDegree: target.uDegree, vDegree: target.vDegree, sourceKnots: source.knots.count,
+            targetKnots: target.uKnots.count + target.vKnots.count, tolerance: .standard)
+        var request = options()
+        request.maximumSubdivisionCells = fee
+        var budget = OverlapProofBudget(options: request, tolerance: .standard)
+        let certificate = try #require(OverlapAffineComposedResidualAuthority.certificate(
+            source: source, target: target, pair: pair, budget: &budget))
+        // Ideal degree-eight cross-products are all zero. Original rounded
+        // controls/weights must be enclosed, rather than asserted algebraically equal.
+        #expect(certificate.errors.count == 3 && certificate.errors.allSatisfy({ $0 < 1e-10 }))
+        do { try budget.work(); Issue.record("Higher-order preparation reset its original work charge.") }
+        catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        request.maximumSubdivisionCells = fee - 1
+        var insufficient = OverlapProofBudget(options: request, tolerance: .standard)
+        do {
+            _ = try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target,
+                pair: pair, budget: &insufficient)
+            Issue.record("Higher-order coefficients bypassed the caller preparation cap.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        request = options()
+        request.maximumPolynomialDegree = 7
+        var degree = OverlapProofBudget(options: request, tolerance: .standard)
+        do {
+            _ = try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target, pair: pair, budget: &degree)
+            Issue.record("A complete degree-eight residual bypassed the degree-seven cap.")
+        } catch let error as KernelError { #expect(error.code == .resourceLimitExceeded) }
+        var changed = source
+        changed.controlPoints[2].z += 1e-3
+        budget = OverlapProofBudget(options: options(), tolerance: .standard)
+        let deviation = try #require(OverlapAffineComposedResidualAuthority.certificate(
+            source: changed, target: target, pair: pair, budget: &budget))
+        // Independent ideal midpoint deviation is 7*k*t^2*(1-t)^2/(1+t^2).
+        #expect(deviation.errors[2] >= 3.5e-4)
+        #expect(deviation.errors[0] < 1e-10 && deviation.errors[1] < 1e-10)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func higherOrderInteriorDeviationCannotProduceWholeOverlap() throws {
+        var source = higherOrderSource()
+        source.controlPoints[2].z += 1e-3
+        let target = higherOrderTarget()
+        let result = try resolver.intersectionResult(curve: .bSpline(source), surface: .bSpline(target),
+            options: options(), tolerance: .standard)
+        #expect(result.overlaps.isEmpty)
+        let middle = try source.point(at: 0.5, tolerance: .standard)
+        let image = try target.point(u: 0.5, v: 0.5, tolerance: .standard)
+        #expect(abs((middle-image).z-3.5e-4) < 1e-12)
+        #expect((middle-image).length > ModelingTolerance.standard.distance)
+        for event in result.points {
+            let point = try source.point(at: event.curveParameter, tolerance: .standard)
+            let targetPoint = try target.point(u: event.surfaceU, v: event.surfaceV, tolerance: .standard)
+            #expect((point-targetPoint).length <= ModelingTolerance.standard.distance)
+            #expect(event.residual <= ModelingTolerance.standard.distance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func cancelledHigherOrderPreparationPublishesNoCertificate() async throws {
+        let source = higherOrderSource(), target = higherOrderTarget(), request = options()
+        let task = Task {
+            while !Task.isCancelled { await Task.yield() }
+            var budget = OverlapProofBudget(options: request, tolerance: .standard)
+            return try OverlapAffineComposedResidualAuthority.certificate(source: source, target: target,
+                pair: OverlapRegularGraphCell.Pair(first: 0, second: 1), budget: &budget)
+        }
+        task.cancel()
+        await #expect(throws: CancellationError.self) { _ = try await task.value }
+    }
+
+    private func higherOrderSource(reversed: Bool = false) -> BSplineCurve3D {
+        // Degree-four Bernstein data for (t+t^2,t+t^2,2t^2+t^4)/(1+t^2).
+        let points: [Point3D] = [Point3D(x: 0, y: 0, z: 0), Point3D(x: 0.25, y: 0.25, z: 0),
+            Point3D(x: 4.0/7, y: 4.0/7, z: 2.0/7), Point3D(x: 5.0/6, y: 5.0/6, z: 2.0/3),
+            Point3D(x: 1, y: 1, z: 1.5)]
+        let weights: [Double] = [1, 1, 7.0/6, 1.5, 2]
+        return BSplineCurve3D(degree: 4, knots: [0, 0, 0, 0, 0, 1, 1, 1, 1, 1],
+            controlPoints: reversed ? Array(points.reversed()) : points,
+            weights: reversed ? Array(weights.reversed()) : weights)
+    }
+
+    private func higherOrderTarget() -> BSplineSurface3D {
+        // Independent degree-two tensor coefficients; weights are non-factorable.
+        let points: [[Point3D]] = [
+            [Point3D(x: 0, y: 0, z: 0), Point3D(x: 0.5, y: 0, z: 0), Point3D(x: 1, y: 0, z: 0)],
+            [Point3D(x: 0, y: 0.5, z: 0), Point3D(x: 0.6, y: 0.6, z: 0.4), Point3D(x: 1, y: 2.0/3, z: 2.0/3)],
+            [Point3D(x: 0, y: 1, z: 0), Point3D(x: 2.0/3, y: 1, z: 2.0/3), Point3D(x: 1, y: 1, z: 1.5)]]
+        let weights: [[Double]] = [[1, 1, 1], [1, 1.25, 1.5], [1, 1.5, 2]]
+        return BSplineSurface3D(uDegree: 2, vDegree: 2,
+            uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 0, 1, 1, 1], controlPoints: points, weights: weights)
+    }
+
+    private func verifyHigherOrder(_ value: CurveSurfaceOverlapEndpoint, t: Double, reversed: Bool,
+                                  source: BSplineCurve3D, target: BSplineSurface3D) throws {
+        let r = reversed ? 1-t : t, denominator = 1+r*r
+        let expected = Point3D(x: r*(1+r)/denominator, y: r*(1+r)/denominator,
+            z: (2*r*r+r*r*r*r)/denominator)
+        #expect(abs(value.surfaceParameter.u-r) < 1e-7 && abs(value.surfaceParameter.v-r) < 1e-7)
+        let point = try source.point(at: t, tolerance: .standard)
+        let targetPoint = try target.point(u: value.surfaceParameter.u, v: value.surfaceParameter.v, tolerance: .standard)
+        #expect((point-expected).length < 1e-12)
+        #expect((point-targetPoint).length <= ModelingTolerance.standard.distance)
+        #expect(value.residual <= ModelingTolerance.standard.distance)
+    }
+
     private func literalSource(reversed: Bool = false) -> BSplineCurve3D {
         let points = [Point3D(x: 0, y: 0, z: 0), Point3D(x: 0.5, y: 0.5, z: 0), Point3D(x: 1, y: 1, z: 1)]
         return BSplineCurve3D(degree: 2, knots: [0, 0, 0, 1, 1, 1],
