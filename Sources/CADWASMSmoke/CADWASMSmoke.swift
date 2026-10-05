@@ -60,6 +60,7 @@ struct CADWASMSmoke {
         }
 
         try MainMeshCompactionSmoke.run(model: evaluated.brep, tolerance: tolerance)
+        try OriginalNativeRectangleSmoke.run()
         print("CADWASMSmoke passed")
     }
 }

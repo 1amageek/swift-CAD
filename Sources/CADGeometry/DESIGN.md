@@ -65,6 +65,7 @@ measurement policy.
 | [Involute](Involute/DESIGN.md) | child | certified flank approximation | Converts analytic involute intervals to bounded B-spline spans. | Does not own gear dimensions or root geometry. |
 | [RollingBall](RollingBall/DESIGN.md) | child | local contact section | Resolves source contacts from offset-intersection correspondence. | A local section is not a certified complete blend surface. |
 | [GeometryConversion](GeometryConversion/DESIGN.md) | child | certified curve/surface conversion | Owns admitted error bounds and caller-budgeted construction. | Original native-span jets remain local geometry authority; conversion does not change correspondence admission. |
+| [OriginalRectangleTessellation](OriginalRectangleTessellation/DESIGN.md) | child | original nonperiodic selected-span differential authority | Supplies source-bound closed panels and owning-side normals for nonclamped rectangle meshes. | Existing whole-query behavior and curve/surface wire representation remain unchanged; Kernel consumes the child contract. |
 
 ## Architecture
 

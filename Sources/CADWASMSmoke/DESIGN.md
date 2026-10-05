@@ -15,6 +15,7 @@ The composition root constructs the original meter-valued box, evaluates its exa
 | [Swift-CAD](../../DESIGN.md) | parent | native package composition | Owns package scope. | A smoke result is bounded to its actual input and target. |
 | [CADKernel](../CADKernel/DESIGN.md) | depends on | evaluation and tessellation | Executes the complete production graph. | Typed failure and caller limits remain required. |
 | [MainMeshCompactionSmoke](MainMeshCompactionSmoke/DESIGN.md) | child | mesh publication witness | Verifies indices, attributes and FaceRuns through public tessellation. | Reuses the original evaluated box. |
+| [OriginalNativeRectangleSmoke](OriginalNativeRectangleSmoke/DESIGN.md) | child | original nonclamped mesh witness | Verifies literal original positions, normals and typed resource/singularity refusals. | Nonperiodic Native and normal WASM only. |
 
 ## Architecture
 

@@ -156,12 +156,14 @@ public struct MeshTessellator: Tessellating {
         var indices: Int
         var planarBoundary: PlanarBoundary? = nil
         var grid: ParametricGrid? = nil
+        var nativeGrids: [ParametricGrid]? = nil
     }
 
     private struct ParametricGrid {
         let uBounds: (lower: Double, upper: Double)
         let vBounds: (lower: Double, upper: Double)
         let steps: (u: Int, v: Int)
+        var owningSpan: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan? = nil
     }
 
     private struct PlanarBoundary {
@@ -229,6 +231,27 @@ public struct MeshTessellator: Tessellating {
         }
 
         try surface.validate(tolerance: tolerance)
+        if case let .bSpline(spline) = surface,
+           try RectangularBSplineMesh(tolerance: tolerance).requiresNativePanels(spline) {
+            guard innerLoopIDs.isEmpty else {
+                throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                                  message: "Original nonclamped tessellation requires a rectangle without inner loops.")
+            }
+            let grids = try RectangularBSplineMesh(tolerance: tolerance).grids(
+                for: loop, surface: spline, model: model, options: options)
+            var estimate = FaceUsageEstimate(vertices: 0, indices: 0)
+            var retained: [ParametricGrid] = []
+            for grid in grids {
+                try Task.checkCancellation()
+                let usage = try gridUsageEstimate(uSteps: grid.steps.u, vSteps: grid.steps.v)
+                estimate.vertices = try added(estimate.vertices, usage.vertices, as: .vertexCount)
+                estimate.indices = try added(estimate.indices, usage.indices, as: .indexCount)
+                retained.append(ParametricGrid(uBounds: grid.uBounds, vBounds: grid.vBounds,
+                    steps: grid.steps, owningSpan: grid.owningSpan))
+            }
+            estimate.nativeGrids = retained
+            return estimate
+        }
         if innerLoopIDs.isEmpty,
            let bounds = try rectangularParameterBounds(
                for: loop,
@@ -463,6 +486,7 @@ public struct MeshTessellator: Tessellating {
             try appendParametricFace(
                 surface: surface,
                 grid: preparation.grid,
+                nativeGrids: preparation.nativeGrids,
                 outerLoop: loop,
                 innerLoopIDs: innerLoopIDs,
                 face: face,
@@ -1764,6 +1788,7 @@ public struct MeshTessellator: Tessellating {
     private func appendParametricFace(
         surface: Surface3D,
         grid: ParametricGrid?,
+        nativeGrids: [ParametricGrid]?,
         outerLoop: Loop,
         innerLoopIDs: [LoopID],
         face: Face,
@@ -1777,6 +1802,15 @@ public struct MeshTessellator: Tessellating {
         budget: inout TessellationBudget
     ) throws {
         try surface.validate(tolerance: tolerance)
+        if let nativeGrids {
+            for grid in nativeGrids {
+                try Task.checkCancellation()
+                try appendParametricGridFace(surface: surface, grid: grid, face: face,
+                    faceID: faceID, shellOrientation: shellOrientation,
+                    positions: &positions, normals: &normals, indices: &indices, budget: &budget)
+            }
+            return
+        }
         if let grid {
             try appendParametricGridFace(
                 surface: surface,
@@ -1851,44 +1885,45 @@ public struct MeshTessellator: Tessellating {
         try budget.charge(vertices: pointCount, indices: 0)
         var pointIteration = 0
         for vIndex in 0...vSteps {
-            let v = interpolatedParameter(
-                lowerBound: vBounds.lower,
-                upperBound: vBounds.upper,
-                index: vIndex,
-                count: vSteps
-            )
+            let v: Double
+            if grid.owningSpan != nil {
+                v = RectangularBSplineMesh.station(lowerBound: vBounds.lower,
+                    upperBound: vBounds.upper, index: vIndex, count: vSteps)
+            } else {
+                v = interpolatedParameter(lowerBound: vBounds.lower,
+                    upperBound: vBounds.upper, index: vIndex, count: vSteps)
+            }
             for uIndex in 0...uSteps {
                 if pointIteration & 0xFF == 0 {
                     try Task.checkCancellation()
                 }
                 pointIteration += 1
-                let u = interpolatedParameter(
-                    lowerBound: uBounds.lower,
-                    upperBound: uBounds.upper,
-                    index: uIndex,
-                    count: uSteps
-                )
+                let u: Double
+                if grid.owningSpan != nil {
+                    u = RectangularBSplineMesh.station(lowerBound: uBounds.lower,
+                        upperBound: uBounds.upper, index: uIndex, count: uSteps)
+                } else {
+                    u = interpolatedParameter(lowerBound: uBounds.lower,
+                        upperBound: uBounds.upper, index: uIndex, count: uSteps)
+                }
                 let point = try surface.point(u: u, v: v, tolerance: tolerance)
                 // Trust the surface normal composed with face and shell
                 // orientation. The previous first-vertex hemisphere heuristic
                 // silently flipped normals (and therefore winding) on patches
                 // whose normals turn more than 90 degrees, corrupting the mesh
                 // orientation the divergence volume relies on.
-                let normal = try oriented(
-                    parametricGridNormal(
-                        surface: surface,
-                        u: u,
-                        v: v,
-                        uIndex: uIndex,
-                        vIndex: vIndex,
-                        uSteps: uSteps,
-                        vSteps: vSteps,
-                        uBounds: uBounds,
-                        vBounds: vBounds
-                    ),
-                    face: face,
-                    shellOrientation: shellOrientation
-                )
+                let sourceNormal: Vector3D
+                if let span = grid.owningSpan {
+                    guard case let .bSpline(spline) = surface else {
+                        throw TessellationError.unsupportedFace(faceID)
+                    }
+                    sourceNormal = try spline.normal(u: u, v: v, owning: span, tolerance: tolerance)
+                } else {
+                    sourceNormal = try parametricGridNormal(
+                        surface: surface, u: u, v: v, uIndex: uIndex, vIndex: vIndex,
+                        uSteps: uSteps, vSteps: vSteps, uBounds: uBounds, vBounds: vBounds)
+                }
+                let normal = try oriented(sourceNormal, face: face, shellOrientation: shellOrientation)
                 positions.append(point)
                 normals.append(normal)
             }
@@ -2018,8 +2053,8 @@ public struct MeshTessellator: Tessellating {
             }
         // FIXME(INCOMPLETE_IMPLEMENTATION): a rectangular B-spline face takes a fixed step count
         // (or one derived from the maximum edge length), not one refined against the chord and
-        // turning bounds. Production path: every untrimmed B-spline face. Not covered by the
-        // tessellation fidelity contract until the steps come from certified surface bounds, as
+        // turning bounds. Production path: remaining clamped B-spline rectangles. Not covered by the
+        // remaining clamped-face fidelity contract until the steps come from certified surface bounds, as
         // the procedural grids' do, with tests that measure the deviation.
         case .bSpline:
             let steps = bSplineStepCount(options: options)

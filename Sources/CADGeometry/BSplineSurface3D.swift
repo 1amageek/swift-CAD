@@ -298,6 +298,17 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         )
     }
 
+    /// Evaluates the original selected native side at its actual closed endpoint.
+    package func normal(
+        u: Double, v: Double,
+        owning span: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
+        tolerance: ModelingTolerance
+    ) throws -> Vector3D {
+        let derivatives = try selectedOriginalDerivatives(u: u, v: v, owning: span, tolerance: tolerance)
+        return try strictSurfaceNormal(tangentU: derivatives.tangentU,
+                                      tangentV: derivatives.tangentV, tolerance: tolerance)
+    }
+
     public func differentialGeometry(
         u: Double,
         v: Double,
@@ -779,15 +790,23 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
     func surfaceDerivatives(
         u: Double,
         v: Double,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        owningUSpan: Int? = nil,
+        owningVSpan: Int? = nil
     ) throws -> RationalDerivatives {
         // Only the (p + 1)(q + 1) basis products of the knot spans holding (u, v) are nonzero:
         // the local bases to second order, and one pass over those control points gathering the
         // weighted position and its five derivatives together.
-        let uLocal = BSplineBasis.nonzeroDerivativeValues(parameter: u, degree: uDegree, throughDerivativeOrder: 2,
-                                                          knots: uKnots, count: uControlPointCount)
-        let vLocal = BSplineBasis.nonzeroDerivativeValues(parameter: v, degree: vDegree, throughDerivativeOrder: 2,
-                                                          knots: vKnots, count: vControlPointCount)
+        let uLocal = try owningUSpan.map {
+            try BSplineBasis.nonzeroDerivativeValues(parameter: u, degree: uDegree, throughDerivativeOrder: 2,
+                knots: uKnots, count: uControlPointCount, owningSpan: $0, tolerance: tolerance)
+        } ?? BSplineBasis.nonzeroDerivativeValues(parameter: u, degree: uDegree, throughDerivativeOrder: 2,
+                                                  knots: uKnots, count: uControlPointCount)
+        let vLocal = try owningVSpan.map {
+            try BSplineBasis.nonzeroDerivativeValues(parameter: v, degree: vDegree, throughDerivativeOrder: 2,
+                knots: vKnots, count: vControlPointCount, owningSpan: $0, tolerance: tolerance)
+        } ?? BSplineBasis.nonzeroDerivativeValues(parameter: v, degree: vDegree, throughDerivativeOrder: 2,
+                                                  knots: vKnots, count: vControlPointCount)
         var (s0, su, sv, suu, suv, svv) = (Vector3D.zero, Vector3D.zero, Vector3D.zero, Vector3D.zero, Vector3D.zero, Vector3D.zero)
         var (w0, wu, wv, wuu, wuv, wvv) = (0.0, 0.0, 0.0, 0.0, 0.0, 0.0)
         let (u0, v0) = (uLocal[0].startIndex, vLocal[0].startIndex)

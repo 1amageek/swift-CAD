@@ -236,6 +236,7 @@ partway fail. `PlanarCurveExtrusionIntersectorTests` own it.
 | [CADIR](../CADIR/DESIGN.md) | depends on | complete stable signature value | Provides validated reference values. | Every topology entry is eligible for a reference. |
 | [CADModeling](../CADModeling/DESIGN.md) | depends on | exact generated B-rep | Supplies source topology and lineage. | Seam/pole topology remains present. |
 | [RollingBallFillet](RollingBallFillet/DESIGN.md) | child | complete solid sewing request | Composes native source-face arrangements and blend boundaries. | A request is not a validated or publishable result. |
+| [RectangularBSplineMesh](RectangularBSplineMesh/DESIGN.md) | child | original nonperiodic nonclamped rectangle admission and emission | Owns selected-panel mesh fidelity, compatible grids and retained face provenance. | Uses Geometry's original span authority; clamped routes remain unchanged. |
 | [RupaCore](../../../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated body and Mesh measurements; edge queries; sketch curve intersections | Consumes the same snapshot outputs and certified sketch intersections. | Volume authority stays in exact B-rep; Core computes no intersection itself. |
 
 ## Architecture

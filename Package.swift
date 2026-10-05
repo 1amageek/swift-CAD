@@ -143,7 +143,7 @@ let package = Package(
     ),
     .executableTarget(
       name: "CADWASMSmoke",
-      dependencies: ["CADCore", "CADTopology", "CADIR", "CADKernel"],
+      dependencies: ["CADCore", "CADGeometry", "CADTopology", "CADIR", "CADKernel"],
       linkerSettings: [
         .unsafeFlags(
           ["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],

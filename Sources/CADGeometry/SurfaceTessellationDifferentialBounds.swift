@@ -2,6 +2,11 @@ import CADCore
 import Foundation
 
 package struct SurfaceTessellationDifferentialBounds: Sendable {
+  package struct OriginalNativePanel: Sendable {
+    package let span: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan
+    package let parameters: SurfaceParameterBox
+    package let bounds: SurfaceTessellationDifferentialBounds
+  }
   package let tangentUMagnitudeUpperBound: Double
   package let tangentVMagnitudeUpperBound: Double
   package let secondDerivativeUUMagnitudeUpperBound: Double
@@ -123,6 +128,13 @@ extension DefaultSurfaceDifferentialEncloser {
     } catch let error as KernelError where error.code == .singularSystem {
       return nil
     }
+    return try certifiedTessellationBounds(jet: jet, tolerance: tolerance)
+  }
+
+  func certifiedTessellationBounds(
+    jet: SurfaceIntervalVectorJet,
+    tolerance: ModelingTolerance
+  ) throws -> SurfaceTessellationDifferentialBounds? {
     let tangentU = jet.differentiatedUThroughSecondOrder()
     let tangentV = jet.differentiatedVThroughSecondOrder()
     let normal = tangentU.cross(tangentV)
@@ -273,7 +285,7 @@ extension DefaultSurfaceDifferentialEncloser {
     return sqrt(interval.lower).nextDown
   }
 
-  private func union(
+  func union(
     _ lhs: SurfaceTessellationDifferentialBounds,
     _ rhs: SurfaceTessellationDifferentialBounds
   ) -> SurfaceTessellationDifferentialBounds {
@@ -331,7 +343,7 @@ extension DefaultSurfaceDifferentialEncloser {
     return sine.isFinite && sine > sineTolerance
   }
 
-  private func subdivided(
+  func subdivided(
     _ parameters: SurfaceParameterBox,
     surface: Surface3D,
     depth: Int

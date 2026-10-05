@@ -3,12 +3,14 @@ import CADCore
 /// Retains original nonperiodic coefficient authority and closed knot owners.
 package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   package let surface: BSplineSurface3D
-  private let patches: [RationalBezierSurfaceJetEncloser.PreparedPatch]
+  private let preparationTolerance: ModelingTolerance
+  private let originalSpans: [OriginalNativeSpan]
 
   package init(surface: BSplineSurface3D, tolerance: ModelingTolerance) throws {
     try surface.validate(tolerance: tolerance)
     try Task.checkCancellation()
     self.surface = surface
+    self.preparationTolerance = tolerance
     let encloser = RationalBezierSurfaceJetEncloser()
     let decomposer = BSplineSurfaceBezierDecomposer()
     let singleBezier = surface.uControlPointCount == surface.uDegree + 1
@@ -22,11 +24,31 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       let patch = RationalBezierSurfacePatch3D(controlPoints: surface.controlPoints, weights: surface.weights,
         uLower: surface.uKnots[surface.uDegree], uUpper: surface.uKnots[surface.uControlPointCount],
         vLower: surface.vKnots[surface.vDegree], vUpper: surface.vKnots[surface.vControlPointCount])
-      patches = [try encloser.prepare(patch, tolerance: tolerance)]
+      originalSpans = [OriginalNativeSpan(surface: surface, tolerance: tolerance,
+        uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree,
+        uBounds: try ScalarInterval(lower: patch.uLower, upper: patch.uUpper),
+        vBounds: try ScalarInterval(lower: patch.vLower, upper: patch.vUpper),
+        patch: try encloser.prepare(patch, tolerance: tolerance))]
     } else {
-      patches = try decomposer.originalHomogeneousPatches(surface: surface, tolerance: tolerance)
-        .map { try encloser.prepare(original: $0, tolerance: tolerance) }
+      originalSpans = try decomposer.originalHomogeneousPatches(surface: surface, tolerance: tolerance).map {
+        OriginalNativeSpan(surface: surface, tolerance: tolerance,
+          uSpanIndex: $0.uSpanIndex, vSpanIndex: $0.vSpanIndex,
+          uBounds: $0.uBounds, vBounds: $0.vBounds,
+          patch: try encloser.prepare(original: $0, tolerance: tolerance))
+      }
     }
+  }
+
+  package func originalNativeSpans(over box: SurfaceParameterBox,
+                                  tolerance: ModelingTolerance) throws -> [OriginalNativeSpan] {
+    try originalNativeSpans(over: box, tolerance: tolerance, maximumSpanCount: 262_144)
+  }
+
+  func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
+                           maximumSpanCount: Int) throws -> [OriginalNativeSpan] {
+    try Self.selectOriginalNativeSpans(from: originalSpans, surface: surface,
+      preparationTolerance: preparationTolerance, over: box, tolerance: tolerance,
+      maximumSpanCount: maximumSpanCount)
   }
 
   func intervalJet(
@@ -50,7 +72,8 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     try Task.checkCancellation()
     let encloser = RationalBezierSurfaceJetEncloser()
     var result: SurfaceIntervalVectorJet?
-    for patch in patches {
+    for span in originalSpans {
+      let patch = span.patch
       try Task.checkCancellation()
       let uLower = max(parameters.u.lower, patch.uLower)
       let uUpper = min(parameters.u.upper, patch.uUpper)
@@ -70,7 +93,7 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     return result
   }
 
-  private static func selectedJet(of patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
+  static func selectedJet(of patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
                                   over box: SurfaceParameterBox,
                                   tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
     try Task.checkCancellation()

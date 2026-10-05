@@ -7,6 +7,22 @@ public struct BSplineBasis {
         let values: [OutwardScalarInterval]
     }
 
+    static func nonzeroDerivativeValues(parameter: Double, degree: Int,
+        throughDerivativeOrder order: Int, knots: [Double], count: Int,
+        owningSpan: Int, tolerance: ModelingTolerance) throws -> [NonzeroValues] {
+        try validateSelectedSpan(parameter: parameter, degree: degree, order: order,
+            knots: knots, count: count, span: owningSpan, tolerance: tolerance)
+        let derivatives = localDerivatives(parameter: parameter, span: owningSpan,
+            degree: degree, derivativeOrder: min(order, degree), knots: knots)
+        guard derivatives.joined().allSatisfy(\.isFinite) else {
+            throw selectedFailure(.resourceLimitExceeded, "Selected original basis derivatives exceed finite arithmetic.", tolerance)
+        }
+        return (0...order).map { derivative in
+            NonzeroValues(startIndex: owningSpan - degree,
+                values: derivative <= degree ? derivatives[derivative] : Array(repeating: 0, count: degree + 1))
+        }
+    }
+
     static func nonzeroIntervalDerivativeValues(parameter: Double, degree: Int,
         throughDerivativeOrder order: Int, knots: [Double], count: Int,
         owningSpan: Int, tolerance: ModelingTolerance) throws -> [NonzeroIntervalValues] {
