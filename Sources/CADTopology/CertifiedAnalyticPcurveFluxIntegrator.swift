@@ -2096,6 +2096,13 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         requestedWidth: requestedWidth,
         tolerance: tolerance
       )
+    // FIXME(INCOMPLETE_IMPLEMENTATION): a procedural face trimmed by certified implicit pcurves
+    // (a rolling-ball blend meeting its neighbours) has no flux integration; the face's volume
+    // refuses with "no certified surface-flux strategy". Production path: solid volume of any
+    // body holding such a face (`TrimmedParametricSurfaceVolumeEvaluator`). Complete only when
+    // the cell integrator converges on the implicit pcurve's interval jets and
+    // `RollingBallFilletRequestBuilderTests.curvedSourceRetainsCompleteSolidAndRejectsInvalidSelection`
+    // passes without its known issue.
     case .sphericalGreatCircle, .certifiedImplicit,
       .certifiedAnalyticImplicit, .certifiedAnalyticPair,
       .projectedAnalytic:
