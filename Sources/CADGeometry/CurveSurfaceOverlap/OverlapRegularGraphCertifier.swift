@@ -25,6 +25,8 @@ struct OverlapRegularGraphCertifier {
             root = OverlapRegularGraphRootCertifier(curve: preparedCurve, surface: preparedSurface, tolerance: tolerance)
         }
         let pair = try selectPair(root: root, range: range, budget: &budget)
+        let coefficient = try OverlapAffineComposedResidualAuthority.certificate(source: curve, target: surface,
+            pair: pair, budget: &budget)
         var cuts = [range.lower]
         for knot in curve.knots where knot > range.lower && knot < range.upper && cuts.last != knot {
             try budget.work()
@@ -54,8 +56,12 @@ struct OverlapRegularGraphCertifier {
                 var provedOutside = false
                 if let seed, let box = try root.trialBox(range: item.range, pair: pair, seed: seed, budget: &budget),
                    let proof = try root.proof(range: item.range, box: box, pair: pair, budget: &budget) {
-                    let residual: OutwardScalarInterval
-                    if proof.authority.isSmooth {
+                    let composed = try coefficient.flatMap { try root.composedResidual(proof: proof, coefficient: $0, budget: &budget) }
+                    let localResidual: OutwardScalarInterval
+                    if let composed, composed.residual.absoluteUpperBound <= tolerance.distance
+                        || composed.residual.absoluteLowerBound > tolerance.distance {
+                        localResidual = composed.residual
+                    } else if proof.authority.isSmooth {
                         let provisional = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
                             derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: .infinity,
                             authority: proof.authority)
@@ -72,20 +78,27 @@ struct OverlapRegularGraphCertifier {
                         let radius = OutwardScalarInterval.exact(center.residual[1].absoluteUpperBound) * half
                             + .exact(center.residual[2].absoluteUpperBound) * half * half * .exact(0.5)
                             + remainder
-                        residual = center.residual[0] + OutwardScalarInterval(lower: -radius.upper, upper: radius.upper)
+                        localResidual = center.residual[0] + OutwardScalarInterval(lower: -radius.upper, upper: radius.upper)
                     } else {
                         if proof.residual[0].absoluteUpperBound <= tolerance.distance
                             || proof.residual[0].absoluteLowerBound > tolerance.distance {
-                            residual = proof.residual[0]
+                            localResidual = proof.residual[0]
                         } else {
                             let provisional = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
                                 derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: .infinity,
                                 authority: proof.authority)
                             // The source-width gate prunes only position localization.
                             // Complete first jets independently bound the Lipschitz residual.
-                            residual = try root.collarResidual(cell: provisional, proof: proof, budget: &budget)
+                            localResidual = try root.collarResidual(cell: provisional, proof: proof, budget: &budget)
                         }
                     }
+                    let residual: OutwardScalarInterval
+                    if let composed {
+                        guard let intersection = localResidual.intersection(with: composed.residual) else {
+                            throw failure(.intersectionFailure, "Whole-jet and composed residuals have no common enclosure.", tolerance)
+                        }
+                        residual = intersection
+                    } else { residual = localResidual }
                     guard residual.isFinite else { throw failure(.resourceLimitExceeded, "Regular graph residual exceeded finite arithmetic.", tolerance) }
                     if residual.absoluteUpperBound <= tolerance.distance || residual.absoluteLowerBound > tolerance.distance {
                         // Root existence in the tube is local. Before excluding geometry or
@@ -93,8 +106,11 @@ struct OverlapRegularGraphCertifier {
                         // original-domain location that can solve the selected coordinates.
                         if try globallyUnique(root: root, range: item.range, pair: pair, budget: &budget) {
                             if residual.absoluteUpperBound <= tolerance.distance {
+                                let derivative: (u: OutwardScalarInterval, v: OutwardScalarInterval)
+                                if let composed { derivative = try root.composedFirstDerivatives(composed, budget: &budget) }
+                                else { derivative = (proof.u[0], proof.v[0]) }
                                 leaf = OverlapRegularGraphCell(range: item.range, box: box, pair: pair,
-                                    derivativeU: proof.u[0], derivativeV: proof.v[0], maximumDeviation: residual.absoluteUpperBound,
+                                    derivativeU: derivative.u, derivativeV: derivative.v, maximumDeviation: residual.absoluteUpperBound,
                                     authority: proof.authority)
                             } else { provedOutside = true }
                         }

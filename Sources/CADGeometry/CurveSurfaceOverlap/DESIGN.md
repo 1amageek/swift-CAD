@@ -968,4 +968,177 @@ For a periodic requested varying-axis range narrower than one period, correspond
 
 Independent rational diamond-cycle U/V fixtures verify literal native positions, all owning seam sides, source [3.5,4.5] clipped to [3.75,4.25] by target [-.25,.25], periodic singleton incidence, complete/native/negative/shifted cycles, reversal and immutable inputs. A changed interior original control, unproved translated knots/tails/origin, inadequate aggregate work/storage and cancellation must refuse. Existing nonperiodic isocurve/regular graph evidence remains valid unless a touched shared path changes its premise; targeted regressions precede the bounded sprint commit. General periodic graphs/global uniqueness and full G4/portable integration remain open. Shared preparation and selected-span APIs are consumed unchanged and do not depend on PAR.M1PC1.
 
+## General G4 Completion and Closed Rectangle Existence
+
+The complete G4 owner retains all legal `Curve3D` and `Surface3D` families under
+the existing finite-query admission. An unbounded source requires an explicit
+finite interval unless the current search-range owner derives one. Every
+continuous component, its source interval and endpoints, owned correspondence
+and remaining isolated events must be returned together. An unresolved proof
+is a typed failure, never an empty or partial successful result. Existing
+bounded families and their receipts do not establish full completion. Native,
+matching normal WASM and Embedded runtime evidence are required; the shared
+Foundation portability barrier remains a root-owned dependency.
+
+The first general-domain extension separates closed root existence from global
+coordinate independence. `OverlapClosedRectangleRootAuthority` owns an original
+closed-rectangle Poincare--Miranda certificate for the selected Cartesian pair.
+For every original source parameter in the retained interval, one selected
+residual coordinate is nonpositive on one U face and nonnegative on the
+opposite U face, and the other has the corresponding signs on the V faces.
+Either sign orientation and either Cartesian-to-parameter assignment is allowed.
+Continuity and these complete four-face inequalities prove a root inside the
+same rectangle for every source parameter. No factorable tensor, sample,
+projection or strict-inclusion relaxation supplies this existence claim.
+
+```mermaid
+flowchart LR
+    Original["Original source interval + closed target rectangle"] --> Faces["Paid all-owning four-face enclosures"]
+    Coefficients["Original positive-weight control hulls / exact native-face identities"] --> Faces
+    Faces --> Existence["Closed rectangle root for every source parameter"]
+    Existence --> K["Unchanged minor and contraction / owned K image"]
+    K --> Existing["Global uniqueness + whole original-span membership + joins + clipping"]
+```
+
+Every face enclosure uses the existing original prepared surface's closed-box
+entry, including constant axes and all owning original knot sides. Source
+values come from the whole retained source interval. A positive original source
+control hull may intersect this enclosure, but cannot replace a failed original
+enclosure. On an original clamped intrinsic target face, equality of every
+original Cartesian face control proves a constant coordinate even for a
+non-factorable positive weight tensor. Intersecting that exact value with its
+original face enclosure preserves coefficient authority; an empty intersection
+is an explicit numerical failure. No independence of interior derivatives is
+inferred. All scans, face jets and retained storage are charged before work
+under the same caller budget, with cancellation at every charged operation.
+
+The certificate retains the exact original operands, source interval, selected
+Cartesian pair and actual candidate rectangle. Root localization consumes it
+only for that same rectangle; every subsequent image retains every existing
+root. The original positive minor, contraction below one, global uniqueness,
+whole remaining-coordinate residual, gapless source cover, common-root joins
+and complete clipping remain separate mandatory proofs. This first extension
+does not yet close non-transverse clipping, general periodic graphs, singular
+charts or complex authored pcurves; their incomplete branches remain explicit.
+
+`Tests/CADGeometryTests/OriginalGeneralClosedOverlapTests.swift` owns the
+independent first public oracle. A bilinear tensor with weights
+`[[1,1],[1,2]]` and Cartesian controls
+`[(0,0,0),(1,0,0);(0,1,0),(1,1,1)]` gives
+`S=(u(1+v),v(1+u),2uv)/(1+uv)`. The rational quadratic source with controls
+`[(0,0,0),(.5,.5,0),(1,1,1)]`, weights `[1,1,2]` gives exactly the retained
+correspondence `U=V=t`. Its non-factorable weight identity, whole interval,
+reverse, clip `[.25,.75]`, native corner incidences and immutable inputs are
+independent of the producer. Whole-span off-surface deviation, insufficient
+caller work and cancellation must not publish an overlap. Matching public
+runtime evidence is required before this extension is committed; unit helper
+success alone is insufficient.
+
 Periodic interior-fixed hints are not admitted by an uncharged projection helper. This bounded producer retains an explicit incomplete marker and typed unsupported consumer path until interior localization shares the same invocation work owner. Existing nonperiodic hint/fee behavior is unchanged.
+
+### Original Fixed-Axis Face Coefficient Enclosure
+
+The closed-rectangle existence owner consumes the validated original selected-native
+basis interval API at derivative order zero. Original nonperiodic validation guarantees
+C0 position continuity, so an actual owning closed native side represents the same
+fixed-axis position at an interior knot. Each basis enclosure is intersected with
+its proved nonnegative partition-of-unity range `[0,1]`; an empty intersection is
+an explicit enclosure failure.
+
+For each original control row along the varying axis, the owner contracts only the
+fixed-axis original homogeneous coefficients. Its outward positive denominator and
+Cartesian quotient enclose that row's original coefficient. The positive varying
+basis then puts every face value over the complete varying domain in the streamed
+three-coordinate row hull. This independent enclosure is intersected with the
+already paid original face jet value; neither an empty intersection nor unresolved
+finite/positive-denominator arithmetic can mint existence. No fitted Cartesian net,
+point samples, or derivative independence are introduced.
+
+Selected-basis workspace, original knot validation/search, row coefficient arithmetic,
+and quotient work are charged before allocation/evaluation to the same invocation
+budget. Cancellation remains checked in that budget and the row loop. The owner
+retains only the original operands and existing rectangle certificate; row scalars
+and three streamed hulls remain invocation-local scratch. The Poincare–Miranda signs,
+strict contraction/minor, global uniqueness, whole-original-span residual, joins,
+clipping, caller options and existing failure contracts remain unchanged.
+
+The public reverse literal at source `[0,1/16]` is the decisive regression: with the
+measured candidate lower axis `a=0.6566713398677618`, the original coefficient hull
+proves face `X <= 2a/(1+a)`, while the broad quotient jet alone reaches `0.91764034`.
+The independent source lower bound is `0.908203125`; the hull intersection closes
+that failed whole-face sign without widening the candidate or tolerance.
+
+### Original Affine-UV Composed Residual and Root Transfer
+
+`OverlapAffineComposedResidualAuthority` owns a membership error certificate,
+not root existence. For an original positive single-clamped rational source net
+and a positive single-clamped bilinear tensor, exact selected-coordinate matches
+between the original source endpoints and original tensor corners may propose an
+affine corner-to-corner UV path. That path is only a hint. The owner retains the
+original operands and pair, and composes original homogeneous tensor coefficients
+with the affine normalized UV Bernstein polynomials. Each complete cross-product
+`Ntarget * Wsource - Nsource * Wtarget` is enclosed coefficient by coefficient.
+Positive original weights bound both whole-domain denominators from below. The
+resulting three Cartesian residual bounds cover the entire original source domain,
+including reversal; sampled endpoint agreement cannot supply membership.
+
+For an existing proof over the same original operands, pair and source interval,
+the root consumer encloses the affine candidate's UV range. Its convex union with
+the certified root box must remain inside the original native domain. Charged
+all-owning first jets on that union provide a finite preconditioner `M` and the
+strict contraction `q = ||I - M J||_infinity < 1`. The mean-value theorem then
+bounds candidate-to-root UV distance by
+`||M * residual_pair||_infinity / (1 - q)`. The remaining spatial residual is
+bounded by the candidate's remaining-coordinate error plus the complete target
+first-derivative row norm times that UV distance. Intersection with the existing
+position enclosure is mandatory; an empty intersection is a typed numerical
+failure. Strict K or closed Poincare--Miranda existence, positive selected minor,
+global uniqueness, original-span gapless cover, common-root joins and clipping
+remain independent mandatory proofs. Neither the affine hint nor this residual
+certificate creates an unproved root or promotes differential continuity.
+
+Preparation admits the original and composed degree against the same caller
+polynomial limit and charges coefficient arithmetic, binomial normalization and
+all scratch before allocation. It is prepared once per invocation; every transfer
+charges the original whole-box first jet and checks cancellation. Missing hints
+or nonapplicable original-net shapes retain the existing whole-jet route. No new
+private budget, tolerance, depth or retry allowance is introduced.
+
+The public nonfactorable literal has composed homogeneous coefficients
+`X=Y=[0,1/2,2]`, `Z=[0,0,2]`, `W=[1,1,2]`, identical to its independent source.
+All five degree-four cross-product coefficients are exactly zero. Changing the
+source middle Z control to `1/1000` instead gives target-minus-source coefficients
+`[0,-1/2000,-1/1500,-1/1000,0]`. Dedicated tests must distinguish these complete
+coefficient certificates, work/degree refusal and cancellation, while the
+unchanged whole/reverse/clip/native-corner public oracles establish integration.
+This bounded residual owner does not establish full G4 for other tensor degrees,
+non-affine UV graphs, periodic domains or contacts.
+
+### Source-Correlated First-Derivative Tubes
+
+The composed residual transfer retains its actual original root proof, original
+operands, affine source fraction/orientation and certified whole-range UV distance.
+If the original cell first-derivative intervals cannot prove transverse passage,
+the root consumer may form a finite gapless partition of that same closed source
+interval. On each piece, the affine candidate range expanded by the retained UV
+distance and intersected with the original proved root box contains every actual
+root for every parameter in the piece. It is an owned range localization, not
+existence from a sampled parameter or a new strict inclusion claim.
+
+Paid original source interval first jets and all-owning original target closed-tube
+first jets, with a positive selected minor, enclose the implicit first UV
+derivatives on each whole piece. Only after the complete partition is checked may
+the union of those derivative enclosures intersect the original cell's first
+bounds. Empty/nonfinite intersections are typed failures; missing minor or
+unresolved transversality retains the original proof/refusal path. No higher
+jet is replaced or continuity promoted. The actual root existence, unique chart,
+original source domain/orientation and every local tube remain bound to the same
+immutable transfer owner.
+
+Each cover validation, local candidate arithmetic, source/target jet and implicit
+solve is charged to the same caller work budget before allocation/evaluation.
+Partition size and depth use existing maximumIterations and subdivision depth,
+without a private retry allowance or source/tolerance expansion. The independent
+forward/reverse literal has first UV derivatives exactly +1/-1; dedicated tests
+require their containment and strict sign, and the unchanged public whole/clip/
+corner cases establish that the original clipping guard is reached with proof.

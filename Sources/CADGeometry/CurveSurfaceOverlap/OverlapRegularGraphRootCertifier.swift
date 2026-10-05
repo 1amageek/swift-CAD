@@ -234,6 +234,10 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         // may admit these roots only after whole-interval existence, uniqueness,
         // membership and endpoint correspondence are certified on original geometry.
         guard let closed = try closedAuthority(range: range, pair: pair, budget: &budget) else {
+            if let rectangle = try rectangleAuthority(range: range, box: box, pair: pair, budget: &budget) {
+                return try rootProof(range: range, box: box, pair: pair, existingRoot: nil,
+                    closedDomain: rectangle, budget: &budget)
+            }
             if !touchesSourceEndpoint { return nil }
             throw failure(.unsupportedCapability, "This original-domain endpoint has no certified closed coordinate inverse.")
         }
@@ -244,7 +248,17 @@ struct OverlapRegularGraphRootCertifier: Sendable {
     func exactEndpoint(at t: Double, pair: Pair, budget: inout OverlapProofBudget) throws -> SurfaceParameter? {
         guard case .bSpline(let source) = curve.curve,
               t == source.knots[source.degree] || t == source.knots[source.controlPointCount] else { return nil }
-        return try closedAuthority(range: ScalarInterval(lower: t, upper: t), pair: pair, budget: &budget)?.exactEndpoint(at: t)
+        let range = try ScalarInterval(lower: t, upper: t)
+        if let endpoint = try closedAuthority(range: range, pair: pair, budget: &budget)?.exactEndpoint(at: t) { return endpoint }
+        return try rectangleAuthority(range: range, box: originalBox(), pair: pair, budget: &budget)?.exactEndpoint(at: t)
+    }
+
+    private func rectangleAuthority(range: ScalarInterval, box: SurfaceParameterBox, pair: Pair,
+                                    budget: inout OverlapProofBudget) throws -> OverlapRegularGraphClosedDomainAuthority? {
+        guard let certificate = try OverlapClosedRectangleRootAuthority.certificate(curve: curve,
+            surface: surface, range: range, pair: pair, box: box, jetWork: jetWork, budget: &budget) else { return nil }
+        return OverlapRegularGraphClosedDomainAuthority(curve: certificate.curve, surface: certificate.surface,
+            range: range, pair: pair, box: box, mapping: .rectangle(certificate))
     }
 
     private func closedAuthority(range: ScalarInterval, pair: Pair,
@@ -401,6 +415,162 @@ struct OverlapRegularGraphRootCertifier: Sendable {
             residual: residual, firstResidualDerivative: firstResidualDerivative,
             sourcePositionWidthLowerBound: sourceWidth.lower,
             closedDomain: closedDomain ?? existingRoot?.initial.closedDomain)
+    }
+
+    /// The original proof and complete coefficient transfer own every retained root.
+    struct ComposedTransfer {
+        let residual: Interval
+        fileprivate let proof: Proof
+        fileprivate let coefficient: OverlapAffineComposedResidualAuthority
+        fileprivate let distance: Double
+
+        fileprivate init(residual: Interval, proof: Proof,
+                         coefficient: OverlapAffineComposedResidualAuthority, distance: Double) {
+            self.residual = residual; self.proof = proof
+            self.coefficient = coefficient; self.distance = distance
+        }
+    }
+
+    /// Transfers a complete original coefficient error to the already proved UV root.
+    func composedResidual(proof: Proof, coefficient: OverlapAffineComposedResidualAuthority,
+                          budget: inout OverlapProofBudget) throws -> ComposedTransfer? {
+        try budget.work(64)
+        guard curve.curve == .bSpline(coefficient.source), surface.surface == coefficient.target,
+              proof.pair == coefficient.pair, coefficient.errors.count == 3,
+              coefficient.errors.allSatisfy({ $0.isFinite && $0 >= 0 }) else {
+            throw failure(.intersectionFailure, "A composed residual changed its original root operands or pair.")
+        }
+        let candidate = try coefficient.candidateBox(over: proof.range, budget: &budget)
+        let union = SurfaceParameterBox(
+            u: try ScalarInterval(lower: min(candidate.u.lower, proof.box.u.lower), upper: max(candidate.u.upper, proof.box.u.upper)),
+            v: try ScalarInterval(lower: min(candidate.v.lower, proof.box.v.lower), upper: max(candidate.v.upper, proof.box.v.upper)))
+        guard contained(union, in: try originalBox()) else {
+            throw failure(.intersectionFailure, "A composed residual left the original convex native chart.")
+        }
+        try budget.work(jetWork)
+        let target = try targetJet(over: union)
+        let f = OverlapRegularGraphCell.component(target, proof.pair.first)
+        let g = OverlapRegularGraphCell.component(target, proof.pair.second)
+        let minor = f.derivativeU * g.derivativeV - f.derivativeV * g.derivativeU
+        guard minor.isFinite, minor.lower > 0 || minor.upper < 0 else { return nil }
+        let a = f.derivativeU.midpoint, b = f.derivativeV.midpoint
+        let c = g.derivativeU.midpoint, d = g.derivativeV.midpoint
+        let determinant = a * d - b * c
+        guard determinant.isFinite, determinant != 0 else { return nil }
+        let inverse = [[d / determinant, -b / determinant], [-c / determinant, a / determinant]]
+        guard inverse.joined().allSatisfy(\.isFinite) else { return nil }
+        let jacobian = [[f.derivativeU, f.derivativeV], [g.derivativeU, g.derivativeV]]
+        var q = 0.0, preconditionedError = 0.0
+        for row in 0..<2 {
+            var contraction = Interval.exact(0), error = Interval.exact(0)
+            for column in 0..<2 {
+                var entry = Interval.exact(row == column ? 1 : 0)
+                for index in 0..<2 { entry = entry - .exact(inverse[row][index]) * jacobian[index][column] }
+                contraction = contraction + .exact(entry.absoluteUpperBound)
+                let axis = column == 0 ? proof.pair.first : proof.pair.second
+                let eta = coefficient.errors[axis]
+                error = error + .exact(inverse[row][column]) * Interval(lower: -eta, upper: eta)
+            }
+            q = max(q, contraction.upper)
+            preconditionedError = max(preconditionedError, error.absoluteUpperBound)
+        }
+        guard q.isFinite, q < 1 else { return nil }
+        guard let distance = Interval.exact(preconditionedError).divided(by: Interval.exact(1) - .exact(q)), distance.isFinite else {
+            throw failure(.resourceLimitExceeded, "A composed residual has no finite root-distance transfer.")
+        }
+        let remaining = OverlapRegularGraphCell.component(target, proof.pair.remaining)
+        let lipschitz = Interval.exact(remaining.derivativeU.absoluteUpperBound)
+            + .exact(remaining.derivativeV.absoluteUpperBound)
+        let upper = Interval.exact(coefficient.errors[proof.pair.remaining]) + lipschitz * distance
+        guard upper.isFinite else { throw failure(.resourceLimitExceeded, "A composed residual transfer exceeds finite arithmetic.") }
+        let transferred = Interval(lower: -upper.upper, upper: upper.upper)
+        guard let intersection = proof.residual[0].intersection(with: transferred) else {
+            throw failure(.intersectionFailure, "Original position and composed-root residuals have no common enclosure.")
+        }
+        return ComposedTransfer(residual: intersection, proof: proof,
+            coefficient: coefficient, distance: distance.upper)
+    }
+
+    /// Each complete source piece retains its original root in a correlated UV tube.
+    func composedFirstDerivatives(_ transfer: ComposedTransfer,
+                                  budget: inout OverlapProofBudget) throws -> (u: Interval, v: Interval) {
+        try budget.work(32)
+        let proof = transfer.proof, coefficient = transfer.coefficient
+        guard curve.curve == .bSpline(coefficient.source), surface.surface == coefficient.target,
+              proof.pair == coefficient.pair, transfer.distance.isFinite, transfer.distance >= 0,
+              proof.range.lower >= coefficient.sourceDomain.lower,
+              proof.range.upper <= coefficient.sourceDomain.upper else {
+            throw failure(.intersectionFailure, "A derivative tube changed its original coefficient/root owner.")
+        }
+        var best = (u: proof.u[0], v: proof.v[0])
+        func transverse(_ value: (u: Interval, v: Interval)) -> Bool {
+            (value.u.lower > 0 || value.u.upper < 0) && (value.v.lower > 0 || value.v.upper < 0)
+        }
+        if transverse(best) { return best }
+        var parts = 2, depth = 1
+        while parts <= budget.options.maximumIterations {
+            try budget.depth(depth)
+            try budget.work(parts)
+            // Validate every retained closed endpoint before any lower evaluation.
+            var previous = proof.range.lower
+            var available = true
+            for index in 1...parts {
+                let endpoint = index == parts ? proof.range.upper
+                    : proof.range.lower + proof.range.width * (Double(index) / Double(parts))
+                if !endpoint.isFinite || endpoint <= previous || endpoint > proof.range.upper { available = false; break }
+                previous = endpoint
+            }
+            if !available { return best }
+            var unionU: Interval?, unionV: Interval?
+            var lower = proof.range.lower
+            for index in 1...parts {
+                try budget.work(64)
+                let upper = index == parts ? proof.range.upper
+                    : proof.range.lower + proof.range.width * (Double(index) / Double(parts))
+                let range = try ScalarInterval(lower: lower, upper: upper)
+                let candidate = try coefficient.candidateBox(over: range, budget: &budget)
+                func axis(_ value: ScalarInterval, root: ScalarInterval) throws -> ScalarInterval {
+                    let lower = (Interval.exact(value.lower) - .exact(transfer.distance)).lower
+                    let upper = (Interval.exact(value.upper) + .exact(transfer.distance)).upper
+                    guard lower.isFinite, upper.isFinite,
+                          max(lower, root.lower) <= min(upper, root.upper) else {
+                        throw failure(.intersectionFailure, "A correlated derivative tube lost an originally proved root.")
+                    }
+                    return try ScalarInterval(lower: max(lower, root.lower), upper: min(upper, root.upper))
+                }
+                let tube = SurfaceParameterBox(u: try axis(candidate.u, root: proof.box.u),
+                    v: try axis(candidate.v, root: proof.box.v))
+                guard contained(tube, in: proof.box), contained(tube, in: try originalBox()) else {
+                    throw failure(.intersectionFailure, "A derivative tube left its original closed native chart.")
+                }
+                try budget.work(jetWork * 2)
+                let source = try curve.thirdOrderIntervalJet(over: range, tolerance: tolerance)
+                let original = try surface.intervalJet(overClosedBox: tube, tolerance: tolerance)
+                let target: SurfaceIntervalVectorJet
+                if let coordinateIndependence { target = try coordinateIndependence.intersecting(original, tolerance: tolerance) }
+                else { target = original }
+                let f = OverlapRegularGraphCell.component(target, proof.pair.first)
+                let g = OverlapRegularGraphCell.component(target, proof.pair.second)
+                let determinant = f.derivativeU * g.derivativeV - f.derivativeV * g.derivativeU
+                guard determinant.isFinite, determinant.lower > 0 || determinant.upper < 0 else { return best }
+                let derivative = try graphDerivatives(source: source, target: target,
+                    pair: proof.pair, determinant: determinant, thirdOrder: false)
+                unionU = unionU.map { $0.union(derivative.u[0]) } ?? derivative.u[0]
+                unionV = unionV.map { $0.union(derivative.v[0]) } ?? derivative.v[0]
+                lower = upper
+            }
+            guard lower == proof.range.upper, let unionU, let unionV,
+                  let u = best.u.intersection(with: unionU), let v = best.v.intersection(with: unionV),
+                  u.isFinite, v.isFinite else {
+                throw failure(.intersectionFailure, "Complete derivative tubes contradict the original graph first bounds.")
+            }
+            best = (u, v)
+            if transverse(best) { return best }
+            if parts > budget.options.maximumIterations / 2 { break }
+            parts *= 2
+            depth += 1
+        }
+        return best
     }
 
     /// Absolute continuity carries the complete first-derivative bound across native knots.

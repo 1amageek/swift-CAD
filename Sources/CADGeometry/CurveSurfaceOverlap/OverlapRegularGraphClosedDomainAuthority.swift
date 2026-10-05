@@ -139,6 +139,7 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
     enum Mapping: Sendable {
         case separable(Axis, Axis)
         case triangular(Triangular)
+        case rectangle(OverlapClosedRectangleRootAuthority)
 
         var separableAxes: (Axis, Axis)? {
             if case let .separable(first, second) = self { return (first, second) }
@@ -291,6 +292,9 @@ struct OverlapRegularGraphClosedDomainAuthority: Sendable {
             return SurfaceParameter(u: first.variesU ? a : b, v: first.variesU ? b : a)
         case let .triangular(chart):
             // Exact endpoint cofactors were already proved and paid at minting.
+            return parameter == curve.knots[0] ? chart.start : chart.end
+        case let .rectangle(chart):
+            // Original clamped face identities prove these actual corner values.
             return parameter == curve.knots[0] ? chart.start : chart.end
         }
     }
