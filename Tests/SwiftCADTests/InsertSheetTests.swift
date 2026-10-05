@@ -106,6 +106,8 @@ struct InsertSheetTests {
             return evaluated.brep.bodies[id]
         }.first)
         #expect(sheet.kind == .sheet)
+        #expect(evaluated.brep.bodies[plateBody.id] == nil)
+        #expect(evaluated.subshapes.entries.values.contains(.body(plateBody.id)) == false)
         // The plate's top less the cap's 20 mm square, its bottom less the hole, its four sides, and
         // the cap's top and four sides: 1200 + 1500 + 1600 + 400 + 400 mm².
         let faces = sheet.shellIDs.flatMap { evaluated.brep.shells[$0]?.faceIDs ?? [] }
