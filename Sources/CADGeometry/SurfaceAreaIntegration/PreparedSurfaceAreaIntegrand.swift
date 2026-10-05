@@ -40,6 +40,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     private indirect enum Storage: Sendable {
         case spline(SurfaceAreaNativeSpanPartition)
+        case ruledTensor(SurfaceAreaRuledTensorAuthority, SurfaceAreaNativeSpanPartition)
         case offset(OffsetSurface3D, PreparedSurfaceAreaIntegrand)
         case direct(PreparedSurfaceDifferentialEncloser)
         case translatedRollingBall(SurfaceAreaTranslatedRollingBallJet)
@@ -82,15 +83,24 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                 derivativeOrder = SurfaceAreaTranslationCertificate.fourthDerivativesAreExactlyZero(of: offset.source) ? 3 : 2
             }
         case .procedural(.ruled(let ruled)):
-            derivativeOrder = min(try Self.curveOrder(ruled.startBoundary, tolerance: tolerance),
-                                  try Self.curveOrder(ruled.endBoundary, tolerance: tolerance))
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Ruled supports with non-C1 boundary curves lack
-            // density derivative admission on production face-area/centroid queries. Complete
-            // only after piecewise boundary partitioning and successful/failure integral fixtures.
-            guard derivativeOrder >= 2 else {
-                throw Self.failure(.unsupportedCapability, tolerance, "Ruled area derivatives require C1 boundary geometry.")
+            let order = min(try Self.curveOrder(ruled.startBoundary, tolerance: tolerance),
+                            try Self.curveOrder(ruled.endBoundary, tolerance: tolerance))
+            if order < 2, let authority = try SurfaceAreaRuledTensorAuthority(original: ruled,
+                maximumControlPointCount: maximumControlPointCount, tolerance: tolerance) {
+                let partition = try SurfaceAreaNativeSpanPartition(surface: authority.tensor, tolerance: tolerance)
+                storage = .ruledTensor(authority, partition)
+                derivativeOrder = partition.derivativeOrder
+            } else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Non-C1 ruled supports outside the
+                // original same-degree/knot/domain/weight tensor family remain unsupported
+                // on production face-area/centroid queries. Complete only after original
+                // piecewise boundary authority and successful/failure integral fixtures.
+                guard order >= 2 else {
+                    throw Self.failure(.unsupportedCapability, tolerance, "Ruled area derivatives require C1 boundary geometry or an original same-denominator native tensor.")
+                }
+                derivativeOrder = order
+                storage = .direct(try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance))
             }
-            storage = .direct(try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance))
         case .procedural(.rollingBall(let blend)):
             if case .bSpline(let spine) = blend.centerSpine,
                spine.controlPoints.count > maximumControlPointCount {
@@ -334,8 +344,16 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     package var radialIntegrationIsExact: Bool { surface.hasExactAffineParameterization }
 
     package var hasNativeDensityJumps: Bool {
-        if case .spline(let partition) = storage { return partition.derivativeOrder == 1 }
+        if let partition = nativePartition { return partition.derivativeOrder == 1 }
         return false
+    }
+
+    /// The original ruled receipt remains retained beside its equivalent tensor owner.
+    private var nativePartition: SurfaceAreaNativeSpanPartition? {
+        switch storage {
+        case .spline(let partition), .ruledTensor(_, let partition): return partition
+        default: return nil
+        }
     }
 
     package func nativeRectangleDomains(over box: SurfaceParameterBox, maximumCount: Int,
@@ -346,7 +364,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                 throw Self.failure(.classificationFailure,tolerance,"Native area partition cannot discard an out-of-support part of the original rectangle.")
             }
         }
-        if case .spline(let partition) = storage {
+        if let partition = nativePartition {
             return try partition.rectangleDomains(over:box,maximumCount:maximumCount,tolerance:tolerance)
         }
         return nil
@@ -358,7 +376,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         if let parameterChart, parameterChart.curve != curve || parameterChart.support != surface {
             throw Self.failure(.invalidInput,tolerance,"Native fan chart authority belongs to another retained trim or support.")
         }
-        if case .spline(let partition) = storage {
+        if let partition = nativePartition {
             let boundary = parameterChart?.exactIsoBoundary ?? curve
             guard let domains = try partition.fanDomains(curve:boundary,anchor:anchor,maximumCount:maximumCount,tolerance:tolerance) else { return nil }
             return domains.map { SurfaceAreaNativeSpanDomain(rectangle:$0.rectangle,radialRange:$0.radialRange,
@@ -620,6 +638,32 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     /// Integrates a proved translation coordinate exactly over one rectangular trim.
     /// Density is independent of that coordinate and position is affine in it.
+    /// Original degree-one translated rail integration on an actual native rectangle.
+    /// A nil result retains the existing adaptive route for other chart families.
+    package func originalRuledRectangleIntegral(
+        rectangle: SurfaceParameterBox, fraction: ScalarInterval, reference: Point3D,
+        tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain?
+    ) throws -> [OutwardScalarInterval]? {
+        guard case .ruledTensor(let authority, let partition) = storage,
+              translationDirection == .v, let domain else { return nil }
+        guard tolerance == preparationTolerance,
+              surface == .procedural(.ruled(authority.original)),
+              domain.source == authority.tensor, domain.source == partition.surface,
+              domain.curve == nil, domain.radialRange == nil,
+              domain.rectangle == rectangle, partition.patches.indices.contains(domain.index) else {
+            throw Self.failure(.invalidInput, tolerance, "Original ruled rectangle receipt belongs to another source, chart or preparation.")
+        }
+        let patch = partition.patches[domain.index]
+        guard rectangle.u.lower >= patch.uLower, rectangle.u.upper <= patch.uUpper,
+              rectangle.v.lower >= patch.vLower, rectangle.v.upper <= patch.vUpper,
+              patch.vLower == 0, patch.vUpper == 1 else {
+            throw Self.failure(.invalidInput, tolerance, "Original ruled rectangle misses its owning native span.")
+        }
+        return try authority.rectangleIntegral(rectangle: rectangle, fraction: fraction,
+            nativeLower: patch.uLower, nativeUpper: patch.uUpper,
+            reference: reference, tolerance: tolerance)
+    }
+
     package func rectangularTranslationBounds(
         rectangle: SurfaceParameterBox, fraction: ScalarInterval, reference: Point3D,
         tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain? = nil
@@ -794,7 +838,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     private func forEachSurfaceJet(over box: SurfaceParameterBox, domain: SurfaceAreaNativeSpanDomain?,
                                    tolerance: ModelingTolerance,
                                    _ consume: (SurfaceIntervalVectorJet,Int) throws -> Void) throws {
-        if case .spline(let partition) = storage {
+        if let partition = nativePartition {
             try partition.forEachJet(over:box,domain:domain,tolerance:tolerance,consume)
         } else {
             guard domain == nil else { throw Self.failure(.invalidInput,tolerance,"Native spline authority cannot select a procedural support.") }
@@ -810,7 +854,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
         case .offset(let offset, let source):
             return try offset.intervalJet(fromValidatedSourceJet: source.surfaceJet(over: box, tolerance: tolerance),
                                           tolerance: tolerance)
-        case .spline(let partition):
+        case .spline(let partition), .ruledTensor(_, let partition):
             var result: SurfaceIntervalVectorJet?
             try partition.forEachJet(over:box,domain:nil,tolerance:tolerance) { jet,_ in result = result.map { $0.union(jet) } ?? jet }
             guard let result else {

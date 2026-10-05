@@ -365,21 +365,21 @@ extension KernelCapabilities {
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Sources below third order, including uncertified nested offsets, lack derivatives for production face-area/centroid integration. Complete only after higher source interval jets and offset integral fixtures certify.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 71
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 72
         ),
         KernelDomainLimitation(
-            id: "condition-0dde2d1ce395fdb8",
+            id: "condition-b44cf98308011fb0",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
-            condition: "Ruled supports with non-C1 boundary curves lack density derivative admission on production face-area/centroid queries. Complete only after piecewise boundary partitioning and successful/failure integral fixtures.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 87
+            condition: "Non-C1 ruled supports outside the original same-degree/knot/domain/weight tensor family remain unsupported on production face-area/centroid queries. Complete only after original piecewise boundary authority and successful/failure integral fixtures.",
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 94
         ),
         KernelDomainLimitation(
             id: "condition-40aae3cf94aae8f0",
             operations: ["faceAreaMeasurement"],
             dimensions: [.supportSurface, .boundaryCurve, .geometricFidelity],
             condition: "Non-C1 rolling-ball spine/rails cannot certify density derivatives on production face-area/centroid queries. Complete only after piecewise blend integration and exact integral/error fixtures admit these sources.",
-            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 102
+            sourcePath: "Sources/CADGeometry/SurfaceAreaIntegration/PreparedSurfaceAreaIntegrand.swift", sourceLine: 112
         ),
         KernelDomainLimitation(
             id: "condition-1348d8034135b5b0",

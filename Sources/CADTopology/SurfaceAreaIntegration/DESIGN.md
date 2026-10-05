@@ -23,6 +23,15 @@ face loops -> continuous UV chains -> signed fan squares
 ```
 
 ## Contracts and Invariants
+- Structurally admitted C0 ruled supports consume Geometry's retained original
+  ruled/tensor identity receipt and its existing native span contract. Original
+  face supports, pcurves, loops, holes and traversal remain authoritative;
+  native span selection restricts enclosure only. Smooth one-sided density
+  bounds and cross-knot value-only bounds feed the same quadrature and final
+  four-field acceptance, with one query error/work/depth allowance. No surface
+  conversion, sampled normal, or globally smooth jet is substituted across a
+  fold. The public behavioral owner is
+  [RuledSurfaceAreaIntegrationTests](../../../Tests/CADTopologyTests/RuledSurfaceAreaIntegrationTests.swift).
 - Nonlinear implicit queries on structurally affine supports retain each
   original curve's already certified start/end intervals after connection
   validation. They use geometry's paired centered Green fields and add that
@@ -246,3 +255,17 @@ rounding authority. Exact connection, foreign support, resource/depth and
 cancellation failures supplement the positive behavior; refusals alone do
 not complete this family. Native evidence and portable evidence remain
 separate, and this contract does not complete full general Q3.
+
+### Original Translated Ruled Native Rectangle Consumption
+
+Only an actual rectangular native cell may consume Geometry's
+[original degree-one ruled rectangle integral](../../CADGeometry/SurfaceAreaIntegration/DESIGN.md#original-degree-one-translated-ruled-rectangle-integral).
+The original ruled support, pcurves, native receipt and reference remain the
+same. After the existing adaptive cell work/cancellation admission, the caller
+requests all four integral intervals for its T subinterval and complete R
+band. These are already integrals and receive no second cell-measure factor.
+The existing global uncertainty accumulator and final area/centroid acceptance
+remain unchanged. Holes and orientation retain original signed loop ownership.
+A nil admission keeps the original native range/midpoint adaptive route;
+invalid authority or numerical failure propagates. No new allowance or
+geometric sampling is introduced, and full Q3/portable remain open.

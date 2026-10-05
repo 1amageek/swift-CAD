@@ -40,6 +40,22 @@ and the invocation's preparation tolerance. Topology supplies a synchronous,
 non-escaping work callback; geometry retains no callback or independent budget.
 
 ## Contracts and Invariants
+- A C0 ruled support may retain a structurally equivalent tensor for native
+  span integration only when its original nonperiodic B-spline rails have
+  exactly equal degrees, complete knot arrays, native domains and positive
+  stored weight arrays. With the same original basis and denominator `W`,
+  `(1-v)N0/W + v*N1/W = ((1-v)N0+v*N1)/W`. Two stored control/weight rows and
+  the original U knots, with linear V knots `0,0,1,1`, express this identity
+  without refinement, fitting, conversion or parameter normalization.
+  `SurfaceAreaRuledTensorAuthority` retains the original ruled support and
+  this tensor together. The prepared integrand retains the original support
+  for trim/source identity; the tensor supplies only native span enclosures.
+  Original one-sided spans, cross-knot value-only proofs, control admission,
+  query-wide error/work/depth and cancellation remain unchanged. This receipt
+  does not admit unequal rail denominators, periodic rails, shortened native
+  charts or other unproved non-C1 rail families. Smooth ruled supports retain
+  their existing direct prepared route. Tests are owned by
+  [RuledSurfaceAreaIntegrationTests](../../../Tests/CADTopologyTests/RuledSurfaceAreaIntegrationTests.swift).
 - A centered smooth chart query obtains its original range and closed midpoint
   jets through the same prepared owner, support, tolerance and caller work
   callback. Mean-value/Taylor intersections restrict values and first/second
@@ -473,3 +489,32 @@ polynomial fixture and its physical area `13/196608`, centroid
 `(363/66560,15/1664,0)`, partial/reversed/rigid original fractions, closed
 one-sided jet containment, foreign/tolerance/root-cell refusals, exact
 connection refusal and shared low-work/depth/cancellation behavior.
+
+### Original Degree-One Translated Ruled Rectangle Integral
+
+The original ruled/tensor receipt may integrate an actual rectangle on one
+original degree-one rail span by change of variable. Admission retains the
+original two rails, positive original weights, exact full knot/weight identity,
+and the existing expansion-proved whole-control V-translation certificate.
+The owning prepared native bounds must match a positive original knot span;
+its original active control indices, rather than extracted coefficient count,
+own the integral. No surface or trim is replaced.
+
+For original span `[a,b]`, controls `P0,P1`, weights `w0,w1` and translation
+`T`, the original law is `h(u)=w1*(u-a)/(w0*(b-u)+w1*(u-a))`.
+Positive weights prove strict monotonicity. Outward endpoint laws give the
+rectangle integral `|cross(P1-P0,T)|*(h1-h0)*(v1-v0)` and centroid
+`P0+(P1-P0)*(h0+h1)/2+T*(v0+v1)/2`. The same outward result supplies area
+and all three reference-relative moments. Stored endpoint values of h at
+original a/b are exactly 0/1; interior arithmetic stays outward. The actual
+normalized rectangle fraction and original native bounds retain authority.
+
+The caller's existing cell admission pays this bounded original-control
+operation; cancellation is checked before publication. Foreign source,
+tolerance, span or rectangle receipts fail explicitly. Unproved translation,
+higher degree and nonrectangular shapes retain their existing adaptive route.
+Nonfinite, singular or contradictory arithmetic cannot publish an integral.
+The independent four-field bounds must contain literals with existing64ulp
+precision; final query acceptance still owns the original single error budget.
+Public original rectangle/hole/reverse/rigid/genuine-weight cases retain their
+unchanged geometry, tolerances, work/depth limits and60s test limits.

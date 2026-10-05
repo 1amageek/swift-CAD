@@ -472,6 +472,15 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         return try Adaptive().integrate(cells:cells,goals:goals,options:options,work:&work,tolerance:tolerance) { cell, queryWork in
             var splitT = cell.rectangle != nil || boundaryOnly || cell.t.width >= cell.r.width
             do {
+                // This cell was already charged by the shared adaptive owner.
+                // Geometry returns complete original-rectangle integrals, so no
+                // quadrature measure or midpoint approximation is applied again.
+                if let rectangle = cell.rectangle, cell.r.lower == 0, cell.r.upper == 1,
+                   let integral = try prepared.originalRuledRectangleIntegral(
+                    rectangle: rectangle, fraction: cell.t, reference: reference,
+                    tolerance: tolerance, domain: cell.domain) {
+                    return Adaptive.Evaluation(contribution: integral, splitT: true)
+                }
                 let bounds: [SurfaceAreaIntegrandBounds]
                 if let rectangle = cell.rectangle {
                     bounds = try prepared.rectangularTranslationBounds(rectangle:rectangle,
