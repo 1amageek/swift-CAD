@@ -388,14 +388,21 @@ struct FaceRebuildTests {
         let before = try evaluate(builder)
         let top = try #require(before.brep.vertices.values.map(\.point).first { abs($0.z - h) < 1e-9 })
         let topRadius = hypot(top.x, top.y)
-        // Opposite quarters: the first and the one whose corners it does not share.
+        // Opposite quarters: the first and the one whose corners it does not share. The corners
+        // are read off the topology, whatever surface the drafted wall carries.
+        #expect(walls.count == 4)
         let first = try #require(walls.first)
-        func corners(_ surface: Surface3D) throws -> [Point3D] {
-            guard case let .bSpline(spline) = surface else { return [] }
-            return [spline.controlPoints[0][0], spline.controlPoints[0][spline.controlPoints[0].count - 1]]
+        var cornersByWall: [StableSubshapeReference: [Point3D]] = [:]
+        for (key, value) in before.subshapes.entries where key.featureID == extrusion {
+            guard case let .face(id) = value, let face = before.brep.faces[id] else { continue }
+            let points = try face.loops.flatMap { try before.brep.orderedPoints(for: $0) }
+            cornersByWall[try builder.stableSubshape(key)] = points
         }
-        let opposite = try #require(try walls.first { wall in
-            try corners(wall.1).allSatisfy { point in try corners(first.1).allSatisfy { (point - $0).length > 1e-6 } }
+        let firstCorners = try #require(cornersByWall[first.0])
+        let opposite = try #require(walls.first { wall in
+            wall.0 != first.0 && (cornersByWall[wall.0] ?? []).allSatisfy { point in
+                firstCorners.allSatisfy { (point - $0).length > 1e-6 }
+            }
         })
         let rebuilt = try builder.rebuildFaces(target: extrusion, faces: [first.0, opposite.0],
                                                method: .explicit(SurfaceControlLayout(uDegree: 1, vDegree: 1, uSpans: 1, vSpans: 1)))

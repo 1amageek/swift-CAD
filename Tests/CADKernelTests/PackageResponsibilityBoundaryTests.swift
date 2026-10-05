@@ -58,9 +58,12 @@ struct PackageResponsibilityBoundaryTests {
       "CADKernel": ["CADCore", "CADGeometry", "CADTopology", "CADIR", "CADModeling"],
       "CADUSD": ["CADCore", "CADIR"],
       "CADExchange": ["CADCore", "CADGeometry", "CADTopology", "CADIR", "CADKernel", "CADUSD"],
+      // The public facade re-exports every layer (`Exports.swift`) and takes geometry values
+      // such as `AffineTransform3D` in its builder API.
       "SwiftCAD": [
         "CADCore",
         "CADCapabilities",
+        "CADGeometry",
         "CADTopology",
         "CADIR",
         "CADModeling",

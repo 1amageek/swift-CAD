@@ -812,6 +812,8 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
         let (u0, v0) = (uLocal[0].startIndex, vLocal[0].startIndex)
         let (uValues, uFirsts, uSeconds) = (uLocal[0].values, uLocal[1].values, uLocal[2].values)
         let (vValues, vFirsts, vSeconds) = (vLocal[0].values, vLocal[1].values, vLocal[2].values)
+        var localWeight: Double?
+        var hasEqualLocalWeights = true
         for j in vValues.indices {
             let vIndex = v0 + j
             guard vIndex >= 0, vIndex < vControlPointCount else { continue }
@@ -821,6 +823,7 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
                 let uIndex = u0 + i
                 guard uIndex >= 0, uIndex < uControlPointCount else { continue }
                 let w = weightRow[uIndex]
+                if let localWeight { hasEqualLocalWeights = hasEqualLocalWeights && w == localWeight } else { localWeight = w }
                 let p = vector(from: pointRow[uIndex]) * w
                 let (bu, du, ddu) = (uValues[i], uFirsts[i], uSeconds[i])
                 // Position, ∂u, ∂v, ∂uu, ∂uv, ∂vv of the homogeneous surface.
@@ -830,10 +833,22 @@ public struct BSplineSurface3D: Codable, Sendable, Hashable {
                 w0 += w * f0; wu += w * fu; wv += w * fv; wuu += w * fuu; wuv += w * fuv; wvv += w * fvv
             }
         }
-        let sums = [WeightedVector(point: s0, weight: w0), WeightedVector(point: su, weight: wu), WeightedVector(point: sv, weight: wv),
-                    WeightedVector(point: suu, weight: wuu), WeightedVector(point: suv, weight: wuv), WeightedVector(point: svv, weight: wvv)]
-        let result = try rationalDerivatives(base: sums[0], uFirst: sums[1], vFirst: sums[2], uSecond: sums[3], uvSecond: sums[4],
+        let result: RationalDerivatives
+        if hasEqualLocalWeights {
+            // Equal weights over the reached control points make the surface polynomial here: its
+            // derivatives are the homogeneous sums over the weight sum (one mathematically), with
+            // no quotient-rule terms whose roundoff would put a residue into vanishing derivatives
+            // (a degree-one direction's second derivative).
+            let position = try rationalVector(WeightedVector(point: s0, weight: w0))
+            result = RationalDerivatives(position: Point3D(x: position.x, y: position.y, z: position.z),
+                                         tangentU: su / w0, tangentV: sv / w0, secondDerivativeUU: suu / w0,
+                                         secondDerivativeUV: suv / w0, secondDerivativeVV: svv / w0)
+        } else {
+            let sums = [WeightedVector(point: s0, weight: w0), WeightedVector(point: su, weight: wu), WeightedVector(point: sv, weight: wv),
+                        WeightedVector(point: suu, weight: wuu), WeightedVector(point: suv, weight: wuv), WeightedVector(point: svv, weight: wvv)]
+            result = try rationalDerivatives(base: sums[0], uFirst: sums[1], vFirst: sums[2], uSecond: sums[3], uvSecond: sums[4],
                                              vSecond: sums[5])
+        }
         guard result.tangentU.isFinite,
               result.tangentV.isFinite,
               result.secondDerivativeUU.isFinite,

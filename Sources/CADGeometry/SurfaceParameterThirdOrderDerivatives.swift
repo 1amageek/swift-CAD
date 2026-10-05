@@ -228,6 +228,11 @@ public extension BSplineSurface3D {
             )
         }
 
+        // Equal weights make the surface polynomial: the weight's derivatives vanish, so the
+        // quotient-rule corrections are skipped rather than left to add roundoff residues to
+        // derivatives that vanish (a degree-one direction's higher derivatives).
+        let firstWeight = weights.first?.first
+        let isPolynomial = weights.allSatisfy { row in row.allSatisfy { $0 == firstWeight } }
         var euclidean: [Int: Vector3D] = [:]
         for totalOrder in 0...3 {
             for uOrder in 0...totalOrder {
@@ -243,7 +248,7 @@ public extension BSplineSurface3D {
                 var numerator = source.vector
                 for weightUOrder in 0...uOrder {
                     for weightVOrder in 0...vOrder {
-                        guard weightUOrder + weightVOrder > 0 else {
+                        guard weightUOrder + weightVOrder > 0, !isPolynomial else {
                             continue
                         }
                         let remainingUOrder = uOrder - weightUOrder

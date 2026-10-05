@@ -22,9 +22,18 @@ extension SurfaceLiftCurve3D {
         }
         let bounder = SurfaceLiftDifferentialBounder()
         if supportsIntervalLocalParameterBounds(parameterCurve) {
-            let containingInterval = try bounder.certificationInterval(
-                containing: interval, tolerance: tolerance
-            )
+            // A position box is only as tight as its interval, so a cell is widened only as far
+            // as a pcurve trim needs (wider than the relative tolerance), not to the derivative
+            // certificates' minimum width: a closest-point search refining toward a root must see
+            // its boxes shrink.
+            let minimumWidth = (4.0 * tolerance.relative).nextUp
+            let containingInterval: ScalarInterval
+            if interval.width >= minimumWidth {
+                containingInterval = interval
+            } else {
+                let upper = min(1.0, max(interval.midpoint + minimumWidth * 0.5, minimumWidth))
+                containingInterval = try ScalarInterval(lower: upper - minimumWidth, upper: upper)
+            }
             let localCurve = try parameterCurve.subcurveForParameterBounds(
                 fromNormalizedFraction: containingInterval.lower,
                 toNormalizedFraction: containingInterval.upper,

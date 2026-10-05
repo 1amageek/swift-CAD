@@ -5,8 +5,10 @@ import Testing
 
 @Suite("Extrude Result Kind Schema")
 struct ExtrudeResultKindSchemaTests {
+    /// The canonical payload requires `resultKind` (CADIR DESIGN): a solid writes it too, and a
+    /// payload without it is refused rather than defaulted.
     @Test(.timeLimit(.minutes(1)))
-    func solidExtrudeOmitsResultKindSoEarlierDocumentsStayByteIdentical() throws {
+    func solidExtrudeWritesItsResultKind() throws {
         let feature = ExtrudeFeature(
             profile: ProfileReference(featureID: FeatureID()),
             distance: .constant(.length(60.0, unit: .millimeter))
@@ -16,21 +18,23 @@ struct ExtrudeResultKindSchemaTests {
         let object = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
 
         #expect(feature.resultKind == .solid)
-        #expect(object["resultKind"] == nil)
+        #expect(object["resultKind"] as? String == "solid")
+        #expect(try JSONDecoder().decode(ExtrudeFeature.self, from: data) == feature)
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func omittedResultKindDecodesAsSolid() throws {
+    func omittedResultKindIsRefused() throws {
         let feature = ExtrudeFeature(
             profile: ProfileReference(featureID: FeatureID()),
             distance: .constant(.length(60.0, unit: .millimeter))
         )
-        let data = try JSONEncoder().encode(feature)
+        var object = try #require(try JSONSerialization.jsonObject(with: JSONEncoder().encode(feature)) as? [String: Any])
+        object.removeValue(forKey: "resultKind")
+        let data = try JSONSerialization.data(withJSONObject: object)
 
-        let decoded = try JSONDecoder().decode(ExtrudeFeature.self, from: data)
-
-        #expect(decoded.resultKind == .solid)
-        #expect(decoded == feature)
+        #expect(throws: DecodingError.self) {
+            try JSONDecoder().decode(ExtrudeFeature.self, from: data)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))

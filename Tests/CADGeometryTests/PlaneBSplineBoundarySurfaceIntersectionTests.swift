@@ -138,14 +138,16 @@ struct PlaneBSplineBoundarySurfaceIntersectionTests {
 
     @Test(.timeLimit(.minutes(1)))
     func interiorCrossingReturnsVerifiedCurveWithDualPcurves() throws {
+        // Twisted, so its height depends on both parameters: a section along an isoparametric
+        // line is reduced exactly before the general solver (`PlaneBSplineIsoparametricIntersector`).
         let crossing = BSplineSurface3D(
             uDegree: 1,
             vDegree: 1,
             uKnots: [0.0, 0.0, 1.0, 1.0],
             vKnots: [0.0, 0.0, 1.0, 1.0],
             controlPoints: [
-                [Point3D(x: 0.0, y: 0.0, z: -1.0), Point3D(x: 1.0, y: 0.0, z: -1.0)],
-                [Point3D(x: 0.0, y: 1.0, z: 1.0), Point3D(x: 1.0, y: 1.0, z: 1.0)],
+                [Point3D(x: 0.0, y: 0.0, z: -1.0), Point3D(x: 1.0, y: 0.0, z: -0.5)],
+                [Point3D(x: 0.0, y: 1.0, z: 1.0), Point3D(x: 1.0, y: 1.0, z: 1.5)],
             ]
         )
 
@@ -217,9 +219,16 @@ struct PlaneBSplineBoundarySurfaceIntersectionTests {
         var certifiedCurves: [SurfaceSurfaceIntersectionCurve] = []
 
         for operand in operands {
-            let intersections = try intersector.intersections(
-                first: operand.first,
-                second: operand.second,
+            // The contact runs along an isoparametric line, which the default dispatcher reduces
+            // exactly first; the analytic–B-spline solver that owns the tangency certificate is
+            // asked directly.
+            let intersections = try AnalyticBSplineSurfaceIntersector().intersections(
+                analytic: .plane(CanonicalAnalyticSurface.Plane(origin: .origin, normal: .unitZ)),
+                surface: tangentSurface,
+                firstSurface: operand.first,
+                secondSurface: operand.second,
+                analyticIsFirst: operand.analyticIsFirst,
+                options: SurfaceSurfaceIntersectionOptions(),
                 tolerance: tolerance
             )
             #expect(intersections.count == 1)

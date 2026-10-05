@@ -1047,7 +1047,14 @@ struct SwiftCADTests {
                 #expect(imported.units.length == .millimeter)
             } else {
                 #expect(!imported.meshes.isEmpty)
-                #expect(imported.units.length == .millimeter)
+                // glTF, GLB and VRML97 fix their declared length unit to the metre; the other mesh
+                // formats declare the document's. Positions are SI either way: the box keeps its
+                // 40 mm width.
+                let expectedUnit: LengthUnit = [.glb, .gltf, .vrml].contains(format) ? .meter : .millimeter
+                #expect(imported.units.length == expectedUnit, "\(format)")
+                let xs = imported.meshes.values.flatMap { $0.positions.map(\.x) }
+                let width = (xs.max() ?? 0) - (xs.min() ?? 0)
+                #expect(abs(width - 0.04) < 1e-9, "\(format) width \(width)")
                 for mesh in imported.meshes.values {
                     try mesh.validate(tolerance: .standard)
                 }

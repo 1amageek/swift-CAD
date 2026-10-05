@@ -365,8 +365,20 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
       )
     }
     let angularResidual = fromTangent.cross(toTangent).length / magnitudeProduct
+    // The two cells meet within the distance tolerance, not at one point: across that gap the
+    // tangent turns by up to the curvature times the gap, which a G1 connection allows on top of
+    // the angle tolerance.
+    func curvature(_ differential: CertifiedImplicitIntersectionDifferential) -> Double {
+      let speed = differential.firstDerivative.length
+      return differential.firstDerivative.cross(differential.secondDerivative).length
+        / (speed * speed * speed)
+    }
+    let gap = (fromDifferential.position - toDifferential.position).length
+    let allowedTurn = (sin(tolerance.angle)
+      + max(curvature(fromDifferential), curvature(toDifferential)) * gap * 2.0).nextUp
     guard fromTangent.dot(toTangent) > 0.0,
-      angularResidual <= sin(tolerance.angle)
+      allowedTurn.isFinite,
+      angularResidual <= allowedTurn
     else {
       throw KernelError(
         phase: .geometry,

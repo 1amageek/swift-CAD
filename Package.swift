@@ -129,8 +129,8 @@ let package = Package(
     .target(
       name: "SwiftCAD",
       dependencies: [
-        "CADCore", "CADCapabilities", "CADTopology", "CADIR", "CADModeling", "CADKernel",
-        "CADExchange",
+        "CADCore", "CADCapabilities", "CADGeometry", "CADTopology", "CADIR", "CADModeling",
+        "CADKernel", "CADExchange",
       ],
       cSettings: [
         .define("_WASI_EMULATED_SIGNAL", .when(platforms: [.custom("wasi")])),

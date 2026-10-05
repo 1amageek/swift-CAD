@@ -83,6 +83,11 @@ public struct STEPExchange: Sendable {
         }
         let entities = try stepEntities(in: dataSections.map(\.content).joined(separator: "\n"))
         try budget.check(format: .step)
+        // An empty DATA section is malformed input; a section holding only entities outside the
+        // exact subset stays the reader's unsupported-capability refusal.
+        guard !entities.isEmpty else {
+            throw ImportError.invalidData("STEP DATA section contains no entities.")
+        }
         guard entities.count <= resourceLimits.maximumEntities else {
             throw KernelError(
                 phase: .exchange,

@@ -68,7 +68,9 @@ Unknown nested knot or expression keys remain rejected.
    export failure before parsing or writing.
 2. STEP accepts only the implemented exact entity subset. A tessellated or
    otherwise unsupported STEP entity is a typed refusal; no partial B-rep is
-   published.
+   published. A DATA section holding no entity is malformed input
+   (`ImportError.invalidData`), distinct from one holding only entities outside
+   the exact subset (the reader's unsupported-capability refusal).
 3. A successful STEP import retains the reader's exact full `BRepModel`,
    embedded length unit, and a validated `CADDocument` with one validated
    imported feature for each body. Each feature's source model is extracted by

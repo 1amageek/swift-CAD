@@ -277,12 +277,19 @@ must not come from display meshes or samples.
 Adjacent implicit graph cells use this same search-domain normalization at
 construction and decoding, computed once per connection-validation pass using
 the stored certification tolerance. Native surface domains and geometric and
-tangent continuity checks remain unchanged.
+tangent continuity checks remain unchanged. Two cells meet within the distance
+tolerance rather than at one point, so the tangent check admits the angle
+tolerance plus twice the larger end curvature times that positional gap
+(`SurfaceSurfaceIntersectionTests.subdividedProceduralIntersectionAssemblesACompleteClosedCurveInBothOrders`).
 Surface lifts of implicit intersection pcurves reuse the certified parameter
 interval jet for UV bounds and derivatives through order three. Reversed and
 trimmed pcurves rescale each derivative by its parameter-span power; closed
 seam-crossing spans enclose both sides separately. Offset pullbacks transport
 only UV bounds, never the original support's spatial derivative certificate.
+A lift's position box restricts the pcurve to the requested cell, widened only
+to the width a trim needs (four relative tolerances), not to the derivative
+certificates' minimum width, so a closest-point search refining toward a root
+sees its boxes shrink (`ProceduralSurfaceKernelIntegrationTests.closestPointUsesExactEdgesForANonRectangularTrim`).
 At the graph restriction resolution floor, interval jets use a containing
 local interval wide enough for certified restriction, not the entire parent
 cell. Derivatives are rescaled by that containing interval's actual width.
@@ -653,4 +660,14 @@ When the weighted signed-distance control coefficients are identical along one s
 
 ### Original closed curve-span differential authority
 
-`PreparedCurveDifferentialEncloser` retains immutable original homogeneous coefficients for closed native-span queries. A C0 knot is queried on each owning original span; higher derivatives are never presented as a globally smooth jet. The one-shot B-spline differential route delegates to the same prepared authority, with identical normalized endpoints, original budgets, and cancellation. `PreparedCurveClosedNativeJetTests` and `CurveDifferentialEncloserTests` verify owning sides, finite/resource failures, and prepared/one-shot equality. [GeometryConversion](GeometryConversion/DESIGN.md) composes this lower contract without widening original correspondence admission.
+`PreparedCurveDifferentialEncloser` retains immutable original homogeneous coefficients for closed native-span queries. A C0 knot is queried on each owning original span; higher derivatives are never presented as a globally smooth jet. The one-shot B-spline differential route delegates to the same prepared authority, with identical normalized endpoints, original budgets, and cancellation. `PreparedCurveClosedNativeJetTests` and `CurveDifferentialEncloserTests` verify owning sides, finite/resource failures, and prepared/one-shot equality. A native span's values over a parameter interval intersect the interval de Casteljau evaluation with the hull of the Bernstein coefficients restricted to that interval, which shrinks with the interval's square (the spatial Revolve's orbit separation, `RevolveSheetConstructionTests.nonmonotoneSpatialGeneratorProducesExactRegularSheet`). [GeometryConversion](GeometryConversion/DESIGN.md) composes this lower contract without widening original correspondence admission.
+
+### Polynomial B-spline surface derivatives
+
+Where the weights a B-spline surface evaluation reaches are all equal, the surface is polynomial
+there: `BSplineSurface3D` derivatives through second order, and through third order in
+`parameterDerivativesThroughThirdOrder`, are the homogeneous sums over the weight sum without
+quotient-rule terms, so derivatives that vanish (a degree-one direction's second derivative) are
+exactly zero rather than a roundoff residue outside their certified enclosures
+(`SurfaceDifferentialEncloserTests.affineBSplineEnclosureRemainsConditionedOnNearlyConstantParameter`,
+`CurveThirdOrderCertificationTests`).

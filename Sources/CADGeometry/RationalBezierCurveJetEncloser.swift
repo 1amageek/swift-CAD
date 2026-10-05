@@ -354,11 +354,50 @@ struct RationalBezierCurveJetEncloser: Sendable {
                 level[index] * complement + level[index + 1] * parameter
             }
         }
-        guard let value = level.first, let result = value.intersection(with: hull) else {
+        guard let value = level.first,
+              let result = value.intersection(with: restrictedHull(coefficients, over: parameter) ?? hull)
+                .flatMap({ $0.intersection(with: hull) }) else {
             throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
                 message: "Interval Bernstein evaluation and its certified coefficient hull are disjoint.")
         }
         return result
+    }
+
+    /// The hull of the Bernstein coefficients restricted to the parameter interval. A de Casteljau
+    /// run at the interval parameter only shrinks with the interval's width; the restricted hull
+    /// shrinks with its square, as a cell refined toward a point needs.
+    private func restrictedHull(
+        _ coefficients: [OutwardScalarInterval],
+        over parameter: OutwardScalarInterval
+    ) -> OutwardScalarInterval? {
+        let (lower, upper) = (parameter.lower, parameter.upper)
+        guard coefficients.count > 1, lower < 1.0, upper > 0.0, lower <= upper else { return nil }
+        // de Casteljau at `t`, keeping the side toward 1 (`keepsUpper`) or toward 0.
+        func split(_ controls: [OutwardScalarInterval], at t: OutwardScalarInterval,
+                   keepsUpper: Bool) -> [OutwardScalarInterval] {
+            var level = controls
+            var kept = [keepsUpper ? level[level.count - 1] : level[0]]
+            let complement = OutwardScalarInterval(1.0) - t
+            while level.count > 1 {
+                level = (0..<(level.count - 1)).map { level[$0] * complement + level[$0 + 1] * t }
+                kept.append(keepsUpper ? level[level.count - 1] : level[0])
+            }
+            return keepsUpper ? kept.reversed() : kept
+        }
+        var controls = coefficients
+        if lower > 0.0 {
+            controls = split(controls, at: OutwardScalarInterval(lower), keepsUpper: true)
+        }
+        if upper < 1.0 {
+            // On [lower, 1] the end `upper` sits at (upper - lower) / (1 - lower).
+            let local = (OutwardScalarInterval(upper) - OutwardScalarInterval(lower))
+                .divided(by: OutwardScalarInterval(1.0) - OutwardScalarInterval(lower))
+            guard let local, local.isFinite else { return nil }
+            let clamped = OutwardScalarInterval(lower: max(0.0, local.lower), upper: min(1.0, local.upper))
+            controls = split(controls, at: clamped, keepsUpper: false)
+        }
+        guard controls.allSatisfy(\.isFinite) else { return nil }
+        return OutwardScalarInterval.enclosing(controls)
     }
 
     private func differentiated(
