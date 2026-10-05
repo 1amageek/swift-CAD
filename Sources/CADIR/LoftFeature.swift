@@ -280,6 +280,11 @@ public struct LoftOptions: Codable, Hashable, Sendable {
     /// Trim overlap: guides running on past the end sections are cut there (the default); off,
     /// the loft runs on along them to their ends, each end section carried there.
     public var trimsOverlap: Bool
+    /// Trim profiles: open sections running on past two guides are cut where the guides cross them
+    /// and only the stretch between the guides is lofted, the guides its sides; off (the default),
+    /// the sections are lofted whole. Plasticity's documentation leaves the option's effect open; this
+    /// is the behaviour inferred from Trim overlap's (decided 2026-10-05).
+    public var trimsProfiles: Bool
 
     private enum CodingKeys: String, CodingKey {
         case resultKind
@@ -289,6 +294,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         case smoothTangentScale
         case simplify
         case trimsOverlap
+        case trimsProfiles
     }
 
     public init(
@@ -298,7 +304,8 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         surfaceMode: LoftSurfaceMode = .ruled,
         smoothTangentScale: Double = 1.0,
         simplify: Bool = false,
-        trimsOverlap: Bool = true
+        trimsOverlap: Bool = true,
+        trimsProfiles: Bool = false
     ) {
         self.resultKind = resultKind
         self.sectionMatching = sectionMatching
@@ -307,6 +314,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         self.smoothTangentScale = smoothTangentScale
         self.simplify = simplify
         self.trimsOverlap = trimsOverlap
+        self.trimsProfiles = trimsProfiles
     }
 
     public init(from decoder: Decoder) throws {
@@ -319,6 +327,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
             .smoothTangentScale,
             .simplify,
             .trimsOverlap,
+            .trimsProfiles,
         ], in: decoder)
         resultKind = try container.decode(LoftResultKind.self, forKey: .resultKind)
         sectionMatching = try container.decode(LoftSectionMatching.self, forKey: .sectionMatching)
@@ -327,6 +336,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         smoothTangentScale = try container.decode(Double.self, forKey: .smoothTangentScale)
         simplify = try container.decodeIfPresent(Bool.self, forKey: .simplify) ?? false
         trimsOverlap = try container.decodeIfPresent(Bool.self, forKey: .trimsOverlap) ?? true
+        trimsProfiles = try container.decodeIfPresent(Bool.self, forKey: .trimsProfiles) ?? false
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -338,6 +348,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         try container.encode(smoothTangentScale, forKey: .smoothTangentScale)
         if simplify { try container.encode(simplify, forKey: .simplify) }
         if trimsOverlap == false { try container.encode(trimsOverlap, forKey: .trimsOverlap) }
+        if trimsProfiles { try container.encode(trimsProfiles, forKey: .trimsProfiles) }
     }
 
     public func validate() throws {

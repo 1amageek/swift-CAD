@@ -95,4 +95,42 @@ struct ContinuousLoftTests {
         #expect(try JSONDecoder().decode(LoftOptions.self, from: try JSONEncoder().encode(options)).trimsOverlap == false)
         #expect(try JSONDecoder().decode(LoftOptions.self, from: try JSONEncoder().encode(LoftOptions())).trimsOverlap)
     }
+
+    /// Trim profiles (inferred from Trim overlap, decided 2026-10-05): two sections running past
+    /// both guides are cut where the guides cross them when it is on, the sheet spanning only
+    /// between the guides; off, the sections loft whole as before.
+    @Test(.timeLimit(.minutes(2)))
+    func trimProfilesCutsTheSectionsAtTheGuides() throws {
+        func corners(trimsProfiles: Bool) throws -> [Point3D] {
+            var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+            let near = try builder.sketch(on: .xy) { _ = $0.line(from: point(-5, 30), to: point(20, 30)) }.featureID
+            let far = try builder.sketch(on: .xy) { _ = $0.line(from: point(-5, 70), to: point(20, 70)) }.featureID
+            let left = try builder.sketch(on: .xy) { _ = $0.line(from: point(0, 30), to: point(0, 70)) }.featureID
+            let right = try builder.sketch(on: .xy) { _ = $0.line(from: point(10, 30), to: point(14, 70)) }.featureID
+            let loft = try builder.loft(
+                sections: [near, far].map { LoftSectionReference(section: .curve(CurveSectionReference(featureID: $0))) },
+                guides: [LoftGuideReference(featureID: left), LoftGuideReference(featureID: right)],
+                options: LoftOptions(resultKind: .sheet, trimsProfiles: trimsProfiles)
+            )
+            let evaluated = try CADPipeline(tolerance: .standard).evaluate(builder.build())
+            try evaluated.brep.validate(level: .exact, tolerance: .standard)
+            let faces = evaluated.subshapes.entries.compactMap { key, value -> FaceID? in
+                guard key.featureID == loft, case let .face(id) = value else { return nil }
+                return id
+            }
+            return try faces.flatMap { faceID in
+                try (evaluated.brep.faces[faceID]?.loops ?? []).flatMap { try evaluated.brep.orderedPoints(for: $0) }
+            }
+        }
+        let trimmed = try corners(trimsProfiles: true)
+        // The trapezoid between the guides: (0, 30), (10, 30), (14, 70), (0, 70).
+        for expected in [(0.0, 30.0), (10.0, 30.0), (14.0, 70.0), (0.0, 70.0)] {
+            #expect(trimmed.contains { abs($0.x * 1000 - expected.0) < 1e-6 && abs($0.y * 1000 - expected.1) < 1e-6 }, "\(expected)")
+        }
+        #expect(trimmed.allSatisfy { $0.x * 1000 > -1e-6 && $0.x * 1000 < 14 + 1e-6 })
+        // The option persists, and documents without it loft whole sections.
+        let options = LoftOptions(resultKind: .sheet, trimsProfiles: true)
+        #expect(try JSONDecoder().decode(LoftOptions.self, from: try JSONEncoder().encode(options)).trimsProfiles)
+        #expect(try JSONDecoder().decode(LoftOptions.self, from: try JSONEncoder().encode(LoftOptions())).trimsProfiles == false)
+    }
 }

@@ -38,6 +38,58 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
         )
     }
 
+    /// Trim profiles: each open section cut to its stretch between where the two guides cross it.
+    private func trimmedToGuides(_ sections: [[ExactBSplineCurveSpan]], guides: [ExactLoftGuideCurve], closed: Bool,
+                                 featureID: FeatureID, tolerance: ModelingTolerance) throws -> [[ExactBSplineCurveSpan]] {
+        guard closed == false, guides.count == 2 else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): closed sections, or other than two guides, have no
+            // single stretch between guides to keep, so Trim profiles refuses them. Production path:
+            // LoftFeatureEvaluator for Loft with Trim profiles on. Complete only when such sections
+            // trim, verified by a closed section cut by its guides.
+            throw KernelError(phase: .evaluation, code: .unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              message: "A Loft trims its open sections to the stretch between two guides.")
+        }
+        return try sections.indices.map { index in
+            let spans = sections[index]
+            // Where along the chain each guide crosses the section: its span and parameter there.
+            let crossings = try guides.map { guide -> (span: Int, parameter: Double) in
+                let point = guide.sectionPoints[index]
+                for (spanIndex, span) in spans.enumerated() {
+                    let curve = Curve3D.bSpline(span.curve)
+                    let parameter = try curve.parameterProjection(of: point, tolerance: tolerance).parameter
+                    if try curve.point(at: parameter, tolerance: tolerance).isApproximatelyEqual(to: point, tolerance: tolerance.distance) {
+                        return (spanIndex, parameter)
+                    }
+                }
+                throw KernelError(phase: .geometry, code: .intersectionFailure, featureID: featureID, tolerance: tolerance,
+                                  message: "A Loft guide does not cross its section.")
+            }.sorted { ($0.span, $0.parameter) < ($1.span, $1.parameter) }
+            let (first, last) = (crossings[0], crossings[1])
+            var kept: [ExactBSplineCurveSpan] = []
+            for spanIndex in first.span...last.span {
+                let curve = spans[spanIndex].curve
+                guard case let .closed(lower, upper) = curve.domain else {
+                    throw KernelError(phase: .geometry, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                                      message: "A Loft section's span is unbounded.")
+                }
+                let from = spanIndex == first.span ? first.parameter : lower
+                let to = spanIndex == last.span ? last.parameter : upper
+                guard to - from > tolerance.distance * 1e-3 else { continue }
+                let piece = from == lower && to == upper ? curve : try curve.trimmed(from: from, to: to, tolerance: tolerance)
+                guard case let .closed(pieceLower, pieceUpper) = piece.domain else { continue }
+                let start = try piece.point(at: pieceLower, tolerance: tolerance)
+                let end = try piece.point(at: pieceUpper, tolerance: tolerance)
+                guard start.isApproximatelyEqual(to: end, tolerance: tolerance.distance) == false else { continue }
+                kept.append(try ExactBSplineCurveSpan(curve: piece, tolerance: tolerance))
+            }
+            guard kept.isEmpty == false else {
+                throw KernelError(phase: .geometry, code: .invalidInput, featureID: featureID, tolerance: tolerance,
+                                  message: "A Loft's guides cross its section at one point.")
+            }
+            return kept
+        }
+    }
+
     /// A Loft from its one section to a vertex of a body, the section's one loop ruled to it.
     /// Trim overlap off: where the two guides run on past the first or the last open section,
     /// that section carried along them to their ends (the similarity taking its ends, where the
@@ -263,9 +315,16 @@ public struct LoftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             if loft.options.trimsOverlap == false, loft.sections.count >= 2 {
                 try extendAlongGuides(&boundarySpans, lofted: &lofted, seamPoints: &seamPoints, featureID: feature.id, context: context)
             }
-            let guides = try ExactLoftGuideCurveResolver().resolve(guides: lofted.guides,
+            var guides = try ExactLoftGuideCurveResolver().resolve(guides: lofted.guides,
                 sections: boundarySpans.map { ExactLoftGuideSection(loops: [$0]) },
                 context: context)
+            if loft.options.trimsProfiles {
+                boundarySpans = try trimmedToGuides(boundarySpans, guides: guides, closed: closed, featureID: feature.id,
+                                                    tolerance: context.tolerance)
+                guides = try ExactLoftGuideCurveResolver().resolve(guides: lofted.guides,
+                    sections: boundarySpans.map { ExactLoftGuideSection(loops: [$0]) },
+                    context: context)
+            }
             return try ExactLoftBodyBuilder(featureID: feature.id, context: context)
                 .build(loft: lofted, boundarySpans: boundarySpans, isClosed: closed,
                     guideCurves: guides, seamPoints: seamPoints)
