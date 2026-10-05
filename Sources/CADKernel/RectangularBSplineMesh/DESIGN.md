@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-This child of [CADKernel](../DESIGN.md) owns original rectangular B-spline basis admission. It has no children. MeshTessellator remains the module composition root and consumes the Geometry-owned original closed-span authority. M1 includes finite legal positive-weight regular C0/C1 supports with open or periodic axes; this sprint composes nonclamped native open axes with the unchanged selected periodic lift authority. Separate curvilinear-trim work does not establish M1 completion.
+This child of [CADKernel](../DESIGN.md) owns original rectangular B-spline basis admission. It has no children. MeshTessellator remains the module composition root and consumes the Geometry-owned original closed-span authority. M1 includes finite legal positive-weight regular C0/C1 supports with open or periodic axes; this sprint composes nonclamped native open axes with the unchanged selected periodic lift authority. Curvilinear trims belong to the separate OriginalGraphBandMesh child and do not establish M1 completion.
 
 ## Responsibilities and Boundaries
 
@@ -15,6 +15,7 @@ OriginalBSplineRectangleBasisAdmission classifies original knot continuity and e
 | [CADKernel](../DESIGN.md) | parent | checked retained preflight/emission and FaceRun | Composes the admitted family with invocation storage | Parent owns the public entry and module index |
 | [CADGeometry](../../CADGeometry/DESIGN.md#original-native-span-tessellation-authority-parm1r3) | depends on | original closed incident span tokens, selected normals and aggregate bounds | Supplies all numeric authority for original native panels | Same depth32/cell262144 traversal; no reconstructed support or epsilon endpoint |
 | [CADIR](../../CADIR/DESIGN.md) | depends on | original TessellationOptions/Limits/Mesh | Owns caller geometric and storage allowances | Every diagonal and original normal must meet the unchanged options |
+| [OriginalGraphBandMesh](../OriginalGraphBandMesh/DESIGN.md) | coordinates with | distinct bounded trim dispatch | Keeps M2 curvilinear coverage separate | Its receipts and successes do not count as full M1 proof |
 
 ## Architecture
 
@@ -35,6 +36,8 @@ A source is validated under the caller modeling tolerance before basis classific
 All nonclamped open rectangles use exact ordered constant-coordinate coedge-use endpoints, connected directed vertex identities, alternating monotone sides and complete original ranges. Those exact source conditions supply rectangle ownership; sampled endpoints or spatial tolerance do not substitute for UV connectivity. Split sides retain their existing exact contract.
 
 Nonclamped C1 and C0 sources both consume native panels. Every positive original panel receives the existing closed one-sided Geometry proof. Compatible maximum counts are retained per original U/V interval; each triangle stays in one original panel, including C0 boundaries. Adjacent panels retain the same boundary positions with independent selected original normal/index owners. No crease-crossing triangle or unproved panel omission is permitted.
+
+Published compact indices use an exact checked conversion from their nonnegative retained index to UInt32 on every target. A UInt32 upper-bound constant is never converted to the target-sized Int as an admission predicate. Out-of-range conversion retains the existing typed failure; source/triangle order, selected normals, FaceRun, caller storage ceilings and geometric allowances remain unchanged.
 
 The existing outward actual representable station gaps, original tangent/Hessian/unit-normal derivative bounds and all-triangle-edge policy own count selection. Position deviation, normal angular variation and every edge including the diagonal simultaneously satisfy original caller options. Preflight and emission consume the same retained grids; no fixed-step or legacy retry authorizes success.
 

@@ -6,7 +6,7 @@ import CADTopology
 
 @main
 struct CADWASMSmoke {
-    static func main() throws {
+    static func main() async throws {
         let tolerance = ModelingTolerance(
             distance: 1.0e-6,
             angle: 1.0e-9,
@@ -90,6 +90,7 @@ struct CADWASMSmoke {
         }
         print("KernelCapabilityDomain passed")
 
+        try await RectangularBSplineMeshSmoke.run()
         print("CADWASMSmoke passed")
     }
 }
