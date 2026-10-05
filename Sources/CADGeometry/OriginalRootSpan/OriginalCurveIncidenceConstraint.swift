@@ -48,5 +48,54 @@ public enum OriginalCurveIncidenceConstraint: Hashable, Sendable {
 }
 
 #if !hasFeature(Embedded)
-extension OriginalCurveIncidenceConstraint: Codable {}
+extension OriginalCurveIncidenceConstraint: Codable {
+    private enum Keys: String, CodingKey { case plane, axis, parameterPolynomial }
+    private enum Fields: String, CodingKey { case origin, normal, direction }
+
+    public init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: Keys.self)
+        guard container.allKeys.count == 1, let key = container.allKeys.first else {
+            throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath,
+                debugDescription: "Original incidence requires exactly one source case."))
+        }
+        switch key {
+        case .plane, .axis:
+            let fields = try container.nestedContainer(keyedBy: Fields.self, forKey: key)
+            let expected: Set<Fields> = key == .plane ? [.origin, .normal] : [.origin, .direction]
+            guard Set(fields.allKeys) == expected else {
+                throw DecodingError.dataCorrupted(.init(codingPath: fields.codingPath,
+                    debugDescription: "Original incidence fields are invalid."))
+            }
+            let origin = try fields.decode(Point3D.self, forKey: .origin)
+            self = try key == .plane
+                ? .plane(origin: origin, normal: fields.decode(Vector3D.self, forKey: .normal))
+                : .axis(origin: origin, direction: fields.decode(Vector3D.self, forKey: .direction))
+        case .parameterPolynomial:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Native root-span decoding lacks
+            // the caller-admitted original polynomial codec. Production Native
+            // document import must fail until the complete raw coefficients and
+            // budgets are retained; portable encoding is not a Native substitute.
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: nil,
+                message: "Native original parameter-polynomial incidence decoding is incomplete.")
+        }
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: Keys.self)
+        switch self {
+        case .plane(let origin, let normal):
+            var fields = container.nestedContainer(keyedBy: Fields.self, forKey: .plane)
+            try fields.encode(origin, forKey: .origin); try fields.encode(normal, forKey: .normal)
+        case .axis(let origin, let direction):
+            var fields = container.nestedContainer(keyedBy: Fields.self, forKey: .axis)
+            try fields.encode(origin, forKey: .origin); try fields.encode(direction, forKey: .direction)
+        case .parameterPolynomial:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Native root-span encoding lacks
+            // original polynomial coefficient persistence. Production Native
+            // document export must fail rather than drop or round the root law.
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: nil,
+                message: "Native original parameter-polynomial incidence encoding is incomplete.")
+        }
+    }
+}
 #endif

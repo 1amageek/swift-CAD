@@ -353,11 +353,20 @@ public struct OriginalCurveRootSpan3D: Hashable, Sendable {
             guard let traversal = preparedWholeTraversal else {
                 throw GeometryConversionError.invalidInput("Original root chart has no retained source preparation.")
             }
-            original = try traversal.closedNativeJets(over: .init(lower: mapped.lower, upper: mapped.upper),
+            let receipt = try traversal.closedNativeJets(over: .init(lower: mapped.lower, upper: mapped.upper),
                 tolerance: tolerance, maximumSpanCount: min(maximumSpanCount, preparedMaximumSpanCount),
                 maximumSubdivisionDepth: min(maximumSubdivisionDepth, preparedMaximumSubdivisionDepth),
                 remainingSourceDepth: min(remainingSourceDepth, preparedRemainingSourceDepth), consumeWork: consumeWork,
-                consumeStorage: consumeStorage).jet
+                consumeStorage: consumeStorage)
+            guard let first = receipt.spans.first else {
+                throw GeometryConversionError.invalidInput("Original root chart has no admitted owning span.")
+            }
+            var hull = first.jet
+            for owner in receipt.spans.dropFirst() {
+                try consumeWork()
+                hull = hull.union(owner.jet)
+            }
+            original = hull
         }
 
         func scale(_ value:SurfaceIntervalJet)->SurfaceIntervalJet {

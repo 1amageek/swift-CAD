@@ -1,5 +1,13 @@
 # Original Root Span
 
+At the user-requested implementation freeze, parameter-polynomial incidence
+constraints retain their actual common source and portable identity, but their
+Native polynomial codec is unfinished. Native encoding/decoding refuses this
+case explicitly while preserving the existing plane/axis wire fields. This is
+an incomplete capability, not a substitute root law. Closed native jet covers
+retain one-sided owners; taking their componentwise hull does not establish join
+continuity or grant a mean-value proof.
+
 ## Purpose and Scope
 
 Child of [CADGeometry](../DESIGN.md), without children. Owns exact original

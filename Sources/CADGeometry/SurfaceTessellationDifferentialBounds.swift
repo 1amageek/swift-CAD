@@ -592,6 +592,7 @@ extension DefaultSurfaceDifferentialEncloser {
     case .procedural(.originalBoundaryCorrected): return "original boundary-corrected Hermite source"
     case .procedural(.originalPlaneDerivative): return "original support-plane derivative source"
     case .procedural(.originalDrafted): return "original drafted ruling source"
+    case .procedural(.originalAngularTransport): return "original angular transport source"
     }
   }
 
