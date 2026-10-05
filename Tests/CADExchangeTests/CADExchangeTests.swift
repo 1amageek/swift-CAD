@@ -1477,6 +1477,49 @@ struct CADExchangeTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func officialStandardMeshFormatsUseURLAndAtomicFailurePaths() throws {
+        let evaluated = try makeEvaluatedDocument()
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("standard-format-facade-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        defer {
+            do { try FileManager.default.removeItem(at: directory) }
+            catch { Issue.record("Standard mesh URL fixture cleanup failed: \(error)") }
+        }
+        let facade = OfficialFormatExchange(tolerance: .standard)
+        for format in [ExchangeFileFormat.glb, .gltf, .ply, .vrml] {
+            let url = directory.appendingPathComponent("mesh").appendingPathExtension(format.fileExtensions[0])
+            try facade.export(evaluated, to: url)
+            let imported = try facade.import(from: url, explicitUnit: nil)
+            #expect(imported.format == format)
+            let extents = try meshExtents(imported.meshes)
+            #expect(abs(extents.width - 0.04) < 1e-6)
+            #expect(abs(extents.height - 0.02) < 1e-6)
+            #expect(abs(extents.depth - 0.01) < 1e-6)
+            let saved = try Data(contentsOf: url)
+            let limited = OfficialFormatExchange(tolerance: .standard,
+                standardMeshExchange: StandardMeshExchange(tolerance: .standard,
+                    resourceLimits: .init(maximumBytes: 10)))
+            #expect(throws: KernelError.self) { try limited.export(evaluated, as: format, to: url) }
+            #expect(try Data(contentsOf: url) == saved)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func legacyGLBExporterInjectionKeepsItsOutputRoute() throws {
+        let evaluated = try makeEvaluatedDocument()
+        let legacy = GLBExporter(tolerance: .standard)
+        let facade = OfficialFormatExchange(tolerance: .standard, glbExporter: legacy,
+            standardMeshExchange: StandardMeshExchange(tolerance: .standard,
+                resourceLimits: .init(maximumBytes: 10)))
+        let actual = try facade.export(evaluated, as: .glb)
+        let expectedSink = DataByteSink()
+        try legacy.write(meshes: evaluated.meshes.materializedDictionary(), to: expectedSink)
+        #expect(actual == expectedSink.bytes)
+        #expect(throws: KernelError.self) { _ = try facade.export(evaluated, as: .gltf) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func officialFormatRegistryMatchesSupportMatrix() {
         #expect(ExchangeFileFormat.swiftCAD.fileExtensions == ["swcad"])
         #expect(ExchangeFileFormat.format(forFileExtension: ".swcad") == .swiftCAD)
@@ -1484,7 +1527,7 @@ struct CADExchangeTests {
         #expect(ExchangeFileFormat.format(forFileExtension: "igs") == .iges)
         #expect(ExchangeFileFormat.format(forFileExtension: "3mf") == .threeMF)
         #expect(Set(ExchangeFileFormat.allCases.filter { $0.supportsExport }) == Set([
-            .swiftCAD, .step, .stl, .threeMF, .obj, .dxf, .svg, .glb, .usd, .usda, .usdc, .usdz, .pdf
+            .swiftCAD, .step, .stl, .threeMF, .obj, .dxf, .svg, .glb, .gltf, .ply, .vrml, .usd, .usda, .usdc, .usdz, .pdf
         ]))
 
         var importFormats: Set<ExchangeFileFormat> = [
@@ -1495,6 +1538,10 @@ struct CADExchangeTests {
             .obj,
             .dxf,
             .svg,
+            .glb,
+            .gltf,
+            .ply,
+            .vrml,
             .usd,
             .usda
         ]
@@ -1537,7 +1584,7 @@ struct CADExchangeTests {
                 }
             } else {
                 #expect(!imported.meshes.isEmpty)
-                #expect(imported.units.length == .millimeter)
+                #expect(imported.units.length == ((format == .glb || format == .gltf || format == .vrml) ? .meter : .millimeter))
                 #expect(try imported.meshes.values.reduce(0) { partial, mesh in
                     try mesh.validate(tolerance: .standard)
                     return partial + mesh.indices.count
@@ -6879,6 +6926,22 @@ private func signatureMatches(_ data: Data, format: ExchangeFileFormat) throws -
         return text.contains("<svg") && text.contains("data-unit=\"millimeter\"") && text.contains("<polygon")
     case .glb:
         return try data.littleEndianUInt32(at: 0) == 0x46546c67
+    case .gltf:
+        // JSON may escape URI slashes; inspect decoded format fields rather
+        // than requiring a particular legal JSON string spelling.
+        guard let root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let asset = root["asset"] as? [String: Any],
+              asset["version"] as? String == "2.0",
+              let buffers = root["buffers"] as? [[String: Any]],
+              let uri = buffers.first?["uri"] as? String,
+              let meshes = root["meshes"] as? [[String: Any]], !meshes.isEmpty else {
+            return false
+        }
+        return uri.hasPrefix("data:application/octet-stream;base64,")
+    case .ply:
+        return text.hasPrefix("ply\nformat ascii 1.0")
+    case .vrml:
+        return text.hasPrefix("#VRML V2.0 utf8")
     case .usd, .usda:
         let usdIsLoadable = try usdCheckerAccepts(data, fileExtension: format.rawValue)
         return text.contains("#usda 1.0")

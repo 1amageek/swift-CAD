@@ -12,7 +12,8 @@ public struct OfficialFormatExchange: Sendable {
     private let objExchange: OBJExchange
     private let dxfExchange: DXFExchange
     private let svgExchange: SVGExchange
-    private let glbExporter: GLBExporter
+    private let glbExporter: GLBExporter?
+    private let standardMeshExchange: any StandardMeshExchanging
     private let usdExporter: USDExporter
     private let usdExchange: USDExchange
     private let pdfExporter: PDFExporter
@@ -28,6 +29,7 @@ public struct OfficialFormatExchange: Sendable {
         dxfExchange: DXFExchange? = nil,
         svgExchange: SVGExchange? = nil,
         glbExporter: GLBExporter? = nil,
+        standardMeshExchange: (any StandardMeshExchanging)? = nil,
         usdExporter: USDExporter? = nil,
         usdExchange: USDExchange? = nil,
         pdfExporter: PDFExporter? = nil
@@ -40,7 +42,8 @@ public struct OfficialFormatExchange: Sendable {
         self.objExchange = objExchange ?? OBJExchange(tolerance: tolerance)
         self.dxfExchange = dxfExchange ?? DXFExchange(tolerance: tolerance)
         self.svgExchange = svgExchange ?? SVGExchange(tolerance: tolerance)
-        self.glbExporter = glbExporter ?? GLBExporter(tolerance: tolerance)
+        self.glbExporter = glbExporter
+        self.standardMeshExchange = standardMeshExchange ?? StandardMeshExchange(tolerance: tolerance)
         self.usdExporter = usdExporter ?? USDExporter(tolerance: tolerance)
         self.usdExchange = usdExchange ?? USDExchange(tolerance: tolerance)
         self.pdfExporter = pdfExporter ?? PDFExporter(tolerance: tolerance)
@@ -76,9 +79,13 @@ public struct OfficialFormatExchange: Sendable {
         case .svg:
             let meshes = evaluatedDocument.meshes.materializedDictionary()
             try svgExchange.write(meshes: meshes, unit: units.length, to: sink)
-        case .glb:
+        case .glb, .gltf, .ply, .vrml:
             let meshes = evaluatedDocument.meshes.materializedDictionary()
-            try glbExporter.write(meshes: meshes, to: sink)
+            if format == .glb, let glbExporter {
+                try glbExporter.write(meshes: meshes, to: sink)
+            } else {
+                try standardMeshExchange.write(meshes: meshes, as: format, unit: units.length, to: sink)
+            }
         case .usd:
             let meshes = evaluatedDocument.meshes.materializedDictionary()
             try usdExporter.write(meshes: meshes, encoding: .usd, unit: units.length, to: sink)
@@ -122,7 +129,9 @@ public struct OfficialFormatExchange: Sendable {
             return try svgExchange.import(source)
         case .usd, .usda, .usdc, .usdz:
             return try usdExchange.import(source, as: format)
-        case .glb, .pdf:
+        case .glb, .gltf, .ply, .vrml:
+            return try standardMeshExchange.read(source, as: format, explicitUnit: .meter, resolver: nil)
+        case .pdf:
             throw ImportError.unsupportedFormat(format.displayName)
         }
     }
@@ -143,6 +152,8 @@ public struct OfficialFormatExchange: Sendable {
             return try stlExporter.importBinary(source, explicitUnit: explicitUnit)
         case .obj:
             return try objExchange.import(source, explicitUnit: explicitUnit)
+        case .glb, .gltf, .ply, .vrml:
+            return try standardMeshExchange.read(source, as: format, explicitUnit: explicitUnit, resolver: nil)
         default:
             return try self.import(source, as: format)
         }
@@ -175,6 +186,10 @@ public struct OfficialFormatExchange: Sendable {
             throw ImportError.unsupportedFormat(url.pathExtension)
         }
         do {
+            if [.glb, .gltf, .ply, .vrml].contains(format) {
+                return try standardMeshExchange.read(MappedFileByteSource(url: url), as: format,
+                    explicitUnit: .meter, resolver: LocalMeshBufferResolver(directory: url.deletingLastPathComponent()))
+            }
             return try self.import(MappedFileByteSource(url: url), as: format)
         } catch let error as ByteSourceError {
             throw ImportError.fileReadFailure(error.localizedDescription)
@@ -191,6 +206,10 @@ public struct OfficialFormatExchange: Sendable {
             throw ImportError.unsupportedFormat(url.pathExtension)
         }
         do {
+            if [.glb, .gltf, .ply, .vrml].contains(format) {
+                return try standardMeshExchange.read(MappedFileByteSource(url: url), as: format,
+                    explicitUnit: explicitUnit, resolver: LocalMeshBufferResolver(directory: url.deletingLastPathComponent()))
+            }
             return try self.import(
                 MappedFileByteSource(url: url),
                 as: format,

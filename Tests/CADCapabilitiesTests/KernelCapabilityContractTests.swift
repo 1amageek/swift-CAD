@@ -106,6 +106,9 @@ struct KernelCapabilityContractTests {
       "EXCHANGE-DXF-001",
       "EXCHANGE-SVG-001",
       "EXCHANGE-GLB-001",
+      "EXCHANGE-GLTF-001",
+      "EXCHANGE-PLY-001",
+      "EXCHANGE-VRML-001",
       "EXCHANGE-PDF-001",
     ]
     #expect(Set(catalog.capabilities.map(\.id)) == expectedIDs)

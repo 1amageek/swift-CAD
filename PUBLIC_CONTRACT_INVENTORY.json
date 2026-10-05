@@ -83,6 +83,9 @@
     "usda": "EXCHANGE-USD-001",
     "usdc": "EXCHANGE-USD-001",
     "usdz": "EXCHANGE-USD-001",
-    "pdf": "EXCHANGE-PDF-001"
+    "pdf": "EXCHANGE-PDF-001",
+    "gltf": "EXCHANGE-GLTF-001",
+    "ply": "EXCHANGE-PLY-001",
+    "vrml": "EXCHANGE-VRML-001"
   }
 }

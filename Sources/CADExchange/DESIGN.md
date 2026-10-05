@@ -34,6 +34,10 @@ reject curve-only controls, and missing direction fields are not silently migrat
 | [CADIR](../CADIR/DESIGN.md) | depends on | `ImportedBRepFeature`, `CADDocument` Codable | Retains exact STEP source values. | Do not replace exact B-rep with Mesh. |
 | [CADKernel](../CADKernel/DESIGN.md) | used by | exact B-rep validation/evaluation | Evaluates a retained imported feature. | The exchange reader never manufactures topology identities. |
 
+Standard static GLB/glTF, PLY and VRML mesh exchange is owned by
+[Standard Mesh Exchange](StandardMeshExchange/DESIGN.md). Its public protocol
+provides bounded scene baking and typed refusal of unsupported semantics.
+
 ## Architecture
 
 ```mermaid

@@ -10,6 +10,9 @@ public enum ExchangeFileFormat: String, CaseIterable, Codable, Sendable, Hashabl
     case dxf
     case svg
     case glb
+    case gltf
+    case ply
+    case vrml
     case usd
     case usda
     case usdc
@@ -27,6 +30,9 @@ public enum ExchangeFileFormat: String, CaseIterable, Codable, Sendable, Hashabl
         case .dxf: "DXF"
         case .svg: "SVG"
         case .glb: "GLB"
+        case .gltf: "glTF JSON"
+        case .ply: "PLY"
+        case .vrml: "VRML97"
         case .usd: "USD"
         case .usda: "USDA"
         case .usdc: "USDC"
@@ -46,6 +52,9 @@ public enum ExchangeFileFormat: String, CaseIterable, Codable, Sendable, Hashabl
         case .dxf: ["dxf"]
         case .svg: ["svg"]
         case .glb: ["glb"]
+        case .gltf: ["gltf"]
+        case .ply: ["ply"]
+        case .vrml: ["wrl", "vrml"]
         case .usd: ["usd"]
         case .usda: ["usda"]
         case .usdc: ["usdc"]
@@ -56,9 +65,9 @@ public enum ExchangeFileFormat: String, CaseIterable, Codable, Sendable, Hashabl
 
     public var supportsImport: Bool {
         switch self {
-        case .swiftCAD, .step, .stl, .threeMF, .obj, .dxf, .svg, .usd, .usda, .usdc, .usdz:
+        case .swiftCAD, .step, .stl, .threeMF, .obj, .dxf, .svg, .glb, .gltf, .ply, .vrml, .usd, .usda, .usdc, .usdz:
             true
-        case .iges, .glb, .pdf:
+        case .iges, .pdf:
             false
         }
     }
