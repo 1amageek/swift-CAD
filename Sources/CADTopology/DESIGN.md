@@ -70,6 +70,9 @@ flowchart LR
   hyperbolic edge on a floor or a side wall integrates on the chart its
   neighbouring pcurves share; `DraftFaceTests` own it by a cone-drafted wall's
   volume.
+- `AnalyticPrismaticVolumeEvaluator`'s closed-form frustum takes shells of cones and
+  planes only; a shell with a torus among its cones (a cone's rim rounded) is left to
+  `TrimmedAnalyticSurfaceVolumeEvaluator`'s flux (`ConicalRimBlendTests`).
 
 ## Verification and Change Impact
 

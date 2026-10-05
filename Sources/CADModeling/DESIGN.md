@@ -497,7 +497,16 @@ the wall (a concave loop's band filling the corner). A whole loop of lines and a
 at some edges and fall at others, turning at sharp corners (a boss's foot running into a step's
 edges), is blended by [TurningCapLoop](TurningCapLoop/DESIGN.md) (Attempt to create Y-Blend,
 `FilletFeature.yBlend`, splitting its corner patches in a Y); loops turning at tangent joints and
-loops of one closed circular edge are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A rim of two
+loops of one closed circular edge are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A circular rim
+between a planar cap and a coaxial cone (a cone's base, a frustum standing on a disc) is blended all
+the way round by `ConicalRimBlendBuilder`: every edge of the shell on the rim's circle, each between
+coplanar caps facing one way and one cone; in the meridian the cap and the generator meet at the rim at
+`α`, the round's circle touching both `r / tan(α/2)` from the rim (a torus about the axis) and a
+chamfer's line between its contacts at the chamfer section's setbacks for `α` (a cone band, a cylinder
+at one radius); the caps' rim moves to the cap contact, the cone's down its generators, and straight
+seams of either reaching the rim are shortened along themselves (`ConicalRimBlendTests`, exact Pappus
+volumes, a cone tilted with its seam turned). Part of a rim with Tangent Edges off and Conic, Chordal
+or G2 sections are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A rim of two
 arcs between the same two points (a full revolve's merged rim) keeps them apart: a face's edge is
 taken as a loop segment only when its middle is the segment's too, and a shortened straight edge
 on a wall periodic in u (the cylinder's seam) keeps each use's side of the chart

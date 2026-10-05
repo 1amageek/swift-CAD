@@ -172,9 +172,12 @@ struct AnalyticPrismaticVolumeEvaluator {
                 tolerance: tolerance
             )
         }
+        // A frustum of cones and planes only: a round between them (a torus) bounds a region
+        // this closed form does not measure, so it is left to the trimmed analytic flux.
         if cylinders.isEmpty,
            cones.isEmpty == false,
            spheres.isEmpty,
+           tori.isEmpty,
            bSplineFaces.isEmpty {
             return try conicalFrustumVolume(
                 cones: cones,
