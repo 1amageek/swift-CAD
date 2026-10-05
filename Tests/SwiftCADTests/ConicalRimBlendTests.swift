@@ -8,7 +8,8 @@ import CADTopology
 
 /// A circular rim between a planar cap and a coaxial cone rounds into a torus band, or chamfers
 /// into a cone band, all the way round: a cone's base (cut), the same cone turned onto an oblique
-/// axis with its seam turned, and a frustum standing on a disc (filled). Each volume is the body's
+/// axis with its seam turned, a drafted circle's top (its wall the analytic cone), and a frustum
+/// standing on a disc (filled). Each volume is the body's
 /// less (or plus) the corner region of the meridian swept about the axis (Pappus).
 @Suite("Conical rim blends")
 struct ConicalRimBlendTests {
@@ -128,6 +129,33 @@ struct ConicalRimBlendTests {
         let disc = Double.pi * 0.02 * 0.02 * 0.01
         let frustum = Double.pi * 0.02 / 3 * (0.01 * 0.01 + 0.01 * 0.005 + 0.005 * 0.005)
         let expected = disc + frustum + 2 * Double.pi * region.radial * region.area
+        let volume = try after.brep.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 1e-15, "\(volume) vs \(expected)")
+    }
+
+    @Test(.timeLimit(.minutes(4)), arguments: [false, true])
+    func aDraftedCirclesTopRimRoundsOrChamfers(chamfers: Bool) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        // A circle of 10 mm radius extruded 10 mm with a 10° draft: a frustum whose wall is a cone.
+        let sketch = try builder.sketch(on: .xy) { $0.circle(center: SketchPoint(x: length(0), y: length(0)), radius: length(0.01)) }.featureID
+        let boss = try builder.extrude(ProfileReference(featureID: sketch, profileIndex: 0), distance: length(0.01),
+                                       draftAngle: .constant(.angle(10, unit: .degree)))
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "boss"))
+        let draft = 10 * Double.pi / 180
+        let top = 0.01 - 0.01 * tan(draft)
+        let rim = try rimEdges(of: boss, center: Point3D(x: 0, y: 0, z: 0.01), axis: .unitZ, radius: top, in: before, builder: builder)
+        #expect(rim.isEmpty == false)
+        if chamfers {
+            _ = try builder.chamfer(target: boss, edges: [rim[0]], distance: length(0.001))
+        } else {
+            _ = try builder.fillet(target: boss, edges: [rim[0]], radius: length(0.001))
+        }
+        let after = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(try builder.build(name: "boss"))
+        try after.brep.validate(level: .volumetric, tolerance: .standard)
+        let region = cornerRegion(corner: (top, 0), cap: (-1, 0), wall: (sin(draft), -cos(draft)),
+                                  round: chamfers ? nil : 0.001, chamfer: chamfers ? 0.001 : nil)
+        let frustum = Double.pi * 0.01 / 3 * (0.01 * 0.01 + 0.01 * top + top * top)
+        let expected = frustum - 2 * Double.pi * region.radial * region.area
         let volume = try after.brep.volume(tolerance: .standard)
         #expect(abs(volume - expected) < 1e-15, "\(volume) vs \(expected)")
     }

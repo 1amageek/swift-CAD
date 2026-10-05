@@ -11,9 +11,10 @@ import CADIR
 /// or shrinking by the offset (a hole's wall moves away from the hole's centre as the outline's
 /// moves toward it). Where two elements meet tangentially the joint moves along their common
 /// normal; where two lines meet at a corner it moves to their offset lines' crossing (the miter).
-/// Arcs come out as rational quadratic spans of at most a quarter turn, parameterised by angle,
-/// so the spans at two heights correspond point for point and the surface ruled between them is
-/// the exact cone. A spline's offset is `PlanarCurveOffsetApproximator`'s, on one basis for every
+/// Arcs come out as circular arcs of at most a quarter turn about the same axis at every height,
+/// so the wall between two heights is the analytic cone through them (a cylinder without a draft);
+/// an open curve's sheet takes them as rational quadratic spans parameterised by angle, which rule
+/// point for point into the same cone. A spline's offset is `PlanarCurveOffsetApproximator`'s, on one basis for every
 /// shift up to `splineReach`, so its walls between heights rule point for point too; a spline
 /// meets its neighbours tangentially.
 package struct ExactDraftedProfileBoundaryBuilder: Sendable {
@@ -92,7 +93,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         let start = try first + travel(of: element, at: first).cross(normal) * shift
         let end = try last + travel(of: element, at: last).cross(normal) * shift
         let moved = try place(element, from: start, to: end, normal: normal, shift: shift)
-        return try segments([moved], lift: lift).map { segment in
+        return try segments([moved], lift: lift, arcsAsSpans: true).map { segment in
             switch segment.geometry {
             case .bSpline(let curve): return curve
             case .line:
@@ -385,8 +386,9 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         }
     }
 
-    /// `elements` lifted by `lift`, lines as lines and arcs as rational quadratic spans.
-    private func segments(_ elements: [Element], lift: Vector3D) throws -> [ExactPrismaticBoundarySegment] {
+    /// `elements` lifted by `lift`, lines as lines and arcs as circular arcs of at most a quarter
+    /// turn (rational quadratic spans when `arcsAsSpans`, for a curve's B-spline sheet).
+    private func segments(_ elements: [Element], lift: Vector3D, arcsAsSpans: Bool = false) throws -> [ExactPrismaticBoundarySegment] {
         var result: [ExactPrismaticBoundarySegment] = []
         for element in elements {
             switch element {
@@ -395,7 +397,7 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             case let .arc(arc):
                 result.append(contentsOf: try spans(
                     center: arc.center + lift, normal: arc.normal, radius: arc.radius,
-                    start: arc.start + lift, sweep: arc.sweepAngle
+                    start: arc.start + lift, sweep: arc.sweepAngle, asSpans: arcsAsSpans
                 ))
             case let .spline(curve):
                 result.append(try .bSpline(BSplineCurve3D(degree: curve.degree, knots: curve.knots,
@@ -446,9 +448,10 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         }
     }
 
-    /// An arc from `start` sweeping `sweep` about `normal`, as rational quadratic spans of at most
-    /// a quarter turn.
-    private func spans(center: Point3D, normal: Vector3D, radius: Double, start: Point3D, sweep: Double) throws -> [ExactPrismaticBoundarySegment] {
+    /// An arc from `start` sweeping `sweep` about `normal`, in pieces of at most a quarter turn:
+    /// circular arcs, or rational quadratic spans `asSpans`.
+    private func spans(center: Point3D, normal: Vector3D, radius: Double, start: Point3D, sweep: Double,
+                       asSpans: Bool) throws -> [ExactPrismaticBoundarySegment] {
         let circle = Circle3D(center: center, normal: try normal.normalized(tolerance: tolerance.distance), radius: radius)
         try circle.validate(tolerance: tolerance)
         let curve = Curve3D.circle(circle)
@@ -457,6 +460,9 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         return try (0..<count).map { index in
             let lower = first + sweep * Double(index) / Double(count)
             let upper = first + sweep * Double(index + 1) / Double(count)
+            guard asSpans else {
+                return try .circularArc(circle: circle, startParameter: lower, endParameter: upper, tolerance: tolerance)
+            }
             let weight = cos(0.5 * (upper - lower))
             let middle = try curve.point(at: 0.5 * (lower + upper), tolerance: tolerance)
             let span = BSplineCurve3D(

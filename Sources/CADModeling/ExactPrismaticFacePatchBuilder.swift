@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADGeometry
 import CADIR
@@ -206,6 +207,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
     ) throws -> BRepSewingFacePatch {
         let surface: Surface3D
         var ruled: (lower: Double, upper: Double)?
+        var naturalOrientation = Orientation.forward
         switch (bottom.geometry, top.geometry) {
         case (.line, .line):
             let direction = try (bottom.endPoint - bottom.startPoint).normalized(tolerance: tolerance.distance)
@@ -232,6 +234,35 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
             try ruledSurface.validate(tolerance: tolerance)
             surface = .bSpline(ruledSurface)
             ruled = try ruledSurfaceParameters(for: bottom)
+        case let (.circularArc(lower, start, end), .circularArc(upper, _, _)):
+            // Two coaxial arcs: the cylinder or cone through both, its apex where the radius
+            // running from one to the other reaches the axis.
+            let rise = upper.center - lower.center
+            guard rise.length > tolerance.distance, lower.normal.cross(upper.normal).length <= tolerance.angle,
+                  (rise - lower.normal * (rise.dot(lower.normal) / lower.normal.dot(lower.normal))).length <= tolerance.distance else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                                  message: "A drafted wall's two arcs are not coaxial.")
+            }
+            if abs(lower.radius - upper.radius) <= tolerance.distance {
+                surface = .cylinder(Cylinder3D(origin: lower.center, axis: try rise.normalized(tolerance: tolerance.distance),
+                                               radius: lower.radius))
+            } else {
+                let reach = lower.radius / (lower.radius - upper.radius)
+                let apex = lower.center + rise * reach
+                // From the apex toward the arcs, so both lie at positive slant.
+                let axis = try (rise * (reach > 0 ? -1 : 1)).normalized(tolerance: tolerance.distance)
+                surface = .analytic(.cone(apex: apex, axis: axis,
+                                          halfAngle: atan(abs(lower.radius - upper.radius) / rise.length)))
+            }
+            // The wall's normal as its loop runs (along the bottom arc, then up), against the surface's own.
+            let middle = 0.5 * (start + end)
+            let at = try Curve3D.circle(lower).point(at: middle, tolerance: tolerance)
+            let along = try Curve3D.circle(lower).point(at: middle + 0.01 * (end - start), tolerance: tolerance) - at
+            let up = (try Curve3D.circle(upper).point(at: middle, tolerance: tolerance)) - at
+            let parameters = try surface.parameterProjection(of: at, tolerance: tolerance)
+            if try surface.normal(u: parameters.u, v: parameters.v, tolerance: tolerance).dot(along.cross(up)) < 0 {
+                naturalOrientation = .reversed
+            }
         default:
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                               message: "A drafted wall joins segments of different kinds.")
@@ -257,7 +288,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         return BRepSewingFacePatch(
             stableID: stableID,
             surface: surface,
-            orientation: combined(.forward, with: requestedOrientation),
+            orientation: combined(naturalOrientation, with: requestedOrientation),
             loops: [BRepSewingLoop(stableID: "\(stableID):loop", role: .outer, edges: [bottomEdge, endEdge, topEdge, startEdge])]
         )
     }
@@ -573,7 +604,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
                 endUV.u,
                 nearest: startUV.u
             )
-            if try isCylindrical(surface),
+            if try isCylindrical(surface) || isConical(surface),
                abs(startUV.u - unwrappedEndU) <= tolerance.angle {
                 pcurve = .constantU(
                     u: startUV.u,
@@ -605,7 +636,7 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
         surface: Surface3D
     ) throws -> SurfaceParameterCurve {
         let curve = Curve3D.circle(circle)
-        if try isCylindrical(surface) {
+        if try isCylindrical(surface) || isConical(surface) {
             let start = try surface.parameterProjection(
                 of: curve.point(at: startParameter, tolerance: tolerance),
                 tolerance: tolerance
@@ -747,6 +778,11 @@ package struct ExactPrismaticFacePatchBuilder: Sendable {
 
     private func isPlanar(_ surface: Surface3D) -> Bool {
         surface.hasExactAffineParameterization
+    }
+
+    private func isConical(_ surface: Surface3D) -> Bool {
+        if case .analytic(.cone) = surface { return true }
+        return false
     }
 
     private func isCylindrical(_ surface: Surface3D) throws -> Bool {

@@ -60,6 +60,21 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             let selections = try fillet.edges.map { reference in
                 (reference, try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context))
             }
+            // A circular rim between a cap and a coaxial cone (a cone's base, a drafted
+            // circle's top) takes a torus band; the cap loops below take walls square to their cap.
+            let conical = ConicalRimBlendBuilder(tolerance: context.tolerance, followsTangents: fillet.tangentEdges)
+            if try conical.admits(selections.map(\.1.edgeID), model: context.brep) {
+                guard fillet.shape == .round else {
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): a Conic, Chordal or G2 section round a conical
+                    // rim is not built, so it is refused. Production path: ConicalRimBlendBuilder from
+                    // Fillet. Complete only when such sections sweep round the rim, verified by a
+                    // cone's base filleted Conic.
+                    throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance,
+                                  "A conical rim's fillet is round.")
+                }
+                return try conicalRim(conical, feature: feature, bodyID: bodyID, selections: selections, section: .round(radius),
+                                      context: context)
+            }
             let capLoops = CapLoopBlendBuilder(tolerance: context.tolerance, followsTangents: fillet.tangentEdges)
             if try capLoops.admits(selections.map(\.1.edgeID), model: context.brep) {
                 let request = try capLoops.request(
@@ -84,20 +99,6 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 let scope = try BodyTopologyScope(bodyID: bodyID, model: context.brep)
                 return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: scope.subshapeIDs(in: context.subshapes),
                                         lineage: sewn.lineage)
-            }
-            // A circular rim between a cap and a coaxial cone (a cone's base) takes a torus band.
-            let conical = ConicalRimBlendBuilder(tolerance: context.tolerance, followsTangents: fillet.tangentEdges)
-            if try conical.admits(selections.map(\.1.edgeID), model: context.brep) {
-                guard fillet.shape == .round else {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): a Conic, Chordal or G2 section round a conical
-                    // rim is not built, so it is refused. Production path: ConicalRimBlendBuilder from
-                    // Fillet. Complete only when such sections sweep round the rim, verified by a
-                    // cone's base filleted Conic.
-                    throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance,
-                                  "A conical rim's fillet is round.")
-                }
-                return try conicalRim(conical, feature: feature, bodyID: bodyID, selections: selections, section: .round(radius),
-                                      context: context)
             }
         }
         // Several straight edges beside cylinders running along them or between planes, apart from
@@ -1301,6 +1302,15 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             let selections = try selected.map { reference in
                 (reference, try scopedEdgeSelection(reference, bodyID: bodyID, featureID: feature.id, context: context))
             }
+            // A circular rim between a cap and a coaxial cone takes a cone band, its distances
+            // along the cap and the cone set for the angle they meet at.
+            let conical = ConicalRimBlendBuilder(tolerance: context.tolerance, followsTangents: tangentEdges)
+            if try conical.admits(selections.map(\.1.edgeID), model: context.brep) {
+                return try conicalRim(conical, feature: feature, bodyID: bodyID, selections: selections, section: .chamfer { angle in
+                    let resolved = section.resolve(angle)
+                    return (resolved.setback, resolved.secondSetback)
+                }, context: context)
+            }
             let capLoops = CapLoopBlendBuilder(tolerance: context.tolerance, followsTangents: tangentEdges)
             if try capLoops.admits(selections.map(\.1.edgeID), model: context.brep) {
                 let request = try capLoops.request(
@@ -1311,15 +1321,6 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 try model.validate(level: .volumetric, tolerance: context.tolerance)
                 return EvaluationResult(brep: model, subshapes: sewn.subshapes, removedSubshapeIDs: selections[0].1.replacedSubshapeIDs,
                                         lineage: sewn.lineage)
-            }
-            // A circular rim between a cap and a coaxial cone takes a cone band, its distances
-            // along the cap and the cone set for the angle they meet at.
-            let conical = ConicalRimBlendBuilder(tolerance: context.tolerance, followsTangents: tangentEdges)
-            if try conical.admits(selections.map(\.1.edgeID), model: context.brep) {
-                return try conicalRim(conical, feature: feature, bodyID: bodyID, selections: selections, section: .chamfer { angle in
-                    let resolved = section.resolve(angle)
-                    return (resolved.setback, resolved.secondSetback)
-                }, context: context)
             }
         }
         return try evaluateProfileBlends(feature: feature, target: target, selected: selected, section: section, context: context)

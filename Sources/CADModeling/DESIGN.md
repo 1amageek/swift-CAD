@@ -1370,9 +1370,11 @@ wider below the plane than above). `ExactDraftedProfileBoundaryBuilder` offsets 
 bottom and top heights exactly: lines move parallel to themselves, arcs keep their centres and
 change radius (holes grow as outlines shrink), tangent joints move along their common normal and
 line corners to their miter. `ExactPrismaticFacePatchBuilder.request(bottom:top:…)` then rules
-each wall between its bottom and top segment: a plane between two lines, and between two arcs the
-rational quadratic spans at one angle, which is the exact cone; caps close both ends with the
-prism's stable names. A spline wall's offset (decided 2026-10-02) is
+each wall between its bottom and top segment: a plane between two lines, and between two coaxial
+circular arcs of at most a quarter turn the analytic cone through them (a cylinder at one radius, a
+thin extrusion without draft), so a drafted circle's rim blends as a cone's does
+(`ConicalRimBlendTests`); caps close both ends with the prism's stable names. An open curve's
+drafted sheet keeps its arcs as rational quadratic spans at one angle, ruled into the same cone. A spline wall's offset (decided 2026-10-02) is
 `PlanarCurveOffsetApproximator`'s: a cubic B-spline through the exact offset at the Greville
 abscissae of a basis refined until, for every shift the extrusion reaches, its deviation — sampled
 at 16 points per span plus half the spacing times the sampled derivative difference — is within a
