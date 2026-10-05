@@ -939,9 +939,10 @@ public struct DocumentBuilder {
     @discardableResult
     public mutating func surfaceFill(
         target: FeatureID, boundarySeed: StableSubshapeReference, insertedSheet: FeatureID? = nil,
-        guides: [CurveSectionReference] = [], named name: String? = nil
+        guides: [CurveSectionReference] = [], trimsToSheet: Bool = false, named name: String? = nil
     ) throws -> FeatureID {
-        let fill = SurfaceFillFeature(targetFeatureID: target, boundarySeed: boundarySeed, insertedSheet: insertedSheet, guides: guides)
+        let fill = SurfaceFillFeature(targetFeatureID: target, boundarySeed: boundarySeed, insertedSheet: insertedSheet, guides: guides,
+                                      trimsToSheet: trimsToSheet)
         try fill.validate()
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .surfaceFill(fill))
