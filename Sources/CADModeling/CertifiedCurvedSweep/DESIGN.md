@@ -13,8 +13,9 @@ the frame, and the Hermite tensor rows with their error bound, plus the cap and
 side face requests. Existing Sweep owns section resolution, path chaining and the
 distance prefix, sewing and semantic topology, and Booleans. Exact routes keep
 precedence: straight paths, and solid sweeps along one circular arc (the exact
-revolve), never take this plan. One guide steers the section (`CurvedSweepGuideLaw`); two or
-more guides are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)` in the plan. A path with corners
+revolve), never take this plan. One guide steers the section (`CurvedSweepGuideLaw`); two Point
+guides deform it by a linear map (below); two Chord or Curve guides, and three or more, are refused
+with `FIXME(INCOMPLETE_IMPLEMENTATION)` in the plan. A path with corners
 takes `MitredPolylineSweepBuilder`, which hands this plan each smooth curved leg with the section
 placed where the leg starts; the plan itself still refuses a corner.
 
@@ -69,6 +70,18 @@ path spans (rational Bezier) ─► interval homogeneous jets per piece (order 5
   square by `1 + t` and a Chord guide leaving it as it is (their exact Pappus volumes), a Curve
   guide turning a 30°-turned square so its side keeps touching it (volume, the guide's end on
   the end cap's outline), and the refusal from a side's square.
+- Two Point guides (Sweep2's rule; Plasticity's documentation leaves Sweep with two guides open,
+  so it is inferred, decided with the user 2026-10-05) take a section lying square to the path at
+  its start. Each guide's crossing of a station's plane (`CurvedSweepGuideLaw.crossing`) gives an
+  offset in the moving frame; the section's lateral coordinates are mapped by `M = [g1 g2][s1 s2]⁻¹`,
+  taking the contacts `s1, s2` at the start to the crossings `g1, g2` (contacts on one line through
+  the path are refused). Each piece interpolates the map's four entries linearly from its start
+  to its end; the map at its middle bounds the interpolation's stray at the section's reach as the
+  one-guide law's does, its determinant (quadratic along the piece) must stay positive or the
+  section folds (refused), and the bend and overlap certificates take the map's Frobenius norm as
+  its scale. `CurvedPathTwoGuideSweepTests` own a square stretched across the path by a rising
+  guide and held by one beside the path within its plane (the exact volume `∫ 16 mm²·(1 + t)|P′|`,
+  both guides' points on the swept sides) and the refusal of contacts on one line.
 - Each piece's rows are the cubic Hermite interpolant of every moved control point
   in the piece's own parameter. Its error is at most `Σ_c sup|S_c⁽⁴⁾| / 384` (an L1
   bound) plus the rows' rounding, both enclosed, within the allowance. Positive

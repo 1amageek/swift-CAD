@@ -70,6 +70,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         sweep: SweepFeature,
         values: SweepOptionValues,
         guide: [BSplineCurve3D]? = nil,
+        secondGuide: [BSplineCurve3D]? = nil,
         pathIsClosed: Bool = false,
         closesSeam: Bool = false,
         featureID: FeatureID?,
@@ -80,11 +81,11 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         case .profile(let profile, _):
             try self.init(sectionLoops: try spans.profileLoopSpans(from: profile), sectionIsClosed: true,
                 profilePlane: profile.plane, pathSpans: pathSpans, sweep: sweep, values: values, guide: guide,
-                pathIsClosed: pathIsClosed, closesSeam: closesSeam, featureID: featureID, tolerance: tolerance)
+                secondGuide: secondGuide, pathIsClosed: pathIsClosed, closesSeam: closesSeam, featureID: featureID, tolerance: tolerance)
         case .curve(let curve):
             try self.init(sectionLoops: [try spans.sectionSpans(from: curve)], sectionIsClosed: curve.isClosed,
                 profilePlane: try section.plane(), pathSpans: pathSpans, sweep: sweep, values: values, guide: guide,
-                pathIsClosed: pathIsClosed, closesSeam: closesSeam, featureID: featureID, tolerance: tolerance)
+                secondGuide: secondGuide, pathIsClosed: pathIsClosed, closesSeam: closesSeam, featureID: featureID, tolerance: tolerance)
         }
     }
 
@@ -96,6 +97,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
         sweep: SweepFeature,
         values: SweepOptionValues,
         guide guideSpans: [BSplineCurve3D]? = nil,
+        secondGuide secondGuideSpans: [BSplineCurve3D]? = nil,
         pathIsClosed: Bool = false,
         closesSeam: Bool = false,
         featureID: FeatureID?,
@@ -127,14 +129,19 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             return twistAngles[upper - 1] + (twistAngles[upper] - twistAngles[upper - 1]) * ratio
         }
         func scale(at fraction: Double) -> Double { 1 + (values.endScale - 1) * fraction }
-        // One guide steers the section by its method in the moving frame (CurvedSweepGuideLaw).
-        guard guided == false || (sweep.guides.count == 1 && guideSpans?.isEmpty == false) else {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): two or more guides along a curved path would deform
-            // the section by more than a turn and a scale, which is not built, so they are
+        // One guide steers the section by its method in the moving frame (CurvedSweepGuideLaw); two
+        // Point guides deform it, at every station, by the linear map of the plane across the path
+        // taking its two contacts to where the guides cross that plane (Sweep2's rule).
+        let twoGuides = sweep.guides.count == 2 && guideSpans?.isEmpty == false && secondGuideSpans?.isEmpty == false
+        guard guided == false || (sweep.guides.count == 1 && guideSpans?.isEmpty == false)
+                || (twoGuides && sweep.options.guideMethod == .point) else {
+            // FIXME(INCOMPLETE_IMPLEMENTATION): two Chord or Curve guides, or three or more guides,
+            // along a curved path have no single rule for the section between them, so they are
             // refused. Production path: CertifiedCurvedPathSweepPlan for every guided curved
-            // Sweep. Complete only when several guides steer a curved sweep, verified by its
-            // sections meeting every guide.
-            throw Self.failure(.sweepGuideConstraintUnavailable, "A curved path-normal sweep takes one guide.", featureID, tolerance)
+            // Sweep. Complete only when such guides steer a curved sweep, verified by its sections
+            // meeting every guide.
+            throw Self.failure(.sweepGuideConstraintUnavailable,
+                "A curved path-normal sweep takes one guide, or two Point guides.", featureID, tolerance)
         }
         guard guided == false || (values.twistAngle == 0 && sweep.options.twistLaw == nil && values.endScale == 1) else {
             throw Self.failure(.sweepTwistUnavailable, "A guided curved sweep takes no twist or scale of its own.", featureID, tolerance)
@@ -217,6 +224,11 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             throw Self.failure(.sweepProfilePlaneDegenerate,
                 "The section's plane runs along the path, so sweeping it makes no volume.", featureID, tolerance)
         }
+        // Two guides deform the section within its own plane, which must lie across the path.
+        guard twoGuides == false || abs(advance) >= cos(tolerance.angle) else {
+            throw Self.failure(.sweepGuideConstraintUnavailable,
+                "Two guides sweep a section lying square to the path at its start.", featureID, tolerance)
+        }
 
         // The section's control points as offsets from the path start, with the section normal
         // carried alongside; all move with the frame.
@@ -237,6 +249,31 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             try CurvedSweepGuideLaw(method: sweep.options.guideMethod, guide: spans,
                                     section: sectionLoops.flatMap { $0.map(\.curve) }, pathStart: pathStart,
                                     startTangent: startTangent, startAxes: (lateral.0, lateral.1), featureID: featureID, tolerance: tolerance)
+        }
+        let secondLaw = try secondGuideSpans.map { spans in
+            try CurvedSweepGuideLaw(method: .point, guide: spans,
+                                    section: sectionLoops.flatMap { $0.map(\.curve) }, pathStart: pathStart,
+                                    startTangent: startTangent, startAxes: (lateral.0, lateral.1), featureID: featureID, tolerance: tolerance)
+        }
+        // The two contacts' lateral offsets at the start, whose inverse the linear maps share.
+        let contacts = guideLaw.flatMap { first in secondLaw.map { (first.start, $0.start) } }
+        let contactDeterminant = contacts.map { $0.0.first * $0.1.second - $0.1.first * $0.0.second } ?? 0
+        if let contacts {
+            let reach = max(hypot(contacts.0.first, contacts.0.second), hypot(contacts.1.first, contacts.1.second))
+            guard abs(contactDeterminant) > tolerance.distance * reach else {
+                throw Self.failure(.sweepGuideConstraintUnavailable,
+                    "Two guides meet the section on one line through the path, which leaves its turn open.", featureID, tolerance)
+            }
+        }
+        /// The linear map of the plane across the path taking the contacts to the guides' crossings.
+        func linearMap(_ g1: (first: Double, second: Double), _ g2: (first: Double, second: Double)) -> LinearMap {
+            guard let contacts else { return .identity }
+            let (s1, s2) = contacts
+            let inverse = 1 / contactDeterminant
+            return LinearMap(a: (g1.first * s2.second - g2.first * s1.second) * inverse,
+                             b: (g2.first * s1.first - g1.first * s2.first) * inverse,
+                             c: (g1.second * s2.second - g2.second * s1.second) * inverse,
+                             d: (g2.second * s1.first - g1.second * s2.first) * inverse)
         }
         // The section's reach about the path start, and the largest scale its sections take: the
         // end scale's, or (guided) the largest a guide's law takes on an accepted piece.
@@ -300,8 +337,37 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                     IntervalDerivativeJet(derivatives: Array(scaleJet.derivatives.prefix(order + 1))))
         }
 
+        /// A section point moved by the frame and deformed by the linear map's entries.
+        func movedLinear(_ point: SectionCoordinates, path: IntervalVectorDerivativeJet, frame: RotationJet,
+                         map: (a: IntervalDerivativeJet, b: IntervalDerivativeJet, c: IntervalDerivativeJet, d: IntervalDerivativeJet))
+            -> IntervalVectorDerivativeJet {
+            let order = map.a.order
+            let first = frame.rotated(carried[1]), second = frame.rotated(carried[2])
+            let x = map.a.scaled(by: point.first) + map.b.scaled(by: point.second)
+            let y = map.c.scaled(by: point.first) + map.d.scaled(by: point.second)
+            return path + frame.tangent.scaled(by: .constant(point.along, order: order)) + first.scaled(by: x) + second.scaled(by: y)
+        }
+        /// The linear map's entries over a piece (or at an end), linear in its parameter.
+        func mapJets(_ start: LinearMap, _ end: LinearMap, at place: HomogeneousBezier.Place, order: Int)
+            -> (a: IntervalDerivativeJet, b: IntervalDerivativeJet, c: IntervalDerivativeJet, d: IntervalDerivativeJet) {
+            func jet(_ s: Double, _ e: Double) -> IntervalDerivativeJet {
+                let value: Interval
+                switch place {
+                case .whole: value = Interval(lower: min(s, e).nextDown, upper: max(s, e).nextUp)
+                case .start: value = .exact(s)
+                case .end: value = .exact(e)
+                }
+                return IntervalDerivativeJet(derivatives: Array(([value, .exact(e) - .exact(s)]
+                    + Array(repeating: .exact(0), count: max(0, order - 1))).prefix(order + 1)))
+            }
+            return (jet(start.a, end.a), jet(start.b, end.b), jet(start.c, end.c), jet(start.d, end.d))
+        }
+
         var frameReference = startTangent
         var chunkStarted = true
+        // The second guide's state and the linear map where the last accepted piece ended.
+        var secondState: CurvedSweepGuideLaw.State?
+        var mapStart = LinearMap.identity
         // The guide's state and law where the last accepted piece ended.
         var guideState: CurvedSweepGuideLaw.State?
         var guideStart = (angle: 0.0, scale: 1.0)
@@ -357,7 +423,57 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             let startLaw: (angle: Double, scale: Double), endLaw: (angle: Double, scale: Double)
             var middleScale = 0.0
             var guideEndState: CurvedSweepGuideLaw.State?
-            if let guideLaw {
+            var secondEndState: CurvedSweepGuideLaw.State?
+            var mapEnd: LinearMap?
+            if let guideLaw, let secondLaw {
+                func station(_ jet: PathJet) throws -> (Point3D, Vector3D, (first: Vector3D, second: Vector3D))? {
+                    guard let position = jet.position?.derivative(0), let direction = try jet.tangent(),
+                          let stationFrame = try RotationJet(reference: frameReference, tangent: .constant(Self.values(direction), order: 0)) else { return nil }
+                    let first = stationFrame.rotated(carried[1]).derivative(0), second = stationFrame.rotated(carried[2]).derivative(0)
+                    func point(_ v: [Interval]) -> Vector3D { Vector3D(x: v[0].midpoint, y: v[1].midpoint, z: v[2].midpoint) }
+                    return (Point3D(x: position[0].midpoint, y: position[1].midpoint, z: position[2].midpoint), direction,
+                            (try point(first).normalized(tolerance: tolerance.distance), try point(second).normalized(tolerance: tolerance.distance)))
+                }
+                guard let endStation = try station(try bezier.pointJet(at: .end, order: 1)),
+                      let middleStation = try station(try bezier.halves().1.pointJet(at: .start, order: 1)) else {
+                    return ("The sweep frame is not certified at a guide station.", 20)
+                }
+                func onward(_ state: CurvedSweepGuideLaw.State, _ at: (span: Int, parameter: Double)) -> CurvedSweepGuideLaw.State {
+                    CurvedSweepGuideLaw.State(span: at.span, parameter: at.parameter, contact: state.contact, angle: state.angle)
+                }
+                let (begin1, begin2) = (guideState ?? guideLaw.initial, secondState ?? secondLaw.initial)
+                let middle1 = try guideLaw.crossing(at: middleStation.0, tangent: middleStation.1, axes: middleStation.2, from: begin1, featureID: featureID)
+                let middle2 = try secondLaw.crossing(at: middleStation.0, tangent: middleStation.1, axes: middleStation.2, from: begin2, featureID: featureID)
+                let end1 = try guideLaw.crossing(at: endStation.0, tangent: endStation.1, axes: endStation.2,
+                                                 from: onward(begin1, middle1.at), featureID: featureID)
+                let end2 = try secondLaw.crossing(at: endStation.0, tangent: endStation.1, axes: endStation.2,
+                                                  from: onward(begin2, middle2.at), featureID: featureID)
+                let (middleMap, endMap) = (linearMap(middle1.offset, middle2.offset), linearMap(end1.offset, end2.offset))
+                // The section must not fold: the map's determinant, quadratic along the piece, stays positive.
+                let change = LinearMap(a: endMap.a - mapStart.a, b: endMap.b - mapStart.b, c: endMap.c - mapStart.c, d: endMap.d - mapStart.d)
+                let linear = mapStart.a * change.d + change.a * mapStart.d - mapStart.b * change.c - change.b * mapStart.c
+                var candidates = [0.0, 1.0]
+                if change.determinant != 0 { candidates.append(min(1, max(0, -linear / (2 * change.determinant)))) }
+                guard middleMap.determinant > 0, candidates.allSatisfy({ mapStart.determinant + linear * $0 + change.determinant * $0 * $0 > tolerance.relative }) else {
+                    throw Self.failure(.sweepGuideTransformCollapse, "Two guides fold the section on its way along the path.", featureID, tolerance)
+                }
+                let stray = baseReach * middleMap.distance(to: mapStart.midway(to: endMap))
+                guard stray <= allowance * 0.25 else {
+                    if (endStation.0 - (try bezier.pointJet(at: .start, order: 0).position.map { position in
+                        Point3D(x: position.derivative(0)[0].midpoint, y: position.derivative(0)[1].midpoint, z: position.derivative(0)[2].midpoint)
+                    } ?? endStation.0)).length <= 16 * tolerance.distance {
+                        throw Self.failure(.sweepGuideContactUnavailable,
+                            "The guides deform the section faster than the allowance follows.", featureID, tolerance)
+                    }
+                    return ("The guides deform the section faster than the allowance follows.", 40)
+                }
+                startLaw = (0, 1)
+                endLaw = (0, 1)
+                middleScale = max(mapStart.norm, middleMap.norm, endMap.norm)
+                guideEndState = onward(begin1, end1.at)
+                secondEndState = onward(begin2, end2.at)
+                mapEnd = endMap
+            } else if let guideLaw {
                 // The guide's law at the piece's ends (its start the last piece's end), and in its
                 // middle to bound how far the linear law between them strays from the guide.
                 func station(_ jet: PathJet) throws -> (Point3D, Vector3D, (first: Vector3D, second: Vector3D))? {
@@ -403,9 +519,16 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
                 endLaw = (angle: twist(at: endFraction), scale: scale(at: endFraction))
             }
             let pieceLaws = try laws(startLaw, endLaw, at: .whole, order: 4)
+            /// A section point placed over the piece or at one of its ends.
+            func placed(_ point: SectionCoordinates, path: IntervalVectorDerivativeJet, frame: RotationJet,
+                        at place: HomogeneousBezier.Place, order: Int) throws -> IntervalVectorDerivativeJet {
+                if let mapEnd { return movedLinear(point, path: path, frame: frame, map: mapJets(mapStart, mapEnd, at: place, order: order)) }
+                let placeLaws = place == .whole && order == 4 ? pieceLaws : try laws(startLaw, endLaw, at: place, order: order)
+                return moved(point, path: path, frame: frame, cosine: placeLaws.cosine, sine: placeLaws.sine, scale: placeLaws.scale)
+            }
             var remainder = 0.0
             for point in coordinates {
-                let swept = moved(point, path: path, frame: frame, cosine: pieceLaws.cosine, sine: pieceLaws.sine, scale: pieceLaws.scale)
+                let swept = try placed(point, path: path, frame: frame, at: .whole, order: 4)
                 let fourth = swept.derivative(4).reduce(Interval.exact(0)) { $0 + .exact($1.absoluteUpperBound) }
                 remainder = max(remainder, (fourth * .exact(1.0 / 384)).upper)
             }
@@ -426,13 +549,10 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             var pieceRows: [[Point3D]] = Array(repeating: [], count: 4)
             var numeric = 0.0
             var nextStation: [[Interval]] = []
-            let startLaws = try laws(startLaw, endLaw, at: .start, order: 1)
             let endLaws = try laws(startLaw, endLaw, at: .end, order: 1)
             for (index, point) in coordinates.enumerated() {
-                let atStart = moved(point, path: startPath, frame: startFrame,
-                                    cosine: startLaws.cosine, sine: startLaws.sine, scale: startLaws.scale)
-                let atEnd = moved(point, path: endPath, frame: endFrame,
-                                  cosine: endLaws.cosine, sine: endLaws.sine, scale: endLaws.scale)
+                let atStart = try placed(point, path: startPath, frame: startFrame, at: .start, order: 1)
+                let atEnd = try placed(point, path: endPath, frame: endFrame, at: .end, order: 1)
                 let s0 = stationValues?[index] ?? atStart.derivative(0)
                 let s1 = atEnd.derivative(0)
                 let enclosures = [
@@ -461,6 +581,10 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             if let guideEndState {
                 guideState = guideEndState
                 guideStart = endLaw
+            }
+            if let secondEndState, let mapEnd {
+                secondState = secondEndState
+                mapStart = mapEnd
             }
             largestScale = max(largestScale, startLaw.scale, endLaw.scale, middleScale)
             smallestScale = min(smallestScale, startLaw.scale, endLaw.scale, guideEndState == nil ? 1 : middleScale)
@@ -660,6 +784,26 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
 
     /// A section point's offsets from the path start along the start tangent and the two lateral
     /// axes.
+    /// A linear map of the plane across the path, in its lateral coordinates: (x, y) to
+    /// (a·x + b·y, c·x + d·y).
+    private struct LinearMap {
+        let a: Double
+        let b: Double
+        let c: Double
+        let d: Double
+
+        static let identity = LinearMap(a: 1, b: 0, c: 0, d: 1)
+        var determinant: Double { a * d - b * c }
+        /// The Frobenius norm, bounding how far the map stretches any offset.
+        var norm: Double { (a * a + b * b + c * c + d * d).squareRoot() }
+        func midway(to other: LinearMap) -> LinearMap {
+            LinearMap(a: 0.5 * (a + other.a), b: 0.5 * (b + other.b), c: 0.5 * (c + other.c), d: 0.5 * (d + other.d))
+        }
+        func distance(to other: LinearMap) -> Double {
+            LinearMap(a: a - other.a, b: b - other.b, c: c - other.c, d: d - other.d).norm
+        }
+    }
+
     private struct SectionCoordinates {
         let along: Interval
         let first: Interval
