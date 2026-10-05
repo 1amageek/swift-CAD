@@ -1,22 +1,32 @@
 import CADCore
 
-/// Reuses the exact Bezier decomposition of one immutable B-spline surface
-/// while independently restricting interval jets to each requested box.
+/// Retains original nonperiodic coefficient authority and closed knot owners.
 package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
   package let surface: BSplineSurface3D
   private let patches: [RationalBezierSurfaceJetEncloser.PreparedPatch]
 
-  package init(
-    surface: BSplineSurface3D,
-    tolerance: ModelingTolerance
-  ) throws {
+  package init(surface: BSplineSurface3D, tolerance: ModelingTolerance) throws {
     try surface.validate(tolerance: tolerance)
+    try Task.checkCancellation()
     self.surface = surface
     let encloser = RationalBezierSurfaceJetEncloser()
-    patches = try BSplineSurfaceBezierDecomposer().surfacePatches(
-      surface: surface,
-      tolerance: tolerance
-    ).map { try encloser.prepare($0, tolerance: tolerance) }
+    let decomposer = BSplineSurfaceBezierDecomposer()
+    let singleBezier = surface.uControlPointCount == surface.uDegree + 1
+      && surface.vControlPointCount == surface.vDegree + 1
+      && surface.uKnots.prefix(surface.uDegree + 1).allSatisfy({ $0 == surface.uKnots[surface.uDegree] })
+      && surface.uKnots.suffix(surface.uDegree + 1).allSatisfy({ $0 == surface.uKnots[surface.uControlPointCount] })
+      && surface.vKnots.prefix(surface.vDegree + 1).allSatisfy({ $0 == surface.vKnots[surface.vDegree] })
+      && surface.vKnots.suffix(surface.vDegree + 1).allSatisfy({ $0 == surface.vKnots[surface.vControlPointCount] })
+    if singleBezier {
+      // This tensor is exactly the stored original source, without extraction.
+      let patch = RationalBezierSurfacePatch3D(controlPoints: surface.controlPoints, weights: surface.weights,
+        uLower: surface.uKnots[surface.uDegree], uUpper: surface.uKnots[surface.uControlPointCount],
+        vLower: surface.vKnots[surface.vDegree], vUpper: surface.vKnots[surface.vControlPointCount])
+      patches = [try encloser.prepare(patch, tolerance: tolerance)]
+    } else {
+      patches = try decomposer.originalHomogeneousPatches(surface: surface, tolerance: tolerance)
+        .map { try encloser.prepare(original: $0, tolerance: tolerance) }
+    }
   }
 
   func intervalJet(
@@ -37,44 +47,43 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     over parameters: SurfaceParameterBox,
     tolerance: ModelingTolerance
   ) throws -> SurfaceIntervalVectorJet {
+    try Task.checkCancellation()
     let encloser = RationalBezierSurfaceJetEncloser()
     var result: SurfaceIntervalVectorJet?
     for patch in patches {
+      try Task.checkCancellation()
       let uLower = max(parameters.u.lower, patch.uLower)
       let uUpper = min(parameters.u.upper, patch.uUpper)
       let vLower = max(parameters.v.lower, patch.vLower)
       let vUpper = min(parameters.v.upper, patch.vUpper)
-      guard uUpper > uLower, vUpper > vLower else { continue }
-      let stableU = try numericallyStableInterval(
-        ScalarInterval(lower: uLower, upper: uUpper),
-        within: (lower: patch.uLower, upper: patch.uUpper),
-        tolerance: tolerance
-      )
-      let stableV = try numericallyStableInterval(
-        ScalarInterval(lower: vLower, upper: vUpper),
-        within: (lower: patch.vLower, upper: patch.vUpper),
-        tolerance: tolerance
-      )
-      let patchJet = try encloser.enclosure(
-        of: patch,
-        u: stableU,
-        v: stableV,
-        tolerance: tolerance
-      )
+      guard uUpper >= uLower, vUpper >= vLower else { continue }
+      let box = SurfaceParameterBox(
+        u: try ScalarInterval(lower: uLower, upper: uUpper),
+        v: try ScalarInterval(lower: vLower, upper: vUpper))
+      let patchJet = try Self.selectedJet(of: patch, over: box, tolerance: tolerance)
       result = result.map { $0.union(patchJet) } ?? patchJet
     }
     guard let result else {
-      throw KernelError(
-        phase: .geometry,
-        code: .invalidInput,
-        tolerance: tolerance,
-        message: "The surface parameter box did not intersect a prepared B-spline Bezier span."
-      )
+      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+        message: "The surface parameter box did not intersect a prepared B-spline Bezier span.")
     }
     return result
   }
 
-  private func numericallyStableInterval(
+  private static func selectedJet(of patch: RationalBezierSurfaceJetEncloser.PreparedPatch,
+                                  over box: SurfaceParameterBox,
+                                  tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    try Task.checkCancellation()
+    let encloser = RationalBezierSurfaceJetEncloser()
+    if box.u.lower == box.u.upper, box.v.lower == box.v.upper {
+      return try encloser.pointEnclosure(of: patch, u: box.u.lower, v: box.v.lower, tolerance: tolerance)
+    }
+    let u = try numericallyStableInterval(box.u, within: (patch.uLower, patch.uUpper), tolerance: tolerance)
+    let v = try numericallyStableInterval(box.v, within: (patch.vLower, patch.vUpper), tolerance: tolerance)
+    return try encloser.enclosure(of: patch, u: u, v: v, tolerance: tolerance)
+  }
+
+  private static func numericallyStableInterval(
     _ interval: ScalarInterval,
     within bounds: (lower: Double, upper: Double),
     tolerance: ModelingTolerance

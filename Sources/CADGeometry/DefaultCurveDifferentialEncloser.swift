@@ -320,11 +320,10 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         tolerance: tolerance
       )
     case .bSpline(let curve):
-      return try bSplineJet(
-        curve,
-        parameters: parameters,
-        tolerance: tolerance
-      )
+      // Both entries use original native coefficients; the prepared native
+      // branch never re-enters this one-shot dispatcher.
+      return try PreparedCurveDifferentialEncloser(curve: .bSpline(curve), tolerance: tolerance)
+        .thirdOrderIntervalJet(over: parameters, tolerance: tolerance)
     case .surfaceLift(let lift):
       if case let .procedural(.ruled(ruled)) = lift.surface,
         case let .constantV(v, start, end) = lift.parameterCurve,

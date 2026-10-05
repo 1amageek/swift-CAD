@@ -2,6 +2,124 @@ import CADCore
 import Foundation
 
 struct BSplineSurfaceBezierDecomposer {
+    struct OriginalHomogeneousPatch {
+        let controls: [[IntervalHomogeneousSurfaceControl]]
+        let origin: Point3D
+        let commonWeight: Double?
+        let uSpanIndex: Int
+        let vSpanIndex: Int
+        let uBounds: ScalarInterval
+        let vBounds: ScalarInterval
+    }
+
+    /// Proof preparation retains intervals of original homogeneous coefficients.
+    /// The separate Cartesian Double geometry producer is not used here.
+    func originalHomogeneousPatches(surface: BSplineSurface3D,
+                                    tolerance: ModelingTolerance) throws -> [OriginalHomogeneousPatch] {
+        try surface.validate(tolerance: tolerance)
+        try Task.checkCancellation()
+        // Cyclic surfaces already retain their original repeated tails. The stored
+        // count and native basis are identical to canonical evaluation; no trimmed
+        // Cartesian net or newly materialized cycle supplies coefficient authority.
+        let us = (surface.uDegree..<surface.uControlPointCount).filter { surface.uKnots[$0] < surface.uKnots[$0 + 1] }
+        let vs = (surface.vDegree..<surface.vControlPointCount).filter { surface.vKnots[$0] < surface.vKnots[$0 + 1] }
+        let count = us.count.multipliedReportingOverflow(by: vs.count)
+        let net = (surface.uDegree + 1).multipliedReportingOverflow(by: surface.vDegree + 1)
+        let storage = count.partialValue.multipliedReportingOverflow(by: net.partialValue)
+        guard !count.overflow, !net.overflow, !storage.overflow else {
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                message: "Original homogeneous coefficient storage count overflowed.")
+        }
+        let origin = surface.controlPoints[0][0], weight = surface.weights[0][0]
+        let commonWeight = surface.weights.allSatisfy { $0.allSatisfy { $0 == weight } } ? weight : nil
+        var result: [OriginalHomogeneousPatch] = []
+        result.reserveCapacity(count.partialValue)
+        for v in vs {
+            for u in us {
+                try Task.checkCancellation()
+                let ub = try ScalarInterval(lower: surface.uKnots[u], upper: surface.uKnots[u + 1])
+                let vb = try ScalarInterval(lower: surface.vKnots[v], upper: surface.vKnots[v + 1])
+                let uBasis = try BSplineBasis.nonzeroIntervalDerivativeValues(parameter: ub.lower, degree: surface.uDegree,
+                    throughDerivativeOrder: surface.uDegree, knots: surface.uKnots, count: surface.uControlPointCount,
+                    owningSpan: u, tolerance: tolerance)
+                let vBasis = try BSplineBasis.nonzeroIntervalDerivativeValues(parameter: vb.lower, degree: surface.vDegree,
+                    throughDerivativeOrder: surface.vDegree, knots: surface.vKnots, count: surface.vControlPointCount,
+                    owningSpan: v, tolerance: tolerance)
+                typealias Interval = OutwardScalarInterval
+                func add(_ a: IntervalHomogeneousSurfaceControl, _ b: IntervalHomogeneousSurfaceControl) -> IntervalHomogeneousSurfaceControl {
+                    IntervalHomogeneousSurfaceControl(x: a.x + b.x, y: a.y + b.y, z: a.z + b.z, weight: a.weight + b.weight)
+                }
+                var derivatives = Array(repeating: Array(repeating: IntervalHomogeneousSurfaceControl.zero,
+                    count: surface.uDegree + 1), count: surface.vDegree + 1)
+                for vOrder in 0...surface.vDegree {
+                    try Task.checkCancellation()
+                    for uOrder in 0...surface.uDegree {
+                        var value = IntervalHomogeneousSurfaceControl.zero
+                        for j in vBasis[vOrder].values.indices {
+                            let row = vBasis[vOrder].startIndex + j
+                            for i in uBasis[uOrder].values.indices {
+                                let column = uBasis[uOrder].startIndex + i
+                                let point = surface.controlPoints[row][column]
+                                let coefficient = uBasis[uOrder].values[i] * vBasis[vOrder].values[j]
+                                    * .exact(surface.weights[row][column])
+                                value = add(value, IntervalHomogeneousSurfaceControl(
+                                    x: (.exact(point.x) - .exact(origin.x)) * coefficient,
+                                    y: (.exact(point.y) - .exact(origin.y)) * coefficient,
+                                    z: (.exact(point.z) - .exact(origin.z)) * coefficient, weight: coefficient))
+                            }
+                        }
+                        // Partition of unity applies to original common weights, not
+                        // approximately equal extracted coefficients.
+                        let denominator = commonWeight.map { Interval.exact(uOrder == 0 && vOrder == 0 ? $0 : 0) } ?? value.weight
+                        derivatives[vOrder][uOrder] = IntervalHomogeneousSurfaceControl(
+                            x: value.x, y: value.y, z: value.z, weight: denominator)
+                    }
+                }
+                let uSpan = Interval.exact(ub.upper) - .exact(ub.lower)
+                let vSpan = Interval.exact(vb.upper) - .exact(vb.lower)
+                var controls = derivatives
+                for j in 0...surface.vDegree {
+                    try Task.checkCancellation()
+                    for i in 0...surface.uDegree {
+                        var value = IntervalHomogeneousSurfaceControl.zero
+                        for q in 0...j {
+                            let vScale = try originalBernsteinScale(degree: surface.vDegree, index: j, order: q, span: vSpan, tolerance: tolerance)
+                            for p in 0...i {
+                                let uScale = try originalBernsteinScale(degree: surface.uDegree, index: i, order: p, span: uSpan, tolerance: tolerance)
+                                value = add(value, derivatives[q][p].scaled(by: uScale * vScale))
+                            }
+                        }
+                        controls[j][i] = IntervalHomogeneousSurfaceControl(x: value.x, y: value.y, z: value.z,
+                            weight: commonWeight.map { .exact($0) } ?? value.weight)
+                        guard [value.x, value.y, value.z, value.weight].allSatisfy(\.isFinite) else {
+                            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                                message: "Original homogeneous extraction exceeds finite coefficient arithmetic.")
+                        }
+                    }
+                }
+                result.append(OriginalHomogeneousPatch(controls: controls, origin: origin, commonWeight: commonWeight,
+                    uSpanIndex: u, vSpanIndex: v, uBounds: ub, vBounds: vb))
+            }
+        }
+        return result
+    }
+
+    private func originalBernsteinScale(degree: Int, index: Int, order: Int,
+        span: OutwardScalarInterval, tolerance: ModelingTolerance) throws -> OutwardScalarInterval {
+        var scale = OutwardScalarInterval.exact(1)
+        if order > 0 {
+            for p in 0..<order {
+                guard let next = (scale * .exact(Double(index - p)) * span)
+                    .divided(by: .exact(Double(p + 1)) * .exact(Double(degree - p))), next.isFinite else {
+                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                        message: "Original Taylor-to-Bernstein scaling has no finite enclosure.")
+                }
+                scale = next
+            }
+        }
+        return scale
+    }
+
     func surfacePatches(
         surface: BSplineSurface3D,
         tolerance: ModelingTolerance

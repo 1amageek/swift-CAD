@@ -1,6 +1,88 @@
+import CADCore
 import Foundation
 
 public struct BSplineBasis {
+    struct NonzeroIntervalValues: Sendable {
+        let startIndex: Int
+        let values: [OutwardScalarInterval]
+    }
+
+    static func nonzeroIntervalDerivativeValues(parameter: Double, degree: Int,
+        throughDerivativeOrder order: Int, knots: [Double], count: Int,
+        owningSpan: Int, tolerance: ModelingTolerance) throws -> [NonzeroIntervalValues] {
+        try validateSelectedSpan(parameter: parameter, degree: degree, order: order,
+            knots: knots, count: count, span: owningSpan, tolerance: tolerance)
+        typealias Interval = OutwardScalarInterval
+        var previous = Array(repeating: [Interval.exact(0)], count: order + 1)
+        previous[0][0] = .exact(1)
+        if degree > 0 {
+            for p in 1...degree {
+                try Task.checkCancellation()
+                let start = owningSpan - p
+                var next = Array(repeating: Array(repeating: Interval.exact(0), count: p + 1), count: order + 1)
+                func value(_ derivative: Int, _ index: Int) -> Interval {
+                    guard index > start, index <= owningSpan else { return .exact(0) }
+                    return previous[derivative][index - start - 1]
+                }
+                for offset in 0...p {
+                    let i = start + offset
+                    let left = Interval.exact(knots[i + p]) - .exact(knots[i])
+                    let right = Interval.exact(knots[i + p + 1]) - .exact(knots[i + 1])
+                    if knots[i + p] > knots[i] {
+                        guard let factor = (Interval.exact(parameter) - .exact(knots[i])).divided(by: left),
+                              let scale = Interval.exact(Double(p)).divided(by: left) else {
+                            throw selectedFailure(.resourceLimitExceeded, "Original left knot difference has no finite positive enclosure.", tolerance)
+                        }
+                        next[0][offset] = next[0][offset] + factor * value(0, i)
+                        for derivative in 1...max(1, min(p, order)) where derivative <= order {
+                            next[derivative][offset] = next[derivative][offset] + scale * value(derivative - 1, i)
+                        }
+                    }
+                    if knots[i + p + 1] > knots[i + 1] {
+                        guard let factor = (Interval.exact(knots[i + p + 1]) - .exact(parameter)).divided(by: right),
+                              let scale = Interval.exact(Double(p)).divided(by: right) else {
+                            throw selectedFailure(.resourceLimitExceeded, "Original right knot difference has no finite positive enclosure.", tolerance)
+                        }
+                        next[0][offset] = next[0][offset] + factor * value(0, i + 1)
+                        for derivative in 1...max(1, min(p, order)) where derivative <= order {
+                            next[derivative][offset] = next[derivative][offset] - scale * value(derivative - 1, i + 1)
+                        }
+                    }
+                }
+                previous = next
+            }
+        }
+        guard previous.joined().allSatisfy(\.isFinite) else {
+            throw selectedFailure(.resourceLimitExceeded, "Original interval basis derivatives exceed finite arithmetic.", tolerance)
+        }
+        return previous.map { NonzeroIntervalValues(startIndex: owningSpan - degree, values: $0) }
+    }
+
+    private static func validateSelectedSpan(parameter: Double, degree: Int, order: Int,
+        knots: [Double], count: Int, span: Int, tolerance: ModelingTolerance) throws {
+        try tolerance.validate()
+        try Task.checkCancellation()
+        let sum = count.addingReportingOverflow(degree)
+        let length = sum.partialValue.addingReportingOverflow(1)
+        let rows = order.addingReportingOverflow(1)
+        let columns = degree.addingReportingOverflow(1)
+        let cells = rows.partialValue.multipliedReportingOverflow(by: columns.partialValue)
+        guard !sum.overflow, !length.overflow, !rows.overflow, !columns.overflow, !cells.overflow else {
+            throw selectedFailure(.resourceLimitExceeded, "Selected original basis storage count overflowed.", tolerance)
+        }
+        guard degree >= 0, count > degree, order >= 0, knots.count == length.partialValue,
+              span >= degree, span < count, parameter.isFinite,
+              knots.allSatisfy(\.isFinite), zip(knots, knots.dropFirst()).allSatisfy({ $0.0 <= $0.1 }),
+              knots[span] < knots[span + 1], parameter >= knots[span], parameter <= knots[span + 1] else {
+            throw selectedFailure(.invalidInput, "A selected original basis requires its actual finite closed native span.", tolerance)
+        }
+    }
+
+    private static func selectedFailure(_ code: KernelErrorCode, _ message: String,
+                                        _ tolerance: ModelingTolerance) -> KernelError {
+        KernelError(phase: .geometry, code: code, tolerance: tolerance, message: message)
+    }
+
     public struct NonzeroValues: Sendable, Hashable {
         public let startIndex: Int
         public let values: [Double]

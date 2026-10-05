@@ -46,6 +46,8 @@ curved-surface fillets, not their topology or feature publication. The
 child owns whole-use source correspondence certificates for its bounded native
 curve/support family.
 
+[GeometryConversion](GeometryConversion/DESIGN.md) owns whole-domain approximation and rational conversion guarantees under caller-owned budgets.
+
 ## Responsibilities and Boundaries
 
 This module owns the representation and structural validation of analytic
@@ -62,6 +64,7 @@ measurement policy.
 | [CADIR](../CADIR/DESIGN.md) | used by | signature validation | Validates retained geometry through this module. | Do not loosen Codable/signature rules independently. |
 | [Involute](Involute/DESIGN.md) | child | certified flank approximation | Converts analytic involute intervals to bounded B-spline spans. | Does not own gear dimensions or root geometry. |
 | [RollingBall](RollingBall/DESIGN.md) | child | local contact section | Resolves source contacts from offset-intersection correspondence. | A local section is not a certified complete blend surface. |
+| [GeometryConversion](GeometryConversion/DESIGN.md) | child | certified curve/surface conversion | Owns admitted error bounds and caller-budgeted construction. | Original native-span jets remain local geometry authority; conversion does not change correspondence admission. |
 
 ## Architecture
 
@@ -643,3 +646,7 @@ The existing kernel offset-image integration test retains forward behavior;
 ### Plane / isoparametric B-spline intersections
 
 When the weighted signed-distance control coefficients are identical along one surface parameter, `PlaneBSplineIsoparametricIntersector` reduces the complete intersection problem to the existing certified curve/plane root solver. Each root yields the exact surface isocurve and its constant-parameter pcurve, verified by `SurfaceSurfaceIntersectionVerifier`. Other surfaces retain the general analytic/B-spline solver. The mirror sheet-cut regression exercises this dispatch with an interior curved-sheet section.
+
+### Original closed curve-span differential authority
+
+`PreparedCurveDifferentialEncloser` retains immutable original homogeneous coefficients for closed native-span queries. A C0 knot is queried on each owning original span; higher derivatives are never presented as a globally smooth jet. The one-shot B-spline differential route delegates to the same prepared authority, with identical normalized endpoints, original budgets, and cancellation. `PreparedCurveClosedNativeJetTests` and `CurveDifferentialEncloserTests` verify owning sides, finite/resource failures, and prepared/one-shot equality. [GeometryConversion](GeometryConversion/DESIGN.md) composes this lower contract without widening original correspondence admission.

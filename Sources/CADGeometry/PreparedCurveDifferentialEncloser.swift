@@ -4,7 +4,7 @@ import CADCore
 struct PreparedCurveDifferentialEncloser: Sendable {
   private indirect enum Storage: Sendable {
     case direct(Curve3D)
-    case bSpline([RationalBezierCurvePatch3D])
+    case nativeBSpline([RationalBezierCurveJetEncloser.NativeSpan])
     case implicit(
       CertifiedImplicitIntersectionCurve,
       ImplicitCurveIntervalJetEncloser
@@ -22,21 +22,23 @@ struct PreparedCurveDifferentialEncloser: Sendable {
 
   let curve: Curve3D
   private let storage: Storage
+  private let preparationTolerance: ModelingTolerance
 
   init(
     curve: Curve3D,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    consumeWork: () throws -> Void = {}
   ) throws {
+    try Task.checkCancellation()
     try tolerance.validate()
+    try consumeWork()
     try curve.validate(tolerance: tolerance)
     self.curve = curve
+    preparationTolerance = tolerance
     switch curve {
     case .bSpline(let bSpline):
-      storage = .bSpline(
-        try BSplineCurveBezierDecomposer().curvePatches(
-          curve: bSpline,
-          tolerance: tolerance
-        ))
+      storage = .nativeBSpline(try RationalBezierCurveJetEncloser().originalNativeSpans(
+        of: bSpline, tolerance: tolerance, consumeWork: consumeWork))
     case .implicit(let implicit):
       storage = .implicit(
         implicit,
@@ -50,7 +52,7 @@ struct PreparedCurveDifferentialEncloser: Sendable {
         image.transform,
         source: try PreparedCurveDifferentialEncloser(
           curve: image.source,
-          tolerance: tolerance
+          tolerance: tolerance, consumeWork: consumeWork
         )
       )
     case .affineImage(let image):
@@ -58,7 +60,7 @@ struct PreparedCurveDifferentialEncloser: Sendable {
         image.transform,
         source: try PreparedCurveDifferentialEncloser(
           curve: image.source,
-          tolerance: tolerance
+          tolerance: tolerance, consumeWork: consumeWork
         )
       )
     case .surfaceLift(let lift):
@@ -93,12 +95,21 @@ struct PreparedCurveDifferentialEncloser: Sendable {
         over: parameters,
         tolerance: tolerance
       )
-    case .bSpline(let patches):
-      return try bSplineJet(
-        patches: patches,
-        parameters: parameters,
-        tolerance: tolerance
-      )
+    case .nativeBSpline(let spans):
+      var result: SurfaceIntervalVectorJet?
+      for span in spans {
+        let lower = max(parameters.lower, span.lower), upper = min(parameters.upper, span.upper)
+        guard lower <= upper else { continue }
+        try Task.checkCancellation()
+        let jet = try RationalBezierCurveJetEncloser().enclosure(of: span,
+          over: ScalarInterval(lower: lower, upper: upper), tolerance: tolerance)
+        result = result.map { $0.union(jet) } ?? jet
+      }
+      guard let result else {
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                          message: "The curve query has no original owning native span.")
+      }
+      return result
     case .implicit(let implicit, let encloser):
       return try encloser.intervalJet(
         of: implicit,
@@ -129,6 +140,73 @@ struct PreparedCurveDifferentialEncloser: Sendable {
         ),
         by: transform
       )
+    }
+  }
+
+  struct ClosedNativeJet: Sendable {
+    struct OwnedSpan: Sendable {
+      let nativeIndex: Int
+      let nativeDomain: ScalarInterval
+      let parameters: ScalarInterval
+      let jet: SurfaceIntervalVectorJet
+    }
+    let source: Curve3D
+    let parameters: ScalarInterval
+    let tolerance: ModelingTolerance
+    /// Separate one-sided smooth jets; their union never establishes join smoothness.
+    let spans: [OwnedSpan]
+  }
+
+  func closedNativeJets(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+                        consumeWork: () throws -> Void) throws -> ClosedNativeJet {
+    try Task.checkCancellation()
+    try tolerance.validate()
+    guard tolerance == preparationTolerance, parameters.lower.isFinite, parameters.upper.isFinite,
+          parameters.lower <= parameters.upper else {
+      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                        message: "Closed native curve queries require the exact preparation tolerance and finite ordered parameters.")
+    }
+    switch storage {
+    case .nativeBSpline(let nativeSpans):
+      guard let first = nativeSpans.first, let last = nativeSpans.last,
+            parameters.lower >= first.lower, parameters.upper <= last.upper else {
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                          message: "The closed curve query extends beyond its original native domain.")
+      }
+      var result: [ClosedNativeJet.OwnedSpan] = []
+      for span in nativeSpans {
+        let lower = max(parameters.lower, span.lower), upper = min(parameters.upper, span.upper)
+        guard lower <= upper else { continue }
+        try Task.checkCancellation()
+        try consumeWork()
+        let selected = try ScalarInterval(lower: lower, upper: upper)
+        let jet = try RationalBezierCurveJetEncloser().enclosure(of: span, over: selected, tolerance: tolerance)
+        result.append(.init(nativeIndex: span.index,
+          nativeDomain: try ScalarInterval(lower: span.lower, upper: span.upper), parameters: selected, jet: jet))
+      }
+      guard !result.isEmpty else {
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                          message: "The closed curve query has no original owning native span.")
+      }
+      try Task.checkCancellation()
+      return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance, spans: result)
+    case .rigid(let transform, let source):
+      let result = try source.closedNativeJets(over: parameters, tolerance: tolerance, consumeWork: consumeWork)
+      return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance,
+        spans: result.spans.map { .init(nativeIndex: $0.nativeIndex, nativeDomain: $0.nativeDomain,
+          parameters: $0.parameters, jet: transformed($0.jet, by: transform)) })
+    case .affine(let transform, let source):
+      let result = try source.closedNativeJets(over: parameters, tolerance: tolerance, consumeWork: consumeWork)
+      return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance,
+        spans: result.spans.map { .init(nativeIndex: $0.nativeIndex, nativeDomain: $0.nativeDomain,
+          parameters: $0.parameters, jet: transformed($0.jet, by: transform)) })
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Closed owning-span curve proofs currently
+    // serve original nonperiodic B-splines and their affine images. Q3 rolling and
+    // trim consumers must not claim periodic/procedural closed support until their
+    // original chart coverage and one-sided derivatives are certified here.
+    default:
+      throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                        message: "This curve family has no original closed native span receipt.")
     }
   }
 
@@ -202,34 +280,6 @@ struct PreparedCurveDifferentialEncloser: Sendable {
     }
   }
 
-  private func bSplineJet(
-    patches: [RationalBezierCurvePatch3D],
-    parameters: ScalarInterval,
-    tolerance: ModelingTolerance
-  ) throws -> SurfaceIntervalVectorJet {
-    let encloser = RationalBezierCurveJetEncloser()
-    var result: SurfaceIntervalVectorJet?
-    for patch in patches {
-      let lower = max(parameters.lower, patch.lower)
-      let upper = min(parameters.upper, patch.upper)
-      guard upper > lower else { continue }
-      let patchJet = try encloser.enclosure(
-        of: patch,
-        over: try ScalarInterval(lower: lower, upper: upper),
-        tolerance: tolerance
-      )
-      result = result.map { $0.union(patchJet) } ?? patchJet
-    }
-    guard let result else {
-      throw KernelError(
-        phase: .geometry,
-        code: .invalidInput,
-        tolerance: tolerance,
-        message: "The curve parameter interval did not intersect a prepared B-spline Bezier span."
-      )
-    }
-    return result
-  }
 
   private func scalarInterval(
     _ interval: OutwardScalarInterval
