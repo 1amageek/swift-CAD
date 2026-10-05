@@ -94,10 +94,10 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             replacements[faceID] = FaceSurfaceReplacementRebuilder.Replacement(surface: surface, orientation: orientation, landing: landing)
             reaches[faceID] = (center, try outward.normalized(tolerance: tolerance.distance), near.point + landing)
         }
-        // One planar face onto a parallel plane, facing the same way: a push by the planes' distance.
-        if let pusher, faceIDs.count == 1, let face = model.faces[faceIDs[0]], let previous = model.geometry.surfaces[face.surfaceID],
-           let replacement = replacements[faceIDs[0]], let distance = try parallelPush(from: previous, orientation: face.orientation,
-                                                                                       onto: replacement, tolerance: tolerance) {
+        // Planar faces onto a parallel plane, facing the same way and lying one distance from it: a
+        // push of them all by that distance (Grow and all).
+        if let pusher, let distance = try commonParallelPush(of: faceIDs, replacements: replacements, model: model,
+                                                              tolerance: tolerance) {
             let push = FeatureNode(id: feature.id, name: feature.name, operation: .faceOffset(FaceOffsetFeature(
                 target: FaceOffsetTargetReference(featureID: match.target.featureID), faces: match.faces,
                 distance: .constant(.length(distance, unit: .meter)), grow: match.grow
@@ -111,10 +111,11 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             // Push Face's Grow carries it out to where it reaches the reference (Fixed stopping
             // at the wall), then the face it ends on — the wall it carried (Moving) or its own
             // bar's end (None) — takes the reference's surface in place.
-            // FIXME(INCOMPLETE_IMPLEMENTATION): several matched faces, a curved matched face, or
-            // one running into a wall inward still refuse here. Production path:
-            // FaceMatchFeatureEvaluator. Complete only when those grow too, verified by a pair of
-            // faces matched past a wall.
+            // FIXME(INCOMPLETE_IMPLEMENTATION): several faces matched onto a curved reference, a
+            // curved matched face, or one running into a wall inward still refuse here (faces
+            // onto a parallel plane one distance away are pushed together above). Production
+            // path: FaceMatchFeatureEvaluator. Complete only when those grow too, verified by a
+            // pair of faces matched onto a curved reference past a wall.
             guard let pusher, faceIDs.count == 1, let reach = reaches[faceIDs[0]], let replacement = replacements[faceIDs[0]],
                   let face = context.brep.faces[faceIDs[0]], let previous = context.brep.geometry.surfaces[face.surfaceID],
                   try DefaultPlanarSurfaceResolver().exactPlane(for: previous, tolerance: tolerance) != nil else { throw error }
@@ -133,6 +134,23 @@ public struct FaceMatchFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             removedSubshapeIDs: bodyScope.subshapeIDs(in: context.subshapes),
             lineage: identity.lineage
         )
+    }
+
+    /// The one distance every face is pushed by to land on its parallel replacement plane; nil
+    /// when a face is not planar, its replacement is not parallel facing the same way, or the
+    /// faces lie different distances from it.
+    private func commonParallelPush(of faceIDs: [FaceID], replacements: [FaceID: FaceSurfaceReplacementRebuilder.Replacement],
+                                    model: BRepModel, tolerance: ModelingTolerance) throws -> Double? {
+        var common: Double?
+        for faceID in faceIDs {
+            guard let face = model.faces[faceID], let previous = model.geometry.surfaces[face.surfaceID],
+                  let replacement = replacements[faceID],
+                  let distance = try parallelPush(from: previous, orientation: face.orientation, onto: replacement, tolerance: tolerance)
+            else { return nil }
+            if let common, abs(common - distance) > tolerance.distance { return nil }
+            common = common ?? distance
+        }
+        return common
     }
 
     /// Match Face's Grow past a wall: Push Face carries the face out by `distance` under the

@@ -1132,7 +1132,9 @@ the coplanar pieces as separate faces). Moving into an oblique wall, faces with 
 edges into one, curved faces and an adjacent angle are the in-place re-solve, failing
 explicitly where the faces around cannot follow (`FIXME(INCOMPLETE_IMPLEMENTATION)` in
 `FaceOffsetFeatureEvaluator`). `PushFaceTests` own two notch faces grown together by
-each mode and a step filled up to a leaning wall, by exact volumes. Match Face of one planar face onto a parallel plane
+each mode and a step filled up to a leaning wall, by exact volumes. Match Face of planar
+faces onto a parallel plane facing the same way, all one distance from it, is one push of
+them all (`MatchFaceTests.twoNotchFacesMatchedPastTheirWallGrowTogether`). Match Face of one planar face onto a parallel plane
 facing the same way is that push, Grow and all. One planar face running into another wall on
 its way out to a curved reference (the re-solve's topology failure) is pushed by Push Face's Grow
 out to where it reaches the reference — Fixed stopping at the wall — and the face it then ends on
