@@ -36,10 +36,11 @@ struct ConvexPlanarBooleanFacePatchBuilder {
                     message: "Planar Boolean produced a boundary component with fewer than four faces."
                 )
             }
-            let patches = try component.enumerated().map { faceIndex, polygon in
+            let faces = PlanarBooleanFragmentMerger(tolerance: tolerance).merged(component)
+            let patches = try faces.enumerated().map { faceIndex, face in
                 try patch(
                     stableID: "planar-csg:component:\(componentIndex):face:\(faceIndex)",
-                    polygon: polygon
+                    face: face
                 )
             }
             return BRepSewingShell(
@@ -222,10 +223,9 @@ struct ConvexPlanarBooleanFacePatchBuilder {
 
     private func patch(
         stableID: String,
-        polygon: PlanarBooleanPolygon
+        face: PlanarBooleanMergedFace
     ) throws -> BRepSewingFacePatch {
-        let loopVertices = polygon.vertices
-        guard let origin = loopVertices.first else {
+        guard let origin = face.loops.first?.first else {
             throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -235,47 +235,47 @@ struct ConvexPlanarBooleanFacePatchBuilder {
         }
         let surface = Surface3D.plane(Plane3D(
             origin: origin,
-            normal: polygon.plane.normal
+            normal: face.normal
         ))
-        let edges = try loopVertices.indices.map { index in
-            let start = loopVertices[index]
-            let end = loopVertices[(index + 1) % loopVertices.count]
-            let delta = end - start
-            guard delta.length > tolerance.distance else {
-                throw KernelError(
-                    phase: .topology,
-                    code: .topologyFailure,
-                    tolerance: tolerance,
-                    message: "Planar Boolean generated a collapsed boundary edge."
+        let loops = try face.loops.enumerated().map { loopIndex, loopVertices in
+            let loopID = loopIndex == 0 ? "\(stableID):outer" : "\(stableID):inner:\(loopIndex)"
+            let edges = try loopVertices.indices.map { index in
+                let start = loopVertices[index]
+                let end = loopVertices[(index + 1) % loopVertices.count]
+                let delta = end - start
+                guard delta.length > tolerance.distance else {
+                    throw KernelError(
+                        phase: .topology,
+                        code: .topologyFailure,
+                        tolerance: tolerance,
+                        message: "Planar Boolean generated a collapsed boundary edge."
+                    )
+                }
+                let startUV = try surface.parameterProjection(of: start, tolerance: tolerance)
+                let endUV = try surface.parameterProjection(of: end, tolerance: tolerance)
+                return BRepSewingEdge(
+                    stableID: loopIndex == 0 ? "\(stableID):edge:\(index)" : "\(loopID):edge:\(index)",
+                    curve: .line(Line3D(
+                        origin: start,
+                        direction: try delta.normalized(tolerance: tolerance.distance)
+                    )),
+                    startParameter: 0.0,
+                    endParameter: delta.length,
+                    startPoint: start,
+                    endPoint: end,
+                    surfaceParameterCurve: .polyline([
+                        SurfaceParameter(u: startUV.u, v: startUV.v),
+                        SurfaceParameter(u: endUV.u, v: endUV.v),
+                    ])
                 )
             }
-            let startUV = try surface.parameterProjection(of: start, tolerance: tolerance)
-            let endUV = try surface.parameterProjection(of: end, tolerance: tolerance)
-            return BRepSewingEdge(
-                stableID: "\(stableID):edge:\(index)",
-                curve: .line(Line3D(
-                    origin: start,
-                    direction: try delta.normalized(tolerance: tolerance.distance)
-                )),
-                startParameter: 0.0,
-                endParameter: delta.length,
-                startPoint: start,
-                endPoint: end,
-                surfaceParameterCurve: .polyline([
-                    SurfaceParameter(u: startUV.u, v: startUV.v),
-                    SurfaceParameter(u: endUV.u, v: endUV.v),
-                ])
-            )
+            return BRepSewingLoop(stableID: loopID, role: loopIndex == 0 ? .outer : .inner, edges: edges)
         }
         return BRepSewingFacePatch(
             stableID: stableID,
             surface: surface,
             orientation: .forward,
-            loops: [BRepSewingLoop(
-                stableID: "\(stableID):outer",
-                role: .outer,
-                edges: edges
-            )]
+            loops: loops
         )
     }
 }
