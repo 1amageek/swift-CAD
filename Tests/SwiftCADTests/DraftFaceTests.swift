@@ -245,6 +245,41 @@ struct DraftFaceTests {
         #expect(abs(volume - (250 + 12.5 * t) * 10 * 1e-9) < 1e-12, "\(volume)")
     }
 
+    /// A 50 × 10 × 10 mm block notched 10 × 5 mm along its top edge at both ends, its two notch
+    /// walls (x = 10 facing −x, x = 40 facing +x) drafted 70° together about the top face. The
+    /// walls share no edge, so each grows as the one notch wall does, mirrored: per side the
+    /// section changes by 50 − 50 / t (Fixed), 50 t − 50 (Moving) or 12.5 t (None) mm² from 400.
+    @Test(.timeLimit(.minutes(2)), arguments: [FaceEditGrow.moving, .fixed, .none])
+    func twoNotchWallsDraftedTogetherGrowApart(grow: FaceEditGrow) throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let outline = [(0.0, 0.0), (50.0, 0.0), (50.0, 5.0), (40.0, 5.0), (40.0, 10.0), (10.0, 10.0), (10.0, 5.0), (0.0, 5.0)]
+        // On the ZX plane sketch x is world z and sketch y is world x.
+        let profile = try builder.sketch(on: .zx) { sketch in
+            for k in outline.indices {
+                let (a, b) = (outline[k], outline[(k + 1) % outline.count])
+                _ = sketch.line(from: SketchPoint(x: millimeters(a.1), y: millimeters(a.0)), to: SketchPoint(x: millimeters(b.1), y: millimeters(b.0)))
+            }
+        }
+        let block = try builder.extrude(profile, distance: millimeters(10))
+        let walls = try faces(in: builder, of: block) { plane($0).map { abs(abs($0.normal.x) - 1) < 1e-9
+            && (abs($0.origin.x - 0.010) < 1e-9 || abs($0.origin.x - 0.040) < 1e-9) } ?? false }
+        let top = try faces(in: builder, of: block) { plane($0).map { abs(abs($0.normal.z) - 1) < 1e-9 && abs($0.origin.z - 0.010) < 1e-9 } ?? false }
+        #expect(walls.count == 2)
+        #expect(top.count == 1)
+        _ = try builder.faceDraft(target: block, faces: walls, neutralFace: try #require(top.first), angle: degrees(70), grow: grow)
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        let t = tan(70 * Double.pi / 180)
+        let perSide: Double
+        switch grow {
+        case .fixed: perSide = 50 - 50 / t
+        case .moving: perSide = 50 * t - 50
+        case .none: perSide = 12.5 * t
+        }
+        let volume = try model.volume(tolerance: .standard)
+        #expect(abs(volume - (400 + 2 * perSide) * 10 * 1e-9) < 1e-12, "\(grow) \(volume)")
+    }
+
     /// A 4 × 10 × 10 mm plate (centred on x and y), its wall at x = −2 drafted 30° into it about
     /// the top face: the wall's foot would move 10 tan 30° mm in, past the far wall.
     private func plateWallDraftedIn(grow: FaceEditGrow) throws -> BRepModel {

@@ -124,15 +124,20 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         } catch let error as KernelError where error.code == .topologyFailure {
             // The drafted faces ran into another wall, so the faces around them cannot simply be
             // re-solved: Grow decides how far the drafted face reaches.
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Grow reaches past another wall only for one planar
-            // drafted face; several faces, or a cylinder, running into a wall are refused with the
+            // Planar drafted faces that share no edge grow apart: each face's wedges, all read from
+            // the body as it was, are united or taken off in turn.
+            // FIXME(INCOMPLETE_IMPLEMENTATION): drafted faces sharing an edge (a frustum's walls),
+            // whose wedges meet each other, or a cylinder running into a wall are refused with the
             // re-solve's topology failure. Production path: FaceDraftFeatureEvaluator for every
             // faceDraft feature. Complete when several drafted faces grow together, meeting each
             // other's wedges, verified by a frustum whose walls run into another wall.
-            guard replacements.count == 1, let (faceID, replacement) = replacements.first,
-                  case let .pivot(pull, _)? = hinges[faceID],
-                  let grown = try grow(faceID: faceID, replacement: replacement, grow: draft.grow, pull: pull, bodyID: bodyID,
-                                       featureID: feature.id, context: context) else {
+            var grownFaces: [(faceID: FaceID, replacement: FaceSurfaceReplacementRebuilder.Replacement, pull: Vector3D)] = []
+            for faceID in faceIDs {
+                guard let replacement = replacements[faceID], case let .pivot(pull, _)? = hinges[faceID] else { throw error }
+                grownFaces.append((faceID, replacement, pull))
+            }
+            guard try sharesNoEdge(grownFaces.map(\.faceID), model: context.brep),
+                  let grown = try grow(faces: grownFaces, grow: draft.grow, bodyID: bodyID, featureID: feature.id, context: context) else {
                 throw error
             }
             return grown
@@ -148,38 +153,57 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
         )
     }
 
-    /// The body united with (or, for a face drafted into it, less) the material between `faceID`'s
+    /// Whether no two of the faces share an edge.
+    private func sharesNoEdge(_ faceIDs: [FaceID], model: BRepModel) throws -> Bool {
+        var seen: Set<EdgeID> = []
+        for faceID in faceIDs {
+            guard let face = model.faces[faceID] else { throw TopologyError.missingReference("Draft Face face is missing.") }
+            let edges = Set(try face.loops.flatMap { loopID -> [EdgeID] in
+                guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Draft Face loop is missing.") }
+                return loop.coedges.map(\.edgeID)
+            })
+            guard seen.isDisjoint(with: edges) else { return false }
+            seen.formUnion(edges)
+        }
+        return true
+    }
+
+    /// The body united with (or, for a face drafted into it, less) the material between each face's
     /// plane and its drafted plane, as far as `grow` lets the drafted face reach; nil when this
-    /// evaluator cannot grow it.
+    /// evaluator cannot grow one of them.
     private func grow(
-        faceID: FaceID,
-        replacement: FaceSurfaceReplacementRebuilder.Replacement,
+        faces: [(faceID: FaceID, replacement: FaceSurfaceReplacementRebuilder.Replacement, pull: Vector3D)],
         grow: FaceEditGrow,
-        pull: Vector3D,
         bodyID: BodyID,
         featureID: FeatureID,
         context: EvaluationContext
     ) throws -> EvaluationResult? {
         let tolerance = context.tolerance
-        guard let sewer, let applicator, case let .plane(drafted) = replacement.surface,
-              let face = context.brep.faces[faceID], let surface = context.brep.geometry.surfaces[face.surfaceID],
-              let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else {
-            return nil
-        }
-        let normal = try plane.normal.normalized(tolerance: tolerance.distance)
-        guard let wedges = try FaceDraftGrowWedgeBuilder(tolerance: tolerance).wedges(
-            for: .init(
-                faceID: faceID,
-                outward: face.orientation == .forward ? normal : normal * -1,
-                normal: normal,
-                draftedNormal: try drafted.normal.normalized(tolerance: tolerance.distance),
-                pivot: drafted.origin,
-                axis: normal.cross(pull),
-                pull: pull
-            ),
-            grow: grow, bodyID: bodyID, model: context.brep, featureID: featureID
-        ), wedges.isEmpty == false else {
-            return nil
+        guard let sewer, let applicator else { return nil }
+        // Every face's wedges are read from the body as it was.
+        var wedges: [FaceDraftGrowWedgeBuilder.Wedge] = []
+        for (faceID, replacement, pull) in faces {
+            guard case let .plane(drafted) = replacement.surface,
+                  let face = context.brep.faces[faceID], let surface = context.brep.geometry.surfaces[face.surfaceID],
+                  let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else {
+                return nil
+            }
+            let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+            guard let faceWedges = try FaceDraftGrowWedgeBuilder(tolerance: tolerance).wedges(
+                for: .init(
+                    faceID: faceID,
+                    outward: face.orientation == .forward ? normal : normal * -1,
+                    normal: normal,
+                    draftedNormal: try drafted.normal.normalized(tolerance: tolerance.distance),
+                    pivot: drafted.origin,
+                    axis: normal.cross(pull),
+                    pull: pull
+                ),
+                grow: grow, bodyID: bodyID, model: context.brep, featureID: featureID
+            ), faceWedges.isEmpty == false else {
+                return nil
+            }
+            wedges.append(contentsOf: faceWedges)
         }
         // Each wedge united or taken off in turn, the last under the feature.
         var stages = FeatureEvaluationStages(context)

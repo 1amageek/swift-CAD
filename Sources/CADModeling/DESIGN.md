@@ -1157,7 +1157,11 @@ under every Grow (past the drafted face nothing is left to stop at): run on past
 side and, under Moving or where the face reaches the body's ends, past those ends, its side along
 the old face leaning out of the body from the pivot line through a sliver certified to hold no
 body face, so its only faces inside the body are the drafted face's. `DraftFaceTests` own a
-plate's wall drafted through its far wall (the triangle left above the cut, under each Grow). Draft Face turns each drafted face as one surface about its crossing with the neutral
+plate's wall drafted through its far wall (the triangle left above the cut, under each Grow).
+Drafted faces that share no edge grow apart: every face's wedges are read from the body as it
+was and united or taken off in turn (`DraftFaceTests.twoNotchWallsDraftedTogetherGrowApart`,
+a block's two end notch walls under each Grow); faces sharing an edge, whose wedges meet, stay
+refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face turns each drafted face as one surface about its crossing with the neutral
 plane (the reference face's plane, moved by the offset): the page's pivot. Running against the
 pull (into the body from the reference face) the face leans out by the angle, so beyond the plane
 along the pull it leans in — a face crossing the plane is not split, it simply passes through its
