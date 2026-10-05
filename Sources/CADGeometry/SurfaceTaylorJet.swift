@@ -537,10 +537,7 @@ extension Surface3D {
         }
         switch self {
         case let .plane(plane):
-            let basis = try circleOrthonormalBasis(
-                plane.normal,
-                tolerance: tolerance
-            )
+            let basis = try plane.parameterBasis(tolerance: tolerance)
             let origin = try SurfaceTaylorVectorJet.constant(plane.origin, order: order)
             let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
             let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)

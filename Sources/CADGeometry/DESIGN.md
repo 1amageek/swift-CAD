@@ -1205,3 +1205,55 @@ Selected original native spans may issue an immutable package-only coefficient r
 ### Caller-paid original cover enumeration
 
 The additive `originalNativeSpans(over:tolerance:consumeWork:)` entry charges the supplied synchronous caller allowance before original span scans, knot recurrences, exact axis-lift enumeration, and token append. It uses the same original source, closed boxes, lifted sides, and aggregate262144 cover ceiling as existing entry points. Existing callers retain their own admission and budgeting policies; the new entry retains neither the callback nor mutable shared state. [SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md) composes this paid entry with coefficient retention and higher-order work.
+
+## Original Framed Infinite Plane
+
+The module's existing primitive representation owns `Plane3D`; it has no
+separate primitive component directory. An optional stored `uDirection` retains
+an explicitly authored native chart. Its absence preserves the existing
+origin/normal initializer, two-field Codable representation and legacy basis
+selection. Its presence defines the infinite law
+`S(u,v) = origin + uDirection*u + normal.cross(uDirection)*v`, with unbounded
+U/V domains. The authored X is never projected, normalized or replaced during
+evaluation. Exchange owns deriving a valid orthonormal X/Z pair and converting
+length units before constructing this value.
+
+```text
+authored origin / normal / optional X
+  -> primitive finite / unit / perpendicular validation
+  -> one retained U/V basis
+  -> point / projection / first-through-third / Taylor / interval jets
+  -> original-chart conversion and retained signature transport
+```
+
+| Owner | Contract |
+|---|---|
+| `Plane3D` | Retains original axes, synthesizes optional Codable storage and validates geometry. |
+| Surface differential visitors | Use `parameterBasis`; second and higher plane derivatives are zero. |
+| Rigid and offset surface images | Preserve the explicit chart; the legacy nil branch retains its prior behavior. |
+| Analytic chart map and harmonic lift | Interpret native U/V through the same retained basis. |
+| CADIR and CADExchange | Retain the complete geometry value; native strict optional-field admission belongs to exchange. |
+
+An explicit X must be finite, unit length under the existing vector validation
+and perpendicular to the unit normal within the angular tolerance. Invalid axes
+produce typed geometry/input failures. Y is the stored normal crossed with X,
+so its handedness follows the actual authored normal. Optional storage does not
+introduce a task, callback, shared mutable owner or platform branch.
+
+Rigid transforms permit determinant +1 and -1. For explicit charts, U transforms
+as a vector and the oriented normal transforms as determinant-sign times the
+normal vector, preserving the original Y and UV law under reflections too.
+Offset changes the origin along the source normal and retains X. No bounded
+spline or newly selected analytic chart becomes source authority.
+
+[Original framed plane tests](../../Tests/CADGeometryTests/OriginalFramedPlaneTests.swift)
+own literal point/projection, all differential visitors, interval containment,
+rigid/reflected/offset charts, old/new Codable, invalid-axis refusal and the
+public G6 approximation path.
+[Signature tests](../../Tests/CADIRTests/OriginalFramedPlaneSignatureTests.swift)
+own retained surface identity and native UV evaluation after signature transport.
+Exchange owns independent STEP and strict Native package transport proofs.
+Native, normal WASM and Embedded behavioral evidence remain target-specific.
+
+
+The [original analytic Rebuild position owner](GeometryConversion/DESIGN.md#original-analytic-rebuild-position-parg6analytic1) supplies the complete original-chart certificate consumed by [Kernel analytic publication](../CADKernel/DESIGN.md#original-analytic-rebuild-position-publication-parg6analytic1). Native bounded publication is verified; general G6 and portable closure remain separate.

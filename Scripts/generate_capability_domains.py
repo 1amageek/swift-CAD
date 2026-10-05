@@ -11,6 +11,7 @@ import sys
 # Bindings identify the public consumers of a source-owned condition. They do
 # not infer geometric support from identifier spelling or comment wording.
 BINDINGS = {
+    "CertifiedAnalyticSurfacePositionCertifier": (["faceRebuild"], ["supportSurface", "parameterization", "geometricFidelity"]),
     "BooleanFeatureEvaluator": (["boolean"], ["connection", "topology", "geometricFidelity"]),
     "DefaultBooleanDimensionResolver": (["boolean"], ["representation", "topology", "connection"]),
     "FaceBSplineSurfaceConverter": (["faceRebuild"], ["supportSurface", "parameterization", "representation"]),
@@ -41,6 +42,7 @@ BINDINGS = {
     "SheetExtendFeatureEvaluator": (["sheetExtend"], ["supportSurface", "boundaryCurve", "connection"]),
     "MeshTessellator": (["CADCommand"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "DefaultOriginalRationalGraphBandCertifier": (["CADCommand"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
+    "OriginalGraphBandMeshAssembler": (["CADCommand"], ["supportSurface", "boundaryCurve", "geometricFidelity"]),
     "OriginalCorrespondenceBudget": (["CADCommand"], ["boundaryCurve", "parameterization", "geometricFidelity"]),
     "BRepEdgeChainOffsetter": (["faceLoopOffset", "edgeOffset"], ["boundaryCurve", "connection"]),
     "CoincidentBooleanFaceOwnershipResolver": (["boolean"], ["supportSurface", "connection", "degeneracy", "topology"]),

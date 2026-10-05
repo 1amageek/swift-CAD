@@ -149,6 +149,26 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             } else {
                 nativeSourceAndRequest = nil
             }
+            // Retain the original analytic law and the exact rectangle passed to fitting.
+            // An angular native U coordinate is never replaced by a rational spline chart.
+            let analyticSourceAndRequest: (source: Surface3D, requestedBox: SurfaceParameterBox)?
+            if case .tolerance = rebuild.method,
+               let face = model.faces[faceID],
+               let original = model.geometry.surfaces[face.surfaceID] {
+                switch original {
+                case .plane, .cylinder, .analytic(.plane), .analytic(.cylinder):
+                    let box = try FaceParameterExtentResolver().bounds(for: faceID, in: model, tolerance: tolerance)
+                    let requested = try SurfaceParameterBox(
+                        u: try ScalarInterval(lower: box.u.lower - box.u.width * rebuild.extendU,
+                            upper: box.u.upper + box.u.width * rebuild.extendU),
+                        v: try ScalarInterval(lower: box.v.lower - box.v.width * rebuild.extendV,
+                            upper: box.v.upper + box.v.width * rebuild.extendV))
+                    analyticSourceAndRequest = (original, requested)
+                default: analyticSourceAndRequest = nil
+                }
+            } else {
+                analyticSourceAndRequest = nil
+            }
             let preparedContinuationRequest: PreparedPolynomialSurfaceContinuationPositionRequest?
             if let nativeSourceAndRequest,
                (rebuild.extendU != 0 || rebuild.extendV != 0),
@@ -198,7 +218,8 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
             } else {
                 candidate = try refitted(
                     faceID, rebuild: rebuild, deviation: deviation, model: model, featureID: feature.id,
-                    tolerance: tolerance, requestedBox: nativeSourceAndRequest?.requestedBox
+                    tolerance: tolerance,
+                    requestedBox: nativeSourceAndRequest?.requestedBox ?? analyticSourceAndRequest?.requestedBox
                 )
             }
             if let nativeSourceAndRequest,
@@ -213,11 +234,43 @@ struct FaceRebuildFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluatin
                     preparedContinuationRequest: preparedContinuationRequest,
                     featureID: feature.id, tolerance: tolerance
                 )
+            } else if let analyticSourceAndRequest {
+                guard let requestedDistance = deviation else {
+                    throw failure(.invalidInput, feature.id, tolerance,
+                        "Analytic Rebuild lost its validated distance request.")
+                }
+                do {
+                    let certificate = try CertifiedAnalyticSurfacePositionCertifier().certifyPosition(
+                        source: analyticSourceAndRequest.source, candidate: candidate,
+                        over: analyticSourceAndRequest.requestedBox,
+                        maximumPositionError: requestedDistance,
+                        limits: nativeSurfacePositionCertificationLimits, tolerance: tolerance)
+                    guard certificate.coveredParameters == analyticSourceAndRequest.requestedBox,
+                          certificate.positionErrorUpperBound.isFinite,
+                          certificate.positionErrorUpperBound >= 0,
+                          certificate.positionErrorUpperBound <= requestedDistance else {
+                        throw failure(.approximationToleranceRejected, feature.id, tolerance,
+                            "The analytic Rebuild producer did not certify the complete requested distance bound.")
+                    }
+                    try Task.checkCancellation()
+                } catch let error as KernelError {
+                    throw featureScopedKernelError(error, featureID: feature.id, tolerance: tolerance)
+                } catch let error as GeometryConversionError {
+                    switch error {
+                    case let .invalidInput(message):
+                        throw failure(.invalidInput, feature.id, tolerance, message)
+                    case let .resourceLimitExceeded(message):
+                        throw failure(.resourceLimitExceeded, feature.id, tolerance, message)
+                    case .toleranceRejected:
+                        throw failure(.approximationToleranceRejected, feature.id, tolerance,
+                            "The analytic Rebuild candidate exceeded its requested position tolerance.")
+                    }
+                }
             } else if nativeSourceAndRequest == nil, case .tolerance = rebuild.method {
-                // FIXME(INCOMPLETE_IMPLEMENTATION): analytic and other non-native tolerance
-                // rebuilds still publish through the historical edge checks without a complete
-                // native-source position certificate. The production completion condition is a
-                // typed whole-domain position proof for each such source family.
+                // FIXME(INCOMPLETE_IMPLEMENTATION): other analytic and non-native tolerance
+                // rebuilds still publish through historical edge checks without a complete
+                // original-source position certificate. Production completion requires a
+                // typed whole-domain position proof for each remaining source family.
             }
             surfaces[faceID] = candidate
         }

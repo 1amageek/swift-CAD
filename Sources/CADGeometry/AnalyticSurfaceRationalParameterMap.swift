@@ -248,10 +248,7 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
     ) throws -> Mapping {
         switch surface {
         case let .plane(plane):
-            let target = try circleOrthonormalBasis(
-                plane.normal,
-                tolerance: tolerance
-            )
+            let target = try plane.parameterBasis(tolerance: tolerance)
             let rational = try analyticOrthonormalBasis(
                 plane.normal,
                 tolerance: tolerance

@@ -1308,7 +1308,7 @@ path. Full M1 and portable closure remain separately owned.
 
 FaceRebuild's tolerance method owns a distance-only approximation request. DefaultFeatureEvaluator accepts caller-visible nativeSurfacePositionCertificationLimits and injects them into FaceRebuildFeatureEvaluator; DocumentEvaluator's existing featureEvaluator injection supplies these limits without new engine state. The immutable native-chart fitted output remains a candidate until the [Geometry Conversion position contract](../CADGeometry/GeometryConversion/DESIGN.md#native-position-only-surface-publication-parg6pos1) proves complete original-source position error.
 
-With zero requested extensions, a candidate containing the entire original native domain is certified on that complete original domain, covering the exact validated original face. The fitter's outward halo receives no position guarantee. Otherwise certification requires the actual requested fit rectangle strictly inside both original source and candidate. Periodic input, source continuation and unproved coverage currently refuse explicitly; their actual production path and missing original-law proof retain an incomplete implementation marker. Non-native analytic/procedural tolerance rebuilds also retain their explicit marker. No fitted native candidate is installed before its position certificate succeeds, and tangent/curvature or general G6 completion is not inferred.
+With zero requested extensions, a candidate containing the entire original native domain is certified on that complete original domain, covering the exact validated original face. The fitter's outward halo receives no position guarantee. Otherwise certification requires the actual requested fit rectangle strictly inside both original source and candidate. Periodic input, source continuation and unproved coverage currently refuse explicitly; their actual production path and missing original-law proof retain an incomplete implementation marker. Other non-native source families retain their explicit marker; original plane/cylinder publication is certified by the analytic owner below. No fitted native candidate is installed before its position certificate succeeds, and tangent/curvature or general G6 completion is not inferred.
 
 Lower invalid/resource/tolerance failures map to KernelError with feature/tolerance context: invalidInput, resourceLimitExceeded and approximationToleranceRejected (numerical indeterminacy). Native KernelError detail and task cancellation remain preserved. Candidate rejection does not assert approximation impossibility. Certification budgets are separate from the existing bounded candidate-fitting owner. Tests in [native publication](../../Tests/SwiftCADTests/FaceRebuildPositionCertificationTests.swift) exercise actual DocumentBuilder/CADPipeline publication, the literal9-by-9 interior bump missed by Greville/quarter stations, native plane success, caller resource refusal and outside-chart extension refusal; immutable source and emitted topology remain checked. Native public4tests, the incremental test and original explicit/box/cylinder3 regressions pass8tests53.410s on the pure indexed Swift6.4 release snapshot. The original continued-law success oracles remain requirements of full PARG.G6 rather than being weakened to match this bounded refusal.
 
@@ -1338,3 +1338,38 @@ The Wrap evaluator consumes CADIR's explicit reblends request. Before source map
 After Geometry's selected-span/lift authority passes lower evidence, MeshTessellator may compose compatible panels from complete original periodic-C0 rectangles. Panel keys retain actual lifted interval/cycle identity and all owning sides. Every triangle stays inside one original panel; compatible edge stations join positions while C0 creases/seams retain independently selected one-sided normal/index duplicates. Existing whole-panel position/normal/curvature bounds, exact cumulative vertices/indices/bytes/preflight reservations, cancellation, face provenance and one FaceRun remain mandatory. No guard-only admission, seam coordinate relabeling, canonical-right normal or copied source authorizes success. Existing C1 periodic and nonperiodic-C0 routes retain their original behavior. Literal single-axis U/V diamond extrusions and double-periodic bilinear tensors verify original stations/normals, seam/corner panel incidence, strict period refusal and cumulative resources before this bounded scope can close.
 
 PAR.G6MULT1 public composition now passes seven declarations/eight cases on an immutable committed production graph plus the exact candidate/consumer overlay. Both common-weight1/7 multi-span continuations match independent literal left/right native quadratic laws at interior and outer chart positions, retain the requested rectangle and immutable inputs, and publish only after the producer certificate. Original extension and nominal-cut oracles plus contained-source, resource, cancellation and varying-weight refusal cases pass unchanged. The [Geometry construction owner](../CADGeometry/GeometryConversion/DESIGN.md#native-knot-polynomial-continuation-candidate-construction) retains its separate lower proof evidence. This closes the bounded Native continuation path; normal-WASM, Embedded and full G6 remain task integration requirements.
+
+### Original Analytic Rebuild Position Publication (PAR.G6ANALYTIC1)
+
+The non-native `.tolerance` Rebuild path retains an original ordinary/analytic
+plane or cylinder and the exact finite native UV rectangle passed to its fitter.
+Before inserting the fitted candidate into the replacement dictionary it consumes
+[Geometry's original analytic position contract](../CADGeometry/GeometryConversion/DESIGN.md#original-analytic-rebuild-position-parg6analytic1)
+through `GeometryAnalyticSurfacePositionCertifying`. The certificate must cover
+that complete rectangle within the previously validated requested distance;
+losing that distance is typed invalid input rather than a default allowance.
+Original angular U coordinates, caller fitting degree/control limits, immutable
+inputs, edge/topology handling and feature-scoped failures remain unchanged.
+Other analytic/procedural source families retain their marked incomplete path.
+Rebuild does not acquire an unrequested tangent/curvature approximation contract.
+
+Incremental provenance is now
+`swift-cad.document-evaluator-native-position-certification-v2`. The previous v1
+identity could retain successful analytic Rebuild output that bypassed complete
+position proof; exact topology validation cannot certify that missing condition.
+`DocumentEvaluationEngine.reusableState` must reject the entire faithful retained
+v1 state and rebuild every feature, including the analytic Rebuild, before any
+publication. Current-v2 unchanged-source state remains reusable. Persistence
+continues to omit incremental state; custom evaluators continue to disable reuse.
+This tightens a historically successful publication path, so the continuation
+sprint's reasoning for retaining its prior epoch cannot authorize v1 reuse here.
+
+The existing plane/cylinder Rebuild success oracles remain unchanged. Dedicated
+public evidence checks literal original angular/native-chart positions,
+caller-budget refusal with original FeatureID, immutable inputs, and faithful
+old-v1 rejection versus current-v2 full reuse metrics. The existing dev-epoch
+native Rebuild regression remains independently required. Lower preparation,
+compile or a topology-only certificate is not public completion evidence.
+
+
+Current analytic publication supersedes all historical v1 reuse claims in this document. The prior continuation contracts retain their geometric law, while the current evaluator admits retained state only under v2.

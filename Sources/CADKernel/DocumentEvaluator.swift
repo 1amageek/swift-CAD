@@ -4,7 +4,7 @@ import CADModeling
 
 public struct DocumentEvaluator: Sendable, ExactDocumentEvaluating {
     private static let incrementalEvaluatorIdentity =
-        "swift-cad.document-evaluator-native-position-certification-v1"
+        "swift-cad.document-evaluator-native-position-certification-v2"
 
     private let parameterResolver: ParameterResolving
     private let profileExtractor: SketchProfileExtracting

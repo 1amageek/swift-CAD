@@ -66,10 +66,7 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
   ) throws -> SurfaceIntervalVectorJet? {
     switch surface {
     case .plane(let plane):
-      let basis = try legacyBasis(
-        normal: plane.normal,
-        tolerance: tolerance
-      )
+      let basis = try plane.parameterBasis(tolerance: tolerance)
       return affinePlane(
         origin: plane.origin,
         basisU: basis.u,

@@ -1049,10 +1049,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
               ) = parameterCurve else {
             return false
         }
-        let basis = try circleOrthonormalBasis(
-            plane.normal,
-            tolerance: tolerance
-        )
+        let basis = try plane.parameterBasis(tolerance: tolerance)
         let liftedCenter = plane.origin
             + basis.u * center.x
             + basis.v * center.y

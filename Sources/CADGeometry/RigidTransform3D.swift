@@ -260,9 +260,12 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
         let transformed: Surface3D
         switch surface {
         case let .plane(plane):
+            let determinantSign = plane.uDirection == nil ? 1.0
+                : (basisX.dot(basisY.cross(basisZ)) < 0 ? -1.0 : 1.0)
             transformed = .plane(Plane3D(
                 origin: applying(to: plane.origin),
-                normal: applying(to: plane.normal)
+                normal: applying(to: plane.normal) * determinantSign,
+                uDirection: plane.uDirection.map { applying(to: $0) }
             ))
         case let .cylinder(cylinder):
             transformed = .cylinder(Cylinder3D(

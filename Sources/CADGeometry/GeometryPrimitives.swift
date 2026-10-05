@@ -40,16 +40,28 @@ public struct Circle3D: Codable, Sendable, Hashable {
 public struct Plane3D: Codable, Sendable, Hashable {
     public var origin: Point3D
     public var normal: Vector3D
+    /// An authored native U direction; nil retains the legacy parameter basis.
+    public var uDirection: Vector3D?
 
-    public init(origin: Point3D, normal: Vector3D) {
+    public init(origin: Point3D, normal: Vector3D, uDirection: Vector3D? = nil) {
         self.origin = origin
         self.normal = normal
+        self.uDirection = uDirection
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         try origin.validate()
         try normal.validateUnitLength(tolerance: tolerance)
+        if let uDirection {
+            try uDirection.validateUnitLength(tolerance: tolerance)
+            let orthogonality = abs(normal.dot(uDirection))
+            guard orthogonality <= tolerance.angle else {
+                throw KernelError(phase: .geometry, code: .invalidInput,
+                    residual: orthogonality, tolerance: tolerance,
+                    message: "An explicit plane U direction must be perpendicular to its normal.")
+            }
+        }
     }
 }
 
@@ -57,6 +69,10 @@ extension Plane3D {
     /// The directions the plane's u and v parameters run along, as `Surface3D` places its points:
     /// the one rule every reader of a plane's parameters (trimming curves, their integrals) shares.
     package func parameterBasis(tolerance: ModelingTolerance) throws -> (u: Vector3D, v: Vector3D) {
+        if let uDirection {
+            try validate(tolerance: tolerance)
+            return (uDirection, normal.cross(uDirection))
+        }
         let unit = try normal.normalized(tolerance: tolerance.distance)
         let helper = abs(unit.z) < 0.9 ? Vector3D.unitZ : Vector3D.unitY
         let u = try helper.cross(unit).normalized(tolerance: tolerance.distance)

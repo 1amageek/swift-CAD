@@ -220,7 +220,8 @@ public struct OffsetSurface3D: Codable, Hashable, Sendable {
       return .plane(
         Plane3D(
           origin: plane.origin + normal * distance,
-          normal: plane.normal
+          normal: plane.normal,
+          uDirection: plane.uDirection
         ))
     case .cylinder(let cylinder):
       let radius = cylinder.radius + distance

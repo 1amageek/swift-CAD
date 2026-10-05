@@ -23,6 +23,7 @@ source, with position, angular tangent and geometric curvature allowances.
 | [CADGeometry](../DESIGN.md) | parent | geometry, parameter charts, differential enclosures | Native source values and interval arithmetic | Enclosures must cover complete boxes and knot sides |
 | [SurfaceFitting](../SurfaceFitting/DESIGN.md) | depends on | fixed-basis constrained interpolation | Constructs an interpolation candidate | Discrete equality success does not certify global geometry |
 | [Swift-CAD](../../../DESIGN.md) | used by | shared geometry APIs | Public consumers obtain certified geometry | Existing point-only fitting consumers require explicit migration |
+| [CADKernel](../../CADKernel/DESIGN.md#original-analytic-rebuild-position-publication-parg6analytic1) | used by | original analytic Rebuild position certificate | Upper publication and retained-state admission | The Kernel owner invalidates historical states that did not run this certificate |
 
 ## Architecture
 
@@ -58,7 +59,8 @@ source protocol + parameter domain + allowances + degree/control/work budgets
   difference bound position by the fundamental theorem of calculus, including
   derivative jumps; normalized tangent bounds
   and fundamental-form principal-curvature intervals establish geometric limits.
-- The guarantee reports actual admitted upper bounds, degrees and control count.
+- The guarantee reports actual admitted error upper bounds and certified-box count;
+  the returned B-spline exposes its actual degrees and control-point count.
   No candidate is returned before all cells pass. Exhaustion means this candidate
   was not certified; it does not assert global approximation impossibility.
 - Existing MappedBSplineSurfaceFitter/SpatialCurveFitter sampled deviations remain
@@ -355,3 +357,199 @@ The dedicated [construction tests](../../../Tests/CADGeometryTests/PolynomialSur
 Native Swift 6.4.0 evidence: seven new construction declarations/eight cases and twenty-one unchanged lower continuation declarations/twenty-four cases pass together, twenty-eight declarations/thirty-two cases in 0.025 seconds. The independently authored C1 quadratic source constructs a cubic two-span tensor with 24 controls; its complete authoring-plus-proof usage is 12,785 scalar slots, 71,229 work units and two certified cells under the unchanged standard limits. Unit and common nonunit weights pass the same analytical laws. A test-only usage log addition relinks the actual product and rechecks that declaration's two cases in 0.005 seconds; production is unchanged. This is native lower construction/proof evidence; public Rebuild composition, portable closure and full G6 remain separately required.
 
 Native public composition additionally passes after actual SwiftCADTests relink on the committed production baseline plus exact lower/candidate and consumer overlays. The root-owned [continued-law Rebuild tests](../../../Tests/SwiftCADTests/FaceRebuildPolynomialContinuationCertificationTests.swift) verify both unit and common nonunit source weights against independent piecewise polynomial output positions on the requested [-0.25,1.25] native U chart, alongside original source immutability and whole-law-certified publication. Those two cases pass in 0.083 seconds; the same run includes original budget/cancellation/varying-weight refusals, zero-extension whole-original certification and original extension/nominal regressions, seven declarations/eight cases in 1.777 seconds. The tolerance consumer explicitly selects this native-knot family for eligible degree-at-most-three continued sources, retains the existing higher-degree fitter/proof route and does not certify the returned candidate a second time. Distance, caller control/span bounds and standard certification limits are unchanged. Portable targets, other conversion families and full G6 remain separate obligations.
+
+### Original Analytic Rebuild Position (PAR.G6ANALYTIC1)
+
+The named upper consumer is the non-native `.tolerance` branch of
+`FaceRebuildFeatureEvaluator`: it constructs a candidate from the original
+`Surface3D.point(u:v:)` law on the requested UV rectangle, but historically
+publishes the candidate after sampled fitting/edge checks. Its existing public
+contract requests distance alone. This sprint supplies complete position evidence
+for original ordinary/analytic planes and cylinders, including negative and
+shifted cylinder angular intervals, before the upper owner publishes a candidate.
+It adds no tangent/curvature allowance to Rebuild and changes no exact-layout,
+shared-edge, continuation or rational-reparameterization semantics.
+
+`GeometrySurfacePositionCertifying` accepts two stored B-splines. It cannot retain
+an analytic plane/cylinder as the source authority: converting that source first
+would compare against a new rounded representation or change an angular chart.
+`GeometryAnalyticSurfacePositionCertifying` therefore accepts the immutable
+original `Surface3D`, the actual stored B-spline candidate and the caller's finite
+native rectangle/distance/`NativeSurfacePositionCertificationLimits`. It returns
+the existing position-only receipt, whose native rectangle and actual cumulative
+scalar/work/cell usage remain unchanged in meaning. Unsupported original families
+fail explicitly rather than invoking sampled or chart-changing substitutes.
+
+```text
+original analytic plane/cylinder + requested native UV + caller distance/limits
+  -> original analytic interval jet + original stored candidate preparation
+  -> candidate-native knot partition (each Taylor path owns one smooth piece)
+  -> outward anchor value/first/second difference + whole-cell third-order remainder
+  -> all cells admitted -> position receipt -> root-owned Rebuild publication
+```
+
+The original analytic law is evaluated by the existing
+`DefaultSurfaceDifferentialEncloser` analytic jet visitor, and the candidate by
+`PreparedBSplineSurfaceDifferentialEncloser` original closed owning-span queries.
+No fitting, rational chart map or rounded Bezier extraction becomes source
+proof authority. The original plane visitor uses `Plane3D.parameterBasis`; an
+explicit framed plane remains a dependency on the root-owned framed-plane
+runtime sprint, not a borrowed completed proof. Existing nil-frame and analytic
+plane/cylinder laws have their own literal tests. Source/candidate validation,
+preparation, analytic jet arithmetic, candidate probes, interval differences and
+pending-cell storage are reserved before execution/allocation under the existing
+three resource ceilings. Every callback boundary and final publication checks
+cancellation; inputs retain immutable COW ownership. A complete second-order
+Taylor difference uses the original anchor's value/first/second jets and a
+third-derivative difference enclosure on that same smooth native cell. Cell
+partitions retain C0 knot endpoints without asserting a unique higher derivative
+across a join. Position certification does not require a regular metric.
+
+Malformed geometry/domain, unsupported source/candidate families, definite
+positional excess, unresolved precision/resource limits and cancellation remain
+distinct typed failures. A source arithmetic failure never authorizes refinement
+or publication. Requested degree/control/layout semantics remain owned by the
+candidate producer; the certifier cannot silently replace the candidate.
+
+[OriginalAnalyticSurfacePositionCertificationTests](../../../Tests/CADGeometryTests/OriginalAnalyticSurfacePositionCertificationTests.swift)
+will own literal plane and cylindrical Taylor laws, original/asymmetric/negative
+native charts, wrong-chart and interior-bump refusals, exact scalar/work/cell
+allowance boundaries, immutable source/candidate values and cancellation. The
+upper owner retains the unchanged public plane/cylinder Rebuild volume/radius
+oracles. [AnalyticFaceRebuildPositionCertificationTests](../../../Tests/SwiftCADTests/AnalyticFaceRebuildPositionCertificationTests.swift)
+owns public literal angular-chart positions, feature-scoped caller-budget refusal,
+immutable inputs, cancellation and actual old/current retained-state admission.
+The upper owner verifies this composed publication. The Kernel owner also invalidates historical analytic publication
+states that bypassed this certificate; an exact B-rep receipt alone cannot make
+such retained state reusable. Its epoch contract and old/current public reuse
+regression are owned by the linked Kernel design. Native, normal-WASM, Embedded, other source families and full G6
+completion require their own evidence; preparation alone is not success.
+
+
+The original cylinder public regression exposed a reservation mismatch: a
+singleton full-jet anchor was charged as four positive-width Bernstein cuts,
+although the prepared lower query selects point de Casteljau. The analytic
+certifier owns a full-point reservation for all ten retained differentiated nets,
+every closed touching native span, original-parameter normalization, coefficient
+hull scratch, row/result storage and rational resolution. The value-only point
+reservation is insufficient for this anchor. Endpoint shortcuts may consume less
+than the conservative point bound; they never authorize omitting a derivative
+net. Whole-cell localization continues to use the existing interval reservation.
+All reservations precede the corresponding lower query, use checked dimensions
+and consume the same aggregate caller ceilings. No lower coefficient arithmetic,
+jet enclosure, refinement criterion, requested tolerance or standard limit changes.
+The unchanged cylinder public regression and the literal angular-chart publication
+test distinguish this correction from budget enlargement. The existing exact
+scalar/work/cell boundary test verifies the revised aggregate receipt and its
+one-unit-short failures; cancellation and input ownership retain their prior laws.
+
+
+| Point reservation owner | Bound used before the lower query |
+| --- | --- |
+| Source inspection | Native control/knots scans, charged before weight-group inspection |
+| Each derivative net with dimensions a by b | b*a*(a-1)/2 + b*(b-1)/2 interpolations, 40 scalar slots and 116 work units each |
+| Coefficient hulls and point result rows | 24*(a*b+b) scalar slots plus 8*(b+1) result slots, per retained net group |
+| Original parameter normalization | 256 scalar slots and 2,048 work units for both bounded two-component ratio witnesses |
+| Localized scalar hulls and rational resolution | Full ten derivative fields; additional polynomial nets conservatively retain the same group bound |
+| Closed native ownership | Every positive original span touching the singleton is charged separately before evaluation |
+
+
+The public cylinder diagnostic establishes a second causal gap: third-order
+whole-cell residual bounds require parent-and-two-child probes despite actual
+half-cell bounds below the unchanged goal. For candidates of U degree at most
+three with one exactly common positive original stored weight, partition of
+unity cancels that weight and proves that each original native smooth piece is
+polynomial in U. Its fourth U derivative is zero. V degree is unrestricted; no
+vanishing mixed or V derivatives are assumed. Varying weights retain the generic
+third-order method because a rational cubic need not have zero fourth derivative.
+
+For this polynomial family the certifier follows the path (u0,v0) -> (u,v0) ->
+(u,v). The first leg uses the original anchor's U derivatives through order three
+and a fourth-order integral remainder. Original plane fourth-U is zero; original
+ordinary/analytic cylinder fourth-U equals minus its original second-UU law.
+The existing whole original second-UU interval jet consequently bounds that
+remainder without introducing a fourth-jet API or evaluating another source law.
+The second leg is the mean-value bound from the existing whole first-V residual.
+The exact coefficients are 1/2, 1/6 and 1/24. Every leg lies in its original
+candidate native smooth cell; closed touching one-sided jet unions remain
+conservative, and no unique higher derivative across a C0 join is asserted.
+The generic tensor third-order path remains for other candidate weights/degrees.
+Existing source/candidate probes, checked prepayment, cancellation boundaries and
+caller ceilings remain unchanged. The new path performs fewer vector/monomial
+operations than the already reserved generic Taylor arithmetic.
+
+The dedicated lower test requires one-cell admission of independently authored
+cylindrical cubics at radius .01 and angular half-width .05 under a 3e-9 goal,
+with literal fourth-order error radius*h^4/24. A varying-weight cubic with a
+zero value/first/second residual at its midpoint but independent endpoint excess
+must still be refused; it detects an invalid polynomial assumption from degree
+alone. Existing wrong-chart/interior-alias, exact cumulative budget and
+cancellation tests retain their behavioral assertions. The two unchanged public
+cylinder laws complete the consumer evidence; previously successful public
+plane/epoch/refusal/cancellation cases retain their unchanged premises.
+
+
+Analytic probe reservation is derived from the admitted original visitors,
+not from unimplemented source families. In
+[DefaultSurfaceDifferentialEncloser](../DefaultSurfaceDifferentialEncloser.swift),
+`cylinderJet` invokes four vector-jet products (two in `radialJet`, one radius
+product and one axial-V product), while `affinePlane` invokes only two. The
+[SurfaceIntervalJet](../SurfaceIntervalJet.swift) product rule executes exactly
+45 interval products across its ten fields: 1+2+2+4+4+4+6+8+8+6. Each vector
+product applies that rule to three coordinates. Each of the two trigonometric
+unary jets uses 41 interval products in `applyingUnaryFunction`: two first-order,
+nine second-order and thirty third-order products. Thus the cylinder upper count
+is 4*3*45+2*41=622. Each interval product in
+[OutwardIntervalArithmetic](../OutwardIntervalArithmetic.swift) constructs four
+numeric product scratch slots, totaling 2,488 slots. Eight trigonometric hull
+calls each have two endpoints and at most two extrema; their backing growth and
+fixed extrema-pair records plus basis/parameter metadata fit within 512 additional
+slots. A 3,072-slot prepayment consequently covers both admitted plane/cylinder
+visitors with headroom. The existing 65,536 work prepayment remains conservative.
+The previous 6,000-slot assumption used five vector products and a 64-product
+bound for each scalar operation; replacing that assumption changes only the
+reservation model, not any visitor, original-law coefficient or caller ceiling.
+Higher analytic/procedural families remain explicit unsupported sources and
+cannot borrow this cost model. The exact scalar/work/cell boundary regression
+and the two original public cylinder paths verify this bounded correction.
+
+
+For the common-original-weight cubic path, the invocation retains only two
+already proved whole-cell vector bounds: original fourth-U and original-minus-
+candidate first-V. An immutable receipt also stores the queried parent rectangle
+and the original initial smooth native-piece rectangle. Each initial work cell
+comes from one positive original candidate U/V knot pair intersected with the
+requested chart. A child inherits that exact piece identity; it must be contained
+in both the retained parent query and that piece before the bounds are reused.
+The original source, candidate and preparation tolerance are immutable owners
+of this invocation. No receipt enters from a caller, another chart/source,
+another invocation or another C0 side. The candidate common-weight/degree
+admission is fixed once. Generic rational/higher-degree cells retain their
+original whole-query and third-order method and never carry this receipt.
+
+Both inherited vector bounds remain valid on every child subset. The U leg still
+uses the child's actually queried original/candidate anchor jets; only its fourth
+remainder range is inherited. The V MVT range contains the child's complete
+vertical segment. Thus inheritance can widen a child's conservative result
+relative to a fresh whole query, but cannot weaken its whole-position guarantee.
+Unresolved children still subdivide or fail under the same caller ceilings.
+Parents, children and retained bounds share one paid aggregate counter; popping
+a cell or reusing a bound never resets or refunds it. Cancellation is checked
+before receipt validation, all actual lower queries and final publication.
+
+| Immutable storage/work owner | Prepayment before creation/use |
+| --- | --- |
+| Receipt: two vector bounds plus parent/native rectangles | 20 numeric fields, reserved as 80 scalar slots and 128 work units before vector extraction/record creation |
+| Work cell: current/native rectangles plus optional receipt | 28 numeric fields plus discriminator/padding fit 32 slots; 128 slots and 32 work units per append conservatively cover backing growth/moves |
+| Two child work cells | 256 scalar slots and 64 work units before their records/stack appends |
+| Reuse admission | 32 work units before exact piece equality and closed parent/native containment checks |
+
+The operation-local stack exclusively owns its backing array and immutable value
+records; it has no external aliases or shared mutable state. The enlarged work
+cell storage is charged for generic cells as well, without changing their math
+or probe family. The independent retained-bound fixture shifts the authored
+cylindrical cubic by half its literal fourth-order remainder, forcing refinement
+while its independently bounded true error remains below the requested goal.
+Actual child anchors and exact scalar/work/box ceilings, each one-unit-short
+refusal and immutable input assertions verify retention without granting a
+private allowance. Original public cylinders remain the required consumer proof.
