@@ -1212,12 +1212,11 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
         message: "Cylinder boundary integration requires a cylinder Green primitive."
       )
     }
-    // Geometry certifies every cell in one continuous universal-cover
-    // chart. The pcurve's declared start may select a translated sheet,
-    // so derive that single whole-period translation once from the first
-    // certificate. Realigning each cell independently would break a full
-    // revolution; anchoring to a principal midpoint would break a span
-    // ending at the seam.
+    // A cell term depends on U only through the periodic derivative of the
+    // primitive, so the sheet chosen for a cell does not change it; the
+    // one whole-period translation read off the start keeps every cell
+    // near the declared chart. Only the global `v * F(u)` boundary needs
+    // its ends on one sheet, which `cylinderGlobalBoundary` chains.
     let cylinderSheetShift = try cylinderSheetShift(
       for: curve,
       tolerance: tolerance
@@ -1225,7 +1224,6 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     let globalBoundary = try cylinderGlobalBoundary(
       curve: curve,
       integrand: integrand,
-      cylinderSheetShift: cylinderSheetShift,
       tolerance: tolerance
     )
     let cellTargetWidth = (requestedWidth - globalBoundary.width).nextDown
@@ -1239,7 +1237,25 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
       )
     }
     var heap = WorkHeap()
-    for (lower, upper) in [(0.0, 0.5), (0.5, 1.0)] {
+    // The starting cells: halves, each halved again while its enclosure spans a turn (a curve
+    // running round the cylinder), so every cell lifts onto one sheet.
+    var ranges: [(Double, Double)] = []
+    var pending: [(Double, Double, Int)] = [(0.0, 0.5, 0), (0.5, 1.0, 0)]
+    while let (lower, upper, depth) = pending.popLast() {
+      let bounds = try curve.parameterCellBounds(
+        fromNormalizedFraction: lower,
+        toNormalizedFraction: upper,
+        tolerance: tolerance
+      )
+      if bounds.uLift.width >= 2.0 * Double.pi, depth < 20 {
+        let middle = lower + (upper - lower) * 0.5
+        pending.append((middle, upper, depth + 1))
+        pending.append((lower, middle, depth + 1))
+      } else {
+        ranges.append((lower, upper))
+      }
+    }
+    for (lower, upper) in ranges {
       heap.push(
         try cylinderBoundaryWorkItem(
           lower: lower,
@@ -1508,75 +1524,111 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
   private func cylinderGlobalBoundary(
     curve: CertifiedAnalyticPairSurfaceParameterCurve,
     integrand: GenericBoundaryIntegrand,
-    cylinderSheetShift: Double,
     tolerance: ModelingTolerance
   ) throws -> Interval {
-    let start = try cylinderBoundaryEndpoint(
-      fraction: 0.0,
-      enclosingLowerFraction: 0.0,
-      enclosingUpperFraction: 0.5,
-      curve: curve,
-      integrand: integrand,
-      cylinderSheetShift: cylinderSheetShift,
+    // Each certified cell centres its U enclosure on its own principal
+    // midpoint, so two cells need not share a sheet: a curve crossing the
+    // seam would otherwise evaluate `v * F(u)` at its ends a turn apart and
+    // gain a whole turn of flux. The end is carried onto the start's sheet
+    // through the shared boundaries of a left-to-right cell chain.
+    let period = 2.0 * Double.pi
+    var cells: [(lower: Double, lift: ScalarInterval)] = []
+    var pending: [(Double, Double, Int)] = [(0.0, 1.0, 0)]
+    while let (lower, upper, depth) = pending.popLast() {
+      let bounds = try curve.parameterCellBounds(
+        fromNormalizedFraction: lower,
+        toNormalizedFraction: upper,
+        tolerance: tolerance
+      )
+      if bounds.uLift.width >= period * 0.5 {
+        guard depth < 20 else {
+          throw KernelError(
+            phase: .topology,
+            code: .resourceLimitExceeded,
+            residual: bounds.uLift.width,
+            tolerance: tolerance,
+            message: "Cylinder boundary integration could not chain its endpoint sheets."
+          )
+        }
+        let middle = lower + (upper - lower) * 0.5
+        pending.append((middle, upper, depth + 1))
+        pending.append((lower, middle, depth + 1))
+      } else {
+        cells.append((lower: lower, lift: bounds.uLift))
+      }
+    }
+    guard let first = cells.first, let last = cells.last else {
+      throw KernelError(
+        phase: .topology,
+        code: .topologyFailure,
+        tolerance: tolerance,
+        message: "Cylinder boundary integration produced no endpoint chain."
+      )
+    }
+    let start = try curve.parameter(atNormalizedFraction: 0.0, tolerance: tolerance)
+    let end = try curve.parameter(atNormalizedFraction: 1.0, tolerance: tolerance)
+    // The declared start fixes the sheet of the first cell.
+    var shift =
+      round(
+        (start.u - (try liftedPeriodicValue(start.u, in: first.lift, tolerance: tolerance)))
+          / period) * period
+    for index in cells.indices.dropFirst() {
+      let boundary = try curve.parameter(
+        atNormalizedFraction: cells[index].lower,
+        tolerance: tolerance
+      ).u
+      let previous = try liftedPeriodicValue(
+        boundary,
+        in: try translatedCylinderULift(cells[index - 1].lift, by: shift),
+        tolerance: tolerance
+      )
+      let next = try liftedPeriodicValue(
+        boundary,
+        in: cells[index].lift,
+        tolerance: tolerance
+      )
+      shift = round((previous - next) / period) * period
+    }
+    let endU = try liftedPeriodicValue(
+      end.u,
+      in: try translatedCylinderULift(last.lift, by: shift),
       tolerance: tolerance
     )
-    let end = try cylinderBoundaryEndpoint(
-      fraction: 1.0,
-      enclosingLowerFraction: 0.5,
-      enclosingUpperFraction: 1.0,
-      curve: curve,
-      integrand: integrand,
-      cylinderSheetShift: cylinderSheetShift,
-      tolerance: tolerance
-    )
-    return end.subtracting(start)
-  }
-
-  private func cylinderBoundaryEndpoint(
-    fraction: Double,
-    enclosingLowerFraction: Double,
-    enclosingUpperFraction: Double,
-    curve: CertifiedAnalyticPairSurfaceParameterCurve,
-    integrand: GenericBoundaryIntegrand,
-    cylinderSheetShift: Double,
-    tolerance: ModelingTolerance
-  ) throws -> Interval {
-    let parameterBounds = try curve.parameterCellBounds(
-      fromNormalizedFraction: enclosingLowerFraction,
-      toNormalizedFraction: enclosingUpperFraction,
-      tolerance: tolerance
-    )
-    let uLift = try translatedCylinderULift(
-      parameterBounds.uLift,
-      by: cylinderSheetShift
-    )
-    let parameter = try curve.parameter(
-      atNormalizedFraction: fraction,
-      tolerance: tolerance
-    )
-    let liftedU = try liftedPeriodicValue(
-      parameter.u,
-      in: uLift,
-      tolerance: tolerance
-    )
-    let primitive = try cylinderPrimitiveDerivatives(
-      at: .scalar(liftedU),
+    let startPrimitive = try cylinderPrimitiveDerivatives(
+      at: .scalar(start.u),
       integrand: integrand,
       tolerance: tolerance
     ).primitive
-    return primitive.multiplied(by: .scalar(parameter.v))
+    let endPrimitive = try cylinderPrimitiveDerivatives(
+      at: .scalar(endU),
+      integrand: integrand,
+      tolerance: tolerance
+    ).primitive
+    return endPrimitive.multiplied(by: .scalar(end.v))
+      .subtracting(startPrimitive.multiplied(by: .scalar(start.v)))
   }
 
   private func cylinderSheetShift(
     for curve: CertifiedAnalyticPairSurfaceParameterCurve,
     tolerance: ModelingTolerance
   ) throws -> Double {
-    let initialBounds = try curve.parameterCellBounds(
+    // The sheet is read off the start of the curve: halved until its enclosure there spans
+    // less than a turn (a curve running round the cylinder spans a turn over much of itself).
+    let period = 2.0 * Double.pi
+    var upper = 0.5
+    var initialBounds = try curve.parameterCellBounds(
       fromNormalizedFraction: 0.0,
-      toNormalizedFraction: 0.5,
+      toNormalizedFraction: upper,
       tolerance: tolerance
     )
-    let period = 2.0 * Double.pi
+    while initialBounds.uLift.width >= period, upper > 1.0 / 1_048_576 {
+      upper *= 0.5
+      initialBounds = try curve.parameterCellBounds(
+        fromNormalizedFraction: 0.0,
+        toNormalizedFraction: upper,
+        tolerance: tolerance
+      )
+    }
     guard initialBounds.uLift.width < period else {
       throw KernelError(
         phase: .topology,

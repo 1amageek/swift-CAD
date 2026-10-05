@@ -69,7 +69,17 @@ flowchart LR
   basis (`Plane3D.parameterBasis`, the one `Surface3D` places points by), so a
   hyperbolic edge on a floor or a side wall integrates on the chart its
   neighbouring pcurves share; `DraftFaceTests` own it by a cone-drafted wall's
-  volume.
+  volume. A certified pcurve on a cylinder that runs round it (a crossed
+  cylinder's intersection) starts its cells halved until each encloses less
+  than a turn; a cell's enclosure may narrow to a point of the curve's own
+  parameter (an endpoint's v enclosure). A cell's term sees U only through the
+  primitive's periodic derivative, but the global `v * F(u)` boundary term
+  needs both ends on one sheet: each cell centres its U enclosure on its own
+  principal midpoint, so the end is carried onto the start's sheet through the
+  shared boundaries of a left-to-right cell chain (a curve crossing the seam
+  otherwise gains a whole turn of flux). `CrossedCylindersTests` own it by a
+  radial hole, a drilled hole and a tee with the smaller cylinder's seam turned
+  0, 45 and 90 degrees.
 - `AnalyticPrismaticVolumeEvaluator`'s closed-form frustum takes shells of cones and
   planes only; a shell with a torus among its cones (a cone's rim rounded) is left to
   `TrimmedAnalyticSurfaceVolumeEvaluator`'s flux (`ConicalRimBlendTests`).

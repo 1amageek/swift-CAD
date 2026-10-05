@@ -471,15 +471,14 @@ struct ExactTrimEdgeIntersector {
     }
     guard attempts.isEmpty == false else { return nil }
 
-    // FIXME(INCOMPLETE_IMPLEMENTATION): two edges whose other supports are one surface (one
-    // intersection curve split where that surface's faces meet, as a hole drilled across a
-    // cylinder) lie on each other's support all along, so the reductions below fail and such
-    // Booleans are refused. Taking them to cross only at their ends admitted them but kept the
-    // wrong regions for a drill whose seam lies off the axes' plane. Production path: Boolean
-    // arrangement through ExactTrimEdgeIntersector. Complete only when such edges are arranged,
-    // verified by a cylinder drilled across with its seam turned 45 degrees matching the overlap
-    // integral (`CrossedCylinderRefusalTests` until then).
+    // Two edges whose other supports are one surface (one intersection curve split where that
+    // surface's faces meet, as a drilled cylinder's wall crossing another cylinder's halves) lie
+    // on each other's support all along, so the reductions below cannot separate them: they
+    // cross only where they end.
     let contacts = try endpointContacts(first, second, tolerance: tolerance)
+    if attempts.count == 2, attempts[0].targetSurface == attempts[1].targetSurface {
+      return contacts.sorted(by: pointOrder)
+    }
     let subdivider = BRepSewingEdgeSubdivider()
     var failures: [(context: String, error: KernelError)] = []
     for attempt in attempts {

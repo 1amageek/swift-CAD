@@ -56,9 +56,11 @@ struct EndpointRegularizedFactorBounder {
             firstDerivativeMagnitudeUpperBound,
             abs(correctionSlope)
         )
+        // A requested stretch may shrink to a point in angle (a cell at the phase's end, where the
+        // angle turns): the endpoint bounds cover it.
         guard requestedLower >= componentLower - tolerance.angle,
               requestedUpper <= componentUpper + tolerance.angle,
-              requestedUpper > requestedLower,
+              requestedUpper >= requestedLower,
               lowerSlope > arithmeticEnvelope,
               upperSlope > arithmeticEnvelope,
               regularizedFirst.isFinite,
