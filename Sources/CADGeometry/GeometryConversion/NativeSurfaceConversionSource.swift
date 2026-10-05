@@ -2,18 +2,23 @@ import CADCore
 
 public struct NativeSurfaceConversionSource: GeometrySurfaceConversionSource {
     public let surface: Surface3D
-    private let prepared: PreparedSurfaceDifferentialEncloser
+    private enum EnclosureStorage: Sendable {
+        case originalPolynomialRuled(OriginalPolynomialRuledConversionSource)
+        case originalNative(PreparedSurfaceDifferentialEncloser)
+    }
+    private let prepared: EnclosureStorage
 
     public init(_ surface: Surface3D, tolerance: ModelingTolerance) throws {
+        try Task.checkCancellation()
+        try surface.validate(tolerance: tolerance)
         self.surface = surface
-        // Preserve the source chart while avoiding subtraction of correlated boundary jets.
         if case .procedural(.ruled(let ruled)) = surface,
-           case .bSpline = ruled.startBoundary, case .bSpline = ruled.endBoundary,
-           let exact = try ruled.exactBSplineRepresentation(tolerance: tolerance) {
-            prepared = try PreparedSurfaceDifferentialEncloser(surface: .bSpline(exact), tolerance: tolerance)
+           OriginalPolynomialRuledConversionSource.accepts(ruled) {
+            prepared = .originalPolynomialRuled(try OriginalPolynomialRuledConversionSource(ruled, tolerance: tolerance))
         } else {
-            prepared = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
+            prepared = .originalNative(try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance))
         }
+        try Task.checkCancellation()
     }
     public func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws {
         guard parameters.u.width.isFinite, parameters.v.width.isFinite else {
@@ -25,6 +30,13 @@ public struct NativeSurfaceConversionSource: GeometrySurfaceConversionSource {
         try surface.point(u: u, v: v, tolerance: tolerance)
     }
     public func enclosure(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceDifferentialEnclosure {
-        try prepared.enclosure(over: parameters, tolerance: tolerance)
+        try Task.checkCancellation()
+        let result: SurfaceDifferentialEnclosure
+        switch prepared {
+        case .originalPolynomialRuled(let original): result = try original.enclosure(over: parameters, tolerance: tolerance)
+        case .originalNative(let original): result = try original.enclosure(over: parameters, tolerance: tolerance)
+        }
+        try Task.checkCancellation()
+        return result
     }
 }

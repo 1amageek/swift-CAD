@@ -99,11 +99,10 @@ decomposition, so negative and shifted cycles are never clipped to a fundamental
 cycle. Periodic anchor queries are enlarged to a containing interval wider than
 the existing parameter-domain resolution before constructing a finite restriction;
 they do not require the restriction owner to accept sub-resolution geometry.
-For ruled sources with two B-spline boundaries, the native surface adapter uses
-the existing exact chart-preserving tensor representation for its enclosure while
-retaining the original procedural value as evaluation authority. This removes
-correlation loss from subtracting independently enclosed translated boundaries.
-Source implementations retain ownership of their per-request cost.
+Ruled sources retain the original two boundary laws as enclosure authority.
+Structurally admitted original polynomial boundary coefficients may share one
+outward tensor calculation; other families use the original prepared ruled law.
+Source implementations retain ownership of their preparation and per-request cost.
 Converter-owned target preparation and every full-box and anchor probe are
 charged separately before execution. The target cost owner counts intersected
 knot spans and bounds generated Bezier extraction basis arrays, homogeneous
@@ -204,6 +203,58 @@ and [publication cancellation tests](../../../Tests/CADGeometryTests/GeometryCon
 This evidence covers the common native conversion boundary; normal WASM,
 Embedded, mapped consumers and full G6 completion remain separate obligations.
 
+
+### Original Ruled Source Authority
+
+`NativeSurfaceConversionSource` always retains and evaluates the original
+`Surface3D`. Its enclosure storage selects the original polynomial ruled adapter
+only when both actual boundaries are nonperiodic degree-at-most-three B-splines
+with identical complete stored degree/knot arrays and exactly degree-fold internal
+knots isolating original Bezier polygons. Each boundary must have exactly constant
+positive stored weights; the two constants may differ because partition of unity
+cancels each independently. Complete original geometry validation precedes selection.
+Selection uses no tolerance matching, extraction, basis conversion, trimming,
+degree elevation or constructed replacement surface.
+
+For each original closed U polygon, its original start/end Cartesian controls are
+the two rows of the ruled law's U-by-linear-V tensor. The existing outward
+polynomial coefficient and jet calculation consumes those rows directly, retaining
+original native U endpoints and V in [0,1]. This retains correlation before
+interval evaluation and includes both closed sides of every original U knot.
+The complete requested rectangle must be contained in the original ruled chart;
+no clipping or parameter replacement authorizes an enclosure. Families outside
+this structural selection retain `PreparedSurfaceDifferentialEncloser` on the
+original procedural value, including varying weights, differing knots or degrees,
+and general boundary geometry. A selected preparation failure propagates without
+retrying a different authority. Cancellation is checked at entrance, preparation,
+span traversal and publication. Adapter ownership remains immutable and Sendable.
+
+```text
+original ruled value + validated actual boundary coefficients
+  -> exact structural family selection
+    -> original two-row outward coefficients / original prepared boundary law
+      -> complete original-chart enclosure -> common conversion admission
+```
+
+The dedicated original-authority tests use the independently authored law
+S(u,v)=(t,2v,t*t+t*v), t=(u+2)/5, with literal original controls and different
+constant positive boundary weights. They check value, both tangents and all second
+jets, including closed multi-span sides and asymmetric charts. Varying-weight and
+different-basis boundary laws exercise the original general path; invalid charts,
+malformed geometry, cancellation and immutable source ownership exercise failure
+contracts. Public conversion retains unchanged scalar/work and geometric allowances.
+These tests do not establish unrelated continued laws or portable consumer proof.
+
+Native Swift 6.4.0 evidence: the old source adapter fails the unchanged asymmetric
+original-chart oracle with a U-domain refusal and the degree-33 constant-law oracle
+with an unrelated replacement-authoring degree ceiling. Replacing only that adapter
+on the same frozen dependency graph passes all seven
+[original-authority tests](../../../Tests/CADGeometryTests/OriginalRuledConversionAuthorityTests.swift)
+and six affected existing public conversion tests, thirteen declarations/cases in
+0.239 seconds. The latter retain original procedural/analytic/NURBS construction,
+explicit interpolation, default budgets, geometric allowances and source failure/
+cancellation behavior. The general closed-owning native-curve lower contract,
+portable targets, other consumers and full G6 remain independently required.
 
 ### Native Position-Only Surface Publication (PAR.G6POS1)
 

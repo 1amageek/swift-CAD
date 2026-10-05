@@ -1,6 +1,6 @@
 import CADCore
 
-/// Outward polynomials derived directly from the actual candidate's stored controls.
+/// Outward polynomials derived directly from original stored Cartesian controls.
 struct PolynomialConversionTargetPatch: Sendable {
     typealias Vector = GeometryConversionCertification.VectorBounds
     let u: ScalarInterval
