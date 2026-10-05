@@ -378,7 +378,14 @@ extension FeatureOperation {
             return .surfaceFill(SurfaceFillFeature(
                 targetFeatureID: try transform(feature.targetFeatureID),
                 boundarySeed: try subshape(feature.boundarySeed),
-                insertedSheet: try feature.insertedSheet.map(transform)
+                insertedSheet: try feature.insertedSheet.map(transform),
+                guides: try feature.guides.map { guide in
+                    guard case let .curve(curve) = try section(.curve(guide)) else {
+                        throw FeatureEvaluationError.invalidGraph("A surface fill's guide remapped to another section kind.")
+                    }
+                    return curve
+                },
+                trimsToSheet: feature.trimsToSheet
             ))
         case .mirror(let feature):
             return .mirror(MirrorFeature(

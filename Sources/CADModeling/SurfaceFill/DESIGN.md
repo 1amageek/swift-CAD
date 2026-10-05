@@ -70,8 +70,14 @@ source body + stable seed edge
   which must lie on that sheet, on a staged copy of it and sews the part they enclose (the faces
   reached without crossing the loop that touch none of the sheet's own open edges) as the fill,
   bounded by the loop's own edge curves so Join sews it into the opening exactly; the inserted
-  sheet is retained, an edge off it or an enclosed part other than one refused. Trim to sheet is
-  not offered. `InsertSheetTests` close a box's open top with a larger flat sheet.
+  sheet is retained, an edge off it or an enclosed part other than one refused. With
+  `trimsToSheet` (Trim to sheet, inferred with the user 2026-10-05) the inserted sheet's one open
+  boundary, which must lie on the target around the opening, is imprinted on a staged copy of the
+  target instead; the part it encloses (reached from the opening without crossing it, touching
+  none of the target's other open edges) goes, and the rest of the target and the whole inserted
+  sheet are sewn into one sheet, the feature's output in place of a fill. `InsertSheetTests` close
+  a box's open top with a larger flat sheet, and cut a holed plate back to a cap standing on it
+  (the sheet's exact area, only the plate's other hole left open).
 - Stale references, branching/open chains, unsupported exact curve kinds,
   failed corner closure, and invalid B-rep results return explicit errors.
 
