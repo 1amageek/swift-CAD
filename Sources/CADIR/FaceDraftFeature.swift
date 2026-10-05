@@ -13,6 +13,10 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
     public var angle: CADExpression
     public var neutralOffset: CADExpression?
     public var grow: FaceEditGrow
+    /// How each face's turn is taken: about where it crosses the neutral plane against the pull
+    /// direction (isocline), about chosen edges (curve), against another face's pull direction
+    /// (surface), or against the reference's own normal (normal).
+    public var method: FaceDraftMethod
 
     public init(
         target: FaceDraftTargetReference,
@@ -20,7 +24,8 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         neutralFace: StableSubshapeReference,
         angle: CADExpression,
         neutralOffset: CADExpression? = nil,
-        grow: FaceEditGrow = .moving
+        grow: FaceEditGrow = .moving,
+        method: FaceDraftMethod = .isocline
     ) {
         self.target = target
         self.faces = faces
@@ -28,6 +33,7 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         self.angle = angle
         self.neutralOffset = neutralOffset
         self.grow = grow
+        self.method = method
     }
 
     public func validate() throws {
@@ -48,6 +54,7 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         }
         try angle.validateLiteralQuantities()
         try neutralOffset?.validateLiteralQuantities()
+        try method.validate()
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -57,12 +64,13 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         case angle
         case neutralOffset
         case grow
+        case method
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
-            [.target, .faces, .neutralFace, .angle, .neutralOffset, .grow],
+            [.target, .faces, .neutralFace, .angle, .neutralOffset, .grow, .method],
             in: decoder
         )
         target = try container.decode(FaceDraftTargetReference.self, forKey: .target)
@@ -71,6 +79,7 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         angle = try container.decode(CADExpression.self, forKey: .angle)
         neutralOffset = try container.decodeIfPresent(CADExpression.self, forKey: .neutralOffset)
         grow = try container.decode(FaceEditGrow.self, forKey: .grow)
+        method = try container.decodeIfPresent(FaceDraftMethod.self, forKey: .method) ?? .isocline
         try validate()
     }
 
@@ -83,6 +92,44 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         try container.encode(angle, forKey: .angle)
         try container.encodeIfPresent(neutralOffset, forKey: .neutralOffset)
         try container.encode(grow, forKey: .grow)
+        // Isocline, the method of every earlier document, is left out so those stay byte-identical.
+        if method != .isocline { try container.encode(method, forKey: .method) }
+    }
+}
+
+/// Draft Face's taper method.
+public enum FaceDraftMethod: Codable, Hashable, Sendable {
+    /// Each face turns about its crossing with the neutral plane, making the angle with the pull
+    /// direction (the neutral face's outward normal).
+    case isocline
+    /// Each face turns about the chosen straight edge lying on it (the parting line), making the
+    /// angle with the neutral face's pull direction; each edge square to that direction.
+    case curve(pivots: [StableSubshapeReference])
+    /// Each face turns about its crossing with the neutral plane, making the angle with the
+    /// outward normal of another planar face of the body.
+    case surface(reference: StableSubshapeReference)
+    /// Each face makes the angle with the reference face's own normal where it meets it: on a
+    /// planar reference the isocline draft, on a curved one the ruled draft about the shared edge.
+    case normal
+
+    public func validate() throws {
+        switch self {
+        case .isocline, .normal:
+            return
+        case let .curve(pivots):
+            guard pivots.isEmpty == false else {
+                throw FeatureEvaluationError.invalidGraph("A curve draft needs at least one pivot edge.")
+            }
+            var seen = Set<StableSubshapeReference>()
+            for pivot in pivots {
+                try pivot.validate()
+                guard seen.insert(pivot).inserted else {
+                    throw FeatureEvaluationError.invalidGraph("A curve draft's pivot edges must be unique.")
+                }
+            }
+        case let .surface(reference):
+            try reference.validate()
+        }
     }
 }
 

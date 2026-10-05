@@ -90,14 +90,49 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
                               "Face draft offsets only a planar reference face.")
         }
         var hinges: [FaceID: Hinge] = [:]
-        for faceID in faceIDs {
-            if let neutralPlane {
-                let planeNormal = try neutralPlane.normal.normalized(tolerance: tolerance.distance)
-                let pull = neutralFace.orientation == .forward ? planeNormal : planeNormal * -1
-                hinges[faceID] = .pivot(pull: pull, origin: neutralPlane.origin + pull * neutralOffset)
-            } else {
-                hinges[faceID] = try sharedEdgeHinge(of: faceID, reference: neutralFace, referenceSurface: neutralSurface,
-                                                     featureID: feature.id, model: model, tolerance: tolerance)
+        switch draft.method {
+        case .isocline, .normal:
+            // On a planar reference its normal is the one pull direction; on a curved one each face
+            // takes the reference's normal along the edge they share.
+            for faceID in faceIDs {
+                if let neutralPlane {
+                    let planeNormal = try neutralPlane.normal.normalized(tolerance: tolerance.distance)
+                    let pull = neutralFace.orientation == .forward ? planeNormal : planeNormal * -1
+                    hinges[faceID] = .pivot(pull: pull, origin: neutralPlane.origin + pull * neutralOffset)
+                } else {
+                    hinges[faceID] = try sharedEdgeHinge(of: faceID, reference: neutralFace, referenceSurface: neutralSurface,
+                                                         featureID: feature.id, model: model, tolerance: tolerance)
+                }
+            }
+        case let .curve(pivots):
+            guard let neutralPlane else {
+                throw kernelError(.unsupportedCapability, featureID: feature.id, subshapeID: draft.neutralFace.subshapeID, tolerance: tolerance,
+                                  "A curve draft takes its pull direction from a planar reference face.")
+            }
+            let planeNormal = try neutralPlane.normal.normalized(tolerance: tolerance.distance)
+            let pull = neutralFace.orientation == .forward ? planeNormal : planeNormal * -1
+            let pivotEdges = try pivots.map { try targetEdgeID($0, bodyScope: bodyScope, featureID: feature.id, context: context) }
+            for faceID in faceIDs {
+                hinges[faceID] = try pivotEdgeHinge(of: faceID, among: pivotEdges, pull: pull, featureID: feature.id,
+                                                    model: model, tolerance: tolerance)
+            }
+        case let .surface(reference):
+            guard let neutralPlane else {
+                throw kernelError(.unsupportedCapability, featureID: feature.id, subshapeID: draft.neutralFace.subshapeID, tolerance: tolerance,
+                                  "A surface draft turns faces about a planar reference face's plane.")
+            }
+            let referenceFaceID = try targetFaceID(reference, bodyScope: bodyScope, featureID: feature.id, context: context)
+            guard let referenceFace = model.faces[referenceFaceID], let referenceSurface = model.geometry.surfaces[referenceFace.surfaceID],
+                  let referencePlane = try DefaultPlanarSurfaceResolver().exactPlane(for: referenceSurface, tolerance: tolerance) else {
+                throw kernelError(.unsupportedCapability, featureID: feature.id, subshapeID: reference.subshapeID, tolerance: tolerance,
+                                  "A surface draft takes its pull direction from a planar face.")
+            }
+            let referenceNormal = try referencePlane.normal.normalized(tolerance: tolerance.distance)
+            let pull = referenceFace.orientation == .forward ? referenceNormal : referenceNormal * -1
+            let planeNormal = try neutralPlane.normal.normalized(tolerance: tolerance.distance)
+            let neutralNormal = neutralFace.orientation == .forward ? planeNormal : planeNormal * -1
+            for faceID in faceIDs {
+                hinges[faceID] = .tilted(pull: pull, origin: neutralPlane.origin + neutralNormal * neutralOffset, neutralNormal: neutralNormal)
             }
         }
 
@@ -110,6 +145,11 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
             case let .pivot(pull, origin):
                 replacements[faceID] = try draftedSurface(
                     of: face, surface: surface, pull: pull, neutralOrigin: origin, angle: angle,
+                    featureID: feature.id, model: model, tolerance: tolerance
+                )
+            case let .tilted(pull, origin, neutralNormal):
+                replacements[faceID] = try tiltedSurface(
+                    of: face, surface: surface, pull: pull, neutralOrigin: origin, neutralNormal: neutralNormal, angle: angle,
                     featureID: feature.id, model: model, tolerance: tolerance
                 )
             case let .curve(edgeID):
@@ -338,7 +378,99 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
     /// `origin`, pulled along `pull`), or about the curved edge it shares with a curved reference.
     private enum Hinge {
         case pivot(pull: Vector3D, origin: Point3D)
+        /// About the face's crossing with the neutral plane (through `origin`, square to
+        /// `neutralNormal`), the angle taken against another pull direction.
+        case tilted(pull: Vector3D, origin: Point3D, neutralNormal: Vector3D)
         case curve(EdgeID)
+    }
+
+    /// A face drafted about the chosen straight edge lying on it, square to the pull direction:
+    /// the isocline turn about the plane through that edge square to the pull.
+    private func pivotEdgeHinge(of faceID: FaceID, among pivots: [EdgeID], pull: Vector3D, featureID: FeatureID,
+                                model: BRepModel, tolerance: ModelingTolerance) throws -> Hinge {
+        guard let face = model.faces[faceID] else { throw TopologyError.missingReference("Face draft face is missing.") }
+        let faceEdges = Set(try face.loops.flatMap { loopID -> [EdgeID] in
+            guard let loop = model.loops[loopID] else { throw TopologyError.missingReference("Face draft loop is missing.") }
+            return loop.coedges.map(\.edgeID)
+        })
+        guard let edgeID = pivots.first(where: faceEdges.contains), let edge = model.edges[edgeID],
+              let curve = model.geometry.curves[edge.curveID],
+              let start = model.vertices[edge.startVertexID]?.point, let end = model.vertices[edge.endVertexID]?.point else {
+            throw kernelError(.invalidInput, featureID: featureID, tolerance: tolerance,
+                              "Each face drafted about a curve needs one of the pivot edges on it.")
+        }
+        switch curve {
+        case .line, .analytic(.line): break
+        default:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): a curved pivot edge (a parting line along a curve)
+            // would turn the face into a ruled surface about it, which is not built; such a curve
+            // draft is refused. Production path: FaceDraftFeatureEvaluator with the curve method.
+            // Complete only when a face drafted about a curved edge is verified by its volume.
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              "A curve draft turns faces about straight pivot edges.")
+        }
+        let direction = end - start
+        guard abs(direction.dot(pull)) <= tolerance.angle * direction.length else {
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              "A curve draft's pivot edge must lie square to the pull direction.")
+        }
+        return .pivot(pull: pull, origin: start)
+    }
+
+    /// A planar face turned about its crossing with the neutral plane (square to `neutralNormal`)
+    /// so that it makes `angle` with `pull`, leaning out as it runs against the pull: the plane
+    /// through the pivot line whose normal N, square to the line, has N · pull = ±sin(angle),
+    /// the nearest such turn to the face.
+    private func tiltedSurface(
+        of face: Face, surface: Surface3D, pull: Vector3D, neutralOrigin: Point3D, neutralNormal: Vector3D, angle: Double,
+        featureID: FeatureID, model: BRepModel, tolerance: ModelingTolerance
+    ) throws -> FaceSurfaceReplacementRebuilder.Replacement {
+        guard let plane = try DefaultPlanarSurfaceResolver().exactPlane(for: surface, tolerance: tolerance) else {
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance, "A surface draft turns planar faces.")
+        }
+        let normal = try plane.normal.normalized(tolerance: tolerance.distance)
+        let outward = face.orientation == .forward ? normal : normal * -1
+        let line = normal.cross(neutralNormal)
+        guard line.length > tolerance.angle else {
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              "Face draft cannot turn a face parallel to the neutral plane.")
+        }
+        let axis = try line.normalized(tolerance: tolerance.distance)
+        let points = try face.loops.flatMap { try model.orderedPoints(for: $0) }
+        let center = Point3D.origin + points.reduce(Vector3D.zero) { $0 + ($1 - .origin) } / Double(points.count)
+        let pivot = try pivotPoint(near: center, planeOrigin: plane.origin, planeNormal: normal, neutralOrigin: neutralOrigin,
+                                   pull: neutralNormal, tolerance: tolerance)
+        // N = cos φ e1 + sin φ e2 about the pivot line, e1 the face's outward side.
+        let e1 = outward
+        let e2 = axis.cross(e1)
+        let (p1, p2) = (pull.dot(e1), pull.dot(e2))
+        let reach = hypot(p1, p2)
+        let target = sin(angle)
+        guard reach > tolerance.angle, abs(target) <= reach else {
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              "The draft angle cannot be reached against this pull direction about the face's pivot line.")
+        }
+        let theta = atan2(p2, p1)
+        var best: (turn: Double, normal: Vector3D)?
+        for sign in [1.0, -1.0] {
+            let spread = acos(max(-1, min(1, sign * target / reach)))
+            for candidate in [theta + spread, theta - spread] {
+                let turn = atan2(sin(candidate), cos(candidate))
+                let drafted = e1 * cos(turn) + e2 * sin(turn)
+                guard drafted.dot(e1) > 0 else { continue }
+                // Running against the pull along the drafted face, it leans out for a positive angle.
+                let against = pull * -1 - drafted * drafted.dot(pull * -1)
+                let lean = against.dot(outward)
+                if angle != 0, (lean > 0) != (angle > 0) { continue }
+                if best.map({ abs(turn) < abs($0.turn) }) ?? true { best = (turn, drafted) }
+            }
+        }
+        guard let best else {
+            throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
+                              "The draft angle cannot be reached against this pull direction about the face's pivot line.")
+        }
+        return try keepingOutwardSide(of: face, surface: surface, on: .plane(Plane3D(origin: pivot, normal: best.normal)),
+                                      model: model, tolerance: tolerance)
     }
 
     /// A planar face drafted about the curved edge it shares with the reference: the ruled surface
@@ -494,6 +626,22 @@ public struct FaceDraftFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
                               "Face draft target and neutral faces must belong to the target body.")
         }
         return faceID
+    }
+
+    private func targetEdgeID(
+        _ stableReference: StableSubshapeReference,
+        bodyScope: BodyTopologyScope,
+        featureID: FeatureID,
+        context: EvaluationContext
+    ) throws -> EdgeID {
+        let reference = try subshapeResolver.topologyReference(
+            for: stableReference, model: context.brep, subshapes: context.subshapes, lineage: context.lineage, tolerance: context.tolerance
+        )
+        guard case let .edge(edgeID) = reference, bodyScope.references.contains(.edge(edgeID)) else {
+            throw kernelError(.missingReference, featureID: featureID, subshapeID: stableReference.subshapeID, tolerance: context.tolerance,
+                              "A curve draft's pivot must be an edge of the target body.")
+        }
+        return edgeID
     }
 
     private func kernelError(

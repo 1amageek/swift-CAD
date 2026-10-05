@@ -200,6 +200,14 @@ extension FeatureOperation {
             feature.target = FaceDraftTargetReference(featureID: try transform(feature.target.featureID))
             feature.faces = try feature.faces.map(subshape)
             feature.neutralFace = try subshape(feature.neutralFace)
+            switch feature.method {
+            case .isocline, .normal:
+                break
+            case let .curve(pivots):
+                feature.method = .curve(pivots: try pivots.map(subshape))
+            case let .surface(reference):
+                feature.method = .surface(reference: try subshape(reference))
+            }
             return .faceDraft(feature)
         case .bridgeCurve(var feature):
             feature.start.curve = try curve(feature.start.curve)

@@ -398,6 +398,7 @@ public struct DocumentBuilder {
         angle: CADExpression,
         neutralOffset: CADExpression? = nil,
         grow: FaceEditGrow = .moving,
+        method: FaceDraftMethod = .isocline,
         named name: String? = nil
     ) throws -> FeatureID {
         let faceDraft = FaceDraftFeature(
@@ -406,7 +407,8 @@ public struct DocumentBuilder {
             neutralFace: neutralFace,
             angle: angle,
             neutralOffset: neutralOffset,
-            grow: grow
+            grow: grow,
+            method: method
         )
         try faceDraft.validate()
         let featureID = FeatureID()

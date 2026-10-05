@@ -1161,7 +1161,18 @@ plate's wall drafted through its far wall (the triangle left above the cut, unde
 Drafted faces that share no edge grow apart: every face's wedges are read from the body as it
 was and united or taken off in turn (`DraftFaceTests.twoNotchWallsDraftedTogetherGrowApart`,
 a block's two end notch walls under each Grow); faces sharing an edge, whose wedges meet, stay
-refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face turns each drafted face as one surface about its crossing with the neutral
+refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face's taper method
+(`FaceDraftMethod`, Plasticity's Isocline, Curve, Surface and Normal, their behaviour inferred
+from parting-line and reference-direction drafts elsewhere with the user 2026-10-06): Isocline
+turns each face about its crossing with the neutral plane against the neutral face's pull;
+Curve about the chosen straight edge lying on it, square to that pull (curved pivot edges are
+refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`); Surface about its crossing with the neutral plane
+against another planar face's outward normal, the drafted plane through the pivot line whose
+normal meets that pull at the sine of the angle, the nearest such turn leaning out against the
+pull; Normal against the reference's own normal, which is the isocline draft on a planar
+reference and the ruled draft about the shared edge on a curved one. `DraftFaceTests` own a
+wall drafted about its bottom edge, Normal equal to Isocline on a plane, and a wall drafted
+against a sloping face's pull, by exact volumes. Draft Face turns each drafted face as one surface about its crossing with the neutral
 plane (the reference face's plane, moved by the offset): the page's pivot. Running against the
 pull (into the body from the reference face) the face leans out by the angle, so beyond the plane
 along the pull it leans in — a face crossing the plane is not split, it simply passes through its

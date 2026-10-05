@@ -522,6 +522,81 @@ struct DraftFaceTests {
         // The back (x = 0) and the other side (y = −10) stay square.
         #expect(squares.count == 2)
     }
+
+    /// A 20 × 20 × 10 mm box (centred on x and y), its wall at x = 10 mm and the edges of the box.
+    private func boxWithWall(_ builder: inout DocumentBuilder) throws -> (box: FeatureID, wall: StableSubshapeReference,
+                                                                          top: StableSubshapeReference, bottomEdge: StableSubshapeReference) {
+        let profile = try builder.sketch(on: .xy) { $0.rectangle(width: millimeters(20), height: millimeters(20)) }
+        let box = try builder.extrude(profile, distance: millimeters(10))
+        let wall = try #require(try faces(in: builder, of: box) { plane($0).map { abs(abs($0.normal.x) - 1) < 1e-9 && abs($0.origin.x - 0.010) < 1e-9 } ?? false }.first)
+        let top = try #require(try faces(in: builder, of: box) { plane($0).map { abs(abs($0.normal.z) - 1) < 1e-9 && abs($0.origin.z - 0.010) < 1e-9 } ?? false }.first)
+        let evaluated = try CADPipeline(tolerance: .standard).evaluate(builder.build())
+        // The wall's bottom edge: both ends at x = 10 mm, z = 0.
+        let edgeKey = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == box, case let .edge(id) = value, let edge = evaluated.brep.edges[id],
+                  let a = evaluated.brep.vertices[edge.startVertexID]?.point, let b = evaluated.brep.vertices[edge.endVertexID]?.point
+            else { return false }
+            return [a, b].allSatisfy { abs($0.x - 0.010) < 1e-9 && abs($0.z) < 1e-9 }
+        }?.key)
+        return (box, wall, top, try builder.stableSubshape(edgeKey))
+    }
+
+    /// Curve: the wall turns about its bottom edge (the parting line) against the top's pull, so
+    /// running up along the pull it leans in: 4000 − 1000 tan 10° mm³.
+    @Test(.timeLimit(.minutes(1)))
+    func aWallDraftedAboutItsBottomEdgeLeansInAlongThePull() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let (box, wall, top, bottomEdge) = try boxWithWall(&builder)
+        _ = try builder.faceDraft(target: box, faces: [wall], neutralFace: top, angle: degrees(10), method: .curve(pivots: [bottomEdge]))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        let expected = (4000 - 1000 * tan(10 * Double.pi / 180)) * 1e-9
+        #expect(abs(try model.volume(tolerance: .standard) - expected) < 1e-15)
+    }
+
+    /// Normal on a planar reference is the isocline draft: the wall turns about the top's plane and
+    /// leans out running down against the pull, 4000 + 1000 tan 10° mm³.
+    @Test(.timeLimit(.minutes(1)), arguments: [FaceDraftMethod.isocline, .normal])
+    func aWallDraftedAgainstAPlanarReferenceIsTheIsoclineDraft(method: FaceDraftMethod) throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let (box, wall, top, _) = try boxWithWall(&builder)
+        _ = try builder.faceDraft(target: box, faces: [wall], neutralFace: top, angle: degrees(10), method: method)
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        let expected = (4000 + 1000 * tan(10 * Double.pi / 180)) * 1e-9
+        #expect(abs(try model.volume(tolerance: .standard) - expected) < 1e-15)
+    }
+
+    /// Surface: a 20 mm prism whose top slopes 20° (from 10 + 20 tan 20° mm at x = 0 down to 10 mm
+    /// at x = 20), its end wall drafted 10° about its crossing with the bottom, the angle taken
+    /// against the sloping top's normal. The wall's normal N, square to the bottom edge, meets
+    /// that pull at sin 10°, so it turns by φ with sin φ = sin 10° / cos 20°, leaning in as it
+    /// rises along the pull: the prism less tan φ ∫ h(x)² / 2 dx.
+    @Test(.timeLimit(.minutes(1)))
+    func aWallDraftedAgainstASlopingFacesPullTurnsByItsProjection() throws {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let t = tan(20 * Double.pi / 180)
+        let outline = [(0.0, 0.0), (20.0, 0.0), (20.0, 10.0), (0.0, 10.0 + 20 * t)]
+        // On the ZX plane sketch x is world z and sketch y is world x.
+        let profile = try builder.sketch(on: .zx) { sketch in
+            for k in outline.indices {
+                let (a, b) = (outline[k], outline[(k + 1) % outline.count])
+                _ = sketch.line(from: SketchPoint(x: millimeters(a.1), y: millimeters(a.0)), to: SketchPoint(x: millimeters(b.1), y: millimeters(b.0)))
+            }
+        }
+        let prism = try builder.extrude(profile, distance: millimeters(20))
+        let ends = try faces(in: builder, of: prism) { plane($0).map { abs(abs($0.normal.y) - 1) < 1e-9 } ?? false }
+        let bottom = try #require(try faces(in: builder, of: prism, where: isBottom).first)
+        let slope = try #require(try faces(in: builder, of: prism) { plane($0).map { abs($0.normal.x) > 0.1 && abs($0.normal.z) > 0.1 } ?? false }.first)
+        #expect(ends.count == 2)
+        _ = try builder.faceDraft(target: prism, faces: [try #require(ends.first)], neutralFace: bottom, angle: degrees(10),
+                                  method: .surface(reference: slope))
+        let model = try CADPipeline(tolerance: .standard).evaluate(builder.build()).brep
+        try model.validate(level: .volumetric, tolerance: .standard)
+        let phi = asin(sin(10 * Double.pi / 180) / cos(20 * Double.pi / 180))
+        let swept = (pow(10 + 20 * t, 3) - 1000) / (6 * t)
+        let expected = ((200 + 200 * t) * 20 - tan(phi) * swept) * 1e-9
+        let volume = try model.volume(tolerance: .standard)
+        #expect(abs(volume - expected) < 1e-15, "\(volume) vs \(expected)")
+    }
 }
-
-
