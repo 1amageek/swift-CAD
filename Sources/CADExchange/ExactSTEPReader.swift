@@ -11,6 +11,12 @@ struct ExactSTEPReader {
     let tolerance: ModelingTolerance
     var representationItems: Set<Int>? = nil
 
+    func readIndependentGeometry() throws -> IndependentSTEPGeometry {
+        var builder = Builder(entities: entities, lengthUnit: lengthUnit,
+            processingBudget: processingBudget, tolerance: tolerance, representationItems: nil)
+        return try builder.buildIndependentGeometry()
+    }
+
     func read() throws -> BRepModel { try readWithTransfer().model }
 
     func readWithTransfer() throws -> ExactSTEPReadTransfer {
@@ -66,6 +72,174 @@ private extension ExactSTEPReader {
         var orientedShellOwners: Set<Int> = []
         var faceOwners: Set<Int> = []
         var loopOwners: Set<Int> = []
+
+        mutating func buildIndependentGeometry() throws -> IndependentSTEPGeometry {
+            var curves: [IndependentSTEPCurve] = [], surfaces: [IndependentSTEPSurface] = []
+            var consumedSets: Set<Int> = []
+            var contextIDs: Set<Int> = []
+            var representationCount = 0
+            for entityID in entities.keys.sorted() {
+                try processingBudget.check(format: .step)
+                let entity = try requiredEntity(entityID, label: "independent representation")
+                let name = try entityName(entity)
+                guard name == "SHAPE_REPRESENTATION"
+                    || name == "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION" else { continue }
+                let args = try arguments(of: entity, named: name)
+                guard args.count == 3 else { throw invalid("Standalone STEP representation is malformed.") }
+                let context = try reference(args[2], label: "independent representation context")
+                contextIDs.insert(context)
+                let setIDs = try referenceList(args[1], label: "independent representation items")
+                for setID in setIDs {
+                    try processingBudget.check(format: .step)
+                    guard consumedSets.insert(setID).inserted else {
+                        throw unsupported("Standalone STEP set ownership is shared across representations.")
+                    }
+                    let set = try requiredEntity(setID, label: "independent geometry set")
+                    let kind = try entityName(set)
+                    guard kind == "GEOMETRIC_CURVE_SET" || kind == "GEOMETRIC_SET",
+                        name != "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION" || kind == "GEOMETRIC_CURVE_SET" else {
+                        throw unsupported("Standalone STEP representation has an unsupported item.")
+                    }
+                    let setArgs = try arguments(of: set, named: kind)
+                    guard setArgs.count == 2 else { throw invalid("Standalone STEP set is malformed.") }
+                    let itemName = try independentName(setArgs[0])
+                    let itemIDs = try referenceList(setArgs[1], label: "independent geometry elements")
+                    guard itemIDs.count == 1, let itemID = itemIDs.first else {
+                        throw unsupported("Standalone STEP named sets require exactly one source geometry item.")
+                    }
+                    if kind == "GEOMETRIC_CURVE_SET" {
+                        let (curve, trim) = try independentCurve(itemID)
+                        curves.append(.init(name: itemName, curve: curve, trim: trim))
+                    } else {
+                        let surfaceID = try buildSurface(itemID)
+                        guard let surface = geometry.surfaces[surfaceID] else { throw missing("independent surface") }
+                        try surface.validate(tolerance: tolerance)
+                        surfaces.append(.init(name: itemName, surface: surface))
+                    }
+                }
+                representationCount += 1
+            }
+            guard representationCount > 0, !curves.isEmpty || !surfaces.isEmpty, contextIDs.count == 1,
+                let contextID = contextIDs.first else {
+                throw unsupported("Standalone STEP requires nonempty geometry in one explicit representation context.")
+            }
+            let context = try requiredEntity(contextID, label: "independent context")
+            let geometricContext = try complexArguments(of: context, named: "GEOMETRIC_REPRESENTATION_CONTEXT")
+            guard geometricContext.count == 1, try integer(geometricContext[0], label: "context dimension") == 3 else {
+                throw unsupported("Standalone STEP requires a three-dimensional geometry context.")
+            }
+            let units = try complexArguments(of: context, named: "GLOBAL_UNIT_ASSIGNED_CONTEXT")
+            guard units.count == 1 else { throw invalid("Standalone STEP context units are malformed.") }
+            let unitIDs = try referenceList(units[0], label: "context units")
+            var radians = 0, lengthUnits = 0
+            guard Set(unitIDs).count == unitIDs.count else { throw invalid("Standalone STEP context has duplicate units.") }
+            for unitID in unitIDs {
+                try processingBudget.check(format: .step)
+                let unit = try requiredEntity(unitID, label: "context unit")
+                if unit.contains("LENGTH_UNIT()") { lengthUnits += 1 }
+                if unit.contains("PLANE_ANGLE_UNIT()") {
+                    guard unit.contains("SI_UNIT($,.RADIAN.)") else {
+                        throw unsupported("Standalone STEP requires an explicit radian plane-angle unit.")
+                    }
+                    radians += 1
+                }
+            }
+            guard radians == 1, lengthUnits == 1 else {
+                throw invalid("Standalone STEP context requires exactly one length unit and one radian angle unit.")
+            }
+            for (entityID, entity) in entities {
+                try processingBudget.check(format: .step)
+                let name = try entityName(entity)
+                if name == "GEOMETRIC_CURVE_SET" || name == "GEOMETRIC_SET" {
+                    guard consumedSets.contains(entityID) else { throw unsupported("Standalone STEP contains an unowned geometry set.") }
+                }
+            }
+            try processingBudget.check(format: .step)
+            return .init(curves: curves, surfaces: surfaces, units: .init(length: lengthUnit, angle: .radian))
+        }
+
+        mutating func independentCurve(_ entityID: Int) throws -> (Curve3D, CurveTrim?) {
+            try processingBudget.check(format: .step)
+            let entity = try requiredEntity(entityID, label: "independent curve")
+            if try entityName(entity) == "TRIMMED_CURVE" {
+                let args = try arguments(of: entity, named: "TRIMMED_CURVE")
+                guard args.count == 6, args[5] == ".PARAMETER." else {
+                    throw unsupported("Standalone STEP trims require explicit parameter selectors.")
+                }
+                if args[0] == "'SWIFTCAD_ARC'" {
+                    let curveID = try buildCurve(entityID)
+                    guard let curve = geometry.curves[curveID] else { throw missing("independent arc") }
+                    return (curve, nil)
+                }
+                let basisID = try reference(args[1], label: "independent trim basis")
+                let curveID = try buildCurve(basisID)
+                let curve = try independentStoredCurve(curveID, entityID: basisID)
+                var start = try trimmingParameter(args[2]), end = try trimmingParameter(args[3])
+                let sense = try boolean(args[4])
+                guard start != end, sense == (end > start) else { throw invalid("Standalone STEP trim direction is inconsistent.") }
+                switch curve {
+                case .line, .analytic(.line):
+                    let basis = try requiredEntity(basisID, label: "trimmed line basis")
+                    let line = try arguments(of: basis, named: "LINE")
+                    guard line.count == 3 else { throw invalid("Standalone STEP line is malformed.") }
+                    let vector = try requiredEntity(reference(line[2], label: "line vector"), label: "line vector")
+                    let args = try arguments(of: vector, named: "VECTOR")
+                    guard args.count == 3, try number(args[2], label: "vector magnitude") == 1 else {
+                        throw unsupported("Standalone STEP line parameters require a unit-magnitude vector.")
+                    }
+                    start = lengthUnit.toInternal(start); end = lengthUnit.toInternal(end)
+                default: break
+                }
+                guard start.isFinite, end.isFinite, start != end,
+                    try curve.parameterDomain.containsSpan(from: start, to: end, tolerance: tolerance) else {
+                    throw invalid("Standalone STEP trim is outside its source parameter domain.")
+                }
+                return (curve, .init(startParameter: start, endParameter: end))
+            }
+            let curveID = try buildCurve(entityID)
+            let curve = try independentStoredCurve(curveID, entityID: entityID)
+            switch curve {
+            case .line, .analytic(.line), .analytic(.hyperbola), .analytic(.parabola):
+                throw unsupported("Standalone STEP unbounded curves require finite trims.")
+            default: return (curve, nil)
+            }
+        }
+
+        func independentStoredCurve(_ curveID: CurveID, entityID: Int) throws -> Curve3D {
+            guard let curve = geometry.curves[curveID] else { throw missing("independent curve") }
+            if case .line(let line) = curve {
+                let entity = try requiredEntity(entityID, label: "line source")
+                if try entityName(entity) == "LINE",
+                   try arguments(of: entity, named: "LINE").first == "'SWIFTCAD_ANALYTIC'" {
+                    return .analytic(.line(origin: line.origin, direction: line.direction))
+                }
+            }
+            return curve
+        }
+
+        func independentName(_ token: String) throws -> String {
+            guard token.first == "'", token.last == "'", token.count >= 2 else {
+                throw invalid("Standalone STEP name is not a string.")
+            }
+            let text = String(token.dropFirst().dropLast())
+            var name = "", cursor = text.startIndex, count = 0
+            while cursor < text.endIndex {
+                if count.isMultiple(of: 256) { try processingBudget.check(format: .step) }
+                count += 1
+                let character = text[cursor]
+                guard let ascii = character.asciiValue, ascii >= 32, ascii <= 126, ascii != 92 else {
+                    throw unsupported("Standalone STEP names require printable ASCII without encoded escapes.")
+                }
+                if character == "'" {
+                    let next = text.index(after: cursor)
+                    guard next < text.endIndex, text[next] == "'" else { throw invalid("Standalone STEP name has an unescaped apostrophe.") }
+                    cursor = next
+                }
+                name.append(character)
+                cursor = text.index(after: cursor)
+            }
+            return name
+        }
 
         mutating func build() throws -> BRepModel {
             var representationItemCount = 0

@@ -751,6 +751,157 @@ struct ExactSTEPWriter {
     return try table.add("AXIS2_PLACEMENT_3D('',#\(point),#\(z),#\(x))")
   }
 
+  func writeIndependentGeometry(_ model: IndependentSTEPGeometry, to sink: any ByteSink) throws {
+    try resourceLimits.validate(); try tolerance.validate(); try model.units.validate()
+    let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
+    try budget.check(format: .step)
+    guard !model.curves.isEmpty || !model.surfaces.isEmpty else {
+      throw exchangeError(.invalidInput, "Standalone STEP geometry cannot be empty.")
+    }
+    guard model.units.angle == .radian else {
+      throw exchangeError(.unsupportedCapability, "Standalone STEP geometry requires a radian angular context.")
+    }
+    var table = EntityTable(maximumEntities: resourceLimits.maximumEntities, tolerance: tolerance,
+      maximumBytes: resourceLimits.maximumBytes, processingBudget: budget)
+    let length = try lengthUnitEntity(model.units.length, table: &table)
+    let angle = try table.add("(NAMED_UNIT(*) PLANE_ANGLE_UNIT() SI_UNIT($,.RADIAN.))")
+    let context = try table.add("(GEOMETRIC_REPRESENTATION_CONTEXT(3) GLOBAL_UNIT_ASSIGNED_CONTEXT((#\(length),#\(angle))) REPRESENTATION_CONTEXT('',''))")
+    var curveSets: [Int] = [], surfaceSets: [Int] = []
+    for item in model.curves {
+      try budget.check(format: .step)
+      try item.curve.validate(tolerance: tolerance)
+      let name = try independentName(item.name)
+      let basis: Int
+      var lengthParameters = false
+      switch item.curve {
+      case .line(let line):
+        guard item.trim != nil else {
+          throw exchangeError(.invalidInput, "An independent STEP line requires a finite directed trim.")
+        }
+        basis = try independentLineEntity(origin: line.origin, direction: line.direction, units: model.units.length, table: &table)
+        lengthParameters = true
+      case .analytic(.line(let origin, let direction)):
+        guard item.trim != nil else {
+          throw exchangeError(.invalidInput, "An independent STEP line requires a finite directed trim.")
+        }
+        basis = try independentLineEntity(origin: origin, direction: direction, name: "SWIFTCAD_ANALYTIC", units: model.units.length, table: &table)
+        lengthParameters = true
+      case .circle(let circle): basis = try circleEntity(circle, units: model.units.length, table: &table)
+      case .bSpline(let curve): basis = try bSplineCurveEntity(curve, units: model.units.length, table: &table)
+      case .analytic(let analytic):
+        switch analytic {
+        case .circle, .ellipse, .arc: basis = try independentAnalyticCurveEntity(analytic, units: model.units.length, table: &table)
+        default:
+          // FIXME(INCOMPLETE_IMPLEMENTATION): The independent public STEP path
+          // does not yet transfer original hyperbola and parabola parameter laws.
+          // Full X7 must preserve their exact bases and directed trims before admission.
+          throw exchangeError(.unsupportedCapability, "Standalone STEP curve transfer currently supports lines, circles, ellipses, arcs and rational B-splines.")
+        }
+      default:
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The public independent STEP route
+        // has no original implicit/lift/image chart transfer. Full X7 requires
+        // these laws and their directed trims before extending this admission.
+        throw exchangeError(.unsupportedCapability, "Standalone STEP curve transfer requires an exact supported primitive.")
+      }
+      let entity: Int
+      if let trim = item.trim {
+        guard trim.startParameter.isFinite, trim.endParameter.isFinite,
+          trim.startParameter != trim.endParameter,
+          try item.curve.parameterDomain.containsSpan(from: trim.startParameter, to: trim.endParameter, tolerance: tolerance) else {
+          throw exchangeError(.invalidInput, "An independent curve trim must be finite, nonempty and contained in its source.")
+        }
+        let start = lengthParameters ? model.units.length.fromInternal(trim.startParameter) : trim.startParameter
+        let end = lengthParameters ? model.units.length.fromInternal(trim.endParameter) : trim.endParameter
+        guard start.isFinite, end.isFinite, start != end else {
+          throw exchangeError(.resourceLimitExceeded, "Standalone STEP trim unit conversion lost its finite directed interval.")
+        }
+        entity = try table.add("TRIMMED_CURVE('',#\(basis),(PARAMETER_VALUE(\(number(start)))),(PARAMETER_VALUE(\(number(end)))),\(end > start ? ".T." : ".F."),.PARAMETER.)")
+      } else { entity = basis }
+      curveSets.append(try table.add("GEOMETRIC_CURVE_SET('\(name)',(#\(entity)))"))
+    }
+    for item in model.surfaces {
+      try budget.check(format: .step)
+      switch item.surface {
+      case .plane, .cylinder, .analytic, .bSpline: break
+      case .procedural:
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Standalone STEP currently transfers
+        // original analytic and spline surfaces. The public independent path
+        // must retain procedural chart laws with bounded source traversal
+        // before admitting them as part of full X7.
+        throw exchangeError(.unsupportedCapability, "Standalone STEP surface transfer requires an original analytic or rational B-spline surface.")
+      }
+      try item.surface.validate(tolerance: tolerance)
+      let name = try independentName(item.name)
+      let entity = try exactSurfaceEntity(item.surface, units: model.units.length, table: &table)
+      surfaceSets.append(try table.add("GEOMETRIC_SET('\(name)',(#\(entity)))"))
+    }
+    if !curveSets.isEmpty {
+      _ = try table.add("GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION('',(\(references(curveSets))),#\(context))")
+    }
+    if !surfaceSets.isEmpty {
+      _ = try table.add("SHAPE_REPRESENTATION('SWIFTCAD_INDEPENDENT_SURFACES',(\(references(surfaceSets))),#\(context))")
+    }
+    let text = """
+      ISO-10303-21;
+      HEADER;
+      FILE_DESCRIPTION(('SwiftCAD independent exact geometry'),'2;1');
+      FILE_NAME('swiftcad.step','2000-01-01T00:00:00',(''),(''),'swift-CAD','','');
+      FILE_SCHEMA(('AP242_MANAGED_MODEL_BASED_3D_ENGINEERING_MIM_LF'));
+      ENDSEC;
+      DATA;
+      \(table.serialized())
+      ENDSEC;
+      END-ISO-10303-21;
+      """
+    try budget.check(format: .step)
+    guard text.utf8.count <= resourceLimits.maximumBytes else {
+      throw exchangeError(.resourceLimitExceeded, "Standalone STEP output exceeds its byte budget.")
+    }
+    // Validate complete output before the only mutation of the caller's sink.
+    let facade = STEPExchange(tolerance: tolerance, resourceLimits: resourceLimits)
+    try facade.validateIndependentSTEPOutput(text, budget: budget)
+    let data = Data(text.utf8)
+    try budget.check(format: .step)
+    try data.withUnsafeBytes { try sink.write($0) }
+  }
+
+  private func independentLineEntity(origin: Point3D, direction: Vector3D, name: String = "",
+                                     units: LengthUnit, table: inout EntityTable) throws -> Int {
+    let point = try cartesianPoint(origin, units: units, table: &table)
+    let direction = try directionEntity(direction, table: &table)
+    let vector = try table.add("VECTOR('',#\(direction),1.)")
+    return try table.add("LINE('\(name)',#\(point),#\(vector))")
+  }
+
+  private func independentAnalyticCurveEntity(_ curve: AnalyticCurve3D,
+                                              units: LengthUnit, table: inout EntityTable) throws -> Int {
+    switch curve {
+    case .circle(let center, let normal, let radius):
+      return try analyticCircleEntity(center: center, normal: normal, radius: radius,
+        name: "SWIFTCAD_ANALYTIC", units: units, table: &table)
+    case .ellipse(let center, let normal, let majorAxis, let majorRadius, let minorRadius):
+      let placement = try axisPlacementEntity(origin: center, axis: normal, reference: majorAxis, units: units, table: &table)
+      return try table.add("ELLIPSE('SWIFTCAD_ANALYTIC',#\(placement),\(number(units.fromInternal(majorRadius))),\(number(units.fromInternal(minorRadius))))")
+    case .arc(let center, let normal, let radius, let start, let end):
+      let basis = try analyticCircleEntity(center: center, normal: normal, radius: radius,
+        name: "SWIFTCAD_ARC_BASIS", units: units, table: &table)
+      return try table.add("TRIMMED_CURVE('SWIFTCAD_ARC',#\(basis),(PARAMETER_VALUE(\(number(start)))),(PARAMETER_VALUE(\(number(end)))),.T.,.PARAMETER.)")
+    default:
+      throw exchangeError(.unsupportedCapability, "Standalone analytic STEP transfer requires a circle, ellipse or arc.")
+    }
+  }
+
+  private func independentName(_ name: String) throws -> String {
+    guard name.utf8.count <= resourceLimits.maximumBytes / 2 else {
+      throw exchangeError(.resourceLimitExceeded, "Standalone STEP name exceeds its byte allowance.")
+    }
+    try Task.checkCancellation()
+    guard name.utf8.allSatisfy({ $0 >= 32 && $0 <= 126 && $0 != 92 }) else {
+      throw exchangeError(.unsupportedCapability, "Standalone STEP names require printable ASCII without encoded escape sequences.")
+    }
+    return name.replacingOccurrences(of: "'", with: "''")
+  }
+
   private func pcurveEntity(
     parameterCurve: SurfaceParameterCurve,
     parameterCurveFollowsModel: Bool,
@@ -1507,6 +1658,7 @@ struct ExactSTEPWriter {
   struct EntityTable {
     let maximumEntities: Int
     let tolerance: ModelingTolerance
+    let processingBudget: ExchangeProcessingBudget?
     var entities: [String] = []
     var maximumBytes: Int = 64 * 1024 * 1024
     private var byteCount: Int = 0
@@ -1514,11 +1666,12 @@ struct ExactSTEPWriter {
     private var stringBytes = 0
     let maximumStringWork: Int
 
-    init(maximumEntities: Int, tolerance: ModelingTolerance, maximumBytes: Int = 64 * 1024 * 1024, maximumStringWork: Int = 10_000_000) {
+    init(maximumEntities: Int, tolerance: ModelingTolerance, maximumBytes: Int = 64 * 1024 * 1024, maximumStringWork: Int = 10_000_000, processingBudget: ExchangeProcessingBudget? = nil) {
       self.maximumEntities = maximumEntities
       self.tolerance = tolerance
       self.maximumBytes = maximumBytes
       self.maximumStringWork = maximumStringWork
+      self.processingBudget = processingBudget
     }
 
     mutating func quotedString(_ value: String) throws -> String {
@@ -1531,6 +1684,7 @@ struct ExactSTEPWriter {
     }
 
     mutating func add(_ entity: String) throws -> Int {
+      if let processingBudget { try processingBudget.check(format: .step) }
       try Task.checkCancellation()
       guard entities.count < maximumEntities else {
         throw KernelError(

@@ -37,6 +37,20 @@ source protocol + parameter domain + allowances + degree/control/work budgets
 
 ## Contracts and Invariants
 
+`AffineCurveConversionSource` and `AffineSurfaceConversionSource` compose any
+conversion source with explicit finite affine chart coefficients. Zero or
+nonfinite scales are invalid. Negative scales preserve the declared traversal;
+curve derivatives use scale and scale squared, and surface derivatives use
+U scale, V scale, their squares and their signed product. Full interval images
+and every derivative multiplication are rounded outward. Source domain and
+failure authority remain the wrapped protocol's; maps never clip a request or
+substitute endpoint samples for an enclosure. Values are immutable Sendable
+owners with no shared mutable state. The public converter consumes the adapters
+through the existing source requirements, including cancellation and unchanged
+position/tangent/geometric-curvature admission. Nonlinear maps remain outside
+these affine adapters and full G6 remains separate. Behavioral ownership is
+[AffineConversionSourceTests](../../../Tests/CADGeometryTests/AffineConversionSourceTests.swift).
+
 - All comparisons use the identical source parameter chart, with no implicit
   conic reparameterization. Curve knot-side limits and every surface knot cell
   participate in the certificate. Curvature is evaluated only on continuously

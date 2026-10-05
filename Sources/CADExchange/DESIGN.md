@@ -58,6 +58,11 @@ source geometry validation.
 
 ## Related Designs
 
+Standalone named curve and surface exchange is owned by
+[Independent STEP Geometry](IndependentSTEPGeometry/DESIGN.md), through its
+public protocol and complete source-value publication contract. This separate
+entry does not change the existing B-rep import result or document authority.
+
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [Swift-CAD package](../../DESIGN.md) | child of | exact source and typed failure contract | Defines the source-to-evaluation boundary. | Exchange output is not a project publication. |

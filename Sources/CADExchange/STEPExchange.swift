@@ -4,7 +4,7 @@ import CADIR
 import CADKernel
 import CADTopology
 
-public struct STEPExchange: Sendable {
+public struct STEPExchange: IndependentSTEPGeometryExchanging {
     private let resourceLimits: ExchangeResourceLimits
     private let tolerance: ModelingTolerance
 
@@ -65,6 +65,59 @@ public struct STEPExchange: Sendable {
             for record in records { _ = try table.add(record) }
             try writer.publish(table: table, to: sink)
         }
+    }
+
+    public func writeIndependentGeometry(_ model: IndependentSTEPGeometry, to sink: any ByteSink) throws {
+        try ExactSTEPWriter(resourceLimits: resourceLimits, tolerance: tolerance)
+            .writeIndependentGeometry(model, to: sink)
+    }
+
+    public func importIndependentGeometry(_ source: any ByteSource) throws -> IndependentSTEPGeometry {
+        try tolerance.validate(); try resourceLimits.validate()
+        let budget = ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
+        return try source.withNoCopyData { data in
+            try budget.check(format: .step)
+            guard data.count <= resourceLimits.maximumBytes else {
+                throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Standalone STEP input exceeds its byte budget.")
+            }
+            guard let text = String(data: data, encoding: .utf8) else {
+                throw ImportError.invalidData("STEP data is not UTF-8.")
+            }
+            try validateSTEPResourceBudget(text, budget: budget)
+            try validateSTEPExchangeEnvelope(in: text)
+            let sections = try stepDataSections(in: text)
+            try rejectSTEPEntityMarkersOutsideDataSections(in: text, dataRanges: sections.map(\.contentRange))
+            guard !sections.isEmpty else { throw ImportError.invalidData("Missing STEP DATA section.") }
+            let entities = try stepEntities(in: sections.map(\.content).joined(separator: "\n"))
+            guard !entities.isEmpty, entities.count <= resourceLimits.maximumEntities else {
+                throw KernelError(phase: .exchange, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Standalone STEP input exceeds its entity budget or has no entities.")
+            }
+            let additional = ["GEOMETRIC_CURVE_SET(", "GEOMETRIC_SET(",
+                "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION("]
+            let forbidden = ["PRODUCT(", "PRODUCT_CONTEXT(", "PRODUCT_DEFINITION(",
+                "PRODUCT_DEFINITION_FORMATION(", "PRODUCT_DEFINITION_SHAPE(", "SHAPE_DEFINITION_REPRESENTATION(",
+                "MANIFOLD_SOLID_BREP(", "BREP_WITH_VOIDS(", "SHELL_BASED_SURFACE_MODEL(",
+                "ADVANCED_FACE(", "OFFSET_SURFACE(", "TRIANGULATED_FACE_SET(", "TESSELLATED_SHAPE_REPRESENTATION("]
+            for entity in entities.values {
+                try budget.check(format: .step)
+                let syntax = normalizedSTEPText(stepSyntaxOutsideStrings(in: entity))
+                guard !forbidden.contains(where: { syntax.hasPrefix($0) }),
+                    isSupportedSTEPEntity(entity) || additional.contains(where: { syntax.hasPrefix($0) }) else {
+                    throw KernelError(phase: .exchange, code: .unsupportedCapability, tolerance: tolerance,
+                        message: "Standalone STEP input contains unsupported or mixed topology semantics.")
+                }
+            }
+            let length = try stepLengthUnit(in: entities)
+            return try ExactSTEPReader(entities: entities, lengthUnit: length,
+                processingBudget: budget, tolerance: tolerance).readIndependentGeometry()
+        }
+    }
+
+    func validateIndependentSTEPOutput(_ text: String, budget: ExchangeProcessingBudget) throws {
+        try validateSTEPResourceBudget(text, budget: budget)
+        try budget.check(format: .step)
     }
 
     public func write(meshes: [BodyID: Mesh], units: UnitSystem = .meters, to sink: any ByteSink) throws {
