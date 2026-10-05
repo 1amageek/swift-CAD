@@ -158,3 +158,23 @@ native cell traversal, C0 ownership and cancellation. Requested tolerances and
 ceilings were not increased. Kernel composition, the actual Draft full
 producer fixture and portable execution remain pending their owning
 verification; this receipt proves only the lower CADGeometry contract.
+
+### Main-native composed residual extension
+
+For the admitted cubic-U/linear-V support family, the producer may additionally
+construct the whole directed-use homogeneous residual from the original spatial
+curve, original parameter curve, and original support tensor. This extension
+retains coefficient correlation across the complete closed interval and uses
+outward Bernstein products, elevation, rational denominator hulls, and closed
+subdivision cells. It is an alternative proof representation, not a sample or
+tolerance shortcut: if its structural admission or finite positive denominator
+proof fails, the existing interval proof remains authoritative.
+
+The extension consumes the same caller work ceiling. Temporary polynomial
+storage is checked before materialization, root and span records are charged
+before traversal, and cancellation or resource failure propagates as the
+existing typed error. It does not change the main-native finite-domain,
+clamped-knot, degree, multiplicity, positive-weight, or source-binding rules.
+The component test owner supplies independent original coefficient fixtures
+for exact composition, reversed rational trims, C0 ownership, an interior
+false-positive perturbation, and the bounded resource refusal.
