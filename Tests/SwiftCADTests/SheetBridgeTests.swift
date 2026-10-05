@@ -308,6 +308,54 @@ struct SheetBridgeTests {
         #expect(evaluated.brep.bodies.count == 1)
     }
 
+    /// Propagate (inferred with the user 2026-10-05): a floor and a shelf each joined from two
+    /// halves bridge between their nearest edges and, propagating, on along the edges tangent to
+    /// them, the strips sewn into one sheet over the whole 40 mm.
+    @Test(.timeLimit(.minutes(4)), arguments: [SheetBridgeFeature.Shape.curvature, .chamfer])
+    func propagateRunsTheBridgeAlongTangentBoundaryEdges(shape: SheetBridgeFeature.Shape) throws {
+        func evaluated(propagates: Bool) throws -> (faces: Int, xs: ClosedRange<Double>, bodies: Int) {
+            var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+            func square(on plane: SketchPlane, _ corners: [(Double, Double)]) throws -> FeatureID {
+                let lines = try corners.indices.map { index in
+                    try builder.sketch(on: plane) { sketch in
+                        let (start, end) = (corners[index], corners[(index + 1) % corners.count])
+                        _ = sketch.line(from: point(start.0, start.1), to: point(end.0, end.1))
+                    }.featureID
+                }
+                return try builder.patch(curves: lines.map { CurveSectionReference(featureID: $0) })
+            }
+            let shelfPlane = SketchPlane.plane(Plane3D(origin: Point3D(x: 0, y: 0, z: 0.02), normal: .unitZ))
+            let floor = try builder.joinBodies(try [(0.0, 0.02), (0.02, 0.04)].map { x0, x1 in
+                try square(on: .xy, [(x0, 0.01), (x1, 0.01), (x1, 0.04), (x0, 0.04)])
+            }, mode: .sewnSheet)
+            let shelf = try builder.joinBodies(try [(0.0, 0.02), (0.02, 0.04)].map { x0, x1 in
+                try square(on: shelfPlane, [(x0, -0.04), (x1, -0.04), (x1, -0.01), (x0, -0.01)])
+            }, mode: .sewnSheet)
+            let bridge = try builder.bridgeSurface(SheetBridgeFeature(first: floor, second: shelf, width: length(0.01), shape: shape,
+                                                                      propagates: propagates))
+            let result = try evaluate(builder)
+            let faces = result.subshapes.entries.compactMap { key, value -> FaceID? in
+                guard key.featureID == bridge, case let .face(id) = value else { return nil }
+                return id
+            }
+            let xs = try faces.flatMap { faceID in
+                try (result.brep.faces[faceID]?.loops ?? []).flatMap { try result.brep.orderedPoints(for: $0) }
+            }.map(\.x)
+            let bodies = Set(result.subshapes.entries.compactMap { key, value -> BodyID? in
+                guard key.featureID == bridge, case let .body(id) = value else { return nil }
+                return id
+            })
+            return (faces.count, (xs.min() ?? .nan)...(xs.max() ?? .nan), bodies.count)
+        }
+        let single = try evaluated(propagates: false)
+        #expect(single.faces == 1)
+        #expect(single.xs.upperBound - single.xs.lowerBound < 0.02 + 1e-9)
+        let propagated = try evaluated(propagates: true)
+        #expect(propagated.faces == 2)
+        #expect(abs(propagated.xs.lowerBound) < 1e-9 && abs(propagated.xs.upperBound - 0.04) < 1e-9)
+        #expect(propagated.bodies == 1)
+    }
+
     @Test(.timeLimit(.minutes(3)))
     func twoSensesReachEveryQuadrantOfCrossingSheets() throws {
         // A floor on z = 0 and a wall on y = 0, both crossing the x axis where they meet: each

@@ -50,12 +50,17 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
     /// boundary edges may stray from the sheet's, as a Loft's continuity does; nil beside planes.
     public var angularAllowance: Double?
     public var curvatureAllowance: Double?
+    /// Propagate (inferred with the user 2026-10-05, as a blend's chained edges): a bridge between
+    /// boundary edges runs on along both sheets' boundary edges tangent to them, pair by pair in
+    /// step, the bridges sewn into one sheet.
+    public var propagates: Bool
 
     public init(first: FeatureID, second: FeatureID, width: CADExpression, tension: Double = 1, shape: Shape = .curvature,
                 trimWalls: TrimWalls = .none, extent: Extent = .both, reversesFirstSense: Bool = false, reversesSecondSense: Bool = false,
                 edges: (first: StableSubshapeReference, second: StableSubshapeReference)? = nil,
-                angularAllowance: Double? = nil, curvatureAllowance: Double? = nil) {
+                angularAllowance: Double? = nil, curvatureAllowance: Double? = nil, propagates: Bool = false) {
         self.edges = edges
+        self.propagates = propagates
         self.angularAllowance = angularAllowance
         self.curvatureAllowance = curvatureAllowance
         self.first = first
@@ -71,6 +76,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case first, second, width, tension, shape, trimWalls, extent, reversesFirstSense, reversesSecondSense, firstEdge, secondEdge, angularAllowance, curvatureAllowance
+        case propagates
     }
 
     public static func == (lhs: SheetBridgeFeature, rhs: SheetBridgeFeature) -> Bool {
@@ -79,6 +85,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
             && lhs.reversesFirstSense == rhs.reversesFirstSense && lhs.reversesSecondSense == rhs.reversesSecondSense
             && lhs.edges?.first == rhs.edges?.first && lhs.edges?.second == rhs.edges?.second
             && lhs.angularAllowance == rhs.angularAllowance && lhs.curvatureAllowance == rhs.curvatureAllowance
+            && lhs.propagates == rhs.propagates
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -95,11 +102,12 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         hasher.combine(edges?.second)
         hasher.combine(angularAllowance)
         hasher.combine(curvatureAllowance)
+        hasher.combine(propagates)
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        try container.validateOnlyExpectedKeys([.first, .second, .width, .tension, .shape, .trimWalls, .extent, .reversesFirstSense, .reversesSecondSense, .firstEdge, .secondEdge, .angularAllowance, .curvatureAllowance], in: decoder)
+        try container.validateOnlyExpectedKeys([.first, .second, .width, .tension, .shape, .trimWalls, .extent, .reversesFirstSense, .reversesSecondSense, .firstEdge, .secondEdge, .angularAllowance, .curvatureAllowance, .propagates], in: decoder)
         first = try container.decode(FeatureID.self, forKey: .first)
         second = try container.decode(FeatureID.self, forKey: .second)
         width = try container.decode(CADExpression.self, forKey: .width)
@@ -111,6 +119,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         reversesSecondSense = try container.decodeIfPresent(Bool.self, forKey: .reversesSecondSense) ?? false
         angularAllowance = try container.decodeIfPresent(Double.self, forKey: .angularAllowance)
         curvatureAllowance = try container.decodeIfPresent(Double.self, forKey: .curvatureAllowance)
+        propagates = try container.decodeIfPresent(Bool.self, forKey: .propagates) ?? false
         let firstEdge = try container.decodeIfPresent(StableSubshapeReference.self, forKey: .firstEdge)
         let secondEdge = try container.decodeIfPresent(StableSubshapeReference.self, forKey: .secondEdge)
         switch (firstEdge, secondEdge) {
@@ -137,6 +146,7 @@ public struct SheetBridgeFeature: Codable, Hashable, Sendable {
         try container.encodeIfPresent(edges?.second, forKey: .secondEdge)
         try container.encodeIfPresent(angularAllowance, forKey: .angularAllowance)
         try container.encodeIfPresent(curvatureAllowance, forKey: .curvatureAllowance)
+        if propagates { try container.encode(true, forKey: .propagates) }
     }
 
     public func validate() throws {

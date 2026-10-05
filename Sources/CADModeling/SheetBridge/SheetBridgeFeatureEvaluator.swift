@@ -52,7 +52,7 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         }
         // Curved sheets whose continuations meet: walls carried to their contacts the width from
         // where they meet, bridged between those contacts.
-        if bridge.edges == nil, planesMeet == false,
+        if bridge.edges == nil, planesMeet == false, bridge.propagates == false,
            let walls = try CurvedSheetBridgeWalls(tolerance: tolerance).walls(
                first: try context.bodyID(generatedBy: bridge.first), second: try context.bodyID(generatedBy: bridge.second),
                width: width.value, featureID: feature.id, context: context) {
@@ -320,49 +320,59 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             guard let best else { throw failure(.invalidInput, "A bridged sheet has no boundary edge.") }
             (firstEdge, secondEdge) = (best.0, best.1)
         }
-        // Each edge as a curve section, the second run the way the first does.
-        func curve(_ id: EdgeID, as featureID: FeatureID) throws -> EvaluatedCurve {
-            guard let edge = context.brep.edges[id], let exact = context.brep.geometry.curves[edge.curveID], let trim = edge.trim else {
-                throw TopologyError.missingReference("A bridged edge has no curve.")
-            }
-            let (lower, upper) = (min(trim.startParameter, trim.endParameter), max(trim.startParameter, trim.endParameter))
-            let parameters = (0...32).map { lower + (upper - lower) * Double($0) / 32 }
-            return EvaluatedCurve(sourceFeatureID: featureID, source: .generatedFeature, kind: .spline,
-                                  points: try parameters.map { try exact.point(at: $0, tolerance: tolerance) },
-                                  exactCurve: exact, exactParameterDomain: .closed(lower, upper), exactPointParameters: parameters)
-        }
-        let (curveA, curveB) = (featureEvaluationStageID(featureID: feature.id, domain: .sheetBridgeTrim, ordinal: 10),
-                                featureEvaluationStageID(featureID: feature.id, domain: .sheetBridgeTrim, ordinal: 11))
-        let (sectionA, sectionB) = (try curve(firstEdge, as: curveA), try curve(secondEdge, as: curveB))
-        guard let a0 = sectionA.points.first, let a1 = sectionA.points.last, let b0 = sectionB.points.first, let b1 = sectionB.points.last else {
-            throw TopologyError.missingReference("A bridged edge has no points.")
-        }
-        let reversed = (a0 - b0).length + (a1 - b1).length > (a0 - b1).length + (a1 - b0).length
+        // The pairs bridged: the two edges, or with Propagate both sheets' tangent chains through
+        // them, pair by pair in step.
+        let pairs = bridge.propagates
+            ? try propagatedPairs(firstEdge, secondEdge, first: try boundaryEdges(bridge.first), second: try boundaryEdges(bridge.second),
+                                  context: context, failure: failure)
+            : [(firstEdge, secondEdge)]
         var augmented = context
-        augmented.curves[curveA] = [sectionA]
-        augmented.curves[curveB] = [sectionB]
-        func continuity(_ source: FeatureID, _ edge: EdgeID) throws -> SurfaceEdgeContinuity? {
-            guard bridge.shape == .curvature else { return nil }
-            guard let subshapeID = context.subshapeIDs(for: .edge(edge)).first else {
-                throw failure(.missingReference, "A bridged edge has no identity.")
+        /// The Loft between one pair: each edge a curve section, the second run the way the first does.
+        func pairLoft(_ pair: (EdgeID, EdgeID), ordinal: UInt64) throws -> LoftFeature {
+            func curve(_ id: EdgeID, as featureID: FeatureID) throws -> EvaluatedCurve {
+                guard let edge = context.brep.edges[id], let exact = context.brep.geometry.curves[edge.curveID], let trim = edge.trim else {
+                    throw TopologyError.missingReference("A bridged edge has no curve.")
+                }
+                let (lower, upper) = (min(trim.startParameter, trim.endParameter), max(trim.startParameter, trim.endParameter))
+                let parameters = (0...32).map { lower + (upper - lower) * Double($0) / 32 }
+                return EvaluatedCurve(sourceFeatureID: featureID, source: .generatedFeature, kind: .spline,
+                                      points: try parameters.map { try exact.point(at: $0, tolerance: tolerance) },
+                                      exactCurve: exact, exactParameterDomain: .closed(lower, upper), exactPointParameters: parameters)
             }
-            let reference = StableSubshapeReference(subshapeID: subshapeID, geometrySignature: try SubshapeGeometrySignatureBuilder(
-                model: context.brep, tolerance: tolerance).signature(for: .edge(edge)))
-            return SurfaceEdgeContinuity(source: source, bodyRole: .sheet, edge: reference, order: .curvature, tension: bridge.tension,
-                                         angularAllowance: bridge.angularAllowance, curvatureAllowance: bridge.curvatureAllowance)
+            let (curveA, curveB) = (featureEvaluationStageID(featureID: feature.id, domain: .sheetBridgeTrim, ordinal: 10 + 2 * ordinal),
+                                    featureEvaluationStageID(featureID: feature.id, domain: .sheetBridgeTrim, ordinal: 11 + 2 * ordinal))
+            let (sectionA, sectionB) = (try curve(pair.0, as: curveA), try curve(pair.1, as: curveB))
+            guard let a0 = sectionA.points.first, let a1 = sectionA.points.last, let b0 = sectionB.points.first, let b1 = sectionB.points.last else {
+                throw TopologyError.missingReference("A bridged edge has no points.")
+            }
+            let reversed = (a0 - b0).length + (a1 - b1).length > (a0 - b1).length + (a1 - b0).length
+            augmented.curves[curveA] = [sectionA]
+            augmented.curves[curveB] = [sectionB]
+            func continuity(_ source: FeatureID, _ edge: EdgeID) throws -> SurfaceEdgeContinuity? {
+                guard bridge.shape == .curvature else { return nil }
+                guard let subshapeID = context.subshapeIDs(for: .edge(edge)).first else {
+                    throw failure(.missingReference, "A bridged edge has no identity.")
+                }
+                let reference = StableSubshapeReference(subshapeID: subshapeID, geometrySignature: try SubshapeGeometrySignatureBuilder(
+                    model: context.brep, tolerance: tolerance).signature(for: .edge(edge)))
+                return SurfaceEdgeContinuity(source: source, bodyRole: .sheet, edge: reference, order: .curvature, tension: bridge.tension,
+                                             angularAllowance: bridge.angularAllowance, curvatureAllowance: bridge.curvatureAllowance)
+            }
+            return LoftFeature(sections: [
+                LoftSectionReference(section: .curve(CurveSectionReference(featureID: curveA)), continuity: try continuity(bridge.first, pair.0)),
+                LoftSectionReference(section: .curve(CurveSectionReference(featureID: curveB, isReversed: reversed)),
+                                     continuity: try continuity(bridge.second, pair.1)),
+            ], options: LoftOptions(resultKind: .sheet))
         }
-        let loft = LoftFeature(sections: [
-            LoftSectionReference(section: .curve(CurveSectionReference(featureID: curveA)), continuity: try continuity(bridge.first, firstEdge)),
-            LoftSectionReference(section: .curve(CurveSectionReference(featureID: curveB, isReversed: reversed)),
-                                 continuity: try continuity(bridge.second, secondEdge)),
-        ], options: LoftOptions(resultKind: .sheet))
+        let lofts = try pairs.enumerated().map { index, pair in try pairLoft(pair, ordinal: UInt64(index)) }
+        let loft = lofts[0]
         let walls: [FeatureID] = switch bridge.trimWalls {
         case .none: []
         case .both: [bridge.first, bridge.second]
         case .first: [bridge.first]
         case .second: [bridge.second]
         }
-        guard walls.isEmpty == false else {
+        guard walls.isEmpty == false || lofts.count > 1 else {
             return try LoftFeatureEvaluator(sewer: sewer).evaluate(feature: FeatureNode(id: feature.id, operation: .loft(loft)), context: augmented)
         }
         // Trim walls between boundary edges: the bridge starts on each sheet's own edge, so nothing
@@ -371,12 +381,16 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw failure(.unsupportedCapability, "This evaluator cannot join a Bridge Surface with its walls.")
         }
         var stages = FeatureEvaluationStages(augmented)
-        let bridgeStage = featureEvaluationStageID(featureID: feature.id, domain: .sheetBridgeTrim, ordinal: 2)
-        let lofted = try LoftFeatureEvaluator(sewer: sewer).evaluate(feature: FeatureNode(id: bridgeStage, operation: .loft(loft)),
-                                                                     context: stages.context)
-        stages.apply(lofted)
         var joined = try walls.map { try context.bodyID(generatedBy: $0) }
-        joined.append(try stages.publishedBody(of: lofted, featureID: feature.id, what: "Bridging boundary edges"))
+        // Each pair's bridge a stage of its own (the first at the original ordinal), all joined.
+        for (index, pairBridge) in lofts.enumerated() {
+            let bridgeStage = featureEvaluationStageID(featureID: feature.id, domain: .sheetBridgeTrim,
+                                                       ordinal: index == 0 ? 2 : 100 + UInt64(index))
+            let lofted = try LoftFeatureEvaluator(sewer: sewer).evaluate(feature: FeatureNode(id: bridgeStage, operation: .loft(pairBridge)),
+                                                                         context: stages.context)
+            stages.apply(lofted)
+            joined.append(try stages.publishedBody(of: lofted, featureID: feature.id, what: "Bridging boundary edges"))
+        }
         let sewn = try joiner.joinSheets(bodyIDs: joined, closed: false, featureID: feature.id, context: stages.context)
         let replaced = try joined.reduce(into: Set<SubshapeID>()) { result, bodyID in
             result.formUnion(try BodyTopologyScope(bodyID: bodyID, model: stages.context.brep).subshapeIDs(in: stages.context.subshapes))
@@ -384,5 +398,76 @@ public struct SheetBridgeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
         let model = try BRepBodyModelReplacer().replacing(bodyIDs: Set(joined), with: sewn.brep, in: stages.context.brep)
         return try stages.publish(EvaluationResult(brep: model, subshapes: sewn.subshapes,
                                                    removedSubshapeIDs: replaced, lineage: sewn.lineage), featureID: feature.id)
+    }
+
+    /// Propagate: the pairs of boundary edges through `seed`, each sheet's chain of boundary edges
+    /// meeting tangentially walked from it both ways, the two chains paired in step (the second
+    /// walked the way it runs beside the first) as far as both go.
+    private func propagatedPairs(_ first: EdgeID, _ second: EdgeID, first firstBoundary: [EdgeID], second secondBoundary: [EdgeID],
+                                 context: EvaluationContext, failure: (KernelErrorCode, String) -> KernelError) throws -> [(EdgeID, EdgeID)] {
+        let tolerance = context.tolerance
+        let model = context.brep
+        /// An edge's end points and unit tangents there, along its vertices' order.
+        func run(_ id: EdgeID) throws -> (start: VertexID, end: VertexID, startTangent: Vector3D, endTangent: Vector3D) {
+            guard let edge = model.edges[id], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+                throw TopologyError.missingReference("A bridged edge is missing.")
+            }
+            let sense: Double = trim.endParameter >= trim.startParameter ? 1 : -1
+            let at = { (t: Double) throws -> Vector3D in
+                try (curve.differentialGeometry(at: t, tolerance: tolerance).firstDerivative * sense).normalized(tolerance: tolerance.distance)
+            }
+            return (edge.startVertexID, edge.endVertexID, try at(trim.startParameter), try at(trim.endParameter))
+        }
+        /// The chain through `seed` on a sheet's boundary, in the seed's own direction, and the
+        /// seed's place in it.
+        func chain(_ seed: EdgeID, _ boundary: [EdgeID]) throws -> (edges: [EdgeID], seedIndex: Int) {
+            var byVertex: [VertexID: [EdgeID]] = [:]
+            for id in boundary {
+                let r = try run(id)
+                byVertex[r.start, default: []].append(id)
+                byVertex[r.end, default: []].append(id)
+            }
+            /// The next edge on from `edge` past its `atEnd` end, when it meets it tangentially.
+            func next(_ edge: EdgeID, atEnd: Bool) throws -> (EdgeID, Bool)? {
+                let r = try run(edge)
+                let vertex = atEnd ? r.end : r.start
+                let leaving = atEnd ? r.endTangent : r.startTangent * -1
+                guard let others = byVertex[vertex]?.filter({ $0 != edge }), others.count == 1, let other = others.first else { return nil }
+                let o = try run(other)
+                // Walking on, the other edge leaves the vertex from its start or its end.
+                let fromStart = o.start == vertex
+                let onward = fromStart ? o.startTangent : o.endTangent * -1
+                guard leaving.dot(onward) >= cos(tolerance.angle * 1000) else { return nil }
+                return (other, fromStart)
+            }
+            var forward: [EdgeID] = [], backward: [EdgeID] = []
+            var (edge, atEnd) = (seed, true)
+            while let (other, fromStart) = try next(edge, atEnd: atEnd), other != seed, forward.contains(other) == false {
+                forward.append(other)
+                (edge, atEnd) = (other, fromStart)
+            }
+            (edge, atEnd) = (seed, false)
+            while let (other, fromStart) = try next(edge, atEnd: atEnd), other != seed,
+                  backward.contains(other) == false, forward.contains(other) == false {
+                backward.append(other)
+                (edge, atEnd) = (other, fromStart)
+            }
+            return (backward.reversed() + [seed] + forward, backward.count)
+        }
+        let a = try chain(first, firstBoundary)
+        var b = try chain(second, secondBoundary)
+        // The second chain runs the way the first does when its seed's start lies by the first's.
+        let (ra, rb) = (try run(first), try run(second))
+        func point(_ v: VertexID) throws -> Point3D {
+            guard let p = model.vertices[v]?.point else { throw TopologyError.missingReference("A bridged vertex is missing.") }
+            return p
+        }
+        let along = (try point(ra.start) - point(rb.start)).length + (try point(ra.end) - point(rb.end)).length
+        let across = (try point(ra.start) - point(rb.end)).length + (try point(ra.end) - point(rb.start)).length
+        if across < along { b = (b.edges.reversed(), b.edges.count - 1 - b.seedIndex) }
+        let before = min(a.seedIndex, b.seedIndex)
+        let after = min(a.edges.count - 1 - a.seedIndex, b.edges.count - 1 - b.seedIndex)
+        guard before + after >= 0 else { throw failure(.invalidInput, "A propagated bridge has no pair of edges.") }
+        return (-before...after).map { (a.edges[a.seedIndex + $0], b.edges[b.seedIndex + $0]) }
     }
 }
