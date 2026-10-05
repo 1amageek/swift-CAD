@@ -119,7 +119,8 @@ public struct DefaultFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
             cutter: BRepBodyHalfSpaceCutter(sewer: sewer, applicator: ExactBooleanOperationApplicator())
         )
         self.faceDraftEvaluator = FaceDraftFeatureEvaluator(resolver: resolver, sewer: sewer, applicator: ExactBooleanOperationApplicator())
-        self.faceOffsetEvaluator = FaceOffsetFeatureEvaluator(resolver: resolver, faceExtruder: extrudeEvaluator)
+        self.faceOffsetEvaluator = FaceOffsetFeatureEvaluator(resolver: resolver, faceExtruder: extrudeEvaluator, sewer: sewer,
+                                                              applicator: ExactBooleanOperationApplicator())
         self.faceMoveEvaluator = FaceMoveFeatureEvaluator(resolver: resolver)
         self.edgeMoveEvaluator = EdgeMoveFeatureEvaluator(resolver: resolver)
         self.topologyTransformEvaluator = TopologyTransformFeatureEvaluator(resolver: resolver)

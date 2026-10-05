@@ -1117,15 +1117,22 @@ any point, on it or off it, in closed form for analytic surfaces (a sphere's nor
 its radial direction, at its poles too). An edge that
 would collapse or reverse, surfaces that no longer meet near an edge or vertex,
 and a face whose outward side would turn over are refused. Push Face's Grow
-(Plasticity's video of an L-cube's notch pushed past its outer wall) takes one
-planar face pushed out, without an adjacent angle, past the plane of a parallel
-wall of its body facing the same way: Fixed fills up to that wall (the face extruded
-by the gap and joined, coplanar faces merging), Moving then pushes the face it shares
-with the wall on by the rest, in place; None re-solves in place and, when the faces
-around cannot follow, keeps the face going by itself — extruded its whole distance
-and joined outward, cut inward. Grow for several faces, curved faces, oblique walls or an
-adjacent angle is the in-place re-solve, failing explicitly where the faces around cannot follow
-(`FIXME(INCOMPLETE_IMPLEMENTATION)` in `FaceOffsetFeatureEvaluator`). Match Face of one planar face onto a parallel plane
+(Plasticity's video of an L-cube's notch pushed past its outer wall) takes planar
+faces facing one way pushed out, without an adjacent angle, each past the plane of a
+parallel wall of its body facing the same way: Fixed fills each up to its wall (the
+face extruded by its gap and joined, coplanar faces merging; several faces are read as
+profiles where they are and extruded one after another as stages), Moving then pushes
+the faces they share with the walls on by the rest, in place; None re-solves in place
+and, when the faces around cannot follow, keeps the faces going by themselves — each
+extruded its whole distance and joined outward, cut inward. Under Fixed a polygonal
+face whose corners all reach an oblique wall facing forward short of the distance
+fills up to that wall's plane: the prism of its corners carried along the push onto
+the plane (`PolygonPrismRequestBuilder`) sewn and joined (the general Boolean leaves
+the coplanar pieces as separate faces). Moving into an oblique wall, faces with curved
+edges into one, curved faces and an adjacent angle are the in-place re-solve, failing
+explicitly where the faces around cannot follow (`FIXME(INCOMPLETE_IMPLEMENTATION)` in
+`FaceOffsetFeatureEvaluator`). `PushFaceTests` own two notch faces grown together by
+each mode and a step filled up to a leaning wall, by exact volumes. Match Face of one planar face onto a parallel plane
 facing the same way is that push, Grow and all. One planar face running into another wall on
 its way out to a curved reference (the re-solve's topology failure) is pushed by Push Face's Grow
 out to where it reaches the reference — Fixed stopping at the wall — and the face it then ends on

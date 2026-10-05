@@ -21,6 +21,7 @@ package enum FeatureEvaluationStageDomain: UInt64, Sendable {
     case insertSheetImprint = 0x47C3_A9E1_0B6D_F52A
     case extractPlugHeal = 0x8D2F_61B4_E93A_07C5
     case extractPlugCopy = 0x13E8_D75A_4C0F_B926
+    case pushFaceGrow = 0x5A93_0E7C_D24B_61F8
 }
 
 /// Derives a deterministic, non-published identity for one internal evaluation stage.

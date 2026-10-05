@@ -190,5 +190,60 @@ struct PushFaceTests {
         #expect(abs(measured - volume * 1e-9) < 1e-15, "\(grow) \(measured)")
         #expect(model.faces.count == count, "\(grow) \(model.faces.count)")
     }
-}
 
+    /// A comb: a 20 mm square with two 10 × 5 mm notches cut from its +x side, 20 mm tall. Both
+    /// notch faces, at x = 10 mm, are pushed together 15 mm out past the walls at x = 20 mm.
+    private func pushedNotches(_ grow: FaceEditGrow) throws -> BRepModel {
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let corners = [(0.0, 0.0), (20.0, 0.0), (20.0, 5.0), (10.0, 5.0), (10.0, 10.0), (20.0, 10.0),
+                       (20.0, 15.0), (10.0, 15.0), (10.0, 20.0), (0.0, 20.0)]
+        let profile = try builder.sketch(on: .xy) { sketch in
+            for k in corners.indices {
+                let (a, b) = (corners[k], corners[(k + 1) % corners.count])
+                _ = sketch.line(from: point(a.0, a.1), to: point(b.0, b.1))
+            }
+        }
+        let body = try builder.extrude(profile, distance: millimeters(20))
+        let notches = try faces(in: builder, of: body) { isPlane($0, normal: .unitX, at: 0.010) }
+        #expect(notches.count == 2)
+        _ = try builder.offsetFace(target: body, faces: notches, distance: millimeters(15), grow: grow)
+        return try solid(builder)
+    }
+
+    /// Two faces grown together: Moving fills both notches and carries the wall on (25 × 20 × 20
+    /// mm³), Fixed fills them (the 20 mm cube), None keeps each going as a 15 × 5 mm bar
+    /// (6000 + 2 × 1500 mm³).
+    @Test(.timeLimit(.minutes(2)), arguments: [(FaceEditGrow.moving, 10_000.0), (FaceEditGrow.fixed, 8_000.0),
+                                                (FaceEditGrow.none, 9_000.0)])
+    func twoNotchFacesPushedPastTheWallGrowTogether(grow: FaceEditGrow, volume: Double) throws {
+        let model = try pushedNotches(grow)
+        let measured = try model.volume(tolerance: .standard)
+        #expect(abs(measured - volume * 1e-9) < 1e-15, "\(grow) \(measured)")
+        if grow != .none { #expect(model.faces.count == 6, "\(grow) \(model.faces.count)") }
+    }
+
+    /// An L-shaped prism whose outer wall leans (from (20, 0) to (24, 10) mm), 20 mm tall: its
+    /// step face at x = 10 mm pushed 25 mm out, every corner running into the leaning wall's plane
+    /// first. Fixed fills up to that plane: the quadrilateral (0, 0), (20, 0), (28, 20), (0, 20),
+    /// 480 mm² × 20 mm. (The general Boolean leaves the coplanar pieces as separate faces.)
+    @Test(.timeLimit(.minutes(2)))
+    func aStepPushedIntoALeaningWallFillsUpToIt() throws {
+        let grow = FaceEditGrow.fixed
+        var builder = DocumentBuilder(units: .millimeters, tolerance: .standard)
+        let corners = [(0.0, 0.0), (20.0, 0.0), (24.0, 10.0), (10.0, 10.0), (10.0, 20.0), (0.0, 20.0)]
+        let profile = try builder.sketch(on: .xy) { sketch in
+            for k in corners.indices {
+                let (a, b) = (corners[k], corners[(k + 1) % corners.count])
+                _ = sketch.line(from: point(a.0, a.1), to: point(b.0, b.1))
+            }
+        }
+        let body = try builder.extrude(profile, distance: millimeters(20))
+        let step = try faces(in: builder, of: body) { isPlane($0, normal: .unitX, at: 0.010) }
+        #expect(step.count == 1)
+        _ = try builder.offsetFace(target: body, faces: step, distance: millimeters(25), grow: grow)
+        let model = try solid(builder)
+        let measured = try model.volume(tolerance: .standard)
+        #expect(abs(measured - 9_600e-9) < 1e-15, "\(measured)")
+        #expect(model.bodies.count == 1)
+    }
+}
