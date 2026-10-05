@@ -37,10 +37,14 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
     public var angleTolerance: Double
     /// Whether each guide divides the trimmed sheet into faces meeting along it.
     public var dividesAlongGuides: Bool
+    /// Whether the sheet is the least-area one through its boundary and guides (Patch's Faces
+    /// Minimal, inferred with the user 2026-10-05) rather than the flatness-weighted fair one.
+    public var minimizesArea: Bool
 
     public init(boundaries: [SquareSide], guides: [CurveSectionReference] = [], quadSided: Bool = false, flatness: Double = 0.95,
                 boundaryFlow: SquareFitOptions.BoundaryFlow = .adjacent, quality: Quality = .auto, satisfiesTolerances: Bool = true,
-                positionTolerance: Double = 1e-5, angleTolerance: Double = 0.1 * Double.pi / 180, dividesAlongGuides: Bool = false) {
+                positionTolerance: Double = 1e-5, angleTolerance: Double = 0.1 * Double.pi / 180, dividesAlongGuides: Bool = false,
+                minimizesArea: Bool = false) {
         self.boundaries = boundaries
         self.guides = guides
         self.quadSided = quadSided
@@ -51,6 +55,7 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         self.positionTolerance = positionTolerance
         self.angleTolerance = angleTolerance
         self.dividesAlongGuides = dividesAlongGuides
+        self.minimizesArea = minimizesArea
     }
 
     public func validate() throws {
@@ -73,6 +78,9 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         guard dividesAlongGuides == false || (guides.isEmpty == false && quadSided == false) else {
             throw FeatureEvaluationError.invalidGraph("An XNURBS divides its trimmed sheet along guides it has.")
         }
+        guard minimizesArea == false || quadSided == false else {
+            throw FeatureEvaluationError.invalidGraph("A least-area XNURBS is a trimmed sheet, not a quad-sided one.")
+        }
         guard flatness.isFinite, flatness >= 0, flatness <= 1 else {
             throw FeatureEvaluationError.invalidGraph("An XNURBS's flatness lies in [0, 1].")
         }
@@ -92,12 +100,13 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
 
     private enum CodingKeys: String, CodingKey {
         case boundaries, guides, quadSided, flatness, boundaryFlow, quality, satisfiesTolerances, positionTolerance, angleTolerance, dividesAlongGuides
+        case minimizesArea
     }
 
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.boundaries, .guides, .quadSided, .flatness, .boundaryFlow, .quality, .satisfiesTolerances,
-                                                .positionTolerance, .angleTolerance, .dividesAlongGuides], in: decoder)
+                                                .positionTolerance, .angleTolerance, .dividesAlongGuides, .minimizesArea], in: decoder)
         boundaries = try container.decode([SquareSide].self, forKey: .boundaries)
         guides = try container.decode([CurveSectionReference].self, forKey: .guides)
         quadSided = try container.decode(Bool.self, forKey: .quadSided)
@@ -108,6 +117,7 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         positionTolerance = try container.decode(Double.self, forKey: .positionTolerance)
         angleTolerance = try container.decode(Double.self, forKey: .angleTolerance)
         dividesAlongGuides = try container.decodeIfPresent(Bool.self, forKey: .dividesAlongGuides) ?? false
+        minimizesArea = try container.decodeIfPresent(Bool.self, forKey: .minimizesArea) ?? false
         try validate()
     }
 
@@ -124,5 +134,6 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         try container.encode(positionTolerance, forKey: .positionTolerance)
         try container.encode(angleTolerance, forKey: .angleTolerance)
         if dividesAlongGuides { try container.encode(dividesAlongGuides, forKey: .dividesAlongGuides) }
+        if minimizesArea { try container.encode(minimizesArea, forKey: .minimizesArea) }
     }
 }

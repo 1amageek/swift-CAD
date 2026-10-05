@@ -68,6 +68,33 @@ package struct FairSurfaceSystem {
         }
     }
 
+    /// The area of a sheet near `metric`'s, as the quadratic form its first fundamental form
+    /// freezes: ∫ (G|Su|² − 2F Su·Sv + E|Sv|²) / (2√(EG − F²)) over the square, whose minimiser
+    /// iterated to a fixed point is the area-minimising sheet. Each Gauss point's form is split by
+    /// its Cholesky factor into two rows. Where `metric` gives none (outside the trimmed region)
+    /// the membrane's form holds the sheet instead.
+    package mutating func addAreaFairness(uBasis: Basis, vBasis: Basis,
+                                          metric: (Double, Double) throws -> (e: Double, f: Double, g: Double)?) throws {
+        let nu = uBasis.count
+        for (u, wu) in try Self.gaussPoints(knots: uBasis.knots, count: uBasis.degree + 1) {
+            let bu = uBasis.derivatives(at: u, order: 1)
+            for (v, wv) in try Self.gaussPoints(knots: vBasis.knots, count: vBasis.degree + 1) {
+                let bv = vBasis.derivatives(at: v, order: 1)
+                var (a, b, c) = (1.0, 0.0, 1.0)
+                if let (e, f, g) = try metric(u, v) {
+                    let area = (e * g - f * f).squareRoot()
+                    guard area.isFinite, area > 0 else { continue }
+                    (a, b, c) = (g / (2 * area), -f / (2 * area), e / (2 * area))
+                }
+                let l11 = a.squareRoot(), l21 = b / l11, l22 = max(0, c - l21 * l21).squareRoot()
+                let weight = (wu * wv).squareRoot()
+                let su = Self.product(bu, bv, du: 1, dv: 0, nu: nu), sv = Self.product(bu, bv, du: 0, dv: 1, nu: nu)
+                addScalar(su.map { ($0.0, $0.1 * l11 * weight) } + sv.map { ($0.0, $0.1 * l21 * weight) }, target: [0, 0, 0])
+                addScalar(sv.map { ($0.0, $0.1 * l22 * weight) }, target: [0, 0, 0])
+            }
+        }
+    }
+
     /// The tensor products of the u and v basis derivatives of the given orders, by control index
     /// j·nu + i.
     package static func product(_ bu: [[Double]], _ bv: [[Double]], du: Int, dv: Int, nu: Int) -> [(Int, Double)] {
