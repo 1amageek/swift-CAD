@@ -26,5 +26,5 @@
 
 - [x] TF1 Fix the failing tests at their root cause: stale schema/format expectations, the facade's geometry dependency, empty STEP DATA as invalid data, polynomial B-spline surface derivatives free of quotient-rule residue, implicit graph connections allowing curvature across the tolerance gap, surface-lift position boxes not widened to derivative width, native-span values bounded by the restricted Bernstein hull. `depends:none` `parallel:none`
 - [x] TF2 Move the two remaining XCTest files to Swift Testing. `depends:none` `parallel:none`
-- [ ] TF3 Run the whole suite optimized and in parallel (`Scripts/swift-test-parallel.py`, README). `depends:TF1,TF2` `parallel:none`
+- [x] TF3 Run the whole suite optimized and in parallel (`Scripts/swift-test-parallel.py`, README). `depends:TF1,TF2` `parallel:none`
 - [ ] TF.I Whole suite passes through the parallel optimized runner. `depends:TF1,TF2,TF3` `parallel:none`

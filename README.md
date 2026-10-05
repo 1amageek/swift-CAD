@@ -275,7 +275,21 @@ Production code should preserve error meaning with `throws` or `do`/`catch`.
 
 ## Testing
 
-Build the package test products once, then run only the affected suites with a command-level timeout:
+Run the whole suite optimized and in parallel:
+
+```bash
+Scripts/swift-test-parallel.py            # build -c release -Xswiftc -enable-testing, run all
+Scripts/swift-test-parallel.py --skip-build --filter 'CrossedCylinders'
+```
+
+Certified geometry is arithmetic-bound, so the optimized test bundles run ten to thirty times
+faster than a debug build; `-enable-testing` keeps `@testable` imports. The script splits each
+bundle into its Swift Testing suites and runs them concurrently through
+`swiftpm-testing-helper` (`--jobs` processes, `--width` tests per process), which avoids the
+scratch directory's SwiftPM lock that serializes concurrent `swift test` runs. Logs land in
+`.build/parallel-test-logs`; the exit status is nonzero when any suite fails.
+
+For a single suite during development, build the package test products once, then run only the affected suites with a command-level timeout:
 
 ```bash
 TOOLCHAINS=com.apple.dt.toolchain.XcodeDefault xcodebuild build-for-testing \
