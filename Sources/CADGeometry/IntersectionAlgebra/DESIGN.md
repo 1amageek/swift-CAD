@@ -182,3 +182,57 @@ it forwards all four admission operations without creating or resetting an
 allowance. Tests must cover irrational towers, distinct roots with
 the same preceding coordinate, repeated roots, complex-only fibers, exact closed
 endpoint inclusion, excluded domains, cancellation and root/work/storage limits.
+
+### Full Rational Projection Preparation
+
+`ExactIntersectionProjection` owns a full Collins projection polynomial set;
+its result is preparation for sign-invariant lifting, never a real-component
+or intersection publication. Unlike restricted well-oriented projection, it
+retains degree changes and nullification witnesses. The construction follows
+[the full projection operator and principal subresultant matrix definition](https://ceur-ws.org/Vol-1974/RP2.pdf).
+
+`ExactIntersectionProjectionTower` applies this operator from the highest
+original coordinate down through coordinate zero and retains every level's
+source/output set. Original coordinate slots are preserved rather than renamed.
+The last level has no nonconstant projection output; its univariate sources
+remain available for complete root lifting. No level publishes representative
+samples as a whole-cell proof.
+
+For each input polynomial, retain every nonzero reductum obtained by removing
+its current highest-axis coefficient. Project each reductum's leading coefficient
+and all principal subresultant coefficients with its derivative. For each pair
+of input polynomials, project principal subresultants of every pair of their
+reducta. Axis-independent input polynomials pass to the lower level unchanged.
+Only identically zero or nonzero rational constant outputs are omitted. Nonzero
+outputs are normalized by a rational scalar, never by a parameter-dependent
+coefficient. Duplicate suppression checks exact polynomial equality.
+
+For degrees m and n, principal index j uses the first n-j shifted rows of the
+first polynomial and the first m-j shifted rows of the second, restricted to
+the first m+n-2j columns of the Sylvester matrix. Its exact determinant is
+computed by fraction-free Bareiss elimination over the remaining polynomial
+ring. Row permutations retain their determinant sign. Every division is exact
+polynomial division with a strictly descending leading monomial; a nonzero
+remainder is an explicit invariant failure. The empty determinant is one.
+
+```text
+original rational polynomials
+ -> all nonzero reducta and leading coefficients
+ -> derivative and pair principal subresultants
+ -> exact lower-coordinate projection set
+ -> sign-invariant lifting (separate completion obligation)
+```
+
+The same caller pays coefficient extraction, reducta, matrix payloads, arithmetic,
+deduplication and recursive levels before retained growth. No matrix dimension,
+polynomial count or degree is converted into a fresh allowance. Cancellation,
+ring mismatch, overflow, nonexact division and exhausted work/storage abort the
+whole preparation. Storage admission covers retained payload slots, not an
+unmeasured claim about Swift allocator overhead. Scratch matrices are local;
+immutable outputs have identical Sendable semantics on all targets.
+
+Verification must compare index-zero elimination against the existing independent
+bivariate resultant, verify repeated-root principal coefficients, retain witnesses
+for degree drops and complete fiber nullification, and reject nonexact division,
+invalid axes/rings and independent ledger exhaustion. Projection preparation alone
+does not prove delineability, real cell adjacency or public SSI/CS completion.

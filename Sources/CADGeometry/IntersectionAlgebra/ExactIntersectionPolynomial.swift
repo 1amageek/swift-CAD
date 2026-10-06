@@ -270,6 +270,61 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         return try scaled(by: .one.divided(by: lead.coefficient, usage: &usage), usage: &usage)
     }
 
+    package func axisCoefficients<B: RationalAlgebraAdmitting>(at axis: Int,
+        usage: inout B) throws -> [Self] {
+        guard axis >= 0, axis < variableCount else {
+            throw rationalAlgebraFailure("Projection axis does not belong to the original ring.")
+        }
+        let terms = try orderedTerms(usage: &usage)
+        var degree = -1
+        for term in terms {
+            try intersectionAlgebraStep(&usage)
+            degree = max(degree, try term.key.exponent(at: axis))
+        }
+        if degree < 0 { return [] }
+        let count = try rationalAlgebraCount(degree, 1)
+        try RationalAlgebraStorage.retain(count, of: Self.self, usage: &usage)
+        var result = Array(repeating: try Self.zero(variableCount: variableCount), count: count)
+        for term in terms {
+            try intersectionAlgebraStep(&usage)
+            let power = term.key
+            let exponent = try power.exponent(at: axis)
+            let coefficient = try Self.monomial(variableCount: variableCount,
+                powers: (axis == 0 ? 0 : power.a, axis == 1 ? 0 : power.b,
+                         axis == 2 ? 0 : power.c, axis == 3 ? 0 : power.d,
+                         axis == 4 ? 0 : power.e), coefficient: term.value, usage: &usage)
+            result[exponent] = try result[exponent].adding(coefficient, usage: &usage)
+        }
+        return result
+    }
+
+    package func dividedExactly<B: RationalAlgebraAdmitting>(by divisor: Self,
+        usage: inout B) throws -> Self {
+        try requireSameRing(divisor)
+        guard let denominator = try divisor.leading(usage: &usage) else {
+            throw rationalAlgebraFailure("Exact intersection polynomial division has a zero divisor.")
+        }
+        var pending = self
+        var quotient = try Self.zero(variableCount: variableCount)
+        while let lead = try pending.leading(usage: &usage) {
+            try intersectionAlgebraStep(&usage)
+            guard denominator.power.divides(lead.power) else {
+                throw rationalAlgebraFailure("Exact intersection polynomial division has a nonzero remainder.")
+            }
+            let power = try lead.power.quotient(by: denominator.power, variableCount: variableCount)
+            let term = try Self.monomial(variableCount: variableCount,
+                powers: (power.a, power.b, power.c, power.d, power.e),
+                coefficient: lead.coefficient.divided(by: denominator.coefficient, usage: &usage),
+                usage: &usage)
+            pending = try pending.subtracting(term.multiplied(by: divisor, usage: &usage), usage: &usage)
+            if let next = try pending.leading(usage: &usage), !next.power.precedes(lead.power) {
+                throw rationalAlgebraFailure("Exact polynomial division did not decrease its leading monomial.")
+            }
+            quotient = try quotient.adding(term, usage: &usage)
+        }
+        return quotient
+    }
+
     private func requireSameRing(_ other: Self) throws {
         guard variableCount == other.variableCount else {
             throw rationalAlgebraFailure("Intersection arithmetic cannot mix original parameter rings.")
