@@ -31,6 +31,24 @@ membership, splits them at requested chart boundaries, preserves remaining
 discrete events and returns correspondence values. It does not build topology,
 choose Boolean material classification or replace the existing point-only API.
 
+### Original Polynomial Isolated-Point Source Composition
+
+The bounded Native curve versus original ruled surface point route is owned by
+[OriginalPolynomialCurveSurfacePoints](../OriginalPolynomialCurveSurfacePoints/DESIGN.md).
+Shared ordinary/caller-admitted rich and discrete entries select its same producer
+prior to legacy procedural traversal. Its source eligibility is exact and limited
+to the child contract. After admission, all coverage, positive-dimensional, resource
+and cancellation failures propagate without invoking another solver.
+`CurveSurfaceIntersectionResult.originalPolynomialPoints` retains the original
+curve/surface and complete selected or excluded parameter-domain evidence, including
+empty results. It is nil on unchanged source paths; existing Native receipts and
+point Codable are unchanged. This bounded route publishes only complete isolated
+parameter tuples and rejects every positive-dimensional mixture atomically. Complete
+ruled overlap and other procedural families remain explicit unfinished child scope.
+The [shared original homogeneous publisher](NativePointRelations/DESIGN.md#shared-original-homogeneous-point-publication)
+keeps the same numerical containment, classification and caller allowance on both
+the existing Native and new original-source path.
+
 ### Closed Original-Domain Endpoint Authority
 
 The bounded regular graph endpoint route admits a nonperiodic, single clamped

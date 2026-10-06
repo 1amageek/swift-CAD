@@ -23,6 +23,8 @@ struct CurveSurfaceOverlapResolver {
                  tolerance: ModelingTolerance, intersector: DefaultCurveSurfaceIntersector) throws -> CurveSurfaceIntersectionResult {
         if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
             options: options, tolerance: tolerance, retainingRelations: true) { return native }
+        if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+            options: options, tolerance: tolerance) { return original }
         try options.validate(tolerance: tolerance)
         try curve.validate(tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
@@ -182,6 +184,8 @@ struct CurveSurfaceOverlapResolver {
         invocation: CurveSurfaceQueryInvocation) throws -> CurveSurfaceIntersectionResult {
         if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
             options: options, tolerance: tolerance, invocation: invocation, retainingRelations: true) { return native }
+        if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+            options: options, tolerance: tolerance, invocation: invocation) { return original }
         try options.validate(tolerance: tolerance)
         try invocation.consumeFixedWork()
         guard case .bSpline(let spline) = curve, case .plane(let plane) = surface,

@@ -222,6 +222,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       maximumAlgebraicDepth: maximumAlgebraicDepth)
     if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
       options: options, tolerance: tolerance, invocation: context) { return native.points }
+    if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+      options: options, tolerance: tolerance, invocation: context) { return original.points }
     try curve.validateOriginalSource(tolerance: tolerance,
       remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: context.maximumSubdivisionDepth,
       consumeWork: { _ in try context.consumeFixedWork() }, consumeStorage: consumeStorage,
@@ -252,6 +254,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
   ) throws -> [CurveSurfaceIntersection] {
     if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
       options: options, tolerance: tolerance, invocation: invocation) { return native.points }
+    if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+      options: options, tolerance: tolerance, invocation: invocation) { return original.points }
     try invocation?.consumeFixedWork()
     try options.validate(tolerance: tolerance)
     try curve.validate(tolerance: tolerance)

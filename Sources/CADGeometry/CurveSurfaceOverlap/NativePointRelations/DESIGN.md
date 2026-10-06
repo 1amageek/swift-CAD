@@ -103,6 +103,24 @@ error and residual obey unchanged distance tolerance. Kind compares original
 squared tangent/normal incidence to the exact represented angle threshold;
 undefined tangent or normal is mixed. Point Codable stays unchanged.
 
+### Shared Original Homogeneous Point Publication
+
+`NativeCurveSurfacePointPublisher` owns the existing exact zero-cell to numerical
+representative algorithm. Its internal port accepts the retained original Native
+curve law, four raw surface homogeneous polynomials and three exact unnormalized
+normal numerators in the unchanged (t,u,v) coordinate order. The source producer
+owns those laws, complete selected coverage and closed domains; the publisher owns
+isolation, original incidence classification, unchanged tolerance/iteration checks
+and numerical containment. Native production uses this same port with its existing
+surface laws. A new source issuer must provide its original homogeneous laws and
+exact derivative cross-product numerators, retain the original shape owner and
+reject incomplete or positive-dimensional coverage before calling the port. No
+Native substitute, fitted law, approximate existence test or budget reset is
+permitted. All calls use the same value-local NativeCurveSurfacePointAllowance.
+The extraction preserves Native source identity, classification, representative
+guarantees, limits and immutable localization lifetime; Native focused regression
+and the new source public entry tests verify the respective composition boundaries.
+
 ## Runtime Flows
 The same allowance admits preparation, source bindings, selected complete decomposition, exact ordering,
 retention and localization. Product count uses checked multiplication and the
