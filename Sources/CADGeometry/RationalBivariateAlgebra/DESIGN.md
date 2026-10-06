@@ -36,6 +36,14 @@ finite original Double bits -> exact integer ratio
 
 ## Contracts and Invariants
 
+Original uniquely isolated roots compare a linear expression by exact Sturm
+variations at its zero, after checking original endpoint inclusion and order.
+Ordered-parent-field stations are evaluated in that retained parent owner;
+rational root stations remain original rational coefficients. No floating
+station or broader caller depth is introduced. This sign decision consumes
+ordinary arithmetic and coefficient-sign admission but does not subdivide the
+queried root merely to determine on which side of the station it lies.
+
 Ordered-field fraction operations reduce numerator and denominator modulo the
 retained extension root's defining polynomial. This is an exact identity at that
 root, not a change to its defining source or isolation. Denominator leading

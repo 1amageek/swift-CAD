@@ -2,7 +2,7 @@ import CADCore
 
 /// An immutable sign program whose operands belong to one original polynomial list.
 package struct ExactIntersectionBooleanProgram: Sendable {
-    package enum Instruction: Sendable {
+    package enum Instruction: Equatable, Sendable {
         case literal(Bool)
         case atom(Int, ExactAlgebraicRealRoot.Sign)
         case not

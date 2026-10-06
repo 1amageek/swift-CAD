@@ -129,6 +129,27 @@ public struct ExactAlgebraicRealRoot: Sendable {
             throw rationalAlgebraFailure("Algebraic source sign needs a univariate expression and caller depth.")
         }
         if expression.isZero { return .zero }
+        if expression.uDegree == 1 {
+            try Task.checkCancellation(); try usage.visitExactCell(depth: isolation.isolationDepth)
+            let constant = try expression.evaluated(atU: .zero, v: .zero, usage: &usage)
+            let leading = try expression.evaluated(atU: .one, v: .zero, usage: &usage)
+                .subtracting(constant, usage: &usage)
+            guard !leading.isZero else { throw rationalAlgebraFailure("A linear expression lost its original leading coefficient.") }
+            let station = try constant.negated.divided(by: leading, usage: &usage)
+            let positive: Sign = leading.isPositive ? .positive : .negative
+            let negative: Sign = leading.isPositive ? .negative : .positive
+            let lowerOrder = try station.subtracting(isolation.lower, usage: &usage)
+            let upperOrder = try station.subtracting(isolation.upper, usage: &usage)
+            if lowerOrder.isNegative || lowerOrder.isZero && isolation.excludesLowerEndpoint { return positive }
+            if upperOrder.isPositive || upperOrder.isZero && isolation.excludesUpperEndpoint { return negative }
+            if try polynomial.evaluated(atU: station, v: .zero, usage: &usage).isZero { return .zero }
+            let left = try sequence.count(lower: isolation.lower, upper: station,
+                excludesLower: isolation.excludesLowerEndpoint, excludesUpper: false, usage: &usage)
+            guard left == 0 || left == 1 else {
+                throw rationalAlgebraFailure("Original linear sign contradicts its unique real-root authority.")
+            }
+            return left == 0 ? positive : negative
+        }
         let gcd = try ExactBivariateGCD().univariateGCD(polynomial, expression, usage: &usage)
         if gcd.uDegree > 0 {
             let shared = try ExactUnivariateSturmSequence(gcd, usage: &usage)

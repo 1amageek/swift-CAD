@@ -48,6 +48,56 @@ original native laws + original selected domains
 
 ## Contracts and Invariants
 
+### Public Original Rational Relation Selection
+
+`OriginalPolynomialRelationResolving` is the public witness-table boundary for
+complete rational relations in the existing one-through-four original-coordinate
+ring. `OriginalRationalPolynomial` owns immutable original rational laws;
+`OriginalPolynomialPredicate` owns a validated postfix sign program bound by
+index to that retained law list. `OriginalPolynomialRelation` binds both to
+exact closed or unbounded rational coordinate domains. Strict/open boundaries,
+unions, denominator exclusions and structural diagonals are explicit sign
+predicates, never rounded cuts. This contract does not cover nonrational source
+producers or establish the completion of any entire intersection requirement.
+
+The concrete resolver partitions the complete original law list and domain
+boundaries with derivative-closed cell identity before evaluating the sign
+program. Truth is constant on each full cell. Selection retains the complete
+ambient partition, the original program and every selected full cell. Closure
+and component assembly use those issued selected cells; excluded boundary
+contacts cannot connect components. Selection cannot be reapplied silently to
+a different law list or replace a previous selection receipt.
+
+`OriginalRealRelation` retains the input, complete selected partition, incidence
+and connected components. Public cell identifiers refer only to this immutable
+receipt. Representative coordinates are explicitly cell samples, never bounds
+on a whole cell or a substitute for its sign condition. Exact algebraic sample
+enclosures retain the original field value and inherited depth. Rational point
+membership is checked against original cell conditions; callers can inspect
+zero-dimensional or positive-dimensional components without converting complex
+ideal classification or original Jacobian rank into image dimension.
+
+`OriginalRelationUsage` forwards all work, UInt32-word retention, geometric-cell
+and coefficient-cell admission to the composing callbacks. Its copies retain
+the same callback owners; no private quota or mutable shared state is introduced.
+Non-generic protocol requirements remain usable through Native/WASM/Embedded
+existentials. Invalid rings/programs, foreign cell identifiers, cancellation,
+overflow and independent limits fail before atomic result publication.
+
+Verification owns the public protocol path, real isolated points in positive
+complex-dimensional ideals, vertical/crossing/cusp components, open boundary
+disconnection, boolean unions, denominator exclusions, exact nonrepresentable
+endpoints, algebraic sample refinement and independent caller failures.
+
+Linear original-root comparisons use the existing exact Sturm variation law at
+the expression's unique zero. A uniquely isolated root lies to its left exactly
+when the original interval-to-station count is one, and to its right when zero;
+an admitted in-interval zero of the original polynomial proves equality. Closed
+and excluded endpoints retain their original ownership. This replaces repeated
+localization solely to decide a linear sign, not the caller depth limit or the
+admission of coefficient signs. Persistent scalar refinement then spends causal
+depth on actual value bisections rather than restarting the same root search.
+
 CS coordinates are (t,u,v); SSI coordinates are (u1,v1,u2,v2). One additional
 coordinate can express denominator saturation. Exponents are nonnegative and
 checked for overflow. Higher indexed coordinates have lexicographic priority.

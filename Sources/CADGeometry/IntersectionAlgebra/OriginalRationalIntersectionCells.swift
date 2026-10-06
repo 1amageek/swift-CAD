@@ -38,15 +38,53 @@ package struct OriginalRationalIntersectionCells: Sendable {
     package let stacks: [Stack]
     package let cells: [Cell]
     package let solutionCells: [Int]
+    package let selectionProgram: ExactIntersectionBooleanProgram?
 
     private init(equations: [ExactIntersectionPolynomial], domains: [OriginalRationalParameterDomain],
         nonzeroPolynomials: [ExactIntersectionPolynomial], nonzeroSignOffset: Int,
         partitionPolynomials: [ExactIntersectionPolynomial], partitionSignOffset: Int,
-        tower: ExactIntersectionProjectionTower, stacks: [Stack], cells: [Cell], solutionCells: [Int], excludedPrefixes: [ExcludedPrefix]) {
+        tower: ExactIntersectionProjectionTower, stacks: [Stack], cells: [Cell], solutionCells: [Int], excludedPrefixes: [ExcludedPrefix],
+        selectionProgram: ExactIntersectionBooleanProgram? = nil) {
         self.equations = equations; self.domains = domains; self.tower = tower
         self.nonzeroPolynomials = nonzeroPolynomials; self.nonzeroSignOffset = nonzeroSignOffset
         self.partitionPolynomials = partitionPolynomials; self.partitionSignOffset = partitionSignOffset
         self.stacks = stacks; self.cells = cells; self.solutionCells = solutionCells; self.excludedPrefixes = excludedPrefixes
+        self.selectionProgram = selectionProgram
+    }
+
+    /// The original partition witnesses make predicate truth constant on whole cells.
+    package func selecting<B: RationalAlgebraAdmitting>(_ program: ExactIntersectionBooleanProgram,
+        usage: inout B) throws -> Self {
+        try intersectionAlgebraStep(&usage)
+        guard selectionProgram == nil, program.polynomialCount == partitionPolynomials.count else {
+            throw rationalAlgebraFailure("Original relation selection requires one bound partition predicate.")
+        }
+        try RationalAlgebraStorage.retain(program.maximumStackCount, of: Bool.self, usage: &usage)
+        var scratch: [Bool] = []; scratch.reserveCapacity(program.maximumStackCount)
+        try RationalAlgebraStorage.retain(program.polynomialCount, of: ExactAlgebraicRealRoot.Sign.self, usage: &usage)
+        var signs: [ExactAlgebraicRealRoot.Sign] = []; signs.reserveCapacity(program.polynomialCount)
+        var selected: [Int] = []
+        for index in solutionCells {
+            try intersectionAlgebraStep(&usage)
+            let cell = cells[index]
+            guard cell.coordinates.count == tower.variableCount,
+                cell.signs.count >= partitionSignOffset + program.polynomialCount else {
+                throw rationalAlgebraFailure("Original relation selection lost complete source sign coverage.")
+            }
+            signs.removeAll(keepingCapacity: true)
+            for ordinal in 0..<program.polynomialCount {
+                try intersectionAlgebraStep(&usage)
+                signs.append(cell.signs[partitionSignOffset + ordinal])
+            }
+            if try program.evaluate(signs: signs, scratch: &scratch, usage: &usage) {
+                try RationalAlgebraStorage.retain(1, of: Int.self, usage: &usage)
+                selected.append(index)
+            }
+        }
+        return Self(equations: equations, domains: domains, nonzeroPolynomials: nonzeroPolynomials,
+            nonzeroSignOffset: nonzeroSignOffset, partitionPolynomials: partitionPolynomials,
+            partitionSignOffset: partitionSignOffset, tower: tower, stacks: stacks, cells: cells,
+            solutionCells: selected, excludedPrefixes: excludedPrefixes, selectionProgram: program)
     }
     private struct Admission<B: RationalAlgebraAdmitting>: RationalAlgebraAdmitting {
         var base: B
