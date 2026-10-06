@@ -22,6 +22,18 @@ Oriented trimmed exact boundary -> divergence flux for monomials
 ## Contracts and Invariants
 Every material shell contributes signed flux. A request may lower the original 262144-work/32-depth ceilings; it cannot widen them. A successful result publishes actual consumed work. Mass composition carries one residual request allowance through distinct body integrations and reuses an immutable original moment receipt for repeated occurrences. Fixed-size placement algebra is charged once per occurrence. All ten original integral error intervals are retained for consumer propagation. General directed trims use signed boundary-fan pullbacks, retaining original chart authority and certified loop traversal. Hole winding is normalized by loop role before face/shell signs. Geometry-issued original native rectangles and fan domains retain their one-sided source authority. Smooth cells use original flux Hessians and closed midpoint enclosures for interval Taylor integration; mixed derivatives retain a centered remainder. Lower-order native cells keep full value interval integration. Absolute accuracy is interpreted separately in each original model-unit moment dimension (length powers 3, 4 and 5). Relative accuracy uses the minimum absolute value allowed by the complete result enclosure, so every value in that enclosure meets the request; an enclosure containing zero falls back to the absolute bound. Requested accuracy that cannot be enclosed under the shared fixed allowance fails. Consumer composition propagates the resulting intervals and reports its units and source accuracy; it does not claim the unscaled integral request as an SI output-width promise.
 
+Adaptive cell evaluation borrows its caller work callback for the complete
+synchronous pcurve-encloser and predicate queries. These query-local producers
+are destroyed before the cell value is returned; the returned cell retains
+only its previously prepared domain and integral bounds, not the borrowed
+callback.
+
+The bounded immutable BRep receipt invokes a work-unit callback without a
+subdivision-depth argument. Moment preparation charges that validation work at
+depth zero in the existing invocation ledger. Original source recursion and
+subdivision ceilings remain explicit constructor arguments; depth zero here
+does not enlarge either ceiling.
+
 ## Verification and Change Impact
 Independent box, sphere, cavity and transformed composite fixtures must verify moments, error enclosures, density scaling and principal axes after implementation completion.
 

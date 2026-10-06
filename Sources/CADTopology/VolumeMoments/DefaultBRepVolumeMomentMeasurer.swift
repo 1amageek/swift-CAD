@@ -37,7 +37,7 @@ public struct DefaultBRepVolumeMomentMeasurer: BRepVolumeMomentMeasuring {
         // ports must be complete before decoded-source accounting can be certified.
         let certificate = try ValidatedBRepModel(model, tolerance: tolerance, validationLevel: .exact,
             maximumSubdivisionDepth: options.maximumSubdivisionDepth, remainingSourceDepth: 16,
-            consumeWork: { try budget.charge(depth: $0) }, maximumAlgebraicDepth: 32)
+            consumeWork: { try budget.charge(depth: 0) }, maximumAlgebraicDepth: 32)
         return try measure(of: bodyID, in: certificate, options: options, budget: budget)
     }
 
@@ -193,70 +193,72 @@ public struct DefaultBRepVolumeMomentMeasurer: BRepVolumeMomentMeasuring {
     private func cell(domain: FaceDomain, box: SurfaceParameterBox, depth: Int,
         tolerance: ModelingTolerance, charge: @Sendable (Int) throws -> Void,
         nativeDomain: SurfaceAreaNativeSpanDomain? = nil, fan: FanDomain? = nil) throws -> Cell {
-        if let fan {
-            let range = try domain.flux.volumeMomentFanBounds(curve: fan.curve, parameterChart: fan.chart,
-                anchor: fan.anchor, reference: .origin, boundaryFraction: box.u, radialFraction: box.v,
-                tolerance: tolerance, domain: nativeDomain, consumeWork: { try charge(1) })
-            let midpoint = try domain.flux.volumeMomentFanBounds(curve: fan.curve, parameterChart: fan.chart,
-                anchor: fan.anchor, reference: .origin,
-                boundaryFraction: ScalarInterval(lower: box.u.midpoint,upper: box.u.midpoint),
-                radialFraction: ScalarInterval(lower: box.v.midpoint,upper: box.v.midpoint),
-                tolerance: tolerance, domain: nativeDomain, consumeWork: { try charge(1) })
-            return Cell(domain: domain, box: box, depth: depth,
-                values: try integratedFields(range: range, midpoint: midpoint, box: box, sign: domain.sign,
-                    tolerance: tolerance), nativeDomain: nativeDomain, fan: fan)
-        }
-        var meetsBoundary = false
-        let width = max(box.u.width, box.v.width) / 4
-        for curve in domain.curves {
-            let remainingDepth = domain.maximumDepth-depth
-            let ranges = try CertifiedSurfaceParameterCurveEncloser(maximumSubdivisionDepth: remainingDepth,
-                consumeWork: { _ in try charge(1) }).enclosures(for: curve, on: domain.surface,
-                    maximumWidth: width, tolerance: tolerance)
-            if ranges.contains(where: { $0.u.intersects(box.u) && $0.v.intersects(box.v) }) { meetsBoundary = true; break }
-        }
-        var inside = true
-        if !meetsBoundary {
-            for (role, predicate) in domain.predicates {
-                let classification = try predicate.classify(Point2D(x: box.u.midpoint, y: box.v.midpoint), tolerance: tolerance,
-                    consumeWork: { _ in try charge(1) }, maximumSubdivisionDepth: domain.maximumDepth-depth)
-                if role == .outer && classification == .outside || role == .inner && classification == .inside { inside = false; break }
+        return try withoutActuallyEscaping(charge) { charge in
+            if let fan {
+                let range = try domain.flux.volumeMomentFanBounds(curve: fan.curve, parameterChart: fan.chart,
+                    anchor: fan.anchor, reference: .origin, boundaryFraction: box.u, radialFraction: box.v,
+                    tolerance: tolerance, domain: nativeDomain, consumeWork: { try charge(1) })
+                let midpoint = try domain.flux.volumeMomentFanBounds(curve: fan.curve, parameterChart: fan.chart,
+                    anchor: fan.anchor, reference: .origin,
+                    boundaryFraction: ScalarInterval(lower: box.u.midpoint,upper: box.u.midpoint),
+                    radialFraction: ScalarInterval(lower: box.v.midpoint,upper: box.v.midpoint),
+                    tolerance: tolerance, domain: nativeDomain, consumeWork: { try charge(1) })
+                return Cell(domain: domain, box: box, depth: depth,
+                    values: try integratedFields(range: range, midpoint: midpoint, box: box, sign: domain.sign,
+                        tolerance: tolerance), nativeDomain: nativeDomain, fan: fan)
             }
-        }
-        if !inside { return Cell(domain: domain, box: box, depth: depth, values: Array(repeating: .exact(0), count: 10)) }
-        if case .plane = domain.surface, !meetsBoundary {
-            return Cell(domain: domain, box: box, depth: depth,
-                values: try planarMoments(domain: domain, box: box, depth: depth, tolerance: tolerance, charge: charge))
-        }
-        let range = try domain.flux.volumeMomentBounds(over: box, reference: .origin,
-            tolerance: tolerance, domain: nativeDomain, consumeWork: { try charge(1) })
-        let size = OutwardScalarInterval.exact(box.u.upper) - .exact(box.u.lower)
-        let height = OutwardScalarInterval.exact(box.v.upper) - .exact(box.v.lower)
-        let measure = size*height*OutwardScalarInterval.exact(domain.sign)
-        var integrated = range.map { $0.value*measure }
-        if !meetsBoundary {
-            let midpoint = SurfaceParameterBox(u: try ScalarInterval(lower: box.u.midpoint, upper: box.u.midpoint),
-                v: try ScalarInterval(lower: box.v.midpoint, upper: box.v.midpoint))
-            let values = try domain.flux.volumeMomentBounds(over: midpoint, reference: .origin,
-                tolerance: tolerance, domain: nativeDomain, consumeWork: { try charge(1) })
-            for i in integrated.indices {
-                let field = range[i]
-                if let uu = field.secondUU, let uv = field.secondUV, let vv = field.secondVV {
-                    let local = values[i].value + uu*size*size*OutwardScalarInterval(1.0/24)
-                        + vv*height*height*OutwardScalarInterval(1.0/24)
-                    let error = (OutwardScalarInterval.exact((uv.upper-uv.lower).nextUp)*size*height * .exact(0.0625)).upper
-                    let taylor = (local+OutwardScalarInterval(lower: -error, upper: error))*measure
-                    let lower = max(integrated[i].lower,taylor.lower), upper = min(integrated[i].upper,taylor.upper)
-                    guard lower <= upper else { throw failure("Original volume range and Taylor certificates disagree.", tolerance) }
-                    integrated[i] = OutwardScalarInterval(lower: lower, upper: upper)
+            var meetsBoundary = false
+            let width = max(box.u.width, box.v.width) / 4
+            for curve in domain.curves {
+                let remainingDepth = domain.maximumDepth-depth
+                let ranges = try CertifiedSurfaceParameterCurveEncloser(maximumSubdivisionDepth: remainingDepth,
+                    consumeWork: { _ in try charge(1) }).enclosures(for: curve, on: domain.surface,
+                        maximumWidth: width, tolerance: tolerance)
+                if ranges.contains(where: { $0.u.intersects(box.u) && $0.v.intersects(box.v) }) { meetsBoundary = true; break }
+            }
+            var inside = true
+            if !meetsBoundary {
+                for (role, predicate) in domain.predicates {
+                    let classification = try predicate.classify(Point2D(x: box.u.midpoint, y: box.v.midpoint), tolerance: tolerance,
+                        consumeWork: { _ in try charge(1) }, maximumSubdivisionDepth: domain.maximumDepth-depth)
+                    if role == .outer && classification == .outside || role == .inner && classification == .inside { inside = false; break }
                 }
             }
+            if !inside { return Cell(domain: domain, box: box, depth: depth, values: Array(repeating: .exact(0), count: 10)) }
+            if case .plane = domain.surface, !meetsBoundary {
+                return Cell(domain: domain, box: box, depth: depth,
+                    values: try planarMoments(domain: domain, box: box, depth: depth, tolerance: tolerance, charge: charge))
+            }
+            let range = try domain.flux.volumeMomentBounds(over: box, reference: .origin,
+                tolerance: tolerance, domain: nativeDomain, consumeWork: { try charge(1) })
+            let size = OutwardScalarInterval.exact(box.u.upper) - .exact(box.u.lower)
+            let height = OutwardScalarInterval.exact(box.v.upper) - .exact(box.v.lower)
+            let measure = size*height*OutwardScalarInterval.exact(domain.sign)
+            var integrated = range.map { $0.value*measure }
+            if !meetsBoundary {
+                let midpoint = SurfaceParameterBox(u: try ScalarInterval(lower: box.u.midpoint, upper: box.u.midpoint),
+                    v: try ScalarInterval(lower: box.v.midpoint, upper: box.v.midpoint))
+                let values = try domain.flux.volumeMomentBounds(over: midpoint, reference: .origin,
+                    tolerance: tolerance, domain: nativeDomain, consumeWork: { try charge(1) })
+                for i in integrated.indices {
+                    let field = range[i]
+                    if let uu = field.secondUU, let uv = field.secondUV, let vv = field.secondVV {
+                        let local = values[i].value + uu*size*size*OutwardScalarInterval(1.0/24)
+                            + vv*height*height*OutwardScalarInterval(1.0/24)
+                        let error = (OutwardScalarInterval.exact((uv.upper-uv.lower).nextUp)*size*height * .exact(0.0625)).upper
+                        let taylor = (local+OutwardScalarInterval(lower: -error, upper: error))*measure
+                        let lower = max(integrated[i].lower,taylor.lower), upper = min(integrated[i].upper,taylor.upper)
+                        guard lower <= upper else { throw failure("Original volume range and Taylor certificates disagree.", tolerance) }
+                        integrated[i] = OutwardScalarInterval(lower: lower, upper: upper)
+                    }
+                }
+            }
+            let values = integrated.map { value in
+                meetsBoundary ? Interval(lower: min(0,value.lower), upper: max(0,value.upper))
+                    : Interval(lower: value.lower,upper: value.upper)
+            }
+            return Cell(domain: domain, box: box, depth: depth, values: values, nativeDomain: nativeDomain)
         }
-        let values = integrated.map { value in
-            meetsBoundary ? Interval(lower: min(0,value.lower), upper: max(0,value.upper))
-                : Interval(lower: value.lower,upper: value.upper)
-        }
-        return Cell(domain: domain, box: box, depth: depth, values: values, nativeDomain: nativeDomain)
     }
     private func integratedFields(range: [SurfaceAreaIntegrandBounds], midpoint: [SurfaceAreaIntegrandBounds],
         box: SurfaceParameterBox, sign: Double, tolerance: ModelingTolerance) throws -> [Interval] {

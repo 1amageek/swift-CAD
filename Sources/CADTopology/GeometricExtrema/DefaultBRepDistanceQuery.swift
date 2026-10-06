@@ -552,7 +552,7 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
             if !improved { scale *= 0.5 }
             if scale == 0 { break }
         }
-        guard try admitted(first,a), admitted(second,b) else{return nil}
+        guard try admitted(first,a), try admitted(second,b) else{return nil}
         // Local iteration supplies upper witnesses only; the complete cell-pair
         // interval cover remains the authority for global optimality.
         return ((x.point,a),(y.point,b))

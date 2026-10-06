@@ -1196,7 +1196,9 @@ struct AnalyticPrismaticVolumeEvaluator {
             case let .rigidImage(image):
                 isCircular = isCircularCurve(image.source)
             case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-                 .certifiedIntersection, .affineImage, .parameterImage, .originalAffineWord:
+                 .certifiedIntersection, .affineImage, .parameterImage, .originalAffineWord, .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative,
+                 .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline,
+                 .originalDrafted, .originalAngularTransport:
                 isCircular = false
             }
             if isCircular {
@@ -1221,7 +1223,9 @@ struct AnalyticPrismaticVolumeEvaluator {
         case let .rigidImage(image):
             return isCircularCurve(image.source)
         case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection, .affineImage, .parameterImage, .originalAffineWord:
+             .certifiedIntersection, .affineImage, .parameterImage, .originalAffineWord, .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative,
+                 .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline,
+                 .originalDrafted, .originalAngularTransport:
             return false
         }
     }

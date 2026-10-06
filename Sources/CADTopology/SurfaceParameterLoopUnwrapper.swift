@@ -58,126 +58,128 @@ package struct SurfaceParameterLoopUnwrapper {
         tolerance: ModelingTolerance, context: String, maximumSubdivisionDepth: Int,
         remainingSourceDepth: Int, consumeWork: @Sendable (Int) throws -> Void,
         consumeStorage: (@Sendable (Int) throws -> Void)? = nil) throws -> [UnwrappedCurve] {
-        try tolerance.validate()
-        guard !curves.isEmpty, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0,
-              uClosureTolerance.isFinite, uClosureTolerance > 0,
-              vClosureTolerance.isFinite, vClosureTolerance > 0 else {
-            throw GeometryConversionError.invalidInput("Original loop unwrapping requires nonempty curves and caller chart admission.")
-        }
-        func visit() throws { try Task.checkCancellation(); try consumeWork(0) }
-        func retain(_ count: Int, _ stride: Int) throws {
-            let bytes = count.multipliedReportingOverflow(by: stride)
-            guard count >= 0, !bytes.overflow else {
-                throw GeometryConversionError.resourceLimitExceeded("Original loop storage count overflowed.")
+        return try withoutActuallyEscaping(consumeWork) { consumeWork in
+            try tolerance.validate()
+            guard !curves.isEmpty, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0,
+                  uClosureTolerance.isFinite, uClosureTolerance > 0,
+                  vClosureTolerance.isFinite, vClosureTolerance > 0 else {
+                throw GeometryConversionError.invalidInput("Original loop unwrapping requires nonempty curves and caller chart admission.")
             }
-            try visit(); try consumeStorage?(bytes.partialValue)
-        }
-        let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-            remainingSourceDepth: remainingSourceDepth,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: visit,
-            consumeStorage: consumeStorage)
-        func translated(_ box: SurfaceParameterBox, _ u: Double, _ v: Double) -> SurfaceParameterBox {
-            let nativeU = OutwardScalarInterval(lower: box.u.lower, upper: box.u.upper)
-            let nativeV = OutwardScalarInterval(lower: box.v.lower, upper: box.v.upper)
-            let first = u == 0 ? nativeU : nativeU + .exact(u)
-            let second = v == 0 ? nativeV : nativeV + .exact(v)
-            return .init(u: .init(lower: first.lower, upper: first.upper),
-                v: .init(lower: second.lower, upper: second.upper))
-        }
-        func difference(_ first: ScalarInterval, _ second: ScalarInterval) -> OutwardScalarInterval {
-            .init(lower: first.lower, upper: first.upper) - .init(lower: second.lower, upper: second.upper)
-        }
-        func shift(_ value: Double, near reference: Double, period: Double?,
-            direction: SurfaceParameterDirection) throws -> Double {
-            try visit()
-            guard let period else { return 0 }
-            guard period.isFinite, period > 0 else {
-                throw GeometryConversionError.invalidInput("Original chart period must be finite and positive.")
-            }
-            let winding = ((reference - value) / period).rounded()
-            let candidate = winding * period
-            guard winding.isFinite, candidate.isFinite else {
-                throw GeometryConversionError.resourceLimitExceeded("Original chart winding is not representable.")
-            }
-            var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage)
-            guard try OriginalSurfacePeriodShift.proves(on: surface,
-                uShift: direction == .u ? candidate : 0,
-                vShift: direction == .v ? candidate : 0,
-                remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth,
-                tolerance: tolerance, usage: &usage) else {
-                throw GeometryConversionError.resourceLimitExceeded("Original chart translation is not a stored member of the support period lattice.")
-            }
-            return candidate
-        }
-        func positions(_ box: SurfaceParameterBox) throws -> IntervalVector3DBounds {
-            try prepared.positionBounds(over: box, tolerance: tolerance, maximumSpanCount: 1_048_576,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-                consumeWork: visit)
-        }
-        func connects(_ first: SurfaceParameterBox, _ second: SurfaceParameterBox) throws -> Bool {
-            try visit()
-            let u = difference(first.u, second.u), v = difference(first.v, second.v)
-            if u.absoluteUpperBound <= uClosureTolerance, v.absoluteUpperBound <= vClosureTolerance { return true }
-            let sharesU = first.u.lower == first.u.upper && second.u == first.u
-            let sharesV = first.v.lower == first.v.upper && second.v == first.v
-            if sharesU != sharesV {
-                let connector: SurfaceParameterCurve = sharesU
-                    ? .constantU(u: first.u.lower, vStart: first.v.midpoint, vEnd: second.v.midpoint)
-                    : .constantV(v: first.v.lower, uStart: first.u.midpoint, uEnd: second.u.midpoint)
-                if try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: maximumSubdivisionDepth,
-                    remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
-                    .kind(curve: .surfaceLift(.init(surface: surface, parameterCurve: connector)),
-                        from: 0, to: 1, tolerance: tolerance) == .singular { return true }
-            }
-            guard u.absoluteUpperBound <= 1.0e-2, v.absoluteUpperBound <= 1.0e-2 else { return false }
-            return try (positions(first) - positions(second)).lengthUpperBound <= tolerance.distance * 8
-        }
-        try retain(curves.count, MemoryLayout<UnwrappedCurve>.stride)
-        var result: [UnwrappedCurve] = []
-        result.reserveCapacity(curves.count)
-        var firstBox: SurfaceParameterBox?
-        var previousBox: SurfaceParameterBox?
-        var previousCandidate: SurfaceParameter?
-        for curve in curves {
-            try visit()
-            let lift = try curve.continuousChartLift(on: surface, tolerance: tolerance,
-                maximumSpanCount: 1_048_576, maximumSubdivisionDepth: maximumSubdivisionDepth,
-                remainingSourceDepth: remainingSourceDepth, consumeWork: visit,
-                consumeStorage: consumeStorage)
-            guard let boxes = lift.originalSampleBounds, boxes.count == 3 else {
-                throw GeometryConversionError.invalidInput("Original chart lift lost its endpoint source boxes.")
-            }
-            let uShift = try previousCandidate.map { try shift(lift.start.u, near: $0.u, period: uPeriod, direction: .u) } ?? 0
-            let vShift = try previousCandidate.map { try shift(lift.start.v, near: $0.v, period: vPeriod, direction: .v) } ?? 0
-            let start = translated(boxes[0], uShift, vShift)
-            let end = translated(boxes[2], uShift, vShift)
-            if let previousBox {
-                guard try connects(previousBox, start) else {
-                    throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
-                        message: "\(context) has no complete original chart junction proof.")
+            func visit() throws { try Task.checkCancellation(); try consumeWork(0) }
+            func retain(_ count: Int, _ stride: Int) throws {
+                let bytes = count.multipliedReportingOverflow(by: stride)
+                guard count >= 0, !bytes.overflow else {
+                    throw GeometryConversionError.resourceLimitExceeded("Original loop storage count overflowed.")
                 }
-            } else { firstBox = start }
-            let startCandidate = SurfaceParameter(u: lift.start.u + uShift, v: lift.start.v + vShift)
-            let endCandidate = SurfaceParameter(u: lift.end.u + uShift, v: lift.end.v + vShift)
-            guard startCandidate.u.isFinite, startCandidate.v.isFinite,
-                  endCandidate.u.isFinite, endCandidate.v.isFinite else {
-                throw GeometryConversionError.resourceLimitExceeded("Original translated chart representative is nonfinite.")
+                try visit(); try consumeStorage?(bytes.partialValue)
             }
-            result.append(.init(curve: curve, uShift: uShift, vShift: vShift,
-                chartStart: startCandidate, chartEnd: endCandidate))
-            previousBox = end; previousCandidate = endCandidate
+            let prepared = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
+                remainingSourceDepth: remainingSourceDepth,
+                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: visit,
+                consumeStorage: consumeStorage)
+            func translated(_ box: SurfaceParameterBox, _ u: Double, _ v: Double) throws -> SurfaceParameterBox {
+                let nativeU = OutwardScalarInterval(lower: box.u.lower, upper: box.u.upper)
+                let nativeV = OutwardScalarInterval(lower: box.v.lower, upper: box.v.upper)
+                let first = u == 0 ? nativeU : nativeU + .exact(u)
+                let second = v == 0 ? nativeV : nativeV + .exact(v)
+                return try .init(u: .init(lower: first.lower, upper: first.upper),
+                    v: .init(lower: second.lower, upper: second.upper))
+            }
+            func difference(_ first: ScalarInterval, _ second: ScalarInterval) -> OutwardScalarInterval {
+                .init(lower: first.lower, upper: first.upper) - .init(lower: second.lower, upper: second.upper)
+            }
+            func shift(_ value: Double, near reference: Double, period: Double?,
+                direction: SurfaceParameterDirection) throws -> Double {
+                try visit()
+                guard let period else { return 0 }
+                guard period.isFinite, period > 0 else {
+                    throw GeometryConversionError.invalidInput("Original chart period must be finite and positive.")
+                }
+                let winding = ((reference - value) / period).rounded()
+                let candidate = winding * period
+                guard winding.isFinite, candidate.isFinite else {
+                    throw GeometryConversionError.resourceLimitExceeded("Original chart winding is not representable.")
+                }
+                var usage = OriginalSourceProofAdmission(consumeWork: consumeWork, consumeStorage: consumeStorage)
+                guard try OriginalSurfacePeriodShift.proves(on: surface,
+                    uShift: direction == .u ? candidate : 0,
+                    vShift: direction == .v ? candidate : 0,
+                    remainingSourceDepth: remainingSourceDepth,
+                    maximumSubdivisionDepth: maximumSubdivisionDepth,
+                    tolerance: tolerance, usage: &usage) else {
+                    throw GeometryConversionError.resourceLimitExceeded("Original chart translation is not a stored member of the support period lattice.")
+                }
+                return candidate
+            }
+            func positions(_ box: SurfaceParameterBox) throws -> IntervalVector3DBounds {
+                try prepared.positionBounds(over: box, tolerance: tolerance, maximumSpanCount: 1_048_576,
+                    maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+                    consumeWork: visit)
+            }
+            func connects(_ first: SurfaceParameterBox, _ second: SurfaceParameterBox) throws -> Bool {
+                try visit()
+                let u = difference(first.u, second.u), v = difference(first.v, second.v)
+                if u.absoluteUpperBound <= uClosureTolerance, v.absoluteUpperBound <= vClosureTolerance { return true }
+                let sharesU = first.u.lower == first.u.upper && second.u == first.u
+                let sharesV = first.v.lower == first.v.upper && second.v == first.v
+                if sharesU != sharesV {
+                    let connector: SurfaceParameterCurve = sharesU
+                        ? .constantU(u: first.u.lower, vStart: first.v.midpoint, vEnd: second.v.midpoint)
+                        : .constantV(v: first.v.lower, uStart: first.u.midpoint, uEnd: second.u.midpoint)
+                    if try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: maximumSubdivisionDepth,
+                        remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork)
+                        .kind(curve: .surfaceLift(.init(surface: surface, parameterCurve: connector)),
+                            from: 0, to: 1, tolerance: tolerance) == .singular { return true }
+                }
+                guard u.absoluteUpperBound <= 1.0e-2, v.absoluteUpperBound <= 1.0e-2 else { return false }
+                return try (positions(first) - positions(second)).lengthUpperBound <= tolerance.distance * 8
+            }
+            try retain(curves.count, MemoryLayout<UnwrappedCurve>.stride)
+            var result: [UnwrappedCurve] = []
+            result.reserveCapacity(curves.count)
+            var firstBox: SurfaceParameterBox?
+            var previousBox: SurfaceParameterBox?
+            var previousCandidate: SurfaceParameter?
+            for curve in curves {
+                try visit()
+                let lift = try curve.continuousChartLift(on: surface, tolerance: tolerance,
+                    maximumSpanCount: 1_048_576, maximumSubdivisionDepth: maximumSubdivisionDepth,
+                    remainingSourceDepth: remainingSourceDepth, consumeWork: visit,
+                    consumeStorage: consumeStorage)
+                guard let boxes = lift.originalSampleBounds, boxes.count == 3 else {
+                    throw GeometryConversionError.invalidInput("Original chart lift lost its endpoint source boxes.")
+                }
+                let uShift = try previousCandidate.map { try shift(lift.start.u, near: $0.u, period: uPeriod, direction: .u) } ?? 0
+                let vShift = try previousCandidate.map { try shift(lift.start.v, near: $0.v, period: vPeriod, direction: .v) } ?? 0
+                let start = try translated(boxes[0], uShift, vShift)
+                let end = try translated(boxes[2], uShift, vShift)
+                if let previousBox {
+                    guard try connects(previousBox, start) else {
+                        throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
+                            message: "\(context) has no complete original chart junction proof.")
+                    }
+                } else { firstBox = start }
+                let startCandidate = SurfaceParameter(u: lift.start.u + uShift, v: lift.start.v + vShift)
+                let endCandidate = SurfaceParameter(u: lift.end.u + uShift, v: lift.end.v + vShift)
+                guard startCandidate.u.isFinite, startCandidate.v.isFinite,
+                      endCandidate.u.isFinite, endCandidate.v.isFinite else {
+                    throw GeometryConversionError.resourceLimitExceeded("Original translated chart representative is nonfinite.")
+                }
+                result.append(.init(curve: curve, uShift: uShift, vShift: vShift,
+                    chartStart: startCandidate, chartEnd: endCandidate))
+                previousBox = end; previousCandidate = endCandidate
+            }
+            guard let firstBox, let previousBox, let first = result.first, let last = result.last else {
+                throw GeometryConversionError.invalidInput("Original loop unwrapping lost its retained endpoints.")
+            }
+            let uClosingShift = try shift(last.chartEnd.u, near: first.chartStart.u, period: uPeriod, direction: .u)
+            let vClosingShift = try shift(last.chartEnd.v, near: first.chartStart.v, period: vPeriod, direction: .v)
+            guard try connects(firstBox, try translated(previousBox, uClosingShift, vClosingShift)) else {
+                throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
+                    message: "\(context) does not close under the original chart law.")
+            }
+            return result
         }
-        guard let firstBox, let previousBox, let first = result.first, let last = result.last else {
-            throw GeometryConversionError.invalidInput("Original loop unwrapping lost its retained endpoints.")
-        }
-        let uClosingShift = try shift(last.chartEnd.u, near: first.chartStart.u, period: uPeriod, direction: .u)
-        let vClosingShift = try shift(last.chartEnd.v, near: first.chartStart.v, period: vPeriod, direction: .v)
-        guard try connects(firstBox, translated(previousBox, uClosingShift, vClosingShift)) else {
-            throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
-                message: "\(context) does not close under the original chart law.")
-        }
-        return result
     }
 
     package func unwrap(

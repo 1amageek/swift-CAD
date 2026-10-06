@@ -33,6 +33,12 @@ finite representable distances do not fail from intermediate squared overflow.
 
 The global lower bound covers every admitted cell pair; witness distances are upper bounds. Cells only disappear when their certified lower distance exceeds the admissible minimum. Trims may be conservative lower-bound covers, but every published face witness is trim-admitted. All candidate pairs, witness combinations and local witness improvement steps share one 262144-operation/depth32 allowance. Prepared original surface enclosures are retained by immutable support domains for the query lifetime. Witness distance arithmetic rounds coordinate subtraction, products, sums and square root outward. Failure to achieve requested width fails explicitly.
 
+Original coordinate-gap magnitudes use Geometry's outward interval arithmetic
+and scaled norm evaluation. Importing that interval owner does not change the
+physical metric. Both final domain admissions remain throwing checks; failure
+on either side prevents a closest-pair witness from being returned.
+Regression owner: [Native dependency contracts](../../../Tests/CADTopologyTests/NativeDependencyContractTests.swift).
+
 ## Failure, Concurrency, and Constraints
 Cancellation and resource exhaustion propagate. No midpoint or bounding-box center is returned as a minimum without a complete lower-bound proof.
 
