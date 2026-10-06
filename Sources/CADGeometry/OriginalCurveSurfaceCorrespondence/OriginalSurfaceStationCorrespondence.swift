@@ -171,7 +171,7 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         }
         if liftFraction == 0 || liftFraction == 1 {
             let parameter = liftFraction == 0 ? startParameter : endParameter
-            let range = ScalarInterval(lower: parameter, upper: parameter)
+            let range = try ScalarInterval(lower: parameter, upper: parameter)
             let bound = upperDistance(try jet(spatial, over: range, consumeWork: consumeWork), station)
             guard bound <= maximumDeviation else {
                 throw Self.failure(.topologyFailure, tolerance, "Original lifted endpoint differs from its directed spatial endpoint.")
@@ -195,7 +195,7 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         let target = coordinates[axis].value
         struct Cell { let range: ScalarInterval; let depth: Int }
         try consumeWork()
-        var pending = [Cell(range: .init(lower: min(startParameter, endParameter),
+        var pending = [Cell(range: try .init(lower: min(startParameter, endParameter),
             upper: max(startParameter, endParameter)), depth: 0)]
         var candidates: [ScalarInterval] = []
         var achieved = 0.0
@@ -217,9 +217,9 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
                 throw Self.failure(.resourceLimitExceeded, tolerance, "Reverse original station did not close its whole physical bound.")
             }
             try consumeWork()
-            pending.append(.init(range: .init(lower: middle, upper: cell.range.upper), depth: cell.depth + 1))
+            pending.append(.init(range: try .init(lower: middle, upper: cell.range.upper), depth: cell.depth + 1))
             try consumeWork()
-            pending.append(.init(range: .init(lower: cell.range.lower, upper: middle), depth: cell.depth + 1))
+            pending.append(.init(range: try .init(lower: cell.range.lower, upper: middle), depth: cell.depth + 1))
         }
         guard let first = candidates.first else {
             throw Self.failure(.topologyFailure, tolerance, "Directed original spatial edge has no match for the lifted station.")
@@ -232,7 +232,7 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
             }
             lower = min(lower, range.lower); upper = max(upper, range.upper)
         }
-        let range = ScalarInterval(lower: lower, upper: upper)
+        let range = try ScalarInterval(lower: lower, upper: upper)
         let derivative = component(try jet(spatial, over: range, consumeWork: consumeWork), axis).derivativeU
         let low = component(try jet(spatial, over: .init(lower: lower, upper: lower), consumeWork: consumeWork), axis).value - target
         let high = component(try jet(spatial, over: .init(lower: upper, upper: upper), consumeWork: consumeWork), axis).value - target

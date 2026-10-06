@@ -101,8 +101,8 @@ package struct OriginalSplineTraversalPolynomialPiece: Sendable {
                     case .authored = connector.startBoundary.start, case .authored = connector.startBoundary.end,
                     case .authored = connector.endBoundary.start, case .authored = connector.endBoundary.end,
                     try source(connector.source.source, depth: depth+1),
-                    source(connector.startBoundary.source, depth: depth+1),
-                    source(connector.endBoundary.source, depth: depth+1) else { return false }
+                    try source(connector.startBoundary.source, depth: depth+1),
+                    try source(connector.endBoundary.source, depth: depth+1) else { return false }
                 return true
             case .originalPlaneDerivative(let image):
                 guard case .authored = image.source.start, case .authored = image.source.end else { return false }
@@ -221,7 +221,7 @@ package struct OriginalSplineTraversalPolynomialPiece: Sendable {
                 let station = chain.stations[index]
                 let width = try chain.stations[index+1].subtracting(station, usage: &usage)
                 guard try chain.stations[index+1].subtracting(requestedLower, usage: &usage).isPositive,
-                    requestedUpper.subtracting(station, usage: &usage).isPositive else { continue }
+                    try requestedUpper.subtracting(station, usage: &usage).isPositive else { continue }
                 let original = try pieces(source: traversal.source,
                     start: .originalDouble(a, usage: &usage), end: .originalDouble(b, usage: &usage),
                     selectedOwner: traversal.nativeSpanIndex, depth: depth+1, capability: capability, usage: &usage)
@@ -465,7 +465,7 @@ package struct OriginalSplineTraversalPolynomialPiece: Sendable {
         for piece in original {
             try usage.consumeExactWork(1)
             guard try !station.subtracting(piece.lower, usage: &usage).isNegative,
-                !piece.upper.subtracting(station, usage: &usage).isNegative else { continue }
+                try !piece.upper.subtracting(station, usage: &usage).isNegative else { continue }
             let weight = try piece.homogeneous[3].evaluated(atU: station, v: .zero, usage: &usage)
             guard !weight.isZero else {
                 throw GeometryConversionError.invalidInput("Original rational endpoint has zero homogeneous weight.")
@@ -491,7 +491,7 @@ package struct OriginalSplineTraversalPolynomialPiece: Sendable {
         for piece in original {
             try usage.consumeExactWork(1)
             guard try !station.subtracting(piece.lower, usage: &usage).isNegative,
-                !piece.upper.subtracting(station, usage: &usage).isNegative else { continue }
+                try !piece.upper.subtracting(station, usage: &usage).isNegative else { continue }
             func component(_ axis: Int) throws -> ExactRationalCoefficient {
                 var numerator = piece.homogeneous[axis]
                 var denominator = piece.homogeneous[3]

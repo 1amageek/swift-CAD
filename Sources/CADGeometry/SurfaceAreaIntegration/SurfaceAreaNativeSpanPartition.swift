@@ -25,7 +25,7 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
             cover = try prepared.originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:262_144,
                 consumeWork:consumeWork,consumeStorage:consumeStorage)
         } else {
-            cover = try prepared.originalNativeSpans(over:box,tolerance:tolerance,consumeWork:consumeWork)
+            cover = try prepared.originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:262_144,consumeWork:consumeWork)
         }
         try OriginalCoefficientAllocation.reserve(count:cover.count,
             of:PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan.self,consumeStorage:consumeStorage)
@@ -164,9 +164,9 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
         }
         let cover: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan]
         if let consumeStorage {
-            cover = try prepared.originalNativeSpans(over:box,tolerance:tolerance,
+            cover = try prepared.originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:262_144,
                 consumeWork:consumeWork,consumeStorage:consumeStorage)
-        } else { cover = try prepared.originalNativeSpans(over:box,tolerance:tolerance,consumeWork:consumeWork) }
+        } else { cover = try prepared.originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:262_144,consumeWork:consumeWork) }
         // Original nonperiodic basis continuity follows the authored degree
         // and knot multiplicities with positive validated weights. The hull of
         // owning jets never supplies that theorem. Periodic multi-owner queries

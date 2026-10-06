@@ -189,7 +189,7 @@ public struct OriginalAffineWordSurface3D: Hashable, Sendable {
         try y.setCoefficient(jet.y.coefficient(a,b).midpoint, uOrder: a, vOrder: b)
         try z.setCoefficient(jet.z.coefficient(a,b).midpoint, uOrder: a, vOrder: b)
       } }
-      return .init(x: x, y: y, z: z)
+      return try .init(x: x, y: y, z: z)
     }
     let original = try source.taylorJet(u: u, v: v, throughOrder: order, tolerance: sourceTolerance)
     var usage = OriginalAffineImageLegacyUsage()
@@ -209,6 +209,6 @@ public struct OriginalAffineWordSurface3D: Hashable, Sendable {
       try y.setCoefficient(value.y, uOrder: a, vOrder: b)
       try z.setCoefficient(value.z, uOrder: a, vOrder: b)
     } }
-    return .init(x: x, y: y, z: z)
+    return try .init(x: x, y: y, z: z)
   }
 }

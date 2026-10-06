@@ -43,9 +43,8 @@ struct BoundedParametricSurfaceIntersector: Sendable {
     options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
     admission: SurfaceSurfaceQueryAdmission) throws -> [SurfaceSurfaceIntersection] {
     try options.validate(tolerance: tolerance); try admission.step()
-    guard first.preparationTolerance == tolerance, second.preparationTolerance == tolerance else {
-      throw GeometryConversionError.invalidInput("An original domain-pair query cannot replace its preparation tolerance.")
-    }
+    try first.validatePreparationTolerance(tolerance)
+    try second.validatePreparationTolerance(tolerance)
     let domains = try BoundedSurfaceParameterDomainMap(first: first.surface, over: firstBox,
       second: second.surface, over: secondBox, tolerance: tolerance, admission: admission)
     return try intersections(first: first, second: second, domains: domains,

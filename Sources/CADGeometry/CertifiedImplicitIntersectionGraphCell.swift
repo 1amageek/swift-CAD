@@ -935,10 +935,10 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       at: parameters.first, tolerance: tolerance)
     let second = try admission.positionBounds(preparedSecondSurface ?? admission.prepare(secondSurface, tolerance: tolerance),
       at: parameters.second, tolerance: tolerance)
-    func midpoint(_ a: OutwardScalarInterval, _ b: OutwardScalarInterval) -> Double {
-      ScalarInterval(lower: min(a.lower, b.lower), upper: max(a.upper, b.upper)).midpoint
+    func midpoint(_ a: OutwardScalarInterval, _ b: OutwardScalarInterval) throws -> Double {
+      try ScalarInterval(lower: min(a.lower, b.lower), upper: max(a.upper, b.upper)).midpoint
     }
-    let candidate = Point3D(x: midpoint(first.x, second.x),
+    let candidate = try Point3D(x: midpoint(first.x, second.x),
       y: midpoint(first.y, second.y), z: midpoint(first.z, second.z))
     try candidate.validate()
     let original = IntervalVector3DBounds(x: .exact(candidate.x),

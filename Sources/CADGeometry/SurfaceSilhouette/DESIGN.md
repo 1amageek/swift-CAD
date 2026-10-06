@@ -67,6 +67,17 @@ source, geometric subdivision and algebra caps separately, including actual byte
 callbacks. Retained source values and all three counter domains remain common across
 targets.
 
+Escaping Taylor storage callbacks retain the existing invocation accounting owner
+through `SurfaceSilhouetteUsage.preparationStorageCallback`. They never capture a
+borrowed `inout` usage value or create a separate allowance. Byte admission reaches
+the same mutex-protected counters and external admission as original coefficient
+preparation; copies of the usage facade share that owner.
+
+Generic exact polynomial Taylor operations borrow their caller's storage callback
+with `withoutActuallyEscaping` only during synchronous value construction. Taylor
+values retain coefficient buffers, never the callback. No borrowed accounting value
+survives the borrow scope.
+
 
 Ordered-field coordinate components retain exact fixed-axis roots and partition their
 free native range at every zero of the original complementary factor. Vertical

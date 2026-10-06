@@ -50,6 +50,10 @@ from the mapped tangents and second derivatives by the existing geometry layer.
 
 ## State, Ownership, and Lifecycle
 
+Exact chart comparison borrows the caller work closure only inside
+`withoutActuallyEscaping`; no returned source value or result retains that
+closure. Interval and Taylor validation failures propagate to the caller.
+
 Immutable source values retain COW storage. No mutable state, cache or platform
 specific isolation is introduced. Native Codable adapters preserve explicit source
 fields with strict expected keys; common values retain Hashable and Sendable.

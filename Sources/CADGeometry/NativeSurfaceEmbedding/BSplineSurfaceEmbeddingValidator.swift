@@ -899,7 +899,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                   case let .closed(rawV0, rawV1) = raw.vDomain else {
                 throw GeometryConversionError.invalidInput("Original adjacent chart domains must remain finite.")
             }
-            let whole = rawRegion ?? SurfaceParameterBox(u: try ScalarInterval(lower: rawU0, upper: rawU1),
+            let whole = try rawRegion ?? SurfaceParameterBox(u: try ScalarInterval(lower: rawU0, upper: rawU1),
                 v: try ScalarInterval(lower: rawV0, upper: rawV1))
             let atlas = try NativeSurfaceOriginalAtlas(source: raw, over: whole,
                 maximumSpanCount: maximumCellCount, tolerance: tolerance, admission: admission)
@@ -1094,7 +1094,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                   case let .closed(v0, v1) = source.vDomain else {
                 throw GeometryConversionError.invalidInput("Original adjacency requires finite original chart domains.")
             }
-            let whole = (index == 0 ? firstRegion : secondRegion)
+            let whole = try (index == 0 ? firstRegion : secondRegion)
                 ?? SurfaceParameterBox(u: try ScalarInterval(lower: u0, upper: u1),
                     v: try ScalarInterval(lower: v0, upper: v1))
             let atlas = try NativeSurfaceOriginalAtlas(source: source, over: whole,

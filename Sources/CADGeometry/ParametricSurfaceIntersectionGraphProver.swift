@@ -365,7 +365,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
           contained.isFinite else {
           throw GeometryConversionError.resourceLimitExceeded("Original gauge refinement has no finite native enclosure.")
         }
-        return .init(lower: contained.lower, upper: contained.upper)
+        return try .init(lower: contained.lower, upper: contained.upper)
       }
       let a = try admission.intervalJet(preparedFirst, over: .init(u: actual[0], v: actual[1]), tolerance: tolerance)
       let b = try admission.intervalJet(preparedSecond, over: .init(u: actual[2], v: actual[3]), tolerance: tolerance)
@@ -1179,7 +1179,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
         contained.isFinite else {
         throw GeometryConversionError.resourceLimitExceeded("Original graph center has no finite native enclosure.")
       }
-      return .init(lower: contained.lower, upper: contained.upper)
+      return try .init(lower: contained.lower, upper: contained.upper)
     }
     let prepared = try (first ? preparedFirstSurface : preparedSecondSurface)
       ?? admission.prepare(first ? firstSurface : secondSurface, tolerance: tolerance)

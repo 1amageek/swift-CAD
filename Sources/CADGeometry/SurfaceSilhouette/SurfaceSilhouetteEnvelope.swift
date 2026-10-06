@@ -1,3 +1,5 @@
+import CADCore
+
 /// A complete closed-domain cover issued only after every rectangle is decided.
 public struct SurfaceSilhouetteEnvelope: Sendable {
     public let surface: Surface3D

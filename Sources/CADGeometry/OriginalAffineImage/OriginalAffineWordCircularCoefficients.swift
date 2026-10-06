@@ -50,8 +50,8 @@ package struct OriginalAffineWordCircularCoefficients: Sendable {
         }
         try RationalAlgebraStorage.retain(2, of: Vector3D.self, usage: &usage)
         try RationalAlgebraStorage.retain(2, of: Double.self, usage: &usage)
-        guard !admitPhysicalMetric || (try word.minimumImageLengthIsGreaterThan(originalAxes: [first, second],
-            originalLengths: [firstRadius, secondRadius], physicalThreshold: tolerance.distance, usage: &usage)) else {
+        guard try !admitPhysicalMetric || word.minimumImageLengthIsGreaterThan(originalAxes: [first, second],
+            originalLengths: [firstRadius, secondRadius], physicalThreshold: tolerance.distance, usage: &usage) else {
             throw GeometryError.invalidRadius(min(firstRadius, secondRadius))
         }
         func bounds(_ value: CoordinateEnclosure3D) -> IntervalVector3DBounds {

@@ -31,6 +31,12 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
   private let preparationMaximumAlgebraicDepth: Int?
   private let preparationMaximumSubdivisionDepth: Int
 
+  package func validatePreparationTolerance(_ tolerance: ModelingTolerance) throws {
+    guard tolerance == preparationTolerance else {
+      throw GeometryConversionError.invalidInput("An original surface query cannot replace its preparation tolerance.")
+    }
+  }
+
   private struct ContinuityCell {
     let box: SurfaceParameterBox
     let depth: Int

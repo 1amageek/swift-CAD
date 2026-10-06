@@ -42,7 +42,7 @@ struct DefaultProceduralCurveSourceSurfaceCoincidenceResolver:
         transform: image.transform,
         tolerance: tolerance
       )
-    case .line, .circle, .analytic, .bSpline, .certifiedIntersection,
+    case .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted, .originalAngularTransport, .originalAffineWord, .line, .circle, .analytic, .bSpline, .certifiedIntersection,
       .affineImage, .parameterImage:
       return false
     }
@@ -70,7 +70,7 @@ struct DefaultProceduralCurveSourceSurfaceCoincidenceResolver:
         transform: transform.composed(after: image.transform),
         tolerance: tolerance
       )
-    case .line, .circle, .analytic, .bSpline, .certifiedIntersection,
+    case .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted, .originalAngularTransport, .originalAffineWord, .line, .circle, .analytic, .bSpline, .certifiedIntersection,
       .affineImage, .parameterImage:
       return false
     }

@@ -100,7 +100,7 @@ extension OriginalBoundaryCorrectedSurface3D {
         }
     }
 
-    package func taylorJet(u: Double, v: Double, throughOrder order: Int,
+    func taylorJet(u: Double, v: Double, throughOrder order: Int,
         tolerance: ModelingTolerance) throws -> SurfaceTaylorVectorJet {
         guard (0...16).contains(order) else {
             throw GeometryConversionError.invalidInput("Original corrected numeric facade retains Taylor order zero through sixteen.")

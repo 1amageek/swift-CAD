@@ -72,11 +72,8 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
         case .negative: orientation = -1
         case .zero: throw rationalAlgebraFailure("Original normalized word is exactly singular.")
         }
-        self.factors = factors; self.coefficients = []; self.normalizedFrame = frame
-        self.cofactorCoefficients = []
-        self.normalizedCofactors = cofactorCache
-        self.normalizedDeterminant = determinant; self.determinantCoefficient = .zero
-        self.maximumDepth = maximumDepth; self.orientationSign = orientation
+        self.init(originalFactors: factors, frame: frame, cofactors: cofactorCache,
+            determinant: determinant, maximumDepth: maximumDepth, orientationSign: orientation)
     }
 
     /// Admits the single-factor array before creating its owned storage.
@@ -183,9 +180,9 @@ public struct OriginalAffineOperationWord: Hashable, Sendable {
         }
         let second = try Self.fieldFrame(factors: other.factors, in: first.context,
             tolerance: tolerance, maximumDepth: maximumDepth, usage: &usage)
-        let firstImage = try first.applying(to: Vector3D(point.x, point.y, point.z),
+        let firstImage = try first.applying(to: Vector3D(x: point.x, y: point.y, z: point.z),
             asPoint: true, maximumDepth: maximumDepth, usage: &usage)
-        let secondImage = try second.applying(to: Vector3D(otherPoint.x, otherPoint.y, otherPoint.z),
+        let secondImage = try second.applying(to: Vector3D(x: otherPoint.x, y: otherPoint.y, z: otherPoint.z),
             asPoint: true, maximumDepth: maximumDepth, usage: &usage)
         for coordinate in 0..<3 {
             try usage.consumeExactWork(1)

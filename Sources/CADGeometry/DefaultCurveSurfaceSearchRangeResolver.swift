@@ -46,6 +46,12 @@ struct DefaultCurveSurfaceSearchRangeResolver:
         let corners = corners(of: bounds)
         let raw: (lower: Double, upper: Double, metricScale: Double)
         switch curve {
+        case .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted, .originalAngularTransport, .originalAffineWord:
+            // FIXME(INCOMPLETE_IMPLEMENTATION): This production range dispatcher
+            // lacks the original unbounded construction's bounded-target proof.
+            // A complete source-owned range exclusion is required before success.
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "An unbounded original construction needs its source-owned bounded-target range proof.")
         case let .line(line):
             raw = projectedRange(
                 points: corners,

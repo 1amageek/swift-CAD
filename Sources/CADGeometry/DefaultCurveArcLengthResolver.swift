@@ -65,7 +65,7 @@ public struct DefaultCurveArcLengthResolver: CurveArcLengthResolving {
             if let reserveCells, storage.count == admittedCapacity {
                 let doubled = admittedCapacity.multipliedReportingOverflow(by: 2)
                 guard !doubled.overflow, storage.count < maximumCapacity else {
-                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+                    throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                         message: "Arc-length heap capacity exceeded original cell admission.")
                 }
                 let capacity = min(maximumCapacity, max(1, doubled.partialValue))
@@ -120,8 +120,9 @@ public struct DefaultCurveArcLengthResolver: CurveArcLengthResolving {
         let cells: [Cell]?
         let resolver: DefaultCurveArcLengthResolver
 
-        func parameterBounds(atFraction fraction: OutwardScalarInterval,
+        func parameterBounds(atFraction requested: ScalarInterval,
             maximumParameterWidth: Double) throws -> ScalarInterval {
+            let fraction = OutwardScalarInterval(lower: requested.lower, upper: requested.upper)
             try resolver.consume(0, tolerance: tolerance)
             guard resolver.originalPreparation != nil, let cells,
                   fraction.isFinite, fraction.lower >= 0, fraction.upper <= 1,

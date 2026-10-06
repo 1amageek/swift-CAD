@@ -40,6 +40,9 @@ extension Curve3D {
     case .parameterImage(let image):
       return try image.source.intersectionSupportSurfaces(tolerance: tolerance)
 
+    case .originalConstructionChart(let image):
+      return try image.source.intersectionSupportSurfaces(tolerance: tolerance)
+
     case .analytic(.planeTorus(let curve)):
       return (curve.planeSurface, curve.torusSurface)
     case .implicit(let curve):
@@ -85,7 +88,10 @@ extension Curve3D {
           tolerance: tolerance
         )
       )
-    case .line, .circle, .bSpline, .affineImage, .parameterImage,
+    case .line, .circle, .bSpline, .affineImage,
+      .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain,
+      .originalPolyline, .originalGuideEndpointConnector, .originalDrafted,
+      .originalAngularTransport, .originalAffineWord,
       .analytic(.line), .analytic(.circle), .analytic(.arc),
       .analytic(.ellipse), .analytic(.hyperbola),
       .analytic(.parabola):

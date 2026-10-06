@@ -27,12 +27,14 @@ enum OriginalParameterImageMap {
         gain: OriginalParameterGain, offset: Double, consumeWork: () throws -> Void) throws -> RobustSign {
         switch gain {
         case .product, .difference:
-            var usage = BorrowedWork(consume: consumeWork)
-            let mapped = try gain.exactCoefficient(usage: &usage)
-                .multiplied(by: .originalDouble(foreign, usage: &usage), usage: &usage)
-                .adding(.originalDouble(offset, usage: &usage), usage: &usage)
-            let difference = try mapped.subtracting(.originalDouble(native, usage: &usage), usage: &usage)
-            return difference.isZero ? .zero : difference.isPositive ? .positive : .negative
+            return try withoutActuallyEscaping(consumeWork) { work in
+                var usage = BorrowedWork(consume: work)
+                let mapped = try gain.exactCoefficient(usage: &usage)
+                    .multiplied(by: .originalDouble(foreign, usage: &usage), usage: &usage)
+                    .adding(.originalDouble(offset, usage: &usage), usage: &usage)
+                let difference = try mapped.subtracting(.originalDouble(native, usage: &usage), usage: &usage)
+                return difference.isZero ? .zero : difference.isPositive ? .positive : .negative
+            }
         case .binary, .ratio: break
         }
         let pair = gain.coefficients
@@ -52,15 +54,17 @@ enum OriginalParameterImageMap {
               originalSourcePeriod > 0 else {
             throw GeometryConversionError.invalidInput("Original periodic span requires finite ordered endpoints and a positive native period.")
         }
-        var usage = BorrowedWork(consume: consumeWork)
-        let difference = try ExactRationalCoefficient.originalDouble(interval.upper, usage: &usage)
-            .subtracting(.originalDouble(interval.lower, usage: &usage), usage: &usage)
-        let directedSpan = try gain.exactCoefficient(usage: &usage)
-            .multiplied(by: difference, usage: &usage)
-        let span = directedSpan.isNegative ? directedSpan.negated : directedSpan
-        let excess = try span.subtracting(.originalDouble(originalSourcePeriod, usage: &usage),
-            usage: &usage)
-        return !excess.isPositive
+        return try withoutActuallyEscaping(consumeWork) { work in
+            var usage = BorrowedWork(consume: work)
+            let difference = try ExactRationalCoefficient.originalDouble(interval.upper, usage: &usage)
+                .subtracting(.originalDouble(interval.lower, usage: &usage), usage: &usage)
+            let directedSpan = try gain.exactCoefficient(usage: &usage)
+                .multiplied(by: difference, usage: &usage)
+            let span = directedSpan.isNegative ? directedSpan.negated : directedSpan
+            let excess = try span.subtracting(.originalDouble(originalSourcePeriod, usage: &usage),
+                usage: &usage)
+            return !excess.isPositive
+        }
     }
 
     static func domain(_ source: ParameterDomain, gain: OriginalParameterGain, offset: Double) -> ParameterDomain {

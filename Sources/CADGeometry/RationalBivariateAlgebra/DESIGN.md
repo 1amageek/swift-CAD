@@ -36,6 +36,12 @@ finite original Double bits -> exact integer ratio
 
 ## Contracts and Invariants
 
+Exact rational hashing consumes only the canonical reduced sign, numerator
+words and denominator words used by equality. Equivalent rational values have
+the same hash contribution; no rounded representative or derived enclosure is
+part of source identity. Hashing is the nonthrowing value-protocol operation;
+caller-paid algorithmic traversal must admit source hash work before using it.
+
 Ordered-field scalar roots retain their admission domain. Parameter roots consume
 causal UV/root depth; coefficient roots retain their original independent algebra
 cap and consume `visitCoefficientCell`. The protocol operation is a requirement

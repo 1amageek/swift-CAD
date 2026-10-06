@@ -15,7 +15,7 @@ extension Surface3D {
             return image.source.hasExactAffineParameterization
         case let .procedural(.offset(surface)):
             return surface.source.hasExactAffineParameterization
-        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
+        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted), .procedural(.originalAngularTransport), .procedural(.originalAffineWord):
             return false
         }
     }
@@ -67,7 +67,7 @@ extension Surface3D {
                 of: point,
                 tolerance: tolerance
             )
-        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
+        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted), .procedural(.originalAngularTransport), .procedural(.originalAffineWord):
             return nil
         }
     }

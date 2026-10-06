@@ -35,6 +35,11 @@ original Curve3D + directed trim + pcurve + support + tolerance/options
 
 ## Contracts and Invariants
 
+The bounded affine-word correspondence norm path requires an explicit caller
+storage callback before preparing its exact transported norm. Missing storage
+authority fails explicitly; it is not replaced by an uncharged closure. The
+unchanged structural identity path retains no new norm payload.
+
 - Spatial curves are finite nonperiodic clamped native B-splines of degree 1...6.
   Every interior knot has multiplicity exactly the degree, so each original
   coefficient slice is a Bezier patch without knot insertion or extraction.

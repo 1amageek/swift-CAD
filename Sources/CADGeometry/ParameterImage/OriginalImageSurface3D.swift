@@ -209,7 +209,7 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
                 try z.setCoefficient(value.z, uOrder: a, vOrder: b)
             }
         }
-        return .init(x: x, y: y, z: z)
+        return try .init(x: x, y: y, z: z)
     }
 }
 

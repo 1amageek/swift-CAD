@@ -72,6 +72,11 @@ package enum OriginalSurfacePeriodShift {
     }
     let pu: ExactRationalCoefficient?, pv: ExactRationalCoefficient?
     switch surface {
+    case .procedural(.originalAngularTransport):
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Whole coedge period-shift receipts
+      // need the original angular transport's exact full-turn shift issuer.
+      // Rounded transported domain periods cannot prove source identity.
+      throw GeometryConversionError.resourceLimitExceeded("Original angular period shift needs exact transport authority.")
     case .procedural(.originalAffineWord(let image)):
       return try proves(on: image.source, u: u, v: v, depth: childDepth(), usage: &usage)
     case .procedural(.originalImage(let image)):

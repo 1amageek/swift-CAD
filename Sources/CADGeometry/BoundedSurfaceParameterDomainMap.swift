@@ -110,7 +110,7 @@ struct BoundedSurfaceParameterDomainMap: Sendable {
         contained.isFinite else {
         throw GeometryConversionError.resourceLimitExceeded("Original SSI native box transport is not finitely enclosed.")
       }
-      return .init(lower: contained.lower, upper: contained.upper)
+      return try .init(lower: contained.lower, upper: contained.upper)
     }
     return try .init(firstU: transport(0, firstU), firstV: transport(1, firstV),
       secondU: transport(2, secondU), secondV: transport(3, secondV))

@@ -31,6 +31,16 @@ struct OverlapChartCurveReducer {
             guard try image.affineParameterTransform(tolerance: tolerance) == .identity else { return nil }
             return try reduce(image.sourceParameterCurve(tolerance: tolerance), depth: depth + 1,
                               remaining: &remaining, options: options, tolerance: tolerance)
+        case .originalAffineWord(let image):
+            guard image.startFraction == 0, image.endFraction == 1 else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public continuous overlap
+                // clipping reaches this reducer for directed affine-word pcurves.
+                // A nonidentity fraction map needs a retained original coordinate
+                // carrier before complete boundary clipping can be published.
+                return nil
+            }
+            return try reduce(image.source.parameterCurve, depth: depth + 1,
+                remaining: &remaining, options: options, tolerance: tolerance)
         case .sphericalGreatCircle, .certifiedImplicit, .certifiedAnalyticImplicit,
              .certifiedAnalyticPair, .projectedAnalytic, .originalImage:
             return nil

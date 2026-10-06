@@ -213,7 +213,7 @@ struct OriginalPlanarCurveWindingProducer {
                 let x = try displacement(owner.original.homogeneous[axes.0], weight: owner.original.homogeneous[3], origin: seed.x, budget: &budget)
                 let y = try displacement(owner.original.homogeneous[axes.1], weight: owner.original.homogeneous[3], origin: seed.y, budget: &budget)
                 let ray = try y.subtracting(x.scaled(by: slope, usage: &budget), usage: &budget)
-                if ray.isZero || (try ray.evaluated(atU: owner.lower, v: .zero, usage: &budget).isZero)
+                if try ray.isZero || (try ray.evaluated(atU: owner.lower, v: .zero, usage: &budget).isZero)
                     || (try ray.evaluated(atU: owner.upper, v: .zero, usage: &budget).isZero) {
                     admissible = false; break
                 }
@@ -283,7 +283,7 @@ struct OriginalPlanarCurveWindingProducer {
                 var b = ExactMonotoneGraphEndpoint.authored(try .originalDouble(trim.upper, usage: &budget))
                 var l = lower, u = upper
                 if try ExactOrderedRealEndpoints.compare(&a, &l, maximumDepth: budget.maximumDepth, usage: &budget) <= 0,
-                    ExactOrderedRealEndpoints.compare(&u, &b, maximumDepth: budget.maximumDepth, usage: &budget) <= 0 {
+                    try ExactOrderedRealEndpoints.compare(&u, &b, maximumDepth: budget.maximumDepth, usage: &budget) <= 0 {
                     selected = (partition, reversed); break
                 }
             }
@@ -294,7 +294,7 @@ struct OriginalPlanarCurveWindingProducer {
                 var point = try endpoint(reversed ? event.secondEndpoint : event.firstEndpoint, budget: &budget)
                 var l = lower, u = upper
                 if try ExactOrderedRealEndpoints.compare(&l, &point, maximumDepth: budget.maximumDepth, usage: &budget) < 0,
-                    ExactOrderedRealEndpoints.compare(&point, &u, maximumDepth: budget.maximumDepth, usage: &budget) < 0 {
+                    try ExactOrderedRealEndpoints.compare(&point, &u, maximumDepth: budget.maximumDepth, usage: &budget) < 0 {
                     throw GeometryConversionError.invalidInput("Side winding span retains an unsplit original contact or component event.")
                 }
             }

@@ -11,6 +11,12 @@ set.
 
 ## Responsibilities and Boundaries
 
+The optional chart reducer may unwrap an original affine-word pcurve only when
+its directed fraction map is exactly the identity. It retains the unchanged
+original UV traversal and recurses under the existing chart-reduction allowance.
+Other directed image restrictions still require an exact standalone coordinate
+carrier; they propagate unresolved clipping through the existing explicit error.
+
 `CurveSurfaceIntersectionResolving` owns the richer public query.
 `DefaultCurveSurfaceIntersector` implements its requirement through an extension
 in this component. `CurveSurfaceIntersectionResult` owns discrete events and

@@ -37,7 +37,7 @@ struct OriginalNativePoleOffsetHigherJet {
             values.reserveCapacity(spans.count); normalFields.reserveCapacity(spans.count)
             for span in spans {
                 try usage.visitExactCell(depth: 0)
-                let local = SurfaceParameterBox(
+                let local = try SurfaceParameterBox(
                     u: .init(lower: max(query.u.lower, span.uBounds.lower), upper: min(query.u.upper, span.uBounds.upper)),
                     v: .init(lower: max(query.v.lower, span.vBounds.lower), upper: min(query.v.upper, span.vBounds.upper)))
                 let receipt = try span.originalCoefficientReceipt(overClosedBox: local, on: source,

@@ -30,7 +30,7 @@ struct OriginalRationalPolynomialShearChart: Sendable {
                 v: .zero, usage: &usage), usage: &usage)
             let transformed = try original.composed(withU: originalU, v: originalV, usage: &usage)
             guard try chartU.composed(withU: originalU, v: originalV, usage: &usage).subtracting(x, usage: &usage).isZero,
-                chartV.composed(withU: originalU, v: originalV, usage: &usage).subtracting(y, usage: &usage).isZero else {
+                try chartV.composed(withU: originalU, v: originalV, usage: &usage).subtracting(y, usage: &usage).isZero else {
                 throw rationalAlgebraFailure("Original polynomial shear failed its exact full inverse-coordinate law.")
             }
             try usage.retainExactStorage(1)

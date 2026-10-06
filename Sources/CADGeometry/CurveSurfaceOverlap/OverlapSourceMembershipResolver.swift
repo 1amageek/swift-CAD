@@ -31,7 +31,7 @@ struct OverlapSourceMembershipResolver {
             }
         case .parameterImage(let image):
             return try supports(of: image.source, tolerance: tolerance)
-        case .line, .circle, .bSpline, .affineImage, .analytic:
+        case .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted, .originalAngularTransport, .originalAffineWord, .line, .circle, .bSpline, .affineImage, .analytic:
             return []
         }
     }

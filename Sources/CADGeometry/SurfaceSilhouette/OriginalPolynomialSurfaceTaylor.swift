@@ -10,9 +10,11 @@ struct OriginalPolynomialSurfaceTaylor {
         }
         func scalar(_ polynomial: ExactBivariatePolynomial,
             usage: inout B) throws -> SurfaceAreaIntervalTaylorScalarJet {
-            var value = try SurfaceAreaIntervalTaylorScalarJet(order: order, tolerance: tolerance,
-                consumeWork: { try usage.consumeExactWork(1) },
-                consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+            func storage(_ bytes: Int) throws { try RationalAlgebraStorage.retainBytes(bytes, usage: &usage) }
+            var value = try withoutActuallyEscaping(storage) { borrowedStorage in
+                try SurfaceAreaIntervalTaylorScalarJet(order: order, tolerance: tolerance,
+                    consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: borrowedStorage)
+            }
             var uDerivative = polynomial, uScale = ExactRationalCoefficient.one
             for u in 0...order {
                 var derivative = uDerivative, scale = uScale
@@ -46,15 +48,17 @@ struct OriginalPolynomialSurfaceTaylor {
         }
         func work() throws { try usage.consumeExactWork(1) }
         func storage(_ bytes: Int) throws { try RationalAlgebraStorage.retainBytes(bytes, usage: &usage) }
-        var square = try original.x.multiplied(by: original.x, consumeWork: work, consumeStorage: storage)
-            .adding(original.y.multiplied(by: original.y, consumeWork: work, consumeStorage: storage), consumeWork: work, consumeStorage: storage)
-            .adding(original.z.multiplied(by: original.z, consumeWork: work, consumeStorage: storage), consumeWork: work, consumeStorage: storage)
-        let positive = OutwardScalarInterval(lower: lower, upper: upper)
-        guard let value = try square.coefficient(0, 0).intersection(with: positive * positive) else {
-            throw rationalAlgebraFailure("Original normal square contradicts its strict whole vector norm.")
+        return try withoutActuallyEscaping(storage) { storage in
+            var square = try original.x.multiplied(by: original.x, consumeWork: work, consumeStorage: storage)
+                .adding(original.y.multiplied(by: original.y, consumeWork: work, consumeStorage: storage), consumeWork: work, consumeStorage: storage)
+                .adding(original.z.multiplied(by: original.z, consumeWork: work, consumeStorage: storage), consumeWork: work, consumeStorage: storage)
+            let positive = OutwardScalarInterval(lower: lower, upper: upper)
+            guard let value = try square.coefficient(0, 0).intersection(with: positive * positive) else {
+                throw rationalAlgebraFailure("Original normal square contradicts its strict whole vector norm.")
+            }
+            try usage.consumeExactWork(1); try square.set(value, 0, 0)
+            let reciprocal = try square.squareRoot(consumeWork: work, consumeStorage: storage).reciprocal(consumeWork: work, consumeStorage: storage)
+            return try original.multiplied(by: reciprocal, consumeWork: work, consumeStorage: storage)
         }
-        try usage.consumeExactWork(1); try square.set(value, 0, 0)
-        let reciprocal = try square.squareRoot(consumeWork: work, consumeStorage: storage).reciprocal(consumeWork: work, consumeStorage: storage)
-        return try original.multiplied(by: reciprocal, consumeWork: work, consumeStorage: storage)
     }
 }

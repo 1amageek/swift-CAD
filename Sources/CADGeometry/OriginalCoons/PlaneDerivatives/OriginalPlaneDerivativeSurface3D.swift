@@ -24,7 +24,7 @@ public struct OriginalPlaneDerivativeSurface3D: Hashable, Sendable {
             try a.hasSameOriginalTraversal(as: b, consumeWork: { try usage.consumeExactWork($0) })
         }
         guard try same(boundaries.vMinimumBoundary, construction.boundaries.vMinimumBoundary),
-            same(boundaries.vMaximumBoundary, construction.boundaries.vMaximumBoundary) else {
+            try same(boundaries.vMaximumBoundary, construction.boundaries.vMaximumBoundary) else {
             throw GeometryConversionError.invalidInput("Original plane derivative surface changed an original section position source.")
         }
         func connector(_ final: OriginalCurveRootSpan3D, _ original: OriginalCurveRootSpan3D)
@@ -38,8 +38,8 @@ public struct OriginalPlaneDerivativeSurface3D: Hashable, Sendable {
             guard final.start == .authored(0), final.end == .authored(1),
                 case .originalPlaneDerivative(let curve) = final.source,
                 try same(curve.source, original),
-                curve.includes(startConstraints, atEnd: false, usage: &usage),
-                curve.includes(endConstraints, atEnd: true, usage: &usage) else {
+                try curve.includes(startConstraints, atEnd: false, usage: &usage),
+                try curve.includes(endConstraints, atEnd: true, usage: &usage) else {
                 throw GeometryConversionError.invalidInput("Original side constraints are not owned by the same canonical connector.")
             }
             return curve
@@ -249,7 +249,7 @@ public struct OriginalPlaneDerivativeSurface3D: Hashable, Sendable {
                 let b = total-a
                 if let section, b == 0 { try consumeWork(); try q.set(section.coefficient(a,0),a,b) }
                 if let first, b == 1 { try consumeWork(); try q.set(first.coefficient(a,0),a,b) }
-                if let second, b == 2 { try consumeWork(); try q.set(second.coefficient(a,0)* .exact(0.5),a,b) }
+                if let second, b == 2 { try consumeWork(); try q.set(second.coefficient(a,0) * .exact(0.5),a,b) }
                 if let connector, a == 0 { try consumeWork(); try q.set(connector.coefficient(0,b),a,b) }
             } }; return q
         }

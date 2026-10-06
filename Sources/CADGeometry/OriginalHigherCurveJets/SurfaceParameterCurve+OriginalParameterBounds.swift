@@ -2,12 +2,12 @@ import CADCore
 
 extension SurfaceParameterCurve {
     /// Complete normalized value hull, without demanding higher join continuity.
-    package func originalParameterBounds(over range: ScalarInterval, tolerance: ModelingTolerance,
+    package func originalParameterBounds(on support: Surface3D, over range: ScalarInterval, tolerance: ModelingTolerance,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
         consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
         maximumAlgebraicDepth: Int? = nil)
         throws -> SurfaceParameterBox {
-        try validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+        try validateOriginalSource(on: support, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
             maximumSubdivisionDepth: maximumSubdivisionDepth,
             consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage,
             maximumAlgebraicDepth: maximumAlgebraicDepth)

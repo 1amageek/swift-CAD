@@ -74,6 +74,14 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
       }
     }
 
+    package func validate(on source: BSplineSurface3D, over box: SurfaceParameterBox,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws {
+      try withoutActuallyEscaping(consumeWork) { borrowed in
+        try validate(on: source, over: box, tolerance: tolerance,
+          consumeWork: Optional(borrowed))
+      }
+    }
+
     /// Retains the original homogeneous value net after this token admits the
     /// original closed query and its exact periodic one-sided lift.
     package func originalCoefficientReceipt(overClosedBox box: SurfaceParameterBox,
@@ -290,8 +298,8 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
 
   package init(surface: BSplineSurface3D, tolerance: ModelingTolerance,
     consumeWork: () throws -> Void, consumeStorage: (Int) throws -> Void) throws {
-    try withoutActuallyEscaping(consumeStorage) { storage in
-      try self.init(surface: surface, tolerance: tolerance, chargePreparation: true,
+    self = try withoutActuallyEscaping(consumeStorage) { storage in
+      try Self(surface: surface, tolerance: tolerance, chargePreparation: true,
         consumeWork: consumeWork, consumeStorage: storage)
     }
   }

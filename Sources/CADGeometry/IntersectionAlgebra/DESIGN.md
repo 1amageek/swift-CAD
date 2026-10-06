@@ -4,7 +4,7 @@
 
 Child of [CADGeometry](../DESIGN.md), without children. Owns exact original
 rational intersection equations and ideal preparation. General real component
-decomposition and public SSI/CS closure remain required; algebra preparation
+decomposition and public SSI/CS closure remain required; finite real fibers and algebra preparation
 alone completes neither intersection requirement.
 
 ## Responsibilities and Boundaries
@@ -136,3 +136,41 @@ classification, fractional coefficients and independent work/storage failures.
 Every original generator and every final S-pair must reduce to zero. These
 certify exact ideals only; real decomposition must separately prove lifting,
 branch incidence and domain coverage before public dispatch completion.
+
+### Finite Real Fiber Contract
+
+`OriginalFiniteIntersectionFiber` consumes a verified zero-dimensional ideal
+or a unit ideal. It owns complete enumeration of distinct real parameter tuples
+within the requested coordinate domains; it does not classify contact order or
+positive-dimensional real components. A positive-dimensional complex ideal is
+rejected explicitly rather than called an empty real fiber.
+
+For coordinate k, lexicographic elimination supplies all basis equations involving
+only coordinates 0...k. Substitution of retained preceding exact roots gives
+univariate polynomials over that root's ordered field. Their common real roots
+are enumerated using exact GCD and the existing complete Sturm root issuer.
+Pure leading powers for every coordinate ensure a nonzero monic equation at
+each stage; loss of this invariant is an explicit failure. A constant GCD excludes
+that whole prefix. The root issuer's global coefficient bound covers all real
+roots; no arbitrary search window is introduced.
+
+Each extension retains its defining root and embeds earlier coordinates into
+the same descendant field. Closed domain boundaries are compared by exact signs
+against their original Double coefficient values. Final tuples must satisfy every
+retained original generator exactly. Repeated algebraic roots are emitted once;
+the original ideal remains retained for the later contact-order owner.
+
+```text
+verified original ideal
+ -> all real coordinate-0 roots
+ -> specialized coordinate-1 common roots over each retained field
+ -> remaining coordinates and exact closed-domain exclusion
+ -> check every original equation -> complete finite parameter tuples
+```
+
+One caller ledger owns all stages, root visits, field allocations and final
+tuples. Its parameter-root depth is passed unchanged; coefficient-root depth is
+not invented for original rational coefficients. Failure in any stage discards
+the whole publication. Tests must cover irrational towers, distinct roots with
+the same preceding coordinate, repeated roots, complex-only fibers, exact closed
+endpoint inclusion, excluded domains, cancellation and root/work/storage limits.

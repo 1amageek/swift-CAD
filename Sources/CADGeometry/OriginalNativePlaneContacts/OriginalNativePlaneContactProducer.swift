@@ -263,7 +263,7 @@ package struct OriginalNativePlaneContactProducer {
                         return false
                     }
                 }
-                guard try equalsKnot(end, usage: &usage), equalsKnot(next.start, usage: &usage) else { return false }
+                guard try equalsKnot(end, usage: &usage), try equalsKnot(next.start, usage: &usage) else { return false }
                 return try OriginalNativePlaneContactProducer.samePosition(contact.originalLaw, next.contact.originalLaw,
                     at: .originalDouble(knot, usage: &usage), usage: &usage)
             }

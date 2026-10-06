@@ -16,8 +16,8 @@ struct OriginalCurveCurveSingularContinuation {
                     var lower = clipped.stations[span.lowerStation].endpoint
                     var upper = clipped.stations[span.upperStation].endpoint
                     let witness = span.originalFreeWitness
-                    while !((try witness.subtracting(lower.upper, usage: &budget)).isPositive
-                        && (try upper.lower.subtracting(witness, usage: &budget)).isPositive) {
+                    while try !(witness.subtracting(lower.upper, usage: &budget).isPositive
+                        && upper.lower.subtracting(witness, usage: &budget).isPositive) {
                         if case .algebraic(let root) = lower {
                             lower = .algebraic(try root.refinedOnce(maximumDepth: maximumDepth, usage: &budget))
                         }

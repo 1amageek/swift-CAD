@@ -104,6 +104,30 @@ extension Curve3D {
             third = try image.preparedWord.applying(to: image.source
                 .parameterDerivativesThroughThirdOrder(at: parameter, tolerance: image.sourceTolerance).thirdDerivative,
                 usage: &usage)
+        case let .originalGuideTraversalChain(curve):
+            let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
+                remainingSourceDepth: curve.remainingSourceDepth,
+                consumeWork: { try Task.checkCancellation() })
+            third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
+                z: jet.z.derivatives[3].midpoint)
+        case let .originalPolyline(curve):
+            let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
+                remainingSourceDepth: curve.remainingSourceDepth,
+                consumeWork: { try Task.checkCancellation() })
+            third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
+                z: jet.z.derivatives[3].midpoint)
+        case let .originalGuideEndpointConnector(curve):
+            let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
+                remainingSourceDepth: curve.remainingSourceDepth,
+                consumeWork: { try Task.checkCancellation() })
+            third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
+                z: jet.z.derivatives[3].midpoint)
         case let .affineImage(image):
             third = image.transform.applying(to: try image.source
                 .parameterDerivativesThroughThirdOrder(
@@ -271,7 +295,7 @@ extension SurfaceLiftCurve3D {
 }
 
 private extension SurfaceParameterCurve {
-    func thirdOrderDifferential(
+    internal func thirdOrderDifferential(
         atNormalizedFraction fraction: Double,
         on supportSurface: Surface3D,
         tolerance: ModelingTolerance

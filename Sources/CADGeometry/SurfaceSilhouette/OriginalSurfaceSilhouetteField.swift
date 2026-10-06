@@ -80,7 +80,7 @@ struct OriginalSurfaceSilhouetteField: Sendable {
             }
             higher = try SurfaceAreaHigherCoefficientTaylorEncloser(receipt: receipt, order: order.partialValue,
                 consumeWork: { try usage.consumeWork() },
-                consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+                consumeStorage: usage.preparationStorageCallback)
             generic = nil
         } else {
             higher = nil
@@ -88,7 +88,7 @@ struct OriginalSurfaceSilhouetteField: Sendable {
             generic = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
                 remainingSourceDepth: usage.maximumSourceDepth, maximumSubdivisionDepth: usage.maximumDepth,
                 consumeWork: { try usage.consumeWork() },
-                consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+                consumeStorage: usage.preparationStorageCallback)
         }
     }
 
@@ -386,7 +386,7 @@ struct OriginalSurfaceSilhouetteField: Sendable {
             let query = try native.originalCoefficientReceipt(overClosedBox: box,
                 on: source, tolerance: sourceAuthority.nativeTolerance, consumeWork: usage.preparationWorkCallback,
                 consumeStorage: usage.preparationStorageCallback)
-            let original = try higher.intervalTaylorJet(using: query, consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+            let original = try higher.intervalTaylorJet(using: query, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
             if sourceAuthority.offsetDistances.isEmpty {
                 var world = original
                 for image in sourceAuthority.nativeWordImages.reversed() {
@@ -421,9 +421,9 @@ struct OriginalSurfaceSilhouetteField: Sendable {
                             over: box, throughOrder: 4, tolerance: tolerance, usage: &usage), usage: &usage)
                 }
                 let distance = try admission.displacement.outwardInterval(usage: &usage)
-                jet = try original.truncated(to: 4, consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
-                    .adding(normal.scaled(by: distance, consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) }),
-                        consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+                jet = try original.truncated(to: 4, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
+                    .adding(normal.scaled(by: distance, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback),
+                        consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
             }
         } else {
             switch surface {
@@ -431,12 +431,12 @@ struct OriginalSurfaceSilhouetteField: Sendable {
                 jet = try OriginalSurfaceHigherJetProvider.intervalTaylorJet(of: surface,
                     over: box, tolerance: tolerance, throughOrder: 4,
                     maximumSpanCount: usage.maximumCells, maximumSubdivisionDepth: usage.maximumDepth, remainingSourceDepth: usage.maximumSourceDepth,
-                    consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) },
+                    consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback,
                     maximumAlgebraicDepth: usage.maximumAlgebraicDepth)
             default:
                 jet = sourceAuthority.offsetDistances.isEmpty
                     ? try SurfaceSilhouetteAnalyticTaylor.surface(sourceAuthority.source, over: box,
-                        tolerance: tolerance, consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) }) : nil
+                        tolerance: tolerance, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback) : nil
             }
         }
         if let jet {
@@ -453,13 +453,13 @@ struct OriginalSurfaceSilhouetteField: Sendable {
             }
             let analyticNormal = sourceAuthority.offsetDistances.isEmpty
                 ? try SurfaceSilhouetteAnalyticNormalTaylor.normal(of: sourceAuthority.source, over: box,
-                    tolerance: tolerance, consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) }) : nil
-            let normal = try analyticNormal ?? jet.differentiated(alongU: true, consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
-                .cross(jet.differentiated(alongU: false, consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) }),
-                    consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
-            let scalar = try normal.x.scaled(by: .exact(view.x), consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
-                .adding(normal.y.scaled(by: .exact(view.y), consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) }), consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
-                .adding(normal.z.scaled(by: .exact(view.z), consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) }), consumeWork: { try usage.consumeWork() }, consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+                    tolerance: tolerance, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback) : nil
+            let normal = try analyticNormal ?? jet.differentiated(alongU: true, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
+                .cross(jet.differentiated(alongU: false, consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback),
+                    consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
+            let scalar = try normal.x.scaled(by: .exact(view.x), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
+                .adding(normal.y.scaled(by: .exact(view.y), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
+                .adding(normal.z.scaled(by: .exact(view.z), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback), consumeWork: { try usage.consumeWork() }, consumeStorage: usage.preparationStorageCallback)
             return try (SurfaceSilhouetteScalarJet(original: scalar), jet.intervalJet())
         }
         guard let generic else {
@@ -474,7 +474,7 @@ struct OriginalSurfaceSilhouetteField: Sendable {
         let original = try generic.intervalJet(overClosedBox: box, tolerance: tolerance,
             maximumSpanCount: usage.maximumCells, maximumSubdivisionDepth: usage.maximumDepth,
             remainingSourceDepth: usage.maximumSourceDepth, consumeWork: { try usage.consumeWork() },
-            consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+            consumeStorage: usage.preparationStorageCallback)
         return (SurfaceSilhouetteScalarJet(surface: original, view: view), original)
     }
     func writeOriginalProvenance(to emitter: inout SurfaceSilhouetteProvenanceEmitter,

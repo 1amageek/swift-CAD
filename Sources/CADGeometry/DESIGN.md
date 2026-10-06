@@ -1,5 +1,23 @@
 # CADGeometry
 
+Public arc-length inverse localization accepts CADCore's ScalarInterval. Its
+stored closed endpoints enter internal outward arithmetic unchanged; the
+package-only OutwardScalarInterval remains an implementation boundary. This
+keeps the operation in the public protocol witness table on every target.
+Legacy receipts that lack paid original inverse authority still fail explicitly.
+Missing original curve variants in numerical projection use the existing
+original-curve iterative candidate evaluator, never a fitted surrogate. Optional
+intersection support lookup describes retained support metadata only, not absence
+of intersections; construction charts forward their unchanged source supports.
+Other new constructed variants with no retained support pair return nil and
+remain subject to the general original membership producer.
+Legacy third-order numerical candidates for original guide chains, guide
+corrections and polylines use the retained source's D3 issuer and native limits;
+these representatives do not establish source equality or intersection coverage.
+Prepared surface owners validate query tolerance against their retained
+preparation tolerance through a package contract; consumers do not inspect
+private preparation fields. Domain transport propagates finite-interval errors.
+
 Analytic/B-spline intersection retries vary periodic charts only. A plane has
 one chart and therefore one attempt, independent of the periodic retry limit;
 its original intersection/resource failure propagates without repeating the
