@@ -27,6 +27,7 @@ existence of the source value.
 | [CADGeometry](../DESIGN.md) | parent | Procedural original-source publication | Owns dispatch and embedding composition | All consuming dispatches must retain this source |
 | [Original Root Span](../OriginalRootSpan/DESIGN.md) | depends on | Immutable directed traversal and closed original D0–D3 | Retains native and algebraic endpoints | No image parameter is inferred as a native endpoint |
 | [Loft](../../CADModeling/Loft/DESIGN.md) | used by | Canonical shared connector and four-boundary source | Publishes adjacent original surface sides | Same boundary authority must be reused by both charts |
+| [Original Coons Intersection Sources](../OriginalCoonsIntersectionSources/DESIGN.md) | depends on / used by | Shared original homogeneous position-cell issuer | Supplies the same exact position laws to differential and intersection consumers | Differential stripping remains owned here; intersection admission is bounded separately |
 
 ## Architecture
 
@@ -265,7 +266,10 @@ source integration. No compile, runtime or behavioral success is claimed here.
 Authored native boundaries admit an immutable exact rational cell atlas. Each
 original boundary's directed knot partition is retained in normalized source
 coordinates. The four rational boundary terms and original rational corners
-form the exact Coons numerator/denominator on every common cell. Only exact
+form the exact Coons numerator/denominator on every common cell through the
+[shared position-cell issuer](../OriginalCoonsIntersectionSources/DESIGN.md).
+Its original position formula is consumed before the unchanged quotient
+derivative and stripping steps below. Only exact
 all-coordinate factors at the global parameter boundaries may be removed from
 own-axis tangent numerators; inward signs make the removed factors positive
 inside the source square. Whole consistent principal-minor signs then certify

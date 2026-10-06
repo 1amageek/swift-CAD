@@ -84,113 +84,45 @@ struct OriginalCoonsRationalDifferentialAtlas: Sendable {
 
     static func prepared<B: RationalAlgebraAdmitting>(_ surface: OriginalCoonsSurface3D,
         usage: inout B) throws -> Self? {
-        guard surface.hasOriginalPositionContinuity else { return nil }
-        let boundaries = [surface.vMinimumBoundary, surface.vMaximumBoundary,
-            surface.uMinimumBoundary, surface.uMaximumBoundary]
-        try usage.retainExactStorage(4)
-        for boundary in boundaries {
-            guard try OriginalSplineTraversalPolynomialPiece.supports(boundary, usage: &usage) else { return nil }
-        }
-        let bottom = try OriginalSplineTraversalPolynomialPiece.pieces(boundaries[0], usage: &usage)
-        let top = try OriginalSplineTraversalPolynomialPiece.pieces(boundaries[1], usage: &usage)
-        let left = try OriginalSplineTraversalPolynomialPiece.pieces(boundaries[2], usage: &usage)
-        let right = try OriginalSplineTraversalPolynomialPiece.pieces(boundaries[3], usage: &usage)
-        try usage.retainExactStorage(4)
-        var corners: [[ExactRationalCoefficient]] = []
-        for boundary in boundaries.prefix(2) {
-            for atEnd in [false, true] {
-                corners.append(try OriginalSplineTraversalPolynomialPiece.endpoint(boundary,
-                    atEnd: atEnd, usage: &usage))
+        guard let original = try OriginalCoonsHomogeneousAtlas.prepared(surface, usage: &usage) else { return nil }
+        try RationalAlgebraStorage.retain(original.cells.count, of: Cell.self, usage: &usage)
+        var result: [Cell] = []; result.reserveCapacity(original.cells.count)
+        for cell in original.cells {
+            let position = cell.homogeneous
+            let denominator = position[3]
+            let du = try denominator.differentiated(alongU: true, usage: &usage)
+            let dv = try denominator.differentiated(alongU: false, usage: &usage)
+            try RationalAlgebraStorage.retain(6, of: ExactBivariatePolynomial.self, usage: &usage)
+            var first: [ExactBivariatePolynomial] = [], second: [ExactBivariatePolynomial] = []
+            first.reserveCapacity(3); second.reserveCapacity(3)
+            for axis in 0..<3 {
+                first.append(try position[axis].differentiated(alongU: true, usage: &usage)
+                    .multiplied(by: denominator, usage: &usage)
+                    .subtracting(position[axis].multiplied(by: du, usage: &usage), usage: &usage))
+                second.append(try position[axis].differentiated(alongU: false, usage: &usage)
+                    .multiplied(by: denominator, usage: &usage)
+                    .subtracting(position[axis].multiplied(by: dv, usage: &usage), usage: &usage))
             }
-        }
-        let u = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &usage)
-        let v = try ExactBivariatePolynomial.coordinate(alongU: false, usage: &usage)
-        let one = try ExactBivariatePolynomial.constant(.one, usage: &usage)
-        let um = try one.subtracting(u, usage: &usage), vm = try one.subtracting(v, usage: &usage)
-        try usage.retainExactStorage(4)
-        let blends = [vm, v, um, u]
-        let cornerBlends = try [um.multiplied(by: vm, usage: &usage), u.multiplied(by: vm, usage: &usage),
-            um.multiplied(by: v, usage: &usage), u.multiplied(by: v, usage: &usage)]
-        try usage.retainExactStorage(3)
-        var bilinear: [ExactBivariatePolynomial] = []
-        for axis in 0..<3 {
-            var value = ExactBivariatePolynomial.zero
-            for corner in 0..<4 {
-                value = try value.adding(cornerBlends[corner].scaled(by: corners[corner][axis], usage: &usage), usage: &usage)
+            for upper in [false, true] {
+                first = try strip(first, alongU: true, upper: upper, usage: &usage)
+                second = try strip(second, alongU: false, upper: upper, usage: &usage)
             }
-            bilinear.append(value)
+            try RationalAlgebraStorage.retain(3, of: ExactBivariatePolynomial.self, usage: &usage)
+            var normal: [ExactBivariatePolynomial] = []
+            normal.reserveCapacity(3)
+            for axis in 0..<3 {
+                let i = (axis + 1) % 3, j = (axis + 2) % 3
+                normal.append(try first[i].multiplied(by: second[j], usage: &usage)
+                    .subtracting(first[j].multiplied(by: second[i], usage: &usage), usage: &usage))
+            }
+            result.append(Cell(lowerU: cell.lowerU, upperU: cell.upperU, lowerV: cell.lowerV, upperV: cell.upperV,
+                tangentU: first, tangentV: second, normal: normal))
         }
-        func maximum(_ a: ExactRationalCoefficient, _ b: ExactRationalCoefficient,
-            usage: inout B) throws -> ExactRationalCoefficient {
-            try a.subtracting(b, usage: &usage).isPositive ? a : b
-        }
-        func minimum(_ a: ExactRationalCoefficient, _ b: ExactRationalCoefficient,
-            usage: inout B) throws -> ExactRationalCoefficient {
-            try a.subtracting(b, usage: &usage).isNegative ? a : b
-        }
-        var result: [Cell] = []
-        for a in bottom { for b in top {
-            let loU = try maximum(a.lower, b.lower, usage: &usage)
-            let hiU = try minimum(a.upper, b.upper, usage: &usage)
-            guard try hiU.subtracting(loU, usage: &usage).isPositive else { continue }
-            for c in left { for d in right {
-                try usage.visitExactCell(depth: 0)
-                let loV = try maximum(c.lower, d.lower, usage: &usage)
-                let hiV = try minimum(c.upper, d.upper, usage: &usage)
-                guard try hiV.subtracting(loV, usage: &usage).isPositive else { continue }
-                try usage.retainExactStorage(20)
-                var laws = [a.homogeneous, b.homogeneous]
-                for piece in [c, d] {
-                    laws.append(try piece.homogeneous.map { try $0.exchangedAxes(usage: &usage) })
-                }
-                var denominator = one
-                var position = [ExactBivariatePolynomial](repeating: .zero, count: 3)
-                for boundary in 0..<4 {
-                    try usage.retainExactStorage(3)
-                    var next: [ExactBivariatePolynomial] = []
-                    for axis in 0..<3 {
-                        next.append(try position[axis].multiplied(by: laws[boundary][3], usage: &usage)
-                            .adding(laws[boundary][axis].multiplied(by: blends[boundary], usage: &usage)
-                                .multiplied(by: denominator, usage: &usage), usage: &usage))
-                    }
-                    position = next
-                    denominator = try denominator.multiplied(by: laws[boundary][3], usage: &usage)
-                }
-                for axis in 0..<3 {
-                    position[axis] = try position[axis].subtracting(
-                        bilinear[axis].multiplied(by: denominator, usage: &usage), usage: &usage)
-                }
-                let du = try denominator.differentiated(alongU: true, usage: &usage)
-                let dv = try denominator.differentiated(alongU: false, usage: &usage)
-                try usage.retainExactStorage(6)
-                var first: [ExactBivariatePolynomial] = [], second: [ExactBivariatePolynomial] = []
-                for axis in 0..<3 {
-                    first.append(try position[axis].differentiated(alongU: true, usage: &usage)
-                        .multiplied(by: denominator, usage: &usage)
-                        .subtracting(position[axis].multiplied(by: du, usage: &usage), usage: &usage))
-                    second.append(try position[axis].differentiated(alongU: false, usage: &usage)
-                        .multiplied(by: denominator, usage: &usage)
-                        .subtracting(position[axis].multiplied(by: dv, usage: &usage), usage: &usage))
-                }
-                for upper in [false, true] {
-                    first = try strip(first, alongU: true, upper: upper, usage: &usage)
-                    second = try strip(second, alongU: false, upper: upper, usage: &usage)
-                }
-                try usage.retainExactStorage(3)
-                var normal: [ExactBivariatePolynomial] = []
-                for axis in 0..<3 {
-                    let i = (axis + 1) % 3, j = (axis + 2) % 3
-                    normal.append(try first[i].multiplied(by: second[j], usage: &usage)
-                        .subtracting(first[j].multiplied(by: second[i], usage: &usage), usage: &usage))
-                }
-                try usage.retainExactStorage(1)
-                result.append(Cell(lowerU: loU, upperU: hiU, lowerV: loV, upperV: hiV,
-                    tangentU: first, tangentV: second, normal: normal))
-            } }
-        } }
         guard !result.isEmpty else {
             throw GeometryConversionError.invalidInput("Original Coons rational atlas has no positive source cells.")
         }
+        try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
+        try CurrentTaskCancellationChecker().checkCancellation()
         return Self(cells: result)
     }
 
@@ -237,7 +169,11 @@ struct OriginalCoonsRationalDifferentialAtlas: Sendable {
         var power = try ExactBivariatePolynomial.constant(.one, usage: &usage)
         for _ in 0..<multiplicity { power = try power.multiplied(by: factor, usage: &usage) }
         let sign = upper && multiplicity & 1 == 1 ? ExactRationalCoefficient.one.negated : .one
-        try usage.retainExactStorage(3)
-        return try original.map { try $0.dividedExactly(by: power, usage: &usage).scaled(by: sign, usage: &usage) }
+        try RationalAlgebraStorage.retain(original.count, of: ExactBivariatePolynomial.self, usage: &usage)
+        var result: [ExactBivariatePolynomial] = []; result.reserveCapacity(original.count)
+        for polynomial in original {
+            result.append(try polynomial.dividedExactly(by: power, usage: &usage).scaled(by: sign, usage: &usage))
+        }
+        return result
     }
 }
