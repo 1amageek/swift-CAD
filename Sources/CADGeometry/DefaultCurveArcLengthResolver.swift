@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct DefaultCurveArcLengthResolver: CurveArcLengthResolving {
     private struct Cell: Sendable {
@@ -352,7 +362,7 @@ public struct DefaultCurveArcLengthResolver: CurveArcLengthResolving {
     }
 
     private func consume(_ depth: Int, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         if let callerMaximumDepth, depth > callerMaximumDepth {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                 tolerance: tolerance, message: "Arc length exhausted the caller's subdivision depth.")
@@ -469,7 +479,7 @@ public struct DefaultCurveArcLengthResolver: CurveArcLengthResolving {
         consumeStorage: (@Sendable (Int) throws -> Void)?,
         remainingSourceDepth: Int? = nil, maximumAlgebraicDepth: Int? = nil
     ) throws -> CurveArcLengthEnclosure {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork(0)
         let accuracy = try options.validatedAbsoluteAccuracy(tolerance: tolerance)
         guard maximumSubdivisionDepth >= 0, interval.width > 0,
@@ -1036,9 +1046,9 @@ public struct DefaultCurveArcLengthResolver: CurveArcLengthResolving {
         if let bezierPatch {
             let derivativeBound = try RationalBezierCurveDerivativeBound(
                 coordinates: [
-                    bezierPatch.controlPoints.map(\.x),
-                    bezierPatch.controlPoints.map(\.y),
-                    bezierPatch.controlPoints.map(\.z),
+                    bezierPatch.controlPoints.map({ $0.x }),
+                    bezierPatch.controlPoints.map({ $0.y }),
+                    bezierPatch.controlPoints.map({ $0.z }),
                 ],
                 weights: bezierPatch.weights,
                 parameterWidth: interval.width,
@@ -1508,9 +1518,9 @@ public struct DefaultCurveArcLengthResolver: CurveArcLengthResolving {
                     )
                 let bound = try RationalBezierCurveDerivativeBound(
                     coordinates: [
-                        patch.controlPoints.map(\.x),
-                        patch.controlPoints.map(\.y),
-                        patch.controlPoints.map(\.z),
+                        patch.controlPoints.map({ $0.x }),
+                        patch.controlPoints.map({ $0.y }),
+                        patch.controlPoints.map({ $0.z }),
                     ],
                     weights: patch.weights,
                     parameterWidth: patch.upper - patch.lower,

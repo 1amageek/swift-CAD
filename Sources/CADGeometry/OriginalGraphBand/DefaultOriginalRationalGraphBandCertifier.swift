@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Builds a bounded original graph/reference receipt before any mesh allocation.
 package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphBandCertifying {
@@ -29,7 +39,7 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
       throws -> OriginalGraphBandReceipt {
         try tolerance.validate()
         try fidelity.validate(tolerance: tolerance)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let count = input.boundaries.count
         guard count <= proofUsage.remainingCellCount else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -41,7 +51,7 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
         let uses = input.lowerChain + input.upperChain
         guard input.sharedVertices.count == count, uses.count == count,
               input.lowerChain.isEmpty == false, input.upperChain.isEmpty == false,
-              Set(uses.map(\.boundaryIndex)) == Set(0..<count),
+              Set(uses.map({ $0.boundaryIndex })) == Set(0..<count),
               input.sharedVertices.allSatisfy({ $0.x.isFinite && $0.y.isFinite && $0.z.isFinite }) else {
             throw invalid(tolerance, "Original graph-band input requires a complete ordered boundary and actual shared vertices.")
         }
@@ -92,8 +102,8 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
         let pieces = lower.pieces + upper.pieces
         let uLower = try pieces.map { try $0.uBounds.lower }.min()!
         let uUpper = try pieces.map { try $0.uBounds.upper }.max()!
-        let vLower = pieces.flatMap(\.points).map(\.y).min()!
-        let vUpper = pieces.flatMap(\.points).map(\.y).max()!
+        let vLower = pieces.flatMap({ $0.points }).map({ $0.y }).min()!
+        let vUpper = pieces.flatMap({ $0.points }).map({ $0.y }).max()!
         let domain = try SurfaceParameterBox(u: ScalarInterval(lower: uLower, upper: uUpper),
                                              v: ScalarInterval(lower: vLower, upper: vUpper))
         guard case let .closed(surfaceULower, surfaceUUpper) = input.surface.uDomain,
@@ -164,9 +174,9 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
                 nativeParameters: piece.nativeParameters,
                 normalizedParameters: try ScalarInterval(lower: 0, upper: 1), joinIndex: nil)
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return Receipt(input: input, fidelity: fidelity, tolerance: tolerance, winding: reversed ? -1 : 1,
-                       referenceCells: cells, joinCells: joins.map(\.receipt),
+                       referenceCells: cells, joinCells: joins.map({ $0.receipt }),
                        originalBoundaryIntervals: intervals)
     }
 
@@ -202,7 +212,7 @@ package struct DefaultOriginalRationalGraphBandCertifier: OriginalRationalGraphB
             }
             var result: [Piece] = []
             for index in 0..<count {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 let span = source.degree + index * source.degree
                 let a = source.knots[span]
                 let b = source.knots[span + 1]

@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// A continuous endpoint lift of one pcurve into a surface chart's universal
 /// cover. Geometry owns this contract because periodicity and parameter
@@ -67,7 +77,7 @@ package struct SurfaceParameterCurveChartLift: Hashable, Sendable {
         var translatedBoxes: [SurfaceParameterBox] = []; translatedBoxes.reserveCapacity(boxes.count)
         var proposals: [SurfaceParameter] = []; proposals.reserveCapacity(boxes.count)
         for box in boxes {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let originalU = OutwardScalarInterval(lower: box.u.lower, upper: box.u.upper)
             let u = uShift == 0 ? originalU : originalU + .exact(uShift)
             let originalV = OutwardScalarInterval(lower: box.v.lower, upper: box.v.upper)
@@ -368,8 +378,8 @@ package extension SurfaceParameterCurve {
             for patch in patches {
                 let bound = try RationalBezierCurveDerivativeBound(
                     coordinates: [
-                        patch.controlPoints.map(\.x),
-                        patch.controlPoints.map(\.y),
+                        patch.controlPoints.map({ $0.x }),
+                        patch.controlPoints.map({ $0.y }),
                     ],
                     weights: patch.weights,
                     parameterWidth: patch.upper - patch.lower,

@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable {
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -237,7 +247,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
         try charge(certificate.traceParameters.count)
         try charge(certificate.heightsByBranch.count)
         for row in certificate.heightsByBranch {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try charge(row.count)
         }
     }
@@ -376,7 +386,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
               certificate.heightsByBranch.count == branchCount,
               certificate.heightsByBranch.allSatisfy({
                   $0.count == certificate.traceParameters.count
-                      && $0.allSatisfy(\.isFinite)
+                      && $0.allSatisfy({ $0.isFinite })
               }),
               certificate.traceParameters.first == 0.0,
               certificate.traceParameters.last == 2.0 * Double.pi,
@@ -941,7 +951,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable
             tolerance: tolerance
         )
         let trace = try makeRootTrace(
-            initialHeights: initialRoots.map(\.value),
+            initialHeights: initialRoots.map({ $0.value }),
             configuration: configuration,
             tolerance: tolerance
         )

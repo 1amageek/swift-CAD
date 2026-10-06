@@ -24,7 +24,7 @@ package enum OriginalNormalAngleBounds {
         var lower = 0.0, upper = CanonicalSphereAngularPhase.piBounds.upper
         if chord == 2 { return upper }
         while true {
-            try usage.consumeExactWork(1); try Task.checkCancellation()
+            try usage.consumeExactWork(1); try CurrentTaskCancellationChecker().checkCancellation()
             let middle = lower + (upper - lower) * 0.5
             guard middle > lower, middle < upper else { return upper }
             // Every representable interior station is below mathematical pi:
@@ -47,7 +47,7 @@ package enum OriginalNormalAngleBounds {
         let squared = try x.multiplied(by: x, usage: &usage)
         var sum = x, term = x, order = 0
         while true {
-            try usage.consumeExactWork(1); try Task.checkCancellation()
+            try usage.consumeExactWork(1); try CurrentTaskCancellationChecker().checkCancellation()
             let twice = try rationalAlgebraCount(order, 2, multiply: true)
             let a = try rationalAlgebraCount(twice, 2)
             let b = try rationalAlgebraCount(twice, 3)

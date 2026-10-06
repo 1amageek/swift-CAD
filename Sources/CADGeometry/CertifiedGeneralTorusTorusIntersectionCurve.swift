@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import Synchronization
 
 public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
@@ -335,21 +345,21 @@ public struct CertifiedGeneralTorusTorusIntersectionCurve: Hashable, Sendable {
         try charge(certificate.trace.parameters.count)
         try charge(certificate.trace.valuesByBranch.count)
         for row in certificate.trace.valuesByBranch {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try charge(row.count)
         }
         try charge(certificate.trace.permutation.count)
 
         try charge(certificate.cycles.count)
         for cycle in certificate.cycles {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try charge(cycle.count)
         }
 
         let partitions = certificate.branchSpatialDifferential.partitions
         try charge(partitions.count)
         for _ in partitions {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             // branch index, angle interval, and three derivative bounds.
             try charge(6)
         }

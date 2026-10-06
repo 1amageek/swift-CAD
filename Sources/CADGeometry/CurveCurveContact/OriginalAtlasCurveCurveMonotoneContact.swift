@@ -13,7 +13,7 @@ struct OriginalAtlasCurveCurveMonotoneContact {
                      maximumDepth: Int,
                      budget: inout NativeCurveCurveContactBudget) throws -> Result? {
         try budget.work(equations.count)
-        if equations.allSatisfy(\.isZero) { return .continuous(domain) }
+        if equations.allSatisfy({ $0.isZero }) { return .continuous(domain) }
         guard let common else { return nil }
         if let branch = try OriginalCurveCurveBinomialCorrespondence().certificate(common: common,
             over: domain, firstNativeSpan: firstNativeSpan, secondNativeSpan: secondNativeSpan,

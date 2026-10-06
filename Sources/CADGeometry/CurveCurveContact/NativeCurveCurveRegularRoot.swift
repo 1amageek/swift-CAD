@@ -38,7 +38,7 @@ struct NativeCurveCurveRegularRoot {
         let d = -midpoint(component(secondCenter, axes.1).derivativeU)
         let determinant = a * d - b * c
         let inverse = [d / determinant, -b / determinant, -c / determinant, a / determinant]
-        guard inverse.allSatisfy(\.isFinite) else { return .unresolved }
+        guard inverse.allSatisfy({ $0.isFinite }) else { return .unresolved }
         let j00 = component(first, axes.0).derivativeU
         let j01 = -component(second, axes.0).derivativeU
         let j10 = component(first, axes.1).derivativeU

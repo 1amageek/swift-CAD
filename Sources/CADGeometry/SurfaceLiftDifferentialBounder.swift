@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct SurfaceLiftDifferentialBounder {
     struct ParameterBounds {
@@ -871,8 +881,8 @@ struct SurfaceLiftDifferentialBounder {
             for patch in patches {
                 let bound = try RationalBezierCurveDerivativeBound(
                     coordinates: [
-                        patch.controlPoints.map(\.x),
-                        patch.controlPoints.map(\.y),
+                        patch.controlPoints.map({ $0.x }),
+                        patch.controlPoints.map({ $0.y }),
                     ],
                     weights: patch.weights,
                     parameterWidth: patch.upper - patch.lower,
@@ -1151,9 +1161,9 @@ struct SurfaceLiftDifferentialBounder {
         }
         let bound = try RationalBezierCurveDerivativeBound(
             coordinates: [
-                patch.controlPoints.map(\.x),
-                patch.controlPoints.map(\.y),
-                patch.controlPoints.map(\.z),
+                patch.controlPoints.map({ $0.x }),
+                patch.controlPoints.map({ $0.y }),
+                patch.controlPoints.map({ $0.z }),
             ],
             weights: patch.weights,
             parameterWidth: patch.upper - patch.lower,
@@ -1240,10 +1250,10 @@ struct SurfaceLiftDifferentialBounder {
 
     private func bounds(points: [SurfaceParameter]) throws -> ParameterBounds {
         guard points.isEmpty == false,
-              let minimumU = points.map(\.u).min(),
-              let maximumU = points.map(\.u).max(),
-              let minimumV = points.map(\.v).min(),
-              let maximumV = points.map(\.v).max() else {
+              let minimumU = points.map({ $0.u }).min(),
+              let maximumU = points.map({ $0.u }).max(),
+              let minimumV = points.map({ $0.v }).min(),
+              let maximumV = points.map({ $0.v }).max() else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,

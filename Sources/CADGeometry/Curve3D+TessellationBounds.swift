@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Certified geometric bounds used by derived representations. The values
 /// enclose the complete curve interval, rather than only sampled points.
@@ -353,9 +363,9 @@ fileprivate extension Curve3D {
                     )
                 let bound = try RationalBezierCurveDerivativeBound(
                     coordinates: [
-                        patch.controlPoints.map(\.x),
-                        patch.controlPoints.map(\.y),
-                        patch.controlPoints.map(\.z),
+                        patch.controlPoints.map({ $0.x }),
+                        patch.controlPoints.map({ $0.y }),
+                        patch.controlPoints.map({ $0.z }),
                     ],
                     weights: patch.weights,
                     parameterWidth: patch.upper - patch.lower,
@@ -396,7 +406,7 @@ fileprivate extension Curve3D {
             )
         case .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
             let receipt = try PreparedCurveDifferentialEncloser(curve: self, tolerance: tolerance)
-                .closedNativeJets(over: interval, tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+                .closedNativeJets(over: interval, tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             guard let first = receipt.spans.first else { throw GeometryConversionError.invalidInput("Original word tessellation has no native owner.") }
             var bound = 0.0
             for span in receipt.spans {

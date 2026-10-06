@@ -25,7 +25,7 @@ package struct OriginalTessellationProofUsage: Sendable {
     }
 
     package mutating func consume(depth: Int, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth >= 0, depth <= 32 else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                               message: "Original tessellation exhausted its shared proof depth.")

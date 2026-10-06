@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 private let maximumCertifiedBernsteinProductDegree = 16
 
@@ -249,11 +259,11 @@ private struct HomogeneousSurfaceBounds: Sendable {
     static func enclosing(_ values: [HomogeneousSurfacePoint]) -> HomogeneousSurfaceBounds {
         HomogeneousSurfaceBounds(
             xyz: IntervalVector3DBounds(
-                x: .enclosing(values.map(\.x)),
-                y: .enclosing(values.map(\.y)),
-                z: .enclosing(values.map(\.z))
+                x: .enclosing(values.map({ $0.x })),
+                y: .enclosing(values.map({ $0.y })),
+                z: .enclosing(values.map({ $0.z }))
             ),
-            weight: .enclosing(values.map(\.weight))
+            weight: .enclosing(values.map({ $0.weight }))
         )
     }
 }

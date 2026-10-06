@@ -31,7 +31,7 @@ struct NativeCurveCurveContactBudget: Sendable, RationalAlgebraAdmitting {
     }
 
     mutating func work(_ count: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard count >= 0, count <= remainingWork else { throw exhausted() }
         remainingWork -= count
         try admission?.chargeWork(count)
@@ -47,7 +47,7 @@ struct NativeCurveCurveContactBudget: Sendable, RationalAlgebraAdmitting {
 
     mutating func consumeExactWork(_ count: Int) throws { try work(count) }
     mutating func retainExactStorage(_ count: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
         guard count >= 0, count <= remainingWork, !bytes.overflow else { throw exhausted() }
         remainingWork -= count

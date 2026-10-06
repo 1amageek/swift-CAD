@@ -7,7 +7,7 @@ struct OriginalNativeCurveCurveAlgebraicOverlap {
                      second: RationalBezierCurveJetEncloser.NativeSpan, secondParameters: ScalarInterval,
                      budget: inout NativeCurveCurveContactBudget) throws -> NativeCurveCurveAlgebraicCorrespondence? {
         let equations = polynomial.equations
-        if equations.allSatisfy(\.isZero) {
+        if equations.allSatisfy({ $0.isZero }) {
             try budget.work(1)
             return NativeCurveCurveAlgebraicCorrespondence(parameters: SurfaceParameterBox(u: firstParameters, v: secondParameters),
                 commonFactor: .zero, originalEquationQuotients: [], dependentParameter: .unconstrained,

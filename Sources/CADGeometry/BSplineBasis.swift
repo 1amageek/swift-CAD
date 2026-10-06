@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct BSplineBasis {
     struct NonzeroIntervalValues: Sendable {
@@ -14,7 +24,7 @@ public struct BSplineBasis {
             knots: knots, count: count, span: owningSpan, tolerance: tolerance)
         let derivatives = localDerivatives(parameter: parameter, span: owningSpan,
             degree: degree, derivativeOrder: min(order, degree), knots: knots)
-        guard derivatives.joined().allSatisfy(\.isFinite) else {
+        guard derivatives.joined().allSatisfy({ $0.isFinite }) else {
             throw selectedFailure(.resourceLimitExceeded, "Selected original basis derivatives exceed finite arithmetic.", tolerance)
         }
         return (0...order).map { derivative in
@@ -26,7 +36,7 @@ public struct BSplineBasis {
     static func nonzeroIntervalDerivativeValues(parameter: Double, degree: Int,
         throughDerivativeOrder order: Int, knots: [Double], count: Int,
         owningSpan: Int, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [NonzeroIntervalValues] {
         try validateSelectedSpan(parameter: parameter, degree: degree, order: order,
             knots: knots, count: count, span: owningSpan, tolerance: tolerance, consumeWork: consumeWork)
@@ -38,7 +48,7 @@ public struct BSplineBasis {
         previous[0][0] = .exact(1)
         if degree > 0 {
             for p in 1...degree {
-                try Task.checkCancellation(); try consumeWork()
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                 let start = owningSpan - p
                 for _ in 0...order {
                     for _ in 0...p { try consumeWork() }
@@ -101,9 +111,9 @@ public struct BSplineBasis {
 
     private static func validateSelectedSpan(parameter: Double, degree: Int, order: Int,
         knots: [Double], count: Int, span: Int, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
         try tolerance.validate()
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         let sum = count.addingReportingOverflow(degree)
         let length = sum.partialValue.addingReportingOverflow(1)
         let rows = order.addingReportingOverflow(1)

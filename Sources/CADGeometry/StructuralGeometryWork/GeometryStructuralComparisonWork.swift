@@ -637,7 +637,7 @@ package struct GeometryStructuralComparisonWork {
     }
 
     private static func checkCancellation() throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
     private static func charge(angularTransport: OriginalAngularParameterTransport, using charge: Charge) throws {
         try charge(1)

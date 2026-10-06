@@ -257,7 +257,7 @@ public struct OriginalDraftedCurve3D: Hashable, Sendable {
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
         let q = try intervalTaylorJet(over:.init(lower:parameter,upper:parameter),throughOrder:0,
             tolerance:tolerance,maximumSpanCount:maximumSpanCount,maximumSubdivisionDepth:maximumSubdivisionDepth,
-            remainingSourceDepth:remainingSourceDepth,consumeWork:{ try Task.checkCancellation() })
+            remainingSourceDepth:remainingSourceDepth,consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() })
         let x = try q.x.coefficient(0,0), y = try q.y.coefficient(0,0), z = try q.z.coefficient(0,0)
         let result = Point3D(x:x.midpoint,y:y.midpoint,z:z.midpoint)
         guard IntervalVector3DBounds(x:x - .exact(result.x),y:y - .exact(result.y),z:z - .exact(result.z)).lengthUpperBound <= tolerance.distance else {

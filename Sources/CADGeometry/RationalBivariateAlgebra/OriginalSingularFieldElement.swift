@@ -1,3 +1,5 @@
+import CADCore
+
 /// Exact rational functions in one retained original real algebraic tower.
 package struct OriginalSingularFieldElement: Sendable {
     enum Storage: Sendable {
@@ -165,7 +167,7 @@ package struct OriginalSingularFieldElement: Sendable {
     private func originalConstants<B: RationalAlgebraAdmitting>(with other: Self,
         usage: inout B) throws -> (ExactRationalCoefficient, ExactRationalCoefficient)? {
         try usage.consumeExactWork(1)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard case .original = storage, case .original = other.storage else { return nil }
         switch context.source {
         case .rational, .original: break

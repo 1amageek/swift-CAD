@@ -1,3 +1,5 @@
+import CADCore
+
 /// Exact real-zero equivalence for same-sign sums of pure positive even powers.
 package struct OriginalEvenPowerEquationZeroSet: Sendable {
     package struct Term: Sendable {
@@ -82,7 +84,7 @@ package struct OriginalEvenPowerEquationZeroSet: Sendable {
         // coordinate equations to vanish; their simultaneous zero also zeros
         // every reconstructed term. This does not assert rational ideal equality.
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return .init(equationIndex: equationIndex, guardedEquation: equation,
             coefficientSign: coefficientSign, terms: terms, coordinates: coordinates,
             coordinateEquations: coordinateEquations, reconstruction: reconstruction)

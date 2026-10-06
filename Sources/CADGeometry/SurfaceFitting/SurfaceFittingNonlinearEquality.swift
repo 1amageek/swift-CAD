@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 package enum SurfaceFittingNonlinearEquality {
     package struct Evaluation: Sendable {
@@ -26,7 +36,7 @@ package enum SurfaceFittingNonlinearEquality {
         maximumEvaluations: Int, maximumElements: Int,
         evaluate: ([Double]) throws -> Evaluation
     ) throws -> Result {
-        guard !initial.isEmpty, initial.allSatisfy(\.isFinite),
+        guard !initial.isEmpty, initial.allSatisfy({ $0.isFinite }),
               maximumStep.isFinite, maximumStep > 0,
               constraintTolerance.isFinite, constraintTolerance > 0,
               relativeGradientTolerance.isFinite, relativeGradientTolerance > 0,
@@ -54,7 +64,7 @@ package enum SurfaceFittingNonlinearEquality {
                         * current.objective.residuals[row]
                 }
             }
-            guard gradient.allSatisfy(\.isFinite), norm(gradient).isFinite else {
+            guard gradient.allSatisfy({ $0.isFinite }), norm(gradient).isFinite else {
                 throw failure(.resourceLimitExceeded, "Nonlinear equality gradient exceeded finite arithmetic range.")
             }
             var projected = gradient
@@ -105,7 +115,7 @@ package enum SurfaceFittingNonlinearEquality {
                     throw failure(.resourceLimitExceeded, "Nonlinear equality fitting exhausted its evaluation budget.")
                 }
                 let candidate = zip(parameters, step).map { $0 + fraction * $1 }
-                guard candidate.allSatisfy(\.isFinite) else {
+                guard candidate.allSatisfy({ $0.isFinite }) else {
                     throw failure(.resourceLimitExceeded, "Nonlinear equality trial exceeded finite parameter range.")
                 }
                 guard candidate != parameters else {
@@ -147,7 +157,7 @@ package enum SurfaceFittingNonlinearEquality {
         for (part, count) in [(value.objective, rows), (value.constraints, equalities)] {
             let size = count.multipliedReportingOverflow(by: columns)
             guard !size.overflow, part.residuals.count == count, part.jacobian.count == size.partialValue,
-                  part.residuals.allSatisfy(\.isFinite), part.jacobian.allSatisfy(\.isFinite) else {
+                  part.residuals.allSatisfy({ $0.isFinite }), part.jacobian.allSatisfy({ $0.isFinite }) else {
                 throw failure(.invalidInput, "Nonlinear equality evaluator returned invalid dimensions or values.")
             }
             guard part.jacobian.count <= remaining else {

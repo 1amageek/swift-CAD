@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 struct BSplineSurfaceTangencyRefiner {
@@ -102,7 +112,7 @@ struct BSplineSurfaceTangencyRefiner {
             return nil
         }
         let characteristicLength = max(
-            initial.positionColumns.map(\.length).max() ?? 0.0,
+            initial.positionColumns.map({ $0.length }).max() ?? 0.0,
             tolerance.distance * 16.0
         )
         let curvatureScale = try maximumRelativeCurvature(

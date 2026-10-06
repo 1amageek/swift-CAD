@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Traces one regular connected component of a bounded surface intersection.
 /// Candidate discovery and completeness proofs are intentionally owned by the
@@ -314,9 +324,9 @@ struct ParametricSurfaceIntersectionComponentTracer: Sendable {
       try admission.reserve(count: 12, stride: MemoryLayout<Double>.stride)
       try admission.reserve(count: 4, stride: MemoryLayout<Array<Double>>.stride)
       let matrix = [
-        columns.map(\.x),
-        columns.map(\.y),
-        columns.map(\.z),
+        columns.map({ $0.x }),
+        columns.map({ $0.y }),
+        columns.map({ $0.z }),
         tangent,
       ]
       try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)

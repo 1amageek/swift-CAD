@@ -31,7 +31,7 @@ public struct CertifiedGeometryConverter: CallerAdmittedGeometryConverting {
         var budget = GeometryConversionBudget(requirements, admission: admission)
         var spans = 1
         for _ in 0..<requirements.maximumCandidateCount {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let degree = min(3, requirements.maximumDegree)
             try chargeCurve(count: curveCount(degree: degree, spans: spans), requirements: requirements, budget: &budget)
             let capacity = spans.addingReportingOverflow(1)
@@ -89,7 +89,7 @@ public struct CertifiedGeometryConverter: CallerAdmittedGeometryConverting {
             throw GeometryConversionError.invalidInput("Curve interpolation requires at least two increasing parameters.")
         }
         for i in parameters.indices {
-            try Task.checkCancellation(); try admission?.chargeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try admission?.chargeWork()
             guard parameters[i].isFinite, i == 0 || parameters[i] > parameters[i - 1] else {
                 throw GeometryConversionError.invalidInput("Interpolation parameters must be finite and strictly increasing.")
             }
@@ -142,7 +142,7 @@ public struct CertifiedGeometryConverter: CallerAdmittedGeometryConverting {
         var spans = 1
         let degree = min(3, requirements.maximumDegree)
         for _ in 0..<requirements.maximumCandidateCount {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let sum = spans.addingReportingOverflow(degree)
             guard !sum.overflow else { throw GeometryConversionError.resourceLimitExceeded("Surface dimension overflowed.") }
             try chargeSurface(u: sum.partialValue, v: sum.partialValue, requirements: requirements, budget: &budget)
@@ -150,7 +150,7 @@ public struct CertifiedGeometryConverter: CallerAdmittedGeometryConverting {
                 layout: .init(uDegree: degree, vDegree: degree, uSpans: spans, vSpans: spans),
                 u: parameters.u, v: parameters.v, tolerance: tolerance, admission: admission
             ) { u, v in
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 if let admission { return try source.point(u: u, v: v, tolerance: tolerance, admission: admission) }
                 return try source.point(u: u, v: v, tolerance: tolerance)
             }.surface
@@ -179,7 +179,7 @@ public struct CertifiedGeometryConverter: CallerAdmittedGeometryConverting {
             work: GeometryConversionBudget.product(points.count, net, net, 64))
         try budget.charge(scalars: GeometryConversionBudget.product(points.count, points.count, 16))
         let constraints = try points.map { value in
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard value.u.isFinite, value.v.isFinite, parameters.u.contains(value.u), parameters.v.contains(value.v), value.point.isFinite else {
                 throw GeometryConversionError.invalidInput("Every interpolation point must be finite and inside the certified rectangle.")
             }
@@ -279,12 +279,12 @@ public struct CertifiedGeometryConverter: CallerAdmittedGeometryConverting {
 
     private func admit(source: any GeometryCurveConversionSource, parameters: ScalarInterval,
         requirements: GeometryConversionRequirements, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation(); try requirements.validate(); try tolerance.validate()
+        try CurrentTaskCancellationChecker().checkCancellation(); try requirements.validate(); try tolerance.validate()
         try source.validate(over: parameters, tolerance: tolerance)
     }
     private func admit(source: any GeometrySurfaceConversionSource, parameters: SurfaceParameterBox,
         requirements: GeometryConversionRequirements, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation(); try requirements.validate(); try tolerance.validate()
+        try CurrentTaskCancellationChecker().checkCancellation(); try requirements.validate(); try tolerance.validate()
         try source.validate(over: parameters, tolerance: tolerance)
     }
     private func certify(source: any GeometryCurveConversionSource, candidate: BSplineCurve3D, parameters: ScalarInterval,
@@ -401,7 +401,7 @@ public struct CertifiedGeometryConverter: CallerAdmittedGeometryConverting {
         try start.point.validate(); try start.derivative.validate()
         controls.append(start.point)
         for i in 0..<(breaks.count - 1) {
-            try Task.checkCancellation(); try admission?.chargeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try admission?.chargeWork()
             let a = breaks[i], b = breaks[i + 1]
             guard b > a else { throw GeometryConversionError.invalidInput("Candidate breaks must be strictly increasing.") }
             let end = try station(b)

@@ -361,7 +361,7 @@ struct ParametricSurfaceIntersectionGraphAtlasBuilder: Sendable {
     }
     try admission.reserve(count: candidates.count,
       stride: MemoryLayout<SurfaceIntersectionParameterCoordinate>.stride)
-    return candidates.map(\.coordinate)
+    return candidates.map({ $0.coordinate })
   }
 
   private func parameterBounds(samples: ArraySlice<Sample>, freeParameterIndex: Int,

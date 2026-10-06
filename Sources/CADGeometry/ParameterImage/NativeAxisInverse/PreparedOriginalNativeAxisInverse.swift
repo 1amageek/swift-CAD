@@ -56,7 +56,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
         var direction = 0
         var previousCoordinate: ExactRationalCoefficient?
         for span in source.degree..<source.controlPoints.count {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try usage.consumeExactWork(1)
             if source.knots[span] == source.knots[span + 1] { continue }
             guard prepared.count < maximumSpanCount else {
@@ -137,7 +137,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
         var adjacentSpan: Int?
         var sharedStation: ExactRationalCoefficient?
         for owner in owners {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try usage.consumeExactWork(1)
             let a = try target.subtracting(owner.firstCoordinate, usage: &usage)
             let b = try owner.lastCoordinate.subtracting(target, usage: &usage)

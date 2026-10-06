@@ -6,7 +6,7 @@ extension OriginalParameterGain {
         guard remainingSourceDepth >= 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original gain validation exhausted source depth.")
         }
-        try consumeWork(0); try Task.checkCancellation()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
         switch self {
         case .binary, .ratio:
             try validate()

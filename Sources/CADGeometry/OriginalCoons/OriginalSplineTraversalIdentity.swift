@@ -31,7 +31,7 @@ struct OriginalSplineTraversalIdentity {
         }
         let two = try ExactRationalCoefficient.one.adding(.one, usage: &usage)
         for index in 0..<(cuts.count - 1) {
-            try Task.checkCancellation(); try usage.visitExactCell(depth: 0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: 0)
             let center = try cuts[index].adding(cuts[index + 1], usage: &usage).divided(by: two, usage: &usage)
             let firstPiece = try owner(in: a, at: center, usage: &usage)
             let secondPiece = try owner(in: b, at: center, usage: &usage)

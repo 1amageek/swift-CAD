@@ -35,7 +35,7 @@ enum FloatingPointExpansion {
     }
 
     static func sign(_ expansion: [Double]) -> RobustSign {
-        guard expansion.allSatisfy(\.isFinite) else {
+        guard expansion.allSatisfy({ $0.isFinite }) else {
             return .indeterminate
         }
         for component in expansion.reversed() where component != 0.0 {

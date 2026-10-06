@@ -10,7 +10,7 @@ public enum ProceduralSurface3D: Hashable, Sendable {
     case originalRevolution(OriginalRevolutionSurface3D)
     case originalCoons(OriginalCoonsSurface3D)
     case originalBoundaryCorrected(OriginalBoundaryCorrectedSurface3D)
-    case originalPlaneDerivative(OriginalPlaneDerivativeSurface3D)
+    indirect case originalPlaneDerivative(OriginalPlaneDerivativeSurface3D)
     case originalDrafted(OriginalDraftedRuledSurface3D)
 
     /// Finds the certified closest point on a finite procedural parameter domain.

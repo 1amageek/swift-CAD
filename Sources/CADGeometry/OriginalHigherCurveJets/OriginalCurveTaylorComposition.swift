@@ -20,7 +20,7 @@ struct OriginalCurveTaylorComposition {
         up.reserveCapacity(count.partialValue); vp.reserveCapacity(count.partialValue)
         up.append(one); vp.append(one)
         if order > 0 { for _ in 1...order {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             up.append(try up.last!.multiplied(by: du, consumeWork: consumeWork, consumeStorage: consumeStorage))
             vp.append(try vp.last!.multiplied(by: dv, consumeWork: consumeWork, consumeStorage: consumeStorage))
         } }

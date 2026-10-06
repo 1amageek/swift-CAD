@@ -1,3 +1,5 @@
+import CADCore
+
 struct GeometryConversionBudget {
     var scalars: Int
     var work: Int
@@ -20,7 +22,7 @@ struct GeometryConversionBudget {
         scalars -= count; work -= units
     }
     mutating func visit() throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard boxes > 0 else { throw GeometryConversionError.resourceLimitExceeded("Conversion exhausted its continuous enclosure budget.") }
         boxes -= 1; visited += 1
         try charge(scalars: 512, work: 4_096)

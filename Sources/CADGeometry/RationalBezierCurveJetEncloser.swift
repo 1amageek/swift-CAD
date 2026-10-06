@@ -57,8 +57,8 @@ struct RationalBezierCurveJetEncloser: Sendable {
         let sourceSpan = OutwardScalarInterval(patch.upper)
             - OutwardScalarInterval(patch.lower)
         let weight = try jet(
-            coefficients: sourceControls.map(\.weight),
-            value: parameters.width == 0 ? try evaluated(sourceControls.map(\.weight), at: normalizedParameters, tolerance: tolerance) : .enclosing(controls.map(\.weight)),
+            coefficients: sourceControls.map({ $0.weight }),
+            value: parameters.width == 0 ? try evaluated(sourceControls.map({ $0.weight }), at: normalizedParameters, tolerance: tolerance) : .enclosing(controls.map({ $0.weight })),
             parameters: normalizedParameters,
             sourceSpan: sourceSpan,
             tolerance: tolerance
@@ -74,22 +74,22 @@ struct RationalBezierCurveJetEncloser: Sendable {
         }
         return SurfaceIntervalVectorJet(
             x: try jet(
-                coefficients: sourceControls.map(\.x),
-                value: parameters.width == 0 ? try evaluated(sourceControls.map(\.x), at: normalizedParameters, tolerance: tolerance) : .enclosing(controls.map(\.x)),
+                coefficients: sourceControls.map({ $0.x }),
+                value: parameters.width == 0 ? try evaluated(sourceControls.map({ $0.x }), at: normalizedParameters, tolerance: tolerance) : .enclosing(controls.map({ $0.x })),
                 parameters: normalizedParameters,
                 sourceSpan: sourceSpan,
                 tolerance: tolerance
             ) * reciprocalWeight,
             y: try jet(
-                coefficients: sourceControls.map(\.y),
-                value: parameters.width == 0 ? try evaluated(sourceControls.map(\.y), at: normalizedParameters, tolerance: tolerance) : .enclosing(controls.map(\.y)),
+                coefficients: sourceControls.map({ $0.y }),
+                value: parameters.width == 0 ? try evaluated(sourceControls.map({ $0.y }), at: normalizedParameters, tolerance: tolerance) : .enclosing(controls.map({ $0.y })),
                 parameters: normalizedParameters,
                 sourceSpan: sourceSpan,
                 tolerance: tolerance
             ) * reciprocalWeight,
             z: try jet(
-                coefficients: sourceControls.map(\.z),
-                value: parameters.width == 0 ? try evaluated(sourceControls.map(\.z), at: normalizedParameters, tolerance: tolerance) : .enclosing(controls.map(\.z)),
+                coefficients: sourceControls.map({ $0.z }),
+                value: parameters.width == 0 ? try evaluated(sourceControls.map({ $0.z }), at: normalizedParameters, tolerance: tolerance) : .enclosing(controls.map({ $0.z })),
                 parameters: normalizedParameters,
                 sourceSpan: sourceSpan,
                 tolerance: tolerance
@@ -111,7 +111,7 @@ struct RationalBezierCurveJetEncloser: Sendable {
                              owningSpanIndex: Int? = nil,
                              consumeWork: () throws -> Void,
                              consumeStorage: ((Int) throws -> Void)? = nil) throws -> [NativeSpan] {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try curve.validate(tolerance: tolerance, consumeWork: consumeWork)
         let n = curve.degree.addingReportingOverflow(1)
         let square = n.partialValue.multipliedReportingOverflow(by: n.partialValue)
@@ -134,7 +134,7 @@ struct RationalBezierCurveJetEncloser: Sendable {
             try consumeWork()
             guard curve.knots[span] < curve.knots[span + 1] else { continue }
             if let owningSpanIndex, span != owningSpanIndex { continue }
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeWork()
             let lower = curve.knots[span], upper = curve.knots[span + 1]
             let indices = (span - curve.degree)...span
@@ -182,7 +182,7 @@ struct RationalBezierCurveJetEncloser: Sendable {
                 }
                 var derivatives = nets
                 for order in 0...curve.degree {
-                    try Task.checkCancellation()
+                    try CurrentTaskCancellationChecker().checkCancellation()
                     for offset in basis[order].values.indices {
                         try consumeWork()
                         let index = basis[order].startIndex + offset
@@ -224,13 +224,13 @@ struct RationalBezierCurveJetEncloser: Sendable {
             spans.append(NativeSpan(index: span, lower: lower, upper: upper,
                                     coefficients: nets, weightRange: weightRange, commonWeight: commonWeight ? firstWeight : nil))
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return spans
     }
 
     func enclosure(of span: NativeSpan, over parameters: ScalarInterval,
                    tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard parameters.lower >= span.lower, parameters.upper <= span.upper,
               parameters.lower <= parameters.upper else { throw invalidPatchError(tolerance: tolerance) }
         let a = try normalizedParameter(parameters.lower, lower: span.lower, upper: span.upper, tolerance: tolerance)
@@ -262,9 +262,9 @@ struct RationalBezierCurveJetEncloser: Sendable {
         }
         let result = try SurfaceIntervalVectorJet(x: coordinate(0), y: coordinate(1), z: coordinate(2))
         guard [result.x, result.y, result.z].allSatisfy({
-            [$0.value, $0.derivativeU, $0.secondDerivativeUU, $0.thirdDerivativeUUU].allSatisfy(\.isFinite)
+            [$0.value, $0.derivativeU, $0.secondDerivativeUU, $0.thirdDerivativeUUU].allSatisfy({ $0.isFinite })
         }) else { throw finiteFailure(tolerance) }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 
@@ -273,13 +273,13 @@ struct RationalBezierCurveJetEncloser: Sendable {
     /// retains the original rational denominator and derivative law.
     func continuationEnclosure(of span: NativeSpan, over parameters: ScalarInterval,
         tolerance: ModelingTolerance, consumeWork: () throws -> Void = {}) throws -> SurfaceIntervalVectorJet {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard parameters.lower.isFinite, parameters.upper.isFinite,
               parameters.lower <= parameters.upper else { throw invalidPatchError(tolerance: tolerance) }
         if parameters.lower >= span.lower, parameters.upper <= span.upper {
             let size = span.coefficients[0].count.multipliedReportingOverflow(by: 64)
             guard !size.overflow else { throw finiteFailure(tolerance) }
-            for _ in 0..<size.partialValue { try Task.checkCancellation(); try consumeWork() }
+            for _ in 0..<size.partialValue { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
             return try enclosure(of: span, over: parameters, tolerance: tolerance)
         }
         let width = OutwardScalarInterval.exact(span.upper) - .exact(span.lower)
@@ -287,11 +287,11 @@ struct RationalBezierCurveJetEncloser: Sendable {
               let q = (OutwardScalarInterval(lower: parameters.lower, upper: parameters.upper)
                 - .exact(span.lower)).divided(by: width), q.isFinite else { throw finiteFailure(tolerance) }
         func polynomial(_ coefficients: [OutwardScalarInterval]) throws -> OutwardScalarInterval {
-            guard !coefficients.isEmpty, coefficients.allSatisfy(\.isFinite) else { throw finiteFailure(tolerance) }
+            guard !coefficients.isEmpty, coefficients.allSatisfy({ $0.isFinite }) else { throw finiteFailure(tolerance) }
             var level = coefficients
             let complement = OutwardScalarInterval.exact(1) - q
             while level.count > 1 {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 var next: [OutwardScalarInterval] = []
                 for index in 0..<(level.count - 1) {
                     try consumeWork()
@@ -324,7 +324,7 @@ struct RationalBezierCurveJetEncloser: Sendable {
         let result = try SurfaceIntervalVectorJet(x: scalarJet(span.coefficients[0]) * inverse,
             y: scalarJet(span.coefficients[1]) * inverse, z: scalarJet(span.coefficients[2]) * inverse)
         guard [result.x, result.y, result.z].allSatisfy({
-            [$0.value, $0.derivativeU, $0.secondDerivativeUU, $0.thirdDerivativeUUU].allSatisfy(\.isFinite)
+            [$0.value, $0.derivativeU, $0.secondDerivativeUU, $0.thirdDerivativeUUU].allSatisfy({ $0.isFinite })
         }) else { throw finiteFailure(tolerance) }
         return result
     }
@@ -393,7 +393,7 @@ struct RationalBezierCurveJetEncloser: Sendable {
         tolerance: ModelingTolerance
     ) throws -> SurfaceIntervalJet {
         guard coefficients.isEmpty == false,
-              coefficients.allSatisfy(\.isFinite),
+              coefficients.allSatisfy({ $0.isFinite }),
               parameters.isFinite,
               parameters.lower >= 0.0,
               parameters.upper <= 1.0,
@@ -448,7 +448,7 @@ struct RationalBezierCurveJetEncloser: Sendable {
         at parameter: OutwardScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> OutwardScalarInterval {
-        guard !coefficients.isEmpty, coefficients.allSatisfy(\.isFinite),
+        guard !coefficients.isEmpty, coefficients.allSatisfy({ $0.isFinite }),
               parameter.isFinite, parameter.lower >= 0, parameter.upper <= 1,
               parameter.lower <= parameter.upper else { throw invalidPatchError(tolerance: tolerance) }
         // Patch containment proves exact normalized parameters lie in [0,1].
@@ -503,7 +503,7 @@ struct RationalBezierCurveJetEncloser: Sendable {
             let clamped = OutwardScalarInterval(lower: max(0.0, local.lower), upper: min(1.0, local.upper))
             controls = split(controls, at: clamped, keepsUpper: false)
         }
-        guard controls.allSatisfy(\.isFinite) else { return nil }
+        guard controls.allSatisfy({ $0.isFinite }) else { return nil }
         return OutwardScalarInterval.enclosing(controls)
     }
 

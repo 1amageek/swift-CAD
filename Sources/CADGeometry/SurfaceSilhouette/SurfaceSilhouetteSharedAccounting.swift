@@ -41,7 +41,7 @@ final class SurfaceSilhouetteSharedAccounting: SurfaceSilhouetteAccounting, Send
         state.withLock { ($0.work, $0.cells, $0.storage) }
     }
     func consumeWork(_ count: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try state.withLock { value in
             guard count >= 0, count <= maximumWork - value.work else { throw Self.exhausted("work") }
             value.work += count
@@ -60,7 +60,7 @@ final class SurfaceSilhouetteSharedAccounting: SurfaceSilhouetteAccounting, Send
         try admission?.consumeCell?()
     }
     func consumeProofWork(depth: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth >= 0, depth <= maximumDepth else { throw Self.exhausted("proof depth") }
         try consumeWork(1)
     }

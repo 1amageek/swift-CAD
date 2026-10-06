@@ -114,8 +114,8 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         }
 
         static func enclosing(_ values: [OutwardInterval]) -> OutwardInterval {
-            guard let lower = values.map(\.lower).min(),
-                  let upper = values.map(\.upper).max() else {
+            guard let lower = values.map({ $0.lower }).min(),
+                  let upper = values.map({ $0.upper }).max() else {
                 return OutwardInterval(0.0)
             }
             return OutwardInterval(lower: lower, upper: upper)
@@ -188,9 +188,9 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
 
         static func enclosing(_ values: [IntervalVector]) -> IntervalVector {
             IntervalVector(
-                x: OutwardInterval.enclosing(values.map(\.x)),
-                y: OutwardInterval.enclosing(values.map(\.y)),
-                z: OutwardInterval.enclosing(values.map(\.z))
+                x: OutwardInterval.enclosing(values.map({ $0.x })),
+                y: OutwardInterval.enclosing(values.map({ $0.y })),
+                z: OutwardInterval.enclosing(values.map({ $0.z }))
             )
         }
     }
@@ -287,7 +287,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             }
         }
         guard result.flatMap({ $0 }).flatMap({ $0 }).flatMap({ $0 })
-            .allSatisfy(\.isFinite) else {
+            .allSatisfy({ $0.isFinite }) else {
             throw KernelError(
                 phase: .geometry,
                 code: .resourceLimitExceeded,
@@ -482,7 +482,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     ) -> GaugeRootCertificate {
         let allColumns = derivativeColumns()
         guard allColumns.indices.contains(freeParameterIndex),
-              allColumns.allSatisfy(\.isFinite) else {
+              allColumns.allSatisfy({ $0.isFinite }) else {
             return .rankUnresolved
         }
         return gaugeRootCertificate(
@@ -498,7 +498,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     ) -> GaugeRootCertificate {
         let allColumns = derivativeColumns()
         guard allColumns.indices.contains(freeParameterIndex),
-              allColumns.allSatisfy(\.isFinite),
+              allColumns.allSatisfy({ $0.isFinite }),
               lowerAnchor.count == allColumns.count,
               upperAnchor.count == allColumns.count,
               lowerAnchor.allSatisfy({ $0.isFinite && $0 >= 0.0 && $0 <= 1.0 }),
@@ -529,9 +529,9 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             return .unresolved(freeParameterIndex: freeParameterIndex)
         }
         let jacobian = [
-            dependentColumns.map(\.x),
-            dependentColumns.map(\.y),
-            dependentColumns.map(\.z),
+            dependentColumns.map({ $0.x }),
+            dependentColumns.map({ $0.y }),
+            dependentColumns.map({ $0.z }),
         ]
         let centerBounds = dependentIndexes.map { index in
             OutwardInterval.enclosing(
@@ -594,9 +594,9 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             return "predictor evaluation unavailable"
         }
         let jacobian = [
-            dependentColumns.map(\.x),
-            dependentColumns.map(\.y),
-            dependentColumns.map(\.z),
+            dependentColumns.map({ $0.x }),
+            dependentColumns.map({ $0.y }),
+            dependentColumns.map({ $0.z }),
         ]
         let functionComponents = [functionValue.x, functionValue.y, functionValue.z]
         var corrections = Array(repeating: 0.0, count: 3)
@@ -714,7 +714,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     ) -> [(lower: Double, upper: Double)]? {
         let allColumns = derivativeColumns()
         guard allColumns.indices.contains(freeParameterIndex),
-              allColumns.allSatisfy(\.isFinite) else {
+              allColumns.allSatisfy({ $0.isFinite }) else {
             return nil
         }
         let dependentIndexes = allColumns.indices.filter {
@@ -736,9 +736,9 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             return nil
         }
         let jacobian = [
-            dependentColumns.map(\.x),
-            dependentColumns.map(\.y),
-            dependentColumns.map(\.z),
+            dependentColumns.map({ $0.x }),
+            dependentColumns.map({ $0.y }),
+            dependentColumns.map({ $0.z }),
         ]
         let box = krawczykBox(
             inverse: inverse,
@@ -782,9 +782,9 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             return .unresolved(freeParameterIndex: freeParameterIndex)
         }
         let jacobian = [
-            dependentColumns.map(\.x),
-            dependentColumns.map(\.y),
-            dependentColumns.map(\.z),
+            dependentColumns.map({ $0.x }),
+            dependentColumns.map({ $0.y }),
+            dependentColumns.map({ $0.z }),
         ]
         let parameterizedBox = krawczykBox(
             inverse: inverse,
@@ -853,7 +853,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 side: side
             )
         }
-        guard dependentColumns.allSatisfy(\.isFinite),
+        guard dependentColumns.allSatisfy({ $0.isFinite }),
               determinant(
                   dependentColumns[0],
                   dependentColumns[1],
@@ -868,9 +868,9 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             return .unresolved
         }
         let jacobian = [
-            dependentColumns.map(\.x),
-            dependentColumns.map(\.y),
-            dependentColumns.map(\.z),
+            dependentColumns.map({ $0.x }),
+            dependentColumns.map({ $0.y }),
+            dependentColumns.map({ $0.z }),
         ]
         let fixedValue = side == .lower ? 0.0 : 1.0
         var center = Array(repeating: 0.5, count: 4)
@@ -913,15 +913,15 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 side: side
             )
         }
-        if dependentColumns.allSatisfy(\.isFinite) {
+        if dependentColumns.allSatisfy({ $0.isFinite }) {
             let midpointColumns = dependentColumns.map {
                 Vector3D(x: $0.x.midpoint, y: $0.y.midpoint, z: $0.z.midpoint)
             }
             if let inverse = inverseRows(columns: midpointColumns) {
                 let jacobian = [
-                    dependentColumns.map(\.x),
-                    dependentColumns.map(\.y),
-                    dependentColumns.map(\.z),
+                    dependentColumns.map({ $0.x }),
+                    dependentColumns.map({ $0.y }),
+                    dependentColumns.map({ $0.z }),
                 ]
                 let scores = dependentColumns.indices.map { column in
                     (0..<3).reduce(0.0) { score, row in
@@ -935,7 +935,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                         return score + magnitudeUpperBound(identity - preconditioned)
                     }
                 }
-                if scores.allSatisfy(\.isFinite),
+                if scores.allSatisfy({ $0.isFinite }),
                    let selected = scores.indices.max(by: { first, second in
                        if scores[first] != scores[second] {
                            return scores[first] < scores[second]
@@ -1014,9 +1014,9 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             return "dependent midpoint minor is numerically singular"
         }
         let jacobian = [
-            dependentColumns.map(\.x),
-            dependentColumns.map(\.y),
-            dependentColumns.map(\.z),
+            dependentColumns.map({ $0.x }),
+            dependentColumns.map({ $0.y }),
+            dependentColumns.map({ $0.z }),
         ]
         let fixedValue = side == .lower ? 0.0 : 1.0
         var center = Array(repeating: 0.5, count: 4)
@@ -1056,7 +1056,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     ) throws -> [ScalarInterval]? {
         let columns = derivativeColumns()
         guard columns.indices.contains(freeParameterIndex),
-              columns.allSatisfy(\.isFinite) else {
+              columns.allSatisfy({ $0.isFinite }) else {
             return nil
         }
         let dependentIndexes = columns.indices.filter {
@@ -1101,7 +1101,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     private func rankThreeCertificate(
         columns: [IntervalVector]
     ) -> JacobianRankCertificate {
-        guard columns.allSatisfy(\.isFinite) else { return .unresolved }
+        guard columns.allSatisfy({ $0.isFinite }) else { return .unresolved }
 
         var strongest: (freeParameterIndex: Int, separation: Double)?
         for freeParameterIndex in columns.indices {
@@ -1165,13 +1165,13 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         tolerance: Double
     ) -> Bool {
         let componentIntervals = [
-            coefficients.map(\.x),
-            coefficients.map(\.y),
-            coefficients.map(\.z),
+            coefficients.map({ $0.x }),
+            coefficients.map({ $0.y }),
+            coefficients.map({ $0.z }),
         ]
         if componentIntervals.contains(where: { intervals in
-            let minimum = intervals.map(\.lower).min() ?? -.infinity
-            let maximum = intervals.map(\.upper).max() ?? .infinity
+            let minimum = intervals.map({ $0.lower }).min() ?? -.infinity
+            let maximum = intervals.map({ $0.upper }).max() ?? .infinity
             return minimum > tolerance || maximum < -tolerance
         }) {
             return true
@@ -1371,8 +1371,8 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             .flatMap { $0 }
             .flatMap { $0 }
             .map(component)
-        let minimum = coefficients.map(\.lower).min() ?? -.infinity
-        let maximum = coefficients.map(\.upper).max() ?? .infinity
+        let minimum = coefficients.map({ $0.lower }).min() ?? -.infinity
+        let maximum = coefficients.map({ $0.upper }).max() ?? .infinity
         return minimum > 0.0 || maximum < 0.0
     }
 
@@ -1391,8 +1391,8 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
             .flatMap { $0 }
             .flatMap { $0 }
             .map(component)
-        let minimum = coefficients.map(\.lower).min() ?? -.infinity
-        let maximum = coefficients.map(\.upper).max() ?? .infinity
+        let minimum = coefficients.map({ $0.lower }).min() ?? -.infinity
+        let maximum = coefficients.map({ $0.upper }).max() ?? .infinity
         return minimum > radius || maximum < -radius
     }
 
@@ -1556,7 +1556,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 }
             }
         }
-        guard powerCoefficients.allSatisfy(\.isFinite) else { return nil }
+        guard powerCoefficients.allSatisfy({ $0.isFinite }) else { return nil }
         let bernsteinCoefficients = (0...totalDegree).map { index in
             (0...index).reduce(zeroVector) { result, powerIndex in
                 let scale = binomial(index, powerIndex)
@@ -1564,7 +1564,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
                 return result + powerCoefficients[powerIndex].scaled(by: scale)
             }
         }
-        guard bernsteinCoefficients.allSatisfy(\.isFinite) else { return nil }
+        guard bernsteinCoefficients.allSatisfy({ $0.isFinite }) else { return nil }
         return IntervalVector.enclosing(bernsteinCoefficients)
     }
 
@@ -1712,7 +1712,7 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         guard columns.count == 3 else { return nil }
         let firstCross = columns[1].cross(columns[2])
         let determinant = columns[0].dot(firstCross)
-        let scale = columns.map(\.length).max() ?? .infinity
+        let scale = columns.map({ $0.length }).max() ?? .infinity
         let determinantFloor = max(
             scale * scale * scale * Double.ulpOfOne * 1_024.0,
             Double.leastNonzeroMagnitude

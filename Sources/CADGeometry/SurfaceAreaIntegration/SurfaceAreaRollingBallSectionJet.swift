@@ -19,7 +19,7 @@ struct SurfaceAreaRollingBallSectionJet: Sendable {
 
     /// Callers prove the stored control differences are constant on all rails.
     init(blend: RollingBallBlendSurface3D, center: Point3D, first: Point3D, second: Point3D,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
         try consumeWork()
         let radius = blend.radius
         self.radius = radius
@@ -57,7 +57,7 @@ struct SurfaceAreaRollingBallSectionJet: Sendable {
     }
 
     func intervalJet(over v: ScalarInterval, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws -> SurfaceIntervalVectorJet {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws -> SurfaceIntervalVectorJet {
         try consumeWork()
         guard v.lower >= 0, v.upper <= 1 else {
             throw KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,

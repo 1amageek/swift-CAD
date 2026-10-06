@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Sendable {
   public init() {}
@@ -295,7 +305,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     parameters: ScalarInterval,
     tolerance: ModelingTolerance,
     preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil,
-    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
     consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> SurfaceIntervalVectorJet? {
     try consumeWork()
@@ -307,7 +317,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
       return try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
         maximumSpanCount: image.maximumSpanCount, maximumSubdivisionDepth: image.maximumSubdivisionDepth,
         remainingSourceDepth: image.remainingSourceDepth == Int.max ? Int.max : image.remainingSourceDepth + 1,
-        consumeWork: { try Task.checkCancellation() }).intervalJet()
+        consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
     case .originalGuideTraversalChain(let source):
       return try source.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
         maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
@@ -337,7 +347,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     case .originalEndpointConnector:
       let receipt = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance)
         .closedNativeJets(over: parameters, tolerance: tolerance,
-          consumeWork: { try Task.checkCancellation() })
+          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
       guard let first = receipt.spans.first else {
         throw GeometryConversionError.invalidInput("Original connector has no admitted owning span.")
       }
@@ -347,7 +357,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     case .originalAffineWord(let image):
       if let coefficients = image.circularCoefficients {
         return try coefficients.intervalTaylorJet(over: parameters, throughOrder: 3,
-          tolerance: tolerance, consumeWork: { try Task.checkCancellation() }).intervalJet()
+          tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
       }
       let original = try PreparedCurveDifferentialEncloser(curve: image.source, tolerance: tolerance)
         .closedNativeJets(over: parameters, tolerance: tolerance, consumeWork: {})
@@ -490,7 +500,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     _ curve: AnalyticCurve3D,
     parameters: ScalarInterval,
     tolerance: ModelingTolerance,
-    consumeWork: () throws -> Void = { try Task.checkCancellation() }
+    consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
   ) throws -> SurfaceIntervalVectorJet? {
     switch curve {
     case .line(let origin, let direction):
@@ -645,17 +655,17 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
       )
       position = try coordinateEnclosure(
         jet,
-        keyPath: \SurfaceIntervalJet.value,
+        keyPath: { $0.value },
         tolerance: tolerance
       )
       firstDerivative = try coordinateEnclosure(
         jet,
-        keyPath: \SurfaceIntervalJet.derivativeU,
+        keyPath: { $0.derivativeU },
         tolerance: tolerance
       )
       secondDerivative = try coordinateEnclosure(
         jet,
-        keyPath: \SurfaceIntervalJet.secondDerivativeUU,
+        keyPath: { $0.secondDerivativeUU },
         tolerance: tolerance
       )
     case .surfaceLift(let lift):
@@ -759,17 +769,17 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     try CurveDifferentialEnclosure(
       position: coordinateEnclosure(
         jet,
-        keyPath: \SurfaceIntervalJet.value,
+        keyPath: { $0.value },
         tolerance: tolerance
       ),
       firstDerivative: coordinateEnclosure(
         jet,
-        keyPath: \SurfaceIntervalJet.derivativeU,
+        keyPath: { $0.derivativeU },
         tolerance: tolerance
       ),
       secondDerivative: coordinateEnclosure(
         jet,
-        keyPath: \SurfaceIntervalJet.secondDerivativeUU,
+        keyPath: { $0.secondDerivativeUU },
         tolerance: tolerance
       )
     )
@@ -777,12 +787,12 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
 
   private func coordinateEnclosure(
     _ jet: SurfaceIntervalVectorJet,
-    keyPath: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>,
+    keyPath: (SurfaceIntervalJet) -> OutwardScalarInterval,
     tolerance: ModelingTolerance
   ) throws -> CoordinateEnclosure3D {
-    let x = jet.x[keyPath: keyPath]
-    let y = jet.y[keyPath: keyPath]
-    let z = jet.z[keyPath: keyPath]
+    let x = keyPath(jet.x)
+    let y = keyPath(jet.y)
+    let z = keyPath(jet.z)
     guard x.isFinite, y.isFinite, z.isFinite else {
       throw arithmeticFailure(
         tolerance: tolerance,

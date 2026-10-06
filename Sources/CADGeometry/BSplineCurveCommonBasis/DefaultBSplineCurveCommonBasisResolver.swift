@@ -13,7 +13,7 @@ public struct DefaultBSplineCurveCommonBasisResolver: BSplineCurveCommonBasisRes
         tolerance: ModelingTolerance
     ) throws -> BSplineCurveCommonBasisPair {
         try resolve(first: first, second: second, tolerance: tolerance,
-            consumeWork: { _ in try Task.checkCancellation() })
+            consumeWork: { _ in try CurrentTaskCancellationChecker().checkCancellation() })
     }
 
     public func resolve(first: BSplineCurve3D, second: BSplineCurve3D,
@@ -444,7 +444,7 @@ public struct DefaultBSplineCurveCommonBasisResolver: BSplineCurveCommonBasisRes
             degree: degree,
             knots: knots,
             controlPoints: points,
-            weights: controls.map(\.weight)
+            weights: controls.map({ $0.weight })
         )
         try result.validate(tolerance: tolerance)
         return result
@@ -477,7 +477,7 @@ public struct DefaultBSplineCurveCommonBasisResolver: BSplineCurveCommonBasisRes
             }
             count = value.partialValue
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork(count)
     }
 

@@ -18,7 +18,7 @@ extension Curve3D {
             maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
             throw GeometryConversionError.resourceLimitExceeded("Original curve validation exhausted caller depth.")
         }
-        try consumeWork(0); try Task.checkCancellation(); try tolerance.validate()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
         func descendant(_ source: Curve3D) throws {
             guard remainingSourceDepth > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original curve descendant exhausted source depth.")

@@ -117,7 +117,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     tolerance: ModelingTolerance,
     consumeWork: () throws -> Void = {}
   ) throws {
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     try tolerance.validate()
     try consumeWork()
     try curve.validate(tolerance: tolerance)
@@ -197,7 +197,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
   package init(curve: Curve3D, tolerance: ModelingTolerance, remainingSourceDepth: Int, maximumSubdivisionDepth: Int = Int.max,
     consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil,
     maximumAlgebraicDepth: Int? = nil) throws {
-    try Task.checkCancellation(); try consumeWork(); try tolerance.validate()
+    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(); try tolerance.validate()
     guard remainingSourceDepth >= 0 else { throw GeometryConversionError.invalidInput("Original curve preparation needs caller source depth.") }
     try curve.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
       maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try consumeWork() },
@@ -294,43 +294,43 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
         return try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
           maximumSpanCount: image.maximumSpanCount, maximumSubdivisionDepth: image.maximumSubdivisionDepth,
           remainingSourceDepth: image.remainingSourceDepth == Int.max ? Int.max : image.remainingSourceDepth + 1,
-          consumeWork: { try Task.checkCancellation() }).intervalJet()
+          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
       }
       if case .originalPolyline(let original) = curve {
         return try original.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
           maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
           remainingSourceDepth: original.remainingSourceDepth,
-          consumeWork: { try Task.checkCancellation() }).intervalJet()
+          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
       }
       if case .originalGuideTraversalChain(let original) = curve {
         return try original.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
           maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
           remainingSourceDepth: original.remainingSourceDepth,
-          consumeWork: { try Task.checkCancellation() }).intervalJet()
+          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
       }
       if case .originalGuideEndpointConnector(let original) = curve {
         return try original.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
           maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
           remainingSourceDepth: original.remainingSourceDepth,
-          consumeWork: { try Task.checkCancellation() }).intervalJet()
+          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
       }
       if case .originalDrafted(let original) = curve {
         return try original.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
           maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
           remainingSourceDepth: original.remainingSourceDepth,
-          consumeWork: { try Task.checkCancellation() }).intervalJet()
+          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
       }
       if case .originalPlaneDerivative(let original) = curve {
         let receipt = try original.closedNativeJets(over: parameters, tolerance: tolerance,
           maximumSpanCount: original.maximumSpanCount, maximumSubdivisionDepth: original.maximumSubdivisionDepth,
-          remainingSourceDepth: original.remainingSourceDepth, consumeWork: { try Task.checkCancellation() })
+          remainingSourceDepth: original.remainingSourceDepth, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
         guard let first = receipt.spans.first else { throw GeometryConversionError.invalidInput("Original plane curve cover is empty.") }
         return receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
       }
       if case .originalEndpointConnector(let connector) = curve {
         let receipt = try connectorJets(connector, over: parameters, tolerance: tolerance,
           maximumSpanCount: connector.maximumSpanCount, maximumSubdivisionDepth: connector.maximumSubdivisionDepth,
-          remainingSourceDepth: 0, consumeWork: { try Task.checkCancellation() })
+          remainingSourceDepth: 0, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
         guard let first = receipt.spans.first else { throw GeometryConversionError.invalidInput("Original connector cover is empty.") }
         return receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
       }
@@ -352,7 +352,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       for span in spans {
         let lower = max(parameters.lower, span.lower), upper = min(parameters.upper, span.upper)
         guard lower <= upper else { continue }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let jet = try RationalBezierCurveJetEncloser().enclosure(of: span,
           over: ScalarInterval(lower: lower, upper: upper), tolerance: tolerance)
         result = result.map { $0.union(jet) } ?? jet
@@ -390,7 +390,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     case .originalAffineWord(let image, let source):
       return try OriginalAffineWordJetTransport.applying(image.preparedWord,
         to: source.thirdOrderIntervalJet(over: parameters, tolerance: source.preparationTolerance),
-        consumeWork: { try Task.checkCancellation() })
+        consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
     case .affine(let transform, let source):
       return transformed(
         try source.thirdOrderIntervalJet(
@@ -468,9 +468,9 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     package let spans: [OwnedSpan]
   }
 
-  func closedNativeJets(over parameters: ScalarInterval, tolerance: ModelingTolerance,
+  package func closedNativeJets(over parameters: ScalarInterval, tolerance: ModelingTolerance,
                         consumeWork: () throws -> Void) throws -> ClosedNativeJet {
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     try tolerance.validate()
     guard tolerance == preparationTolerance, parameters.lower.isFinite, parameters.upper.isFinite,
           parameters.lower <= parameters.upper else {
@@ -488,7 +488,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       for span in nativeSpans {
         let lower = max(parameters.lower, span.lower), upper = min(parameters.upper, span.upper)
         guard lower <= upper else { continue }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork()
         let selected = try ScalarInterval(lower: lower, upper: upper)
         let jet = try RationalBezierCurveJetEncloser().enclosure(of: span, over: selected, tolerance: tolerance)
@@ -499,7 +499,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
         throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                           message: "The closed curve query has no original owning native span.")
       }
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       return ClosedNativeJet(source: curve, parameters: parameters, tolerance: tolerance, spans: result)
     case .periodicNativeBSpline(let spans):
       return try periodicNativeJets(spans: spans, over: parameters,
@@ -591,7 +591,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
   package func closedNativeJets(over parameters: ScalarInterval, tolerance: ModelingTolerance,
     maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
     consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil) throws -> ClosedNativeJet {
-    try Task.checkCancellation(); try consumeWork(); try tolerance.validate()
+    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(); try tolerance.validate()
     guard tolerance == preparationTolerance, maximumSpanCount > 0, maximumSubdivisionDepth >= 0,
       remainingSourceDepth >= 0, parameters.lower.isFinite, parameters.upper.isFinite,
       parameters.lower <= parameters.upper else {
@@ -627,7 +627,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       var result: [ClosedNativeJet.OwnedSpan] = []
       var capacity = 0
       for span in spans {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         let lo = max(parameters.lower, span.lower), hi = min(parameters.upper, span.upper)
         guard lo <= hi else { continue }
         guard result.count < maximumSpanCount else { throw GeometryConversionError.resourceLimitExceeded("Original closed curve span ceiling exhausted.") }
@@ -1164,7 +1164,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     var result: [ClosedNativeJet.OwnedSpan] = []
     var capacity = 0
     for index in original.cells.indices {
-      try Task.checkCancellation(); try consumeWork()
+      try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
       let count = OutwardScalarInterval.exact(Double(original.cells.count))
       guard let lower = OutwardScalarInterval.exact(Double(index)).divided(by: count),
         let upper = OutwardScalarInterval.exact(Double(index + 1)).divided(by: count) else {
@@ -1335,7 +1335,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       return try .init(lower: clipped.lower, upper: clipped.upper)
     }
     for (index, owner) in owners.enumerated() {
-      try Task.checkCancellation(); try consumeWork()
+      try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
       let u = try ScalarInterval(lower: max(query.u.lower, owner.uBounds.lower),
         upper: min(query.u.upper, owner.uBounds.upper))
       let v = try ScalarInterval(lower: max(query.v.lower, owner.vBounds.lower),
@@ -1413,7 +1413,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
     }
     if parameters.width >= period && boundedSpanCount == nil {
       for span in spans {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         let native = try ScalarInterval(lower: span.lower, upper: span.upper)
         if let boundedSpanCount, result.count >= boundedSpanCount { throw GeometryConversionError.resourceLimitExceeded("Original periodic closed cover exhausted caller span admission.") }
         let jet = try boundedSpanCount == nil
@@ -1435,7 +1435,7 @@ package struct PreparedCurveDifferentialEncloser: Sendable {
       }
       var cycle = lowerCycle
       while cycle <= upperCycle {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         let translation = OutwardScalarInterval.exact(cycle) * .exact(period)
         let lifted = OutwardScalarInterval(lower: parameters.lower, upper: parameters.upper) - translation
         guard translation.isFinite, lifted.isFinite else {

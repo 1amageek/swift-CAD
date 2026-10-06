@@ -34,7 +34,7 @@ struct PolynomialCurveConversionTarget: GeometryCurveConversionSource {
         var values: [PolynomialConversionTargetPatch] = []
         values.reserveCapacity(spans)
         for span in 0..<spans {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let start = span * curve.degree
             values.append(try PolynomialConversionTargetPatch(
                 u: ScalarInterval(lower: curve.knots[start + curve.degree], upper: curve.knots[start + curve.degree + 1]),

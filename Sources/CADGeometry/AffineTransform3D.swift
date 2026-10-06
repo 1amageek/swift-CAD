@@ -29,7 +29,7 @@ public struct AffineTransform3D: Hashable, Sendable {
 
     /// Exact orientation of the original stored linear columns.
     package func originalDeterminantSign(consumeWork: () throws -> Void) throws -> RobustSign {
-        try Task.checkCancellation(); try consumeWork(); try validate()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(); try validate()
         func original(_ value: Vector3D) -> ExactExpansionArithmetic.Vector3 {
             .init(x: [value.x], y: [value.y], z: [value.z])
         }

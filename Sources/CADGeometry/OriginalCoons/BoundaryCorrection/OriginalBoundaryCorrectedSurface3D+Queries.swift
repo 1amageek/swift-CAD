@@ -111,7 +111,7 @@ extension OriginalBoundaryCorrectedSurface3D {
         func candidate(_ q: SurfaceAreaIntervalTaylorScalarJet) throws -> SurfaceTaylorScalarJet {
             var result = try SurfaceTaylorScalarJet(order: order)
             for total in 0...order { for a in 0...total {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try result.setCoefficient(q.coefficient(a, total-a).midpoint, uOrder: a, vOrder: total-a)
             } }; return result
         }

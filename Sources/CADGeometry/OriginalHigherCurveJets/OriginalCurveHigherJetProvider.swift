@@ -14,7 +14,7 @@ package struct OriginalCurveHigherJetProvider {
         if let maximumAlgebraicDepth, !(0...32).contains(maximumAlgebraicDepth) {
             throw GeometryConversionError.invalidInput("Original higher curve queries require an independent algebra cap in zero through thirty-two.")
         }
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         try curve.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
             maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage,
             maximumAlgebraicDepth: maximumAlgebraicDepth)
@@ -188,7 +188,7 @@ package struct OriginalCurveHigherJetProvider {
                 }
                 var cycle = lowerCycle
                 while cycle <= upperCycle {
-                    try Task.checkCancellation(); try consumeWork()
+                    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                     let shifted = OutwardScalarInterval(lower: range.lower, upper: range.upper)
                         - period * .exact(cycle)
                     if let native = shifted.intersection(with: .init(lower: first.lower, upper: last.upper)) {

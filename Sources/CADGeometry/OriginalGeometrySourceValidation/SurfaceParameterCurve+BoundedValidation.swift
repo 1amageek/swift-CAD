@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 extension SurfaceParameterCurve {
     package func validate(on surface: Surface3D, tolerance: ModelingTolerance,
@@ -21,7 +31,7 @@ extension SurfaceParameterCurve {
             maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
             throw GeometryConversionError.resourceLimitExceeded("Original pcurve validation exhausted caller depth.")
         }
-        try consumeWork(0); try Task.checkCancellation(); try tolerance.validate()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
         func source(_ curve: SurfaceParameterCurve, on support: Surface3D) throws {
             guard remainingSourceDepth > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original pcurve descendant exhausted source depth.")
@@ -65,7 +75,7 @@ extension SurfaceParameterCurve {
                 guard count >= 0 else {
                     throw GeometryConversionError.invalidInput("Original chart comparison requires nonnegative work.")
                 }
-                for _ in 0..<count { try Task.checkCancellation(); try consumeWork(0) }
+                for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0) }
             }
             try GeometryStructuralComparisonWork.charge(surface: surface, using: comparisonWork)
             try GeometryStructuralComparisonWork.charge(surface: image.source.surface, using: comparisonWork)

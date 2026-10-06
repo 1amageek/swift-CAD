@@ -64,7 +64,7 @@ extension DefaultOriginalSurfaceEmbeddingValidator {
         try RationalAlgebraStorage.retain(1, of: (SurfaceParameterBox, SurfaceParameterBox, Int).self, usage: &usage)
         var pending = [(full, full, 0)]
         while let (aBox, bBox, depth) = pending.popLast() {
-            try Task.checkCancellation(); try usage.visitExactCell(depth: depth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: depth)
             let aj = try query(a, box: aBox, maximumDepth: maximumSubdivisionDepth, maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
                 tolerance: tolerance, usage: &usage)
             let bj = try query(b, box: bBox, maximumDepth: maximumSubdivisionDepth, maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,

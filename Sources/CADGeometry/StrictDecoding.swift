@@ -20,9 +20,9 @@ extension KeyedDecodingContainer where Key: Hashable {
         in decoder: Decoder
     ) throws {
         let rawContainer = try decoder.container(keyedBy: StrictAnyCodingKey.self)
-        let expectedNames = Set(expectedKeys.map(\.stringValue))
+        let expectedNames = Set(expectedKeys.map({ $0.stringValue }))
         let unexpectedNames = rawContainer.allKeys
-            .map(\.stringValue)
+            .map({ $0.stringValue })
             .filter { expectedNames.contains($0) == false }
             .sorted()
         guard unexpectedNames.isEmpty else {

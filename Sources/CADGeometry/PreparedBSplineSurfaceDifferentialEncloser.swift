@@ -4,6 +4,9 @@ import CADCore
 /// Whole periodic queries retain conservative original-cycle covers. Selected
 /// tokens separately retain proved base spans and exact unwrapped cycle lifts.
 package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
+  /// Existing aggregate span retention ceiling shared by every selected axis lift.
+  package static let maximumOriginalNativeSpanCount = 262_144
+
   package let surface: BSplineSurface3D
   private let preparationTolerance: ModelingTolerance
   private let originalSpans: [OriginalNativeSpan]
@@ -74,13 +77,13 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
 
   package func originalNativeSpans(over box: SurfaceParameterBox,
                                   tolerance: ModelingTolerance) throws -> [OriginalNativeSpan] {
-    try originalNativeSpans(over: box, tolerance: tolerance, maximumSpanCount: 262_144)
+    try originalNativeSpans(over: box, tolerance: tolerance, maximumSpanCount: Self.maximumOriginalNativeSpanCount)
   }
 
   /// Q3 preparation and queries pay original cover scans and token storage before allocation.
   package func originalNativeSpans(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
                                   consumeWork: () throws -> Void) throws -> [OriginalNativeSpan] {
-    try originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:262_144,consumeWork:consumeWork)
+    try originalNativeSpans(over:box,tolerance:tolerance,maximumSpanCount:Self.maximumOriginalNativeSpanCount,consumeWork:consumeWork)
   }
 
   /// The selected-cover ceiling is shared by all axis lifts, not reset per cycle.
@@ -110,7 +113,7 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
     permitsMultiplePeriods: Bool = false) throws -> [OriginalNativeSpan] {
     try tolerance.validate()
     try CurrentTaskCancellationChecker().checkCancellation()
-    guard (1...262_144).contains(maximumSpanCount) else {
+    guard (1...Self.maximumOriginalNativeSpanCount).contains(maximumSpanCount) else {
       throw Self.liftFailure(.invalidInput, "Original native span cover requires its existing finite ceiling.", tolerance)
     }
     guard tolerance == preparationTolerance else { throw closedBoxFailure(tolerance: tolerance) }

@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 package struct SurfaceTessellationDifferentialBounds: Sendable {
   package struct OriginalNativePanel: Sendable {
@@ -39,7 +49,7 @@ extension DefaultSurfaceDifferentialEncloser {
     tolerance: ModelingTolerance
   ) throws -> SurfaceTessellationDifferentialBounds {
     try tolerance.validate()
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     try surface.validate(tolerance: tolerance)
     func refusal() -> KernelError {
       KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
@@ -54,7 +64,7 @@ extension DefaultSurfaceDifferentialEncloser {
       let upperRoundoff = upper - virtualUpper
       let tail = upperRoundoff + lowerRoundoff
       guard [head, virtualLower, virtualUpper, lowerRoundoff, upperRoundoff, tail]
-        .allSatisfy(\.isFinite) else {
+        .allSatisfy({ $0.isFinite }) else {
         throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                           message: "Double-periodic continuity exceeded finite exact knot-difference arithmetic.")
       }
@@ -65,13 +75,13 @@ extension DefaultSurfaceDifferentialEncloser {
       let period = try exactDifference(knots[storedCount], knots[degree])
       guard period.head > 0, period.tail == 0 else { throw refusal() }
       for index in 0..<(knots.count - cycleCount) {
-        if index & 0xFF == 0 { try Task.checkCancellation() }
+        if index & 0xFF == 0 { try CurrentTaskCancellationChecker().checkCancellation() }
         let difference = try exactDifference(knots[index + cycleCount], knots[index])
         guard difference.head == period.head, difference.tail == 0 else { throw refusal() }
       }
       var index = 0
       while index < knots.count {
-        if index & 0xFF == 0 { try Task.checkCancellation() }
+        if index & 0xFF == 0 { try CurrentTaskCancellationChecker().checkCancellation() }
         var end = index + 1
         while end < knots.count, knots[end] == knots[index] { end += 1 }
         guard end - index <= degree - 1 else { throw refusal() }
@@ -80,7 +90,7 @@ extension DefaultSurfaceDifferentialEncloser {
     }
     try certifyAxis(surface.uKnots, degree: surface.uDegree, storedCount: surface.uControlPointCount)
     try certifyAxis(surface.vKnots, degree: surface.vDegree, storedCount: surface.vControlPointCount)
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     // One existing whole-domain traversal retains the original shared cell/depth budget.
     // No selected periodic side, extracted Cartesian support, or sampled seam is minted.
     return try tessellationBounds(of: .bSpline(surface), over: parameters, tolerance: tolerance)
@@ -133,14 +143,14 @@ extension DefaultSurfaceDifferentialEncloser {
       let original = try tessellationBounds(of: image.source, over: native,
         tolerance: tolerance, remainingCells: &remainingCells)
       return try OriginalImagePoleNormalTransport().differentialBounds(original,
-        through: image, consumeWork: { try Task.checkCancellation() })
+        through: image, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
     }
     if case .analytic(let analytic) = surface {
       switch analytic {
       case .sphere, .cone:
         remainingCells -= 1
         if let bounds = try OriginalAnalyticPoleNormal().tessellationBounds(of:surface,over:parameters,
-          tolerance:tolerance,consumeWork:{ try Task.checkCancellation() }) { return bounds }
+          tolerance:tolerance,consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() }) { return bounds }
       default: break
       }
     }
@@ -415,7 +425,12 @@ extension DefaultSurfaceDifferentialEncloser {
       return
         "Squared tangent/normal lower bounds are \(tangentUSquared.lower), \(tangentVSquared.lower), and \(normalSquared.lower); the normal threshold is \(minimumNormalSquared).\(sourceDetail)"
     } catch {
+#if hasFeature(Embedded)
+      let sourceMessage = KernelError.wrapping(error, phase: .geometry, tolerance: tolerance).message
+      return "Interval-jet certification failed with \(sourceMessage)."
+#else
       return "Interval-jet certification failed with \(error)."
+#endif
     }
   }
 

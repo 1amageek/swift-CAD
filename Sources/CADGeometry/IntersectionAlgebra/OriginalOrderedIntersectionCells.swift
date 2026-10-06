@@ -174,15 +174,15 @@ package struct OriginalOrderedIntersectionCells: Sendable {
         let maximumCoefficientDepth: Int
         var parameterDepth = 0
         var coefficientDepth = 0
-        mutating func consumeExactWork(_ count: Int) throws { try Task.checkCancellation(); try base.consumeExactWork(count) }
-        mutating func retainExactStorage(_ count: Int) throws { try Task.checkCancellation(); try base.retainExactStorage(count) }
+        mutating func consumeExactWork(_ count: Int) throws { try CurrentTaskCancellationChecker().checkCancellation(); try base.consumeExactWork(count) }
+        mutating func retainExactStorage(_ count: Int) throws { try CurrentTaskCancellationChecker().checkCancellation(); try base.retainExactStorage(count) }
         mutating func visitExactCell(depth: Int) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard depth >= 0, depth <= maximumDepth else { throw rationalAlgebraFailure("Ordered relation exhausted parameter depth.") }
             parameterDepth = max(parameterDepth, depth); try base.visitExactCell(depth: depth)
         }
         mutating func visitCoefficientCell(depth: Int) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard depth >= 0, depth <= maximumCoefficientDepth else { throw rationalAlgebraFailure("Ordered relation exhausted coefficient depth.") }
             coefficientDepth = max(coefficientDepth, depth); try base.visitCoefficientCell(depth: depth)
         }

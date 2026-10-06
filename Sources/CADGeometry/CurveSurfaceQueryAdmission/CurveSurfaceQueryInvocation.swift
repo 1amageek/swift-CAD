@@ -20,7 +20,7 @@ package struct CurveSurfaceQueryInvocation: Sendable {
         self.consumeStorage = consumeStorage; self.maximumAlgebraicDepth = maximumAlgebraicDepth
     }
     package func consume(depth:Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth >= 0,depth <= maximumSubdivisionDepth else {
             throw GeometryConversionError.resourceLimitExceeded("Original curve-surface invocation exhausted caller subdivision depth.")
         }
@@ -31,7 +31,7 @@ package struct CurveSurfaceQueryInvocation: Sendable {
         guard count >= 0, stride > 0, !bytes.overflow else {
             throw GeometryConversionError.resourceLimitExceeded("Original curve-surface storage byte admission overflows.")
         }
-        try Task.checkCancellation(); try consumeStorage?(bytes.partialValue)
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeStorage?(bytes.partialValue)
     }
     package func consumeFixedWork() throws { try consume(depth:0) }
 }

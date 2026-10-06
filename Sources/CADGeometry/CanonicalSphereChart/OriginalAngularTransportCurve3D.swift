@@ -54,14 +54,14 @@ public struct OriginalAngularTransportCurve3D: Hashable, Sendable {
     }
     public func point(at parameter: Double, tolerance: ModelingTolerance) throws -> Point3D {
         let q = try intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 0,
-            tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+            tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
         let x = try q.x.coefficient(0, 0), y = try q.y.coefficient(0, 0), z = try q.z.coefficient(0, 0)
         guard x.isFinite, y.isFinite, z.isFinite else { throw GeometryConversionError.resourceLimitExceeded("Original physical-angle point has no finite representative.") }
         return .init(x: x.midpoint, y: y.midpoint, z: z.midpoint)
     }
     package func differentialGeometry(at parameter: Double, tolerance: ModelingTolerance) throws -> Curve3D.DifferentialGeometry {
         let q = try intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 2,
-            tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+            tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
         return try Curve3D.differentialGeometry(position: point(at: parameter, tolerance: tolerance),
             firstDerivative: .init(x: q.x.coefficient(1, 0).midpoint, y: q.y.coefficient(1, 0).midpoint, z: q.z.coefficient(1, 0).midpoint),
             secondDerivative: .init(x: (q.x.coefficient(2, 0) * .exact(2)).midpoint, y: (q.y.coefficient(2, 0) * .exact(2)).midpoint, z: (q.z.coefficient(2, 0) * .exact(2)).midpoint), tolerance: tolerance)

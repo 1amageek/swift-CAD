@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Reuses original closed native jets for physical edge-to-pcurve station transfer.
 package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorrespondenceResolving {
@@ -56,7 +66,7 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
     package func resolve(stationParameter: Double, maximumDeviation: Double,
         maximumSubdivisionDepth: Int, consumeWork: () throws -> Void) throws
         -> OriginalSurfaceStationCorrespondenceReceipt {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard stationParameter.isFinite,
               stationParameter >= min(startParameter, endParameter),
               stationParameter <= max(startParameter, endParameter),
@@ -96,7 +106,7 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         var candidates: [ScalarInterval] = []
         var achieved = 0.0
         while let cell = pending.popLast() {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let image = try jet(lifted, over: cell.range, consumeWork: consumeWork)
             let residual = component(image, axis).value - target
             if residual.lower > 0 || residual.upper < 0
@@ -154,7 +164,7 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
     package func resolve(liftFraction: Double, maximumDeviation: Double,
         maximumSubdivisionDepth: Int, consumeWork: () throws -> Void) throws
         -> OriginalSurfaceStationInverseReceipt {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard liftFraction.isFinite, liftFraction >= 0, liftFraction <= 1,
               maximumDeviation.isFinite, maximumDeviation > 0,
               maximumSubdivisionDepth >= 0, maximumSubdivisionDepth <= 32 else {
@@ -200,7 +210,7 @@ package struct OriginalSurfaceStationCorrespondence: OriginalSurfaceStationCorre
         var candidates: [ScalarInterval] = []
         var achieved = 0.0
         while let cell = pending.popLast() {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let image = try jet(spatial, over: cell.range, consumeWork: consumeWork)
             let residual = component(image, axis).value - target
             if residual.lower > 0 || residual.upper < 0 || lowerDistance(image, station) > maximumDeviation { continue }

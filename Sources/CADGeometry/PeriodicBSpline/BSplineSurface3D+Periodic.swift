@@ -79,7 +79,7 @@ extension BSplineSurface3D {
 
     package func periodicSeamContinuityOrder(direction: SurfaceParameterDirection,
         consumeWork: () throws -> Void) throws -> Int? {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork()
         let degree = direction == .u ? uDegree : vDegree
         let knots = direction == .u ? uKnots : vKnots
@@ -88,7 +88,7 @@ extension BSplineSurface3D {
         let seam = knots[degree]
         var multiplicity = 0
         for knot in knots {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeWork()
             if knot == seam { multiplicity += 1 }
         }
@@ -155,7 +155,7 @@ extension BSplineSurface3D {
     }
 
     func validatePeriodicity(tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
         try consumeWork()
         // Full knot/net validity is proved by the caller before indexing. Both axes
         // and every repeated tail are checked in place without temporary control lines.

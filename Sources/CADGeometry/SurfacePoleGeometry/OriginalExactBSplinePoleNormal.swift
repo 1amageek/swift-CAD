@@ -100,10 +100,10 @@ package struct OriginalExactBSplinePoleNormal: Sendable {
         }
         try usage.consumeExactWork(1)
         let jet = try span.intervalJet(overClosedBox:box,on:surface,tolerance:tolerance,consumeWork:{ try usage.consumeExactWork(1) })
-        func position(_ key:KeyPath<SurfaceIntervalJet,OutwardScalarInterval>)->Double {
-            IntervalVector3DBounds(x:jet.x[keyPath:key],y:jet.y[keyPath:key],z:jet.z[keyPath:key]).lengthUpperBound
+        func position(_ key:(SurfaceIntervalJet) -> OutwardScalarInterval)->Double {
+            IntervalVector3DBounds(x:key(jet.x),y:key(jet.y),z:key(jet.z)).lengthUpperBound
         }
-        let fields = [position(\.derivativeU),position(\.derivativeV),position(\.secondDerivativeUU),position(\.secondDerivativeUV),position(\.secondDerivativeVV),
+        let fields = [position({ $0.derivativeU }),position({ $0.derivativeV }),position({ $0.secondDerivativeUU }),position({ $0.secondDerivativeUV }),position({ $0.secondDerivativeVV }),
             (u.lengthUpperBound/lower).nextUp,(v.lengthUpperBound/lower).nextUp]
         guard fields.allSatisfy({ $0.isFinite && $0 >= 0 }) else {
             throw GeometryConversionError.resourceLimitExceeded("Exact original normal factor derivative arithmetic is nonfinite.")

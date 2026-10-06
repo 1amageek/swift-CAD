@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 enum SmallLinearSystem4 {
     static func solve(matrix: [[Double]], rightHandSide: [Double], admission: SurfaceSurfaceQueryAdmission) throws -> [Double]? {
@@ -42,7 +52,7 @@ enum SmallLinearSystem4 {
         }
         try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
         let result = augmented.map { $0[4] }
-        return result.allSatisfy(\.isFinite) ? result : nil
+        return result.allSatisfy({ $0.isFinite }) ? result : nil
     }
 
     static func solve(matrix: [[Double]], rightHandSide: [Double]) -> [Double]? {
@@ -75,6 +85,6 @@ enum SmallLinearSystem4 {
             }
         }
         let result = augmented.map { $0[4] }
-        return result.allSatisfy(\.isFinite) ? result : nil
+        return result.allSatisfy({ $0.isFinite }) ? result : nil
     }
 }

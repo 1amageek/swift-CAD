@@ -8,7 +8,7 @@ extension OriginalGuideTraversalChain3D {
         let algebraicDepth: Int
         mutating func consumeExactWork(_ count: Int) throws {
             guard count >= 0 else { throw GeometryConversionError.invalidInput("Original guide work is negative.") }
-            for _ in 0..<count { try Task.checkCancellation(); try work() }
+            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try work() }
         }
         mutating func retainExactStorage(_ count: Int) throws {
             let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)

@@ -10,7 +10,8 @@ extension OriginalBoundaryCorrectedSurface3D: Codable {
         if #available(macOS 15, iOS 18, visionOS 2, watchOS 11, tvOS 18, *) {
             var usage = try NativeRationalSourceDecodingContext.allowance(from: decoder)
             let boundaries = try c.decode(OriginalCoonsSurface3D.self, forKey: .boundaries)
-            let spans = min(boundaries.vMinimumBoundary.maximumSpanCount, boundaries.vMaximumBoundary.maximumSpanCount,
+            let spans = min(PreparedBSplineSurfaceDifferentialEncloser.maximumOriginalNativeSpanCount,
+                boundaries.vMinimumBoundary.maximumSpanCount, boundaries.vMaximumBoundary.maximumSpanCount,
                 boundaries.uMinimumBoundary.maximumSpanCount, boundaries.uMaximumBoundary.maximumSpanCount)
             let depth = min(boundaries.vMinimumBoundary.maximumSubdivisionDepth, boundaries.vMaximumBoundary.maximumSubdivisionDepth,
                 boundaries.uMinimumBoundary.maximumSubdivisionDepth, boundaries.uMaximumBoundary.maximumSubdivisionDepth)

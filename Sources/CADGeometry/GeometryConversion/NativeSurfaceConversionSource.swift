@@ -11,7 +11,7 @@ public struct NativeSurfaceConversionSource: GeometrySurfaceConversionSource {
     private let boundedPreparationAdmission: GeometryConversionAdmission?
 
     public init(_ surface: Surface3D, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try surface.validate(tolerance: tolerance)
         self.surface = surface
         boundedPreparationTolerance = nil
@@ -22,7 +22,7 @@ public struct NativeSurfaceConversionSource: GeometrySurfaceConversionSource {
         } else {
             prepared = .originalNative(try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance))
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
     public init(_ surface: Surface3D, tolerance: ModelingTolerance,
         admission: GeometryConversionAdmission) throws {
@@ -106,13 +106,13 @@ public struct NativeSurfaceConversionSource: GeometrySurfaceConversionSource {
         try surface.point(u: u, v: v, tolerance: tolerance)
     }
     public func enclosure(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceDifferentialEnclosure {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let result: SurfaceDifferentialEnclosure
         switch prepared {
         case .originalPolynomialRuled(let original): result = try original.enclosure(over: parameters, tolerance: tolerance)
         case .originalNative(let original): result = try original.enclosure(over: parameters, tolerance: tolerance)
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 }

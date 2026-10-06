@@ -12,7 +12,7 @@ public struct OriginalCoonsSurface3D: Hashable, Sendable {
     public init<B: RationalAlgebraAdmitting>(vMinimumBoundary: OriginalCurveRootSpan3D,
         vMaximumBoundary: OriginalCurveRootSpan3D, uMinimumBoundary: OriginalCurveRootSpan3D,
         uMaximumBoundary: OriginalCurveRootSpan3D, tolerance: ModelingTolerance, usage: inout B) throws {
-        try Task.checkCancellation(); try tolerance.validate()
+        try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
         try Self.retainElements(4, of: OriginalCurveRootSpan3D.self, minimumWords: 4, usage: &usage)
         let boundaries = [vMinimumBoundary, vMaximumBoundary, uMinimumBoundary, uMaximumBoundary]
         guard boundaries.allSatisfy({ $0.certificationTolerance == tolerance }) else {
@@ -96,7 +96,7 @@ public struct OriginalCoonsSurface3D: Hashable, Sendable {
         maximumSpanCount: Int = Int.max, remainingSourceDepth: Int = Int.max) throws -> SurfaceIntervalVectorJet {
         let t = try intervalTaylorJet(over: box, throughOrder: 3, tolerance: tolerance, consumeWork: consumeWork,
             consumeStorage: consumeStorage, maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth)
-        for _ in 0..<30 { try Task.checkCancellation(); try consumeWork() }
+        for _ in 0..<30 { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
         return try t.intervalJet()
     }
 
@@ -124,7 +124,7 @@ public struct OriginalCoonsSurface3D: Hashable, Sendable {
         tolerance: ModelingTolerance, consumeWork: () throws -> Void,
         consumeStorage: ((Int) throws -> Void)? = nil, maximumSpanCount: Int = Int.max,
         remainingSourceDepth: Int = Int.max) throws -> SurfaceAreaIntervalTaylorVectorJet {
-        func work() throws { try Task.checkCancellation(); try consumeWork() }
+        func work() throws { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
         try work(); try validate(tolerance: tolerance)
         guard order >= 0, maximumSpanCount > 0, remainingSourceDepth >= 0, box.u.lower >= 0, box.u.upper <= 1, box.v.lower >= 0, box.v.upper <= 1 else {
             throw GeometryConversionError.invalidInput("Original Coons Taylor query exceeds its normalized source square.")
@@ -252,7 +252,7 @@ public struct OriginalCoonsSurface3D: Hashable, Sendable {
         }
         let bottom = try boundary(vMinimumBoundary, box.u), top = try boundary(vMaximumBoundary, box.u)
         let left = try boundary(uMinimumBoundary, box.v), right = try boundary(uMaximumBoundary, box.v)
-        for _ in 0..<180 { try Task.checkCancellation(); try consumeWork() }
+        for _ in 0..<180 { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
         let u = OutwardScalarInterval(lower: box.u.lower, upper: box.u.upper)
         let v = OutwardScalarInterval(lower: box.v.lower, upper: box.v.upper)
         let um = OutwardScalarInterval.exact(1) - u, vm = OutwardScalarInterval.exact(1) - v
@@ -328,7 +328,7 @@ public struct OriginalCoonsSurface3D: Hashable, Sendable {
         func scalar(_ q: SurfaceAreaIntervalTaylorScalarJet) throws -> SurfaceTaylorScalarJet {
             var numeric = try SurfaceTaylorScalarJet(order: order)
             for total in 0...order { for a in 0...total {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try numeric.setCoefficient(q.coefficient(a, total-a).midpoint, uOrder: a, vOrder: total-a)
             } }
             return numeric

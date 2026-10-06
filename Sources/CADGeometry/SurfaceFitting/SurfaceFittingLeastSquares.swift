@@ -52,9 +52,9 @@ package enum SurfaceFittingLeastSquares {
         try charge(constraints.count)
         for rhs in targets { try charge(rhs.count) }
         for rhs in values { try charge(rhs.count) }
-        guard objective.allSatisfy(\.isFinite), constraints.allSatisfy(\.isFinite),
-              targets.allSatisfy({ $0.allSatisfy(\.isFinite) }),
-              values.allSatisfy({ $0.allSatisfy(\.isFinite) }) else {
+        guard objective.allSatisfy({ $0.isFinite }), constraints.allSatisfy({ $0.isFinite }),
+              targets.allSatisfy({ $0.allSatisfy({ $0.isFinite }) }),
+              values.allSatisfy({ $0.allSatisfy({ $0.isFinite }) }) else {
             throw failure(.invalidInput, "Surface fitting requires finite matrix and right-hand side coefficients.")
         }
         guard equalityRows > 0 else {
@@ -96,7 +96,7 @@ package enum SurfaceFittingLeastSquares {
                     reduced[row * freeCount + free] = coefficient
                 }
             }
-            guard reduced.allSatisfy(\.isFinite) else {
+            guard reduced.allSatisfy({ $0.isFinite }) else {
                 throw failure(.resourceLimitExceeded, "Surface fitting reduced objective exceeded finite arithmetic range.")
             }
             reducedQR = try SurfaceFittingQR(coefficients: reduced, rows: rows, columns: freeCount,
@@ -114,7 +114,7 @@ package enum SurfaceFittingLeastSquares {
                 }
                 coordinates[row] = value / (try equality.upperCoefficient(row: row, column: row))
             }
-            guard coordinates.allSatisfy(\.isFinite) else {
+            guard coordinates.allSatisfy({ $0.isFinite }) else {
                 throw failure(.resourceLimitExceeded, "Surface fitting equality solve exceeded finite arithmetic range.")
             }
             let particular = try equality.applyingQ(to: coordinates)
@@ -126,7 +126,7 @@ package enum SurfaceFittingLeastSquares {
                     residual[row] -= (objective[row * columns + column] / scale) * particular[column]
                 }
             }
-            guard residual.allSatisfy(\.isFinite) else {
+            guard residual.allSatisfy({ $0.isFinite }) else {
                 throw failure(.resourceLimitExceeded, "Surface fitting reduced target exceeded finite arithmetic range.")
             }
             let free = try reducedQR.solveFullRankLeastSquares(residual)

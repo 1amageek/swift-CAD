@@ -4,7 +4,7 @@ import CADCore
 struct SurfaceParameterIntervalJet {
   static func enclose(
     _ curve: SurfaceParameterCurve, over parameters: ScalarInterval,
-    tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try Task.checkCancellation() }
+    tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
   ) throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet)? {
     try consumeWork()
     let fraction = SurfaceIntervalJet.parameterU(parameters)

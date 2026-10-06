@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Immutable whole-reference geometry; spatial-edge correspondence is a consumer assumption.
 package struct OriginalGraphBandReceipt: Sendable {
@@ -89,7 +99,7 @@ package struct OriginalGraphBandReceipt: Sendable {
         let upper = try cell.upperPiece.graphJet(over: pointU, tolerance: tolerance, proofUsage: &proofUsage)
         let surfaceRow = try cell.nativePanel.span.prepareStationRow(u: u, on: input.surface,
             tolerance: tolerance) { try proofUsage.consume(depth: 0, tolerance: tolerance) }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return Row(owner: identity, cellIndex: cellIndex, u: u, lower: lower, upper: upper, surfaceRow: surfaceRow)
     }
 
@@ -145,7 +155,7 @@ package struct OriginalGraphBandReceipt: Sendable {
                               residual: positionError, tolerance: tolerance,
                               message: "Original graph inversion could not materialize a station within the caller allowance.")
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return Station(parameter: parameter, point: point, normal: normal,
                        positionErrorUpperBound: positionError, normalErrorUpperBound: normalError,
                        owner: identity, cellIndex: cellIndex, w: w)
@@ -166,13 +176,13 @@ package struct OriginalGraphBandReceipt: Sendable {
         try proofUsage.consume(depth: 0, tolerance: tolerance)
         let bounds = referenceCells[cellIndex].bounds
         let uValues = stations.map { $0.parameter.u }
-        let wValues = stations.map(\.w)
+        let wValues = stations.map({ $0.w })
         let du = OutwardScalarInterval.exact(uValues.max()!) - .exact(uValues.min()!)
         let dw = OutwardScalarInterval.exact(wValues.max()!) - .exact(wValues.min()!)
         let error = (OutwardScalarInterval.exact(bounds.secondDerivativeUUMagnitudeUpperBound) * du * du
             + .exact(2) * .exact(bounds.secondDerivativeUVMagnitudeUpperBound) * du * dw
             + .exact(bounds.secondDerivativeVVMagnitudeUpperBound) * dw * dw) * .exact(0.5)
-            + .exact(stations.map(\.positionErrorUpperBound).max()!)
+            + .exact(stations.map({ $0.positionErrorUpperBound }).max()!)
             + .exact(referenceCells[cellIndex].boundaryUncertaintyUpperBound)
         guard error.isFinite, error.upper <= fidelity.linearTolerance else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability,
@@ -181,7 +191,7 @@ package struct OriginalGraphBandReceipt: Sendable {
         }
         let angularError = OutwardScalarInterval.exact(bounds.unitNormalDerivativeUMagnitudeUpperBound) * du
             + .exact(bounds.unitNormalDerivativeVMagnitudeUpperBound) * dw
-            + .exact(2) * .exact(stations.map(\.normalErrorUpperBound).max()!)
+            + .exact(2) * .exact(stations.map({ $0.normalErrorUpperBound }).max()!)
             + .exact(referenceCells[cellIndex].boundaryNormalUncertaintyUpperBound)
         guard angularError.isFinite, angularError.upper <= fidelity.angularTolerance else {
             throw KernelError(phase: .geometry, code: .unsupportedCapability,
@@ -189,7 +199,7 @@ package struct OriginalGraphBandReceipt: Sendable {
                               message: "The actual reference facet exceeds original selected-normal fidelity.")
         }
         try admitEdges(positions)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 
     /// E + D holds for every retained source tail and every admissible completion in the join box.
@@ -229,7 +239,7 @@ package struct OriginalGraphBandReceipt: Sendable {
             }
         }
         try admitEdges(positions)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 
     private static func normalAngleUpper(jet: SurfaceIntervalVectorJet,

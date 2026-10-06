@@ -13,13 +13,13 @@ package struct OriginalSourceScalarAdmission<B: RationalAlgebraAdmitting>: Ratio
     package var coefficientDepth: Int
     package var mapsOriginalCoefficientDepth = true
     package mutating func consumeExactWork(_ count: Int) throws {
-        try Task.checkCancellation(); try base.consumeExactWork(count)
+        try CurrentTaskCancellationChecker().checkCancellation(); try base.consumeExactWork(count)
     }
     package mutating func retainExactStorage(_ count: Int) throws {
-        try Task.checkCancellation(); try base.retainExactStorage(count)
+        try CurrentTaskCancellationChecker().checkCancellation(); try base.retainExactStorage(count)
     }
     package mutating func visitExactCell(depth: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let mapped = try rationalAlgebraCount(inheritedParameterDepth, max(0, depth - originalParameterDepth))
         guard depth >= 0, mapped <= maximumDepth else {
             throw rationalAlgebraFailure("Original coefficient source exhausted parameter root depth.")
@@ -27,7 +27,7 @@ package struct OriginalSourceScalarAdmission<B: RationalAlgebraAdmitting>: Ratio
         parameterDepth = max(parameterDepth, mapped); try base.visitExactCell(depth: mapped)
     }
     package mutating func visitCoefficientCell(depth: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let mapped = mapsOriginalCoefficientDepth
             ? try rationalAlgebraCount(inheritedCoefficientDepth, max(0, depth - originalCoefficientDepth)) : depth
         guard depth >= 0, mapped <= maximumCoefficientDepth else {

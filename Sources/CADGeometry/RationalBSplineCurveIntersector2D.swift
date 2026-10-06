@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// A unique root enclosure for two bounded rational B-spline curves in one
 /// two-dimensional chart. The enclosures, rather than a refined floating-point
@@ -598,8 +608,8 @@ private struct DifferencePatch {
                 weight: second.weights[$0]
             )
         }
-        guard firstControls.allSatisfy(\.isFiniteAndPositive),
-              secondControls.allSatisfy(\.isFiniteAndPositive) else {
+        guard firstControls.allSatisfy({ $0.isFiniteAndPositive }),
+              secondControls.allSatisfy({ $0.isFiniteAndPositive }) else {
             throw Self.failure(
                 .resourceLimitExceeded,
                 tolerance: tolerance,
@@ -628,7 +638,7 @@ private struct DifferencePatch {
             secondLower: second.lower,
             secondUpper: second.upper
         )
-        guard controlNet.flatMap({ $0 }).allSatisfy(\.isFinite) else {
+        guard controlNet.flatMap({ $0 }).allSatisfy({ $0.isFinite }) else {
             throw Self.failure(
                 .resourceLimitExceeded,
                 tolerance: tolerance,
@@ -706,7 +716,7 @@ private struct DifferencePatch {
             [d / determinant, -b / determinant],
             [-c / determinant, a / determinant],
         ]
-        guard inverse.flatMap({ $0 }).allSatisfy(\.isFinite) else {
+        guard inverse.flatMap({ $0 }).allSatisfy({ $0.isFinite }) else {
             return .unresolved
         }
         let jacobian = [
@@ -849,8 +859,8 @@ private struct DifferencePatch {
         ) { first, second, parameter in
             first.interpolated(to: second, parameter: parameter)
         }
-        guard firstControls.allSatisfy(\.isFiniteAndPositive),
-              secondControls.allSatisfy(\.isFiniteAndPositive) else {
+        guard firstControls.allSatisfy({ $0.isFiniteAndPositive }),
+              secondControls.allSatisfy({ $0.isFiniteAndPositive }) else {
             return self
         }
         return restrictedDomain(
@@ -1032,8 +1042,8 @@ private struct DifferencePatch {
     private func hull(_ values: [[Vector]]) -> Vector {
         let flat = values.flatMap { $0 }
         return Vector(
-            x: .enclosing(flat.map(\.x)),
-            y: .enclosing(flat.map(\.y))
+            x: .enclosing(flat.map({ $0.x })),
+            y: .enclosing(flat.map({ $0.y }))
         )
     }
 

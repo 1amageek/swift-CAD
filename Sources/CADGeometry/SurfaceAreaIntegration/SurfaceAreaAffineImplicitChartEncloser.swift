@@ -51,7 +51,7 @@ struct SurfaceAreaAffineImplicitChartEncloser: Sendable {
     private let vOffset: OutwardScalarInterval
 
     init(curve: CertifiedImplicitSurfaceParameterCurve, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws {
         try consumeWork()
         // FIXME(INCOMPLETE_IMPLEMENTATION): General/closed implicit trim charts
@@ -155,7 +155,7 @@ struct SurfaceAreaAffineImplicitChartEncloser: Sendable {
     var hasNativeJoins: Bool { curve.intersection.cells.count > 1 }
 
     func intervalProof(over fraction: ScalarInterval, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() })
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() })
         throws -> SurfaceAreaParameterChartEncloser.IntervalProof {
         if Task.isCancelled { throw Self.failure(.cancelled,tolerance,"Area affine implicit chart was cancelled.") }
         try consumeWork(); let span = OutwardScalarInterval.exact(curve.endFraction) - .exact(curve.startFraction)

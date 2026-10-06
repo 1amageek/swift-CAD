@@ -423,10 +423,10 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     for record in atlas {
       try admission.step()
       let normalizedLower = domains.normalized(
-        record.parameterBox.intervals.map(\.lower)
+        record.parameterBox.intervals.map({ $0.lower })
       )
       let normalizedUpper = domains.normalized(
-        record.parameterBox.intervals.map(\.upper)
+        record.parameterBox.intervals.map({ $0.upper })
       )
       // A disjoint atlas cell cannot cover either child of this box.
       guard searchBox.normalizedBounds.indices.allSatisfy({ index in
@@ -478,10 +478,10 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     let candidates = try atlas.map { record -> (gap: Double, bounds: [Double]) in
       try admission.step()
       let normalizedLower = domains.normalized(
-        record.parameterBox.intervals.map(\.lower)
+        record.parameterBox.intervals.map({ $0.lower })
       )
       let normalizedUpper = domains.normalized(
-        record.parameterBox.intervals.map(\.upper)
+        record.parameterBox.intervals.map({ $0.upper })
       )
       let gap = searchBox.normalizedBounds.indices.reduce(0.0) {
         partial, index in

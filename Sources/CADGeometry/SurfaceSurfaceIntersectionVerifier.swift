@@ -484,7 +484,7 @@ struct SurfaceSurfaceIntersectionVerifier {
         return ParameterCurveResult(
             curve: .bSpline(pcurve),
             anchor: anchor,
-            maximumResidual: segments.map(\.maximumResidual).max() ?? 0.0
+            maximumResidual: segments.map({ $0.maximumResidual }).max() ?? 0.0
         )
     }
 

@@ -571,6 +571,6 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
 }
 
 func intersectionAlgebraStep<B: RationalAlgebraAdmitting>(_ usage: inout B) throws {
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     try usage.consumeExactWork(1)
 }

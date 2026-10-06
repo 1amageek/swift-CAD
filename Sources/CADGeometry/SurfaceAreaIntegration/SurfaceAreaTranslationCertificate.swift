@@ -44,7 +44,7 @@ package enum SurfaceAreaTranslationCertificate: Sendable, Equatable {
     static func direction(of surface: Surface3D, remainingSourceDepth: Int,
         maximumAlgebraicDepth: Int?, consumeWork: () throws -> Void,
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> Self? {
-        try consumeWork(); try Task.checkCancellation()
+        try consumeWork(); try CurrentTaskCancellationChecker().checkCancellation()
         guard remainingSourceDepth >= 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original translation source depth is exhausted.")
         }

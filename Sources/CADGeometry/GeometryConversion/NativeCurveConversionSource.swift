@@ -168,7 +168,7 @@ public struct NativeCurveConversionSource: GeometryCurveConversionSource {
         let jet: SurfaceIntervalVectorJet
         if let prepared {
             let original = try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             guard let first = original.spans.first else {
                 throw GeometryConversionError.invalidInput("Native conversion source has no original closed owning cover.")
             }
@@ -179,12 +179,12 @@ public struct NativeCurveConversionSource: GeometryCurveConversionSource {
             jet = try DefaultCurveDifferentialEncloser().thirdOrderIntervalJet(
                 of: curve, over: Self.stablePeriodicInterval(parameters, domain: curve.parameterDomain, tolerance: tolerance), tolerance: tolerance)
         }
-        func coordinates(_ key: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>) throws -> CoordinateEnclosure3D {
-            let x = jet.x[keyPath: key], y = jet.y[keyPath: key], z = jet.z[keyPath: key]
+        func coordinates(_ key: (SurfaceIntervalJet) -> OutwardScalarInterval) throws -> CoordinateEnclosure3D {
+            let x = key(jet.x), y = key(jet.y), z = key(jet.z)
             return try CoordinateEnclosure3D(x: ScalarInterval(lower: x.lower, upper: x.upper),
                 y: ScalarInterval(lower: y.lower, upper: y.upper), z: ScalarInterval(lower: z.lower, upper: z.upper))
         }
-        return try CurveDifferentialEnclosure(position: coordinates(\.value),
-            firstDerivative: coordinates(\.derivativeU), secondDerivative: coordinates(\.secondDerivativeUU))
+        return try CurveDifferentialEnclosure(position: coordinates({ $0.value }),
+            firstDerivative: coordinates({ $0.derivativeU }), secondDerivative: coordinates({ $0.secondDerivativeUU }))
     }
 }

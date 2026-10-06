@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct CurveParameterThirdOrderDerivatives: Sendable {
     let position: Point3D
@@ -70,7 +80,7 @@ extension Curve3D {
                 tolerance: tolerance).thirdDerivative * (image.gain * image.gain * image.gain)
         case let .originalAngularTransport(curve):
             let jet = try curve.intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 3,
-                tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+                tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = try .init(x: (jet.x.coefficient(3, 0) * .exact(6)).midpoint,
                 y: (jet.y.coefficient(3, 0) * .exact(6)).midpoint, z: (jet.z.coefficient(3, 0) * .exact(6)).midpoint)
         case let .originalConstructionChart(curve):
@@ -78,21 +88,21 @@ extension Curve3D {
                 tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
                 remainingSourceDepth: curve.remainingSourceDepth == Int.max ? Int.max : curve.remainingSourceDepth + 1,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = .init(x: try (jet.x.coefficient(3, 0) * .exact(6)).midpoint,
                 y: try (jet.y.coefficient(3, 0) * .exact(6)).midpoint, z: try (jet.z.coefficient(3, 0) * .exact(6)).midpoint)
         case let .originalGuideTraversalChain(curve):
             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = .init(x: jet.x.derivatives[3].midpoint,
                 y: jet.y.derivatives[3].midpoint, z: jet.z.derivatives[3].midpoint)
         case let .originalGuideEndpointConnector(curve):
             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = .init(x: jet.x.derivatives[3].midpoint,
                 y: jet.y.derivatives[3].midpoint, z: jet.z.derivatives[3].midpoint)
         case let .originalPolyline(curve):
@@ -100,13 +110,13 @@ extension Curve3D {
             guard try curve.hasSmoothNativeInterval(over: singleton, tolerance: tolerance,
                 maximumSpanCount: curve.maximumSpanCount, maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
                 remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() }) else {
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }) else {
                 throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
                     message: "An original polyline corner has no smooth third-order differential law.")
             }
             let jet = try curve.derivatives(over: singleton, throughOrder: 3, tolerance: tolerance,
                 maximumSpanCount: curve.maximumSpanCount, maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
-                remainingSourceDepth: curve.remainingSourceDepth, consumeWork: { try Task.checkCancellation() })
+                remainingSourceDepth: curve.remainingSourceDepth, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = .init(x: jet.x.derivatives[3].midpoint,
                 y: jet.y.derivatives[3].midpoint, z: jet.z.derivatives[3].midpoint)
         case let .originalDrafted(curve):
@@ -118,13 +128,13 @@ extension Curve3D {
             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint, z: jet.z.derivatives[3].midpoint)
         case let .originalEndpointConnector(curve):
             let jet = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: 0,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = .init(x: jet.x.derivatives[3].midpoint,
                 y: jet.y.derivatives[3].midpoint, z: jet.z.derivatives[3].midpoint)
         case let .originalAffineWord(image):
@@ -137,7 +147,7 @@ extension Curve3D {
                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
                 remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
                 z: jet.z.derivatives[3].midpoint)
         case let .originalPolyline(curve):
@@ -145,7 +155,7 @@ extension Curve3D {
                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
                 remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
                 z: jet.z.derivatives[3].midpoint)
         case let .originalGuideEndpointConnector(curve):
@@ -153,7 +163,7 @@ extension Curve3D {
                 throughOrder: 3, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
                 remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             third = .init(x: jet.x.derivatives[3].midpoint, y: jet.y.derivatives[3].midpoint,
                 z: jet.z.derivatives[3].midpoint)
         case let .affineImage(image):

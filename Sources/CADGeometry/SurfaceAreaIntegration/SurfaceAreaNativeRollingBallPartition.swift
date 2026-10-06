@@ -73,19 +73,19 @@ struct SurfaceAreaNativeRollingBallPartition: Sendable {
 
     func rectangleDomains(over box: SurfaceParameterBox, maximumCount: Int,
                           tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain] {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try Task.checkCancellation()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
 
         try validate(tolerance)
         try OriginalCoefficientAllocation.reserve(count:domains.count,of:SurfaceAreaNativeSpanDomain.self,consumeStorage:consumeStorage)
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(domains.count)
         for item in domains {
-            try consumeWork(0); try Task.checkCancellation()
+            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
             let lower = max(box.u.lower,item.parameters.lower), upper = min(box.u.upper,item.parameters.upper)
             guard lower < upper else { continue }
             guard result.count < maximumCount else {
@@ -100,12 +100,12 @@ struct SurfaceAreaNativeRollingBallPartition: Sendable {
 
     func fanDomains(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
                     maximumCount: Int, tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try Task.checkCancellation()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
 
         try validate(tolerance)
         guard case .constantU(let u,let start,let end) = curve,
@@ -124,7 +124,7 @@ struct SurfaceAreaNativeRollingBallPartition: Sendable {
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(domains.count)
         for item in domains {
-            try consumeWork(0); try Task.checkCancellation()
+            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
             guard let first = try cut(item.parameters.lower), let last = try cut(item.parameters.upper) else { continue }
             let lower = max(0,min(first,last)), upper = min(1,max(first,last))
             guard lower < upper else { continue }
@@ -184,7 +184,7 @@ struct SurfaceAreaNativeRollingBallPartition: Sendable {
         guard tolerance == preparationTolerance else {
             throw failure(.invalidInput,tolerance,"Rolling-ball native queries require their exact preparation tolerance.")
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 
     private func failure(_ code: KernelErrorCode, _ tolerance: ModelingTolerance, _ message: String) -> KernelError {

@@ -1,3 +1,5 @@
+import CADCore
+
 /// Exact equation equivalence restricted to the retained nonzero denominator guards.
 package struct OriginalGuardedIntersectionEquations: Sendable {
     package struct Division: Sendable {
@@ -96,7 +98,7 @@ package struct OriginalGuardedIntersectionEquations: Sendable {
             }
         }
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return Self(originalEquations: equations, denominatorGuards: denominatorGuards,
             guardProduct: product, normalizedEquations: normalized, divisions: divisions,
             zeroSetEquivalences: equivalences, evenPowerZeroSets: evenPowerZeroSets)

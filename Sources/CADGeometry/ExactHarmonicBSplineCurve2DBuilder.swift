@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 package struct ExactHarmonicBSplineCurve2DBuilder {
     package init() {}
@@ -21,7 +31,7 @@ package struct ExactHarmonicBSplineCurve2DBuilder {
             startParameter, endParameter,
         ]
         let parameterSpan = endParameter - startParameter
-        guard values.allSatisfy(\.isFinite),
+        guard values.allSatisfy({ $0.isFinite }),
               abs(parameterSpan) > tolerance.angle,
               abs(parameterSpan) <= 2.0 * Double.pi + tolerance.angle else {
             throw KernelError(

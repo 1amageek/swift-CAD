@@ -10,7 +10,7 @@ struct PreparedBSplineSurfaceDifferentialCost {
         private(set) var boxes = 0
 
         mutating func charge(scalars count: Int = 0, work units: Int = 0) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let nextScalars = try Self.sum(scalars, count)
             let nextWork = try Self.sum(work, units)
             guard nextScalars <= limits.maximumScalarCount, nextWork <= limits.maximumWorkUnits else {
@@ -21,7 +21,7 @@ struct PreparedBSplineSurfaceDifferentialCost {
         }
 
         mutating func visit() throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard boxes < limits.maximumCertificationBoxes else {
                 throw GeometryConversionError.resourceLimitExceeded("Native position certification exhausted its cell allowance.")
             }

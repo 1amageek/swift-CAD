@@ -66,13 +66,13 @@ package extension CertifiedImplicitIntersectionCurve {
         )).sorted()
         guard bounds.count >= 2,
               approximatelyEqual(
-                  firstIntervals.map(\.lower).min() ?? .infinity,
-                  secondIntervals.map(\.lower).min() ?? -.infinity,
+                  firstIntervals.map({ $0.lower }).min() ?? .infinity,
+                  secondIntervals.map({ $0.lower }).min() ?? -.infinity,
                   tolerance: tolerance.relative
               ),
               approximatelyEqual(
-                  firstIntervals.map(\.upper).max() ?? -.infinity,
-                  secondIntervals.map(\.upper).max() ?? .infinity,
+                  firstIntervals.map({ $0.upper }).max() ?? -.infinity,
+                  secondIntervals.map({ $0.upper }).max() ?? .infinity,
                   tolerance: tolerance.relative
               ) else {
             return false

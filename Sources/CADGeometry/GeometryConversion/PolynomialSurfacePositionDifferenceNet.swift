@@ -30,7 +30,7 @@ struct PolynomialSurfacePositionDifferenceNet {
         }
 
         mutating func charge(scalars count: Int = 0, work units: Int = 0) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let newScalars = try Self.add(scalars, count), newWork = try Self.add(work, units)
             guard newScalars <= limits.maximumScalarCount, newWork <= limits.maximumWorkUnits else {
                 throw GeometryConversionError.resourceLimitExceeded("Polynomial continuation exhausted its cumulative scalar or work allowance.")
@@ -40,7 +40,7 @@ struct PolynomialSurfacePositionDifferenceNet {
         }
 
         mutating func visit() throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard boxes < limits.maximumCertificationBoxes else { throw Self.exhausted() }
             boxes += 1
         }
@@ -79,7 +79,7 @@ struct PolynomialSurfacePositionDifferenceNet {
         var coefficients: [Coefficient] = []
         coefficients.reserveCapacity(count)
         for row in surface.controlPoints {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             for point in row {
                 // Exact common stored weights cancel by partition of unity. These
                 // original Cartesian controls define the polynomial, without a new Double net.
@@ -120,7 +120,7 @@ struct PolynomialSurfacePositionDifferenceNet {
         let axisCount = u ? uCount : vCount
         let lines = u ? vCount : uCount
         for line in 0..<lines {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             for index in 0..<axisCount {
                 let coefficient = try blossom(degree: axisCount - 1, index: index,
                     lower: lower, upper: upper, budget: &budget) { position in
@@ -157,7 +157,7 @@ struct PolynomialSurfacePositionDifferenceNet {
             values[u ? line * uCount + index : index * uCount + line]
         }
         for line in 0..<lines {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             for index in 0..<newCount {
                 let coefficient: Coefficient
                 if index == 0 { coefficient = input(0, line) }
@@ -183,7 +183,7 @@ struct PolynomialSurfacePositionDifferenceNet {
         var result: [Coefficient] = []
         result.reserveCapacity(values.count)
         for index in values.indices {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             result.append(values[index] - other.values[index])
         }
         return Self(uCount: uCount, vCount: vCount, values: result)
@@ -195,7 +195,7 @@ struct PolynomialSurfacePositionDifferenceNet {
         try budget.charge(work: Budget.multiply(values.count, 48))
         var maximum = 0.0
         for coefficient in values {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard coefficient.x.isFinite, coefficient.y.isFinite, coefficient.z.isFinite else { throw Budget.exhausted() }
             let upper = coefficient.lengthUpperBound
             guard upper.isFinite else { throw Budget.exhausted() }

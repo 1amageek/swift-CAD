@@ -8,7 +8,7 @@ public struct CertifiedNativeSurfacePositionCertifier: GeometrySurfacePositionCe
         over parameters: SurfaceParameterBox, maximumPositionError: Double,
         limits: NativeSurfacePositionCertificationLimits,
         tolerance: ModelingTolerance) throws -> NativeSurfacePositionCertificate {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try limits.validate()
         try tolerance.validate()
         guard maximumPositionError.isFinite, maximumPositionError > 0,
@@ -21,7 +21,7 @@ public struct CertifiedNativeSurfacePositionCertifier: GeometrySurfacePositionCe
         // Complete stored equality is exact native position identity, not sampled agreement.
         try budget.charge(work: PreparedBSplineSurfaceDifferentialCost.Budget.sum(sourceComparison, targetComparison))
         if source == candidate {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             return certificate(parameters, bound: 0, budget: budget)
         }
 
@@ -117,7 +117,7 @@ public struct CertifiedNativeSurfacePositionCertifier: GeometrySurfacePositionCe
                 stack.append(SurfaceParameterBox(u: box.u, v: try ScalarInterval(lower: box.v.lower, upper: midpointV)))
             }
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return certificate(parameters, bound: maximumBound, budget: budget)
     }
 
@@ -192,7 +192,7 @@ public struct CertifiedNativeSurfacePositionCertifier: GeometrySurfacePositionCe
             try admit(children.1, uWidth: uWidth, vWidth: vWidth, budget: &budget,
                 pending: &pending, maximum: &maximumBound)
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return NativeSurfacePositionCertificate(coveredParameters: parameters, positionErrorUpperBound: maximumBound,
             certifiedBoxCount: budget.boxes, scalarCount: budget.scalars, workUnits: budget.work)
     }
@@ -222,7 +222,7 @@ public struct CertifiedNativeSurfacePositionCertifier: GeometrySurfacePositionCe
             let period = knots[count] - knots[degree]
             var index = degree
             while index < count {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 let knot = knots[index]
                 var first = index
                 while first > 0, knots[first - 1] == knot { first -= 1 }
@@ -302,7 +302,7 @@ public struct CertifiedNativeSurfacePositionCertifier: GeometrySurfacePositionCe
                 throw refusal()
             }
             for index in 0..<(knots.count - cycleCount) {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 let delta = difference(knots[index + cycleCount], knots[index])
                 guard delta.head.isFinite, delta.tail.isFinite,
                       delta.head == period.head, delta.tail == 0 else { throw refusal() }

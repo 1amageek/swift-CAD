@@ -90,6 +90,6 @@ struct OriginalCurveCurveWitness {
             }
         }
         let result = FloatingPointExpansion.product(lhs, rhs)
-        return result.allSatisfy(\.isFinite) ? result : nil
+        return result.allSatisfy({ $0.isFinite }) ? result : nil
     }
 }

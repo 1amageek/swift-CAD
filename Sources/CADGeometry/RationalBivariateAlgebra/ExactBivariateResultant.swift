@@ -26,7 +26,7 @@ public struct ExactBivariateResultant: Sendable {
         var previous = try ExactBivariatePolynomial.constant(.one, usage: &usage)
         var sign = ExactRationalCoefficient.one
         if size > 1 { for column in 0..<(size - 1) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             var pivotRow: Int?
             for row in column..<size {
                 try usage.consumeExactWork(1)

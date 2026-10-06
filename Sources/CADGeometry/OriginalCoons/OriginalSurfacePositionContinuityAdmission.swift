@@ -6,7 +6,7 @@ package struct OriginalSurfacePositionContinuityAdmission {
     package func provesAssumingSourceValidated<B: RationalAlgebraAdmitting>(_ surface: Surface3D,
         remainingSourceDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws -> Bool {
         guard remainingSourceDepth >= 0 else { throw GeometryConversionError.invalidInput("Original surface continuity source cap is invalid.") }
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         switch surface {
         case .procedural(.originalCoons(let source)):
             try source.validate(tolerance:tolerance)

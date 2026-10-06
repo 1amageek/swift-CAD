@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// An exact graph certificate for an affine bilinear patch intersecting a rational bilinear patch.
 ///
@@ -391,8 +401,8 @@ struct ExactAffineBilinearIntersectionGraph: Sendable {
             second: second,
             tolerance: tolerance
         )
-        let lower = domains.actual(normalizedBounds.map(\.lower))
-        let upper = domains.actual(normalizedBounds.map(\.upper))
+        let lower = domains.actual(normalizedBounds.map({ $0.lower }))
+        let upper = domains.actual(normalizedBounds.map({ $0.upper }))
         let anchors = try [0.0, 0.5, 1.0].map {
             try actualParameterPair(
                 at: $0,

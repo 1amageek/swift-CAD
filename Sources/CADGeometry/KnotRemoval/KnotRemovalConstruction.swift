@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Numerical candidate construction. The independent interval certifier owns acceptance.
 enum KnotRemovalConstruction {
@@ -76,7 +86,7 @@ enum KnotRemovalConstruction {
             (0..<rows).map { (source.controlPoints[$0].z - origin.z) * source.weights[$0] },
             Array(source.weights.prefix(rows))
         ]
-        guard coordinates.allSatisfy({ $0.allSatisfy(\.isFinite) }) else {
+        guard coordinates.allSatisfy({ $0.allSatisfy({ $0.isFinite }) }) else {
             throw BSplineKnotRemovalError.numericalFailure("Homogeneous coordinates exceed finite arithmetic.")
         }
         let solution: [[Double]]

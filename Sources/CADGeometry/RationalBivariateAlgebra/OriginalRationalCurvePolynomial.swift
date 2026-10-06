@@ -39,7 +39,7 @@ package struct OriginalRationalCurvePolynomial: Sendable {
         try RationalAlgebraStorage.retain(4, of: ExactBivariatePolynomial.self, usage: &usage)
         var h = [ExactBivariatePolynomial](repeating: .zero, count: 4)
         for index in (spanIndex - source.degree)...spanIndex {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let polynomial = basis[index] else {
                 throw rationalAlgebraFailure("Original curve basis omitted a selected control coefficient.")
             }

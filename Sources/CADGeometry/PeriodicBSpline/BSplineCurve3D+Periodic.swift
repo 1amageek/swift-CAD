@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 extension BSplineCurve3D {
     /// Constructs a cycle with N independent controls and N+1 cycle knots.
@@ -112,7 +122,7 @@ extension BSplineCurve3D {
     }
 
     func validatePeriodicity(tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
         try consumeWork()
         guard isPeriodic else {
             guard periodicOrigin == nil else { throw Self.invalidCycle(tolerance) }
@@ -140,7 +150,7 @@ extension BSplineCurve3D {
     static func validatePeriodicAxis(
         degree: Int, knots: [Double], controlPointCount: Int, origin: Double?,
         tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
     ) throws {
         try consumeWork()
         let independent = controlPointCount.subtractingReportingOverflow(degree)

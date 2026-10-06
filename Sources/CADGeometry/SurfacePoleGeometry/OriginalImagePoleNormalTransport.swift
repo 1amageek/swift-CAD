@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Original cofactor and signed chart transport, preserving each source image layer.
 package struct OriginalImagePoleNormalTransport: Sendable {
@@ -8,7 +18,7 @@ package struct OriginalImagePoleNormalTransport: Sendable {
     /// Preserves the original model normal without evaluating a rounded foreign station.
     package func normal(source: OriginalSurfacePoleNormalReceipt, image: OriginalImageSurface3D,
         tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws -> OriginalSurfacePoleNormalReceipt {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         guard source.surface == image.source, source.tolerance == tolerance else {
             throw GeometryConversionError.invalidInput("Original image normal belongs to another source or tolerance.")
         }
@@ -54,7 +64,7 @@ package struct OriginalImagePoleNormalTransport: Sendable {
     package func differentialBounds(_ b: SurfaceTessellationDifferentialBounds,
         through image: OriginalImageSurface3D, consumeWork: () throws -> Void)
         throws -> SurfaceTessellationDifferentialBounds {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         _ = try image.transform.originalDeterminantSign(consumeWork: consumeWork)
         func original(_ column: Vector3D) -> IntervalVector3DBounds {
             .init(x: .exact(column.x), y: .exact(column.y), z: .exact(column.z))
@@ -91,7 +101,7 @@ package struct OriginalImagePoleNormalTransport: Sendable {
     package func panelBounds(source: OriginalSurfacePoleNormalPanel, image: OriginalImageSurface3D,
         over parameters: SurfaceParameterBox, tolerance: ModelingTolerance,
         consumeWork: () throws -> Void) throws -> OriginalSurfacePoleNormalPanel {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         guard source.surface == image.source, source.tolerance == tolerance else {
             throw GeometryConversionError.invalidInput("Original pole image receipt belongs to another source or tolerance.")
         }

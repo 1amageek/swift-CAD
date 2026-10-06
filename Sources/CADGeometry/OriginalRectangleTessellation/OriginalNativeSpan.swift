@@ -46,10 +46,10 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
                   tolerance callerTolerance: ModelingTolerance,
                   consumeWork: (() throws -> Void)? = nil) throws {
       try callerTolerance.validate()
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       if let consumeWork {
         func charge(_ count: Int) throws {
-          for _ in 0..<count { try consumeWork(); try Task.checkCancellation() }
+          for _ in 0..<count { try consumeWork(); try CurrentTaskCancellationChecker().checkCancellation() }
         }
         try GeometryStructuralComparisonWork.charge(surface: .bSpline(source), using: charge)
         try GeometryStructuralComparisonWork.charge(surface: .bSpline(surface), using: charge)
@@ -187,7 +187,7 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
               message: "A retained mesh station candidate must have finite coordinates.")
           }
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let base = try span.basePointAssumingValidated(u: u, v: v, tolerance: span.tolerance)
         let box = SurfaceParameterBox(u: try ScalarInterval(lower: u, upper: u), v: interval)
         let baseInterval = try span.baseBox(box, tolerance: span.tolerance).v
@@ -195,7 +195,7 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
         let normal = try numeric.normal(baseV: base.v)
         let enclosure = try RationalBezierSurfaceJetEncloser().firstOrderEnclosure(
           row: firstOrder, overClosedV: baseInterval, tolerance: span.tolerance)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return Materialization(point: point, normal: normal, enclosure: enclosure)
       }
     }
@@ -213,7 +213,7 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
         consumeWork: consumeWork)
       let row = try RationalBezierSurfaceJetEncloser().prepareFirstOrderRow(
         of: patch, u: base.u, tolerance: callerTolerance, consumeWork: consumeWork)
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       return RowEvaluator(span: self, u: u, numeric: numeric, firstOrder: row)
     }
 
@@ -287,7 +287,7 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
     over box: SurfaceParameterBox, tolerance: ModelingTolerance,
     maximumSpanCount: Int) throws -> [OriginalNativeSpan] {
     try tolerance.validate()
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     guard (1...262_144).contains(maximumSpanCount), tolerance == preparationTolerance,
       box.u.lower.isFinite, box.u.upper.isFinite, box.v.lower.isFinite, box.v.upper.isFinite,
       box.u.lower <= box.u.upper, box.v.lower <= box.v.upper,
@@ -300,7 +300,7 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
     }
     var result: [OriginalNativeSpan] = []
     for span in originalSpans {
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       guard max(box.u.lower, span.uBounds.lower) <= min(box.u.upper, span.uBounds.upper),
         max(box.v.lower, span.vBounds.lower) <= min(box.v.upper, span.vBounds.upper) else { continue }
       guard result.count < maximumSpanCount else {

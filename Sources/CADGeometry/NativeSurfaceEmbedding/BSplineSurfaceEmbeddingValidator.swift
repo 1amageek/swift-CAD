@@ -593,8 +593,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         try first.validate(tolerance: tolerance, consumeWork: { try admission.work(1) })
         try second.validate(tolerance: tolerance, consumeWork: { try admission.work(1) })
         guard allowedCornerContacts.count <= 4,
-              Set(allowedCornerContacts.map(\.first)).count == allowedCornerContacts.count,
-              Set(allowedCornerContacts.map(\.second)).count == allowedCornerContacts.count else {
+              Set(allowedCornerContacts.map({ $0.first })).count == allowedCornerContacts.count,
+              Set(allowedCornerContacts.map({ $0.second })).count == allowedCornerContacts.count else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Permitted point contacts must use each source corner at most once.")
         }
@@ -989,9 +989,9 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
                 }
             }
         }
-        if try projectionProvesInjective(bounds: cells.map(\.differentialBounds)) { return }
+        if try projectionProvesInjective(bounds: cells.map({ $0.differentialBounds })) { return }
         try admission.storage(cells.count)
-        let originalCharts = cells.map(\.original)
+        let originalCharts = cells.map({ $0.original })
         func sourceStation(_ u: Double, _ v: Double) throws -> (BSplineSurface3D, Double, Double) {
             let query = try SurfaceParameterBox(u: ScalarInterval(lower: u, upper: u),
                 v: ScalarInterval(lower: v, upper: v))
@@ -1042,7 +1042,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         let admission: NativeSurfaceEmbeddingAdmission
 
         mutating func consumeExactWork(_ count: Int) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard count >= 0, count <= remaining else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                     message: "Original seam equality exhausted the cumulative adjacent pair allowance.")
@@ -1243,16 +1243,16 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         tolerance: ModelingTolerance
     ) throws {
         guard cells.count > 1 else { return }
-        if try projectionProvesInjective(bounds: cells.map(\.differentialBounds)) { return }
-        let axes: [KeyPath<Point3D, Double>] = [\.x, \.y, \.z]
+        if try projectionProvesInjective(bounds: cells.map({ $0.differentialBounds })) { return }
+        let axes: [(Point3D) -> Double] = [{ $0.x }, { $0.y }, { $0.z }]
         var axis = axes[0]
         var bestScore = Double.infinity
         for candidate in axes {
             var lower = Double.infinity, upper = -Double.infinity, width = 0.0
             for cell in cells {
                 try admission.work(1)
-                let minimum = cell.bounds.minimum[keyPath: candidate]
-                let maximum = cell.bounds.maximum[keyPath: candidate]
+                let minimum = candidate(cell.bounds.minimum)
+                let maximum = candidate(cell.bounds.maximum)
                 lower = min(lower, minimum)
                 upper = max(upper, maximum)
                 width += maximum - minimum
@@ -1263,7 +1263,7 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
         try admission.storage(cells.count)
         let ordered = try cells.indices.sorted {
             try admission.work(1)
-            let a = cells[$0].bounds.minimum[keyPath: axis], b = cells[$1].bounds.minimum[keyPath: axis]
+            let a = axis(cells[$0].bounds.minimum), b = axis(cells[$1].bounds.minimum)
             return a == b ? $0 < $1 : a < b
         }
         var visitedPairCells = 0
@@ -1271,8 +1271,8 @@ public struct BSplineSurfaceEmbeddingValidator: Sendable {
             let firstIndex = ordered[firstOffset]
             for secondOffset in (firstOffset + 1)..<ordered.count {
                 let secondIndex = ordered[secondOffset]
-                guard cells[secondIndex].bounds.minimum[keyPath: axis]
-                        <= cells[firstIndex].bounds.maximum[keyPath: axis] + tolerance.distance else { break }
+                guard axis(cells[secondIndex].bounds.minimum)
+                        <= axis(cells[firstIndex].bounds.maximum) + tolerance.distance else { break }
                 try consumeSeparationCell(&visitedPairCells, tolerance: tolerance, depth: max(cells[firstIndex].depth, cells[secondIndex].depth))
                 let first = cells[firstIndex].patch
                 let second = cells[secondIndex].patch

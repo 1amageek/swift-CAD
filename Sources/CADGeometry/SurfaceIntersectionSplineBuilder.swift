@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 package struct SurfaceIntersectionSplineBuilder {
@@ -531,17 +541,17 @@ package struct SurfaceIntersectionSplineBuilder {
         let curve = BSplineCurve3D(
             degree: 3,
             knots: compositeKnots(segments: segments),
-            controlPoints: compositePoints(segments.map(\.points))
+            controlPoints: compositePoints(segments.map({ $0.points }))
         )
         let firstParameterCurve = BSplineCurve2D(
             degree: 3,
             knots: compositeKnots(segments: segments),
-            controlPoints: compositePoints(segments.map(\.firstParameters))
+            controlPoints: compositePoints(segments.map({ $0.firstParameters }))
         )
         let secondParameterCurve = BSplineCurve2D(
             degree: 3,
             knots: compositeKnots(segments: segments),
-            controlPoints: compositePoints(segments.map(\.secondParameters))
+            controlPoints: compositePoints(segments.map({ $0.secondParameters }))
         )
         try curve.validate(tolerance: tolerance)
         let firstPcurve = SurfaceParameterCurve.bSpline(firstParameterCurve)
@@ -564,7 +574,7 @@ package struct SurfaceIntersectionSplineBuilder {
             curve: curve,
             firstSurfaceParameterCurve: firstPcurve,
             secondSurfaceParameterCurve: secondPcurve,
-            maximumResidual: segments.map(\.maximumResidual).max() ?? 0.0,
+            maximumResidual: segments.map({ $0.maximumResidual }).max() ?? 0.0,
             firstAnchor: firstAnchor,
             secondAnchor: secondAnchor
         )

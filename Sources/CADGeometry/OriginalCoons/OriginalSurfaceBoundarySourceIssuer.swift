@@ -4,7 +4,7 @@ import CADCore
 struct OriginalSurfaceBoundarySourceIssuer {
     func boundary<B: RationalAlgebraAdmitting>(of surface: Surface3D, at boundary: SurfaceParameterBoundary,
         maximumDepth: Int, maximumSpanCount: Int, tolerance: ModelingTolerance, usage: inout B) throws -> OriginalCurveRootSpan3D {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         if case .procedural(.originalCoons(let original)) = surface { return original.boundarySource(boundary) }
         if case .procedural(.originalBoundaryCorrected(let original)) = surface { return original.boundarySource(boundary) }
         if case .procedural(.originalPlaneDerivative(let original)) = surface { return original.boundarySource(boundary) }

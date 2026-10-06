@@ -49,7 +49,7 @@ package struct NativeCurveDerivativeEncloser: GeometryCurveDerivativeEnclosing {
         guard tolerance == self.tolerance else {
             throw GeometryConversionError.invalidInput("A native derivative port requires its exact preparation tolerance.")
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let jet = try prepared.thirdOrderIntervalJet(over: parameters, tolerance: tolerance)
         func component(_ value: SurfaceIntervalJet) -> IntervalDerivativeJet {
             IntervalDerivativeJet(derivatives: [value.value, value.derivativeU,
@@ -57,7 +57,7 @@ package struct NativeCurveDerivativeEncloser: GeometryCurveDerivativeEnclosing {
         }
         let result = IntervalVectorDerivativeJet(x: component(jet.x),
             y: component(jet.y), z: component(jet.z))
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 }

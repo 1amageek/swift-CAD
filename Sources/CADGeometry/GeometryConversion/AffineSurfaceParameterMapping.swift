@@ -19,7 +19,7 @@ public struct AffineSurfaceParameterMapping: GeometrySurfaceParameterMapping {
 
     public func parameter(u: Double, v: Double,
         tolerance: ModelingTolerance) throws -> SurfaceParameter {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try transform.validate(tolerance: tolerance)
         guard u.isFinite, v.isFinite else {
             throw GeometryConversionError.invalidInput("A chart point must have finite coordinates.")
@@ -33,7 +33,7 @@ public struct AffineSurfaceParameterMapping: GeometrySurfaceParameterMapping {
 
     public func enclosure(over parameters: SurfaceParameterBox,
         tolerance: ModelingTolerance) throws -> SurfaceParameterMapEnclosure {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try validate(over: parameters, tolerance: tolerance)
         let u = OutwardScalarInterval(lower: parameters.u.lower, upper: parameters.u.upper)
         let v = OutwardScalarInterval(lower: parameters.v.lower, upper: parameters.v.upper)

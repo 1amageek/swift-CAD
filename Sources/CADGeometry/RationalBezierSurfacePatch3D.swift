@@ -223,7 +223,7 @@ struct RationalBezierSurfacePatch3D: Sendable {
         }
         return RationalBezierSurfacePatch3D(
             controlPoints: points,
-            weights: controlNet.map { $0.map(\.weight) },
+            weights: controlNet.map { $0.map({ $0.weight }) },
             uLower: uBounds.0,
             uUpper: uBounds.1,
             vLower: vBounds.0,

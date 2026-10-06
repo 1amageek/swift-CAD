@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Coordinates representation-independent intersection services for finite
 /// regular parameterized surfaces. Proof search, continuation, and graph-atlas
@@ -207,7 +217,7 @@ struct BoundedParametricSurfaceIntersector: Sendable {
         residual: error.residual,
         tolerance: tolerance,
         message:
-          "Certified graph-atlas assembly failed for cell widths \(cells.map { $0.parameterBox.intervals.map(\.width) }). \(error.message)"
+          "Certified graph-atlas assembly failed for cell widths \(cells.map { $0.parameterBox.intervals.map({ $0.width }) }). \(error.message)"
       )
     }
     let firstPcurve = SurfaceParameterCurve.certifiedImplicit(

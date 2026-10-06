@@ -52,7 +52,7 @@ package struct OriginalPlaneDerivativeProjection: Sendable {
         consumeWork: () throws -> Void) throws -> IntervalVector3DBounds {
         var result = original
         for entry in entries {
-            for _ in 0..<18 { try Task.checkCancellation(); try consumeWork() }
+            for _ in 0..<18 { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
             let coefficient = (result.x * entry.bounds.x + result.y * entry.bounds.y + result.z * entry.bounds.z)
                 * entry.reciprocalBounds
             result = .init(x: result.x - entry.bounds.x * coefficient,

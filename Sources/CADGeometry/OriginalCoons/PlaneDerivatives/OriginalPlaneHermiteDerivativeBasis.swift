@@ -34,7 +34,7 @@ package struct OriginalPlaneHermiteDerivativeBasis {
         var result = try SurfaceAreaIntervalTaylorScalarJet.constant(.exact(0), order: throughOrder,
             tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
         for power in (0...5).reversed() {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let value = try SurfaceAreaIntervalTaylorScalarJet.constant(.exact(coefficient(power: power,
                 atEnd: atEnd, derivativeOrder: derivativeOrder)), order: throughOrder, tolerance: tolerance,
                 consumeWork: consumeWork, consumeStorage: consumeStorage)

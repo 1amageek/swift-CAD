@@ -6,7 +6,7 @@ package enum CertifiedRotationTrigonometry {
     package static func inverseTangent(
         _ value: OutwardScalarInterval,
         tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
     ) throws -> OutwardScalarInterval {
         try consumeWork()
         guard value.isFinite, value.lower >= 0, value.upper <= 16 else {
@@ -48,7 +48,7 @@ package enum CertifiedRotationTrigonometry {
     package static func evaluate(
         _ angle: OutwardScalarInterval,
         tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
     ) throws -> (cosine: OutwardScalarInterval, sine: OutwardScalarInterval) {
         try consumeWork()
         guard angle.isFinite, angle.lower >= -16, angle.upper <= 16 else {

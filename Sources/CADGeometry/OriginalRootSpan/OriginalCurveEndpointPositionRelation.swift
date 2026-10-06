@@ -231,7 +231,7 @@ package struct OriginalCurveEndpointPositionRelation: Sendable {
         at station: ExactRationalCoefficient, owningSpanIndex: Int? = nil, remainingSourceDepth: Int,
         tolerance: ModelingTolerance, storageByteStride: Int = MemoryLayout<UInt32>.stride,
         usage: inout B) throws -> [ExactRationalCoefficient] {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         guard remainingSourceDepth >= 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original endpoint relation exhausted source depth.")
         }

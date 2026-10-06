@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 struct GeometryConversionCertification {
@@ -96,7 +106,7 @@ struct GeometryConversionCertification {
             stack.append(.init(parameters: try ScalarInterval(lower: mid, upper: box.upper), depth: next.partialValue))
             stack.append(.init(parameters: try ScalarInterval(lower: box.lower, upper: mid), depth: next.partialValue))
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return GeometryConversionGuarantee(positionErrorUpperBound: position, tangentAngleUpperBound: tangent,
             curvatureErrorUpperBound: curvature, certifiedBoxCount: budget.visited - initial)
     }
@@ -175,7 +185,7 @@ struct GeometryConversionCertification {
                 stack.append(.init(parameters: try SurfaceParameterBox(u: box.u, v: ScalarInterval(lower: box.v.lower, upper: mid)), depth: next.partialValue))
             }
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return GeometryConversionGuarantee(positionErrorUpperBound: position, tangentAngleUpperBound: tangent,
             curvatureErrorUpperBound: curvature, certifiedBoxCount: budget.visited - initial)
     }

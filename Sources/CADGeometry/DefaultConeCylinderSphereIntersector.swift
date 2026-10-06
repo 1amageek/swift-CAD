@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct DefaultConeCylinderSphereIntersector:
     ConeCylinderSphereIntersecting
@@ -35,7 +45,7 @@ struct DefaultConeCylinderSphereIntersector:
         )
         let polynomial = polynomialBuilder.polynomial(context: context)
         let coefficients = polynomial.coefficients
-        guard coefficients.allSatisfy(\.isFinite) else {
+        guard coefficients.allSatisfy({ $0.isFinite }) else {
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,

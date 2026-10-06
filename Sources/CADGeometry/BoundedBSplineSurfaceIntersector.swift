@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct BoundedBSplineSurfaceIntersector {
   private let exactResolver: any BoundedBSplineSurfaceExactIntersectionResolving
@@ -330,7 +340,7 @@ struct BoundedBSplineSurfaceIntersector {
         let graphBounds = graphCell.bounds.flatMap {
           [$0.lower, $0.upper]
         }
-        let graphProbes = graphCell.probes.map(\.normalized)
+        let graphProbes = graphCell.probes.map({ $0.normalized })
         let componentDiagnostics = allComponents.map { component in
           let bounds = (0..<4).map { index in
             let values = component.map { $0.normalized[index] }
@@ -2201,8 +2211,8 @@ struct BoundedBSplineSurfaceIntersector {
     domains: BoundedSurfaceParameterDomainMap,
     tolerance: ModelingTolerance
   ) throws -> [(lower: Double, upper: Double)]? {
-    let actualLower = domains.actual(graphCell.bounds.map(\.lower))
-    let actualUpper = domains.actual(graphCell.bounds.map(\.upper))
+    let actualLower = domains.actual(graphCell.bounds.map({ $0.lower }))
+    let actualUpper = domains.actual(graphCell.bounds.map({ $0.upper }))
     let trimmedFirst = try first.trimmed(
       uFrom: actualLower[0],
       uTo: actualUpper[0],
@@ -2873,8 +2883,8 @@ struct BoundedBSplineSurfaceIntersector {
         message: "A certified graph cell has an invalid parameter contract."
       )
     }
-    let lower = domains.actual(graphCell.bounds.map(\.lower))
-    let upper = domains.actual(graphCell.bounds.map(\.upper))
+    let lower = domains.actual(graphCell.bounds.map({ $0.lower }))
+    let upper = domains.actual(graphCell.bounds.map({ $0.upper }))
     return try CertifiedImplicitIntersectionGraphCell(
       parameterBox: SurfaceIntersectionParameterBox(
         firstU: try ScalarInterval(lower: lower[0], upper: upper[0]),

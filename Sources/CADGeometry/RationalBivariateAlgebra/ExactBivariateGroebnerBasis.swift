@@ -15,7 +15,7 @@ struct ExactBivariateGroebnerBasis {
             try usage.retainExactStorage(1); pending.append(Pair(first: j, second: i))
         } }
         while let pair = pending.popLast() {
-            try Task.checkCancellation(); try usage.consumeExactWork(1)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
             guard let a = basis[pair.first].leading, let b = basis[pair.second].leading else {
                 throw rationalAlgebraFailure("Original Groebner pair lost its leading source coefficient.")
             }

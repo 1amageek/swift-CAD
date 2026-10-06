@@ -43,7 +43,7 @@ struct SurfaceAreaOffsetTaylorComposition: Sendable {
         var firstLayer = true
         // Distances follow the original source chain from innermost to outermost.
         for distance in distances {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard distance.isFinite, distance != 0 else {
                 throw KernelError(phase:.geometry,code:.invalidInput,tolerance:original.x.tolerance,
                     message:"Higher offset composition requires a finite genuine offset distance.")

@@ -13,7 +13,7 @@ package struct OriginalSurfaceCollapsedBoundaryPoint: Sendable {
     package static func prepare(of surface:Surface3D,over box:SurfaceParameterBox,
         direction:OriginalBSplinePoleNormal.Direction,remainingSourceDepth:Int,
         tolerance:ModelingTolerance,consumeWork:()throws->Void) throws -> Self {
-        try consumeWork();try Task.checkCancellation();try tolerance.validate()
+        try consumeWork();try CurrentTaskCancellationChecker().checkCancellation();try tolerance.validate()
         let fixed = direction == .constantU ? box.u : box.v
         guard remainingSourceDepth >= 0,fixed.width == 0,fixed.lower.isFinite,
               box.u.lower.isFinite,box.u.upper.isFinite,box.v.lower.isFinite,box.v.upper.isFinite else {

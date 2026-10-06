@@ -332,7 +332,7 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
   private init(surface: Surface3D, tolerance: ModelingTolerance,
     chargePreparation: Bool, remainingSourceDepth: Int?, maximumSubdivisionDepth: Int = Int.max,
     consumeWork: () throws -> Void, consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws {
-    try Task.checkCancellation(); try tolerance.validate()
+    try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
     if chargePreparation { try consumeWork() }
     self.surface = surface
     preparationTolerance = tolerance
@@ -539,15 +539,15 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
       v: .init(lower: parameter.v, upper: parameter.v)), tolerance: tolerance,
       maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
       remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
-    func vector(_ field: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>) throws -> Vector3D {
+    func vector(_ field: (SurfaceIntervalJet) -> OutwardScalarInterval) throws -> Vector3D {
       try consumeWork()
-      let result = Vector3D(x: jet.x[keyPath: field].midpoint,
-        y: jet.y[keyPath: field].midpoint, z: jet.z[keyPath: field].midpoint)
+      let result = Vector3D(x: field(jet.x).midpoint,
+        y: field(jet.y).midpoint, z: field(jet.z).midpoint)
       try result.validate(); return result
     }
-    let q = try vector(\.value)
-    return try (Point3D(x: q.x, y: q.y, z: q.z), vector(\.derivativeU), vector(\.derivativeV),
-      vector(\.secondDerivativeUU), vector(\.secondDerivativeUV), vector(\.secondDerivativeVV))
+    let q = try vector({ $0.value })
+    return try (Point3D(x: q.x, y: q.y, z: q.z), vector({ $0.derivativeU }), vector({ $0.derivativeV }),
+      vector({ $0.secondDerivativeUU }), vector({ $0.secondDerivativeUV }), vector({ $0.secondDerivativeVV }))
   }
 
   package func enclosure(
@@ -594,7 +594,7 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
     case .originalAffineWord(let image, let source):
       return try OriginalAffineWordJetTransport.applying(image.preparedWord,
         to: source.intervalJet(overClosedBox: parameters, tolerance: source.preparationTolerance),
-        consumeWork: { try Task.checkCancellation() })
+        consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
     case .originalImage(let image, let source):
       return try image.mappedJet(try source.intervalJet(overClosedBox: image.nativeBox(parameters),
         tolerance: tolerance))
@@ -611,7 +611,7 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
     case .direct(let preparedSurface):
       if case .procedural(.originalAffineWord(let image)) = preparedSurface, let coefficients = image.harmonicCoefficients {
         return try coefficients.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          consumeWork: { try Task.checkCancellation() }).intervalJet()
+          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
       }
       return try DefaultSurfaceDifferentialEncloser()
         .intervalJetAssumingSurfaceValidated(
@@ -661,7 +661,7 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
     case .originalAffineWord(let image, let source):
       return try OriginalAffineWordJetTransport.applying(image.preparedWord,
         to: source.intervalJet(overClosedBox: parameters, tolerance: source.preparationTolerance),
-        consumeWork: { try Task.checkCancellation() })
+        consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
     case .originalImage(let image, let source):
       return try image.mappedJet(try source.intervalJet(overClosedBox: image.nativeBox(parameters),
         tolerance: tolerance))
@@ -680,11 +680,11 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
     case .direct(let original):
       if case .procedural(.originalAngularTransport(let image)) = original {
         return try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          consumeWork: { try Task.checkCancellation() }).intervalJet()
+          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
       }
       if case .procedural(.originalAffineWord(let image)) = original, let coefficients = image.harmonicCoefficients {
         return try coefficients.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
-          consumeWork: { try Task.checkCancellation() }).intervalJet()
+          consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
       }
       return try DefaultSurfaceDifferentialEncloser().intervalJetAssumingSurfaceValidated(
         of: original, over: parameters, tolerance: tolerance)
@@ -703,7 +703,7 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
     case .offset:
       return try intervalJet(overClosedBox:parameters,tolerance:tolerance,
         maximumSpanCount:262_144,maximumSubdivisionDepth:32,remainingSourceDepth:Int.max,
-        consumeWork:{ try Task.checkCancellation() })
+        consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() })
     }
   }
 
@@ -712,7 +712,7 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
     tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
     remainingSourceDepth: Int, consumeWork: () throws -> Void,
     consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceIntervalVectorJet {
-    try Task.checkCancellation(); try consumeWork(); try tolerance.validate()
+    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(); try tolerance.validate()
     guard tolerance == preparationTolerance, maximumSpanCount > 0,
       maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0 else {
       throw closedFailure(tolerance, "Closed prepared surface bounds need original tolerance and caller ceilings.")
@@ -757,7 +757,7 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
       }
       var result: SurfaceIntervalVectorJet?
       for span in spans {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         let box = SurfaceParameterBox(
           u: try ScalarInterval(lower: max(parameters.u.lower, span.uBounds.lower), upper: min(parameters.u.upper, span.uBounds.upper)),
           v: try ScalarInterval(lower: max(parameters.v.lower, span.vBounds.lower), upper: min(parameters.v.upper, span.vBounds.upper)))
@@ -921,18 +921,18 @@ package struct PreparedSurfaceDifferentialEncloser: Sendable {
       let original = try source.intervalJet(overClosedBox:parameters,tolerance:tolerance,
         maximumSpanCount:maximumSpanCount,maximumSubdivisionDepth:maximumSubdivisionDepth,
         remainingSourceDepth:remainingSourceDepth-1,consumeWork:consumeWork,consumeStorage:consumeStorage)
-      func vector(_ key:KeyPath<SurfaceIntervalJet,OutwardScalarInterval>)->IntervalVector3DBounds {
-        .init(x:original.x[keyPath:key],y:original.y[keyPath:key],z:original.z[keyPath:key])
+      func vector(_ key:(SurfaceIntervalJet) -> OutwardScalarInterval)->IntervalVector3DBounds {
+        .init(x:key(original.x),y:key(original.y),z:key(original.z))
       }
       for _ in 0..<24 { try consumeWork() }
-      let normal = vector(\.derivativeU).cross(vector(\.derivativeV))
+      let normal = vector({ $0.derivativeU }).cross(vector({ $0.derivativeV }))
       let magnitude = OutwardScalarInterval(lower:normal.lengthLowerBound,upper:normal.lengthUpperBound)
       guard magnitude.lower > 0,let x = normal.x.divided(by:magnitude),let y = normal.y.divided(by:magnitude),
             let z = normal.z.divided(by:magnitude) else {
         throw KernelError(phase:.geometry,code:.singularSystem,tolerance:tolerance,
           message:"Original closed offset position has no whole nonzero source normal bound.")
       }
-      return vector(\.value)+IntervalVector3DBounds(x:x,y:y,z:z) * .exact(offset.distance)
+      return vector({ $0.value })+IntervalVector3DBounds(x:x,y:y,z:z) * .exact(offset.distance)
     default: break
     }
     let jet = try intervalJet(overClosedBox: parameters, tolerance: tolerance,

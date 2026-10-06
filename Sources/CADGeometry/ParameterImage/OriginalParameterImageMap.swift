@@ -14,7 +14,7 @@ enum OriginalParameterImageMap {
         mutating func visitExactCell(depth: Int) throws { try consume() }
         mutating func consumeExactWork(_ count: Int) throws {
             guard count >= 0 else { throw GeometryConversionError.invalidInput("Original chart work count is negative.") }
-            for _ in 0..<count { try Task.checkCancellation(); try consume() }
+            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try consume() }
         }
         mutating func retainExactStorage(_ count: Int) throws {
             // Original word allocation is admitted before allocation by the same
@@ -202,7 +202,7 @@ enum OriginalParameterImageMap {
         }
         if case .closed(let lower, let upper) = sourceDomain {
             for endpoint in [value.lower, value.upper] {
-                try Task.checkCancellation(); try consumeWork()
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                 let low = try mappedComparison(endpoint, native: lower, gain: gain,
                     offset: offset, consumeWork: consumeWork)
                 let high = try mappedComparison(endpoint, native: upper, gain: gain,

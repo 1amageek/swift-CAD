@@ -130,7 +130,7 @@ public struct ExactAlgebraicRealRoot: Sendable {
         }
         if expression.isZero { return .zero }
         if expression.uDegree == 1 {
-            try Task.checkCancellation(); try usage.visitExactCell(depth: isolation.isolationDepth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: isolation.isolationDepth)
             let constant = try expression.evaluated(atU: .zero, v: .zero, usage: &usage)
             let leading = try expression.evaluated(atU: .one, v: .zero, usage: &usage)
                 .subtracting(constant, usage: &usage)
@@ -161,7 +161,7 @@ public struct ExactAlgebraicRealRoot: Sendable {
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while true {
             let station = retained.isolation
-            try Task.checkCancellation(); try usage.visitExactCell(depth: station.isolationDepth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: station.isolationDepth)
             let interval = try OriginalRationalPolynomialRange(original: expression,
                 lower: station.lower, upper: station.upper, usage: &usage)
             if interval.lower.isPositive { return .positive }

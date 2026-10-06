@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct ProceduralSurfaceParameterProjector: Sendable {
   private let invocation:CurveSurfaceQueryInvocation?
@@ -29,13 +39,13 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       consumeWork:{ try invocation.consume(depth:depth) })
   }
   private func representative(_ jet:SurfaceIntervalVectorJet)->SurfaceParameterDerivatives {
-    func vector(_ key:KeyPath<SurfaceIntervalJet,OutwardScalarInterval>)->Vector3D {
-      .init(x:jet.x[keyPath:key].midpoint,y:jet.y[keyPath:key].midpoint,z:jet.z[keyPath:key].midpoint)
+    func vector(_ key:(SurfaceIntervalJet) -> OutwardScalarInterval)->Vector3D {
+      .init(x:key(jet.x).midpoint,y:key(jet.y).midpoint,z:key(jet.z).midpoint)
     }
-    let p = vector(\.value)
-    return .init(position:.init(x:p.x,y:p.y,z:p.z),tangentU:vector(\.derivativeU),tangentV:vector(\.derivativeV),
-      secondDerivativeUU:vector(\.secondDerivativeUU),secondDerivativeUV:vector(\.secondDerivativeUV),
-      secondDerivativeVV:vector(\.secondDerivativeVV))
+    let p = vector({ $0.value })
+    return .init(position:.init(x:p.x,y:p.y,z:p.z),tangentU:vector({ $0.derivativeU }),tangentV:vector({ $0.derivativeV }),
+      secondDerivativeUU:vector({ $0.secondDerivativeUU }),secondDerivativeUV:vector({ $0.secondDerivativeUV }),
+      secondDerivativeVV:vector({ $0.secondDerivativeVV }))
   }
   private func realResidual(_ jet:SurfaceIntervalVectorJet,to point:Point3D)->Double {
     IntervalVector3DBounds(x:jet.x.value - .exact(point.x),y:jet.y.value - .exact(point.y),
@@ -648,7 +658,7 @@ struct ProceduralSurfaceParameterProjector: Sendable {
       }
     }
     guard let selected = candidates.min(by: witnessOrder) else {
-      let residual = candidates.map(\.residual).min() ?? planar.length
+      let residual = candidates.map({ $0.residual }).min() ?? planar.length
       return .outsideTolerance(residual: residual)
     }
     guard candidates.count == 1 else {

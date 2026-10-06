@@ -261,7 +261,7 @@ public struct OriginalPlaneDerivativeCurve3D: Hashable, Sendable {
             var values: [OutwardScalarInterval] = []; values.reserveCapacity(count.partialValue)
             var factorial = OutwardScalarInterval.exact(1)
             for k in 0...order {
-                try Task.checkCancellation(); try consumeWork()
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                 if k > 0 { factorial = factorial * .exact(Double(k)) }
                 values.append(try value.coefficient(k, 0) * factorial)
             }

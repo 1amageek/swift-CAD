@@ -102,7 +102,7 @@ public struct OriginalBSplineCurve2DContinuation: Hashable, Sendable {
     }
 
     func intervalJet(over fractions: ScalarInterval, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() })
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() })
         throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
         let source = try OriginalBSplineCurve2DContinuationSource(curve: original, tolerance: tolerance,
             consumeWork: consumeWork)
@@ -110,7 +110,7 @@ public struct OriginalBSplineCurve2DContinuation: Hashable, Sendable {
     }
 
     func intervalJet(over fractions: ScalarInterval, source: OriginalBSplineCurve2DContinuationSource,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try Task.checkCancellation() })
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() })
         throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
         try GeometryStructuralComparisonWork.charge(parameterCurve: .bSpline(original), using: { count in
             for _ in 0..<count { try consumeWork() }
@@ -121,7 +121,7 @@ public struct OriginalBSplineCurve2DContinuation: Hashable, Sendable {
         guard source.curve == original else {
             throw GeometryConversionError.invalidInput("A prepared continuation belongs to another original spline.")
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard tolerance == certificationTolerance, fractions.lower.isFinite, fractions.upper.isFinite,
             fractions.lower >= 0, fractions.upper <= 1 else {
             throw GeometryConversionError.invalidInput("Original continuation fractions lie outside their retained owner or tolerance.")

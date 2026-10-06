@@ -65,7 +65,7 @@ struct ExactAlgebraicParameterPair: Sendable {
         var pair = self
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while true {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let value = try ExactAlgebraicFiberPolynomial(source: expression,
                 at: pair.projectionRoot, maximumDepth: maximumDepth, usage: &usage)
             if value.isZero { return .zero }

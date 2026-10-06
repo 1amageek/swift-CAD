@@ -10,7 +10,7 @@ package struct OriginalSurfaceHigherJetProvider {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "Original higher surface jets need order four or higher and caller span admission.")
         }
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         if case .procedural = source, remainingSourceDepth == 0 {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                 message: "Original higher surface source exhausted caller depth.")

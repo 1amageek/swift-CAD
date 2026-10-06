@@ -9,7 +9,7 @@ package struct OriginalSingularRationalCoordinateRoot: Sendable {
 
     package init<B: RationalAlgebraAdmitting>(original: OriginalSingularFieldElement,
         maximumDepth: Int, maximumAlgebraicDepth: Int, usage: inout B) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard maximumDepth >= original.context.depth, (0...32).contains(maximumAlgebraicDepth),
             original.context.coefficientDepth <= maximumAlgebraicDepth else {
             throw rationalAlgebraFailure("Original scalar transport exceeds the caller's independent depth domains.")
@@ -30,7 +30,7 @@ package struct OriginalSingularRationalCoordinateRoot: Sendable {
     /// Binds the retained source enclosure without restarting its causal depth.
     package init<B: RationalAlgebraAdmitting>(isolation: inout OriginalSingularFieldValueIsolation,
         maximumDepth: Int, maximumAlgebraicDepth: Int, usage: inout B) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let original = isolation.original
         guard maximumDepth >= isolation.sourceDepth, isolation.sourceDepth >= original.context.depth,
             (0...32).contains(maximumAlgebraicDepth),
@@ -95,7 +95,7 @@ package struct OriginalSingularRationalCoordinateRoot: Sendable {
                     isolation: bounds, usage: &admission))
                 sourceIsolation = isolation
                 try RationalAlgebraStorage.retain(1, of: Self.self, usage: &admission)
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 return
             }
             isolation = try isolation.refined(maximumWidth: width, maximumDepth: maximumDepth, usage: &admission)
@@ -111,10 +111,10 @@ package struct OriginalSingularRationalCoordinateRoot: Sendable {
         let inheritedDepth: Int
         var reachedDepth: Int
         var mapsOriginalDepth = true
-        mutating func consumeExactWork(_ count: Int) throws { try Task.checkCancellation(); try original.consumeExactWork(count) }
-        mutating func retainExactStorage(_ count: Int) throws { try Task.checkCancellation(); try original.retainExactStorage(count) }
+        mutating func consumeExactWork(_ count: Int) throws { try CurrentTaskCancellationChecker().checkCancellation(); try original.consumeExactWork(count) }
+        mutating func retainExactStorage(_ count: Int) throws { try CurrentTaskCancellationChecker().checkCancellation(); try original.retainExactStorage(count) }
         mutating func visitExactCell(depth: Int) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let mapped = mapsOriginalDepth
                 ? try rationalAlgebraCount(inheritedDepth, max(0, depth - originalDepth)) : depth
             guard depth >= 0, mapped <= maximumDepth else { throw rationalAlgebraFailure("Original scalar transport exhausted geometric root depth.") }
@@ -122,7 +122,7 @@ package struct OriginalSingularRationalCoordinateRoot: Sendable {
             try original.visitExactCell(depth: mapped)
         }
         mutating func visitCoefficientCell(depth: Int) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard depth >= 0, depth <= maximumAlgebraicDepth else { throw rationalAlgebraFailure("Original scalar transport exhausted coefficient root depth.") }
             try original.visitCoefficientCell(depth: depth)
         }

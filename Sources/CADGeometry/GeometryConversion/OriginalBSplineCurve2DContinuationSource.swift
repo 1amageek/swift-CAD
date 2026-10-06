@@ -8,13 +8,13 @@ public struct OriginalBSplineCurve2DContinuationSource: GeometryCurveConversionS
 
     public init(curve: BSplineCurve2D, tolerance: ModelingTolerance,
         consumeWork: () throws -> Void = {}) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try curve.validate(tolerance: tolerance, consumeWork: consumeWork)
         self.curve = curve
         preparationTolerance = tolerance
         let lifted = BSplineCurve3D(degree: curve.degree, knots: curve.knots,
             controlPoints: try curve.controlPoints.map { point in
-                try Task.checkCancellation(); try consumeWork()
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                 return Point3D(x: point.x, y: point.y, z: 0)
             },
             weights: curve.weights)
@@ -26,7 +26,7 @@ public struct OriginalBSplineCurve2DContinuationSource: GeometryCurveConversionS
     }
 
     public func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard tolerance == preparationTolerance, parameters.width.isFinite, parameters.width > 0 else {
             throw GeometryConversionError.invalidInput("Original 2D continuation requires its exact tolerance and a finite positive requested interval.")
         }
@@ -49,13 +49,13 @@ public struct OriginalBSplineCurve2DContinuationSource: GeometryCurveConversionS
         tolerance: ModelingTolerance) throws -> CurveDifferentialEnclosure {
         try validate(over: parameters, tolerance: tolerance)
         let jet = try originalJet(over: parameters, tolerance: tolerance)
-        func coordinate(_ key: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>) throws -> CoordinateEnclosure3D {
-            let a = jet.x[keyPath: key], b = jet.y[keyPath: key]
+        func coordinate(_ key: (SurfaceIntervalJet) -> OutwardScalarInterval) throws -> CoordinateEnclosure3D {
+            let a = key(jet.x), b = key(jet.y)
             return try CoordinateEnclosure3D(x: ScalarInterval(lower: a.lower, upper: a.upper),
                 y: ScalarInterval(lower: b.lower, upper: b.upper), z: ScalarInterval(lower: 0, upper: 0))
         }
-        return try CurveDifferentialEnclosure(position: coordinate(\.value),
-            firstDerivative: coordinate(\.derivativeU), secondDerivative: coordinate(\.secondDerivativeUU))
+        return try CurveDifferentialEnclosure(position: coordinate({ $0.value }),
+            firstDerivative: coordinate({ $0.derivativeU }), secondDerivative: coordinate({ $0.secondDerivativeUU }))
     }
 
     package func derivatives(over parameters: ScalarInterval, tolerance: ModelingTolerance,
@@ -84,7 +84,7 @@ public struct OriginalBSplineCurve2DContinuationSource: GeometryCurveConversionS
                 throw GeometryConversionError.resourceLimitExceeded("Original Bernstein continuation exhausted the shared construction/certification work allowance.")
             }
             work -= count
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
         }
         var controls: [Point3D] = [], weights: [Double] = [], knots: [Double] = []
         for (index, span) in spans.enumerated() {
@@ -107,7 +107,7 @@ public struct OriginalBSplineCurve2DContinuationSource: GeometryCurveConversionS
                 var homogeneous: [Double] = []
                 for coordinate in 0..<4 {
                     try charge(count)
-                    var level = span.coefficients[coordinate].map(\.midpoint)
+                    var level = span.coefficients[coordinate].map({ $0.midpoint })
                     for depth in 0..<curve.degree {
                         let parameter = depth < curve.degree - coefficient ? a : b
                         try charge((level.count - 1) * 4)
@@ -119,7 +119,7 @@ public struct OriginalBSplineCurve2DContinuationSource: GeometryCurveConversionS
                     homogeneous.append(level[0])
                 }
                 let weight = homogeneous[3]
-                guard homogeneous.allSatisfy(\.isFinite), weight > 0 else {
+                guard homogeneous.allSatisfy({ $0.isFinite }), weight > 0 else {
                     throw GeometryConversionError.toleranceRejected
                 }
                 let point = Point3D(x: homogeneous[0] / weight, y: homogeneous[1] / weight, z: 0)
@@ -150,13 +150,13 @@ public struct OriginalBSplineCurve2DContinuationSource: GeometryCurveConversionS
 
     func originalJet(over parameters: ScalarInterval,
         tolerance: ModelingTolerance, consumeWork: () throws -> Void = {}) throws -> SurfaceIntervalVectorJet {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard tolerance == preparationTolerance, parameters.lower.isFinite, parameters.upper.isFinite else {
             throw GeometryConversionError.invalidInput("An original endpoint continuation must retain its exact source tolerance and finite parameters.")
         }
         var result: SurfaceIntervalVectorJet?
         for (index, span) in spans.enumerated() {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let lower = index == 0 ? parameters.lower : max(parameters.lower, span.lower)
             let upper = index == spans.count - 1 ? parameters.upper : min(parameters.upper, span.upper)
             guard lower <= upper else { continue }
@@ -167,7 +167,7 @@ public struct OriginalBSplineCurve2DContinuationSource: GeometryCurveConversionS
         guard let result else {
             throw GeometryConversionError.invalidInput("Original endpoint continuation lost its complete native-span cover.")
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 }

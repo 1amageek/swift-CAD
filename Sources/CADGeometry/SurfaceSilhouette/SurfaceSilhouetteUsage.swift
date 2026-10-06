@@ -36,7 +36,7 @@ public struct SurfaceSilhouetteUsage: Sendable {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                     message: "Original silhouette tracking owner exceeds the caller storage or work allowance.")
             }
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try admission?.consumeWork(words)
             try admission?.consumeStorage(bytes)
             owner = SurfaceSilhouetteSharedAccounting(maximumWork: maximumWork, maximumCells: maximumCells,

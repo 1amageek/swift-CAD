@@ -67,6 +67,10 @@ let package = Package(
       targets: ["A2DocumentTransactionSmoke"]
     ),
     .executable(
+      name: "CADIntersectionPortabilitySmoke",
+      targets: ["CADIntersectionPortabilitySmoke"]
+    ),
+    .executable(
       name: "CADCorePortabilitySmoke",
       targets: ["CADCorePortabilitySmoke"]
     ),
@@ -95,6 +99,14 @@ let package = Package(
     .target(
       name: "CADGeometry",
       dependencies: ["CADCore"]
+    ),
+    .executableTarget(
+      name: "CADIntersectionPortabilitySmoke",
+      dependencies: ["CADCore", "CADGeometry"],
+      linkerSettings: [
+        .unsafeFlags(["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],
+          .when(platforms: [.custom("wasi")]))
+      ]
     ),
     .target(
       name: "CADCapabilities",

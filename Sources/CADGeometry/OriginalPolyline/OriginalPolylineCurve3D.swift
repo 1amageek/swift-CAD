@@ -52,7 +52,7 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
         let algebraDepth: Int
         mutating func consumeExactWork(_ count: Int) throws {
             guard count >= 0 else { throw GeometryConversionError.invalidInput("Original polyline work is negative.") }
-            for _ in 0..<count { try Task.checkCancellation(); try work() }
+            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try work() }
         }
         mutating func retainExactStorage(_ count: Int) throws {
             let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
@@ -281,7 +281,7 @@ public struct OriginalPolylineCurve3D: Hashable, Sendable {
         let position = try positionBounds(over: ScalarInterval(lower: parameter, upper: parameter),
             tolerance: tolerance, maximumSpanCount: maximumSpanCount,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: { try Task.checkCancellation() })
+            consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
         let candidate = Point3D(x: position.x.midpoint, y: position.y.midpoint, z: position.z.midpoint)
         guard IntervalVector3DBounds(x: position.x - .exact(candidate.x),
             y: position.y - .exact(candidate.y), z: position.z - .exact(candidate.z))

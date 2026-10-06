@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct CertifiedParallelTorusCylinderIntersectionCurve: Hashable, Sendable {
     public enum ComponentKind: String, Hashable, Sendable {
@@ -1548,7 +1558,7 @@ public struct CertifiedParallelTorusCylinderIntersectionCurve: Hashable, Sendabl
             }
             radicandDerivatives[order] = value
         }
-        guard radicandDerivatives.dropFirst().allSatisfy(\.isFinite) else {
+        guard radicandDerivatives.dropFirst().allSatisfy({ $0.isFinite }) else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Parallel torus-cylinder radicand derivative bounds exceeded finite arithmetic."

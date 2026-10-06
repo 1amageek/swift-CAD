@@ -12,7 +12,7 @@ public struct SurfaceSilhouetteAdmission: Sendable {
                 consumeCell: (@Sendable () throws -> Void)? = nil) throws {
         let bytes = try rationalAlgebraCount(2, MemoryLayout<UnsafeRawPointer>.stride, multiply: true)
         let words = try rationalAlgebraCount(bytes, MemoryLayout<UInt32>.stride - 1) / MemoryLayout<UInt32>.stride
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork(words)
         try consumeStorage(bytes)
         identity = SurfaceSilhouetteAdmissionIdentity()
