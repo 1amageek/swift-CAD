@@ -67,8 +67,8 @@ package struct OriginalFiniteIntersectionFiber: Sendable {
                 try intersectionAlgebraStep(&usage)
                 var common: OriginalSingularFieldPolynomial?
                 for polynomial in ideal.reducedBasis {
-                    guard let specialized = try specialization(polynomial, at: coordinate,
-                        prefix: prefix, maximumDepth: maximumDepth, usage: &usage),
+                    guard let specialized = try OriginalIntersectionFieldEvaluation.specialized(polynomial, at: coordinate,
+                        context: prefix.context, coordinates: prefix.coordinates, maximumDepth: maximumDepth, usage: &usage),
                         !specialized.isZero else { continue }
                     if let retained = common {
                         common = try .gcd(retained, specialized, maximumDepth: maximumDepth, usage: &usage)
@@ -114,7 +114,8 @@ package struct OriginalFiniteIntersectionFiber: Sendable {
                 throw rationalAlgebraFailure("Original finite lifting published an incomplete parameter tuple.")
             }
             for equation in ideal.originalEquations {
-                let scalar = try evaluated(equation, at: point, maximumDepth: maximumDepth, usage: &usage)
+                let scalar = try OriginalIntersectionFieldEvaluation.evaluated(equation, context: point.context,
+                    coordinates: point.coordinates, maximumDepth: maximumDepth, usage: &usage)
                 guard case .zero = try scalar.sign(maximumDepth: maximumDepth, usage: &usage) else {
                     throw rationalAlgebraFailure("A lifted tuple does not satisfy every original intersection equation.")
                 }
@@ -122,74 +123,6 @@ package struct OriginalFiniteIntersectionFiber: Sendable {
         }
         try RationalAlgebraStorage.retain(domains.count, of: ScalarInterval?.self, usage: &usage)
         return Self(ideal: ideal, domains: domains, points: prefixes)
-    }
-
-    private static func specialization<B: RationalAlgebraAdmitting>(
-        _ original: ExactIntersectionPolynomial, at coordinate: Int, prefix: Point,
-        maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldPolynomial? {
-        let terms = try original.orderedTerms(usage: &usage)
-        var degree = 0
-        for term in terms {
-            try intersectionAlgebraStep(&usage)
-            for later in (coordinate + 1)..<original.variableCount {
-                if try term.key.exponent(at: later) != 0 { return nil }
-            }
-            degree = max(degree, try term.key.exponent(at: coordinate))
-        }
-        let count = try rationalAlgebraCount(degree, 1)
-        let zero = try OriginalSingularFieldElement.constant(.zero, in: prefix.context,
-            maximumDepth: maximumDepth, usage: &usage)
-        try RationalAlgebraStorage.retain(count, of: OriginalSingularFieldElement.self, usage: &usage)
-        var coefficients = Array(repeating: zero, count: count)
-        for term in terms {
-            var value = try OriginalSingularFieldElement.constant(term.value, in: prefix.context,
-                maximumDepth: maximumDepth, usage: &usage)
-            for preceding in 0..<coordinate {
-                value = try value.multiplied(by: power(prefix.coordinates[preceding],
-                    exponent: term.key.exponent(at: preceding), maximumDepth: maximumDepth, usage: &usage),
-                    maximumDepth: maximumDepth, usage: &usage)
-            }
-            let index = try term.key.exponent(at: coordinate)
-            coefficients[index] = try coefficients[index].adding(value,
-                maximumDepth: maximumDepth, usage: &usage)
-        }
-        return try OriginalSingularFieldPolynomial(context: prefix.context,
-            coefficients: coefficients, maximumDepth: maximumDepth, usage: &usage)
-    }
-
-    private static func evaluated<B: RationalAlgebraAdmitting>(_ polynomial: ExactIntersectionPolynomial,
-        at point: Point, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
-        var result = try OriginalSingularFieldElement.constant(.zero, in: point.context,
-            maximumDepth: maximumDepth, usage: &usage)
-        for term in try polynomial.orderedTerms(usage: &usage) {
-            var value = try OriginalSingularFieldElement.constant(term.value, in: point.context,
-                maximumDepth: maximumDepth, usage: &usage)
-            for coordinate in point.coordinates.indices {
-                value = try value.multiplied(by: power(point.coordinates[coordinate],
-                    exponent: term.key.exponent(at: coordinate), maximumDepth: maximumDepth, usage: &usage),
-                    maximumDepth: maximumDepth, usage: &usage)
-            }
-            result = try result.adding(value, maximumDepth: maximumDepth, usage: &usage)
-        }
-        return result
-    }
-
-    private static func power<B: RationalAlgebraAdmitting>(_ value: OriginalSingularFieldElement,
-        exponent: Int, maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
-        var result = try OriginalSingularFieldElement.constant(.one, in: value.context,
-            maximumDepth: maximumDepth, usage: &usage)
-        var exponent = exponent, factor = value
-        while exponent > 0 {
-            try intersectionAlgebraStep(&usage)
-            if exponent & 1 != 0 {
-                result = try result.multiplied(by: factor, maximumDepth: maximumDepth, usage: &usage)
-            }
-            exponent /= 2
-            if exponent > 0 {
-                factor = try factor.multiplied(by: factor, maximumDepth: maximumDepth, usage: &usage)
-            }
-        }
-        return result
     }
 
     private static func contains<B: RationalAlgebraAdmitting>(_ value: OriginalSingularFieldElement,

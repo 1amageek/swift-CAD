@@ -236,3 +236,73 @@ bivariate resultant, verify repeated-root principal coefficients, retain witness
 for degree drops and complete fiber nullification, and reject nonexact division,
 invalid axes/rings and independent ledger exhaustion. Projection preparation alone
 does not prove delineability, real cell adjacency or public SSI/CS completion.
+
+### Rational Real Cell Lifting
+
+`OriginalRationalIntersectionCells` owns a sign-invariant cylindrical partition
+of the full real parameter space for original rational equations and closed or
+unrestricted coordinate domains. It consumes only a tower issued by the full
+projection constructor. Domain endpoint polynomials are inserted before tower
+preparation, making exact domain selection a union of whole cells. It owns
+parameter-cell dimensions, not geometric image dimensions, curve joins or
+singular incidence. General nonrational producers remain a separate obligation.
+
+At axis k, every lower-level cell is connected and sign-invariant for the
+projection polynomials. Specialize level-k source polynomials at its retained
+exact sample and isolate all distinct real roots of each nonconstant source.
+A linear source with an exact rational parent-field quotient issues that root
+directly with a point isolation. Other sources use the complete Sturm issuer.
+Merge these complete source root sets by exact ordering and equality: disjoint
+isolations establish order; overlapping isolations establish equality only when
+the exact source GCD has a root in their intersection. The unique-root contracts
+limit that count to one. Distinct overlapping roots refine under inherited depth
+until separated. A duplicate retains the intersection isolation and both causal
+depths; it never merges on interval overlap alone. Known rational roots are not
+bisected and no aggregate product introduces avoidable degree/coefficient growth.
+Admission or arithmetic failure propagates without changing the allowance.
+Full projection fixes each source's degree, nullification, root multiplicities,
+root ordering and shared-root membership over the whole lower cell. Its ordered
+continuous root sections, together with open sectors between consecutive
+sections and the two unbounded sectors, cover the complete next coordinate.
+Identically zero specializations are permitted only as whole-fiber nullification
+under this projection certificate; no representative-only exclusion is used.
+
+Each stack retains its parent cell, source degrees, complete root isolation and
+ordered child-cell indices. Each child retains its stack, root ordinal (section)
+or bounding root ordinals (sector), exact sample in one ordered-field context,
+parameter dimension, inherited admission depth independent of sample-field depth,
+and signs of the retained level sources. Section samples
+retain original root witnesses; rational sector samples are chosen strictly
+between the two roots after exact rational isolation separation. Refinement
+uses the original caller's inherited depth and ledger, never a fixed search box.
+Unbounded sectors use rational witnesses strictly outside the complete root
+isolations; a rootless fiber uses zero as its witness. A linear section uses its
+exact parent-field quotient without discarding its retained root identity or
+resetting the partition's causal isolation depth. Sector depth includes both
+bounding root isolations; every child inherits at least its parent's depth.
+
+```text
+original equations + exact closed-domain endpoint polynomials
+ -> issued full projection tower
+ -> real line roots / sections / sectors
+ -> repeat over every connected lower cell
+ -> full real product-domain partition
+ -> exact original signs and whole-cell domain selection
+```
+
+Every child is admitted through the same parameter-cell capability even when
+its sample is rational. Local invocation scratch, field arithmetic, root work,
+stack/cell payloads and copied prefix arrays share one cumulative ledger.
+Cancellation forwarding restores the same consumed caller state on throw.
+Publication is atomic; a failed stack cannot publish an empty or partial result.
+An empty solution-cell list means all complete full-dimensional partition cells
+have been excluded by original equation/domain signs, not that tracing found no
+representative. No cell adjacency or source-family completeness is implied.
+
+Tests must distinguish a positive-complex-dimensional sum of squares with one
+real point, a complex locus with no real points, real curves, whole-space
+coincidence, complete nullified fibers, closed endpoint selection, unbounded
+sectors, repeated roots, nested irrational sections and independent failures.
+The finite-fiber and cell-lifting paths share ordered-field polynomial evaluation;
+that helper owns original coordinate substitution only and does not issue
+whole-cell proofs independently of the retained projection owner.

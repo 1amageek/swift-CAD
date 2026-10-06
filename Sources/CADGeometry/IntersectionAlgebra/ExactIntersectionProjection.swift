@@ -7,6 +7,10 @@ package struct ExactIntersectionProjection: Sendable {
     package let sources: [ExactIntersectionPolynomial]
     package let polynomials: [ExactIntersectionPolynomial]
 
+    private init(axis: Int, sources: [ExactIntersectionPolynomial], polynomials: [ExactIntersectionPolynomial]) {
+        self.axis = axis; self.sources = sources; self.polynomials = polynomials
+    }
+
     package static func prepare<B: RationalAlgebraAdmitting>(
         sources: [ExactIntersectionPolynomial], variableCount: Int, axis: Int,
         usage: inout B) throws -> Self {

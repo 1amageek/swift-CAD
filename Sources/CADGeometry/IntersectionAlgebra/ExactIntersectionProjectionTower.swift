@@ -6,6 +6,10 @@ package struct ExactIntersectionProjectionTower: Sendable {
     /// Descending axes: the original equations are retained by the first level.
     package let levels: [ExactIntersectionProjection]
 
+    private init(variableCount: Int, levels: [ExactIntersectionProjection]) {
+        self.variableCount = variableCount; self.levels = levels
+    }
+
     package static func prepare<B: RationalAlgebraAdmitting>(
         sources: [ExactIntersectionPolynomial], variableCount: Int,
         usage: inout B) throws -> Self {
