@@ -6,23 +6,55 @@ package struct OriginalRationalIntersectionStrata: Sendable {
         package let cellIndex: Int
         package let originalJacobianRank: Int
     }
+    package let equationIdeal: ExactIntersectionIdeal?
     package let jacobian: ExactIntersectionJacobian
     package let partition: OriginalRationalIntersectionCells
     package let strata: [Stratum]
 
-    private init(jacobian: ExactIntersectionJacobian, partition: OriginalRationalIntersectionCells,
+    private init(equationIdeal: ExactIntersectionIdeal? = nil, jacobian: ExactIntersectionJacobian, partition: OriginalRationalIntersectionCells,
         strata: [Stratum]) {
-        self.jacobian = jacobian; self.partition = partition; self.strata = strata
+        self.equationIdeal = equationIdeal; self.jacobian = jacobian; self.partition = partition; self.strata = strata
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
         variableCount: Int, domains: [ScalarInterval?], thomEncoding: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
+        try intersectionAlgebraStep(&usage)
+        try RationalAlgebraStorage.retain(domains.count, of: OriginalRationalParameterDomain.self, usage: &usage)
+        var exact: [OriginalRationalParameterDomain] = []; exact.reserveCapacity(domains.count)
+        for domain in domains { exact.append(try .init(domain, usage: &usage)) }
+        return try prepare(equations: equations, variableCount: variableCount, exactDomains: exact,
+            thomEncoding: thomEncoding, maximumDepth: maximumDepth, usage: &usage)
+    }
+
+    package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
+        variableCount: Int, exactDomains: [OriginalRationalParameterDomain], nonzeroPolynomials: [ExactIntersectionPolynomial] = [],
+        thomEncoding: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
+        return try prepareOriginal(equations: equations, ideal: nil, variableCount: variableCount,
+            exactDomains: exactDomains, nonzeroPolynomials: nonzeroPolynomials,
+            thomEncoding: thomEncoding, maximumDepth: maximumDepth, usage: &usage)
+    }
+
+    package static func prepare<B: RationalAlgebraAdmitting>(ideal: ExactIntersectionIdeal,
+        exactDomains: [OriginalRationalParameterDomain], nonzeroPolynomials: [ExactIntersectionPolynomial],
+        thomEncoding: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
+        try prepareOriginal(equations: ideal.originalEquations, ideal: ideal, variableCount: ideal.variableCount,
+            exactDomains: exactDomains, nonzeroPolynomials: nonzeroPolynomials,
+            thomEncoding: thomEncoding, maximumDepth: maximumDepth, usage: &usage)
+    }
+
+    private static func prepareOriginal<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
+        ideal: ExactIntersectionIdeal?, variableCount: Int, exactDomains: [OriginalRationalParameterDomain],
+        nonzeroPolynomials: [ExactIntersectionPolynomial], thomEncoding: Bool, maximumDepth: Int, usage: inout B) throws -> Self {
         let jacobian = try ExactIntersectionJacobian.prepare(equations: equations, variableCount: variableCount, usage: &usage)
         try RationalAlgebraStorage.retain(jacobian.minors.count, of: ExactIntersectionPolynomial.self, usage: &usage)
         var witnesses: [ExactIntersectionPolynomial] = []; witnesses.reserveCapacity(jacobian.minors.count)
-        for minor in jacobian.minors { try intersectionAlgebraStep(&usage); witnesses.append(minor.polynomial) }
-        let partition = try OriginalRationalIntersectionCells.prepare(equations: equations, variableCount: variableCount,
-            domains: domains, partitionPolynomials: witnesses, thomEncoding: thomEncoding, maximumDepth: maximumDepth, usage: &usage)
+        for minor in jacobian.minors {
+            try intersectionAlgebraStep(&usage)
+            witnesses.append(try ideal.map { try ExactIntersectionGroebnerBasis.reduced(minor.polynomial,
+                by: $0.reducedBasis, usage: &usage) } ?? minor.polynomial)
+        }
+        let partition = try OriginalRationalIntersectionCells.prepare(equations: ideal?.reducedBasis ?? equations, variableCount: variableCount,
+            exactDomains: exactDomains, partitionPolynomials: witnesses, nonzeroPolynomials: nonzeroPolynomials, thomEncoding: thomEncoding, maximumDepth: maximumDepth, usage: &usage)
         try RationalAlgebraStorage.retain(partition.solutionCells.count, of: Stratum.self, usage: &usage)
         var strata: [Stratum] = []; strata.reserveCapacity(partition.solutionCells.count)
         for index in partition.solutionCells {
@@ -38,6 +70,6 @@ package struct OriginalRationalIntersectionStrata: Sendable {
             }
             strata.append(Stratum(cellIndex: index, originalJacobianRank: rank))
         }
-        return Self(jacobian: jacobian, partition: partition, strata: strata)
+        return Self(equationIdeal: ideal, jacobian: jacobian, partition: partition, strata: strata)
     }
 }

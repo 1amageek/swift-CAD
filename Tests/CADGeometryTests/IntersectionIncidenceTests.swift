@@ -342,7 +342,8 @@ struct IntersectionIncidenceTests {
             domains: [try .init(lower: 0, upper: 1), try .init(lower: 0, upper: 1), nil, nil],
             thomEncoding: true, maximumDepth: 24, usage: &usage)
         let interior = try #require(partition.solutionCells.first { partition.cells[$0].dimension == 2 })
-        let incidence = try OriginalRationalIntersectionIncidence.prepare(partition: partition, maximumDepth: 24, usage: &usage)
+        let incidence = try OriginalRationalIntersectionIncidence.prepare(partition: partition,
+            allowAffineClosureProofs: false, maximumDepth: 24, usage: &usage)
         let closure = try #require(incidence.closures.first { $0.source.cellIndex == interior })
         let components = try incidence.connectedComponents(usage: &usage)
         #expect(components.components.count == 1)

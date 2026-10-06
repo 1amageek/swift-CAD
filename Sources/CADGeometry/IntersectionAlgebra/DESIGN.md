@@ -9,6 +9,18 @@ alone completes neither intersection requirement.
 
 ## Responsibilities and Boundaries
 
+This task composes one real-relation authority for all seven intersection/contact
+requirements. The rational native chart receipt is its first composing unit,
+not an all-family or public result completion claim. Required source laws remain
+those enumerated below; typed refusal cannot complete mandatory support.
+Parameter connectedness, original Jacobian rank and geometric image dimension
+remain separate facts. Whole relation selection preserves exact boundary
+inclusion and excludes denominator-zero cells without changing source equations.
+Projected consumers retain original screen equality and real fibers; self-contact
+consumers retain full source-product equality before subtracting only proved
+structural identities. Consumers own their geometry semantics, never a second
+copy of the decomposition engine.
+
 Owns the polynomial ring, ideal preparation and native homogeneous embedding.
 Original native producers retain their validated source/domain authority.
 No fitted, rounded or interval coefficient becomes an original source value.
@@ -613,3 +625,69 @@ disconnected sheets, repeated equations, exact close distinct roots, omitted
 selection points, and independent work/storage/cancellation failure. Each
 component member is present exactly once and every retained graph witness stays
 inside its component.
+
+### Exact Coordinate Domains and Native Chart Composition
+
+`OriginalRationalParameterDomain` owns a closed exact real-coordinate interval.
+Optional lower/upper rational bounds express negative/positive infinity without
+a finite search proxy. The issuer validates lower <= upper under the caller;
+a singleton remains a valid closed domain. ScalarInterval adaptation treats its
+stored Double bits exactly. Native translated curve knots remain original rational
+sums and are never rounded through ScalarInterval. Intersection chooses the exact
+maximum lower and minimum upper bound; nil is issued only after proving reversal.
+
+Real-cell lifting retains these exact domains. Every finite endpoint adds its
+original rational coordinate-minus-bound polynomial; final sign selection applies
+the appropriate non-strict lower/upper condition. One-sided bounds and null ends
+consume no invented source endpoint. The ScalarInterval convenience port delegates
+to this same exact-domain implementation, preserving default source/sign offsets.
+
+`OriginalRationalIntersectionDecomposition` composes a privately issued
+`OriginalRationalIntersectionSystem` with the exact intersection of its native
+chart product and requested domains. CS uses (t,u,v), SSI (u1,v1,u2,v2). It retains
+the original system and native/requested/effective domains. If one coordinate
+product is empty, an exact excluded-coordinate witness is sufficient for this
+chart-product receipt. Otherwise original equations, Jacobian minors and both
+nonzero denominator guards feed complete real cells, exact closure incidence and
+connected parameter components. All stages share the same ledger and root cap.
+
+The receipt guarantees only the selected product of the retained native charts;
+other native spans, periodic/native joins, image/fiber dimension and public point/
+curve/region publication remain composing obligations. Neither positive complex
+dimension nor original Jacobian rank establishes a geometric image. Failure or
+cancellation publishes no partial receipt, including an empty native product.
+No caller-built polynomial system can impersonate a retained native source.
+
+Verification prepares actual native B-spline homogeneous sources and checks
+transverse and repeated CS contacts, non-isoparametric native overlaps, multiple UV
+fibers, SSI crossing/coincidence/near-disjoint products, exact nonrepresentable
+source/query cuts, guard exclusions and caller limits. Closed point cuts, unbounded
+coordinate domains and disjoint intervals must follow the same algebraic path.
+
+### Native Ideal Reduction and Affine Closure
+
+The native chart composer retains a verified ideal of its original equations.
+Real solution partitioning may use that ideal's reduced basis: both generate the
+same ideal and hence the same real zero set. Original Jacobian minors may be
+reduced modulo that same basis; their values and rank are unchanged on every
+selected solution cell. Retain the original ideal and Jacobian, and label this
+as a solution-set proof, not ambient sign invariance of discarded source laws.
+Denominator guards remain original and unreduced. Raw equation-only strata keep
+their existing complete ambient partition contract.
+
+When every defining cell condition is affine, its closure equals its weak sign
+polyhedron. Necessity follows from continuity. For sufficiency, join any weak
+point p to an issued point s of the nonempty source cell: (1-delta)p+delta*s
+satisfies every original strict and zero affine condition for 0 < delta <= 1
+and tends to p. This proves whole-cell closure in every parameter dimension,
+including unbounded ends, without representative-distance matching. Retain this
+affine certificate and all compatible original full cells; compare their issued
+whole-cell signs, not approximate coordinates. An omitted ambient prefix or a
+nonaffine condition declines this sufficient theorem before solving.
+
+The common closure port can explicitly disable the affine theorem before work, so verification still executes the full nine-coordinate quantified region
+path while retaining the existing one-dimensional monic proof. Point, monic, affine and quantified receipts all retain their proof kind
+and the same original source-cell identity. No theorem is selected after generic
+exhaustion. Native coincidence uses this affine proof when its actual conditions
+qualify; curved native overlaps use the verified source ideal and monic branch
+proof when their actual reduced conditions qualify.

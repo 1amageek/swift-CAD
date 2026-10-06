@@ -5,6 +5,7 @@ package struct OriginalIntersectionCellClosure: Sendable {
     package enum Proof: Sendable {
         case point
         case monicBranch(OriginalMonicBranchClosure)
+        case affineCell(OriginalAffineCellClosure)
         case quantified(ExactIntersectionQuantifiedCells)
     }
     package let source: OriginalIntersectionCellCondition
@@ -23,7 +24,7 @@ package struct OriginalIntersectionCellClosure: Sendable {
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
-        cellIndex: Int, maximumDepth: Int, usage: inout B) throws -> Self {
+        cellIndex: Int, allowAffineProofs: Bool = true, maximumDepth: Int, usage: inout B) throws -> Self {
         let source = try OriginalIntersectionCellCondition(partition: partition, cellIndex: cellIndex, usage: &usage)
         let count = source.variableCount
         guard (1...4).contains(count) else {
@@ -41,6 +42,11 @@ package struct OriginalIntersectionCellClosure: Sendable {
             cellIndex: cellIndex, maximumDepth: maximumDepth, usage: &usage) {
             return Self(source: source, proof: .monicBranch(monic), freePartition: partition, includedCells: monic.includedCells,
                 originalPredicates: source.polynomials, predicateIdeal: nil)
+        }
+        if allowAffineProofs, let affine = try OriginalAffineCellClosure.prepare(partition: partition,
+            source: source, maximumDepth: maximumDepth, usage: &usage) {
+            return Self(source: source, proof: .affineCell(affine), freePartition: partition,
+                includedCells: affine.includedCells, originalPredicates: source.polynomials, predicateIdeal: nil)
         }
         var closedSupport: [ExactIntersectionPolynomial] = []
         for (index, polynomial) in source.polynomials.enumerated() {

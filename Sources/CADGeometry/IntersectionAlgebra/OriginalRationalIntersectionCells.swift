@@ -29,7 +29,7 @@ package struct OriginalRationalIntersectionCells: Sendable {
     }
     package let excludedPrefixes: [ExcludedPrefix]
     package let equations: [ExactIntersectionPolynomial]
-    package let domains: [ScalarInterval?]
+    package let domains: [OriginalRationalParameterDomain]
     package let nonzeroPolynomials: [ExactIntersectionPolynomial]
     package let nonzeroSignOffset: Int
     package let partitionPolynomials: [ExactIntersectionPolynomial]
@@ -39,7 +39,7 @@ package struct OriginalRationalIntersectionCells: Sendable {
     package let cells: [Cell]
     package let solutionCells: [Int]
 
-    private init(equations: [ExactIntersectionPolynomial], domains: [ScalarInterval?],
+    private init(equations: [ExactIntersectionPolynomial], domains: [OriginalRationalParameterDomain],
         nonzeroPolynomials: [ExactIntersectionPolynomial], nonzeroSignOffset: Int,
         partitionPolynomials: [ExactIntersectionPolynomial], partitionSignOffset: Int,
         tower: ExactIntersectionProjectionTower, stacks: [Stack], cells: [Cell], solutionCells: [Int], excludedPrefixes: [ExcludedPrefix]) {
@@ -66,15 +66,30 @@ package struct OriginalRationalIntersectionCells: Sendable {
 
     package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
         variableCount: Int, domains: [ScalarInterval?],
-        partitionPolynomials: [ExactIntersectionPolynomial] = [], nonzeroPolynomials: [ExactIntersectionPolynomial] = [], thomEncoding: Bool = false, pruneExcludedPrefixes: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
+        partitionPolynomials: [ExactIntersectionPolynomial] = [], nonzeroPolynomials: [ExactIntersectionPolynomial] = [],
+        thomEncoding: Bool = false, pruneExcludedPrefixes: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
+        try intersectionAlgebraStep(&usage)
+        try RationalAlgebraStorage.retain(domains.count, of: OriginalRationalParameterDomain.self, usage: &usage)
+        var exact: [OriginalRationalParameterDomain] = []; exact.reserveCapacity(domains.count)
+        for domain in domains { exact.append(try .init(domain, usage: &usage)) }
+        return try prepare(equations: equations, variableCount: variableCount, exactDomains: exact,
+            partitionPolynomials: partitionPolynomials, nonzeroPolynomials: nonzeroPolynomials,
+            thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &usage)
+    }
+
+    package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
+        variableCount: Int, exactDomains: [OriginalRationalParameterDomain],
+        partitionPolynomials: [ExactIntersectionPolynomial] = [], nonzeroPolynomials: [ExactIntersectionPolynomial] = [],
+        thomEncoding: Bool = false, pruneExcludedPrefixes: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
         var admission = Admission(base: usage)
         defer { usage = admission.base }
         return try prepareAdmitted(equations: equations, variableCount: variableCount,
-            domains: domains, partitionPolynomials: partitionPolynomials, nonzeroPolynomials: nonzeroPolynomials, thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &admission)
+            domains: exactDomains, partitionPolynomials: partitionPolynomials, nonzeroPolynomials: nonzeroPolynomials,
+            thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &admission)
     }
 
     private static func prepareAdmitted<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
-        variableCount: Int, domains: [ScalarInterval?], partitionPolynomials: [ExactIntersectionPolynomial], nonzeroPolynomials: [ExactIntersectionPolynomial], thomEncoding: Bool, pruneExcludedPrefixes: Bool,
+        variableCount: Int, domains: [OriginalRationalParameterDomain], partitionPolynomials: [ExactIntersectionPolynomial], nonzeroPolynomials: [ExactIntersectionPolynomial], thomEncoding: Bool, pruneExcludedPrefixes: Bool,
         maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount), domains.count == variableCount, maximumDepth >= 0 else {
@@ -87,14 +102,12 @@ package struct OriginalRationalIntersectionCells: Sendable {
         var sources = equations
         for (axis, domain) in domains.enumerated() {
             try intersectionAlgebraStep(&usage)
-            guard let domain else { continue }
-            guard domain.lower.isFinite, domain.upper.isFinite else {
-                throw rationalAlgebraFailure("Real cells require exact finite closed endpoints or an unrestricted coordinate.")
-            }
+            if domain.lower == nil && domain.upper == nil { continue }
             let coordinate = try ExactIntersectionPolynomial.coordinate(variableCount: variableCount, at: axis, usage: &usage)
             for endpoint in [domain.lower, domain.upper] {
+                guard let endpoint else { continue }
                 let boundary = try ExactIntersectionPolynomial.constant(variableCount: variableCount,
-                    value: .originalDouble(endpoint, usage: &usage), usage: &usage)
+                    value: endpoint, usage: &usage)
                 sources.append(try coordinate.subtracting(boundary, usage: &usage))
             }
         }
@@ -201,10 +214,16 @@ package struct OriginalRationalIntersectionCells: Sendable {
             }
             if include {
                 var boundary = equations.count
-                for domain in domains where domain != nil {
+                for domain in domains {
                     try intersectionAlgebraStep(&usage)
-                    if cell.signs[boundary] == .negative || cell.signs[boundary + 1] == .positive { include = false }
-                    boundary += 2
+                    if domain.lower != nil {
+                        if cell.signs[boundary] == .negative { include = false }
+                        boundary += 1
+                    }
+                    if domain.upper != nil {
+                        if cell.signs[boundary] == .positive { include = false }
+                        boundary += 1
+                    }
                 }
             }
             if include {
@@ -218,7 +237,7 @@ package struct OriginalRationalIntersectionCells: Sendable {
                 selected.append(index)
             }
         }
-        try RationalAlgebraStorage.retain(domains.count, of: ScalarInterval?.self, usage: &usage)
+        try RationalAlgebraStorage.retain(domains.count, of: OriginalRationalParameterDomain.self, usage: &usage)
         return Self(equations: equations, domains: domains,
             nonzeroPolynomials: nonzeroPolynomials, nonzeroSignOffset: nonzeroSignOffset,
             partitionPolynomials: partitionPolynomials, partitionSignOffset: partitionSignOffset,

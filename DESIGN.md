@@ -25,6 +25,23 @@ The complete user-authorized functional parity requirement set is tracked in
 authority for implementation contracts; PROGRESS.md alone owns task progress.
 No capability registration constitutes geometric completion.
 
+The seven original intersection/contact foundation requirements are: general
+surface/surface intersection, general curve/surface intersection, continuous
+free-surface overlap, complete boundary clipping, real polynomial component
+decomposition, exceptional projected contact components, and self-contact versus
+source-defined shared-boundary identity. Completion includes all related
+behavioral verification on the fixed Native and portable target combinations.
+The [Geometry design](Sources/CADGeometry/DESIGN.md) owns geometric composition;
+the [Intersection Algebra contract](Sources/CADGeometry/IntersectionAlgebra/DESIGN.md)
+owns real relation authority. PROGRESS.md owns execution state only.
+
+Backward compatibility is not an acceptance constraint for this foundation.
+Contradictory legacy tolerance-based identity or incomplete result contracts are
+replaced, with affected callers migrated to the original relation contract.
+Upper modeling or application repair is not included merely because old
+assumptions are invalidated. Compilation and changed public execution paths
+remain task-owned integration obligations.
+
 ## Responsibilities and Boundaries
 
 Swift-CAD owns:
