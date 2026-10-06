@@ -87,7 +87,7 @@ public struct CurveSurfaceOverlap: Sendable {
     /// Evaluates owned correspondence in the certified range, including its endpoints.
     /// Coordinates use the requested periodic representative or the canonical chart.
     public func correspondence(at curveParameter: Double) throws -> CurveSurfaceOverlapEndpoint {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         if originalPlane != nil {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Native parameter inversion for
             // algebraic clipped sectors requires exact endpoint transport. Use

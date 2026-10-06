@@ -161,11 +161,13 @@ struct NativeCurveSurfacePointTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func positiveDimensionFailsBothPublicAPIs() throws {
+    func positiveDimensionPublishesRichRelationAndRejectsDiscreteAPI() throws {
         let curve = BSplineCurve3D(degree: 1, knots: [0,0,1,1], controlPoints: [
             .init(x: 0,y: 0.5,z: 0), .init(x: 1,y: 0.5,z: 0)])
         let solver = DefaultCurveSurfaceIntersector()
-        #expect(throws: KernelError.self) { try solver.intersectionResult(curve: .bSpline(curve), surface: .bSpline(plane()), tolerance: tolerance) }
+        let rich = try solver.intersectionResult(curve: .bSpline(curve), surface: .bSpline(plane()), tolerance: tolerance)
+        #expect(rich.points.isEmpty && rich.originalNativeRelations?.components.count == 1)
+        #expect(rich.hasPositiveDimensionalSolutions)
         do {
             _ = try solver.intersections(curve: .bSpline(curve), surface: .bSpline(plane()), options: .init(), tolerance: tolerance)
             Issue.record("Positive-dimensional original coverage was published as discrete points.")
@@ -195,8 +197,8 @@ struct NativeCurveSurfacePointTests {
         let curve = BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
             .init(x: 0,y: 0,z: 0), .init(x: 0.5,y: 0.25,z: -0.25), .init(x: 1,y: 0.5,z: 0.5)])
         do {
-            _ = try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve), surface: .bSpline(surface), tolerance: tolerance)
-            Issue.record("Mixed-dimensional coverage published its isolated subset.")
+            _ = try DefaultCurveSurfaceIntersector().intersections(curve: .bSpline(curve), surface: .bSpline(surface), options: .init(), tolerance: tolerance)
+            Issue.record("Mixed-dimensional coverage published its isolated subset as discrete points.")
         } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
     }
 
@@ -399,7 +401,7 @@ struct NativeCurveSurfacePointTests {
                 if discrete { _ = try solver.intersections(curve: .bSpline(source), surface: .bSpline(plane()), options: .init(), tolerance: tolerance) }
                 else { _ = try solver.intersectionResult(curve: .bSpline(source), surface: .bSpline(plane()), tolerance: tolerance) }
                 Issue.record("A later positive-dimensional chart published an earlier isolated subset.")
-            } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
+            } catch let error as KernelError { #expect(error.code == (discrete ? .nonDiscreteIntersection : .unsupportedCapability)) }
         }
     }
 

@@ -1,10 +1,21 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Complete original native point publication, before any legacy dispatch.
 struct NativeCurveSurfacePointProducer {
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
-        tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil)
+        tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil,
+        retainingRelations: Bool = false)
         throws -> CurveSurfaceIntersectionResult? {
         guard case .bSpline(let source) = curve, case .bSpline(let target) = surface,
             !source.isPeriodic, !target.isUPeriodic, !target.isVPeriodic else { return nil }
@@ -69,22 +80,51 @@ struct NativeCurveSurfacePointProducer {
                     domain: .init(u: span.uBounds, v: span.vBounds), view: .init(x: 0, y: 0, z: 1),
                     tolerance: tolerance, usage: &usage)
                 let system = try OriginalRationalIntersectionSystem(curve: curveLaw, surface: surfaceLaw, usage: &usage)
-                let decomposition = try OriginalRationalIntersectionDecomposition.prepare(system: system,
-                    requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
-                    isolatedOnly: true, maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                let decomposition: OriginalRationalIntersectionDecomposition
+                do {
+                    decomposition = try OriginalRationalIntersectionDecomposition.prepare(system: system,
+                        requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
+                        isolatedOnly: !retainingRelations || productCount > 1,
+                        preferIsolatedCells: retainingRelations && productCount == 1,
+                        maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                } catch let error as KernelError where retainingRelations && productCount > 1
+                    && error.code == .nonDiscreteIntersection {
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Rich native multi-chart positive-dimensional
+                    // publication requires complete original cross-chart ownership and incidence.
+                    // The public native query reaches this branch; no relation may be published
+                    // before all chart joins and selected cells have exact whole-component proof.
+                    throw failure(.unsupportedCapability,
+                        "Positive-dimensional native relations currently require one complete original chart product.", tolerance)
+                }
                 let chartIndex = charts.count
                 charts.append(.init(curve: curveLaw, surface: surfaceLaw, decomposition: decomposition))
                 if case .parameterCells(let strata, _, _) = decomposition.coverage,
                     let chartDomains = decomposition.effectiveDomains {
                     let partition = strata.partition
+                    var hasPositiveDimension = false
                     for index in partition.solutionCells {
                         try usage.consumeExactWork(1)
-                        guard partition.cells[index].dimension == 0 else {
+                        if partition.cells[index].dimension > 0 { hasPositiveDimension = true }
+                    }
+                    if hasPositiveDimension {
+                        guard retainingRelations else {
                             throw failure(.nonDiscreteIntersection,
                                 "The original requested native product contains a positive-dimensional intersection.", tolerance)
                         }
                     }
-                    for index in partition.solutionCells {
+                    try RationalAlgebraStorage.retain(partition.solutionCells.count, of: Int.self, usage: &usage)
+                    var isolatedCells: [Int] = []; isolatedCells.reserveCapacity(partition.solutionCells.count)
+                    if case .parameterCells(_, _, let connected) = decomposition.coverage {
+                        for component in connected.components {
+                            var dimension = 0
+                            for index in component.cellIndexes {
+                                try usage.consumeExactWork(1)
+                                dimension = max(dimension, partition.cells[index].dimension)
+                            }
+                            if dimension == 0 { isolatedCells.append(contentsOf: component.cellIndexes) }
+                        }
+                    }
+                    for index in isolatedCells {
                         try RationalAlgebraStorage.retain(3, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
                         try RationalAlgebraStorage.retain(3, of: NativeCurveSurfaceScalarLocalization?.self, usage: &usage)
                         var parameters: [OriginalSingularFieldValueIsolation] = []; parameters.reserveCapacity(3)
@@ -140,9 +180,17 @@ struct NativeCurveSurfacePointProducer {
             nativeDomains: native, requestedDomains: requested, effectiveDomains: effective,
             charts: charts, pointCells: references, parameterIsolations: retainedParameters,
             parameterLocalizations: retainedLocalizations)
+        let relation: OriginalNativeCurveSurfaceRelation?
+        if retainingRelations, charts.count == 1 {
+            try RationalAlgebraStorage.retain(1, of: OriginalNativeCurveSurfaceRelation.self, usage: &usage)
+            relation = try .init(chart: charts[0], curve: source, surface: target, tolerance: tolerance,
+                maximumCandidateCount: options.maximumCandidateCount,
+                maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+        } else { relation = nil }
         try RationalAlgebraStorage.retain(1, of: CurveSurfaceIntersectionResult.self, usage: &usage)
-        try Task.checkCancellation()
-        return .init(points: points, overlaps: [], originalNativePoints: receipt)
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return .init(points: points, overlaps: [], originalNativePoints: receipt,
+            originalNativeRelations: relation)
     }
 
     /// Stable merge ordering compares original tuples, never their numerical image.

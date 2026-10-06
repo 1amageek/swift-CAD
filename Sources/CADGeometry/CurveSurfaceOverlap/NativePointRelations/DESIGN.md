@@ -7,9 +7,14 @@ curve and tensor B-spline surface products across all positive native knot spans
 
 ## Responsibilities and Boundaries
 Admit original sources, prepare exact homogeneous laws and consume complete
-three-coordinate decomposition. Publish only when every selected cell has
-zero dimension. Any positive-dimensional cell fails with nonDiscreteIntersection;
-no subset is returned. Other families retain existing dispatch. After admission,
+three-coordinate decomposition. Discrete publication requires every selected cell to have zero dimension.
+Rich publication preserves isolated connected components and delegates complete
+positive-dimensional coverage to [Native Relation](../NativeRelation/DESIGN.md).
+Any positive-dimensional cell fails discrete queries with nonDiscreteIntersection;
+no subset is returned. Rich preferIsolatedCells selects the existing isolated
+rank path only when every actual selected real cell has zero dimension;
+positive-dimensional real cells use full rank partition and incidence. Complex
+ideal dimension does not determine the dimension of the requested real result. Other families retain existing dispatch. After admission,
 all failures propagate. The existing exact prefix-exclusion port skips only
 nonzero-constant original equation prefixes and retains their exclusion witnesses.
 The native producer also selects the [guarded native equation normalization

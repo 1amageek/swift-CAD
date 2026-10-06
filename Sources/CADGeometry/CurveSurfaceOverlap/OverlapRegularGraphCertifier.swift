@@ -158,7 +158,7 @@ struct OverlapRegularGraphCertifier {
         }
         accepted.sort { $0.range.lower < $1.range.lower }
         excluded.sort { $0.lower < $1.lower }
-        let partition = (accepted.map(\.range) + excluded).sorted { $0.lower < $1.lower }
+        let partition = (accepted.map({ $0.range }) + excluded).sorted { $0.lower < $1.lower }
         guard partition.first?.lower == range.lower, partition.last?.upper == range.upper,
               zip(partition, partition.dropFirst()).allSatisfy({ $0.0.upper == $0.1.lower }) else {
             throw failure(.intersectionFailure, "Regular graph classification left a gap in the requested source interval.", tolerance)
@@ -240,10 +240,10 @@ struct OverlapRegularGraphCertifier {
                 retained.append(box)
             }
             guard let first = retained.first else { return false }
-            let hull = SurfaceParameterBox(u: try ScalarInterval(lower: retained.map(\.u.lower).min() ?? first.u.lower,
-                upper: retained.map(\.u.upper).max() ?? first.u.upper),
-                v: try ScalarInterval(lower: retained.map(\.v.lower).min() ?? first.v.lower,
-                    upper: retained.map(\.v.upper).max() ?? first.v.upper))
+            let hull = SurfaceParameterBox(u: try ScalarInterval(lower: retained.map({ $0.u.lower }).min() ?? first.u.lower,
+                upper: retained.map({ $0.u.upper }).max() ?? first.u.upper),
+                v: try ScalarInterval(lower: retained.map({ $0.v.lower }).min() ?? first.v.lower,
+                    upper: retained.map({ $0.v.upper }).max() ?? first.v.upper))
             if try stronglyMonotone(root: root, box: hull, pair: pair, budget: &budget) { return true }
             if depth == budget.options.maximumSubdivisionDepth { return false }
             boxes = []

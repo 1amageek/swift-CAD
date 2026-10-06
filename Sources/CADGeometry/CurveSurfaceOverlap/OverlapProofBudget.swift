@@ -15,7 +15,7 @@ struct OverlapProofBudget {
     }
 
     mutating func work(_ count: Int = 1) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard count >= 0, count <= remainingWork else { throw failure("Regular overlap exhausted its cumulative work budget.") }
         remainingWork -= count
     }

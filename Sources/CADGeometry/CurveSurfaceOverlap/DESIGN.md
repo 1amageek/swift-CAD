@@ -1319,3 +1319,11 @@ compaction uses exact sided contact identity. Approximate ranges, point proximit
 and numerical sorting do not authorize assembly. Component preparation shares
 the invocation; repeated whole-native preparation is a retained allocation and
 performance limitation until the prepared-owner constructor is available.
+
+## Complete Original Native Relations
+
+[Native Relation](NativeRelation/DESIGN.md) owns retained whole parameter cells,
+proved incidence, exact multivalued fibers and maximal t projections. Rich native
+results expose originalNativeRelations; legacy overlap arrays do not represent
+collapsed or multivalued relations. hasPositiveDimensionalSolutions includes both
+legacy overlaps and retained native positive-dimensional cells.

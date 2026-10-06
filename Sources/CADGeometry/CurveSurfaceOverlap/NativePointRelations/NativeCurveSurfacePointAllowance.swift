@@ -22,7 +22,7 @@ struct NativeCurveSurfacePointAllowance: RationalAlgebraAdmitting {
     }
 
     mutating func consumeExactWork(_ count: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard count >= 0 else { throw exhausted("Negative native exact work admission.") }
         if let invocation {
             for _ in 0..<count { try invocation.consumeFixedWork() }
@@ -33,7 +33,7 @@ struct NativeCurveSurfacePointAllowance: RationalAlgebraAdmitting {
     }
 
     mutating func retainExactStorage(_ count: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard count >= 0 else { throw exhausted("Negative native exact storage admission.") }
         let bytes = try rationalAlgebraCount(count, MemoryLayout<UInt32>.stride, multiply: true)
         if let invocation { try invocation.reserve(count: bytes, stride: 1) }
@@ -48,7 +48,7 @@ struct NativeCurveSurfacePointAllowance: RationalAlgebraAdmitting {
     }
 
     mutating func visitExactCell(depth: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth >= 0, depth <= maximumAlgebraicDepth, remainingCells > 0 else {
             throw exhausted("Native point exact cell or algebraic depth allowance exhausted.")
         }

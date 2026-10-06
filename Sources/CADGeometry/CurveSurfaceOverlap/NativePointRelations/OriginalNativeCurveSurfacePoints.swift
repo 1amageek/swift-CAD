@@ -1,6 +1,6 @@
 import CADCore
 
-/// Immutable complete original-source coverage and exact isolated tuple authority.
+/// Immutable original-source coverage and exact isolated-component tuple authority.
 public final class OriginalNativeCurveSurfacePoints: Sendable {
     public let curve: BSplineCurve3D
     public let surface: BSplineSurface3D

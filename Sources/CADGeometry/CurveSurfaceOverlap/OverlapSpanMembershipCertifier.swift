@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Bounds the implicit residual over a complete positive-weight rational span.
 struct OverlapSpanMembershipCertifier {
@@ -71,7 +81,7 @@ struct OverlapSpanMembershipCertifier {
         }
         var denominator = metricDenominator
         for _ in 0..<factor { denominator = denominator * .exact(minimumWeight) }
-        let magnitude = numerator.map(\.absoluteUpperBound).max() ?? .infinity
+        let magnitude = numerator.map({ $0.absoluteUpperBound }).max() ?? .infinity
         guard magnitude.isFinite, denominator.isFinite, denominator.lower > 0,
               let residual = OutwardScalarInterval.exact(magnitude).divided(by: denominator), residual.isFinite else {
             throw failure(.resourceLimitExceeded, "Overlap residual certification exceeded finite interval arithmetic.")
@@ -109,7 +119,7 @@ struct OverlapSpanMembershipCertifier {
         let left = try binomials(m), right = try binomials(n), output = try binomials(m + n)
         var result = Polynomial(repeating: .exact(0), count: m + n + 1)
         for k in result.indices {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             for i in max(0, k - n)...min(m, k) {
                 let j = k - i
                 guard let factor = (left[i] * right[j]).divided(by: output[k]) else {
