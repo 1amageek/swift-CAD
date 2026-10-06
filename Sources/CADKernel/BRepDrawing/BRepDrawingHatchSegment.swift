@@ -36,8 +36,11 @@ public struct BRepDrawingHatchSegment: Sendable {
         for section: BRepDrawingSection, maximumSourceDepth: Int, maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int,
         usage: inout B) throws -> Curve3D {
         try validateCurrent(evaluated, for: section)
-        try start.validate(); try end.validate()
         let tolerance = evaluated.configuration.tolerance
+        guard start.x.isFinite, start.y.isFinite, end.x.isFinite, end.y.isFinite else {
+            throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                message: "An original hatch chart requires finite endpoints.")
+        }
         guard start != end else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                 message: "A hatch curve requires distinct original chart endpoints.")

@@ -469,7 +469,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
         trim: trim,
         tolerance: tolerance
       ).map(image.transform.applying(to:))
-    case .affineImage, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport:
+    case .affineImage, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted:
       let interval: ScalarInterval
       if let trim {
         interval = try ScalarInterval(
@@ -651,7 +651,7 @@ struct BRepFaceBoundingBoxBuilder: FaceSpatialBoundsResolving, Sendable {
       )
     case .offsetSurfaceImage(let image):
       return rectangularBoundaryValues(image.source)
-    case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline, .originalBSplineContinuation, .originalImage,
+    case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline, .originalBSplineContinuation, .originalImage, .originalAffineWord,
       .certifiedImplicit, .certifiedAnalyticImplicit,
       .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:
       return nil

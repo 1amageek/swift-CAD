@@ -1,3 +1,4 @@
+import CADCore
 import CADTopology
 
 package protocol OriginalFiniteFaceContactClassifying: Sendable {

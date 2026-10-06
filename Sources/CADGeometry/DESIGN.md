@@ -1548,7 +1548,7 @@ full-turn phase as Canonical Sphere Chart. Its authored label interval remains
 unchanged; pure and mixed derivatives include the original phase scale. Other
 analytic angular and native rational sources retain their separate contracts.
 
-[Surface Surface Query Admission](SurfaceSurfaceQueryAdmission/DESIGN.md) owns the shared original surface-pair traversal admission. Public dispatch forwards its caller depth, source depth, span ceiling and callback into prepared source queries and retained graph construction.
+[Surface Surface Query Admission](SurfaceSurfaceQueryAdmission/DESIGN.md) owns the shared original surface-pair traversal admission. Public dispatch forwards its caller depth, source depth, span ceiling and callback into prepared source queries and retained graph construction. The bounded protocol witness retains optional storage selection and an independent algebra-depth capability; concrete and existential admitted calls forward the same owner without replacing nil storage with a no-op witness.
 
 Bounded arc-length parameterizations expose original differential enclosures from the same retained preparation. Every owning-span union is charged to the original callback; a union provides derivative bounds without granting continuity or smooth Taylor authority.
 

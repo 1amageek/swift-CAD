@@ -34,3 +34,5 @@ Endpoint/critical and continuous contact families require their actual complete 
 
 ## Verification and Change Impact
 Deferred behavior must include an endpoint contact followed by a distinct nearby polynomial crossing, tangency, coincidence, reversed trims, holes, original image/normalized chart curves, resource exhaustion and projection failure. Recheck Boolean UV arrangement, coincident overlap, Loft/fillet contact and Imprint callers. Source-only edits do not establish those behaviors.
+
+Structural stations for additional original source families remain endpoint proposals for the existing whole-span/root paths. They do not supply complete enclosure authority. Exact-rational pcurve specialization returns nil for these source families so their retained source is never reinterpreted as an exact cached rational locus.

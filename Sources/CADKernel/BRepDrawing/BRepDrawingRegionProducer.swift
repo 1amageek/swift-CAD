@@ -239,7 +239,7 @@ public struct BRepDrawingRegionProducer: BRepDrawingRegionProducing {
         return result
     }
 
-    private func failure(_ code: KernelError.Code, _ message: String, _ tolerance: ModelingTolerance) -> KernelError {
+    private func failure(_ code: KernelErrorCode, _ message: String, _ tolerance: ModelingTolerance) -> KernelError {
         KernelError(phase: .topology, code: code, tolerance: tolerance, message: message)
     }
 }

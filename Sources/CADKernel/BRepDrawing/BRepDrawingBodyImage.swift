@@ -128,7 +128,7 @@ struct BRepDrawingBodyImage {
         return Result(model: image, consumedWork: usage.consumedWork, retainedEntities: usage.retainedEntities)
     }
 
-    private func failure(_ code: KernelError.Code, _ message: String,
+    private func failure(_ code: KernelErrorCode, _ message: String,
                          _ tolerance: ModelingTolerance) -> KernelError {
         KernelError(phase: .geometry, code: code, tolerance: tolerance, message: message)
     }

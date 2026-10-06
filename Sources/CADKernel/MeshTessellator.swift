@@ -278,7 +278,7 @@ public struct MeshTessellator: Tessellating {
                     let box = try prepared.positionBounds(over: ScalarInterval(lower: parameter,upper: parameter),
                         tolerance: tolerance,maximumSpanCount: 65_536,maximumSubdivisionDepth: 32,
                         remainingSourceDepth: 16,consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) })
-                    guard originalPositionGap(box,from: startPoint) <= options.linearTolerance else {
+                    guard try originalPositionGap(box,from: startPoint) <= options.linearTolerance else {
                         throw KernelError(phase: .geometry,code: .classificationFailure,tolerance: tolerance,
                             message: "Original collapsed edge cannot admit its shared physical vertex at requested mesh accuracy.")
                     }
@@ -503,7 +503,7 @@ public struct MeshTessellator: Tessellating {
                             }
                         }
                         let range = OutwardScalarInterval.exact(start)
-                            + (.exact(end)-.exact(start))*OutwardScalarInterval(lower: fractionBounds.lower,upper: fractionBounds.upper)
+                            + (.exact(end) - .exact(start))*OutwardScalarInterval(lower: fractionBounds.lower,upper: fractionBounds.upper)
                         let candidate = try pcurve.parameter(atNormalizedFraction: fraction,tolerance: tolerance)
                         var selected = candidate
                         let axisValues = axisU ? uValues : vValues
@@ -582,11 +582,15 @@ public struct MeshTessellator: Tessellating {
                 var grid = grids[index]
                 var uCuts: Set<Double> = [],vCuts: Set<Double> = []
                 func sourcePosition(_ parameter: SurfaceParameter) throws -> CoordinateEnclosure3D {
-                    try prepared.positionBounds(over: SurfaceParameterBox(
+                    let bounds = try prepared.positionBounds(over: SurfaceParameterBox(
                         u: ScalarInterval(lower: parameter.u,upper: parameter.u),
                         v: ScalarInterval(lower: parameter.v,upper: parameter.v)),tolerance: tolerance,
                         maximumSpanCount: 262_144,maximumSubdivisionDepth: 32,remainingSourceDepth: 16,
                         consumeWork: { try proofBudget.charge() }, consumeStorage: { try proofBudget.chargeStorageBytes($0) })
+                    return CoordinateEnclosure3D(
+                        x: try ScalarInterval(lower: bounds.x.lower, upper: bounds.x.upper),
+                        y: try ScalarInterval(lower: bounds.y.lower, upper: bounds.y.upper),
+                        z: try ScalarInterval(lower: bounds.z.lower, upper: bounds.z.upper))
                 }
                 func point(_ u: Int,_ v: Int) throws -> Point3D {
                     try proofBudget.charge()
@@ -3684,7 +3688,7 @@ public struct MeshTessellator: Tessellating {
                     let matched = key.constantU ? native.u.width == 0 && native.u.lower == key.nativeParameter
                         : native.v.width == 0 && native.v.lower == key.nativeParameter
                     guard matched else { continue }
-                    guard originalPositionGap(receipt.positionBounds,from: retained.point) <= (options.linearTolerance/16).nextDown else {
+                    guard try originalPositionGap(receipt.positionBounds,from: retained.point) <= (options.linearTolerance/16).nextDown else {
                         throw KernelError(phase: .geometry,code: .classificationFailure,tolerance: tolerance,
                             message: "Original collapsed boundary cannot admit its canonical shared vertex within the mesh station allocation.")
                     }
@@ -4482,7 +4486,7 @@ public struct MeshTessellator: Tessellating {
         proofBudget: TessellationProofBudget
     ) throws -> (u: (lower: Double, upper: Double), v: (lower: Double, upper: Double))? {
         if let native = try originalNativeUVSupport(surface, proofBudget: proofBudget),
-           native.surface.isUPeriodic || native.surface.isVPeriodic || (try requiresOriginalNativePanels(native.surface,proofBudget: proofBudget)) {
+           try (native.surface.isUPeriodic || native.surface.isVPeriodic || requiresOriginalNativePanels(native.surface,proofBudget: proofBudget)) {
             return try originalBSplineRectangleBounds(for: loop, on: native.surface,
                 pcurveSupport: surface, in: model, proofBudget: proofBudget)
         }

@@ -885,7 +885,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
           parameterCurve,
           tolerance: tolerance
         )
-        appendAuthoredParameterSamples(
+        try appendAuthoredParameterSamples(
           authoredSamples,
           to: &polygon,
           uSingularFlags: &uSingularFlags,
@@ -894,7 +894,7 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
           preservesAuthoredWinding: preservesAuthoredWinding(
             parameterCurve
           ),
-          tolerance: tolerance.distance
+          tolerance: tolerance
         )
         continue
       }
@@ -972,8 +972,8 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     singularVValues: [Double],
     on surface: Surface3D,
     preservesAuthoredWinding: Bool,
-    tolerance: Double
-  ) {
+    tolerance: ModelingTolerance
+  ) throws {
     guard let first = samples.first else { return }
     let authoredFirst = UV(u: first.u, v: first.v)
     let alignedFirst = unwrapped(
@@ -1009,12 +1009,12 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
       append(
         parameter,
         to: &polygon,
-        tolerance: tolerance
+        tolerance: tolerance.distance
       )
       if polygon.count > countBefore {
         uSingularFlags.append(
           singularVValues.contains {
-            abs(parameter.v - $0) <= tolerance
+            abs(parameter.v - $0) <= tolerance.distance
           })
       }
     }
@@ -1035,6 +1035,8 @@ public struct DefaultFacePointContainmentTester: FacePointContainmentTesting,
     case .offsetSurfaceImage(let image):
       return preservesAuthoredWinding(image.source)
     case .originalImage(let image):
+      return preservesAuthoredWinding(image.source.parameterCurve)
+    case .originalAffineWord(let image):
       return preservesAuthoredWinding(image.source.parameterCurve)
     }
   }

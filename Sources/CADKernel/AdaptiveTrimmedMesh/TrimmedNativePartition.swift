@@ -62,14 +62,13 @@ struct TrimmedNativePartition: Sendable {
             crossings[key] = index
             return index
         }
-        func nonzero(_ a: Int, _ b: Int, _ c: Int) -> Bool {
+        func nonzero(_ a: Int, _ b: Int, _ c: Int) throws -> Bool {
             let first = parameters[a], second = parameters[b], third = parameters[c]
-            let x = FloatingPointExpansion.subtract([second.u], [first.u])
-            let y = FloatingPointExpansion.subtract([second.v], [first.v])
-            let u = FloatingPointExpansion.subtract([third.u], [first.u])
-            let v = FloatingPointExpansion.subtract([third.v], [first.v])
-            return FloatingPointExpansion.sign(FloatingPointExpansion.subtract(
-                FloatingPointExpansion.product(x,v), FloatingPointExpansion.product(y,u))) != .zero
+            return try RobustPredicates.orientation2D(
+                Point2D(x: second.u, y: second.v), Point2D(x: third.u, y: third.v),
+                relativeTo: Point2D(x: first.u, y: first.v), determinantTolerance: 0,
+                consumeWork: { try budget.charge() },
+                consumeStorage: { try budget.chargeStorageBytes($0) }) != .zero
         }
         for cut in orderedCuts {
             try Task.checkCancellation()
@@ -95,7 +94,7 @@ struct TrimmedNativePartition: Sendable {
                     for index in clipped where unique.last != index { unique.append(index) }
                     if unique.count > 1, unique.first == unique.last { unique.removeLast() }
                     if unique.count >= 3 {
-                        for index in 1..<(unique.count-1) where nonzero(unique[0],unique[index],unique[index+1]) {
+                        for index in 1..<(unique.count-1) where try nonzero(unique[0],unique[index],unique[index+1]) {
                             guard next.count < 262_144 else {
                                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
                                     tolerance: tolerance, message: "Original native trim partition exceeded its existing triangle ceiling.")

@@ -36,7 +36,7 @@ struct BooleanGraphAdmission: Sendable {
         try step()
         let bytes = count.multipliedReportingOverflow(by: stride)
         guard count >= 0, stride >= 0, !bytes.overflow else {
-            throw KernelError(phase: .geometry, code: .resourceLimitExceeded,
+            throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Original graph retained-value byte accounting overflowed.")
         }
         try consumeStorage?(bytes.partialValue)

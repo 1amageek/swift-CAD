@@ -36,3 +36,5 @@ Missing sources, original source singularity, nonfinite enclosures, failed nativ
 
 ## Verification and Change Impact
 Deferred checks include source spikes between old sample stations, nested original images, closed periodic versus close open trims, partial occlusion narrower than prior sampling, coincident tools with holes, original source/target lineage and no scratch-sheet publication. E9 is incomplete until the visibility/normal source gaps close and behavioral checks run.
+
+The closest-face projection adapter converts the retained SurfaceParameterBox into closed scalar ranges using the same lower and upper endpoints. It does not sample, round or narrow the original authored finite trim extent.

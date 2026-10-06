@@ -292,7 +292,8 @@ public struct EdgeQueryEvaluator: Sendable {
              .parameterImage,
              .originalEndpointConnector,
              .originalConstructionChart,
-             .originalAngularTransport:
+             .originalAngularTransport,
+             .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted:
             candidate = try closestPointOnCurve(
                 point,
                 curve: resolved.curve,
@@ -497,6 +498,7 @@ public struct EdgeQueryEvaluator: Sendable {
              .originalEndpointConnector,
              .originalConstructionChart,
              .originalAngularTransport,
+             .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted,
              .parameterImage:
             throw missingNonlinearEdgeTrimError(edgeID: edge.id)
         case let .rigidImage(image):

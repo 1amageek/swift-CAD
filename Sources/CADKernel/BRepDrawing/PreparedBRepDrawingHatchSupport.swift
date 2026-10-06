@@ -45,9 +45,9 @@ struct PreparedBRepDrawingHatchSupport {
         try usage.consume(work: 1)
         try usage.retain(1, of: OriginalAffineWordSurface3D.self)
         let original = Plane3D(origin: .init(x: 0, y: y, z: 0), normal: .unitY, uDirection: .unitX)
-        return .originalAffineWord(try OriginalAffineWordSurface3D(source: .plane(original),
+        return .procedural(.originalAffineWord(try OriginalAffineWordSurface3D(source: .plane(original),
             operationWord: chartWord, tolerance: tolerance, remainingSourceDepth: maximumSourceDepth,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage))
+            maximumSubdivisionDepth: maximumSubdivisionDepth, maximumAlgebraicDepth: maximumAlgebraicDepth, usage: &usage)))
     }
 
     mutating func point(u: Double, v: Double) throws -> Point3D {

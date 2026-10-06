@@ -165,7 +165,7 @@ public struct DefaultOriginalPlanarContourContactPreparer: OriginalPlanarContour
         if values.count == values.capacity {
             let doubled = values.capacity.multipliedReportingOverflow(by: 2)
             guard !doubled.overflow else {
-                throw KernelError(phase: .classification, code: .resourceLimitExceeded,
+                throw KernelError(phase: .classification, code: .resourceLimitExceeded, tolerance: nil,
                     message: "Original contour retained-array growth overflowed.")
             }
             let capacity = max(1, doubled.partialValue)

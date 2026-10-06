@@ -39,3 +39,5 @@ including native B-spline walls. Its orientation follows the exact determinant
 sign of the original stored affine columns, rather than a rounded triple product.
 The construction and finite trim consumers therefore bind to the same original
 placed support law.
+
+The placed-wall compatibility entry has no selected cumulative admission in EvaluationContext. Its exact determinant visits use the existing cancellation checker; it introduces no allowance and makes no bounded-caller receipt claim.

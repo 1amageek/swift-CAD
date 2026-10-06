@@ -941,7 +941,8 @@ public struct BooleanPipeline: Sendable {
                 direction: image.transform.applying(to: source.direction)
             )
         case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection, .parameterImage:
+             .certifiedIntersection, .parameterImage, .originalConstructionChart, .originalEndpointConnector,
+             .originalAngularTransport, .originalAffineWord, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted:
             return nil
         }
     }

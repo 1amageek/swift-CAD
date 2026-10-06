@@ -39,3 +39,6 @@ Cancellation is checked at visits. Unresolved trim crossings fail at the supplie
 
 ## Verification and Change Impact
 Deferred behavioral evidence covers original support intersections outside finite trims, holes, narrow material crossings, full shared edges plus additional crossings, partial shared boundaries, analytic and implicit owning curves, independent zero spatial/algebra capabilities, cancellation and selected byte exhaustion. Recheck feature adapters after changes to graph completeness or finite-trim authority. No behavioral verification has run in this source phase.
+
+### Shared Edge Domain Authority
+Shared-topology exclusion obtains the edge interval from its authored directed trim when present. Otherwise it uses the retained original curve native domain, requiring a finite ordered domain that covers the complete returned component. An absent usable domain cannot authorize a shared edge. The caller never infers a unit interval from topology endpoints. Verification covers reversed trims, untrimmed Native curve domains and uncovered components.

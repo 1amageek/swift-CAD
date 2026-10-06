@@ -1067,7 +1067,7 @@ struct ExactTrimEdgeIntersector {
         try edge.curve.point(at: parameter, tolerance: tolerance)
       }
     case .line, .circle, .analytic, .implicit, .certifiedIntersection,
-      .rigidImage, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart:
+      .rigidImage, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted:
       return points
     }
     let scale = max(abs(lower), abs(upper), abs(upper - lower), 1.0)
@@ -1404,7 +1404,7 @@ struct ExactTrimEdgeIntersector {
       return nil
     }
     switch edge.curve {
-    case .implicit, .certifiedIntersection, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart:
+    case .implicit, .certifiedIntersection, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted:
       return nil
     case .line, .circle, .analytic, .bSpline, .surfaceLift,
       .rigidImage, .affineImage, .parameterImage:

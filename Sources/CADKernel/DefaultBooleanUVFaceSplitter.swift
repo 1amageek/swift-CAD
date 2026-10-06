@@ -219,7 +219,7 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
         if try contains(midpoint, faceID: pair.targetFaceID, surface: targetSurface,
             model: model, cache: &containmentCache, preparationCache: &containmentPreparationCache,
             tolerance: tolerance),
-           contains(midpoint, faceID: pair.toolFaceID, surface: toolSurface,
+           try contains(midpoint, faceID: pair.toolFaceID, surface: toolSurface,
             model: model, cache: &containmentCache, preparationCache: &containmentPreparationCache,
             tolerance: tolerance) {
           geometries.append(.transverseSegment(start: first, end: last))

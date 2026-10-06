@@ -315,8 +315,18 @@ package struct DefaultOriginalFiniteFaceContactClassifier: OriginalFiniteFaceCon
                 guard let edge = model.edges[use.edgeID], let edgeCurve = model.geometry.curves[edge.curveID] else {
                     throw TopologyError.missingReference("Original finite contact lost a source edge law.")
                 }
-                guard min(edge.startParameter, edge.endParameter) <= lower,
-                      max(edge.startParameter, edge.endParameter) >= upper else { continue }
+                let edgeLower: Double, edgeUpper: Double
+                if let trim = edge.trim {
+                    edgeLower = min(trim.startParameter, trim.endParameter)
+                    edgeUpper = max(trim.startParameter, trim.endParameter)
+                } else {
+                    switch edgeCurve.parameterDomain {
+                    case .closed(let a, let b): edgeLower = min(a, b); edgeUpper = max(a, b)
+                    case .periodic, .unbounded: continue
+                    }
+                }
+                guard edgeLower.isFinite, edgeUpper.isFinite,
+                      edgeLower <= lower, edgeUpper >= upper else { continue }
                 var shared = false
                 for secondLoopID in second.loops {
                     try invocation.visit(0)

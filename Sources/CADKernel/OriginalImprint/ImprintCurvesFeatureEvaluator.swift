@@ -1,3 +1,10 @@
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#endif
 import CADCore
 import CADGeometry
 import CADIR
@@ -326,10 +333,11 @@ struct ImprintCurvesFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluat
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
                 throw failure(.missingReference, featureID, context, "A target face is missing.")
             }
+            let bounds = try OriginalFaceParameterBounds.resolve(for: faceID,
+                surface: surface, model: model, tolerance: tolerance)
             projectors[faceID] = BRepFaceClosestPointProjector(
                 surface: surface,
-                extent: try OriginalFaceParameterBounds.resolve(for: faceID,
-                    surface: surface, model: model, tolerance: tolerance),
+                extent: (u: bounds.u.lower...bounds.u.upper, v: bounds.v.lower...bounds.v.upper),
                 tolerance: tolerance
             )
         }

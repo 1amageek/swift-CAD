@@ -647,6 +647,13 @@ struct RevolvedBooleanFacePatchBuilder {
             centerPoint = image.transform.applying(
                 to: try circleCenter(image.source)
             )
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Revolved Boolean cap extraction
+        // cannot identify an exact canonical circle from these retained original
+        // curve families. Their source-circle transport witness is required before
+        // this branch can produce a harmonic cap pcurve.
+        case .parameterImage, .originalConstructionChart, .originalEndpointConnector,
+             .originalAngularTransport, .originalAffineWord, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted:
+            throw topologyFailure("Revolved Boolean cap boundary has no exact circle extraction witness.")
         case .line,
              .analytic,
              .bSpline,
@@ -683,6 +690,13 @@ struct RevolvedBooleanFacePatchBuilder {
             return center
         case let .rigidImage(image):
             return image.transform.applying(to: try circleCenter(image.source))
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Revolved Boolean cap extraction
+        // cannot identify an exact canonical circle from these retained original
+        // curve families. Their source-circle transport witness is required before
+        // this branch can produce a harmonic cap pcurve.
+        case .parameterImage, .originalConstructionChart, .originalEndpointConnector,
+             .originalAngularTransport, .originalAffineWord, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted:
+            throw topologyFailure("Revolved Boolean cap boundary has no exact circle extraction witness.")
         case .line, .analytic, .bSpline, .implicit, .surfaceLift,
              .certifiedIntersection, .affineImage:
             throw topologyFailure("Revolved Boolean cap boundary is not an exact circle.")

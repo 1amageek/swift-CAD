@@ -1,3 +1,4 @@
+import CADTopology
 import CADCore
 import CADGeometry
 import CADIR

@@ -216,3 +216,8 @@ Original station-position discrepancy uses Topology's shared outward scaled
 coordinate-gap norm. Scaling prevents intermediate squared overflow/underflow
 without normalizing away the physical length error; the unchanged mesh linear
 allocation is checked after restoring the original magnitude.
+
+### Native Partition Orientation
+Native trim partitioning asks the existing exact RobustPredicates orientation contract with determinant tolerance zero. Work and exact coefficient bytes consume the same invocation TessellationProofBudget before triangle retention; a limit failure propagates atomically. It does not import or duplicate the Geometry-owned expansion engine. Checked interval-to-coordinate adapters retain both outward endpoints. Verification distinguishes exact nonzero tiny/overflow-prone determinants from zero and exercises independent work/storage refusal.
+
+Focused prerequisite contract tests: [KernelIntersectionPrerequisiteTests](../../../Tests/CADKernelTests/KernelIntersectionPrerequisiteTests.swift).

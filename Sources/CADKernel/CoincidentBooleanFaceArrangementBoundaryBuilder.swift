@@ -478,7 +478,7 @@ struct CoincidentBooleanFaceArrangementBoundaryBuilder {
                 Point2D(x: points[0].u, y: points[0].v),
                 Point2D(x: points[1].u, y: points[1].v)
             )
-        case .harmonic, .polyline, .bSpline, .originalBSplineContinuation, .originalImage, .certifiedImplicit,
+        case .harmonic, .polyline, .bSpline, .originalBSplineContinuation, .originalImage, .originalAffineWord, .certifiedImplicit,
              .certifiedAnalyticImplicit, .sphericalGreatCircle,
              .certifiedAnalyticPair, .projectedAnalytic, .rigidImage:
             return nil

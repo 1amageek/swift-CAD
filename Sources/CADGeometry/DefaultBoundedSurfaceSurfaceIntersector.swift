@@ -11,13 +11,29 @@ public struct DefaultBoundedSurfaceSurfaceIntersector: BoundedSurfaceSurfaceInte
         options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
         consumeWork: @escaping @Sendable () throws -> Void,
-        consumeStorage: @escaping @Sendable (Int) throws -> Void) throws -> [SurfaceSurfaceIntersection]? {
+        consumeStorage: (@Sendable (Int) throws -> Void)?) throws -> [SurfaceSurfaceIntersection]? {
+        try intersections(first: first, second: second, boundaryPoints: boundaryPoints,
+            options: options, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+            consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: nil)
+    }
+
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Bounded callers retain complete finite
+    // Native isolated and regular original-parametric producers. Unbounded
+    // analytic and remaining critical/coincident strata still need same-ledger
+    // original coverage before this entry can certify all surface families.
+    public func intersections(first: Surface3D, second: Surface3D, boundaryPoints: [Point3D],
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable () throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)?,
+        maximumAlgebraicDepth: Int?) throws -> [SurfaceSurfaceIntersection]? {
         try options.validate(tolerance: tolerance)
         for point in boundaryPoints { try consumeWork(); try point.validate() }
         return try DefaultSurfaceSurfaceIntersector().intersections(first: first, second: second,
             options: options, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
-            consumeWork: consumeWork, consumeStorage: consumeStorage)
+            consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
     }
 
     public func intersections(

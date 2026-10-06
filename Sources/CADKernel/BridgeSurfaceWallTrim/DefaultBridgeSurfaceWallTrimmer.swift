@@ -198,7 +198,9 @@ public struct DefaultBridgeSurfaceWallTrimmer: BridgeSurfaceWallTrimming {
                         endVertexParentSubshapeIDs: edge.endVertexParentSubshapeIDs)
                 })
             }, parentSubshapeIDs: [parentID])
-        let determinantSign = try transform.originalDeterminantSign()
+        let determinantSign = try transform.originalDeterminantSign(consumeWork: {
+            try CurrentTaskCancellationChecker().checkCancellation()
+        })
         let orientation = determinantSign == .negative
             ? (source.orientation == .forward ? Orientation.reversed : .forward) : source.orientation
         let oriented = try BRepSewingPatchOrientationAdapter().reorient(image, to: orientation, tolerance: tolerance)

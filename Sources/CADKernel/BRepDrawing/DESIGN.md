@@ -467,3 +467,6 @@ The same live silhouette owner pays field sign queries and retained contact
 capacity before allocation. This sign concerns a screen-incidence event; it is
 never a visible/hidden receipt or a replacement for complete foreground LOS.
 Whole-edge fibers remain distinct from isolated events in the upper carrier.
+
+### Compile-Compatible Original Adapters
+Chart contact projection uses OutwardScalarInterval.exact for each authored binary64 frame coefficient and retains both outward endpoints. A hatch row remains a procedural original affine-word support; finite Point2D endpoints are checked explicitly before original curve publication. Existing Core IDs/error codes and Modeling sewing types are imported from their actual owners. No source equation, receipt identity or allowance changes.

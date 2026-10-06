@@ -32,5 +32,56 @@ public struct OffsetFeasibilityLimits: Hashable, Sendable {
 }
 
 #if !hasFeature(Embedded)
-extension OffsetFeasibilityLimits: Codable {}
+extension OffsetFeasibilityLimits: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case maximumCumulativeWork, maximumCumulativeStorageBytes, surfaceIntersectionOptions, remainingSourceDepth, maximumAlgebraicDepth
+    }
+    private enum OptionKeys: String, CodingKey {
+        case maximumSubdivisionDepth, maximumSubdivisionCells, maximumIterations, maximumSeedCount, maximumContinuationPointCount, maximumContinuationPointCountPerComponent, maximumRootAttempts, maximumBoundarySubdivisionDepth, maximumBoundarySubdivisionCells, maximumPeriodicSeamAttempts, maximumResidualCertificationDepth, maximumResidualCertificationCells
+    }
+
+    public init(from decoder: any Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        let options = try values.nestedContainer(keyedBy: OptionKeys.self, forKey: .surfaceIntersectionOptions)
+        self.init(
+            maximumCumulativeWork: try values.decodeIfPresent(Int.self, forKey: .maximumCumulativeWork),
+            maximumCumulativeStorageBytes: try values.decodeIfPresent(Int.self, forKey: .maximumCumulativeStorageBytes),
+            surfaceIntersectionOptions: SurfaceSurfaceIntersectionOptions(
+                maximumSubdivisionDepth: try options.decode(Int.self, forKey: .maximumSubdivisionDepth),
+                maximumSubdivisionCells: try options.decode(Int.self, forKey: .maximumSubdivisionCells),
+                maximumIterations: try options.decode(Int.self, forKey: .maximumIterations),
+                maximumSeedCount: try options.decode(Int.self, forKey: .maximumSeedCount),
+                maximumContinuationPointCount: try options.decode(Int.self, forKey: .maximumContinuationPointCount),
+                maximumContinuationPointCountPerComponent: try options.decode(Int.self, forKey: .maximumContinuationPointCountPerComponent),
+                maximumRootAttempts: try options.decode(Int.self, forKey: .maximumRootAttempts),
+                maximumBoundarySubdivisionDepth: try options.decode(Int.self, forKey: .maximumBoundarySubdivisionDepth),
+                maximumBoundarySubdivisionCells: try options.decode(Int.self, forKey: .maximumBoundarySubdivisionCells),
+                maximumPeriodicSeamAttempts: try options.decode(Int.self, forKey: .maximumPeriodicSeamAttempts),
+                maximumResidualCertificationDepth: try options.decode(Int.self, forKey: .maximumResidualCertificationDepth),
+                maximumResidualCertificationCells: try options.decode(Int.self, forKey: .maximumResidualCertificationCells)),
+            remainingSourceDepth: try values.decode(Int.self, forKey: .remainingSourceDepth),
+            maximumAlgebraicDepth: try values.decode(Int.self, forKey: .maximumAlgebraicDepth))
+    }
+
+    public func encode(to encoder: any Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encodeIfPresent(maximumCumulativeWork, forKey: .maximumCumulativeWork)
+        try values.encodeIfPresent(maximumCumulativeStorageBytes, forKey: .maximumCumulativeStorageBytes)
+        try values.encode(remainingSourceDepth, forKey: .remainingSourceDepth)
+        try values.encode(maximumAlgebraicDepth, forKey: .maximumAlgebraicDepth)
+        var options = values.nestedContainer(keyedBy: OptionKeys.self, forKey: .surfaceIntersectionOptions)
+        try options.encode(surfaceIntersectionOptions.maximumSubdivisionDepth, forKey: .maximumSubdivisionDepth)
+        try options.encode(surfaceIntersectionOptions.maximumSubdivisionCells, forKey: .maximumSubdivisionCells)
+        try options.encode(surfaceIntersectionOptions.maximumIterations, forKey: .maximumIterations)
+        try options.encode(surfaceIntersectionOptions.maximumSeedCount, forKey: .maximumSeedCount)
+        try options.encode(surfaceIntersectionOptions.maximumContinuationPointCount, forKey: .maximumContinuationPointCount)
+        try options.encode(surfaceIntersectionOptions.maximumContinuationPointCountPerComponent, forKey: .maximumContinuationPointCountPerComponent)
+        try options.encode(surfaceIntersectionOptions.maximumRootAttempts, forKey: .maximumRootAttempts)
+        try options.encode(surfaceIntersectionOptions.maximumBoundarySubdivisionDepth, forKey: .maximumBoundarySubdivisionDepth)
+        try options.encode(surfaceIntersectionOptions.maximumBoundarySubdivisionCells, forKey: .maximumBoundarySubdivisionCells)
+        try options.encode(surfaceIntersectionOptions.maximumPeriodicSeamAttempts, forKey: .maximumPeriodicSeamAttempts)
+        try options.encode(surfaceIntersectionOptions.maximumResidualCertificationDepth, forKey: .maximumResidualCertificationDepth)
+        try options.encode(surfaceIntersectionOptions.maximumResidualCertificationCells, forKey: .maximumResidualCertificationCells)
+    }
+}
 #endif

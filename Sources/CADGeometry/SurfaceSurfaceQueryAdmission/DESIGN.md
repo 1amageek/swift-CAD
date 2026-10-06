@@ -190,3 +190,6 @@ Native selections fail atomically. Ineligible source families keep existing regu
 search and return a nil Native receipt. Final result admission is followed by a
 cancellation check; a cancelled callback cannot publish success. No synchronization
 or Sendable contract changes across targets.
+
+### Bounded Protocol Witness
+The bounded intersector requirement carries optional byte admission and optional independent algebra depth in addition to source and spatial depth. Its concrete implementation has exactly the same optional storage signature. A selected algebra cap is forwarded unchanged to the existing original surface-pair producer. The compatibility admitted overload delegates with no selected algebra cap; an injected legacy conformer without the new admission witness fails explicitly rather than invoking an unmetered method. Nil storage stays nil throughout dispatch. [BoundedSurfaceSurfaceAdmissionWitnessTests](../../../Tests/CADGeometryTests/BoundedSurfaceSurfaceAdmissionWitnessTests.swift) verifies concrete and existential dispatch, separate depth/work/byte refusal and cancellation.

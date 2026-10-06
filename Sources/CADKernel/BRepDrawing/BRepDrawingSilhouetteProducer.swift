@@ -148,11 +148,11 @@ public struct BRepDrawingSilhouetteProducer: BRepDrawingSilhouetteProducing {
                             OutwardScalarInterval(lower: range.lower, upper: range.upper)
                         }
                         let point = contact.spatialEnclosure
-                        let x = interval(point.x) - .point(frame.origin.x)
-                        let y = interval(point.y) - .point(frame.origin.y)
-                        let z = interval(point.z) - .point(frame.origin.z)
+                        let x = interval(point.x) - .exact(frame.origin.x)
+                        let y = interval(point.y) - .exact(frame.origin.y)
+                        let z = interval(point.z) - .exact(frame.origin.z)
                         func project(_ axis: Vector3D) throws -> ScalarInterval {
-                            let value = x * .point(axis.x) + y * .point(axis.y) + z * .point(axis.z)
+                            let value = x * .exact(axis.x) + y * .exact(axis.y) + z * .exact(axis.z)
                             guard value.isFinite else {
                                 throw failure(.intersectionFailure, "Silhouette contact projection is nonfinite.", tolerance)
                             }
@@ -389,7 +389,7 @@ public struct BRepDrawingSilhouetteProducer: BRepDrawingSilhouetteProducing {
                                             break
                                         }
                                         if depth < usage.maximumDepth {
-                                            width = try width.divided(by: .natural(2, usage: &usage), usage: &usage)
+                                            width = try width.divided(by: .originalDouble(2, usage: &usage), usage: &usage)
                                             trimmed = try trimmed.refined(maximumParameterWidth: width, usage: &usage)
                                             lower = trimmed.lower; upper = trimmed.upper
                                             cuts[index - 1] = lower; cuts[index] = upper
@@ -537,11 +537,11 @@ public struct BRepDrawingSilhouetteProducer: BRepDrawingSilhouetteProducing {
         func interval(_ value: ScalarInterval) -> OutwardScalarInterval {
             OutwardScalarInterval(lower: value.lower, upper: value.upper)
         }
-        let x = interval(point.x) - .point(frame.origin.x)
-        let y = interval(point.y) - .point(frame.origin.y)
-        let z = interval(point.z) - .point(frame.origin.z)
+        let x = interval(point.x) - .exact(frame.origin.x)
+        let y = interval(point.y) - .exact(frame.origin.y)
+        let z = interval(point.z) - .exact(frame.origin.z)
         func project(_ axis: Vector3D) throws -> ScalarInterval {
-            let value = x * .point(axis.x) + y * .point(axis.y) + z * .point(axis.z)
+            let value = x * .exact(axis.x) + y * .exact(axis.y) + z * .exact(axis.z)
             guard value.isFinite else {
                 throw failure(.intersectionFailure, "Original algebraic contact projection is nonfinite.", tolerance)
             }
@@ -572,7 +572,7 @@ public struct BRepDrawingSilhouetteProducer: BRepDrawingSilhouetteProducing {
         return true
     }
 
-    private func failure(_ code: KernelError.Code, _ message: String, _ tolerance: ModelingTolerance) -> KernelError {
+    private func failure(_ code: KernelErrorCode, _ message: String, _ tolerance: ModelingTolerance) -> KernelError {
         KernelError(phase: .geometry, code: code, tolerance: tolerance, message: message)
     }
 }

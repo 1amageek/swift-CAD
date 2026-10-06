@@ -27,10 +27,24 @@ struct BRepEdgeChainOffsetter {
         guard distance > tolerance.distance else {
             throw failure(.invalidInput, tolerance, "An offset distance must be positive.")
         }
+        let visit: (@Sendable (Int) throws -> Void)?
+        let retain: (@Sendable (Int) throws -> Void)?
+        if let admission = conversionAdmission {
+            let visitCallback: @Sendable (Int) throws -> Void = { (depth: Int) throws -> Void in
+                try admission.visit(depth: depth)
+            }
+            let retainCallback: @Sendable (Int) throws -> Void = { (bytes: Int) throws -> Void in
+                try admission.chargeStorage(bytes: bytes)
+            }
+            visit = visitCallback
+            retain = retainCallback
+        } else {
+            visit = nil
+            retain = nil
+        }
         let built = try SourceBRepFacePatchBuilder().build(
             faceID: faceID, stableID: "\(stableID):face", from: model, sourceSubshapes: sourceSubshapes, tolerance: tolerance,
-            consumeWork: conversionAdmission.map { admission in { try admission.visit(depth: $0) } },
-            consumeStorage: conversionAdmission.map { admission in { try admission.chargeStorage(bytes: $0) } }
+            consumeWork: visit, consumeStorage: retain
         )
         let patch = built.patch
         // Which of the face's edges each edge of its patch is.
