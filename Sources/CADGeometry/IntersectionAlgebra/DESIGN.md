@@ -33,6 +33,7 @@ this component.
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | Original source families | Owns public dispatch | Equations are not intersection results |
 | [Rational Bivariate Algebra](../RationalBivariateAlgebra/DESIGN.md) | depends on | Original rational coefficients, native homogeneous laws, caller ledger | Reuses exact arithmetic | Complex dimension is not real coverage |
+| [Original Field Scalar Root](../RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md) | depends on | Original rational norm with denominator saturation | Supplies coefficient annihilators | Selected coefficient roots retain independent admission |
 | [Surface Surface Query Admission](../SurfaceSurfaceQueryAdmission/DESIGN.md) | coordinates with | Cumulative original invocation | SSI composition | No private allowance |
 | [Curve Surface Query Admission](../CurveSurfaceQueryAdmission/DESIGN.md) | coordinates with | Independent caller limits | CS composition | No depth-cap conversion |
 
@@ -98,6 +99,42 @@ crosses coordinate nine in original arithmetic, lexicographic division,
 injective remapping, full real projection and incidence, checks overflow and
 independent work/storage rejection, and reuses the existing rational suites to
 reject changes to their original laws and results.
+
+### Original Ordered Coefficient Authority
+
+`OriginalIntersectionCoefficient` owns transport of one actual retained ordered
+field value to a rational auxiliary law. Its issuer computes the exact norm of
+X minus that original value, preserves original denominator saturation, and
+checks that the resulting rational polynomial annihilates the original value.
+It enumerates all distinct real roots under coefficient admission and uses exact
+original-value comparisons with their retained rational isolations to select
+exactly one root. A numerical enclosure or approximate coefficient cannot issue
+this receipt. The original field value remains retained with its annihilator
+and selected root; no conjugate is inferred from a rounded sample.
+
+The geometric and coefficient root-depth domains remain independent. The
+original value's retained context must fit both unchanged caller limits.
+Original-field sign operations retain their own root admission domains; norm
+root enumeration and subsequent coefficient-root refinement spend coefficient
+admission only. Reuse never resets the original context's inherited coefficient
+depth. Rational constants bypass auxiliary roots. All arithmetic and retained
+storage use the same caller ledger; failure publishes no coefficient receipt.
+
+The ordered relation composer will place fixed coefficient coordinates before
+geometric coordinates, bind each to its issued original polynomial and selected
+real isolation, and retain the source laws and parameter suffix. Those fixed
+coordinates have dimension zero in the selected relation and never become
+geometric parameters. Closure candidates quantify geometric coordinates only;
+the coefficient prefix is shared original authority, not a second independent
+coefficient embedding. This composition and public ordered publication remain
+unfinished until their own behavioral verification is complete.
+
+Verification must distinguish positive/negative conjugates, algebraically equal
+and different coefficients, coefficient-only towers and retained parameter-root
+sources, repeated/reducible defining laws, saturated denominator poles and
+independent work/storage/parameter/coefficient depth failures. Actual input
+producers, rather than rounded values reconstructed in fixtures, must reach the
+issuer.
 
 ### Public Original Rational Relation Selection
 
