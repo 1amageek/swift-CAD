@@ -14,7 +14,7 @@ public struct AffineSurfaceConversionSource: GeometrySurfaceConversionSource {
     }
 
     public func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try tolerance.validate()
         guard parameters.u.width > 0, parameters.u.width.isFinite,
               parameters.v.width > 0, parameters.v.width.isFinite else {
@@ -26,7 +26,7 @@ public struct AffineSurfaceConversionSource: GeometrySurfaceConversionSource {
     public func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
         let point = try source.point(u: uChart.parameter(u), v: vChart.parameter(v), tolerance: tolerance)
         try point.validate()
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return point
     }
 
@@ -40,7 +40,7 @@ public struct AffineSurfaceConversionSource: GeometrySurfaceConversionSource {
             secondDerivativeUU: AffineConversionChart.multiply(original.secondDerivativeUU, by: u * u),
             secondDerivativeUV: AffineConversionChart.multiply(original.secondDerivativeUV, by: u * v),
             secondDerivativeVV: AffineConversionChart.multiply(original.secondDerivativeVV, by: v * v))
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 

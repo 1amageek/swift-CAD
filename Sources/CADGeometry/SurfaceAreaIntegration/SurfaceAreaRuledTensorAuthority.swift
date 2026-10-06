@@ -9,9 +9,9 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
     init?(original: RuledSurface3D, maximumControlPointCount: Int,
           tolerance: ModelingTolerance, maximumSubdivisionDepth: Int? = nil,
           remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil,
-          consumeWork: () throws -> Void = { try Task.checkCancellation() },
+          consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
           consumeStorage: ((Int) throws -> Void)? = nil) throws {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         guard case .bSpline(let start) = original.startBoundary,
               case .bSpline(let end) = original.endBoundary else { return nil }
         let limit = maximumControlPointCount
@@ -60,7 +60,7 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
             expanded *= factor
         }
         try admitFactor(count-start.degree); try admitFactor(start.degree+1); try admitFactor(2)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         self.original = original
         translatesAlongV = try SurfaceAreaTranslationCertificate.direction(of: .procedural(.ruled(original)),
             remainingSourceDepth:remainingSourceDepth,maximumAlgebraicDepth:maximumAlgebraicDepth,
@@ -78,10 +78,10 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
     func rectangleIntegral(rectangle: SurfaceParameterBox, fraction: ScalarInterval,
                            nativeLower: Double, nativeUpper: Double,
                            reference: Point3D, tolerance: ModelingTolerance,
-                           consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                           consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
                            consumeStorage: ((Int) throws -> Void)? = nil)
         throws -> [OutwardScalarInterval]? {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard case .bSpline(let start) = original.startBoundary,
               case .bSpline(let end) = original.endBoundary, start.degree == 1,
               translatesAlongV else {
@@ -169,10 +169,10 @@ struct SurfaceAreaRuledTensorAuthority: Sendable {
         let centerZ = origin.z + displacement.z * meanH + translation.z * meanV
         try OriginalCoefficientAllocation.reserve(count:4,of:OutwardScalarInterval.self,consumeStorage:consumeStorage)
         let result = [area,area*(centerX - .exact(reference.x)),area*(centerY - .exact(reference.y)),area*(centerZ - .exact(reference.z))]
-        guard result.allSatisfy(\.isFinite) else {
+        guard result.allSatisfy({ $0.isFinite }) else {
             throw Self.failure(.classificationFailure, tolerance, "Original ruled rectangle integral exceeded finite arithmetic.")
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 

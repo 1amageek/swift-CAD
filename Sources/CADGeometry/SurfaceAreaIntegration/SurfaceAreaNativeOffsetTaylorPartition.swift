@@ -21,7 +21,7 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
         var distances: [Double] = []
         var depth = 0
         while case .procedural(.offset(let offset)) = original {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             guard depth < min(16,remainingSourceDepth) else {
                 throw Self.failure(.resourceLimitExceeded,tolerance,"Native offset preparation exhausted original source nesting.")
             }
@@ -71,12 +71,12 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
 
     func rectangleDomains(over box: SurfaceParameterBox, maximumCount: Int,
                           tolerance caller: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try Task.checkCancellation()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
 
         try validate(caller)
         guard hasNativeJoins else { return nil }
@@ -85,7 +85,7 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(providers.count)
         for (index,provider) in providers.enumerated() {
-            try consumeWork(0); try Task.checkCancellation()
+            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
             let native = provider.receipt.baseDomain
             let u0 = max(box.u.lower,native.u.lower), u1 = min(box.u.upper,native.u.upper)
             let v0 = max(box.v.lower,native.v.lower), v1 = min(box.v.upper,native.v.upper)
@@ -101,12 +101,12 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
 
     func fanDomains(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
                     maximumCount: Int, tolerance caller: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try Task.checkCancellation()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
 
         try validate(caller)
         guard hasNativeJoins, !source.isUPeriodic, !source.isVPeriodic else { return nil }
@@ -132,7 +132,7 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(providers.count)
         for (index,provider) in providers.enumerated() {
-            try consumeWork(0); try Task.checkCancellation()
+            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
             let box = provider.receipt.baseDomain
             let varying = alongU ? box.u : box.v, fixed = alongU ? box.v : box.u
             guard min(other,a,b) >= fixed.lower, max(other,a,b) <= fixed.upper,
@@ -233,7 +233,7 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
     private func index(of owner: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
                        consumeWork: () throws -> Void) throws -> Int {
         for (index,provider) in providers.enumerated() {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             if provider.receipt.uSpanIndex == owner.uSpanIndex,
                provider.receipt.vSpanIndex == owner.vSpanIndex { return index }
         }
@@ -242,7 +242,7 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
 
     private func validate(_ caller: ModelingTolerance) throws {
         guard caller == tolerance else { throw Self.failure(.invalidInput,caller,"Nested offset requires its exact original preparation tolerance.") }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 
     private static func failure(_ code: KernelErrorCode,_ tolerance: ModelingTolerance,_ message: String) -> KernelError {

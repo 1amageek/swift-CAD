@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Exact original degree-one translation law retained by a higher offset query.
 struct SurfaceAreaOffsetTranslationAuthority: Sendable {
@@ -57,7 +67,7 @@ struct SurfaceAreaOffsetTranslationAuthority: Sendable {
         var decreasingX = true, decreasingY = true, decreasingZ = true
         var previous = first
         for index in 0..<count {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             try consumeWork()
             let firstWeight = weight(index,false)
             try consumeWork()

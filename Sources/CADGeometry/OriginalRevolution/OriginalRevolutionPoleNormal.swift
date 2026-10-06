@@ -168,12 +168,12 @@ package struct OriginalRevolutionPoleNormal: Sendable {
                 maximumSubdivisionDepth: min(32, surface.generator.maximumSubdivisionDepth),
                 remainingSourceDepth: 0)
         }
-        func magnitude(_ key:KeyPath<SurfaceIntervalJet,OutwardScalarInterval>)->Double {
-            IntervalVector3DBounds(x:original.x[keyPath:key],y:original.y[keyPath:key],z:original.z[keyPath:key]).lengthUpperBound
+        func magnitude(_ key:(SurfaceIntervalJet) -> OutwardScalarInterval)->Double {
+            IntervalVector3DBounds(x:key(original.x),y:key(original.y),z:key(original.z)).lengthUpperBound
         }
-        let bounds = SurfaceTessellationDifferentialBounds(tangentUMagnitudeUpperBound:magnitude(\.derivativeU),
-            tangentVMagnitudeUpperBound:magnitude(\.derivativeV),secondDerivativeUUMagnitudeUpperBound:magnitude(\.secondDerivativeUU),
-            secondDerivativeUVMagnitudeUpperBound:magnitude(\.secondDerivativeUV),secondDerivativeVVMagnitudeUpperBound:magnitude(\.secondDerivativeVV),
+        let bounds = SurfaceTessellationDifferentialBounds(tangentUMagnitudeUpperBound:magnitude({ $0.derivativeU }),
+            tangentVMagnitudeUpperBound:magnitude({ $0.derivativeV }),secondDerivativeUUMagnitudeUpperBound:magnitude({ $0.secondDerivativeUU }),
+            secondDerivativeUVMagnitudeUpperBound:magnitude({ $0.secondDerivativeUV }),secondDerivativeVVMagnitudeUpperBound:magnitude({ $0.secondDerivativeVV }),
             unitNormalDerivativeUMagnitudeUpperBound:(du.lengthUpperBound/low).nextUp,
             unitNormalDerivativeVMagnitudeUpperBound:(dv.lengthUpperBound/low).nextUp)
         try usage.consumeExactWork(16)

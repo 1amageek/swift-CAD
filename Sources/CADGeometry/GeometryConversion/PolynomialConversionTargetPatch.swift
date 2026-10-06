@@ -24,7 +24,7 @@ struct PolynomialConversionTargetPatch: Sendable {
         var values: [Vector] = []
         values.reserveCapacity((uDegree + 1) * (vDegree + 1))
         for j in 0...vDegree {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             for i in 0...uDegree {
                 var value = Self.zero
                 for b in 0...j {

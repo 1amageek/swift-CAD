@@ -14,7 +14,7 @@ struct OriginalPolynomialRuledConversionSource: GeometrySurfaceConversionSource 
     }
 
     init(_ surface: RuledSurface3D, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try surface.validate(tolerance: tolerance)
         guard Self.accepts(surface), case .bSpline(let start) = surface.startBoundary,
               case .bSpline(let end) = surface.endBoundary else {
@@ -25,7 +25,7 @@ struct OriginalPolynomialRuledConversionSource: GeometrySurfaceConversionSource 
         var values: [PolynomialConversionTargetPatch] = []
         values.reserveCapacity(spans)
         for span in 0..<spans {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let offset = span * start.degree
             values.append(try PolynomialConversionTargetPatch(
                 u: ScalarInterval(lower: start.knots[offset + start.degree], upper: start.knots[offset + start.degree + 1]),
@@ -35,7 +35,7 @@ struct OriginalPolynomialRuledConversionSource: GeometrySurfaceConversionSource 
             })
         }
         patches = values
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 
     func validate(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws {
@@ -52,13 +52,13 @@ struct OriginalPolynomialRuledConversionSource: GeometrySurfaceConversionSource 
     }
 
     func enclosure(over parameters: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceDifferentialEnclosure {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try validate(over: parameters, tolerance: tolerance)
         typealias Vector = PolynomialConversionTargetPatch.Vector
         var position: Vector?, tangentU: Vector?, tangentV: Vector?
         var secondUU: Vector?, secondUV: Vector?, secondVV: Vector?
         for patch in patches {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let lower = max(parameters.u.lower, patch.u.lower), upper = min(parameters.u.upper, patch.u.upper)
             guard lower <= upper else { continue }
             let box = SurfaceParameterBox(u: try ScalarInterval(lower: lower, upper: upper), v: parameters.v)
@@ -79,7 +79,7 @@ struct OriginalPolynomialRuledConversionSource: GeometrySurfaceConversionSource 
             secondDerivativeUU: PolynomialConversionTargetPatch.coordinates(secondUU),
             secondDerivativeUV: PolynomialConversionTargetPatch.coordinates(secondUV),
             secondDerivativeVV: PolynomialConversionTargetPatch.coordinates(secondVV))
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 

@@ -129,7 +129,7 @@ extension SurfaceParameterCurve {
       let field = IntervalVector3DBounds(x: .init(lower: q.minimum.x, upper: q.maximum.x),
         y: .init(lower: q.minimum.y, upper: q.maximum.y), z: .init(lower: q.minimum.z, upper: q.maximum.z))
       let value = try OriginalAffineWordJetTransport.position(curve.target.preparedWord,
-        bounds: field, consumeWork: { try Task.checkCancellation() })
+        bounds: field, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
       return try BoundingBox3D(minimum: .init(x: value.x.lower, y: value.y.lower, z: value.z.lower),
         maximum: .init(x: value.x.upper, y: value.y.upper, z: value.z.upper)).expanded(by: tolerance.distance)
     case .originalImage(let curve):

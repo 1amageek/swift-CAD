@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Factorial-scaled bivariate coefficients enclosing one entire original box.
 package struct SurfaceAreaIntervalTaylorScalarJet: Sendable {
@@ -24,7 +34,7 @@ package struct SurfaceAreaIntervalTaylorScalarJet: Sendable {
         }
         self.order = order; self.axis = axis; self.tolerance = tolerance
         let slots = axis == .both ? count.partialValue : side.partialValue
-        for _ in 0..<slots { try Task.checkCancellation(); try consumeWork() }
+        for _ in 0..<slots { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
         try OriginalCoefficientAllocation.reserve(count: slots, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
         coefficients = Array(repeating:.exact(0),count:slots)
     }
@@ -105,7 +115,7 @@ package struct SurfaceAreaIntervalTaylorScalarJet: Sendable {
         try validate(other)
         var result = try Self(order:order,axis:axis.combined(with:other.axis),tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
         for total in 0...order { for u in 0...total where result.axis.permits(u,total-u) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let v = total-u
             var value = OutwardScalarInterval.exact(0)
             for i in 0...u { for j in 0...v {
@@ -125,7 +135,7 @@ package struct SurfaceAreaIntervalTaylorScalarJet: Sendable {
         try consumeWork()
         try result.set(value,0,0)
         if order > 0 { for total in 1...order { for u in 0...total where result.axis.permits(u,total-u) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let v = total-u
             var sum = OutwardScalarInterval.exact(0)
             for i in 0...u { for j in 0...v where i != 0 || j != 0 {
@@ -150,7 +160,7 @@ package struct SurfaceAreaIntervalTaylorScalarJet: Sendable {
         try consumeWork()
         try result.set(root,0,0)
         if order > 0 { for total in 1...order { for u in 0...total where result.axis.permits(u,total-u) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let v = total-u
             var sum = OutwardScalarInterval.exact(0)
             for i in 0...u { for j in 0...v

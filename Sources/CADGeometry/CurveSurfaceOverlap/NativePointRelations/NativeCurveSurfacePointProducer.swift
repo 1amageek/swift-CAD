@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Complete original native point publication, before any legacy dispatch.
 struct NativeCurveSurfacePointProducer {
@@ -141,7 +151,7 @@ struct NativeCurveSurfacePointProducer {
             charts: charts, pointCells: references, parameterIsolations: retainedParameters,
             parameterLocalizations: retainedLocalizations)
         try RationalAlgebraStorage.retain(1, of: CurveSurfaceIntersectionResult.self, usage: &usage)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return .init(points: points, overlaps: [], originalNativePoints: receipt)
     }
 

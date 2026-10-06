@@ -91,7 +91,7 @@ public struct ExactRuledBSplineSurfaceBuilder: RuledBSplineSurfaceBuilding {
         }
         return try assemble(
             patches: tensorPatches,
-            breaks: [startPatches[0].lower] + startPatches.map(\.upper),
+            breaks: [startPatches[0].lower] + startPatches.map({ $0.upper }),
             degree: resultDegree,
             tolerance: tolerance
         )
@@ -138,7 +138,7 @@ public struct ExactRuledBSplineSurfaceBuilder: RuledBSplineSurfaceBuilding {
             throw diagnostic(code: .invalidInput, tolerance: tolerance,
                 message: "Common rational boundaries require a complete aligned span sequence.")
         }
-        let breaks = [initial.lower] + sourcePatches[0].map(\.upper)
+        let breaks = [initial.lower] + sourcePatches[0].map({ $0.upper })
         var points = Array(repeating: [Point3D](), count: curves.count)
         var previous = Array<HomogeneousControl?>(repeating: nil, count: curves.count)
         var weights: [Double] = []
@@ -342,7 +342,7 @@ public struct ExactRuledBSplineSurfaceBuilder: RuledBSplineSurfaceBuilding {
                         * (scalars[scalarIndex] * coefficient)
             }
         }
-        guard result.allSatisfy(\.isFinite) else {
+        guard result.allSatisfy({ $0.isFinite }) else {
             throw diagnostic(
                 code: .resourceLimitExceeded,
                 tolerance: tolerance,

@@ -22,7 +22,7 @@ public struct OriginalParameterPeriodicTranslation: Hashable, Sendable {
     }
 
     public func nativeDisplacement<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactRationalCoefficient {
-        try validate(); try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try validate(); try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         guard originalTurnCount != 0 else { return .zero }
         let magnitude = originalTurnCount.magnitude
         try usage.retainExactStorage(3)

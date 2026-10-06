@@ -56,11 +56,11 @@ public struct OriginalAngularTransportSurface3D: Hashable, Sendable {
         try coefficients.intervalTaylorJet(over: box, throughOrder: order, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
     }
     package func intervalJet(over box: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
-        try intervalTaylorJet(over: box, throughOrder: 3, tolerance: tolerance, consumeWork: { try Task.checkCancellation() }).intervalJet()
+        try intervalTaylorJet(over: box, throughOrder: 3, tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
     }
     public func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
         let q = try intervalTaylorJet(over: .init(u: .init(lower: u, upper: u), v: .init(lower: v, upper: v)),
-            throughOrder: 0, tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+            throughOrder: 0, tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
         return try .init(x: q.x.coefficient(0, 0).midpoint, y: q.y.coefficient(0, 0).midpoint, z: q.z.coefficient(0, 0).midpoint)
     }
   public func parameterDerivativesThroughThirdOrder(u: Double, v: Double,
@@ -92,10 +92,10 @@ public struct OriginalAngularTransportSurface3D: Hashable, Sendable {
     tolerance: ModelingTolerance) throws -> SurfaceTaylorVectorJet {
     do {
       let jet = try coefficients.intervalTaylorJet(over: .init(u: .init(lower: u, upper: u), v: .init(lower: v, upper: v)),
-        throughOrder: order, tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+        throughOrder: order, tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
       var x = try SurfaceTaylorScalarJet(order: order), y = try SurfaceTaylorScalarJet(order: order), z = try SurfaceTaylorScalarJet(order: order)
       for total in 0...order { for a in 0...total {
-        try Task.checkCancellation(); let b = total-a
+        try CurrentTaskCancellationChecker().checkCancellation(); let b = total-a
         try x.setCoefficient(jet.x.coefficient(a,b).midpoint, uOrder: a, vOrder: b)
         try y.setCoefficient(jet.y.coefficient(a,b).midpoint, uOrder: a, vOrder: b)
         try z.setCoefficient(jet.z.coefficient(a,b).midpoint, uOrder: a, vOrder: b)

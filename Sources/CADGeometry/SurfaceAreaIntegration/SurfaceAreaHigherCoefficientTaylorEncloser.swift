@@ -267,7 +267,7 @@ struct SurfaceAreaHigherCoefficientTaylorEncloser: Sendable {
             output[retainingLeft ? 0 : last] = scratch[retainingLeft ? 0 : last]
             for remaining in stride(from:last,through:1,by:-1) {
                 for index in 0..<remaining {
-                    try Task.checkCancellation(); try consumeWork()
+                    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                     scratch[index] = scratch[index]*(.exact(1)-t)+scratch[index+1]*t
                 }
                 output[retainingLeft ? controls.count-remaining : remaining-1]
@@ -301,7 +301,7 @@ struct SurfaceAreaHigherCoefficientTaylorEncloser: Sendable {
         guard !count.overflow, count.partialValue >= 0 else {
             throw failure(.resourceLimitExceeded,tolerance,"Higher native payload count overflows.")
         }
-        for _ in 0..<count.partialValue { try Task.checkCancellation(); try consumeWork() }
+        for _ in 0..<count.partialValue { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
     }
 
     private static func failure(_ code: KernelErrorCode,_ tolerance: ModelingTolerance,_ message: String) -> KernelError {

@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 struct BoundedSurfaceIntersectionSplineBuilder {
@@ -48,9 +58,9 @@ struct BoundedSurfaceIntersectionSplineBuilder {
                 firstSample.secondParameter,
                 lastSample.secondParameter
             ) <= tolerance.relative
-        let suppliedPointDerivatives = samples.compactMap(\.pointDerivative)
-        let suppliedFirstDerivatives = samples.compactMap(\.firstParameterDerivative)
-        let suppliedSecondDerivatives = samples.compactMap(\.secondParameterDerivative)
+        let suppliedPointDerivatives = samples.compactMap({ $0.pointDerivative })
+        let suppliedFirstDerivatives = samples.compactMap({ $0.firstParameterDerivative })
+        let suppliedSecondDerivatives = samples.compactMap({ $0.secondParameterDerivative })
         let hasSuppliedDerivatives = suppliedPointDerivatives.count == samples.count
             && suppliedFirstDerivatives.count == samples.count
             && suppliedSecondDerivatives.count == samples.count
@@ -65,16 +75,16 @@ struct BoundedSurfaceIntersectionSplineBuilder {
         let unboundedFirstDerivatives = hasSuppliedDerivatives
             ? suppliedFirstDerivatives
             : parameterDerivatives(
-                samples.map(\.firstParameter),
-                points: samples.map(\.point),
+                samples.map({ $0.firstParameter }),
+                points: samples.map({ $0.point }),
                 parameters: parameters,
                 isClosed: isClosed
             )
         let unboundedSecondDerivatives = hasSuppliedDerivatives
             ? suppliedSecondDerivatives
             : parameterDerivatives(
-                samples.map(\.secondParameter),
-                points: samples.map(\.point),
+                samples.map({ $0.secondParameter }),
+                points: samples.map({ $0.point }),
                 parameters: parameters,
                 isClosed: isClosed
             )
@@ -93,7 +103,7 @@ struct BoundedSurfaceIntersectionSplineBuilder {
         var pointSegments: [[Point3D]] = []
         var firstSegments: [[Point2D]] = []
         var secondSegments: [[Point2D]] = []
-        var maximumResidual = samples.map(\.residual).max() ?? 0.0
+        var maximumResidual = samples.map({ $0.residual }).max() ?? 0.0
         for index in 1..<samples.count {
             let span = parameters[index] - parameters[index - 1]
             let pointControls = pointControls(

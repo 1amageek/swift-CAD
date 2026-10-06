@@ -19,7 +19,7 @@ struct OverlapRegularGraphCorrespondence: Sendable {
         range = try ScalarInterval(lower: first.range.lower, upper: last.range.upper)
     }
 
-    var maximumDeviation: Double { cells.map(\.maximumDeviation).max() ?? .infinity }
+    var maximumDeviation: Double { cells.map({ $0.maximumDeviation }).max() ?? .infinity }
 
     func sharesAuthority(with other: Self) -> Bool {
         root.curve.curve == other.root.curve.curve && root.originalSurface == other.root.originalSurface

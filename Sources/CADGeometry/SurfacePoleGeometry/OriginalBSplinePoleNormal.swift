@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Prepares original endpoint differential authority once for a mesh operation.
 package struct OriginalBSplinePoleNormal: Sendable {
@@ -100,19 +110,19 @@ package struct OriginalBSplinePoleNormal: Sendable {
     // require exact preceding-coefficient zero proofs before they may succeed.
     package func normal(at parameter: SurfaceParameter, direction: Direction,
         consumeWork: () throws -> Void) throws -> OriginalBSplinePoleNormalReceipt {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         let sign = try collapseSign(at: parameter, direction: direction, consumeWork: consumeWork)
         try consumeWork()
         let jet = try prepared.intervalJet(overClosedBox: .init(
             u: ScalarInterval(lower: parameter.u, upper: parameter.u),
             v: ScalarInterval(lower: parameter.v, upper: parameter.v)), tolerance: tolerance)
-        func vector(_ field: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>) -> IntervalVector3DBounds {
-            .init(x: jet.x[keyPath: field], y: jet.y[keyPath: field], z: jet.z[keyPath: field])
+        func vector(_ field: (SurfaceIntervalJet) -> OutwardScalarInterval) -> IntervalVector3DBounds {
+            .init(x: field(jet.x), y: field(jet.y), z: field(jet.z))
         }
-        let mixed = vector(\.secondDerivativeUV)
+        let mixed = vector({ $0.secondDerivativeUV })
         let coefficient = (direction == .constantU
-            ? vector(\.derivativeU).cross(mixed)
-            : mixed.cross(vector(\.derivativeV))) * .exact(sign)
+            ? vector({ $0.derivativeU }).cross(mixed)
+            : mixed.cross(vector({ $0.derivativeV }))) * .exact(sign)
         let low = coefficient.lengthLowerBound, high = coefficient.lengthUpperBound
         guard low.isFinite, high.isFinite, low > 0 else {
             throw failure(.singularGeometry, "Original first inward normal coefficient is not certified nonzero.")
@@ -144,7 +154,7 @@ package struct OriginalBSplinePoleNormal: Sendable {
     package func panelBounds(over box: SurfaceParameterBox, direction: Direction,
         owning originalSpan: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan? = nil,
         consumeWork: () throws -> Void) throws -> OriginalBSplinePoleNormalPanel {
-        try Task.checkCancellation(); try consumeWork()
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         let parameter: SurfaceParameter
         switch direction {
         case .constantU:
@@ -179,14 +189,14 @@ package struct OriginalBSplinePoleNormal: Sendable {
         }
         try consumeWork()
         let jet = try span.intervalJet(overClosedBox: box, on: surface, tolerance: tolerance,consumeWork:consumeWork)
-        func vector(_ field: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>) -> IntervalVector3DBounds {
-            .init(x: jet.x[keyPath: field], y: jet.y[keyPath: field], z: jet.z[keyPath: field])
+        func vector(_ field: (SurfaceIntervalJet) -> OutwardScalarInterval) -> IntervalVector3DBounds {
+            .init(x: field(jet.x), y: field(jet.y), z: field(jet.z))
         }
-        let u = vector(\.derivativeU), v = vector(\.derivativeV)
-        let uu = vector(\.secondDerivativeUU), uv = vector(\.secondDerivativeUV)
-        let vv = vector(\.secondDerivativeVV), uuu = vector(\.thirdDerivativeUUU)
-        let uuv = vector(\.thirdDerivativeUUV), uvv = vector(\.thirdDerivativeUVV)
-        let vvv = vector(\.thirdDerivativeVVV)
+        let u = vector({ $0.derivativeU }), v = vector({ $0.derivativeV })
+        let uu = vector({ $0.secondDerivativeUU }), uv = vector({ $0.secondDerivativeUV })
+        let vv = vector({ $0.secondDerivativeVV }), uuu = vector({ $0.thirdDerivativeUUU })
+        let uuv = vector({ $0.thirdDerivativeUUV }), uvv = vector({ $0.thirdDerivativeUVV })
+        let vvv = vector({ $0.thirdDerivativeVVV })
         try consumeWork()
         let mixed = uuv.cross(v) + uu.cross(vv) + u.cross(uvv)
         let factor: IntervalVector3DBounds

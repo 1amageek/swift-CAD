@@ -20,7 +20,7 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
         consumeWork: () throws -> Void, consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
         maximumAlgebraicDepth: Int? = nil)
         throws -> Double {
-        try consumeWork(); try Task.checkCancellation(); try options.validate(tolerance: tolerance)
+        try consumeWork(); try CurrentTaskCancellationChecker().checkCancellation(); try options.validate(tolerance: tolerance)
         guard start.isFinite, end.isFinite, start != end, maximumSpanCount > 0,
               maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0,
               maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
@@ -193,7 +193,7 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
         stack.append(.init(lower: 0, upper: 1, depth: 0))
         var visited = 0, result = 0.0
         while let cell = stack.popLast() {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             guard visited < options.maximumCellCount else {
                 throw GeometryConversionError.resourceLimitExceeded("Original correspondence exhausted the requested cell count.")
             }
@@ -232,7 +232,7 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
         let maximumAlgebraicDepth: Int?
         mutating func consumeExactWork(_ count: Int) throws {
             guard count >= 0 else { throw GeometryConversionError.invalidInput("Original correspondence work count is invalid.") }
-            for _ in 0..<count { try Task.checkCancellation(); try work() }
+            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try work() }
         }
         mutating func retainExactStorage(_ count: Int) throws {
             let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)

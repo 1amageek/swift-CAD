@@ -7,6 +7,7 @@ public struct OriginalBoundaryCorrectedSurface3D: Hashable, Sendable {
     private let nativeOwners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan]
     private let constructionBoundaries: OriginalCoonsSurface3D
     private let cornerResiduals: [IntervalVector3DBounds]
+    private let hasZeroOriginalCorrection: Bool
     private let preparedMaximumSpanCount: Int
     private let preparedMaximumSubdivisionDepth: Int
 
@@ -77,6 +78,17 @@ public struct OriginalBoundaryCorrectedSurface3D: Hashable, Sendable {
                     y: a.y.coefficient(0, 0) - b.y.coefficient(0, 0), z: a.z.coefficient(0, 0) - b.z.coefficient(0, 0)))
             }
         }
+        let zeroCorrection = try boundaries.vMinimumBoundary.hasSameOriginalTraversal(as: bottom,
+            consumeWork: { try usage.consumeExactWork($0) })
+            && boundaries.vMaximumBoundary.hasSameOriginalTraversal(as: top,
+                consumeWork: { try usage.consumeExactWork($0) })
+            && boundaries.uMinimumBoundary.hasSameOriginalTraversal(as: left,
+                consumeWork: { try usage.consumeExactWork($0) })
+            && boundaries.uMaximumBoundary.hasSameOriginalTraversal(as: right,
+                consumeWork: { try usage.consumeExactWork($0) })
+        try RationalAlgebraStorage.retain(1, of: Bool.self, usage: &usage)
+        try CurrentTaskCancellationChecker().checkCancellation()
+        hasZeroOriginalCorrection = zeroCorrection
         self.construction = construction; self.boundaries = boundaries
         constructionBoundaries = originalConstructionBoundaries; cornerResiduals = corners
         preparedMaximumSpanCount = maximumSpanCount; preparedMaximumSubdivisionDepth = maximumSubdivisionDepth
@@ -107,7 +119,7 @@ public struct OriginalBoundaryCorrectedSurface3D: Hashable, Sendable {
         tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
         remainingSourceDepth: Int, consumeWork: () throws -> Void,
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceAreaIntervalTaylorVectorJet {
-        func work() throws { try Task.checkCancellation(); try consumeWork() }
+        func work() throws { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
         try work(); try validate(tolerance: tolerance)
         guard order >= 0, maximumSpanCount > 0, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0,
             box.u.lower >= 0, box.u.upper <= 1, box.v.lower >= 0, box.v.upper <= 1 else {
@@ -117,6 +129,10 @@ public struct OriginalBoundaryCorrectedSurface3D: Hashable, Sendable {
         let depthCap = min(maximumSubdivisionDepth, preparedMaximumSubdivisionDepth)
         let native = try nativeTaylor(over: box, order: order, tolerance: tolerance,
             maximumSpanCount: spanCap, maximumDepth: depthCap, consumeWork: work, consumeStorage: consumeStorage)
+        if hasZeroOriginalCorrection {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            return native
+        }
         func boundary(_ source: OriginalCurveRootSpan3D, over range: ScalarInterval,
             alongU: Bool) throws -> SurfaceAreaIntervalTaylorVectorJet {
             if order == 1 {

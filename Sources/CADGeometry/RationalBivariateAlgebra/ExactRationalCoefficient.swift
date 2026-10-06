@@ -71,7 +71,7 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         return Self(sign: sign, numerator: n.0, denominator: d.0)
     }
     public func adding<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         if isZero { return other }; if other.isZero { return self }
         let lhs = try other.denominator == .one ? numerator : numerator.multiplied(by: other.denominator, usage: &usage)
         let rhs = try denominator == .one ? other.numerator : other.numerator.multiplied(by: denominator, usage: &usage)
@@ -87,7 +87,7 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         try adding(other.negated, usage: &usage)
     }
     public func multiplied<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         if isZero || other.isZero { return .zero }
         if numerator == .one && denominator == .one { return sign > 0 ? other : other.negated }
         if other.numerator == .one && other.denominator == .one { return other.sign > 0 ? self : negated }
@@ -96,7 +96,7 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
             denominator: denominator.multiplied(by: other.denominator, usage: &usage), usage: &usage)
     }
     public func divided<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         guard !other.isZero else { throw rationalAlgebraFailure("Exact rational division by zero.") }
         if isZero { return .zero }
         if other.numerator == .one && other.denominator == .one { return other.sign > 0 ? self : negated }

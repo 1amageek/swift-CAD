@@ -1,6 +1,16 @@
 import CADCore
 import Synchronization
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct CertifiedSphereTorusIntersectionCurve: Hashable, Sendable {
     public enum ComponentKind: String, Hashable, Sendable {

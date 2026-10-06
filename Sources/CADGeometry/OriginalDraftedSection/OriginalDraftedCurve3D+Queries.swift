@@ -5,14 +5,14 @@ extension OriginalDraftedCurve3D {
         tolerance:ModelingTolerance) throws -> IntervalVectorDerivativeJet {
         let q = try intervalTaylorJet(over:parameters,throughOrder:order,tolerance:tolerance,
             maximumSpanCount:maximumSpanCount,maximumSubdivisionDepth:maximumSubdivisionDepth,
-            remainingSourceDepth:remainingSourceDepth,consumeWork:{ try Task.checkCancellation() })
+            remainingSourceDepth:remainingSourceDepth,consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() })
         func axis(_ scalar:SurfaceAreaIntervalTaylorScalarJet) throws -> IntervalDerivativeJet {
             let count = order.addingReportingOverflow(1)
             guard !count.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original draft derivative dimensions overflow.") }
             var values:[OutwardScalarInterval] = []; values.reserveCapacity(count.partialValue)
             var factorial = OutwardScalarInterval.exact(1)
             for k in 0...order {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 if k > 0 { factorial = factorial * .exact(Double(k)) }
                 values.append(try scalar.coefficient(k,0)*factorial)
             }

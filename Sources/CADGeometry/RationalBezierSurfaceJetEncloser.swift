@@ -84,7 +84,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
 
     func prepare(_ patch: RationalBezierSurfacePatch3D,
                  tolerance: ModelingTolerance,
-                 consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                 consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
                  consumeStorage: ((Int) throws -> Void)? = nil) throws -> PreparedPatch {
         guard patch.controlPoints.isEmpty == false,
               patch.controlPoints.count == patch.weights.count,
@@ -134,18 +134,18 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 vSpan: .exact(patch.vUpper) - .exact(patch.vLower),
                 tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage
             ),
-            polynomialX: polynomialCoordinate(\.x, origin: origin.x, patch: patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
-            polynomialY: polynomialCoordinate(\.y, origin: origin.y, patch: patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
-            polynomialZ: polynomialCoordinate(\.z, origin: origin.z, patch: patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
+            polynomialX: polynomialCoordinate({ $0.x }, origin: origin.x, patch: patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
+            polynomialY: polynomialCoordinate({ $0.y }, origin: origin.y, patch: patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
+            polynomialZ: polynomialCoordinate({ $0.z }, origin: origin.z, patch: patch, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage),
             originalCommonWeight: nil
         )
     }
 
     func prepare(original patch: BSplineSurfaceBezierDecomposer.OriginalHomogeneousPatch,
                  tolerance: ModelingTolerance,
-                 consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                 consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
                  consumeStorage: ((Int) throws -> Void)? = nil) throws -> PreparedPatch {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return try PreparedPatch(uLower: patch.uBounds.lower, uUpper: patch.uBounds.upper,
             vLower: patch.vBounds.lower, vUpper: patch.vBounds.upper, origin: patch.origin,
             controls: derivativeJetControls(patch.controls,
@@ -156,10 +156,10 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             originalCommonWeight: patch.commonWeight)
     }
 
-    private func polynomialCoordinate(_ coordinate: KeyPath<Point3D, Double>, origin: Double,
+    private func polynomialCoordinate(_ coordinate: (Point3D) -> Double, origin: Double,
                                       patch: RationalBezierSurfacePatch3D,
                                       tolerance: ModelingTolerance,
-                                      consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                                      consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
                                       consumeStorage: ((Int) throws -> Void)? = nil) throws -> HomogeneousJetControls? {
         guard !(try patch.weights.allSatisfy({ row in try row.allSatisfy { try consumeWork(); return $0 == 1 } })) else { return nil }
         let points: [[Point3D]]
@@ -169,7 +169,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             return true
         }),
            try patch.controlPoints.allSatisfy({ row in
-               try row.allSatisfy { try consumeWork(); return $0[keyPath: coordinate] == row[0][keyPath: coordinate] }
+               try row.allSatisfy { try consumeWork(); return coordinate($0) == coordinate(row[0]) }
            }) {
             try OriginalCoefficientAllocation.reserve(count: patch.controlPoints.count, of: [Point3D].self, consumeStorage: consumeStorage)
             points = try patch.controlPoints.map { row in
@@ -179,7 +179,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             }
         } else if try patch.weights.allSatisfy({ row in try row.allSatisfy { try consumeWork(); return $0 == row[0] } }),
                   try patch.controlPoints.allSatisfy({ row in
-                      try row.indices.allSatisfy { try consumeWork(); return row[$0][keyPath: coordinate] == patch.controlPoints[0][$0][keyPath: coordinate] }
+                      try row.indices.allSatisfy { try consumeWork(); return coordinate(row[$0]) == coordinate(patch.controlPoints[0][$0]) }
                   }) {
             try OriginalCoefficientAllocation.reserve(count: 1, of: [Point3D].self, consumeStorage: consumeStorage)
             points = [patch.controlPoints[0]]
@@ -190,7 +190,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             return try row.map { point in
             try consumeWork()
             return IntervalHomogeneousSurfaceControl(
-                x: .exact(point[keyPath: coordinate]) - .exact(origin),
+                x: .exact(coordinate(point)) - .exact(origin),
                 y: .exact(0), z: .exact(0), weight: .exact(1))
         } }
         return try derivativeJetControls(controls,
@@ -217,7 +217,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     /// Requests only original value and tangent nets, with no synthetic higher jet.
     func firstOrderEnclosure(of patch: PreparedPatch, u: ScalarInterval, v: ScalarInterval,
                              tolerance: ModelingTolerance) throws -> FirstOrderEnclosure {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard u.lower.isFinite, u.upper.isFinite, v.lower.isFinite, v.upper.isFinite,
               u.lower <= u.upper, v.lower <= v.upper,
               u.lower >= patch.uLower, u.upper <= patch.uUpper,
@@ -257,21 +257,21 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         let du = original.derivativeU
         let dv = original.derivativeV
         let weight = patch.originalCommonWeight.map(OutwardScalarInterval.exact)
-            ?? scalarValue(value, component: \.weight)
+            ?? scalarValue(value, component: { $0.weight })
         let reciprocal = try positiveValueReciprocal(weight, tolerance: tolerance)
-        let weightU = patch.originalCommonWeight == nil ? scalarValue(du, component: \.weight) : .exact(0)
-        let weightV = patch.originalCommonWeight == nil ? scalarValue(dv, component: \.weight) : .exact(0)
+        let weightU = patch.originalCommonWeight == nil ? scalarValue(du, component: { $0.weight }) : .exact(0)
+        let weightV = patch.originalCommonWeight == nil ? scalarValue(dv, component: { $0.weight }) : .exact(0)
         func coordinate(_ polynomial: FirstOrderControls?,
-                        component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>,
+                        component: (IntervalHomogeneousSurfaceControl) -> OutwardScalarInterval,
                         origin: Double) throws -> (OutwardScalarInterval, OutwardScalarInterval, OutwardScalarInterval) {
             let relative: OutwardScalarInterval
             let firstU: OutwardScalarInterval
             let firstV: OutwardScalarInterval
             if let polynomial {
                 let localized = try localize(polynomial)
-                relative = scalarValue(localized.value, component: \.x)
-                firstU = scalarValue(localized.derivativeU, component: \.x)
-                firstV = scalarValue(localized.derivativeV, component: \.x)
+                relative = scalarValue(localized.value, component: { $0.x })
+                firstU = scalarValue(localized.derivativeU, component: { $0.x })
+                firstV = scalarValue(localized.derivativeV, component: { $0.x })
             } else {
                 relative = scalarValue(value, component: component) * reciprocal
                 firstU = (scalarValue(du, component: component) - relative * weightU) * reciprocal
@@ -284,10 +284,10 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             }
             return (position, firstU, firstV)
         }
-        let x = try coordinate(polynomials[0], component: \.x, origin: patch.origin.x)
-        let y = try coordinate(polynomials[1], component: \.y, origin: patch.origin.y)
-        let z = try coordinate(polynomials[2], component: \.z, origin: patch.origin.z)
-        try Task.checkCancellation()
+        let x = try coordinate(polynomials[0], component: { $0.x }, origin: patch.origin.x)
+        let y = try coordinate(polynomials[1], component: { $0.y }, origin: patch.origin.y)
+        let z = try coordinate(polynomials[2], component: { $0.z }, origin: patch.origin.z)
+        try CurrentTaskCancellationChecker().checkCancellation()
         return FirstOrderEnclosure(value: .init(x: x.0, y: y.0, z: z.0),
             derivativeU: .init(x: x.1, y: y.1, z: z.1), derivativeV: .init(x: x.2, y: y.2, z: z.2))
     }
@@ -341,7 +341,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                 pointPolynomials.append(nil); closedPolynomials.append(nil)
             }
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return PreparedFirstOrderRow(patch: patch, u: u, pointControls: original.point,
             closedControls: original.closed, pointPolynomials: pointPolynomials, closedPolynomials: closedPolynomials)
     }
@@ -353,7 +353,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
               v.lower >= patch.vLower, v.upper <= patch.vUpper else {
             throw invalidPatchError(tolerance: tolerance)
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let singleton = v.lower == v.upper
         let controls = singleton ? row.pointControls : row.closedControls
         let polynomials = singleton ? row.pointPolynomials : row.closedPolynomials
@@ -399,7 +399,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     /// Original value nets only; no synthetic derivative jet is constructed.
     func pointValueEnclosure(of patch: PreparedPatch, u: Double, v: Double,
         tolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let parameters = try normalizedPointParameters(of:patch,u:u,v:v,tolerance:tolerance)
         return try resolvedValue(of:patch,tolerance:tolerance) { values in
             try evaluatePointControls(values,localU:parameters.u,localV:parameters.v,tolerance:tolerance)
@@ -410,7 +410,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     /// only their value nets are requested, not unneeded derivative nets.
     func valueEnclosure(of patch: PreparedPatch, u: ScalarInterval, v: ScalarInterval,
         tolerance: ModelingTolerance) throws -> IntervalVector3DBounds {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard u.lower.isFinite, u.upper.isFinite, v.lower.isFinite, v.upper.isFinite,
               u.lower <= u.upper, v.lower <= v.upper,
               u.lower >= patch.uLower, u.upper <= patch.uUpper,
@@ -437,7 +437,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             if candidate.isFinite, candidate >= 0, candidate <= 1 {
                 let offset = FloatingPointExpansion.difference(value, lower)
                 let span = FloatingPointExpansion.difference(upper, lower)
-                if offset.allSatisfy(\.isFinite), span.allSatisfy(\.isFinite),
+                if offset.allSatisfy({ $0.isFinite }), span.allSatisfy({ $0.isFinite }),
                    span.allSatisfy({ component in
                        if candidate == 0 || component == 0 { return true }
                        // Dekker's splitter is 2^27+1 < 2^28. Normal operands
@@ -457,7 +457,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
                     // The candidate alone is not evidence. Exact equality of
                     // original stored operands proves this singleton refinement;
                     // the witness span is never a rounded difference.
-                    if product.allSatisfy(\.isFinite), residual.allSatisfy(\.isFinite),
+                    if product.allSatisfy({ $0.isFinite }), residual.allSatisfy({ $0.isFinite }),
                        FloatingPointExpansion.sign(residual) == .zero {
                         return .exact(candidate)
                     }
@@ -495,17 +495,17 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         // Original normalized parameters lie in [0,1], so both the
         // outward evaluation and each coefficient convex hull contain
         // the scalar value, including already differentiated nets.
-        func intersect(_ component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>)
+        func intersect(_ component: (IntervalHomogeneousSurfaceControl) -> OutwardScalarInterval)
             throws -> OutwardScalarInterval {
-            let hull = OutwardScalarInterval.enclosing(values.map { $0[keyPath: component] })
-            guard let result = level[0][keyPath: component].intersection(with: hull) else {
+            let hull = OutwardScalarInterval.enclosing(values.map { component($0) })
+            guard let result = component(level[0]).intersection(with: hull) else {
                 throw KernelError(phase: .geometry, code: .intersectionFailure, tolerance: tolerance,
                     message: "Surface point Bernstein evaluation and its certified coefficient hull are disjoint.")
             }
             return result
         }
-        return try IntervalHomogeneousSurfaceControl(x: intersect(\.x), y: intersect(\.y),
-            z: intersect(\.z), weight: intersect(\.weight))
+        return try IntervalHomogeneousSurfaceControl(x: intersect({ $0.x }), y: intersect({ $0.y }),
+            z: intersect({ $0.z }), weight: intersect({ $0.weight }))
     }
 
 
@@ -514,21 +514,21 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         throws -> IntervalVector3DBounds {
         let localized = try localize(patch.controls.value)
         let weight = patch.originalCommonWeight.map(OutwardScalarInterval.exact)
-            ?? scalarValue(localized,component:\IntervalHomogeneousSurfaceControl.weight)
+            ?? scalarValue(localized,component:{ $0.weight })
         let reciprocal = try positiveValueReciprocal(weight,tolerance:tolerance)
         func coordinate(_ polynomial: HomogeneousJetControls?,
-            component: KeyPath<IntervalHomogeneousSurfaceControl,OutwardScalarInterval>, origin: Double)
+            component: (IntervalHomogeneousSurfaceControl) -> OutwardScalarInterval, origin: Double)
             throws -> OutwardScalarInterval {
             let polynomialValue: OutwardScalarInterval?
-            if let polynomial { polynomialValue = scalarValue(try localize(polynomial.value),component:\.x) }
+            if let polynomial { polynomialValue = scalarValue(try localize(polynomial.value),component:{ $0.x }) }
             else { polynomialValue = nil }
             return cartesianValue(numerator:scalarValue(localized,component:component),
                 reciprocal:reciprocal,polynomial:polynomialValue,origin:origin)
         }
         let result = try IntervalVector3DBounds(
-            x:coordinate(patch.polynomialX,component:\.x,origin:patch.origin.x),
-            y:coordinate(patch.polynomialY,component:\.y,origin:patch.origin.y),
-            z:coordinate(patch.polynomialZ,component:\.z,origin:patch.origin.z))
+            x:coordinate(patch.polynomialX,component:{ $0.x },origin:patch.origin.x),
+            y:coordinate(patch.polynomialY,component:{ $0.y },origin:patch.origin.y),
+            z:coordinate(patch.polynomialZ,component:{ $0.z },origin:patch.origin.z))
         guard result.x.isFinite, result.y.isFinite, result.z.isFinite else {
             throw KernelError(phase:.geometry,code:.singularSystem,tolerance:tolerance,
                 message:"Original surface value evaluation could not certify finite Cartesian bounds.")
@@ -551,20 +551,20 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
     }
 
     private func scalarValue(_ values: [[IntervalHomogeneousSurfaceControl]],
-        component: KeyPath<IntervalHomogeneousSurfaceControl,OutwardScalarInterval>) -> OutwardScalarInterval {
-        .enclosing(values.flatMap { row in row.map { $0[keyPath:component] } })
+        component: (IntervalHomogeneousSurfaceControl) -> OutwardScalarInterval) -> OutwardScalarInterval {
+        .enclosing(values.flatMap { row in row.map { component($0) } })
     }
 
     private func resolvedJet(of patch: PreparedPatch,
         localize: (HomogeneousJetControls) throws -> HomogeneousJetControls,
         tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
         let localized = try localize(patch.controls)
-        let x = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.x)
-        let y = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.y)
-        let z = scalarJet(localized, component: \IntervalHomogeneousSurfaceControl.z)
+        let x = scalarJet(localized, component: { $0.x })
+        let y = scalarJet(localized, component: { $0.y })
+        let z = scalarJet(localized, component: { $0.z })
         let enclosedWeight = scalarJet(
             localized,
-            component: \IntervalHomogeneousSurfaceControl.weight
+            component: { $0.weight }
         )
         let weight: SurfaceIntervalJet
         if let common = patch.originalCommonWeight {
@@ -589,7 +589,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             let value: SurfaceIntervalJet
             let polynomialValue: OutwardScalarInterval?
             if let polynomial {
-                value = scalarJet(try localize(polynomial),component:\.x)
+                value = scalarJet(try localize(polynomial),component:{ $0.x })
                 polynomialValue = value.value
             } else {
                 value = rational * reciprocalWeight
@@ -613,7 +613,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
             guard [coordinate.value,coordinate.derivativeU,coordinate.derivativeV,
                 coordinate.secondDerivativeUU,coordinate.secondDerivativeUV,coordinate.secondDerivativeVV,
                 coordinate.thirdDerivativeUUU,coordinate.thirdDerivativeUUV,
-                coordinate.thirdDerivativeUVV,coordinate.thirdDerivativeVVV].allSatisfy(\.isFinite) else {
+                coordinate.thirdDerivativeUVV,coordinate.thirdDerivativeVVV].allSatisfy({ $0.isFinite }) else {
                 throw KernelError(phase:.geometry,code:.singularSystem,tolerance:tolerance,
                     message:"A rational surface jet could not certify finite value and derivative intervals.")
             }
@@ -626,7 +626,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         uSpan: OutwardScalarInterval,
         vSpan: OutwardScalarInterval,
         tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil
     ) throws -> HomogeneousJetControls {
         guard uSpan.isFinite, uSpan.lower > 0.0,
@@ -694,7 +694,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
 
     private func differentiatedU(
         _ controls: [[IntervalHomogeneousSurfaceControl]], span: OutwardScalarInterval,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil
     ) throws -> [[IntervalHomogeneousSurfaceControl]] {
         let count = controls.first?.count ?? 0
@@ -728,7 +728,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
 
     private func differentiatedV(
         _ controls: [[IntervalHomogeneousSurfaceControl]], span: OutwardScalarInterval,
-        tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil
     ) throws -> [[IntervalHomogeneousSurfaceControl]] {
         let count = controls.first?.count ?? 1
@@ -798,7 +798,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
 
     private func scalarJet(
         _ controls: HomogeneousJetControls,
-        component: KeyPath<IntervalHomogeneousSurfaceControl, OutwardScalarInterval>
+        component: (IntervalHomogeneousSurfaceControl) -> OutwardScalarInterval
     ) -> SurfaceIntervalJet {
         func enclosure(_ values: [[IntervalHomogeneousSurfaceControl]]) -> OutwardScalarInterval {
             scalarValue(values,component:component)
@@ -896,7 +896,7 @@ struct RationalBezierSurfaceJetEncloser: Sendable {
         upper: [[IntervalHomogeneousSurfaceControl]]
     ) {
         let splits = controls.map { split($0, parameter: parameter) }
-        return (splits.map(\.lower), splits.map(\.upper))
+        return (splits.map({ $0.lower }), splits.map({ $0.upper }))
     }
 
     private func splitV(

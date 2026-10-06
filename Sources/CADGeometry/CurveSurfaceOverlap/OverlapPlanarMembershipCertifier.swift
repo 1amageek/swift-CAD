@@ -4,7 +4,7 @@ import CADCore
 struct OverlapPlanarMembershipCertifier {
     func deviation(of curve: Curve3D, over range: ScalarInterval,
                    on plane: CanonicalAnalyticSurface.Plane, tolerance: ModelingTolerance) throws -> Double {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         // The interval-specific encloser covers translated periodic spans as well.
         // A fundamental-domain-only prepared decomposition cannot authorize this range.
         let position = try DefaultCurveDifferentialEncloser().thirdOrderIntervalJet(

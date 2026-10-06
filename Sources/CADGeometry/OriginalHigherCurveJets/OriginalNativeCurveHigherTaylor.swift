@@ -32,7 +32,7 @@ struct OriginalNativeCurveHigherTaylor {
                 of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
             var level = coefficients
             while level.count > 1 {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 for i in 0..<(level.count - 1) {
                     try consumeWork()
                     level[i] = level[i] * (.exact(1) - q) + level[i + 1] * q

@@ -257,7 +257,7 @@ struct DefaultBSplineSurfaceDerivativeRangeResolver:
     ) throws -> CurveSpatialDerivativeRange {
         let baseValues = base.flatMap { $0 }
         let derivativeValues = derivative.flatMap { $0 }
-        let weight = try outwardInterval(baseValues.map(\.weight))
+        let weight = try outwardInterval(baseValues.map({ $0.weight }))
         guard weight.lower > 0.0 else {
             throw KernelError(
                 phase: .geometry,
@@ -268,30 +268,30 @@ struct DefaultBSplineSurfaceDerivativeRangeResolver:
             )
         }
         let derivativeWeight = try outwardInterval(
-            derivativeValues.map(\.weight)
+            derivativeValues.map({ $0.weight })
         )
         let denominator = try multiplied(weight, weight)
         return try CurveSpatialDerivativeRange(
             x: quotientDerivative(
-                coordinate: try outwardInterval(baseValues.map(\.x)),
+                coordinate: try outwardInterval(baseValues.map({ $0.x })),
                 derivativeCoordinate:
-                    try outwardInterval(derivativeValues.map(\.x)),
+                    try outwardInterval(derivativeValues.map({ $0.x })),
                 weight: weight,
                 derivativeWeight: derivativeWeight,
                 denominator: denominator
             ),
             y: quotientDerivative(
-                coordinate: try outwardInterval(baseValues.map(\.y)),
+                coordinate: try outwardInterval(baseValues.map({ $0.y })),
                 derivativeCoordinate:
-                    try outwardInterval(derivativeValues.map(\.y)),
+                    try outwardInterval(derivativeValues.map({ $0.y })),
                 weight: weight,
                 derivativeWeight: derivativeWeight,
                 denominator: denominator
             ),
             z: quotientDerivative(
-                coordinate: try outwardInterval(baseValues.map(\.z)),
+                coordinate: try outwardInterval(baseValues.map({ $0.z })),
                 derivativeCoordinate:
-                    try outwardInterval(derivativeValues.map(\.z)),
+                    try outwardInterval(derivativeValues.map({ $0.z })),
                 weight: weight,
                 derivativeWeight: derivativeWeight,
                 denominator: denominator

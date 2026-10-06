@@ -16,7 +16,7 @@ struct OriginalRectangleTessellationBudget: Sendable {
     }
 
     mutating func consume(depth: Int, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth >= 0, depth <= 32, usedCellCount < maximumCellCount else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                 message: "Original rectangle tessellation exhausted its aggregate proof budget.")

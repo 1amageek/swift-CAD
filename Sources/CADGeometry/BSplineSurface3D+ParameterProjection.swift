@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 extension BSplineSurface3D {
     func parameterProjectionResult(
@@ -350,10 +360,10 @@ extension BSplineSurface3D {
         sourcePatches: [RationalBezierPointProjectionPatch],
         tolerance: ModelingTolerance
     ) -> [ProjectionCandidate] {
-        guard let uLower = sourcePatches.map(\.uLower).min(),
-              let uUpper = sourcePatches.map(\.uUpper).max(),
-              let vLower = sourcePatches.map(\.vLower).min(),
-              let vUpper = sourcePatches.map(\.vUpper).max() else {
+        guard let uLower = sourcePatches.map({ $0.uLower }).min(),
+              let uUpper = sourcePatches.map({ $0.uUpper }).max(),
+              let vLower = sourcePatches.map({ $0.vLower }).min(),
+              let vUpper = sourcePatches.map({ $0.vUpper }).max() else {
             return []
         }
         let ordered = candidates.sorted(by: projectionOrder)

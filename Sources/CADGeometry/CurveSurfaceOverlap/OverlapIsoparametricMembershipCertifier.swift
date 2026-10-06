@@ -19,7 +19,7 @@ struct OverlapIsoparametricMembershipCertifier {
         }
         var remainingWork = options.maximumSubdivisionCells
         for reversed in [false, true] {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             if reversed {
                 // The reflected knot vector must represent the exact affine chart
                 // map, rather than a nearby map produced by rounded knot arithmetic.
@@ -39,7 +39,7 @@ struct OverlapIsoparametricMembershipCertifier {
                 var projected = false
                 var index = 0
                 while index < fixedCandidates.count || !projected {
-                    try Task.checkCancellation()
+                    try CurrentTaskCancellationChecker().checkCancellation()
                     if index == fixedCandidates.count {
                         projected = true
                         // This station supplies a trial coordinate only. Every admitted
@@ -238,7 +238,7 @@ struct OverlapIsoparametricMembershipCertifier {
         let independent = count - degree
         guard independent > 0 else { return nil }
         for index in 0..<(knots.count - independent) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard exactSum(knots[index], period), knots[index] + period == knots[index + independent] else { return nil }
         }
         return period
@@ -297,7 +297,7 @@ struct OverlapIsoparametricMembershipCertifier {
         var minimumWeight = Double.infinity
         let coordinate: [(Point3D) -> Double] = [{ $0.x }, { $0.y }, { $0.z }]
         for index in source.controlPoints.indices {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             var weight = OutwardScalarInterval.exact(0)
             var numerator = Array(repeating: OutwardScalarInterval.exact(0), count: 3)
             for other in 0..<count {
@@ -347,7 +347,7 @@ struct OverlapIsoparametricMembershipCertifier {
         }
         if degree > 0 {
             for current in 1...degree {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 var next = Array(repeating: OutwardScalarInterval.exact(0), count: count)
                 for index in 0..<count {
                     let left = OutwardScalarInterval.exact(knots[index + current]) - .exact(knots[index])

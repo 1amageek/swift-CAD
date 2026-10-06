@@ -80,7 +80,7 @@ struct OriginalGraphBandRationalPiece: Sendable {
         }
         let affineWeight = Self.product([.exact(points[0].x), .exact(points[degree].x)], self.weights)
         let residual = Self.difference(elevatedX, affineWeight)
-        guard let bound = Interval.exact(residual.map(\.absoluteUpperBound).max()!)
+        guard let bound = Interval.exact(residual.map({ $0.absoluteUpperBound }).max()!)
             .divided(by: .exact(weights.min()!)), bound.isFinite else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                               message: "Original graph endpoint residual exceeded finite arithmetic.")
@@ -128,8 +128,8 @@ struct OriginalGraphBandRationalPiece: Sendable {
         }
         // Positive original weights and the native Bernstein partition of unity
         // independently retain the original Cartesian convex hull.
-        let uHull = Interval(lower: points.map(\.x).min()!, upper: points.map(\.x).max()!)
-        let vHull = Interval(lower: points.map(\.y).min()!, upper: points.map(\.y).max()!)
+        let uHull = Interval(lower: points.map({ $0.x }).min()!, upper: points.map({ $0.x }).max()!)
+        let vHull = Interval(lower: points.map({ $0.y }).min()!, upper: points.map({ $0.y }).max()!)
         guard let boundedU = u.intersection(with: uHull), let boundedV = v.intersection(with: vHull) else {
             throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
                               message: "Original graph quotient and coefficient hulls are inconsistent.")
@@ -191,7 +191,7 @@ struct OriginalGraphBandRationalPiece: Sendable {
                 upper = newUpper
             }
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return try ScalarInterval(lower: lower, upper: upper)
     }
 

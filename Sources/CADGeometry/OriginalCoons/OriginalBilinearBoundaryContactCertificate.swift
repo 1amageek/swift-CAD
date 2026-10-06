@@ -22,8 +22,8 @@ struct OriginalBilinearBoundaryContactCertificate {
         let distance = try ExactRationalCoefficient.originalDouble(tolerance.distance, usage: &usage)
         let distanceSquared = try distance.multiplied(by: distance, usage: &usage)
         for axis in axes {
-            try Task.checkCancellation(); try usage.visitExactCell(depth: 0)
-            if axis.allSatisfy(\.isZero) { continue }
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: 0)
+            if axis.allSatisfy({ $0.isZero }) { continue }
             try usage.retainExactStorage(8)
             let a = try first.vertices.map { try Proof.dot(axis, $0, usage: &usage) }
             let b = try second.vertices.map { try Proof.dot(axis, $0, usage: &usage) }

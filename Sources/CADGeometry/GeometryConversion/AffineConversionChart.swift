@@ -14,7 +14,7 @@ struct AffineConversionChart: Sendable {
     }
 
     func parameter(_ value: Double) throws -> Double {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard value.isFinite else {
             throw GeometryConversionError.invalidInput("An affine chart requires a finite parameter.")
         }
@@ -26,7 +26,7 @@ struct AffineConversionChart: Sendable {
     }
 
     func image(_ interval: ScalarInterval) throws -> ScalarInterval {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         if scale == 1, offset == 0 { return interval }
         let first = endpoint(interval.lower), second = endpoint(interval.upper)
         return try finite(.init(lower: min(first.lower, second.lower), upper: max(first.upper, second.upper)))

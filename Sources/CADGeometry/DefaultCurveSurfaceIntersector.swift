@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
   private let invocation: CurveSurfaceQueryInvocation?
@@ -4181,7 +4191,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         y: .init(lower: sourceBounds.minimum.y, upper: sourceBounds.maximum.y),
         z: .init(lower: sourceBounds.minimum.z, upper: sourceBounds.maximum.z))
       let mapped = try OriginalAffineWordJetTransport.position(image.preparedWord, bounds: original,
-        consumeWork: { try Task.checkCancellation() })
+        consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
       return try .init(minimum: .init(x: mapped.x.lower, y: mapped.y.lower, z: mapped.z.lower),
         maximum: .init(x: mapped.x.upper, y: mapped.y.upper, z: mapped.z.upper))
     }
@@ -4500,8 +4510,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       )
     }
     return SurfaceParameterBounds(
-      u: try outwardInterval(points.map(\.u)),
-      v: try outwardInterval(points.map(\.v))
+      u: try outwardInterval(points.map({ $0.u })),
+      v: try outwardInterval(points.map({ $0.v }))
     )
   }
 

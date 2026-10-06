@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct DefaultHeightQuadraticTripleSolver:
     HeightQuadraticTripleSolving
@@ -20,7 +30,7 @@ struct DefaultHeightQuadraticTripleSolver:
         tolerance: ModelingTolerance
     ) -> Bool {
         let polynomial = polynomial(context: context)
-        guard polynomial.coefficients.allSatisfy(\.isFinite),
+        guard polynomial.coefficients.allSatisfy({ $0.isFinite }),
               polynomial.forwardErrorScale.isFinite else {
             return false
         }
@@ -39,7 +49,7 @@ struct DefaultHeightQuadraticTripleSolver:
     ) throws -> [CertifiedIntersectionCandidate] {
         let polynomial = polynomial(context: context)
         let coefficients = polynomial.coefficients
-        guard coefficients.allSatisfy(\.isFinite),
+        guard coefficients.allSatisfy({ $0.isFinite }),
               polynomial.forwardErrorScale.isFinite else {
             throw KernelError(
                 phase: .geometry,

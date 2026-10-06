@@ -6,14 +6,25 @@ package enum LoftSideSurfaceSource {
     case native(BSplineSurface3D)
     case originalCoons(OriginalCoonsSurface3D)
     case originalBoundaryCorrected(OriginalBoundaryCorrectedSurface3D)
-    case originalPlaneDerivative(OriginalPlaneDerivativeSurface3D, GeometryConversionGuarantee)
+    case originalPlaneDerivative(OriginalPlaneDerivativeSurface3D, ProceduralSurface3D, GeometryConversionGuarantee)
+
+    package static func admittingOriginalPlaneDerivative<B: RationalAlgebraAdmitting>(
+        _ source: OriginalPlaneDerivativeSurface3D, usage: inout B,
+        certify: (Surface3D) throws -> GeometryConversionGuarantee
+    ) throws -> Self {
+        try RationalAlgebraStorage.retain(1, of: OriginalPlaneDerivativeSurface3D.self, usage: &usage)
+        try RationalAlgebraStorage.retain(1, of: ProceduralSurface3D.self, usage: &usage)
+        let procedural = ProceduralSurface3D.originalPlaneDerivative(source)
+        let guarantee = try certify(.procedural(procedural))
+        return .originalPlaneDerivative(source, procedural, guarantee)
+    }
 
     package var surface: Surface3D {
         switch self {
         case .native(let source): .bSpline(source)
         case .originalCoons(let source): .procedural(.originalCoons(source))
         case .originalBoundaryCorrected(let source): .procedural(.originalBoundaryCorrected(source))
-        case .originalPlaneDerivative(let source, _): .procedural(.originalPlaneDerivative(source))
+        case .originalPlaneDerivative(_, let retained, _): .procedural(retained)
         }
     }
 
@@ -45,7 +56,7 @@ package enum LoftSideSurfaceSource {
             let x = try jet.x.coefficient(0, 0), y = try jet.y.coefficient(0, 0), z = try jet.z.coefficient(0, 0)
             return try .init(minimum: .init(x: x.lower, y: y.lower, z: z.lower),
                 maximum: .init(x: x.upper, y: y.upper, z: z.upper))
-        case .originalPlaneDerivative(let source, _):
+        case .originalPlaneDerivative(let source, _, _):
             let full = try SurfaceParameterBox(u: .init(lower: 0, upper: 1), v: .init(lower: 0, upper: 1))
             func storage(_ bytes: Int) throws {
                 let rounded = bytes.addingReportingOverflow(MemoryLayout<UInt32>.stride - 1)

@@ -55,19 +55,19 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
 
     func rectangleDomains(over box: SurfaceParameterBox, maximumCount: Int,
                           tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try Task.checkCancellation()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
 
         guard derivativeOrder == 1, !surface.isUPeriodic, !surface.isVPeriodic else { return nil }
         try OriginalCoefficientAllocation.reserve(count:spans.count,of:SurfaceAreaNativeSpanDomain.self,consumeStorage:consumeStorage)
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(spans.count)
         for (index,patch) in spans.enumerated() {
-            try consumeWork(0); try Task.checkCancellation()
+            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
             let u0 = max(box.u.lower,patch.uBounds.lower), u1 = min(box.u.upper,patch.uBounds.upper)
             let v0 = max(box.v.lower,patch.vBounds.lower), v1 = min(box.v.upper,patch.vBounds.upper)
             guard u0 < u1, v0 < v1 else { continue }
@@ -82,12 +82,12 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
 
     func fanDomains(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
                     maximumCount: Int, tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try Task.checkCancellation()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
 
         guard derivativeOrder == 1, !surface.isUPeriodic, !surface.isVPeriodic else { return nil }
         let alongU: Bool, constant: Double, other0: Double, other1: Double
@@ -114,7 +114,7 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(spans.count)
         for (index,patch) in spans.enumerated() {
-            try consumeWork(0); try Task.checkCancellation()
+            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
             let lower = alongU ? patch.uBounds.lower : patch.vBounds.lower
             let upper = alongU ? patch.uBounds.upper : patch.vBounds.upper
             let otherLower = alongU ? patch.vBounds.lower : patch.uBounds.lower
@@ -179,7 +179,7 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
         let proofOrder = order >= 2 ? order : 0
         var found = false
         for span in cover {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let selected = SurfaceParameterBox(
                 u:try ScalarInterval(lower:max(box.u.lower,span.uBounds.lower),upper:min(box.u.upper,span.uBounds.upper)),
                 v:try ScalarInterval(lower:max(box.v.lower,span.vBounds.lower),upper:min(box.v.upper,span.vBounds.upper)))
@@ -196,7 +196,7 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
             throw failure(.invalidInput,tolerance,"Original area jet belongs to another support or tolerance.")
         }
         for (index,original) in spans.enumerated() {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             guard original.uSpanIndex == span.uSpanIndex, original.vSpanIndex == span.vSpanIndex else { continue }
             let receipt = try span.originalCoefficientReceipt(overClosedBox:box,on:surface,
                 tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
@@ -206,7 +206,7 @@ struct SurfaceAreaNativeSpanPartition: Sendable {
     }
 
     private static func order(_ knots: [Double], _ degree: Int, over interval: ScalarInterval? = nil,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws -> Int {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws -> Int {
         let lower = knots[degree], upper = knots[knots.count-degree-1]
         var result = 3, index = 0
         while index < knots.count {

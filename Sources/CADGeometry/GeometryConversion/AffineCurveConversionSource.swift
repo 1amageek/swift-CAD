@@ -11,7 +11,7 @@ public struct AffineCurveConversionSource: GeometryCurveConversionSource {
     }
 
     public func validate(over parameters: ScalarInterval, tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try tolerance.validate()
         guard parameters.width > 0, parameters.width.isFinite else {
             throw GeometryConversionError.invalidInput("Curve conversion requires a finite positive interval.")
@@ -25,7 +25,7 @@ public struct AffineCurveConversionSource: GeometryCurveConversionSource {
         let derivative = value.derivative * chart.scale
         try value.point.validate()
         try derivative.validate()
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return (value.point, derivative)
     }
 
@@ -36,7 +36,7 @@ public struct AffineCurveConversionSource: GeometryCurveConversionSource {
         let result = try CurveDifferentialEnclosure(position: original.position,
             firstDerivative: AffineConversionChart.multiply(original.firstDerivative, by: scale),
             secondDerivative: AffineConversionChart.multiply(original.secondDerivative, by: scale * scale))
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 }

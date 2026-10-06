@@ -15,7 +15,7 @@ struct OriginalSingularFieldGroebnerBasis {
             try usage.retainExactStorage(1); pending.append(Pair(first: j, second: i))
         } }
         while let pair = pending.popLast() {
-            try Task.checkCancellation(); try usage.consumeExactWork(1)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
             guard let a = try basis[pair.first].leading(usage: &usage), let b = try basis[pair.second].leading(usage: &usage) else {
                 throw rationalAlgebraFailure("Original Groebner pair lost its leading source coefficient.")
             }

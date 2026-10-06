@@ -6,7 +6,7 @@ package enum OriginalSurfaceProjectionContraction {
     package static func proves(_ jet: SurfaceIntervalVectorJet,
         consumeWork: () throws -> Void) throws -> Bool {
         for projection in 0..<3 {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeWork()
             let first: SurfaceIntervalJet
             let second: SurfaceIntervalJet
@@ -28,7 +28,7 @@ package enum OriginalSurfaceProjectionContraction {
             .init(lower: value.lower, upper: value.upper)
         }
         for projection in 0..<3 {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeWork()
             let a: ScalarInterval
             let b: ScalarInterval

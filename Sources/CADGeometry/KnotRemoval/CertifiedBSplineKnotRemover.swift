@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct CertifiedBSplineKnotRemover: BSplineKnotRemoving {
     public init() {}
@@ -87,8 +97,8 @@ public struct CertifiedBSplineKnotRemover: BSplineKnotRemoving {
         var points: [[Point3D]]
         var weights: [[Double]]
         if direction == .u {
-            points = reduced.map(\.controlPoints)
-            weights = reduced.map(\.weights)
+            points = reduced.map({ $0.controlPoints })
+            weights = reduced.map({ $0.weights })
         } else {
             points = (0..<first.controlPointCount).map { index in reduced.map { $0.controlPoints[index] } }
             weights = (0..<first.controlPointCount).map { index in reduced.map { $0.weights[index] } }

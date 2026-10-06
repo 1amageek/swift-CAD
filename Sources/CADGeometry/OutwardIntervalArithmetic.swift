@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// An interval whose arithmetic operations round away from the represented
 /// real result. The model is defined by its stored `Double` values; use
@@ -34,8 +44,8 @@ package struct OutwardScalarInterval: Sendable {
         _ values: [OutwardScalarInterval]
     ) -> OutwardScalarInterval {
         OutwardScalarInterval(
-            lower: values.map(\.lower).min() ?? -.infinity,
-            upper: values.map(\.upper).max() ?? .infinity
+            lower: values.map({ $0.lower }).min() ?? -.infinity,
+            upper: values.map({ $0.upper }).max() ?? .infinity
         )
     }
 

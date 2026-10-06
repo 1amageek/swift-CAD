@@ -29,7 +29,7 @@ public final class NativeRationalSourceAllowance: Sendable, RationalAlgebraAdmit
     }
     public func consumeExactWork(_ count: Int) throws {
         try operationCheck()
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try state.withLock { value in
             guard count >= 0, count <= maximumWork - value.work else {
                 throw exhausted("Native original source work exceeds the composing caller allowance.")
@@ -39,7 +39,7 @@ public final class NativeRationalSourceAllowance: Sendable, RationalAlgebraAdmit
     }
     public func retainExactStorage(_ count: Int) throws {
         try operationCheck()
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try state.withLock { value in
             guard count >= 0, count <= maximumStorage - value.storage else {
                 throw exhausted("Native original source storage exceeds the composing caller allowance.")
@@ -49,7 +49,7 @@ public final class NativeRationalSourceAllowance: Sendable, RationalAlgebraAdmit
     }
     public func visitExactCell(depth: Int) throws {
         try operationCheck()
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try state.withLock { value in
             guard depth >= 0, depth <= maximumDepth, value.cells < maximumCells else {
                 throw exhausted("Native original source cells or retained path depth exceed caller allowance.")
@@ -59,7 +59,7 @@ public final class NativeRationalSourceAllowance: Sendable, RationalAlgebraAdmit
     }
     public func snapshot() throws -> NativeRationalSourceAllowanceSnapshot {
         try operationCheck()
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return state.withLock { value in
             NativeRationalSourceAllowanceSnapshot(maximumWork: maximumWork,
                 maximumCells: maximumCells, maximumStorage: maximumStorage,

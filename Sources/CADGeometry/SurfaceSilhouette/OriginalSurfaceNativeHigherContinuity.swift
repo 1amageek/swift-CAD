@@ -14,7 +14,7 @@ struct OriginalSurfaceNativeHigherContinuity {
         }
         mutating func consumeExactWork(_ count: Int) throws {
             guard count >= 0 else { throw rationalAlgebraFailure("Original higher join work count is negative.") }
-            for _ in 0..<count { try Task.checkCancellation(); try consume() }
+            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try consume() }
         }
         mutating func retainExactStorage(_ count: Int) throws {
             let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)

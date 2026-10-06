@@ -247,8 +247,8 @@ package struct ExactCompositeBSplineCurveBuilder: Sendable {
         let curve = BSplineCurve3D(
             degree: degree,
             knots: knots,
-            controlPoints: controls.map(\.point),
-            weights: controls.map(\.weight)
+            controlPoints: controls.map({ $0.point }),
+            weights: controls.map({ $0.weight })
         )
         try curve.validate(tolerance: tolerance)
         return curve

@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// A complete graph certificate for an internal isocurve that is the unique intersection with a
 /// rational affine-plane patch.
@@ -284,7 +294,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       direction == .forward
       ? forward
       : forward.map { Self.negated($0) }
-    guard directed.allSatisfy(\.isFinite) else {
+    guard directed.allSatisfy({ $0.isFinite }) else {
       throw Self.certificateFailure(
         tolerance: tolerance,
         message:
@@ -464,7 +474,7 @@ struct ExactIsoparametricPlanarIntersectionGraph: Sendable {
       sourceIsFirst
       ? sourceDerivatives + planeDerivatives
       : planeDerivatives + sourceDerivatives
-    guard derivativeIntervals.allSatisfy(\.isFinite) else {
+    guard derivativeIntervals.allSatisfy({ $0.isFinite }) else {
       throw Self.certificateFailure(
         tolerance: tolerance,
         message: "An exact isoparametric-planar subcell derivative exceeded finite arithmetic."

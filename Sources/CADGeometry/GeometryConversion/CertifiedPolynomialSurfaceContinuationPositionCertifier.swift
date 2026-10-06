@@ -26,7 +26,7 @@ public struct CertifiedPolynomialSurfaceContinuationPositionCertifier: GeometryP
         over parameters: SurfaceParameterBox, maximumPositionError: Double,
         limits: NativeSurfacePositionCertificationLimits,
         tolerance: ModelingTolerance) throws -> PreparedPolynomialSurfaceContinuationPositionRequest {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try limits.validate()
         try tolerance.validate()
         guard maximumPositionError.isFinite, maximumPositionError > 0,
@@ -43,7 +43,7 @@ public struct CertifiedPolynomialSurfaceContinuationPositionCertifier: GeometryP
         let words = try Budget.add(MemoryLayout<PreparedPolynomialSurfaceContinuationPositionRequest>.stride,
             wordSize - 1) / wordSize
         try budget.charge(scalars: words, work: Budget.add(Budget.multiply(words, 2), 12))
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return PreparedPolynomialSurfaceContinuationPositionRequest(source: source,
             parameters: parameters, maximumPositionError: maximumPositionError,
             tolerance: tolerance, originalLaw: originalLaw, budget: budget)
@@ -51,7 +51,7 @@ public struct CertifiedPolynomialSurfaceContinuationPositionCertifier: GeometryP
 
     public func certifyContinuationPosition(preparedRequest: PreparedPolynomialSurfaceContinuationPositionRequest,
         candidate: BSplineSurface3D) throws -> NativeSurfacePositionCertificate {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let source = preparedRequest.source, parameters = preparedRequest.parameters
         let maximumPositionError = preparedRequest.maximumPositionError, tolerance = preparedRequest.tolerance
         // The producer-only immutable receipt already owns complete original admission.
@@ -112,7 +112,7 @@ public struct CertifiedPolynomialSurfaceContinuationPositionCertifier: GeometryP
             stack.append(Cell(net: children.1, uWidth: uWidth, vWidth: vWidth))
             stack.append(Cell(net: children.0, uWidth: uWidth, vWidth: vWidth))
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return NativeSurfacePositionCertificate(coveredParameters: parameters,
             positionErrorUpperBound: maximumBound, certifiedBoxCount: budget.boxes,
             scalarCount: budget.scalars, workUnits: budget.work)
@@ -203,7 +203,7 @@ public struct CertifiedPolynomialSurfaceContinuationPositionCertifier: GeometryP
             try admitCell(children.1, uWidth: uWidth, vWidth: vWidth, budget: &budget,
                 pending: &pending, maximum: &maximumBound)
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return NativeSurfacePositionCertificate(coveredParameters: parameters,
             positionErrorUpperBound: maximumBound, certifiedBoxCount: budget.boxes,
             scalarCount: budget.scalars, workUnits: budget.work)
@@ -217,11 +217,11 @@ public struct CertifiedPolynomialSurfaceContinuationPositionCertifier: GeometryP
         try budget.charge(work: Budget.multiply(rows, 4))
         var controls = 0, weights = 0
         for row in surface.controlPoints {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             controls = try Budget.add(controls, row.count)
         }
         for row in surface.weights {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             weights = try Budget.add(weights, row.count)
         }
         let knots = try Budget.add(surface.uKnots.count, surface.vKnots.count)
@@ -233,24 +233,24 @@ public struct CertifiedPolynomialSurfaceContinuationPositionCertifier: GeometryP
         try budget.charge(work: Budget.add(Budget.add(pointWork, weightWork),
             Budget.add(knotWork, Budget.add(rows, 64))))
         try surface.validate(tolerance: tolerance)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let uCount = try Budget.add(surface.uDegree, 1)
         let vCount = try Budget.add(surface.vDegree, 1)
         let uLower = surface.uKnots[surface.uDegree], uUpper = surface.uKnots[surface.uControlPointCount]
         let vLower = surface.vKnots[surface.vDegree], vUpper = surface.vKnots[surface.vControlPointCount]
         for index in 0..<uCount {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard surface.uKnots[index] == uLower,
                   surface.uKnots[surface.uKnots.count - 1 - index] == uUpper else { throw unsupported(tolerance) }
         }
         for index in 0..<vCount {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard surface.vKnots[index] == vLower,
                   surface.vKnots[surface.vKnots.count - 1 - index] == vUpper else { throw unsupported(tolerance) }
         }
         let weight = surface.weights[0][0]
         for row in surface.weights {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             for value in row where value != weight { throw unsupported(tolerance) }
         }
         return surface.uControlPointCount == uCount && surface.vControlPointCount == vCount

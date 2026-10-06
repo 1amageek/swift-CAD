@@ -27,7 +27,7 @@ struct OriginalImplicitCurveHigherTaylor {
         var retainedCell: Int?
         let selectedIndices = selectedOwningCellIndex.map { $0..<($0 + 1) } ?? curve.cells.indices
         for index in selectedIndices {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let n = OutwardScalarInterval.exact(Double(curve.cells.count))
             let fraction = OutwardScalarInterval(lower: range.lower, upper: range.upper)
                 * n - .exact(Double(index))
@@ -51,13 +51,13 @@ struct OriginalImplicitCurveHigherTaylor {
             var pending = [Cell(range: try ScalarInterval(lower: clipped.lower, upper: clipped.upper), depth: 0)]
             var capacity = 1
             while let cell = pending.popLast() {
-                try Task.checkCancellation(); try consumeWork()
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                 var state = try prepared.prepareParameterEnclosure(of: curve, cellIndex: index,
                     overClosedInterval: cell.range, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
                 var localized: CertifiedImplicitParameterIntervalJet?
                 var divide = false
                 while localized == nil && !divide {
-                    try Task.checkCancellation(); try consumeWork()
+                    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                     switch try prepared.advanceParameterEnclosure(state, tolerance: tolerance,
                         maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth - cell.depth,
                         remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage) {
@@ -170,7 +170,7 @@ struct OriginalImplicitCurveHigherTaylor {
                 message: "Original higher implicit Jacobian is not certified invertible on its retained root box.")
         }
         for k in 4...order {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let lhs = try OriginalCurveTaylorComposition.compose(surface: first, u: q[0], v: q[1],
                 order: order, consumeWork: consumeWork, consumeStorage: consumeStorage)
             let rhs = try OriginalCurveTaylorComposition.compose(surface: second, u: q[2], v: q[3],

@@ -7,7 +7,7 @@ package enum OriginalAffineWordJetTransport {
     let storage: (Int) throws -> Void
     mutating func consumeExactWork(_ count: Int) throws {
       guard count >= 0 else { throw GeometryConversionError.invalidInput("Original word work count is negative.") }
-      for _ in 0..<count { try Task.checkCancellation(); try work() }
+      for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try work() }
     }
     mutating func retainExactStorage(_ count: Int) throws {
       let bytes = count.multipliedReportingOverflow(by: MemoryLayout<UInt32>.stride)
@@ -43,7 +43,7 @@ package enum OriginalAffineWordJetTransport {
     to jet: SurfaceIntervalVectorJet, consumeWork: () throws -> Void,
     consumeStorage: ((Int) throws -> Void)? = nil) throws -> SurfaceIntervalVectorJet {
     try withoutActuallyEscaping(consumeWork) { work in
-      var usage = BorrowedUsage(work: work, storage: consumeStorage ?? { _ in try Task.checkCancellation() })
+      var usage = BorrowedUsage(work: work, storage: consumeStorage ?? { _ in try CurrentTaskCancellationChecker().checkCancellation() })
       return try applying(word, to: jet, usage: &usage)
     }
   }
@@ -113,7 +113,7 @@ package enum OriginalAffineWordJetTransport {
       var z = try SurfaceAreaIntervalTaylorScalarJet(order: order, tolerance: jet.z.tolerance,
         consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: storage)
       for total in 0...order { for uOrder in 0...total {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         let vOrder = total - uOrder
         let a = try jet.x.coefficient(uOrder, vOrder), b = try jet.y.coefficient(uOrder, vOrder)
         let c = try jet.z.coefficient(uOrder, vOrder)

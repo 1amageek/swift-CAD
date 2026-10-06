@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 public enum Curve3D: Sendable, Hashable {
@@ -310,7 +320,7 @@ public enum Curve3D: Sendable, Hashable {
                 tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
                 remainingSourceDepth: curve.remainingSourceDepth == Int.max ? Int.max : curve.remainingSourceDepth + 1,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
                 firstDerivative: .init(x: try jet.x.coefficient(1, 0).midpoint, y: try jet.y.coefficient(1, 0).midpoint, z: try jet.z.coefficient(1, 0).midpoint),
                 secondDerivative: .init(x: try (jet.x.coefficient(2, 0) * .exact(2)).midpoint, y: try (jet.y.coefficient(2, 0) * .exact(2)).midpoint, z: try (jet.z.coefficient(2, 0) * .exact(2)).midpoint),
@@ -319,7 +329,7 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: 0,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
@@ -328,7 +338,7 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
@@ -337,7 +347,7 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
@@ -346,7 +356,7 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
@@ -355,7 +365,7 @@ public enum Curve3D: Sendable, Hashable {
             let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
                 throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
                 maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
-                consumeWork: { try Task.checkCancellation() })
+                consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
                 firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
                 secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),

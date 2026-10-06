@@ -37,6 +37,19 @@ triangle inequality. A contact residual within model tolerance is not subject
 to the fitting quarter tolerance as source-contact admission.
 
 The body builder retains one canonical connector image per connection/vertex.
+For an original plane-derivative side it admits one immutable payload and the
+new retained procedural field's typed capacity before
+constructing the common indirect `ProceduralSurface3D` case. The internal side
+source retains that same procedural value alongside the payload used by bounds
+and its final guarantee. Repeated surface publication shares this inner owner;
+it does not construct another plane-derivative box. The existing outer
+`Surface3D.procedural` wrapper and caller-authored source lifetime are unchanged.
+The package-only `admittingOriginalPlaneDerivative` factory owns this sequence:
+reserve both new capacities, construct the inner owner once, invoke final
+certification with that exact surface, and publish the paired side source only
+after certification succeeds. Storage refusal prevents certification and
+publication. The production body builder and focused ownership test use this
+same factory; no test-only publication path exists.
 Native Hermite construction resolves every connector of a connection to a
 shared basis before shared edges and both neighboring sides consume those
 images. Original Coons construction retains each connector basis independently
@@ -180,6 +193,12 @@ arrangement gaps remain incomplete until their actual producers are connected.
 
 ## Verification and Change Impact
 
+[LoftPlaneDerivativeOwnershipTests](../../../Tests/CADModelingTests/LoftPlaneDerivativeOwnershipTests.swift)
+exercises the production publication factory with the real surface converter.
+It checks finite admitted success, each retained capacity boundary before
+certification, converter failure without publication, and repeated surface
+evaluation after the constructing scope releases its original payload.
+
 Deferred behavioral checks must exercise the public evaluator with unique and
 ambiguous seam/direction paths, reordered holes, unequal vertex counts,
 stationary and tangent guide parameters, continuous coincidence, both finite
@@ -266,6 +285,11 @@ The body side-proof owner preserves its intrinsic cumulative preparation ceiling
 while forwarding actual work units and retained UInt32 words (checked bytes)
 to the feature's original construction admission. Native/local and feature
 allowances are nested constraints, not independent replenishable budgets.
+Persistent original section charts use the builder's same nonoptional side
+admission for their new source publication. An older input construction ledger
+does not replace the current body invocation owner, and publication does not
+create a private fallback quota. Retained curve dictionary records reserve the
+actual `(CurveID, Curve3D)` payload stride through this same storage owner.
 Guide source arrays and event buffers reserve their typed payload before
 allocation through that same caller storage entry. Metadata comparison scans
 remain work units; original profile callbacks are already canonical UInt32

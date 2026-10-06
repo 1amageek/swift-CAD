@@ -12,7 +12,7 @@ struct SurfaceAreaNativeSurfacePreparationWork {
                 throw KernelError(phase:.geometry,code:.resourceLimitExceeded,tolerance:tolerance,
                     message:"Original native surface preparation storage or work overflows.")
             }
-            for _ in 0..<count.partialValue { try Task.checkCancellation(); try consumeWork() }
+            for _ in 0..<count.partialValue { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
         }
         let u = surface.uDegree.addingReportingOverflow(1)
         let v = surface.vDegree.addingReportingOverflow(1)

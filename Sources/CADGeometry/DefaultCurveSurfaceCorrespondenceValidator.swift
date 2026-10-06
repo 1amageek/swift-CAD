@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 import Synchronization
 
@@ -145,8 +155,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 from: startCurveParameter, to: endCurveParameter, surface: surface,
                 parameterCurve: parameterCurve, options: options, tolerance: tolerance,
                 maximumSpanCount: Int.max, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                remainingSourceDepth: Int.max, consumeWork: { try Task.checkCancellation() },
-                consumeStorage: { _ in try Task.checkCancellation() })
+                remainingSourceDepth: Int.max, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() },
+                consumeStorage: { _ in try CurrentTaskCancellationChecker().checkCancellation() })
             return
         }
         if case .originalAffineWord = parameterCurve {
@@ -154,8 +164,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 from: startCurveParameter, to: endCurveParameter, surface: surface,
                 parameterCurve: parameterCurve, options: options, tolerance: tolerance,
                 maximumSpanCount: Int.max, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
-                remainingSourceDepth: Int.max, consumeWork: { try Task.checkCancellation() },
-                consumeStorage: { _ in try Task.checkCancellation() })
+                remainingSourceDepth: Int.max, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() },
+                consumeStorage: { _ in try CurrentTaskCancellationChecker().checkCancellation() })
             return
         }
         if case let .periodicTranslation(base, _, _) = parameterCurve {
@@ -537,7 +547,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
                 throw resourceFailure(
                     tolerance: tolerance,
-                    message: "Curve-surface correspondence validation exceeded its cell budget. Last cell fractions [\(cell.lower.fraction), \(cell.upper.fraction)] depth \(cell.depth) curve parameters [\(cell.lower.curveParameter), \(cell.upper.curveParameter)] midpoint deviation \((liftedPosition - curvePosition).length); curve second-derivative bound \(String(describing: curveSecondDerivative)), cell-local bound \(String(describing: localBound)), cell-local first-derivative bound \(String(describing: localFirst)), lift first derivative at midpoint \(liftedFirstMagnitude), lift second-derivative bound \(String(describing: liftSecondDerivative)), parameter breaks \(parameterBounds.breaks.count)."
+                    message: "Curve-surface correspondence validation exceeded its cell budget. Last cell fractions [\(cell.lower.fraction), \(cell.upper.fraction)] depth \(cell.depth) curve parameters [\(cell.lower.curveParameter), \(cell.upper.curveParameter)] midpoint deviation \((liftedPosition - curvePosition).length); curve second-derivative bound \(optionalBoundDescription(curveSecondDerivative)), cell-local bound \(optionalBoundDescription(localBound)), cell-local first-derivative bound \(optionalBoundDescription(localFirst)), lift first derivative at midpoint \(liftedFirstMagnitude), lift second-derivative bound \(optionalBoundDescription(liftSecondDerivative)), parameter breaks \(parameterBounds.breaks.count)."
                 )
             }
             remainingCells -= 1
@@ -1464,7 +1474,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             degree: 2,
             knots: [0.0, 0.0, 0.0, 1.0, 1.0, 1.0],
             controlPoints: homogeneousControls.map { $0.euclideanPoint },
-            weights: homogeneousControls.map(\.weight)
+            weights: homogeneousControls.map({ $0.weight })
         )
         try lifted.validate(tolerance: tolerance)
         let orientedCurve = try trimmedAndOriented(
@@ -2378,8 +2388,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             for (index, patch) in patches.enumerated() {
                 let bound = try RationalBezierCurveDerivativeBound(
                     coordinates: [
-                        patch.controlPoints.map(\.x),
-                        patch.controlPoints.map(\.y),
+                        patch.controlPoints.map({ $0.x }),
+                        patch.controlPoints.map({ $0.y }),
                     ],
                     weights: patch.weights,
                     parameterWidth: patch.upper - patch.lower,
@@ -2725,9 +2735,9 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             for patch in patches {
                 let bound = try RationalBezierCurveDerivativeBound(
                     coordinates: [
-                        patch.controlPoints.map(\.x),
-                        patch.controlPoints.map(\.y),
-                        patch.controlPoints.map(\.z),
+                        patch.controlPoints.map({ $0.x }),
+                        patch.controlPoints.map({ $0.y }),
+                        patch.controlPoints.map({ $0.z }),
                     ],
                     weights: patch.weights,
                     parameterWidth: patch.upper - patch.lower,
@@ -2822,7 +2832,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             var maximum = 0.0
             for patch in patches {
                 let bound = try RationalBezierCurveDerivativeBound(
-                    coordinates: [patch.controlPoints.map(\.x), patch.controlPoints.map(\.y), patch.controlPoints.map(\.z)],
+                    coordinates: [patch.controlPoints.map({ $0.x }), patch.controlPoints.map({ $0.y }), patch.controlPoints.map({ $0.z })],
                     weights: patch.weights, parameterWidth: patch.upper - patch.lower, tolerance: tolerance)
                 maximum = max(maximum, hypot(hypot(bound.first[0], bound.first[1]), bound.first[2]).nextUp)
             }
@@ -2949,6 +2959,15 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             tolerance: tolerance,
             message: message
         )
+    }
+
+    private func optionalBoundDescription(_ value: Double?) -> String {
+#if hasFeature(Embedded)
+        if let value { return "Optional(\(value))" }
+        return "nil"
+#else
+        return String(describing: value)
+#endif
     }
 
     private func resourceFailure(

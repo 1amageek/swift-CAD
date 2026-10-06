@@ -13,23 +13,23 @@ public struct MappedSurfaceConversionSource: GeometrySurfaceConversionSource {
 
     public func validate(over parameters: SurfaceParameterBox,
         tolerance: ModelingTolerance) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try mapping.validate(over: parameters, tolerance: tolerance)
         let map = try mapping.enclosure(over: parameters, tolerance: tolerance)
         try source.validate(over: SurfaceParameterBox(u: map.u.value, v: map.v.value), tolerance: tolerance)
     }
 
     public func point(u: Double, v: Double, tolerance: ModelingTolerance) throws -> Point3D {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let uv = try mapping.parameter(u: u, v: v, tolerance: tolerance)
         let result = try source.point(u: uv.u, v: uv.v, tolerance: tolerance)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 
     public func enclosure(over parameters: SurfaceParameterBox,
         tolerance: ModelingTolerance) throws -> SurfaceDifferentialEnclosure {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try mapping.validate(over: parameters, tolerance: tolerance)
         let map = try mapping.enclosure(over: parameters, tolerance: tolerance)
         let image = SurfaceParameterBox(u: map.u.value, v: map.v.value)
@@ -63,7 +63,7 @@ public struct MappedSurfaceConversionSource: GeometrySurfaceConversionSource {
             secondDerivativeUU: coordinates(second(uu, vu, uu, vu, map.u.secondDerivativeUU, map.v.secondDerivativeUU)),
             secondDerivativeUV: coordinates(second(uu, vu, uv, vv, map.u.secondDerivativeUV, map.v.secondDerivativeUV)),
             secondDerivativeVV: coordinates(second(uv, vv, uv, vv, map.u.secondDerivativeVV, map.v.secondDerivativeVV)))
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
 }

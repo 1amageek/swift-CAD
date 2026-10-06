@@ -175,7 +175,7 @@ struct OverlapClosedRectangleRootAuthority: Sendable {
         let origin = surface.controlPoints[0][0]
         var hullX: Interval?, hullY: Interval?, hullZ: Interval?
         for row in 0..<rows {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             var x = Interval.exact(0), y = Interval.exact(0), z = Interval.exact(0), weight = Interval.exact(0)
             for index in basis.values.indices {
                 guard let value = basis.values[index].intersection(with: nonnegative) else { throw inconsistent(budget) }

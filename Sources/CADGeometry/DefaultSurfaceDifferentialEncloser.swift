@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, Sendable {
   public init() {}
@@ -63,7 +73,7 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
     u: SurfaceIntervalJet,
     v: SurfaceIntervalJet,
     tolerance: ModelingTolerance,
-    consumeWork: () throws -> Void = { try Task.checkCancellation() }
+    consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }
   ) throws -> SurfaceIntervalVectorJet? {
     switch surface {
     case .plane(let plane):
@@ -250,22 +260,22 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
     tolerance: ModelingTolerance
   ) throws -> SurfaceDifferentialEnclosure {
     try SurfaceDifferentialEnclosure(
-      position: coordinateEnclosure(jet, at: \SurfaceIntervalJet.value, tolerance: tolerance),
-      tangentU: coordinateEnclosure(jet, at: \SurfaceIntervalJet.derivativeU, tolerance: tolerance),
-      tangentV: coordinateEnclosure(jet, at: \SurfaceIntervalJet.derivativeV, tolerance: tolerance),
+      position: coordinateEnclosure(jet, at: { $0.value }, tolerance: tolerance),
+      tangentU: coordinateEnclosure(jet, at: { $0.derivativeU }, tolerance: tolerance),
+      tangentV: coordinateEnclosure(jet, at: { $0.derivativeV }, tolerance: tolerance),
       secondDerivativeUU: coordinateEnclosure(
         jet,
-        at: \SurfaceIntervalJet.secondDerivativeUU,
+        at: { $0.secondDerivativeUU },
         tolerance: tolerance
       ),
       secondDerivativeUV: coordinateEnclosure(
         jet,
-        at: \SurfaceIntervalJet.secondDerivativeUV,
+        at: { $0.secondDerivativeUV },
         tolerance: tolerance
       ),
       secondDerivativeVV: coordinateEnclosure(
         jet,
-        at: \SurfaceIntervalJet.secondDerivativeVV,
+        at: { $0.secondDerivativeVV },
         tolerance: tolerance
       )
     )
@@ -273,12 +283,12 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
 
   private func coordinateEnclosure(
     _ jet: SurfaceIntervalVectorJet,
-    at keyPath: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>,
+    at keyPath: (SurfaceIntervalJet) -> OutwardScalarInterval,
     tolerance: ModelingTolerance
   ) throws -> CoordinateEnclosure3D {
-    let x = jet.x[keyPath: keyPath]
-    let y = jet.y[keyPath: keyPath]
-    let z = jet.z[keyPath: keyPath]
+    let x = keyPath(jet.x)
+    let y = keyPath(jet.y)
+    let z = keyPath(jet.z)
     guard x.isFinite, y.isFinite, z.isFinite else {
       throw KernelError(
         phase: .geometry,

@@ -363,7 +363,7 @@ package struct ExactLoftBodyBuilder {
                 return try spans.map { span in
                     if publishesOriginalBoundaries {
                         return try retainOriginalBoundary(span.originalChart.persistentCurve(
-                            tolerance: context.tolerance, admission: conversionAdmission))
+                            tolerance: context.tolerance, admission: sideAdmission))
                     }
                     return try retainBoundary(span.curve)
                 }
@@ -710,16 +710,17 @@ package struct ExactLoftBodyBuilder {
                             let generated = try OriginalPlaneDerivativeSurface3D(construction:original,boundaries:finalBoundaries,
                                 startConstraints:startPlane,endConstraints:endPlane,remainingSourceDepth:sideAdmission.remainingSourceDepth,
                                 tolerance:context.tolerance,usage:&originalAllowance)
-                            finalSurface = .procedural(.originalPlaneDerivative(generated))
-                            let full = try SurfaceParameterBox(u:.init(lower:0,upper:1),v:.init(lower:0,upper:1))
-                            let guarantee = try CertifiedGeometryConverter().certifySurface(
-                                source:NativeSurfaceConversionSource(finalSurface,tolerance:context.tolerance,admission:sideAdmission),
-                                candidate:hermite[spanIndex],over:full,
-                                requirements:.init(maximumPositionError:context.tolerance.distance*0.25,
-                                    maximumTangentAngle:context.tolerance.angle,maximumCurvatureError:context.tolerance.distance,
-                                    maximumDegree:max(3,max(hermite[spanIndex].uDegree,hermite[spanIndex].vDegree))),
-                                tolerance:context.tolerance,admission:sideAdmission)
-                            source = .originalPlaneDerivative(generated,guarantee)
+                            source = try .admittingOriginalPlaneDerivative(generated, usage: &originalAllowance) { finalSurface in
+                                let full = try SurfaceParameterBox(u:.init(lower:0,upper:1),v:.init(lower:0,upper:1))
+                                return try CertifiedGeometryConverter().certifySurface(
+                                    source:NativeSurfaceConversionSource(finalSurface,tolerance:context.tolerance,admission:sideAdmission),
+                                    candidate:hermite[spanIndex],over:full,
+                                    requirements:.init(maximumPositionError:context.tolerance.distance*0.25,
+                                        maximumTangentAngle:context.tolerance.angle,maximumCurvatureError:context.tolerance.distance,
+                                        maximumDegree:max(3,max(hermite[spanIndex].uDegree,hermite[spanIndex].vDegree))),
+                                    tolerance:context.tolerance,admission:sideAdmission)
+                            }
+                            finalSurface = source.surface
                         } else {
                             finalSurface = .procedural(.originalBoundaryCorrected(original))
                             source = .originalBoundaryCorrected(original)
@@ -2091,7 +2092,8 @@ package struct ExactLoftBodyBuilder {
                 throw invalidGeometry("Original Loft endpoint enclosure exceeds its vertex admission.")
             }
         }
-        try RationalAlgebraStorage.retain(1, of: (CurveID, Curve3D).self, usage: &allowance)
+        typealias CurveRecord = (CurveID, Curve3D)
+        try RationalAlgebraStorage.retain(1, of: CurveRecord.self, usage: &allowance)
         try RationalAlgebraStorage.retain(1, of: (EdgeID, Edge).self, usage: &allowance)
         let curveID = CurveID(), edgeID = EdgeID()
         geometry.curves[curveID] = boundary.source

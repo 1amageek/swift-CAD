@@ -47,7 +47,7 @@ public enum OriginalParameterGain: Hashable, Sendable {
     public static func originalDifference<B: RationalAlgebraAdmitting>(originalLower: Double,
         originalUpper: Double, periodicTranslation: OriginalParameterPeriodicTranslation,
         usage: inout B) throws -> Self {
-        try Task.checkCancellation(); try usage.visitExactCell(depth: 0)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: 0)
         try periodicTranslation.validate()
         let coefficient = try ExactRationalCoefficient.originalDouble(originalUpper, usage: &usage)
             .subtracting(.originalDouble(originalLower, usage: &usage), usage: &usage)
@@ -69,12 +69,12 @@ public enum OriginalParameterGain: Hashable, Sendable {
         var originals: [OriginalParameterGain] = []
         var coefficient = ExactRationalCoefficient.one
         for factor in factors {
-            try Task.checkCancellation(); try usage.consumeExactWork(1); try factor.validate()
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1); try factor.validate()
             let next: [OriginalParameterGain]
             if case .product(let product) = factor { next = product.factors } else { next = [factor] }
             try usage.retainExactStorage(next.count)
             for original in next {
-                try Task.checkCancellation(); try usage.consumeExactWork(1)
+                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
                 coefficient = try coefficient.multiplied(by: original.exactCoefficient(usage: &usage), usage: &usage)
                 originals.append(original)
             }
@@ -87,7 +87,7 @@ public enum OriginalParameterGain: Hashable, Sendable {
     }
 
     public func exactCoefficient<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactRationalCoefficient {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         switch self {
         case .binary(let value): return try .originalDouble(value, usage: &usage)
         case .ratio(let numerator, let denominator):

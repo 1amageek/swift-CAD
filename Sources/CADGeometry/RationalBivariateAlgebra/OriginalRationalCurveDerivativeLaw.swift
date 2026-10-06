@@ -1,3 +1,5 @@
+import CADCore
+
 /// Exact spatial derivative numerators sharing the original positive weight law.
 package struct OriginalRationalCurveDerivativeLaw: Sendable {
     package let original: OriginalRationalCurvePolynomial
@@ -23,7 +25,7 @@ package struct OriginalRationalCurveDerivativeLaw: Sendable {
         powers.append(weight)
         if throughOrder > 0 {
             for order in 1...throughOrder {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 let factor = try ExactRationalCoefficient.natural(order, usage: &usage)
                 let scaledWeightDerivative = try weightDerivative.scaled(by: factor, usage: &usage)
                 try RationalAlgebraStorage.retain(3, of: ExactBivariatePolynomial.self, usage: &usage)

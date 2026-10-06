@@ -52,9 +52,44 @@ coefficient net or root midpoint supplies original source authority.
 
 ## State, Ownership, and Lifecycle
 
-Public source fields are immutable. Exact polynomial and Sturm data are derived
-immutable retained caches; equality and source fingerprint authority use original
-fields. The caller supplies exact work, storage, cell and depth admission.
+Public source fields and preparation caches live in one immutable, checked
+`Sendable` storage owner. A traversal value retains that owner and a direction
+view; copies and `reversed()` share it without another payload allocation.
+Reversal exchanges endpoint/start/end enclosures and negates the retained slope,
+while preserving source, native side, tolerance and all independent ceilings.
+Equality, hash ordering and Native wire keys still use the directed original
+fields only; owner identity, caches and direction implementation are not source
+identity. This non-frozen type has no promised stored-field ABI or library-evolution
+layout. Public reads and the existing fallible construction API are preserved.
+
+Every constructor, including retained-native preparation and Native decoding,
+reserves the concrete storage payload stride before creating its immutable owner.
+A supplied byte callback owns that reservation; otherwise the existing UInt32-word
+rational ledger owns it. The explicit slot-stride adapter keeps checked ceiling
+division on the same caller ledger. This is retained payload capacity, excluding
+allocator metadata, rather than a claim about arbitrary runtime allocation costs.
+Existing source/preparation owners are shared, and their previous admissions are
+not repeated for this copy. Query endpoint/capability rebinding creates and admits
+one new payload on its existing query ledger; reversal never does so. Exhaustion
+prevents the new traversal from being published. Cancellation is checked after
+the final payload reservation and before owner creation, including cancellation
+requested by a successfully returning admission callback. Exact polynomial and Sturm data
+remain immutable retained caches; the caller supplies work, storage, cell and
+depth admission.
+
+The ordinary Native cooperative worker stack is a required execution boundary:
+large Coons/boundary-corrected aggregate values must not inline-copy every RootSpan
+payload through interval-provider frames. This owner representation is identical
+on Native, normal WASM and Embedded; it adds no mutable cache, unsafe concurrency
+conformance or target-specific storage.
+
+```text
+source + endpoints + admitted preparation
+    -> reserve retained payload on caller ledger
+    -> immutable traversal owner
+        -> forward view / reversed view / copied view
+    -> stricter query localization + same-ledger new owner when required
+```
 
 ## Failure, Concurrency, and Constraints
 
@@ -64,6 +99,17 @@ same exact ledger. Curve families whose original algebraic angular chart is not
 yet supplied remain explicit incomplete branches, never rational image authority.
 
 ## Verification and Change Impact
+
+[RootSpan ownership tests](../../../Tests/CADGeometryTests/OriginalRootSpanOwnershipTests.swift)
+exercise directed value/hash identity, reversal without retained-storage mutation,
+owner lifetime, payload refusal before publication and Native codec reconstruction.
+The composed Native worker counterexamples are owned by the
+[Loft factory suite](../../../Tests/CADModelingTests/LoftPlaneDerivativeOwnershipTests.swift)
+and [Modeling dependency suite](../../../Tests/CADModelingTests/NativeModelingDependencyContractTests.swift):
+actual plane-derivative publication and original projection/trim must run on normal
+Swift Testing workers, including parallel execution. A main-thread or serialized
+success does not satisfy this boundary. Changed representation also requires
+actual complete Core/Geometry normal and Embedded WASM compile/link/runtime.
 
 After the source phase, exercise exact rational axis/plane multiple roots,
 continuous incidence, roots at both original endpoints, reversed traversal,

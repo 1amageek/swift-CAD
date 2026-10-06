@@ -2,13 +2,13 @@ import CADCore
 
 extension OriginalDraftedRuledSurface3D {
     package func intervalJet(over box:SurfaceParameterBox,tolerance:ModelingTolerance) throws -> SurfaceIntervalVectorJet {
-        try intervalJet(over:box,tolerance:tolerance,maximumSpanCount:maximumSpanCount,maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth,consumeWork:{ try Task.checkCancellation() })
+        try intervalJet(over:box,tolerance:tolerance,maximumSpanCount:maximumSpanCount,maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth,consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() })
     }
     public func parameterDerivatives(u: Double, v: Double, tolerance: ModelingTolerance)
         throws -> SurfaceParameterDerivatives {
         let q = try intervalTaylorJet(over:.init(u:.init(lower:u,upper:u),v:.init(lower:v,upper:v)),
             throughOrder:2,tolerance:tolerance,maximumSpanCount:maximumSpanCount,
-            maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth,consumeWork:{ try Task.checkCancellation() })
+            maximumSubdivisionDepth:maximumSubdivisionDepth,remainingSourceDepth:remainingSourceDepth,consumeWork:{ try CurrentTaskCancellationChecker().checkCancellation() })
         func vector(_ uOrder:Int,_ vOrder:Int,_ scale:Double) throws -> Vector3D {
             .init(x:try q.x.coefficient(uOrder,vOrder).midpoint*scale,
                 y:try q.y.coefficient(uOrder,vOrder).midpoint*scale,
@@ -38,11 +38,11 @@ extension OriginalDraftedRuledSurface3D {
         }
         let original = try intervalTaylorJet(over: .init(u: .init(lower: u, upper: u), v: .init(lower: v, upper: v)),
             throughOrder: order, tolerance: tolerance, maximumSpanCount: maximumSpanCount,
-            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, consumeWork: { try Task.checkCancellation() })
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
         func candidate(_ q: SurfaceAreaIntervalTaylorScalarJet) throws -> SurfaceTaylorScalarJet {
             var result = try SurfaceTaylorScalarJet(order: order)
             for total in 0...order { for a in 0...total {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try result.setCoefficient(q.coefficient(a, total-a).midpoint, uOrder: a, vOrder: total-a)
             } }; return result
         }

@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 public struct BSplineCurve2D: Sendable, Hashable {
@@ -208,7 +218,7 @@ public struct BSplineCurve2D: Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try validate(tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+        try validate(tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
     }
 
     package func validate(tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws {

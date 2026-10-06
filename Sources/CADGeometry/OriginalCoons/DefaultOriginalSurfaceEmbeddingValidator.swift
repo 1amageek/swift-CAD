@@ -70,7 +70,7 @@ public struct DefaultOriginalSurfaceEmbeddingValidator: SourceBoundedOriginalSur
         var cells: [Cell] = []
         var localVisits = 0
         while let (box, depth) = pending.popLast() {
-            try Task.checkCancellation(); try usage.visitExactCell(depth: depth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: depth)
             guard localVisits < maximumLocalCellCount else {
                 throw exhausted(tolerance, "Original embedding exhausted its original local-cell allowance.")
             }
@@ -141,7 +141,7 @@ public struct DefaultOriginalSurfaceEmbeddingValidator: SourceBoundedOriginalSur
         try RationalAlgebraStorage.retain(1, of: (SurfaceParameterBox, SurfaceParameterBox, Int).self, usage: &usage)
         var pending = [(firstBox, secondBox, initialDepth)]
         while let (aBox, bBox, depth) = pending.popLast() {
-            try Task.checkCancellation(); try usage.visitExactCell(depth: depth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: depth)
             let a = try query(first, box: aBox, maximumDepth: maximumDepth, maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, usage: &usage)
             let b = try query(second, box: bBox, maximumDepth: maximumDepth, maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth, tolerance: tolerance, usage: &usage)
             if try separated(a, b, tolerance: tolerance, usage: &usage) { continue }

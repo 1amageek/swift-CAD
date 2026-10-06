@@ -235,8 +235,8 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
 
   func excludesIntersection() -> Bool {
     let residual =
-      intervalVector(firstJet, at: \SurfaceIntervalJet.value)
-      - intervalVector(secondJet, at: \SurfaceIntervalJet.value)
+      intervalVector(firstJet, at: { $0.value })
+      - intervalVector(secondJet, at: { $0.value })
     return residual.x.excludesZero || residual.y.excludesZero || residual.z.excludesZero
   }
 
@@ -257,7 +257,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       return result
     }
     let columns = try normalizedDerivativeColumns()
-    guard columns.allSatisfy(\.isFinite) else { return [] }
+    guard columns.allSatisfy({ $0.isFinite }) else { return [] }
     try admission.reserve(count: 4, stride: MemoryLayout<SurfaceIntersectionParameterCoordinate>.stride)
     let coordinates = SurfaceIntersectionParameterCoordinate.allCases
     var result: [SurfaceIntersectionParameterCoordinate] = []
@@ -377,11 +377,11 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       let dependentColumns = dependent.map { columns[$0] }
       guard let inverse = try inverseRows(columns: dependentColumns) else { break }
       try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
-      let center = bounds.map(\.midpoint)
+      let center = bounds.map({ $0.midpoint })
       let ca = try normalizedPointJet(first: true, u: center[0], v: center[1], tolerance: tolerance)
       let cb = try normalizedPointJet(first: false, u: center[2], v: center[3], tolerance: tolerance)
-      let residual = intervalVector(ca, at: \SurfaceIntervalJet.value)
-        - intervalVector(cb, at: \SurfaceIntervalJet.value)
+      let residual = intervalVector(ca, at: { $0.value })
+        - intervalVector(cb, at: { $0.value })
       try admission.reserve(count: 6, stride: MemoryLayout<OutwardScalarInterval>.stride)
       let contracted = try affinePredictorKrawczykBox(inverse: inverse,
         jacobian: jacobianRows(dependentColumns), functionValue: residual,
@@ -415,12 +415,12 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       freeParameter: freeParameter, admission: admission) {
       guard let bounds = try exact.bounds(at: fraction, admission: admission) else { return .empty }
       try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
-      return .uniqueRoot(localParameters: bounds.map(\.midpoint), bounds: bounds)
+      return .uniqueRoot(localParameters: bounds.map({ $0.midpoint }), bounds: bounds)
     }
     let columns = try normalizedDerivativeColumns()
     let freeIndex = freeParameter.rawValue
     guard columns.indices.contains(freeIndex),
-      columns.allSatisfy(\.isFinite)
+      columns.allSatisfy({ $0.isFinite })
     else {
       return .unresolved
     }
@@ -454,8 +454,8 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       u: localParameters[0], v: localParameters[1], tolerance: tolerance)
     let secondValue = try normalizedPointJet(first: false,
       u: localParameters[2], v: localParameters[3], tolerance: tolerance)
-    let functionValue = intervalVector(firstValue, at: \SurfaceIntervalJet.value)
-      - intervalVector(secondValue, at: \SurfaceIntervalJet.value)
+    let functionValue = intervalVector(firstValue, at: { $0.value })
+      - intervalVector(secondValue, at: { $0.value })
     try admission.reserve(count: dependentIndexes.count, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let centers = dependentIndexes.map {
       OutwardScalarInterval.exact(localParameters[$0])
@@ -510,16 +510,16 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
     let intervals = parameterBox.intervals
     try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
-    let actualLower = intervals.map(\.lower)
+    let actualLower = intervals.map({ $0.lower })
     try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
-    let actualUpper = intervals.map(\.upper)
+    let actualUpper = intervals.map({ $0.upper })
     try admission.reserve(count: 8, stride: MemoryLayout<Double>.stride)
     let normalizedLower = domains.normalized(actualLower)
     let normalizedUpper = domains.normalized(actualUpper)
     try admission.reserve(count: 4, stride: MemoryLayout<(Double, Double)>.stride)
     let constraints = zip(normalizedLower, normalizedUpper).map { (lower: $0.0, upper: $0.1) }
     try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
-    var actualSeed = intervals.map(\.midpoint)
+    var actualSeed = intervals.map({ $0.midpoint })
     actualSeed[freeParameterIndex] = intervals[freeParameterIndex].lower
       + intervals[freeParameterIndex].width * fraction
     try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
@@ -627,7 +627,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     let columns = try normalizedDerivativeColumns()
     let freeIndex = freeParameter.rawValue
     guard columns.indices.contains(freeIndex),
-      columns.allSatisfy(\.isFinite)
+      columns.allSatisfy({ $0.isFinite })
     else {
       return .rankUnresolved
     }
@@ -702,7 +702,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     let columns = try normalizedDerivativeColumns()
     let freeIndex = freeParameter.rawValue
     guard columns.indices.contains(freeIndex),
-      columns.allSatisfy(\.isFinite)
+      columns.allSatisfy({ $0.isFinite })
     else {
       return nil
     }
@@ -796,13 +796,13 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
   private func normalizedDerivativeColumns() throws -> [IntervalVector] {
     try admission.reserve(count: 4, stride: MemoryLayout<IntervalVector>.stride)
     return [
-      intervalVector(firstJet, at: \SurfaceIntervalJet.derivativeU)
+      intervalVector(firstJet, at: { $0.derivativeU })
         .scaled(by: originalWidth(parameterBox.firstU)),
-      intervalVector(firstJet, at: \SurfaceIntervalJet.derivativeV)
+      intervalVector(firstJet, at: { $0.derivativeV })
         .scaled(by: originalWidth(parameterBox.firstV)),
-      -intervalVector(secondJet, at: \SurfaceIntervalJet.derivativeU)
+      -intervalVector(secondJet, at: { $0.derivativeU })
         .scaled(by: originalWidth(parameterBox.secondU)),
-      -intervalVector(secondJet, at: \SurfaceIntervalJet.derivativeV)
+      -intervalVector(secondJet, at: { $0.derivativeV })
         .scaled(by: originalWidth(parameterBox.secondV)),
     ]
   }
@@ -814,7 +814,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     let columns = try normalizedDerivativeColumns()
     let freeIndex = freeParameter.rawValue
     guard columns.indices.contains(freeIndex),
-      columns.allSatisfy(\.isFinite)
+      columns.allSatisfy({ $0.isFinite })
     else {
       return nil
     }
@@ -838,7 +838,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       tolerance: tolerance
     )
     try admission.reserve(count: functionModel.count, stride: MemoryLayout<OutwardScalarInterval>.stride)
-    let functionRanges = functionModel.map(\.range)
+    let functionRanges = functionModel.map({ $0.range })
     let functionValue = IntervalVector(
       x: functionRanges[0],
       y: functionRanges[1],
@@ -1057,8 +1057,8 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
   ) throws -> [IntervalQuadraticPolynomial] {
     let firstCenter = try normalizedPointJet(first: true, u: 0.5, v: 0.5, tolerance: tolerance)
     let secondCenter = try normalizedPointJet(first: false, u: 0.5, v: 0.5, tolerance: tolerance)
-    let centerResidual = intervalVector(firstCenter, at: \SurfaceIntervalJet.value)
-      - intervalVector(secondCenter, at: \SurfaceIntervalJet.value)
+    let centerResidual = intervalVector(firstCenter, at: { $0.value })
+      - intervalVector(secondCenter, at: { $0.value })
     guard let coordinate = SurfaceIntersectionParameterCoordinate(rawValue: freeIndex) else {
       throw GeometryConversionError.invalidInput("Original graph Taylor coordinate must identify a source parameter.")
     }
@@ -1067,28 +1067,28 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     let secondDerivative: IntervalVector
     switch freeIndex {
     case 0:
-      firstDerivative = intervalVector(firstCenter, at: \SurfaceIntervalJet.derivativeU).scaled(by: parameterWidth)
+      firstDerivative = intervalVector(firstCenter, at: { $0.derivativeU }).scaled(by: parameterWidth)
       secondDerivative = intervalVector(
         firstJet,
-        at: \SurfaceIntervalJet.secondDerivativeUU
+        at: { $0.secondDerivativeUU }
       ).scaled(by: parameterWidth * parameterWidth)
     case 1:
-      firstDerivative = intervalVector(firstCenter, at: \SurfaceIntervalJet.derivativeV).scaled(by: parameterWidth)
+      firstDerivative = intervalVector(firstCenter, at: { $0.derivativeV }).scaled(by: parameterWidth)
       secondDerivative = intervalVector(
         firstJet,
-        at: \SurfaceIntervalJet.secondDerivativeVV
+        at: { $0.secondDerivativeVV }
       ).scaled(by: parameterWidth * parameterWidth)
     case 2:
-      firstDerivative = intervalVector(secondCenter, at: \SurfaceIntervalJet.derivativeU).scaled(by: -parameterWidth)
+      firstDerivative = intervalVector(secondCenter, at: { $0.derivativeU }).scaled(by: -parameterWidth)
       secondDerivative = -intervalVector(
         secondJet,
-        at: \SurfaceIntervalJet.secondDerivativeUU
+        at: { $0.secondDerivativeUU }
       ).scaled(by: parameterWidth * parameterWidth)
     default:
-      firstDerivative = intervalVector(secondCenter, at: \SurfaceIntervalJet.derivativeV).scaled(by: -parameterWidth)
+      firstDerivative = intervalVector(secondCenter, at: { $0.derivativeV }).scaled(by: -parameterWidth)
       secondDerivative = -intervalVector(
         secondJet,
-        at: \SurfaceIntervalJet.secondDerivativeVV
+        at: { $0.secondDerivativeVV }
       ).scaled(by: parameterWidth * parameterWidth)
     }
     try admission.reserve(count: 12, stride: MemoryLayout<OutwardScalarInterval>.stride)
@@ -1155,7 +1155,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
   ) throws -> IntervalVector {
     let first = try pointJet(first: true, u: parameters.first.u, v: parameters.first.v, tolerance: tolerance)
     let second = try pointJet(first: false, u: parameters.second.u, v: parameters.second.v, tolerance: tolerance)
-    return intervalVector(first, at: \SurfaceIntervalJet.value) - intervalVector(second, at: \SurfaceIntervalJet.value)
+    return intervalVector(first, at: { $0.value }) - intervalVector(second, at: { $0.value })
   }
 
   private func pointJet(first: Bool, u: Double, v: Double,
@@ -1194,9 +1194,9 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     deltaU: OutwardScalarInterval,
     deltaV: OutwardScalarInterval
   ) -> IntervalVector {
-    let uu = intervalVector(jet, at: \SurfaceIntervalJet.secondDerivativeUU)
-    let uv = intervalVector(jet, at: \SurfaceIntervalJet.secondDerivativeUV)
-    let vv = intervalVector(jet, at: \SurfaceIntervalJet.secondDerivativeVV)
+    let uu = intervalVector(jet, at: { $0.secondDerivativeUU })
+    let uv = intervalVector(jet, at: { $0.secondDerivativeUV })
+    let vv = intervalVector(jet, at: { $0.secondDerivativeVV })
     return uu.scaled(by: deltaU * deltaU)
       + uv.scaled(by: .exact(2.0) * deltaU * deltaV)
       + vv.scaled(by: deltaV * deltaV)
@@ -1240,19 +1240,19 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
 
   private func intervalVector(
     _ jet: SurfaceIntervalVectorJet,
-    at keyPath: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>
+    at keyPath: (SurfaceIntervalJet) -> OutwardScalarInterval
   ) -> IntervalVector {
     IntervalVector(
-      x: jet.x[keyPath: keyPath],
-      y: jet.y[keyPath: keyPath],
-      z: jet.z[keyPath: keyPath]
+      x: keyPath(jet.x),
+      y: keyPath(jet.y),
+      z: keyPath(jet.z)
     )
   }
 
   private func jacobianRows(_ columns: [IntervalVector]) throws -> [[OutwardScalarInterval]] {
     try admission.reserve(count: 3, stride: MemoryLayout<Array<OutwardScalarInterval>>.stride)
     try admission.reserve(count: columns.count * 3, stride: MemoryLayout<OutwardScalarInterval>.stride)
-    return [columns.map(\.x), columns.map(\.y), columns.map(\.z)]
+    return [columns.map({ $0.x }), columns.map({ $0.y }), columns.map({ $0.z })]
   }
 
   private func affinePredictorKrawczykBox(
@@ -1475,7 +1475,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
   private func inverseRows(columns originalColumns: [IntervalVector]) throws -> [Vector3D]? {
     guard originalColumns.count == 3 else { return nil }
     try admission.reserve(count: 3, stride: MemoryLayout<Vector3D>.stride)
-    let columns = originalColumns.map(\.midpoint)
+    let columns = originalColumns.map({ $0.midpoint })
     let firstCross = columns[1].cross(columns[2])
     let determinant = columns[0].dot(firstCross)
     let scale = max(columns[0].length, columns[1].length, columns[2].length)

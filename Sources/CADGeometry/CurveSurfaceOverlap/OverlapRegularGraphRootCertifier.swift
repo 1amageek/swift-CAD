@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Two dependent UV variables; source t is never solved as an isolated root.
 struct OverlapRegularGraphRootCertifier: Sendable {
@@ -165,7 +175,7 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let determinant = a * d - b * c
         guard determinant.isFinite, determinant != 0 else { return nil }
         let inverse = [[d / determinant, -b / determinant], [-c / determinant, a / determinant]]
-        guard inverse.joined().allSatisfy(\.isFinite) else { return nil }
+        guard inverse.joined().allSatisfy({ $0.isFinite }) else { return nil }
         let jacobian = [[first.derivativeU, first.derivativeV], [second.derivativeU, second.derivativeV]]
         var q = 0.0
         for row in 0..<2 {
@@ -329,7 +339,7 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let middleDeterminant = a * d - b * c
         guard middleDeterminant.isFinite, middleDeterminant != 0 else { return nil }
         let inverse = [[d / middleDeterminant, -b / middleDeterminant], [-c / middleDeterminant, a / middleDeterminant]]
-        guard inverse.joined().allSatisfy(\.isFinite) else { return nil }
+        guard inverse.joined().allSatisfy({ $0.isFinite }) else { return nil }
         let jacobian = [[f.derivativeU, f.derivativeV], [g.derivativeU, g.derivativeV]]
         let values = [OverlapRegularGraphCell.component(centerJet, pair.first).value - OverlapRegularGraphCell.component(source, pair.first).value,
             OverlapRegularGraphCell.component(centerJet, pair.second).value - OverlapRegularGraphCell.component(source, pair.second).value]
@@ -489,7 +499,7 @@ struct OverlapRegularGraphRootCertifier: Sendable {
         let determinant = a * d - b * c
         guard determinant.isFinite, determinant != 0 else { return nil }
         let inverse = [[d / determinant, -b / determinant], [-c / determinant, a / determinant]]
-        guard inverse.joined().allSatisfy(\.isFinite) else { return nil }
+        guard inverse.joined().allSatisfy({ $0.isFinite }) else { return nil }
         let jacobian = [[f.derivativeU, f.derivativeV], [g.derivativeU, g.derivativeV]]
         var q = 0.0, preconditionedError = 0.0
         for row in 0..<2 {

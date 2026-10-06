@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct BSplineSurfaceBezierDecomposer {
     struct OriginalHomogeneousPatch {
@@ -16,10 +26,10 @@ struct BSplineSurfaceBezierDecomposer {
     /// The separate Cartesian Double geometry producer is not used here.
     func originalHomogeneousPatches(surface: BSplineSurface3D,
                                     tolerance: ModelingTolerance,
-                                    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                                    consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
                                     consumeStorage: ((Int) throws -> Void)? = nil) throws -> [OriginalHomogeneousPatch] {
         try surface.validate(tolerance: tolerance, consumeWork: consumeWork)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         // Cyclic surfaces already retain their original repeated tails. The stored
         // count and native basis are identical to canonical evaluation; no trimmed
         // Cartesian net or newly materialized cycle supplies coefficient authority.
@@ -59,7 +69,7 @@ struct BSplineSurfaceBezierDecomposer {
         result.reserveCapacity(count.partialValue)
         for v in vs {
             for u in us {
-                try Task.checkCancellation(); try consumeWork()
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                 let ub = try ScalarInterval(lower: surface.uKnots[u], upper: surface.uKnots[u + 1])
                 let vb = try ScalarInterval(lower: surface.vKnots[v], upper: surface.vKnots[v + 1])
                 let uBasis = try BSplineBasis.nonzeroIntervalDerivativeValues(parameter: ub.lower, degree: surface.uDegree,
@@ -79,7 +89,7 @@ struct BSplineSurfaceBezierDecomposer {
                 var derivatives = Array(repeating: Array(repeating: IntervalHomogeneousSurfaceControl.zero,
                     count: surface.uDegree + 1), count: surface.vDegree + 1)
                 for vOrder in 0...surface.vDegree {
-                    try Task.checkCancellation(); try consumeWork()
+                    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                     for uOrder in 0...surface.uDegree {
                         try consumeWork()
                         var value = IntervalHomogeneousSurfaceControl.zero
@@ -112,7 +122,7 @@ struct BSplineSurfaceBezierDecomposer {
                 }
                 var controls = derivatives
                 for j in 0...surface.vDegree {
-                    try Task.checkCancellation(); try consumeWork()
+                    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                     for i in 0...surface.uDegree {
                         try consumeWork()
                         var value = IntervalHomogeneousSurfaceControl.zero
@@ -126,7 +136,7 @@ struct BSplineSurfaceBezierDecomposer {
                         }
                         controls[j][i] = IntervalHomogeneousSurfaceControl(x: value.x, y: value.y, z: value.z,
                             weight: commonWeight.map { .exact($0) } ?? value.weight)
-                        guard [value.x, value.y, value.z, value.weight].allSatisfy(\.isFinite) else {
+                        guard [value.x, value.y, value.z, value.weight].allSatisfy({ $0.isFinite }) else {
                             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                                 message: "Original homogeneous extraction exceeds finite coefficient arithmetic.")
                         }
@@ -141,7 +151,7 @@ struct BSplineSurfaceBezierDecomposer {
 
     private func originalBernsteinScale(degree: Int, index: Int, order: Int,
         span: OutwardScalarInterval, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws -> OutwardScalarInterval {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws -> OutwardScalarInterval {
         var scale = OutwardScalarInterval.exact(1)
         if order > 0 {
             for p in 0..<order {

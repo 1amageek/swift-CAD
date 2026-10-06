@@ -27,7 +27,7 @@ extension SurfaceLiftCurve3D {
                 y: .init(lower: original.minimum.y, upper: original.maximum.y),
                 z: .init(lower: original.minimum.z, upper: original.maximum.z))
             let bounds = try OriginalAffineWordJetTransport.position(image.target.preparedWord,
-                bounds: sourceBounds, consumeWork: { try Task.checkCancellation() })
+                bounds: sourceBounds, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
             return try .init(minimum: .init(x: bounds.x.lower, y: bounds.y.lower, z: bounds.z.lower),
                 maximum: .init(x: bounds.x.upper, y: bounds.y.upper, z: bounds.z.upper))
         }

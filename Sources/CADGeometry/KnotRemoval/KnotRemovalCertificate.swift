@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Whole-domain proof independent of the candidate's numerical refinement matrix.
 enum KnotRemovalCertificate {
@@ -85,7 +95,7 @@ enum KnotRemovalCertificate {
                 throw BSplineKnotRemovalError.numericalFailure("Candidate periodic charts failed to cover an original knot span.")
             }
         }
-        guard covered, residual.allSatisfy(\.isFinite) else {
+        guard covered, residual.allSatisfy({ $0.isFinite }) else {
             throw BSplineKnotRemovalError.numericalFailure("The complete-domain homogeneous enclosure is not finite.")
         }
         let xyz = IntervalVector3DBounds(x: .init(lower: -residual[0], upper: residual[0]),
@@ -177,7 +187,7 @@ enum KnotRemovalCertificate {
                 result[j] = result[j] + power[k] * ratio
             }
         }
-        guard result.allSatisfy(\.isFinite) else {
+        guard result.allSatisfy({ $0.isFinite }) else {
             throw BSplineKnotRemovalError.numericalFailure("Bernstein residual coefficients are not finite.")
         }
         return result

@@ -144,7 +144,7 @@ struct RationalScalarBezierPatch: Sendable {
         tolerance: Double
     ) -> Double? {
         guard coefficients.count >= 2,
-              coefficients.allSatisfy(\.isFinite) else {
+              coefficients.allSatisfy({ $0.isFinite }) else {
             return nil
         }
         if repeatedAlongRows {

@@ -117,7 +117,7 @@ struct PolynomialSurfaceContinuationAxisConstruction {
         try budget.charge(scalars: Budget.multiply(controlCount, vectorWords), work: controlCount)
         var result = Array(repeating: SIMD3<Double>.zero, count: controlCount)
         for op in operators {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try budget.charge(scalars: Budget.multiply(n, vectorWords),
                 work: Budget.add(Budget.multiply(try Budget.multiply(n, inputCount), 16), n))
             var bernstein = Array(repeating: SIMD3<Double>.zero, count: n)

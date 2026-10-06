@@ -14,7 +14,7 @@ public struct NativeKnotPolynomialSurfaceContinuationConstructor: GeometryPolyno
         uDegree: Int, vDegree: Int,
         maximumSpanCount: Int, maximumControlPointCountPerAxis: Int
     ) throws -> CertifiedPolynomialSurfaceContinuationCandidate {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard uDegree > 0, vDegree > 0, maximumSpanCount > 0,
               maximumControlPointCountPerAxis > 0 else {
             throw GeometryConversionError.invalidInput("Polynomial continuation construction requires positive degrees and layout ceilings.")
@@ -45,7 +45,7 @@ public struct NativeKnotPolynomialSurfaceContinuationConstructor: GeometryPolyno
         var intermediate: [[SIMD3<Double>]] = []
         intermediate.reserveCapacity(source.vControlPointCount)
         for row in source.controlPoints {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let values = try u.construct(budget: &budget) { index in
                 let point = row[index]
                 return SIMD3(point.x - origin.x, point.y - origin.y, point.z - origin.z)
@@ -70,7 +70,7 @@ public struct NativeKnotPolynomialSurfaceContinuationConstructor: GeometryPolyno
         points.reserveCapacity(v.controlCount)
         weights.reserveCapacity(v.controlCount)
         for row in 0..<v.controlCount {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             var values: [Point3D] = []
             values.reserveCapacity(u.controlCount)
             for column in 0..<u.controlCount {
@@ -95,7 +95,7 @@ public struct NativeKnotPolynomialSurfaceContinuationConstructor: GeometryPolyno
             parameters: preparedRequest.parameters, maximumPositionError: preparedRequest.maximumPositionError,
             tolerance: preparedRequest.tolerance, originalLaw: preparedRequest.originalLaw, budget: budget)
         let certificate = try certifier.certifyContinuationPosition(preparedRequest: paidRequest, candidate: candidate)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return CertifiedPolynomialSurfaceContinuationCandidate(surface: candidate, certificate: certificate)
     }
 }

@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import Synchronization
 
 package struct RationalBezierCurveDerivativeBound: Sendable {
@@ -73,7 +83,7 @@ package struct RationalBezierCurveDerivativeBound: Sendable {
             let homogeneous = coordinate.indices.map {
                 coordinate[$0] * weights[$0]
             }
-            guard homogeneous.allSatisfy(\.isFinite) else {
+            guard homogeneous.allSatisfy({ $0.isFinite }) else {
                 throw KernelError(
                     phase: .geometry,
                     code: .resourceLimitExceeded,
@@ -329,9 +339,9 @@ package struct RationalBezierCurveDerivativeCertificate: Sendable {
         }
         self.init(
             coordinates: [
-                curve.controlPoints.map(\.x),
-                curve.controlPoints.map(\.y),
-                curve.controlPoints.map(\.z),
+                curve.controlPoints.map({ $0.x }),
+                curve.controlPoints.map({ $0.y }),
+                curve.controlPoints.map({ $0.z }),
             ],
             weights: curve.weights,
             parameterWidth: upper - lower
@@ -705,7 +715,7 @@ private struct BernsteinIntervalPolynomial: Sendable {
 
     init?(coefficients: [OutwardScalarInterval]) {
         guard coefficients.isEmpty == false,
-              coefficients.allSatisfy(\.isFinite) else {
+              coefficients.allSatisfy({ $0.isFinite }) else {
             return nil
         }
         self.coefficients = coefficients
@@ -785,11 +795,11 @@ private struct BernsteinIntervalPolynomial: Sendable {
     }
 
     var absoluteUpperBound: Double {
-        coefficients.map(\.absoluteUpperBound).max()?.nextUp ?? .infinity
+        coefficients.map({ $0.absoluteUpperBound }).max()?.nextUp ?? .infinity
     }
 
     var minimumLowerBound: Double {
-        coefficients.map(\.lower).min()?.nextDown ?? -.infinity
+        coefficients.map({ $0.lower }).min()?.nextDown ?? -.infinity
     }
 
     func restricted(to interval: ScalarInterval) -> BernsteinIntervalPolynomial? {

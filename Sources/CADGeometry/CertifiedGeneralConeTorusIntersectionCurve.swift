@@ -1,6 +1,16 @@
 import CADCore
 import Synchronization
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct CertifiedGeneralConeTorusIntersectionCurve: Hashable, Sendable {
     public struct DifferentialGeometry: Hashable, Sendable {
@@ -149,13 +159,13 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Hashable, Sendable {
             try charge(2)
             try charge(differentialPartitions.count)
             for _ in differentialPartitions {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try charge(10)
             }
             try charge(traceParameters.count)
             try charge(slantsByBranch.count)
             for row in slantsByBranch {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try charge(row.count)
             }
         }
@@ -982,7 +992,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Hashable, Sendable {
                   certificate.slantsByBranch.count == branchCount,
                   certificate.slantsByBranch.allSatisfy({
                       $0.count == certificate.traceParameters.count
-                          && $0.allSatisfy(\.isFinite)
+                          && $0.allSatisfy({ $0.isFinite })
                   }),
                   certificate.traceParameters.first == 0.0,
                   certificate.traceParameters.last == 2.0 * Double.pi,
@@ -2297,7 +2307,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Hashable, Sendable {
             )
         }
         let trace = try makeRootTrace(
-            initialSlants: initialRoots.map(\.value),
+            initialSlants: initialRoots.map({ $0.value }),
             configuration: configuration,
             tolerance: tolerance
         )

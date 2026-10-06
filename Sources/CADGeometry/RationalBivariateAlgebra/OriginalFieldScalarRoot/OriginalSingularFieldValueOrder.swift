@@ -6,7 +6,7 @@ package enum OriginalSingularFieldValueOrder {
         _ first: inout OriginalSingularFieldValueIsolation,
         _ second: inout OriginalSingularFieldValueIsolation, maximumDepth: Int,
         maximumCoefficientDepth: Int = 0, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard maximumDepth >= first.sourceDepth, maximumDepth >= second.sourceDepth,
             (0...32).contains(maximumCoefficientDepth),
             first.original.context.coefficientDepth <= maximumCoefficientDepth,
@@ -17,13 +17,13 @@ package enum OriginalSingularFieldValueOrder {
             maximumCoefficientDepth: maximumCoefficientDepth)
         defer { usage = admission.base }
         if try second.lower.subtracting(first.upper, usage: &admission).isPositive {
-            try Task.checkCancellation(); return .negative
+            try CurrentTaskCancellationChecker().checkCancellation(); return .negative
         }
         if try first.lower.subtracting(second.upper, usage: &admission).isPositive {
-            try Task.checkCancellation(); return .positive
+            try CurrentTaskCancellationChecker().checkCancellation(); return .positive
         }
         if first.lower == first.upper, second.lower == second.upper {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             return .zero
         }
         var a = try OriginalSingularRationalCoordinateRoot(isolation: &first,
@@ -42,7 +42,7 @@ package enum OriginalSingularFieldValueOrder {
         second = try .init(original: second.original, lower: b.lower, upper: b.upper,
             inheritedDepth: max(second.sourceDepth, b.depth), maximumDepth: maximumDepth,
             usage: &admission)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return order < 0 ? .negative : order > 0 ? .positive : .zero
     }
 
@@ -51,20 +51,20 @@ package enum OriginalSingularFieldValueOrder {
         let maximumDepth: Int
         let maximumCoefficientDepth: Int
         mutating func consumeExactWork(_ count: Int) throws {
-            try Task.checkCancellation(); try base.consumeExactWork(count)
+            try CurrentTaskCancellationChecker().checkCancellation(); try base.consumeExactWork(count)
         }
         mutating func retainExactStorage(_ count: Int) throws {
-            try Task.checkCancellation(); try base.retainExactStorage(count)
+            try CurrentTaskCancellationChecker().checkCancellation(); try base.retainExactStorage(count)
         }
         mutating func visitExactCell(depth: Int) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard depth >= 0, depth <= maximumDepth else {
                 throw rationalAlgebraFailure("Original scalar order exhausted retained parameter depth.")
             }
             try base.visitExactCell(depth: depth)
         }
         mutating func visitCoefficientCell(depth: Int) throws {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard depth >= 0, depth <= maximumCoefficientDepth else {
                 throw rationalAlgebraFailure("Original scalar order exhausted independent coefficient depth.")
             }

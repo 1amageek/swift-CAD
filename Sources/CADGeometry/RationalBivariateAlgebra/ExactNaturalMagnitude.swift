@@ -81,7 +81,7 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         try usage.retainExactStorage(words.count)
         var quotient = [UInt32](repeating: 0, count: words.count); var remainder = Self.zero
         for bit in (0..<bitCount).reversed() {
-            try Task.checkCancellation(); try usage.consumeExactWork(1)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
             remainder = try remainder.shifted(by: 1, usage: &usage)
             if words[bit / 32] & (UInt32(1) << (bit % 32)) != 0 {
                 remainder = try remainder.adding(.one, usage: &usage)
@@ -123,7 +123,7 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
         var lhs = try a.shiftedRight(by: az, usage: &usage)
         var rhs = try b.shiftedRight(by: bz, usage: &usage)
         while true {
-            try Task.checkCancellation(); try usage.consumeExactWork(max(lhs.words.count, rhs.words.count))
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(max(lhs.words.count, rhs.words.count))
             let comparison = lhs.compared(to: rhs)
             if comparison == 0 { return try lhs.shifted(by: common, usage: &usage) }
             if comparison > 0 {

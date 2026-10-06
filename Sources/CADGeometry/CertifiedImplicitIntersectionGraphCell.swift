@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
   public let parameterBox: SurfaceIntersectionParameterBox
@@ -501,7 +511,7 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     ]
     let freeIndex = freeParameter.rawValue
     let dependentIndexes = SurfaceIntersectionParameterCoordinate.allCases
-      .map(\.rawValue)
+      .map({ $0.rawValue })
       .filter { $0 != freeIndex }
     var firstParameterDerivatives = Array(repeating: 0.0, count: 4)
     firstParameterDerivatives[freeIndex] =
@@ -824,7 +834,7 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
       throw certificateFailure(
         tolerance: tolerance,
         message:
-          "The stored implicit intersection cell reproduced \(reproducedCertificate) instead of a full-graph Krawczyk or exact structural proof. Parameter widths: \(parameterBox.intervals.map(\.width)). Predictor: \(predictorDiagnostic)."
+          "The stored implicit intersection cell reproduced \(reproducedCertificate) instead of a full-graph Krawczyk or exact structural proof. Parameter widths: \(parameterBox.intervals.map({ $0.width })). Predictor: \(predictorDiagnostic)."
       )
     }
     let prover: ParametricSurfaceIntersectionGraphProver
@@ -867,7 +877,7 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     throw certificateFailure(
       tolerance: tolerance,
       message:
-        "The stored parametric-surface intersection cell reproduced \(reproducedCertificate) instead of a full-graph interval Krawczyk proof. Parameter widths: \(parameterBox.intervals.map(\.width)). Predictor: \(predictorDiagnostic)."
+        "The stored parametric-surface intersection cell reproduced \(reproducedCertificate) instead of a full-graph interval Krawczyk proof. Parameter widths: \(parameterBox.intervals.map({ $0.width })). Predictor: \(predictorDiagnostic)."
     )
   }
 
@@ -1011,16 +1021,16 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
         message: "Original graph endpoint tangent has no regular closed derivative enclosure.")
     }
     func component(_ jet: SurfaceIntervalVectorJet,
-      _ key: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>) -> IntervalVector3DBounds {
-      .init(x: jet.x[keyPath: key], y: jet.y[keyPath: key], z: jet.z[keyPath: key])
+      _ key: (SurfaceIntervalJet) -> OutwardScalarInterval) -> IntervalVector3DBounds {
+      .init(x: key(jet.x), y: key(jet.y), z: key(jet.z))
     }
     let sign = OutwardScalarInterval.exact(direction == .forward ? 1 : -1)
     let uScale = (OutwardScalarInterval.exact(parameterBox.firstU.upper) - .exact(parameterBox.firstU.lower)) * sign
     let vScale = (OutwardScalarInterval.exact(parameterBox.firstV.upper) - .exact(parameterBox.firstV.lower)) * sign
     let du = OutwardScalarInterval(lower: velocity[0].lower, upper: velocity[0].upper) * uScale
     let dv = OutwardScalarInterval(lower: velocity[1].lower, upper: velocity[1].upper) * vScale
-    return (component(a, \SurfaceIntervalJet.value), component(b, \SurfaceIntervalJet.value),
-      component(a, \SurfaceIntervalJet.derivativeU) * du + component(a, \SurfaceIntervalJet.derivativeV) * dv,
+    return (component(a, { $0.value }), component(b, { $0.value }),
+      component(a, { $0.derivativeU }) * du + component(a, { $0.derivativeV }) * dv,
       root)
   }
 
@@ -1052,7 +1062,7 @@ public struct CertifiedImplicitIntersectionGraphCell: Sendable, Hashable {
     guard columns.count == 3 else { return nil }
     let cross = columns[1].cross(columns[2])
     let determinant = columns[0].dot(cross)
-    let scale = columns.map(\.length).max() ?? .infinity
+    let scale = columns.map({ $0.length }).max() ?? .infinity
     let floor = max(
       scale * scale * scale * Double.ulpOfOne * 1_024.0,
       Double.leastNonzeroMagnitude

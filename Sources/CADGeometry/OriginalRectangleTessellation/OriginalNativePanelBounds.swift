@@ -39,10 +39,10 @@ extension DefaultSurfaceDifferentialEncloser {
                         message: "Native surface tessellation exhausted its shared proof cell budget.")
     }
     try parameters.validate(for: .bSpline(surface), tolerance: tolerance)
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance,
       consumeWork:{ try proofUsage.consume(depth:0,tolerance:tolerance) })
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     let spans = try prepared.originalNativeSpans(over:parameters,tolerance:tolerance,
       maximumSpanCount:proofUsage.remainingCellCount,
       consumeWork:{ try proofUsage.consume(depth:0,tolerance:tolerance) })
@@ -61,7 +61,7 @@ extension DefaultSurfaceDifferentialEncloser {
     var panels: [Panel] = []
     for (index, span) in spans.enumerated() {
       try proofUsage.consume(depth:0,tolerance:tolerance)
-      if index & 0xFF == 0 { try Task.checkCancellation() }
+      if index & 0xFF == 0 { try CurrentTaskCancellationChecker().checkCancellation() }
       let uLower = max(parameters.u.lower, span.uBounds.lower)
       let uUpper = min(parameters.u.upper, span.uBounds.upper)
       let vLower = max(parameters.v.lower, span.vBounds.lower)

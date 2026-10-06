@@ -33,7 +33,7 @@ public struct DefaultOriginalCurveRootBoundaryClassifier: OriginalCurveRootBound
         var roots: [OriginalCurveRootBoundary] = [], coincident: [ScalarInterval] = []
         var spans = 0
         for index in source.degree..<source.controlPoints.count {
-            try Task.checkCancellation(); try usage.consumeExactWork(1)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
             guard source.knots[index] < source.knots[index + 1] else { continue }
             let lower = max(source.knots[index], trim.lower), upper = min(source.knots[index + 1], trim.upper)
             guard lower <= upper else { continue }

@@ -26,7 +26,7 @@ struct OriginalCorrespondenceParameterCurve {
             uDirection = .constant(0); vDirection = .constant(0); start = 0; end = 1
             controls = value.controlPoints
         case let .affine(origin, direction, lower, upper):
-            guard [origin.x, origin.y, direction.x, direction.y, lower, upper].allSatisfy(\.isFinite),
+            guard [origin.x, origin.y, direction.x, direction.y, lower, upper].allSatisfy({ $0.isFinite }),
                   lower != upper, direction.x != 0 || direction.y != 0 else {
                 throw OriginalCorrespondenceBudget.failure(.invalidInput, budget.tolerance, "Invalid original affine chart.")
             }
@@ -34,14 +34,14 @@ struct OriginalCorrespondenceParameterCurve {
             uOrigin = .constant(origin.x); vOrigin = .constant(origin.y)
             uDirection = .constant(direction.x); vDirection = .constant(direction.y); start = lower; end = upper
         case let .constantU(u, lower, upper):
-            guard [u, lower, upper].allSatisfy(\.isFinite), lower != upper else {
+            guard [u, lower, upper].allSatisfy({ $0.isFinite }), lower != upper else {
                 throw OriginalCorrespondenceBudget.failure(.invalidInput, budget.tolerance, "Invalid original constant-U chart.")
             }
             native = nil; nativeLower = 0; nativeUpper = 1
             uOrigin = .constant(u); vOrigin = .constant(0)
             uDirection = .constant(0); vDirection = .constant(1); start = lower; end = upper
         case let .constantV(v, lower, upper):
-            guard [v, lower, upper].allSatisfy(\.isFinite), lower != upper else {
+            guard [v, lower, upper].allSatisfy({ $0.isFinite }), lower != upper else {
                 throw OriginalCorrespondenceBudget.failure(.invalidInput, budget.tolerance, "Invalid original constant-V chart.")
             }
             native = nil; nativeLower = 0; nativeUpper = 1

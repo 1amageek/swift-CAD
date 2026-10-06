@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Persistent original surface with foreign UV units and a preserved spatial frame.
 public struct OriginalImageSurface3D: Hashable, Sendable {
@@ -194,7 +204,7 @@ public struct OriginalImageSurface3D: Hashable, Sendable {
         var z = try SurfaceTaylorScalarJet(order: order)
         for total in 0...order {
             for a in 0...total {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 let b = total - a
                 let coefficient = transform.applying(to: Vector3D(x: original.x[swapAxes ? b : a, swapAxes ? a : b],
                     y: original.y[swapAxes ? b : a, swapAxes ? a : b],

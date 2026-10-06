@@ -34,7 +34,7 @@ struct SurfaceAreaNativeNumericChartEncloser: Sendable {
         var row: [Point3D] = []
         row.reserveCapacity(curve.controlPoints.count)
         for point in curve.controlPoints {
-            for _ in 0..<4 { try Task.checkCancellation(); try consumeWork() }
+            for _ in 0..<4 { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
             row.append(Point3D(x:point.x,y:point.y,z:0))
         }
         // Actual tensor row owners, knot scalars and surface metadata precede allocation.
@@ -53,7 +53,7 @@ struct SurfaceAreaNativeNumericChartEncloser: Sendable {
         guard tolerance == preparationTolerance, fraction.lower >= 0, fraction.upper <= 1 else {
             throw Self.failure(.invalidInput,tolerance,"Original numeric trim requires its prepared tolerance and normalized fraction.")
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         // Three interval arithmetic outputs, the original fraction pair, and
         // the closed native query pair are admitted before construction.
         for _ in 0..<7 { try consumeWork() }
@@ -70,7 +70,7 @@ struct SurfaceAreaNativeNumericChartEncloser: Sendable {
         let station = try ScalarInterval(lower:0,upper:0)
         var result: SurfaceAreaParameterChartEncloser.IntervalProof?
         for span in partition.spans {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let a = max(query.lower,span.uBounds.lower), b = min(query.upper,span.uBounds.upper)
             guard a <= b else { continue }
             // A positive-width piece owns its closed endpoints from that side.

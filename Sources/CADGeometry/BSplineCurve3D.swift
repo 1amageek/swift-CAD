@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 public struct BSplineCurve3D: Sendable, Hashable {
@@ -195,7 +205,7 @@ public struct BSplineCurve3D: Sendable, Hashable {
                 + [insertionValue]
                 + Array(knots.suffix(from: span + 1)),
             controlPoints: updatedWeightedPoints.map { try $0.point() },
-            weights: updatedWeightedPoints.map(\.weight)
+            weights: updatedWeightedPoints.map({ $0.weight })
         )
         try updatedCurve.validate(tolerance: tolerance)
         return updatedCurve
@@ -228,7 +238,7 @@ public struct BSplineCurve3D: Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try validate(tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+        try validate(tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
     }
 
     /// The composing caller owns admission for every original source visit.

@@ -271,22 +271,22 @@ public struct ExactCoonsBSplineSurfaceBuilder: TransfiniteBSplineSurfaceBuilding
         )
 
         let vMinimumNumerator = try vectorTimesScalar(
-            vMinimumHomogeneous.map(\.numerator),
+            vMinimumHomogeneous.map({ $0.numerator }),
             vMaximum.weights,
             tolerance: tolerance
         )
         let vMaximumNumerator = try vectorTimesScalar(
-            vMaximumHomogeneous.map(\.numerator),
+            vMaximumHomogeneous.map({ $0.numerator }),
             vMinimum.weights,
             tolerance: tolerance
         )
         let uMinimumNumerator = try vectorTimesScalar(
-            uMinimumHomogeneous.map(\.numerator),
+            uMinimumHomogeneous.map({ $0.numerator }),
             uMaximum.weights,
             tolerance: tolerance
         )
         let uMaximumNumerator = try vectorTimesScalar(
-            uMaximumHomogeneous.map(\.numerator),
+            uMaximumHomogeneous.map({ $0.numerator }),
             uMinimum.weights,
             tolerance: tolerance
         )
@@ -443,7 +443,7 @@ public struct ExactCoonsBSplineSurfaceBuilder: TransfiniteBSplineSurfaceBuilding
                 result[resultIndex] += first[firstIndex] * second[secondIndex] * coefficient
             }
         }
-        guard result.allSatisfy(\.isFinite) else {
+        guard result.allSatisfy({ $0.isFinite }) else {
             throw diagnostic(
                 code: .resourceLimitExceeded,
                 tolerance: tolerance,
@@ -476,7 +476,7 @@ public struct ExactCoonsBSplineSurfaceBuilder: TransfiniteBSplineSurfaceBuilding
                     + vectors[vectorIndex] * (scalars[scalarIndex] * coefficient)
             }
         }
-        guard result.allSatisfy(\.isFinite) else {
+        guard result.allSatisfy({ $0.isFinite }) else {
             throw diagnostic(
                 code: .resourceLimitExceeded,
                 tolerance: tolerance,
@@ -638,7 +638,7 @@ public struct ExactCoonsBSplineSurfaceBuilder: TransfiniteBSplineSurfaceBuilding
     private func breaks(
         from patches: [RationalBezierCurvePatch3D]
     ) -> [Double] {
-        [patches[0].lower] + patches.map(\.upper)
+        [patches[0].lower] + patches.map({ $0.upper })
     }
 
     private func assemble(

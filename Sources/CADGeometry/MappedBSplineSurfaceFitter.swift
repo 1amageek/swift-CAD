@@ -199,7 +199,7 @@ package struct MappedBSplineSurfaceFitter: Sendable {
     }
 
     fileprivate static func reserve<T>(_ count: Int, of: T.Type, admission: GeometryConversionAdmission?) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard count >= 0 else { throw GeometryConversionError.resourceLimitExceeded("Candidate storage count is negative.") }
         try admission?.chargeStorage(bytes: GeometryConversionBudget.product(count, MemoryLayout<T>.stride))
     }

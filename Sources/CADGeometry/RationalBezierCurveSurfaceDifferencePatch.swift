@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct RationalBezierCurveSurfaceDifferencePatch: Sendable {
     enum RootCertificate: Sendable, Equatable {
@@ -187,7 +197,7 @@ struct RationalBezierCurveSurfaceDifferencePatch: Sendable {
                 }
             }
         }
-        guard result.flatMap({ $0 }).flatMap({ $0 }).allSatisfy(\.isFinite) else {
+        guard result.flatMap({ $0 }).flatMap({ $0 }).allSatisfy({ $0.isFinite }) else {
             throw KernelError(
                 phase: .geometry,
                 code: .resourceLimitExceeded,
@@ -541,8 +551,8 @@ struct RationalBezierCurveSurfaceDifferencePatch: Sendable {
         component: (IntervalVector) -> OutwardInterval
     ) -> Bool {
         let coefficients = controlNet.flatMap { $0 }.flatMap { $0 }.map(component)
-        let minimum = coefficients.map(\.lower).min() ?? -.infinity
-        let maximum = coefficients.map(\.upper).max() ?? .infinity
+        let minimum = coefficients.map({ $0.lower }).min() ?? -.infinity
+        let maximum = coefficients.map({ $0.upper }).max() ?? .infinity
         return minimum > 0.0 || maximum < 0.0
     }
 

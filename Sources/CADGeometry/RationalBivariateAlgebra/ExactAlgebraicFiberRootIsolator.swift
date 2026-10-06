@@ -39,7 +39,7 @@ struct ExactAlgebraicFiberRootIsolator {
             excludesUpper: true, count: count, depth: source.root.isolation.isolationDepth)]
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while let cell = pending.popLast() {
-            try Task.checkCancellation(); try usage.visitExactCell(depth: cell.depth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.visitExactCell(depth: cell.depth)
             if cell.count == 0 { continue }
             if cell.count == 1 {
                 try usage.retainExactStorage(1)

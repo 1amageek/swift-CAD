@@ -2,20 +2,44 @@ import CADCore
 
 /// Original normalized traversal with exact authored or algebraic endpoint authority.
 public struct OriginalCurveRootSpan3D: Hashable, Sendable {
-    public let source: Curve3D
-    public let nativeSpanIndex: Int?
-    public let start: OriginalCurveRootEndpoint
-    public let end: OriginalCurveRootEndpoint
-    public let certificationTolerance: ModelingTolerance
-    private let preparedStart: ScalarInterval
-    private let preparedEnd: ScalarInterval
-    private let preparedSlope: OutwardScalarInterval
-    private let preparedNativeSpan: RationalBezierCurveJetEncloser.NativeSpan?
-    private let preparedWholeTraversal: PreparedCurveDifferentialEncloser?
-    private let preparedMaximumSpanCount: Int
-    private let preparedRemainingSourceDepth: Int
-    private let preparedMaximumSubdivisionDepth: Int
-    private let preparedMaximumAlgebraicDepth: Int
+    private struct RetainedPayload: Sendable {
+        let source: Curve3D
+        let nativeSpanIndex: Int?
+        let start: OriginalCurveRootEndpoint
+        let end: OriginalCurveRootEndpoint
+        let certificationTolerance: ModelingTolerance
+        let preparedStart: ScalarInterval
+        let preparedEnd: ScalarInterval
+        let preparedSlope: OutwardScalarInterval
+        let preparedNativeSpan: RationalBezierCurveJetEncloser.NativeSpan?
+        let preparedWholeTraversal: PreparedCurveDifferentialEncloser?
+        let preparedMaximumSpanCount: Int
+        let preparedRemainingSourceDepth: Int
+        let preparedMaximumSubdivisionDepth: Int
+        let preparedMaximumAlgebraicDepth: Int
+    }
+
+    private final class ImmutableStorage: Sendable {
+        let payload: RetainedPayload
+        init(_ payload: RetainedPayload) { self.payload = payload }
+    }
+
+    private let storage: ImmutableStorage
+    private let reversedView: Bool
+    public var source: Curve3D { storage.payload.source }
+    public var nativeSpanIndex: Int? { storage.payload.nativeSpanIndex }
+    public var start: OriginalCurveRootEndpoint { reversedView ? storage.payload.end : storage.payload.start }
+    public var end: OriginalCurveRootEndpoint { reversedView ? storage.payload.start : storage.payload.end }
+    public var certificationTolerance: ModelingTolerance { storage.payload.certificationTolerance }
+    private var preparedStart: ScalarInterval { reversedView ? storage.payload.preparedEnd : storage.payload.preparedStart }
+    private var preparedEnd: ScalarInterval { reversedView ? storage.payload.preparedStart : storage.payload.preparedEnd }
+    private var preparedSlope: OutwardScalarInterval { reversedView ? -storage.payload.preparedSlope : storage.payload.preparedSlope }
+    private var preparedNativeSpan: RationalBezierCurveJetEncloser.NativeSpan? { storage.payload.preparedNativeSpan }
+    private var preparedWholeTraversal: PreparedCurveDifferentialEncloser? { storage.payload.preparedWholeTraversal }
+    private var preparedMaximumSpanCount: Int { storage.payload.preparedMaximumSpanCount }
+    private var preparedRemainingSourceDepth: Int { storage.payload.preparedRemainingSourceDepth }
+    private var preparedMaximumSubdivisionDepth: Int { storage.payload.preparedMaximumSubdivisionDepth }
+    private var preparedMaximumAlgebraicDepth: Int { storage.payload.preparedMaximumAlgebraicDepth }
     package var maximumSpanCount: Int { preparedMaximumSpanCount }
     package var maximumSubdivisionDepth: Int { preparedMaximumSubdivisionDepth }
     package var maximumAlgebraicDepth: Int { preparedMaximumAlgebraicDepth }
@@ -171,7 +195,7 @@ public struct OriginalCurveRootSpan3D: Hashable, Sendable {
             exact:(lower:ExactRationalCoefficient,upper:ExactRationalCoefficient,excludesLower:Bool,excludesUpper:Bool)) {
             var width = maximumParameterWidth
             while true {
-                try usage.consumeExactWork(1); try Task.checkCancellation()
+                try usage.consumeExactWork(1); try CurrentTaskCancellationChecker().checkCancellation()
                 let exact = try endpoint.refinedIsolation(maximumWidth:width,
                     maximumSubdivisionDepth:localizationDepth,usage:&usage)
                 let lo = try exact.lower.outwardInterval(usage:&usage), hi = try exact.upper.outwardInterval(usage:&usage)
@@ -204,8 +228,9 @@ public struct OriginalCurveRootSpan3D: Hashable, Sendable {
                 to: max(a.upper, b.upper), tolerance: tolerance) else {
             throw GeometryConversionError.invalidInput("Original root traversal needs distinct ordered source endpoint authority.")
         }
-        self.source = source; self.nativeSpanIndex = nativeSpanIndex; self.start = start; self.end = end
-        certificationTolerance = tolerance
+        let preparedStart: ScalarInterval
+        let preparedEnd: ScalarInterval
+        let preparedSlope: OutwardScalarInterval
         if nativePreparation != nil {
             preparedStart = try localBounds(exactA.lower,exactA.upper)
             preparedEnd = try localBounds(exactB.lower,exactB.upper)
@@ -220,11 +245,7 @@ public struct OriginalCurveRootSpan3D: Hashable, Sendable {
             let upper = try exactB.upper.subtracting(exactA.lower,usage:&usage).outwardInterval(usage:&usage)
             preparedSlope = .init(lower:lower.lower,upper:upper.upper)
         }
-        preparedNativeSpan = nativePreparation
-        preparedMaximumSpanCount = maximumSpanCount
-        preparedRemainingSourceDepth = remainingSourceDepth
-        preparedMaximumSubdivisionDepth = maximumSubdivisionDepth
-        preparedMaximumAlgebraicDepth = localizationDepth
+        let preparedWholeTraversal: PreparedCurveDifferentialEncloser?
         if let retainedNativePreparation {
             preparedWholeTraversal = retainedNativePreparation
         } else {
@@ -234,6 +255,12 @@ public struct OriginalCurveRootSpan3D: Hashable, Sendable {
                     consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: consumeStorage,
                     maximumAlgebraicDepth: maximumAlgebraicDepth) : nil
         }
+        try self.init(source: source, start: start, end: end, nativeSpanIndex: nativeSpanIndex,
+            certificationTolerance: tolerance, preparedStart: preparedStart, preparedEnd: preparedEnd,
+            preparedSlope: preparedSlope, preparedNativeSpan: nativePreparation,
+            preparedWholeTraversal: preparedWholeTraversal, preparedMaximumSubdivisionDepth: maximumSubdivisionDepth,
+            preparedMaximumSpanCount: maximumSpanCount, preparedRemainingSourceDepth: remainingSourceDepth,
+            preparedMaximumAlgebraicDepth: localizationDepth, consumeStorage: consumeStorage, usage: &usage)
     }
 
     /// Exact stored source identity, with complete original payload admission.
@@ -241,7 +268,7 @@ public struct OriginalCurveRootSpan3D: Hashable, Sendable {
         consumeWork: (Int) throws -> Void) throws -> Bool {
         try GeometryStructuralComparisonWork.charge(traversal: self, using: consumeWork)
         try GeometryStructuralComparisonWork.charge(traversal: other, using: consumeWork)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return source == other.source && nativeSpanIndex == other.nativeSpanIndex
             && start == other.start && end == other.end
             && certificationTolerance == other.certificationTolerance
@@ -278,23 +305,36 @@ public struct OriginalCurveRootSpan3D: Hashable, Sendable {
 
     public var parameterDomain: ParameterDomain { .closed(0, 1) }
     public func reversed() -> Self {
-        Self(source: source, start: end, end: start, nativeSpanIndex: nativeSpanIndex, certificationTolerance: certificationTolerance, preparedStart: preparedEnd, preparedEnd: preparedStart, preparedSlope: -preparedSlope, preparedNativeSpan: preparedNativeSpan, preparedWholeTraversal: preparedWholeTraversal, preparedMaximumSubdivisionDepth: preparedMaximumSubdivisionDepth, preparedMaximumSpanCount: preparedMaximumSpanCount, preparedRemainingSourceDepth: preparedRemainingSourceDepth, preparedMaximumAlgebraicDepth: preparedMaximumAlgebraicDepth)
+        Self(storage: storage, reversedView: !reversedView)
     }
-    private init(source: Curve3D, start: OriginalCurveRootEndpoint,
+
+    private init(storage: ImmutableStorage, reversedView: Bool) {
+        self.storage = storage
+        self.reversedView = reversedView
+    }
+
+    private init<B: RationalAlgebraAdmitting>(source: Curve3D, start: OriginalCurveRootEndpoint,
         end: OriginalCurveRootEndpoint, nativeSpanIndex: Int?, certificationTolerance: ModelingTolerance,
         preparedStart: ScalarInterval, preparedEnd: ScalarInterval, preparedSlope: OutwardScalarInterval,
         preparedNativeSpan: RationalBezierCurveJetEncloser.NativeSpan?,
         preparedWholeTraversal: PreparedCurveDifferentialEncloser?, preparedMaximumSubdivisionDepth: Int,
-        preparedMaximumSpanCount: Int, preparedRemainingSourceDepth: Int, preparedMaximumAlgebraicDepth: Int) {
-        self.source = source; self.nativeSpanIndex = nativeSpanIndex; self.start = start; self.end = end
-        self.certificationTolerance = certificationTolerance
-        self.preparedStart = preparedStart; self.preparedEnd = preparedEnd
-        self.preparedSlope = preparedSlope; self.preparedNativeSpan = preparedNativeSpan
-        self.preparedWholeTraversal = preparedWholeTraversal
-        self.preparedMaximumSubdivisionDepth = preparedMaximumSubdivisionDepth
-        self.preparedMaximumAlgebraicDepth = preparedMaximumAlgebraicDepth
-        self.preparedMaximumSpanCount = preparedMaximumSpanCount
-        self.preparedRemainingSourceDepth = preparedRemainingSourceDepth
+        preparedMaximumSpanCount: Int, preparedRemainingSourceDepth: Int, preparedMaximumAlgebraicDepth: Int,
+        consumeStorage: ((Int) throws -> Void)?, usage: inout B) throws {
+        if let consumeStorage {
+            try consumeStorage(MemoryLayout<RetainedPayload>.stride)
+        } else {
+            try RationalAlgebraStorage.retain(1, of: RetainedPayload.self, usage: &usage)
+        }
+        try CurrentTaskCancellationChecker().checkCancellation()
+        let payload = RetainedPayload(source: source, nativeSpanIndex: nativeSpanIndex, start: start, end: end,
+            certificationTolerance: certificationTolerance, preparedStart: preparedStart, preparedEnd: preparedEnd,
+            preparedSlope: preparedSlope, preparedNativeSpan: preparedNativeSpan,
+            preparedWholeTraversal: preparedWholeTraversal, preparedMaximumSpanCount: preparedMaximumSpanCount,
+            preparedRemainingSourceDepth: preparedRemainingSourceDepth,
+            preparedMaximumSubdivisionDepth: preparedMaximumSubdivisionDepth,
+            preparedMaximumAlgebraicDepth: preparedMaximumAlgebraicDepth)
+        storage = ImmutableStorage(payload)
+        reversedView = false
     }
 
 
@@ -420,12 +460,16 @@ public struct OriginalCurveRootSpan3D: Hashable, Sendable {
         if start == .authored(0), end == .authored(1) {
             switch source {
             case .originalGuideTraversalChain, .originalGuideEndpointConnector:
-            return Self(source: source, start: start, end: end, nativeSpanIndex: nativeSpanIndex,
-                certificationTolerance: certificationTolerance, preparedStart: preparedStart, preparedEnd: preparedEnd,
-                preparedSlope: preparedSlope, preparedNativeSpan: preparedNativeSpan,
-                preparedWholeTraversal: preparedWholeTraversal, preparedMaximumSubdivisionDepth: preparedMaximumSubdivisionDepth,
-                preparedMaximumSpanCount: preparedMaximumSpanCount, preparedRemainingSourceDepth: preparedRemainingSourceDepth,
-                preparedMaximumAlgebraicDepth: depth)
+            return try withoutActuallyEscaping(consumeWork) { consumeWork in
+                var usage = QueryAlgebraAdmission(maximumAlgebraicDepth: depth,
+                    consumeWork: consumeWork, consumeStorage: consumeStorage)
+                return try Self(source: source, start: start, end: end, nativeSpanIndex: nativeSpanIndex,
+                    certificationTolerance: certificationTolerance, preparedStart: preparedStart, preparedEnd: preparedEnd,
+                    preparedSlope: preparedSlope, preparedNativeSpan: preparedNativeSpan,
+                    preparedWholeTraversal: preparedWholeTraversal, preparedMaximumSubdivisionDepth: preparedMaximumSubdivisionDepth,
+                    preparedMaximumSpanCount: preparedMaximumSpanCount, preparedRemainingSourceDepth: preparedRemainingSourceDepth,
+                    preparedMaximumAlgebraicDepth: depth, consumeStorage: consumeStorage, usage: &usage)
+            }
             default: break
             }
         }
@@ -482,14 +526,14 @@ public struct OriginalCurveRootSpan3D: Hashable, Sendable {
         let lowSlope = try last.0.subtracting(first.1, usage: &usage).outwardInterval(usage: &usage)
         let highSlope = try last.1.subtracting(first.0, usage: &usage).outwardInterval(usage: &usage)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-        return Self(source: source, start: start, end: end, nativeSpanIndex: nativeSpanIndex,
+        return try Self(source: source, start: start, end: end, nativeSpanIndex: nativeSpanIndex,
             certificationTolerance: certificationTolerance, preparedStart: first.2, preparedEnd: last.2,
             preparedSlope: .init(lower: lowSlope.lower, upper: highSlope.upper),
             preparedNativeSpan: span, preparedWholeTraversal: preparedWholeTraversal,
             preparedMaximumSubdivisionDepth: preparedMaximumSubdivisionDepth,
             preparedMaximumSpanCount: preparedMaximumSpanCount,
             preparedRemainingSourceDepth: preparedRemainingSourceDepth,
-            preparedMaximumAlgebraicDepth: depth)
+            preparedMaximumAlgebraicDepth: depth, consumeStorage: consumeStorage, usage: &usage)
         }
     }
 

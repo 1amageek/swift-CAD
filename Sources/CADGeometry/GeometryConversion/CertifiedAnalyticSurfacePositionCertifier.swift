@@ -40,7 +40,7 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
         over parameters: SurfaceParameterBox, maximumPositionError: Double,
         limits: NativeSurfacePositionCertificationLimits,
         tolerance: ModelingTolerance) throws -> NativeSurfacePositionCertificate {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try limits.validate()
         try tolerance.validate()
         guard maximumPositionError.isFinite, maximumPositionError > 0,
@@ -123,12 +123,12 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
                 v: try ScalarInterval(lower: v, upper: v))
             try chargeAnalyticProbe(family: originalFamily, budget: &budget)
             let a0 = try original.intervalJetAssumingSurfaceValidated(of: source, over: anchor, tolerance: tolerance)
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try chargeCandidatePointJet(of: candidate, at: anchor, budget: &budget)
             let b0 = try target.intervalJet(overClosedBox: anchor, tolerance: tolerance)
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try budget.charge(scalars: 16, work: 128)
-            let value = vector(a0, at: \.value) - vector(b0, at: \.value)
+            let value = vector(a0, at: { $0.value }) - vector(b0, at: { $0.value })
             guard value.norm.isFinite else { throw precisionFailure() }
             if value.norm.lower > maximumPositionError { throw GeometryConversionError.toleranceRejected }
 
@@ -146,10 +146,10 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
             } else {
                 try chargeAnalyticProbe(family: originalFamily, budget: &budget)
                 let a = try original.intervalJetAssumingSurfaceValidated(of: source, over: box, tolerance: tolerance)
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try targetCost.chargeProbe(over: box, pointOnly: false, budget: &budget)
                 let b = try target.intervalJet(overClosedBox: box, tolerance: tolerance)
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 if cubicU {
                     // Twenty numeric fields in the immutable receipt, including
                     // both owner rectangles, are paid before extraction/creation.
@@ -168,10 +168,10 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
                         let phaseScale = CanonicalSphereAngularPhase.scaleBounds
                         let phaseScaleSquared = phaseScale * phaseScale
                         originalFourthU = (Vector(x: .exact(0), y: .exact(0), z: .exact(0))
-                            - vector(a, at: \.secondDerivativeUU)) * phaseScaleSquared
+                            - vector(a, at: { $0.secondDerivativeUU })) * phaseScaleSquared
                     }
                     retainedBounds = CubicWholeBounds(originalFourthU: originalFourthU,
-                        firstVResidual: vector(a, at: \.derivativeV) - vector(b, at: \.derivativeV),
+                        firstVResidual: vector(a, at: { $0.derivativeV }) - vector(b, at: { $0.derivativeV }),
                         parent: box, nativePiece: cell.nativePiece)
                     genericJets = nil
                 } else {
@@ -184,15 +184,15 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
             try budget.charge(scalars: 1_024, work: 8_192)
             let du = offset(box.u, from: u), dv = offset(box.v, from: v)
             let du2 = du * du, dv2 = dv * dv
-            let firstU = (vector(a0, at: \.derivativeU) - vector(b0, at: \.derivativeU)) * du
-            let secondU = (vector(a0, at: \.secondDerivativeUU) - vector(b0, at: \.secondDerivativeUU)) * (du2 * .exact(0.5))
+            let firstU = (vector(a0, at: { $0.derivativeU }) - vector(b0, at: { $0.derivativeU })) * du
+            let secondU = (vector(a0, at: { $0.secondDerivativeUU }) - vector(b0, at: { $0.secondDerivativeUU })) * (du2 * .exact(0.5))
             guard let sixth = OutwardScalarInterval.exact(1).divided(by: .exact(6)) else { throw precisionFailure() }
             let whole: Vector
             let alongU: Bool
             if cubicU {
                 // Follow U at the anchor V, then V at the actual U. This does
                 // not assume that the candidate has vanishing mixed derivatives.
-                let thirdU = (vector(a0, at: \.thirdDerivativeUUU) - vector(b0, at: \.thirdDerivativeUUU)) * (du2 * du * sixth)
+                let thirdU = (vector(a0, at: { $0.thirdDerivativeUUU }) - vector(b0, at: { $0.thirdDerivativeUUU })) * (du2 * du * sixth)
                 guard let retainedBounds else { throw precisionFailure() }
                 guard let twentyFourth = OutwardScalarInterval.exact(1).divided(by: .exact(24)) else { throw precisionFailure() }
                 let fourthU = retainedBounds.originalFourthU * (du2 * du2 * twentyFourth)
@@ -203,15 +203,15 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
             } else {
                 guard let genericJets else { throw precisionFailure() }
                 let a = genericJets.original, b = genericJets.candidate
-                let firstV = (vector(a0, at: \.derivativeV) - vector(b0, at: \.derivativeV)) * dv
-                let secondUV = (vector(a0, at: \.secondDerivativeUV) - vector(b0, at: \.secondDerivativeUV)) * (du * dv)
-                let secondV = (vector(a0, at: \.secondDerivativeVV) - vector(b0, at: \.secondDerivativeVV)) * (dv2 * .exact(0.5))
+                let firstV = (vector(a0, at: { $0.derivativeV }) - vector(b0, at: { $0.derivativeV })) * dv
+                let secondUV = (vector(a0, at: { $0.secondDerivativeUV }) - vector(b0, at: { $0.secondDerivativeUV })) * (du * dv)
+                let secondV = (vector(a0, at: { $0.secondDerivativeVV }) - vector(b0, at: { $0.secondDerivativeVV })) * (dv2 * .exact(0.5))
                 // Generic tensor Taylor retains original third derivatives and
                 // their exact multinomial coefficients on this native piece.
-                let thirdU = (vector(a, at: \.thirdDerivativeUUU) - vector(b, at: \.thirdDerivativeUUU)) * (du2 * du * sixth)
-                let thirdUUV = (vector(a, at: \.thirdDerivativeUUV) - vector(b, at: \.thirdDerivativeUUV)) * (du2 * dv * .exact(0.5))
-                let thirdUVV = (vector(a, at: \.thirdDerivativeUVV) - vector(b, at: \.thirdDerivativeUVV)) * (du * dv2 * .exact(0.5))
-                let thirdV = (vector(a, at: \.thirdDerivativeVVV) - vector(b, at: \.thirdDerivativeVVV)) * (dv2 * dv * sixth)
+                let thirdU = (vector(a, at: { $0.thirdDerivativeUUU }) - vector(b, at: { $0.thirdDerivativeUUU })) * (du2 * du * sixth)
+                let thirdUUV = (vector(a, at: { $0.thirdDerivativeUUV }) - vector(b, at: { $0.thirdDerivativeUUV })) * (du2 * dv * .exact(0.5))
+                let thirdUVV = (vector(a, at: { $0.thirdDerivativeUVV }) - vector(b, at: { $0.thirdDerivativeUVV })) * (du * dv2 * .exact(0.5))
+                let thirdV = (vector(a, at: { $0.thirdDerivativeVVV }) - vector(b, at: { $0.thirdDerivativeVVV })) * (dv2 * dv * sixth)
                 whole = value + firstU + firstV + secondU + secondUV + secondV
                     + thirdU + thirdUUV + thirdUVV + thirdV
                 alongU = (firstU + secondU + secondUV + thirdU + thirdUUV + thirdUVV).norm.upper
@@ -240,7 +240,7 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
                     nativePiece: cell.nativePiece, bounds: retainedBounds))
             }
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return NativeSurfacePositionCertificate(coveredParameters: parameters,
             positionErrorUpperBound: maximumBound, certifiedBoxCount: budget.boxes,
             scalarCount: budget.scalars, workUnits: budget.work)
@@ -319,8 +319,8 @@ public struct CertifiedAnalyticSurfacePositionCertifier: GeometryAnalyticSurface
     }
 
     private func vector(_ jet: SurfaceIntervalVectorJet,
-        at key: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>) -> Vector {
-        Vector(x: jet.x[keyPath: key], y: jet.y[keyPath: key], z: jet.z[keyPath: key])
+        at key: (SurfaceIntervalJet) -> OutwardScalarInterval) -> Vector {
+        Vector(x: key(jet.x), y: key(jet.y), z: key(jet.z))
     }
 
     private func offset(_ interval: ScalarInterval, from anchor: Double) -> OutwardScalarInterval {

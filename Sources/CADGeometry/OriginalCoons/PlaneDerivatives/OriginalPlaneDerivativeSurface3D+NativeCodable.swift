@@ -14,6 +14,7 @@ extension OriginalPlaneDerivativeSurface3D: Codable {
             let start = try OriginalPlaneDerivativeNativeDecoding.constraints(from:c.superDecoder(forKey:.startConstraints),usage:&usage)
             let end = try OriginalPlaneDerivativeNativeDecoding.constraints(from:c.superDecoder(forKey:.endConstraints),usage:&usage)
             let depth = try OriginalAffineWordDecodingContext.maximumSourceDepth(from:decoder)-decoder.codingPath.count
+            try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
             try self.init(construction:original,boundaries:boundaries,startConstraints:start,endConstraints:end,
                 remainingSourceDepth:depth,tolerance:original.certificationTolerance,usage:&usage)
         } else { throw NativeRationalSourceDecodingError.synchronizationCapabilityUnavailable }

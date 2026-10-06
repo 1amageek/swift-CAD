@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 public struct CertifiedParallelTorusTorusIntersectionCurve: Hashable, Sendable {
     public enum ComponentKind: String, Hashable, Sendable {
@@ -1577,8 +1587,8 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Hashable, Sendable {
                     )
             ).nextUp
         }
-        guard radial.allSatisfy(\.isFinite),
-              radicand.allSatisfy(\.isFinite) else {
+        guard radial.allSatisfy({ $0.isFinite }),
+              radicand.allSatisfy({ $0.isFinite }) else {
             throw Self.resourceFailure(
                 tolerance: tolerance,
                 message: "Singular torus-torus angular derivative bounds exceeded finite arithmetic."

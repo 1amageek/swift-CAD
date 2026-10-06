@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 package enum SurfaceFittingTrustRegion {
   package struct Evaluation: Sendable {
@@ -25,7 +35,7 @@ package enum SurfaceFittingTrustRegion {
     relativeRankTolerance: Double, maximumEvaluations: Int, maximumElements: Int,
     evaluate: ([Double]) throws -> Evaluation
   ) throws -> Result {
-    guard !initial.isEmpty, initial.allSatisfy(\.isFinite),
+    guard !initial.isEmpty, initial.allSatisfy({ $0.isFinite }),
       initialRadius.isFinite, initialRadius > 0,
       maximumRadius.isFinite, maximumRadius >= initialRadius,
       residualTolerance.isFinite, residualTolerance >= 0,
@@ -124,7 +134,7 @@ package enum SurfaceFittingTrustRegion {
           }
         }
         let candidate = zip(parameters, step).map(+)
-        guard candidate.allSatisfy(\.isFinite) else {
+        guard candidate.allSatisfy({ $0.isFinite }) else {
           throw failure(
             .resourceLimitExceeded, "Surface fitting trial exceeds finite parameter range.")
         }
@@ -183,7 +193,7 @@ package enum SurfaceFittingTrustRegion {
     let count = rows.multipliedReportingOverflow(by: columns)
     guard rows > 0, !count.overflow, value.residuals.count == rows,
       value.jacobian.count == count.partialValue,
-      value.residuals.allSatisfy(\.isFinite), value.jacobian.allSatisfy(\.isFinite)
+      value.residuals.allSatisfy({ $0.isFinite }), value.jacobian.allSatisfy({ $0.isFinite })
     else {
       throw failure(
         .invalidInput, "Surface fitting evaluator returned invalid dimensions or nonfinite values.")

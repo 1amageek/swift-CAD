@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 package enum SurfaceBoundaryCertifier {
     package struct Side: Sendable {
@@ -41,7 +51,7 @@ package enum SurfaceBoundaryCertifier {
         var visited = 0
         var maxima = Array(repeating: 0.0, count: order + 1)
         while let cell = pending.popLast() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard visited < maximumCells else {
                 throw failure(.resourceLimitExceeded, "Boundary certification exhausted its cell budget.")
             }

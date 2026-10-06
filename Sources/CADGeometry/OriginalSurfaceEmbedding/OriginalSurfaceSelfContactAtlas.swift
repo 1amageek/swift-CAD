@@ -18,7 +18,7 @@ package struct OriginalSurfaceSelfContactAtlas {
         provesInjectivity: (SurfaceParameterBox, Int) throws -> Bool,
         visitCrossPair: (SurfaceParameterBox, SurfaceParameterBox, Int) throws -> Void) throws {
         try options.validate(tolerance: tolerance)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork(0)
         guard domain.u.lower.isFinite, domain.u.upper.isFinite,
               domain.v.lower.isFinite, domain.v.upper.isFinite,
@@ -38,7 +38,7 @@ package struct OriginalSurfaceSelfContactAtlas {
         pending.append(Cell(first: domain, second: domain, depth: 0, isDiagonal: true))
         var visited = 0
         while let cell = pending.popLast() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeWork(cell.depth)
             guard visited < options.maximumSubdivisionCells else {
                 throw failure(tolerance, "Original self-contact atlas exhausted its supplied cell ceiling.")

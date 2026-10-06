@@ -11,7 +11,7 @@ struct OverlapChartCurveReducer {
     private func reduce(_ curve: SurfaceParameterCurve, depth: Int, remaining: inout Int,
                         options: CurveSurfaceIntersectionOptions,
                         tolerance: ModelingTolerance) throws -> SurfaceParameterCurve? {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth <= options.maximumSubdivisionDepth, remaining > 0 else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                 message: "Overlap chart-image reduction exceeded its depth or work budget.")

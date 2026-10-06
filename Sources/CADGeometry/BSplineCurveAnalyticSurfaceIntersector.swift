@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct BSplineCurveAnalyticSurfaceIntersector {
     func intersections(
@@ -285,7 +295,7 @@ struct BSplineCurveAnalyticSurfaceIntersector {
             )
         }
         guard coefficients.isEmpty == false,
-              coefficients.allSatisfy(\.isFinite) else {
+              coefficients.allSatisfy({ $0.isFinite }) else {
             throw KernelError(
                 phase: .geometry,
                 code: .resourceLimitExceeded,
@@ -565,7 +575,7 @@ struct BSplineCurveAnalyticSurfaceIntersector {
 
     private func bernsteinToPower(_ coefficients: [Double]) throws -> [Double] {
         guard coefficients.isEmpty == false,
-              coefficients.allSatisfy(\.isFinite) else {
+              coefficients.allSatisfy({ $0.isFinite }) else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,

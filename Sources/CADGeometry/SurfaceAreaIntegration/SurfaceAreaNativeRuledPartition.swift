@@ -71,12 +71,12 @@ struct SurfaceAreaNativeRuledPartition: Sendable {
 
     func rectangleDomains(over box: SurfaceParameterBox, maximumCount: Int,
         tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try Task.checkCancellation()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
 
         try validate(tolerance)
         guard hasNativeJoins else { return nil }
@@ -84,7 +84,7 @@ struct SurfaceAreaNativeRuledPartition: Sendable {
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(domains.count)
         for (index, range) in domains.enumerated() {
-            try consumeWork(0); try Task.checkCancellation()
+            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
             let a = max(range.lower, box.u.lower), b = min(range.upper, box.u.upper)
             guard a < b else { continue }
             guard result.count < maximumCount else {
@@ -99,12 +99,12 @@ struct SurfaceAreaNativeRuledPartition: Sendable {
 
     func fanDomains(curve: SurfaceParameterCurve, anchor: SurfaceParameter,
         maximumCount: Int, tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
         }
-        try consumeWork(0); try Task.checkCancellation()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
 
         try validate(tolerance)
         guard hasNativeJoins, case .constantU(let end, let v0, let v1) = curve,
@@ -123,7 +123,7 @@ struct SurfaceAreaNativeRuledPartition: Sendable {
         var result: [SurfaceAreaNativeSpanDomain] = []
         result.reserveCapacity(domains.count)
         for (index, range) in domains.enumerated() {
-            try consumeWork(0); try Task.checkCancellation()
+            try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation()
             guard let a = try cut(range.lower), let b = try cut(range.upper) else { return nil }
             let lo = max(0, min(a, b)), hi = min(1, max(a, b))
             guard lo < hi else { continue }
@@ -154,7 +154,7 @@ struct SurfaceAreaNativeRuledPartition: Sendable {
         }
         var found = false
         for (index, range) in domains.enumerated() {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             if let domain, domain.index != index { continue }
             let a = max(box.u.lower, range.lower), b = min(box.u.upper, range.upper)
             guard a <= b else { continue }
@@ -231,7 +231,7 @@ struct SurfaceAreaNativeRuledPartition: Sendable {
                 }
                 var cycle = first
                 while cycle <= last {
-                    try Task.checkCancellation(); try consumeWork()
+                    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                     let value = knot + cycle * period
                     guard value.isFinite, try SurfaceAreaTranslationCertificate.linearImageIsExactlyRepresented(
                         origin:knot,first:spline.knots[spline.controlPointCount],second:spline.knots[spline.degree],fraction:cycle,value:value,
@@ -250,7 +250,7 @@ struct SurfaceAreaNativeRuledPartition: Sendable {
         guard tolerance == preparationTolerance else {
             throw Self.failure(.invalidInput, tolerance, "Original ruled partition requires its exact preparation tolerance.")
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 
     private static func failure(_ code: KernelErrorCode, _ tolerance: ModelingTolerance,

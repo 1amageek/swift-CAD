@@ -38,7 +38,7 @@ struct NativePolynomialSurfacePositionPreparation {
                 work: Budget.add(Budget.multiply(terms, 3 * 12 + 3 * 4 + 12), Budget.multiply(count, 8)))
             var values = Array(repeating: Self.zero, count: count)
             for v in 0..<op.outputCount {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 for u in 0..<uCount {
                     var value = Self.zero
                     for i in 0..<op.inputCount {
@@ -65,7 +65,7 @@ struct NativePolynomialSurfacePositionPreparation {
         try budget.charge(work: PreparedBSplineSurfaceDifferentialCost.Budget.sum(count, surface.weights.count, 4))
         let weight = surface.weights[0][0]
         for row in surface.weights {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             for value in row where value != weight { return false }
         }
         return true
@@ -127,7 +127,7 @@ struct NativePolynomialSurfacePositionPreparation {
         try budget.charge(scalars: (MemoryLayout<Section>.stride + 7) / 8, work: 4)
         var values = Array(repeating: Coefficient(x: .exact(0), y: .exact(0), z: .exact(0)), count: count)
         for row in 0..<surface.vControlPointCount {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             for u in 0..<op.outputCount {
                 var value = Coefficient(x: .exact(0), y: .exact(0), z: .exact(0))
                 for i in 0..<op.inputCount {
@@ -158,7 +158,7 @@ struct NativePolynomialSurfacePositionPreparation {
         let n = try Budget.add(degree, 1), outputCount = try Budget.add(targetDegree, 1)
         let matrixCount = try Budget.multiply(n, outputCount)
         for cell in cells {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             // Selected basis recurrence owns all previous/next rows, COW row writes,
             // two divisions per side and every interval multiply scratch array.
             var basisScalars = try Budget.multiply(n, 2)

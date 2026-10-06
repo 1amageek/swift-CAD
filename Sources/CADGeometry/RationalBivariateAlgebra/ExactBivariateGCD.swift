@@ -16,7 +16,7 @@ public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
         var b = try divideCoefficients(second, by: secondContent, usage: &usage)
         if a.vDegree < b.vDegree { swap(&a, &b) }
         while !b.isZero {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let remainder = try pseudoRemainder(a, b, usage: &usage)
             a = b
             if remainder.isZero { b = .zero }

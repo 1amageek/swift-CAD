@@ -105,8 +105,8 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
             let twice = FloatingPointExpansion.sum([middle],[middle])
             let residual = FloatingPointExpansion.subtract(sum,twice)
             return lower.isFinite && upper.isFinite && middle.isFinite
-                && sum.allSatisfy(\.isFinite) && twice.allSatisfy(\.isFinite)
-                && residual.allSatisfy(\.isFinite) && FloatingPointExpansion.sign(residual) == .zero
+                && sum.allSatisfy({ $0.isFinite }) && twice.allSatisfy({ $0.isFinite })
+                && residual.allSatisfy({ $0.isFinite }) && FloatingPointExpansion.sign(residual) == .zero
         }
         guard candidate > knots[0], candidate < knots[3], exactMidpoint(knots[0],knots[3],candidate) else { return nil }
         func coordinate(_ point: Point3D, _ index: Int) -> Double {
@@ -182,7 +182,7 @@ struct SurfaceAreaImplicitParameterChartEncloser: Sendable {
             // A rounded complement is only a candidate. Addition/subtraction
             // expansion equality proves the original reversal is this singleton.
             if candidate.isFinite, candidate >= 0, candidate <= 1,
-               difference.allSatisfy(\.isFinite), residual.allSatisfy(\.isFinite),
+               difference.allSatisfy({ $0.isFinite }), residual.allSatisfy({ $0.isFinite }),
                FloatingPointExpansion.sign(residual) == .zero {
                 interval = try ScalarInterval(lower: candidate, upper: candidate)
             } else {

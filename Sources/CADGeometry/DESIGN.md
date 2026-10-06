@@ -22,6 +22,11 @@ Prepared surface owners validate query tolerance against their retained
 preparation tolerance through a package contract; consumers do not inspect
 private preparation fields. Domain transport propagates finite-interval errors.
 
+The prepared curve owner's existing legacy closed native jet entry is available
+to [Original Curve Span Coincidence](../CADModeling/OriginalCurveSpanCoincidence/DESIGN.md)
+for its no-admission branch. Its caller-admitted branch uses the existing
+bounded overload; the visibility repair changes neither query body nor policy.
+
 Analytic/B-spline intersection retries vary periodic charts only. A plane has
 one chart and therefore one attempt, independent of the periodic retry limit;
 its original intersection/resource failure propagates without repeating the
@@ -1414,6 +1419,28 @@ closed operation validates finite domain containment independently of public
 positive-width admission and preserves both owning sides at native joins.
 
 ## Native Codec Boundary
+
+Foundation imports follow the same capability boundary as the existing codec
+witnesses. Native and normal WASM retain their original Foundation import;
+Embedded imports the actual target C math module (Darwin, Glibc or WASILibc).
+The source algorithms, arguments, floating-point functions, geometry state,
+Sendable and Mutex owners remain unchanged. Missing C math is a compile-time
+capability refusal, never a substitute numeric implementation. The complete
+CADCore and CADGeometry production modules are the portability proof unit.
+Existing cancellation checkpoints call CADCore's immutable typed current-task
+checker at the same locations on all targets. It observes the same current
+Task.isCancelled and preserves CancellationError without conditional failure
+mapping or new cancellation policy. Optional derivative-bound diagnostic
+payloads use explicit some/nil formatting on Embedded, where reflective
+String(describing:) is unavailable; Native and normal retain their existing
+reflective formatting. Internal field projections use explicit property getter
+closures instead of runtime KeyPath objects on all targets. These nonescaping
+getters select the same field, invoke it at the same location and preserve
+iteration order, admission checks and short-circuiting. The local spatial-axis
+sweep stores the same three getter operations; it owns no shared state or
+cross-target isolation difference. Embedded diagnostic interpolation uses Core's
+existing structural error-presentation boundary and retains its stated
+reflection limitation; Native/normal diagnostic payloads remain unchanged.
 
 Original geometry values, associated source graphs, immutable fields, Hashable,
 Sendable and shared Mutex ownership remain common to native and Embedded targets.

@@ -482,7 +482,7 @@ public struct OriginalCurveConstructionChartImage: Hashable, Sendable {
         let jet = try intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 0,
             tolerance: tolerance, maximumSpanCount: maximumSpanCount,
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth == Int.max ? Int.max : remainingSourceDepth + 1,
-            consumeWork: { try Task.checkCancellation() })
+            consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
         let x = try jet.x.coefficient(0, 0), y = try jet.y.coefficient(0, 0), z = try jet.z.coefficient(0, 0)
         let uncertainty = IntervalVector3DBounds(x: x - .exact(x.midpoint),
             y: y - .exact(y.midpoint), z: z - .exact(z.midpoint)).lengthUpperBound

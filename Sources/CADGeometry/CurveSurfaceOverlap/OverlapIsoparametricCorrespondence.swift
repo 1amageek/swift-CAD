@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// A native-axis chart map retained by a whole-domain isoparametric proof.
 struct OverlapIsoparametricCorrespondence: Sendable, Equatable {
@@ -35,7 +45,7 @@ struct OverlapIsoparametricCorrespondence: Sendable, Equatable {
         let domain = variesU ? surface.uDomain : surface.vDomain
         let resolver = SurfaceParameterRangeResolver()
         return try (variesU ? uValues : vValues).map { boundary in
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let sum = reversedParameterSum else { return boundary }
             let parameter = sum - boundary
             let virtualSecond = parameter - sum

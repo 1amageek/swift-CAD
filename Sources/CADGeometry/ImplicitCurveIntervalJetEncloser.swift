@@ -155,7 +155,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
         && firstDerivative.isFinite
         && secondDerivative.isFinite
         && thirdDerivative.isFinite
-        && parameters.allSatisfy(\.isFinite)
+        && parameters.allSatisfy({ $0.isFinite })
     }
   }
 
@@ -235,7 +235,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   /// Caller-owned closed localization preparation; no derivative-bound fitting is used.
   package init(localizing intersection: CertifiedImplicitIntersectionCurve,
        tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws {
-    try Task.checkCancellation(); try consumeWork()
+    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
     try intersection.validateCertificationContract(tolerance: tolerance)
     let first = try PreparedSurfaceDifferentialEncloser(surface: intersection.firstSurface,
       tolerance: tolerance, consumeWork: consumeWork)
@@ -250,7 +250,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     tolerance: ModelingTolerance, maximumSpanCount: Int, maximumSubdivisionDepth: Int,
     remainingSourceDepth: Int, consumeWork: () throws -> Void,
     consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws {
-    try Task.checkCancellation(); try consumeWork()
+    try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
     guard maximumSpanCount > 0, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0 else {
       throw GeometryConversionError.invalidInput("Original implicit localization needs caller span and remaining source admission.")
     }
@@ -313,7 +313,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   package func prepareParameterEnclosure(
     of curve: CertifiedImplicitIntersectionCurve, cellIndex: Int,
     overClosedInterval interval: ScalarInterval, tolerance: ModelingTolerance,
-    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
     consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> ParameterEnclosureState {
     try checkLocalizationCancellation(tolerance); try consumeWork()
@@ -344,7 +344,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     restricting parent: ParameterEnclosureState, cellIndex: Int? = nil,
     overClosedInterval interval: ScalarInterval,
     tolerance: ModelingTolerance,
-    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
     consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> ParameterEnclosureState {
     try checkLocalizationCancellation(tolerance); try consumeWork()
@@ -420,7 +420,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   package func advanceParameterEnclosure(
     _ state: ParameterEnclosureState, tolerance: ModelingTolerance,
     maximumSpanCount: Int? = nil, maximumSubdivisionDepth: Int? = nil, remainingSourceDepth: Int = 0,
-    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
     consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> ParameterEnclosureStep {
     try checkLocalizationCancellation(tolerance); try consumeWork()
@@ -664,7 +664,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   private func closedSurfaceJets(over box: SurfaceIntersectionParameterBox, prepared: PreparedSurfaces,
     tolerance: ModelingTolerance, maximumSpanCount: Int? = nil,
     maximumSubdivisionDepth: Int? = nil, remainingSourceDepth: Int = 0,
-    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
     consumeStorage: ((Int) throws -> Void)? = nil)
     throws -> (first: SurfaceIntervalVectorJet, second: SurfaceIntervalVectorJet) {
     func original(_ source: PreparedSurfaceDifferentialEncloser,
@@ -683,8 +683,8 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
   }
 
   private func derivativeColumns(first: SurfaceIntervalVectorJet,second: SurfaceIntervalVectorJet) -> [IntervalVector] {
-    [vector(first,at:\SurfaceIntervalJet.derivativeU),vector(first,at:\SurfaceIntervalJet.derivativeV),
-     -vector(second,at:\SurfaceIntervalJet.derivativeU),-vector(second,at:\SurfaceIntervalJet.derivativeV)]
+    [vector(first,at:{ $0.derivativeU }),vector(first,at:{ $0.derivativeV }),
+     -vector(second,at:{ $0.derivativeU }),-vector(second,at:{ $0.derivativeV })]
   }
 
   private func inverseRows(_ columns: [IntervalVector], consumeWork: () throws -> Void,
@@ -947,10 +947,10 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
       )
     }
     let columns = [
-      vector(firstSurface, at: \SurfaceIntervalJet.derivativeU),
-      vector(firstSurface, at: \SurfaceIntervalJet.derivativeV),
-      -vector(secondSurface, at: \SurfaceIntervalJet.derivativeU),
-      -vector(secondSurface, at: \SurfaceIntervalJet.derivativeV),
+      vector(firstSurface, at: { $0.derivativeU }),
+      vector(firstSurface, at: { $0.derivativeV }),
+      -vector(secondSurface, at: { $0.derivativeU }),
+      -vector(secondSurface, at: { $0.derivativeV }),
     ]
     let freeIndex = cell.freeParameter.rawValue
     let dependentIndexes = columns.indices.filter { $0 != freeIndex }
@@ -1010,32 +1010,32 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
       )
       let firstSpatialSecond =
         firstQuadratic
-        + vector(firstSurface, at: \SurfaceIntervalJet.derivativeU)
+        + vector(firstSurface, at: { $0.derivativeU })
         * secondDerivatives[0]
-        + vector(firstSurface, at: \SurfaceIntervalJet.derivativeV)
+        + vector(firstSurface, at: { $0.derivativeV })
         * secondDerivatives[1]
       let secondSpatialSecond =
         secondQuadratic
-        + vector(secondSurface, at: \SurfaceIntervalJet.derivativeU)
+        + vector(secondSurface, at: { $0.derivativeU })
         * secondDerivatives[2]
-        + vector(secondSurface, at: \SurfaceIntervalJet.derivativeV)
+        + vector(secondSurface, at: { $0.derivativeV })
         * secondDerivatives[3]
       let firstSpatialThird =
         firstCubic
-        + vector(firstSurface, at: \SurfaceIntervalJet.derivativeU)
+        + vector(firstSurface, at: { $0.derivativeU })
         * thirdDerivatives[0]
-        + vector(firstSurface, at: \SurfaceIntervalJet.derivativeV)
+        + vector(firstSurface, at: { $0.derivativeV })
         * thirdDerivatives[1]
       let secondSpatialThird =
         secondCubic
-        + vector(secondSurface, at: \SurfaceIntervalJet.derivativeU)
+        + vector(secondSurface, at: { $0.derivativeU })
         * thirdDerivatives[2]
-        + vector(secondSurface, at: \SurfaceIntervalJet.derivativeV)
+        + vector(secondSurface, at: { $0.derivativeV })
         * thirdDerivatives[3]
       let result = CurveIntervalJet(
         position: averaged(
-          vector(firstSurface, at: \SurfaceIntervalJet.value),
-          vector(secondSurface, at: \SurfaceIntervalJet.value)
+          vector(firstSurface, at: { $0.value }),
+          vector(secondSurface, at: { $0.value })
         ),
         firstDerivative: averaged(
           firstSpatialFirst,
@@ -1116,7 +1116,7 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     rightHandSide: IntervalVector,
     denominator: OutwardScalarInterval,
     tolerance: ModelingTolerance,
-    order: String, consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    order: String, consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
     consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> [OutwardScalarInterval] {
     try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
@@ -1150,8 +1150,8 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     derivativeU: OutwardScalarInterval,
     derivativeV: OutwardScalarInterval
   ) -> IntervalVector {
-    vector(enclosure, at: \SurfaceIntervalJet.derivativeU) * derivativeU
-      + vector(enclosure, at: \SurfaceIntervalJet.derivativeV) * derivativeV
+    vector(enclosure, at: { $0.derivativeU }) * derivativeU
+      + vector(enclosure, at: { $0.derivativeV }) * derivativeV
   }
 
   private func surfaceQuadratic(
@@ -1159,11 +1159,11 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     derivativeU: OutwardScalarInterval,
     derivativeV: OutwardScalarInterval
   ) -> IntervalVector {
-    vector(enclosure, at: \SurfaceIntervalJet.secondDerivativeUU)
+    vector(enclosure, at: { $0.secondDerivativeUU })
       * (derivativeU * derivativeU)
-      + vector(enclosure, at: \SurfaceIntervalJet.secondDerivativeUV)
+      + vector(enclosure, at: { $0.secondDerivativeUV })
       * (OutwardScalarInterval(2.0) * derivativeU * derivativeV)
-      + vector(enclosure, at: \SurfaceIntervalJet.secondDerivativeVV)
+      + vector(enclosure, at: { $0.secondDerivativeVV })
       * (derivativeV * derivativeV)
   }
 
@@ -1175,19 +1175,19 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
     secondV: OutwardScalarInterval
   ) -> IntervalVector {
     let three = OutwardScalarInterval(3.0)
-    return vector(enclosure, at: \SurfaceIntervalJet.thirdDerivativeUUU)
+    return vector(enclosure, at: { $0.thirdDerivativeUUU })
       * (firstU * firstU * firstU)
-      + vector(enclosure, at: \SurfaceIntervalJet.thirdDerivativeUUV)
+      + vector(enclosure, at: { $0.thirdDerivativeUUV })
       * (three * firstU * firstU * firstV)
-      + vector(enclosure, at: \SurfaceIntervalJet.thirdDerivativeUVV)
+      + vector(enclosure, at: { $0.thirdDerivativeUVV })
       * (three * firstU * firstV * firstV)
-      + vector(enclosure, at: \SurfaceIntervalJet.thirdDerivativeVVV)
+      + vector(enclosure, at: { $0.thirdDerivativeVVV })
       * (firstV * firstV * firstV)
-      + vector(enclosure, at: \SurfaceIntervalJet.secondDerivativeUU)
+      + vector(enclosure, at: { $0.secondDerivativeUU })
       * (three * firstU * secondU)
-      + vector(enclosure, at: \SurfaceIntervalJet.secondDerivativeUV)
+      + vector(enclosure, at: { $0.secondDerivativeUV })
       * (three * (secondU * firstV + firstU * secondV))
-      + vector(enclosure, at: \SurfaceIntervalJet.secondDerivativeVV)
+      + vector(enclosure, at: { $0.secondDerivativeVV })
       * (three * firstV * secondV)
   }
 
@@ -1207,12 +1207,12 @@ package struct ImplicitCurveIntervalJetEncloser: Sendable {
 
   private func vector(
     _ jet: SurfaceIntervalVectorJet,
-    at keyPath: KeyPath<SurfaceIntervalJet, OutwardScalarInterval>
+    at keyPath: (SurfaceIntervalJet) -> OutwardScalarInterval
   ) -> IntervalVector {
     IntervalVector(
-      x: jet.x[keyPath: keyPath],
-      y: jet.y[keyPath: keyPath],
-      z: jet.z[keyPath: keyPath]
+      x: keyPath(jet.x),
+      y: keyPath(jet.y),
+      z: keyPath(jet.z)
     )
   }
 

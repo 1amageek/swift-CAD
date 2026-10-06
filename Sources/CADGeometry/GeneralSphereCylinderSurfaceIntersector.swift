@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 struct GeneralSphereCylinderSurfaceIntersector {
@@ -180,7 +190,7 @@ struct GeneralSphereCylinderSurfaceIntersector {
         for branch in [-1.0, 1.0] {
             let branchAngles = nodes
                 .filter { $0.branch == branch }
-                .map(\.angle)
+                .map({ $0.angle })
                 .sorted()
             guard let first = branchAngles.first else {
                 let componentKind: CertifiedSphereCylinderIntersectionCurve.ComponentKind

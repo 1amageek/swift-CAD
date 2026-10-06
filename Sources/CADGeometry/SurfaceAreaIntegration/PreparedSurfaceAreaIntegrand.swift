@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// Integral-specific fields; derivative coordinates are boundary fraction and radial fraction.
 package struct SurfaceAreaIntegrandBounds: Sendable {
@@ -291,7 +301,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
             // The callback counts original integrand visits, not scalar scratch
             // slots. Cross and each fixed-degree monomial have bounded algebra
             // and operation-local lifetime; no retained workspace grows here.
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let cross = jet.differentiatedUThroughSecondOrder().cross(jet.differentiatedVThroughSecondOrder())
             let x = jet.x - .constant(reference.x)
             let y = jet.y - .constant(reference.y)
@@ -304,7 +314,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
             try OriginalCoefficientAllocation.reserve(count:10,of:SurfaceAreaIntegrandBounds.self,consumeStorage:consumeStorage)
             let fields = try (0..<10).map { index -> SurfaceAreaIntegrandBounds in
                 let (a,b,c) = exponent(index)
-                try Task.checkCancellation(); try consumeWork()
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                 let native = power(x, a + 1) * power(y, b) * power(z, c) * cross.x * .constant(1 / Double(a + 1))
                 let field = compose(native, u: u, v: v) * measure
                 return .init(value: field.value,
@@ -569,7 +579,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     package func nativeRectangleDomains(over box: SurfaceParameterBox, maximumCount: Int,
                                         tolerance: ModelingTolerance, maximumSubdivisionDepth: Int = Int.max,
-                                        consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+                                        consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
@@ -606,7 +616,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
                                   maximumCount: Int, tolerance: ModelingTolerance,
                                   parameterChart: SurfaceAreaParameterChartEncloser? = nil,
                                   maximumSubdivisionDepth: Int = Int.max,
-                                  consumeWork: (Int) throws -> Void = { _ in try Task.checkCancellation() },
+                                  consumeWork: (Int) throws -> Void = { _ in try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws -> [SurfaceAreaNativeSpanDomain]? {
         guard maximumSubdivisionDepth >= 0, maximumCount > 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original native partition exhausted caller admission.")
@@ -868,7 +878,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
             throw Self.failure(.invalidInput,tolerance,"Iso-image correction lost its original translation or preparation authority.")
         }
         guard [nominalStart.u,nominalStart.v,nominalEnd.u,nominalEnd.v,anchor.u,anchor.v,
-               reference.x,reference.y,reference.z].allSatisfy(\.isFinite),
+               reference.x,reference.y,reference.z].allSatisfy({ $0.isFinite }),
               case .closed(let uLow,let uHigh) = surface.uDomain,
               case .closed(let vLow,let vHigh) = surface.vDomain,
               [nominalStart,nominalEnd,anchor].allSatisfy({
@@ -936,7 +946,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
             }
             for field in 0..<4 { try consumeWork(); total[field] = total[field] + signedMeasure * ranges[field] }
         }
-        guard total.allSatisfy(\.isFinite) else {
+        guard total.allSatisfy({ $0.isFinite }) else {
             throw Self.failure(.classificationFailure,tolerance,"Iso-image endpoint correction overflowed finite integral arithmetic.")
         }
         return total
@@ -949,7 +959,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     package func originalRuledRectangleIntegral(
         rectangle: SurfaceParameterBox, fraction: ScalarInterval, reference: Point3D,
         tolerance: ModelingTolerance, domain: SurfaceAreaNativeSpanDomain?,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil
     ) throws -> [OutwardScalarInterval]? {
         guard case .ruledTensor(let authority, let partition) = storage,
@@ -1318,7 +1328,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
 
     private static func admitDimensions(_ surface: Surface3D, limit: Int,
                                         tolerance: ModelingTolerance, depth: Int = 0,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
         try consumeWork()
         guard limit > 0, limit <= 1_048_576, depth <= 16 else {
             throw failure(.resourceLimitExceeded, tolerance, "Area geometry admission exceeds finite dimensions or nesting.")
@@ -1466,7 +1476,7 @@ package struct PreparedSurfaceAreaIntegrand: Sendable {
     }
 
     private static func curveOrder(_ curve: Curve3D, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
         maximumSubdivisionDepth:Int? = nil,remainingSourceDepth:Int = 16,
         maximumAlgebraicDepth:Int? = nil,consumeStorage:((Int)throws->Void)? = nil) throws -> Int {
         try consumeWork()

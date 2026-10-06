@@ -169,7 +169,7 @@ public struct OriginalAffineWordSurface3D: Hashable, Sendable {
   func intervalJet(over box: SurfaceParameterBox, tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
     if let coefficients = harmonicCoefficients {
       return try coefficients.intervalTaylorJet(over: box, throughOrder: 3, tolerance: tolerance,
-        consumeWork: { try Task.checkCancellation() }).intervalJet()
+        consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() }).intervalJet()
     }
     let original = try PreparedSurfaceDifferentialEncloser(surface: source, tolerance: sourceTolerance)
       .intervalJet(overClosedBox: box, tolerance: sourceTolerance)
@@ -181,10 +181,10 @@ public struct OriginalAffineWordSurface3D: Hashable, Sendable {
     tolerance: ModelingTolerance) throws -> SurfaceTaylorVectorJet {
     if let coefficients = harmonicCoefficients {
       let jet = try coefficients.intervalTaylorJet(over: .init(u: .init(lower: u, upper: u), v: .init(lower: v, upper: v)),
-        throughOrder: order, tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+        throughOrder: order, tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
       var x = try SurfaceTaylorScalarJet(order: order), y = try SurfaceTaylorScalarJet(order: order), z = try SurfaceTaylorScalarJet(order: order)
       for total in 0...order { for a in 0...total {
-        try Task.checkCancellation(); let b = total-a
+        try CurrentTaskCancellationChecker().checkCancellation(); let b = total-a
         try x.setCoefficient(jet.x.coefficient(a,b).midpoint, uOrder: a, vOrder: b)
         try y.setCoefficient(jet.y.coefficient(a,b).midpoint, uOrder: a, vOrder: b)
         try z.setCoefficient(jet.z.coefficient(a,b).midpoint, uOrder: a, vOrder: b)
@@ -197,7 +197,7 @@ public struct OriginalAffineWordSurface3D: Hashable, Sendable {
     var y = try SurfaceTaylorScalarJet(order: order)
     var z = try SurfaceTaylorScalarJet(order: order)
     for total in 0...order { for a in 0...total {
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       let b = total - a
       let raw = Vector3D(x: original.x[a,b], y: original.y[a,b], z: original.z[a,b])
       let value: Vector3D

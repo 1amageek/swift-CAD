@@ -5,7 +5,7 @@ struct OriginalAffineDeterminantBounds {
         let consume:()throws->Void
         mutating func consumeExactWork(_ count:Int) throws {
             guard count >= 0 else { throw GeometryConversionError.invalidInput("Original affine work count is negative.") }
-            for _ in 0..<count { try Task.checkCancellation();try consume() }
+            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation();try consume() }
         }
         mutating func retainExactStorage(_ count:Int) throws { try consumeExactWork(count) }
         mutating func visitExactCell(depth:Int) throws {

@@ -18,7 +18,7 @@ extension Surface3D {
             maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
             throw GeometryConversionError.resourceLimitExceeded("Original surface validation exhausted caller depth.")
         }
-        try consumeWork(0); try Task.checkCancellation(); try tolerance.validate()
+        try consumeWork(0); try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
         func surface(_ source: Surface3D) throws {
             guard remainingSourceDepth > 0 else {
                 throw GeometryConversionError.resourceLimitExceeded("Original surface descendant exhausted source depth.")

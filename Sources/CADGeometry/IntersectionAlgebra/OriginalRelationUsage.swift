@@ -1,3 +1,5 @@
+import CADCore
+
 /// Every copy borrows the same composing admission owners; no private quota exists.
 public struct OriginalRelationUsage: RationalAlgebraAdmitting, Sendable {
     private let work: @Sendable (Int) throws -> Void
@@ -25,7 +27,7 @@ public struct OriginalRelationUsage: RationalAlgebraAdmitting, Sendable {
         try validate(depth); try coefficientCell(depth)
     }
     private func validate(_ count: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard count >= 0 else { throw rationalAlgebraFailure("Original relation admission cannot receive a negative count.") }
     }
 }

@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct DefaultParallelTorusTorusPlaneIntersector:
     ParallelTorusTorusPlaneIntersecting
@@ -40,7 +50,7 @@ struct DefaultParallelTorusTorusPlaneIntersector:
             planeOrigin: plane.origin,
             planeNormal: normal
         )
-        guard coefficients.allSatisfy(\.isFinite) else {
+        guard coefficients.allSatisfy({ $0.isFinite }) else {
             throw KernelError(
                 phase: .geometry,
                 code: .intersectionFailure,

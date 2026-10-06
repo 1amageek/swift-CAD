@@ -7,7 +7,7 @@ public struct DefaultSurfaceSilhouetteProducer: SurfaceSilhouetteProducing, Send
     public func silhouette(of surface: Surface3D, over domain: SurfaceParameterBox,
                            view: Vector3D, tolerance: ModelingTolerance,
                            usage: inout SurfaceSilhouetteUsage) throws -> SurfaceSilhouetteEnvelope {
-        try tolerance.validate(); try Task.checkCancellation()
+        try tolerance.validate(); try CurrentTaskCancellationChecker().checkCancellation()
         guard view.x.isFinite, view.y.isFinite, view.z.isFinite,
               view.x != 0 || view.y != 0 || view.z != 0 else {
             throw failure(.invalidInput, tolerance, "Silhouette view must be finite and nonzero.")

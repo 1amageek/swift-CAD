@@ -231,7 +231,7 @@ struct ParametricSurfaceIntersectionRootRefiner: Sendable {
       determinant(columns[0], rightHandSide, columns[2]) / denominator,
       determinant(columns[0], columns[1], rightHandSide) / denominator,
     ]
-    return result.allSatisfy(\.isFinite) ? result : nil
+    return result.allSatisfy({ $0.isFinite }) ? result : nil
   }
 
   private func determinant(

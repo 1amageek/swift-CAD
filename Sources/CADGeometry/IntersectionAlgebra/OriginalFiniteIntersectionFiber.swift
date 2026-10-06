@@ -20,16 +20,16 @@ package struct OriginalFiniteIntersectionFiber: Sendable {
     private struct Admission<B: RationalAlgebraAdmitting>: RationalAlgebraAdmitting {
         var base: B
         mutating func consumeExactWork(_ count: Int) throws {
-            try Task.checkCancellation(); try base.consumeExactWork(count)
+            try CurrentTaskCancellationChecker().checkCancellation(); try base.consumeExactWork(count)
         }
         mutating func retainExactStorage(_ count: Int) throws {
-            try Task.checkCancellation(); try base.retainExactStorage(count)
+            try CurrentTaskCancellationChecker().checkCancellation(); try base.retainExactStorage(count)
         }
         mutating func visitExactCell(depth: Int) throws {
-            try Task.checkCancellation(); try base.visitExactCell(depth: depth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try base.visitExactCell(depth: depth)
         }
         mutating func visitCoefficientCell(depth: Int) throws {
-            try Task.checkCancellation(); try base.visitCoefficientCell(depth: depth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try base.visitCoefficientCell(depth: depth)
         }
     }
 

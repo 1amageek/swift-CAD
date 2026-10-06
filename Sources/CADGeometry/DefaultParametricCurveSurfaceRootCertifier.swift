@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct DefaultParametricCurveSurfaceRootCertifier:
   ParametricCurveSurfaceRootCertifying
@@ -139,7 +149,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
     preparedSurface: PreparedSurfaceDifferentialEncloser,
     tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation?
   ) throws -> any ParametricCurveSurfaceRootCertificationSession {
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     try invocation?.consumeFixedWork()
     try tolerance.validate()
     // FIXME(INCOMPLETE_IMPLEMENTATION): Selected generic root certification
@@ -462,7 +472,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
         consumeStorage: invocation.consumeStorage)
     } else {
       receipt = try prepared.closedNativeJets(over: parameters, tolerance: tolerance,
-        consumeWork: { try Task.checkCancellation() })
+        consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
     }
     guard receipt.parameters == parameters,
       receipt.tolerance == tolerance, let first = receipt.spans.first else {
@@ -494,7 +504,7 @@ struct DefaultParametricCurveSurfaceRootCertifier:
         consumeWork: { try invocation.consume(depth: depth) },
         consumeStorage: invocation.consumeStorage)
     }
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     return try prepared.intervalJet(overClosedBox: parameters, tolerance: tolerance)
   }
 

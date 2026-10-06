@@ -36,7 +36,7 @@ struct PreparedPolynomialSurfaceContinuationLaw: Sendable {
         var result: [Preparation.AxisCell] = []
         result.reserveCapacity(spans.count)
         for span in spans {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             result.append(.init(lower: span.lower, upper: span.upper,
                 sourceSpan: span.index, candidateSpan: span.index))
         }
@@ -85,7 +85,7 @@ struct PreparedPolynomialSurfaceContinuationLaw: Sendable {
         var result: [Preparation.AxisCell] = []
         result.reserveCapacity(cells.count)
         for cell in cells {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             result.append(.init(lower: cell.lower, upper: cell.upper,
                 sourceSpan: spans[cell.sourceIndex].index, candidateSpan: cell.candidateSpan))
         }

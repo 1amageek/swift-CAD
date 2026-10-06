@@ -22,7 +22,7 @@ public struct ExactBivariatePolynomial: Equatable, Sendable {
     }
     /// Returns an original constant law without materializing or evaluating a term list.
     package func originalConstantCoefficient<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactRationalCoefficient? {
-        try usage.consumeExactWork(1); try Task.checkCancellation()
+        try usage.consumeExactWork(1); try CurrentTaskCancellationChecker().checkCancellation()
         if coefficients.isEmpty { return .zero }
         guard coefficients.count == 1 else { return nil }
         return coefficients[try Power(u: 0, v: 0)]

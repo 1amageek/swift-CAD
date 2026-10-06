@@ -487,7 +487,7 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
         guard !first.overflow, !second.overflow, !third.overflow else {
             throw failure(.resourceLimitExceeded, tolerance, "Original continuation chart work dimensions overflowed.")
         }
-        for _ in 0..<third.partialValue { try Task.checkCancellation(); try consumeWork() }
+        for _ in 0..<third.partialValue { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
     }
 
     private static func prepare(_ curve: SurfaceParameterCurve, tolerance: ModelingTolerance,
@@ -631,7 +631,7 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
         case .nativeNumeric(let prepared):
             return (try prepared.intervalProof(over:fraction,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage),nil)
         case .originalContinuation(let continuation, let prepared):
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             let jet = try continuation.intervalJet(over: fraction, source: prepared, tolerance: tolerance)
             let native = SurfaceIntervalJet.constant(continuation.startParameter)
                 + .parameterU(fraction) * .constant(continuation.endParameter - continuation.startParameter)
@@ -719,7 +719,7 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
 
     private static func preflight(_ curve: SurfaceParameterCurve, controls: Int, boundaries: Int,
                                    depth: Int, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
         try consumeWork(); try checkDepth(depth, tolerance)
         switch curve {
         case .affine, .constantU, .constantV, .harmonic: break
@@ -786,7 +786,7 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
 
     private static func preflight(_ surface: Surface3D, controls: Int, boundaries: Int,
                                    depth: Int, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
         try consumeWork(); try checkDepth(depth, tolerance)
         switch surface {
         case .bSpline(let spline):
@@ -846,7 +846,7 @@ package struct SurfaceAreaParameterChartEncloser: Sendable {
 
     private static func preflight(_ curve: Curve3D, controls: Int, boundaries: Int,
                                    depth: Int, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws {
         try consumeWork(); try checkDepth(depth, tolerance)
         switch curve {
         case .line, .circle: break

@@ -8,7 +8,7 @@ struct SurfaceAreaTranslatedRollingBallJet: Sendable {
 
     init?(_ blend: RollingBallBlendSurface3D, maximumSubdivisionDepth: Int? = nil,
         remainingSourceDepth: Int = 16, maximumAlgebraicDepth: Int? = nil,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() },
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() },
         consumeStorage: ((Int) throws -> Void)? = nil) throws {
         guard try SurfaceAreaTranslationCertificate.direction(of: .procedural(.rollingBall(blend)),
                 remainingSourceDepth:remainingSourceDepth,maximumAlgebraicDepth:maximumAlgebraicDepth,
@@ -28,7 +28,7 @@ struct SurfaceAreaTranslatedRollingBallJet: Sendable {
     }
 
     func intervalJet(over box: SurfaceParameterBox, tolerance: ModelingTolerance,
-        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws -> SurfaceIntervalVectorJet {
+        consumeWork: () throws -> Void = { try CurrentTaskCancellationChecker().checkCancellation() }) throws -> SurfaceIntervalVectorJet {
         guard !Task.isCancelled else {
             throw KernelError(phase:.geometry,code:.cancelled,tolerance:tolerance,
                 message:"Translated rolling-ball area enclosure was cancelled.")

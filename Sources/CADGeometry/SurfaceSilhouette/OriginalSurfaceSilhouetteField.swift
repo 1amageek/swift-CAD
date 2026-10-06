@@ -375,7 +375,7 @@ struct OriginalSurfaceSilhouetteField: Sendable {
 
     func evaluate(over box: SurfaceParameterBox, usage: inout SurfaceSilhouetteUsage)
         throws -> (scalar: SurfaceSilhouetteScalarJet, spatial: SurfaceIntervalVectorJet) {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard box.u.lower >= domain.u.lower, box.u.upper <= domain.u.upper,
               box.v.lower >= domain.v.lower, box.v.upper <= domain.v.upper else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,

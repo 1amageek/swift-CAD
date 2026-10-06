@@ -74,7 +74,7 @@ public struct OffsetSurfaceParameterCurveImage: Hashable, Sendable {
         try source.validateOriginalSource(on: retainedSource, tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth - 1,
             maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try consumeWork() })
-        func charge(_ count: Int) throws { for _ in 0..<count { try consumeWork(); try Task.checkCancellation() } }
+        func charge(_ count: Int) throws { for _ in 0..<count { try consumeWork(); try CurrentTaskCancellationChecker().checkCancellation() } }
         try GeometryStructuralComparisonWork.charge(surface: surface, using: charge)
         try GeometryStructuralComparisonWork.charge(surface: retainedTarget, using: charge)
         guard surface == retainedTarget else {

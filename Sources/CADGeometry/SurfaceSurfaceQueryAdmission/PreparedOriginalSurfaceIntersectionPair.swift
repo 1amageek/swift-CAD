@@ -61,7 +61,7 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
             second: second, over: secondBox, options: options,
             tolerance: tolerance, admission: admission)
         try admission.reserve(count: 1, stride: MemoryLayout<SurfaceSurfaceIntersectionResult>.stride)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return .init(intersections: intersections)
     }
 }

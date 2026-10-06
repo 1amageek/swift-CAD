@@ -6,7 +6,7 @@ extension DefaultSurfaceSurfaceIntersector {
         if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
             options: options, tolerance: tolerance) { return native }
         let intersections = try intersections(first: first, second: second, options: options, tolerance: tolerance)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return .init(intersections: intersections)
     }
 
@@ -27,7 +27,7 @@ extension DefaultSurfaceSurfaceIntersector {
             remainingSourceDepth: remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage,
             maximumAlgebraicDepth: maximumAlgebraicDepth)
         try admission.reserve(count: 1, stride: MemoryLayout<SurfaceSurfaceIntersectionResult>.stride)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return .init(intersections: intersections)
     }
 
@@ -50,7 +50,7 @@ extension DefaultSurfaceSurfaceIntersector {
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
             consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
         try admission.reserve(count: 1, stride: MemoryLayout<SurfaceSurfaceIntersectionResult>.stride)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return .init(intersections: intersections)
     }
 }

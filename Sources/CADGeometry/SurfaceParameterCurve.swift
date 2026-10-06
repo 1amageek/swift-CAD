@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 public struct SurfaceParameter: Sendable, Hashable {
@@ -102,7 +112,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 origin.x, origin.y, direction.x, direction.y,
                 startParameter, endParameter,
             ]
-            guard values.allSatisfy(\.isFinite),
+            guard values.allSatisfy({ $0.isFinite }),
                   hypot(direction.x, direction.y) > Double.ulpOfOne,
                   endParameter - startParameter > tolerance.distance else {
                 throw GeometryError.invalidDistance(endParameter - startParameter)
@@ -131,7 +141,7 @@ public enum SurfaceParameterCurve: Sendable, Hashable {
                 center.x, center.y, cosine.x, cosine.y, sine.x, sine.y,
                 startParameter, endParameter,
             ]
-            guard values.allSatisfy(\.isFinite),
+            guard values.allSatisfy({ $0.isFinite }),
                   abs(endParameter - startParameter) > tolerance.angle,
                   abs(endParameter - startParameter) <= 2.0 * Double.pi + tolerance.angle else {
                 throw GeometryError.invalidDistance(endParameter - startParameter)

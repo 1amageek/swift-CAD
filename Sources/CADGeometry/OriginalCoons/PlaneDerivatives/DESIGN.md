@@ -69,6 +69,24 @@ source coefficients, basis storage, native preparation, query scratch and copies
 before allocation. UInt32 words are four bytes; byte callbacks convert by checked
 ceiling division. No private allowance, refund or context reset exists.
 
+`ProceduralSurface3D.originalPlaneDerivative` retains this immutable payload in
+an indirect case on every target. Copies of an existing enum value share the
+same immutable owner; releasing the last value releases the payload. The enum
+is non-frozen, and the package enables no library-evolution ABI promise. Source
+equality, hashing, Sendable conformance and the native source codec schema are
+independent of this storage choice.
+
+The bounded Loft factory reserves one payload stride and the added retained
+procedural field stride in its existing original
+source allowance immediately before publishing the indirect case. Native
+source decoding reserves that payload through its existing shared decoder
+allowance. These reservations measure retained payload capacity, following the
+existing UInt32-word ledger; they do not claim allocator metadata accounting or
+cover unlimited caller-authored reboxing. Caller-authored source construction
+and decoding precede an intersection invocation. A query consumes the existing
+immutable source and admits its own preparation and scratch; it does not charge
+again for an input box that already exists.
+
 ## Failure, Concurrency, and Constraints
 
 Invalid plane authority, missing corner constraints, incompatible endpoint
@@ -85,5 +103,10 @@ independent corner planes, zero constrained tangent, affine support equations,
 exact four-boundary identity, mixed requested orders, original C0/C1 joins,
 cancellation and resource exhaustion through the final Loft publication path.
 Source authoring alone establishes none of these behavioral results.
+
+The portability smoke exercises copied and released indirect values, unchanged
+hash/equality, point evaluation and native codec round-trip/requery. Full
+production Embedded and normal WASM builds run the same public smoke with
+`-Onone`; optimized lowering cannot establish this storage portability.
 
 Exact rational boundary consumers apply the retained exact normal-basis projection to original quotient-rule endpoint derivatives. The four Hermite corrections are reconstructed from original homogeneous source coefficients and raw constraint equations. This path uses no cached interval delta as a coefficient and preserves original piece domains through directed affine restriction. The interval projection cache and exact action share the same immutable normal basis.

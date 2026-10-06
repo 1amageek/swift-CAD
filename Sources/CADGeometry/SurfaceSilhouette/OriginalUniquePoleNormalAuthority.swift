@@ -26,7 +26,7 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
         boundary: SurfaceParameterBoundary, prepared: PreparedBSplineSurfaceDifferentialEncloser,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, tolerance: ModelingTolerance,
         usage: inout B) throws -> Self? {
-        try Task.checkCancellation(); try tolerance.validate()
+        try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
         guard maximumSpanCount > 0, maximumSubdivisionDepth >= 0 else {
             throw GeometryConversionError.invalidInput("Whole original pole normal needs the caller's native cover and depth allowance.")
         }

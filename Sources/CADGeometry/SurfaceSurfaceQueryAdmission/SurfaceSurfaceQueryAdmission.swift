@@ -30,7 +30,7 @@ package struct SurfaceSurfaceQueryAdmission: Sendable {
     /// Historical enclosure defaults; no new cumulative work allowance.
     package static var legacy: Self {
         Self(maximumSpanCount: 262_144, maximumSubdivisionDepth: 32,
-            remainingSourceDepth: Int.max, uncheckedWork: { try Task.checkCancellation() })
+            remainingSourceDepth: Int.max, uncheckedWork: { try CurrentTaskCancellationChecker().checkCancellation() })
     }
 
     private init(maximumSpanCount: Int, maximumSubdivisionDepth: Int,
@@ -61,7 +61,7 @@ package struct SurfaceSurfaceQueryAdmission: Sendable {
     }
 
     package func step() throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork()
     }
 
@@ -89,7 +89,7 @@ package struct SurfaceSurfaceQueryAdmission: Sendable {
     }
 
     private func retain(bytes: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard bytes >= 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Original intersection retained-byte admission cannot be negative.")
         }

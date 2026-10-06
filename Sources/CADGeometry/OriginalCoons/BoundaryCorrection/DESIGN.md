@@ -67,6 +67,28 @@ refund or reset. Source nesting is independent of subdivision. Source fields are
 construction and original boundaries; preparation/corner residual caches and
 caller capabilities do not change source equality or persistent fingerprints.
 
+### Complete Zero-Correction Witness
+
+The constructor compares all four target directed traversals with its retained
+original construction boundaries using RootSpan's complete original structural
+identity proof and the same caller work ledger. Only four successful comparisons
+establish that every residual and corner difference is the zero original function
+on the whole square. It retains one immutable Boolean witness after admitting its
+concrete payload capacity on the same caller storage ledger, then checks cancellation
+before publishing it. Identity uses raw source, owning side, directed endpoints
+and tolerance; proximity, sampled positions and rounded coefficient comparisons
+supply no witness. A negative comparison leaves the existing general provider.
+
+For this witnessed law, interval queries return the retained construction's actual
+native Taylor result under the same intersected span/subdivision caps and callback
+ledger. They avoid independently subtracting equal interval functions, which lost
+correlation and made the unchanged unit-plane Loft converter exhaust depth 8.
+Cancellation is checked after the final native query callback and before returning
+these bounds. The witness changes no original mathematical law and introduces no
+certifier bypass.
+It stays outside equality, hashing and Native keys; decoding re-derives and admits
+it through the same constructor. Existing query source-depth admission still applies.
+
 ### Exact Rational Differential Atlas
 
 For authored rational boundary charts, an immutable atlas composes each original
@@ -82,6 +104,12 @@ cannot inherit this rational producer through cached interval coefficients.
 
 ## State, Ownership, and Lifecycle
 
+Native source decoding intersects retained boundary span capabilities with the
+native cover producer's existing 262,144 span ceiling. An unbounded boundary
+capability is not a valid finite native-cover request. The same shared decoder
+allowance pays preparation; this ceiling creates no additional allowance and
+does not change the retained original boundary laws or codec fields.
+
 All source and derived preparation are immutable. Copies retain the same value
 owners. No target-specific mutable state or synchronization exception exists.
 
@@ -92,6 +120,14 @@ missing original requested-order continuity, cancellation and caller exhaustion
 fail explicitly. An interval midpoint never becomes original boundary authority.
 
 ## Verification and Change Impact
+
+[Boundary correction identity tests](../../../../Tests/CADGeometryTests/OriginalBoundaryCorrectionIdentityTests.swift)
+exercise exact unchanged native-law bounds, the final witness capacity refusal,
+and a genuinely nonzero quadratic boundary correction that must retain its source.
+The [actual Loft factory worker suite](../../../../Tests/CADModelingTests/LoftPlaneDerivativeOwnershipTests.swift)
+uses the unchanged unit-plane candidate, requested errors and depth 8, with its real
+converter. Native/normal WASM/Embedded source-query and Native decode re-query
+proofs verify the common retained source representation.
 
 After source authoring, verify full boundary coincidence, D0/D1/D2 target
 continuity before/after correction, differing native bases, nonrepresentable

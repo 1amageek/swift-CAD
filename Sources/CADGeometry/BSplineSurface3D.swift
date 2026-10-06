@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 public struct BSplineSurface3D: Sendable, Hashable {
@@ -163,7 +173,7 @@ public struct BSplineSurface3D: Sendable, Hashable {
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
-        try validate(tolerance: tolerance, consumeWork: { try Task.checkCancellation() })
+        try validate(tolerance: tolerance, consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
     }
 
     /// Native controls and cyclic source predicates share the caller's allowance.
@@ -878,7 +888,7 @@ public struct BSplineSurface3D: Sendable, Hashable {
         let local = try BSplineBasis.nonzeroDerivativeValues(parameter: baseU, degree: uDegree,
             throughDerivativeOrder: 2, knots: uKnots, count: uControlPointCount,
             owningSpan: owningUSpan, tolerance: tolerance)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return StationNumericRow(surface: self, tolerance: tolerance, uBasis: values, uLocal: local,
                                  baseU: baseU, uSpanIndex: owningUSpan, vSpanIndex: owningVSpan)
     }

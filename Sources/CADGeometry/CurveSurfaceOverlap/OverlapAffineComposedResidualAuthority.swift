@@ -162,7 +162,7 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
         var composed = [[Interval]](repeating: Polynomial(repeating: .exact(0), count: targetDegree.partialValue + 1), count: 4)
         for row in 0...target.vDegree {
             for column in 0...target.uDegree {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 let u: Polynomial, v: Polynomial
                 if let uBasis, let vBasis {
                     u = uBasis[column]; v = vBasis[row]
@@ -193,7 +193,7 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
         }
         var errors: [Double] = []
         for axis in 0..<3 {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let spatial = source.controlPoints.indices.map {
                 (Interval.exact(OverlapRegularGraphCell.coordinate(source.controlPoints[$0], axis))
                     - .exact(OverlapRegularGraphCell.coordinate(origin, axis))) * sourceWeight[$0]
@@ -276,7 +276,7 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
         var powers: [Polynomial] = [[.exact(1)]]
         var complements: [Polynomial] = [[.exact(1)]]
         for _ in 1...degree {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             powers.append(try multiply(powers[powers.count - 1], parameter,
                 maximumDegree: budget.options.maximumPolynomialDegree, budget: budget))
             complements.append(try multiply(complements[complements.count - 1], complement,
@@ -285,11 +285,11 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
         let coefficients = try binomials(degree, budget: budget)
         var bases: [Polynomial] = []
         for index in 0...degree {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let product = try multiply(powers[index], complements[degree - index],
                 maximumDegree: budget.options.maximumPolynomialDegree, budget: budget)
             let values = product.map { $0 * coefficients[index] }
-            guard values.allSatisfy(\.isFinite) else {
+            guard values.allSatisfy({ $0.isFinite }) else {
                 throw failure(.resourceLimitExceeded, "An affine native Bernstein basis exceeds finite arithmetic.", budget)
             }
             bases.append(values)
@@ -304,7 +304,7 @@ struct OverlapAffineComposedResidualAuthority: Sendable {
         let left = try binomials(m, budget: budget), right = try binomials(n, budget: budget), output = try binomials(m + n, budget: budget)
         var result = Polynomial(repeating: .exact(0), count: m + n + 1)
         for i in a.indices {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             for j in b.indices {
                 guard let coefficient = (left[i] * right[j]).divided(by: output[i + j]) else {
                     throw failure(.resourceLimitExceeded, "Affine residual Bernstein normalization is unresolved.", budget)

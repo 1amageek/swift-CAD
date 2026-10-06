@@ -33,7 +33,7 @@ public struct GeometryConversionAdmission: Sendable {
     }
 
     public func chargeWork(_ units: Int = 1) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard units >= 0 else {
             throw GeometryConversionError.invalidInput("Conversion work units must be nonnegative.")
         }
@@ -41,7 +41,7 @@ public struct GeometryConversionAdmission: Sendable {
     }
 
     public func chargeStorage(bytes: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard bytes >= 0 else {
             throw GeometryConversionError.resourceLimitExceeded("Conversion byte accounting overflowed.")
         }

@@ -1,4 +1,14 @@
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 import CADCore
 
 struct AnalyticSurfaceBSplineBuilder {
@@ -113,10 +123,10 @@ struct AnalyticSurfaceBSplineBuilder {
             let offset = point - plane.origin
             return Point2D(x: offset.dot(basis.u), y: offset.dot(basis.v))
         }
-        let rawULower = parameters.map(\.x).min() ?? 0.0
-        let rawUUpper = parameters.map(\.x).max() ?? 0.0
-        let rawVLower = parameters.map(\.y).min() ?? 0.0
-        let rawVUpper = parameters.map(\.y).max() ?? 0.0
+        let rawULower = parameters.map({ $0.x }).min() ?? 0.0
+        let rawUUpper = parameters.map({ $0.x }).max() ?? 0.0
+        let rawVLower = parameters.map({ $0.y }).min() ?? 0.0
+        let rawVUpper = parameters.map({ $0.y }).max() ?? 0.0
         let characteristicLength = max(
             rawUUpper - rawULower,
             rawVUpper - rawVLower,
@@ -179,7 +189,7 @@ struct AnalyticSurfaceBSplineBuilder {
             uKnots: circleKnots,
             vKnots: [bounds.lower, bounds.lower, bounds.upper, bounds.upper],
             controlPoints: rows,
-            weights: [controls.map(\.weight), controls.map(\.weight)]
+            weights: [controls.map({ $0.weight }), controls.map({ $0.weight })]
         )
     }
 
@@ -217,7 +227,7 @@ struct AnalyticSurfaceBSplineBuilder {
             uKnots: circleKnots,
             vKnots: [bounds.lower, bounds.lower, bounds.upper, bounds.upper],
             controlPoints: rows,
-            weights: [controls.map(\.weight), controls.map(\.weight)]
+            weights: [controls.map({ $0.weight }), controls.map({ $0.weight })]
         )
     }
 

@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 // FIXME(INCOMPLETE_IMPLEMENTATION): This value evaluates blend geometry but is
 // registered in Surface3D and consumed by ordinary Fillet through the injected

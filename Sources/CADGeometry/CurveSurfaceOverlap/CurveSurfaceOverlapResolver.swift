@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 struct CurveSurfaceOverlapResolver {
     private struct Candidate {
@@ -16,7 +26,7 @@ struct CurveSurfaceOverlapResolver {
         try options.validate(tolerance: tolerance)
         try curve.validate(tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let range = try DefaultCurveSurfaceSearchRangeResolver().curveRange(curve: curve, surface: surface,
                                                                           requestedRange: options.curveRange, tolerance: tolerance)
         guard range.width.isFinite, range.width > 0, try curve.parameterDomain.containsSpan(from: range.lower, to: range.upper, tolerance: tolerance) else {
@@ -56,7 +66,7 @@ struct CurveSurfaceOverlapResolver {
                 throw failure(.resourceLimitExceeded, "Overlap source spans exceed the cell budget.", tolerance)
             }
             for span in spans {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 let lower = max(span.lower, range.lower), upper = min(span.upper, range.upper)
                 guard upper > lower else { continue }
                 let interval = try ScalarInterval(lower: lower, upper: upper)
@@ -103,7 +113,7 @@ struct CurveSurfaceOverlapResolver {
                         }
                         var cycle = lowerCycle
                         while cycle <= upperCycle {
-                            try Task.checkCancellation()
+                            try CurrentTaskCancellationChecker().checkCancellation()
                             points.append(try CurveSurfaceIntersection(point: event.point,
                                 curveParameter: event.curveParameter + cycle * period,
                                 surfaceU: event.surfaceU, surfaceV: event.surfaceV, kind: event.kind,
@@ -133,7 +143,7 @@ struct CurveSurfaceOverlapResolver {
         let merged = try merge(admitted)
         var uniquePoints: [CurveSurfaceIntersection] = []
         for event in points.sorted(by: { $0.curveParameter < $1.curveParameter }) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let candidate = candidates.first { $0.range.contains(event.curveParameter) }
             let correspondence = candidate?.isoparametric
             guard !merged.contains(where: { $0.range.contains(event.curveParameter) }),
@@ -308,7 +318,7 @@ struct CurveSurfaceOverlapResolver {
             let proof = OverlapSpanMembershipCertifier(maximumDegree: options.maximumPolynomialDegree, tolerance: tolerance)
             var bound = 0.0
             for span in spans {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 bound = max(bound, try proof.deviation(of: span, on: CanonicalAnalyticSurface(support)))
             }
             guard bound <= tolerance.distance else {
@@ -337,7 +347,7 @@ struct CurveSurfaceOverlapResolver {
             tolerance: tolerance, isoparametric: candidate.isoparametric, regularGraph: candidate.graph, budget: &budget)
         var cuts = [candidate.range.lower, candidate.range.upper]
         for boundary in boundaries {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             switch boundary {
             case .certifiedSourceParameter(let parameter):
                 if candidate.range.contains(parameter) { cuts.append(parameter) }
@@ -349,7 +359,7 @@ struct CurveSurfaceOverlapResolver {
                 let source = parameterPlaneSource ?? curve
                 let result = try resolve(curve: source, surface: plane, options: boundaryOptions,
                                          tolerance: tolerance, intersector: intersector)
-                cuts.append(contentsOf: result.points.map(\.curveParameter))
+                cuts.append(contentsOf: result.points.map({ $0.curveParameter }))
                 for overlap in result.overlaps { cuts.append(overlap.curveRange.lower); cuts.append(overlap.curveRange.upper) }
             }
             try checkCount(cuts.count, options: options, tolerance: tolerance)
@@ -359,7 +369,7 @@ struct CurveSurfaceOverlapResolver {
         for cut in cuts where unique.last != cut { unique.append(cut) }
         var regions: [Candidate] = []
         for index in 0..<(unique.count - 1) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let lower = unique[index], upper = unique[index + 1]
             guard upper > lower else { continue }
             let middle = lower + (upper - lower) * 0.5

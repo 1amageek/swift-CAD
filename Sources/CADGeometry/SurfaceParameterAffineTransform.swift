@@ -1,5 +1,15 @@
 import CADCore
+#if !hasFeature(Embedded)
 import Foundation
+#elseif canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADGeometry numeric algorithms require the target C math module.")
+#endif
 
 /// An exact affine change of coordinates between two surface parameter charts.
 public struct SurfaceParameterAffineTransform: Hashable, Sendable {
@@ -60,7 +70,7 @@ public struct SurfaceParameterAffineTransform: Hashable, Sendable {
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         let values = [uu, uv, vu, vv, uOffset, vOffset]
-        guard values.allSatisfy(\.isFinite),
+        guard values.allSatisfy({ $0.isFinite }),
               abs(determinant) > tolerance.relative else {
             throw KernelError(
                 phase: .geometry,

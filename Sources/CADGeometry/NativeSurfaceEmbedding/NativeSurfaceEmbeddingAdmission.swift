@@ -25,12 +25,12 @@ public struct NativeSurfaceEmbeddingAdmission: Sendable {
     }
 
     func work(_ units: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard units >= 0 else { throw GeometryConversionError.invalidInput("Native embedding work cannot be negative.") }
         try consume(units)
     }
     func cell(depth: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth >= 0 else { throw GeometryConversionError.invalidInput("Native embedding depth cannot be negative.") }
         try visit(depth)
     }
@@ -57,7 +57,7 @@ public struct NativeSurfaceEmbeddingAdmission: Sendable {
     }
     /// Exact source algebra already reserves canonical UInt32 words.
     func storageWords(_ words: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard words >= 0 else { throw GeometryConversionError.invalidInput("Native retained word count cannot be negative.") }
         try retain(words)
     }

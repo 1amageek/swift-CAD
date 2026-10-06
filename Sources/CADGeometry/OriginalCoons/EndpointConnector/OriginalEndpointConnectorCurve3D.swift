@@ -21,7 +21,7 @@ public struct OriginalEndpointConnectorCurve3D: Hashable, Sendable {
         correctionBasis: OriginalEndpointCorrectionBasis,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int,
         tolerance: ModelingTolerance, usage: inout B) throws {
-        try Task.checkCancellation(); try tolerance.validate()
+        try CurrentTaskCancellationChecker().checkCancellation(); try tolerance.validate()
         guard construction.domain == .closed(0, 1), !construction.isPeriodic,
             startBoundary.certificationTolerance == tolerance,
             endBoundary.certificationTolerance == tolerance else {
@@ -99,7 +99,7 @@ public struct OriginalEndpointConnectorCurve3D: Hashable, Sendable {
             start: OutwardScalarInterval, end: OutwardScalarInterval,
             candidateStart: OutwardScalarInterval, candidateEnd: OutwardScalarInterval)
             throws -> SurfaceAreaIntervalTaylorScalarJet {
-            for _ in 0..<3 { try Task.checkCancellation(); try consumeWork() }
+            for _ in 0..<3 { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
             let firstCorrection = start - candidateStart
             let lastCorrection = end - candidateEnd
             let first = try SurfaceAreaIntervalTaylorScalarJet.constant(firstCorrection, order: order, axis: .u,
@@ -150,7 +150,7 @@ public struct OriginalEndpointConnectorCurve3D: Hashable, Sendable {
             _ start: OutwardScalarInterval, _ end: OutwardScalarInterval,
             _ candidateStart: OutwardScalarInterval, _ candidateEnd: OutwardScalarInterval)
             throws -> (OutwardScalarInterval, OutwardScalarInterval) {
-            for _ in 0..<8 { try Task.checkCancellation(); try consumeWork() }
+            for _ in 0..<8 { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
             let first = start - candidateStart, delta = end - candidateEnd - first
             var value = position + first + delta * h
             if parameters.lower == parameters.upper, parameters.lower == 0 { value = start }
@@ -173,10 +173,10 @@ public struct OriginalEndpointConnectorCurve3D: Hashable, Sendable {
         throws -> [PreparedCurveDifferentialEncloser.ClosedNativeJet.OwnedSpan] {
         try validate(tolerance: tolerance)
         try GeometryStructuralComparisonWork.charge(curve: .bSpline(construction), using: { count in
-            for _ in 0..<count { try Task.checkCancellation(); try consumeWork() }
+            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
         })
         try GeometryStructuralComparisonWork.charge(curve: original.source, using: { count in
-            for _ in 0..<count { try Task.checkCancellation(); try consumeWork() }
+            for _ in 0..<count { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
         })
         guard original.source == .bSpline(construction), original.tolerance == tolerance,
             !original.spans.isEmpty, original.parameters.lower >= 0, original.parameters.upper <= 1,
@@ -188,7 +188,7 @@ public struct OriginalEndpointConnectorCurve3D: Hashable, Sendable {
         var result: [PreparedCurveDifferentialEncloser.ClosedNativeJet.OwnedSpan] = []
         result.reserveCapacity(original.spans.count)
         for owner in original.spans {
-            try Task.checkCancellation(); try consumeWork()
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
             guard owner.parameters.lower >= original.parameters.lower,
                 owner.parameters.upper <= original.parameters.upper else {
                 throw GeometryConversionError.invalidInput("Original connector owner leaves its retained query parameters.")
@@ -200,7 +200,7 @@ public struct OriginalEndpointConnectorCurve3D: Hashable, Sendable {
             func axis(_ q: SurfaceIntervalJet, _ start: OutwardScalarInterval,
                 _ end: OutwardScalarInterval, _ candidateStart: OutwardScalarInterval,
                 _ candidateEnd: OutwardScalarInterval) throws -> SurfaceIntervalJet {
-                for _ in 0..<12 { try Task.checkCancellation(); try consumeWork() }
+                for _ in 0..<12 { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork() }
                 let offset = start - candidateStart, gain = end - candidateEnd - offset
                 var position = q.value + offset + gain * value
                 if owner.parameters.lower == owner.parameters.upper, owner.parameters.lower == 0 { position = start }
@@ -240,7 +240,7 @@ public struct OriginalEndpointConnectorCurve3D: Hashable, Sendable {
             var values: [OutwardScalarInterval] = []; values.reserveCapacity(count.partialValue)
             var factorial = OutwardScalarInterval.exact(1)
             for k in 0...order {
-                try Task.checkCancellation(); try consumeWork()
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
                 if k > 0 { factorial = factorial * .exact(Double(k)) }
                 values.append(try q.coefficient(k, 0) * factorial)
             }
