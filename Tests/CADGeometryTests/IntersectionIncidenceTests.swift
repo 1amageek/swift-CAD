@@ -352,7 +352,8 @@ struct IntersectionIncidenceTests {
         guard case .quantified(let proof) = closure.proof else {
             Issue.record("A region cannot use a one-dimensional monic certificate."); return
         }
-        #expect(proof.tower.variableCount == 9 && !closure.includedCells.isEmpty)
+        #expect(proof.tower.variableCount == 7 && proof.freeVariableCount == 4 && !closure.includedCells.isEmpty)
+        #expect(closure.candidateCoordinateMap == [5,6,2,3])
         for truth in proof.freeCells {
             let cell = closure.freePartition.cells[truth.cellIndex]
             let one = try OriginalSingularFieldElement.constant(.one, in: cell.context, maximumDepth: 24, usage: &usage)

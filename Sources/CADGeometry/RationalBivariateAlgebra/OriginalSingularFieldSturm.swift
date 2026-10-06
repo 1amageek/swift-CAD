@@ -5,6 +5,22 @@ struct OriginalSingularFieldSturm: Sendable {
     init<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPolynomial,
         maximumDepth: Int, usage: inout B) throws {
         guard !original.isZero else { throw rationalAlgebraFailure("Original tower Sturm law is zero.") }
+        if original.degree == 1 {
+            let leading = original.coefficients[1]
+            guard try leading.sign(maximumDepth: maximumDepth, usage: &usage) != .zero else {
+                throw rationalAlgebraFailure("Original linear Sturm source lost its nonzero leading coefficient.")
+            }
+            let one = try OriginalSingularFieldElement.constant(.one, in: original.context,
+                maximumDepth: maximumDepth, usage: &usage)
+            source = try OriginalSingularFieldPolynomial(context: original.context,
+                coefficients: [original.coefficients[0].divided(by: leading, maximumDepth: maximumDepth, usage: &usage), one],
+                maximumDepth: maximumDepth, usage: &usage)
+            let derivative = try OriginalSingularFieldPolynomial(context: original.context,
+                coefficients: [one], maximumDepth: maximumDepth, usage: &usage)
+            try RationalAlgebraStorage.retain(2, of: OriginalSingularFieldPolynomial.self, usage: &usage)
+            chain = [source, derivative]
+            return
+        }
         let derivative = try original.differentiated(maximumDepth: maximumDepth, usage: &usage)
         let repeated = try OriginalSingularFieldPolynomial.gcd(original, derivative, maximumDepth: maximumDepth, usage: &usage)
         let division = try original.divided(by: repeated, maximumDepth: maximumDepth, usage: &usage)

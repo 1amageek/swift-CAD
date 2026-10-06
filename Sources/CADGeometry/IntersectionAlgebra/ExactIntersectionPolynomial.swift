@@ -207,10 +207,14 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
     package func matches<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Bool {
         try requireSameRing(other)
         try intersectionAlgebraStep(&usage)
-        try usage.consumeExactWork(rationalAlgebraCount(coefficients.count, other.coefficients.count))
-        for term in coefficients { try usage.consumeExactWork(term.key.overflowCount) }
-        for term in other.coefficients { try usage.consumeExactWork(term.key.overflowCount) }
-        return coefficients == other.coefficients
+        guard orderedCoefficients.count == other.orderedCoefficients.count else { return false }
+        for index in orderedCoefficients.indices {
+            try intersectionAlgebraStep(&usage)
+            let first = orderedCoefficients[index], second = other.orderedCoefficients[index]
+            try usage.consumeExactWork(rationalAlgebraCount(first.key.overflowCount, second.key.overflowCount))
+            if first.key != second.key || first.value != second.value { return false }
+        }
+        return true
     }
     package var isConstant: Bool {
         if coefficients.isEmpty { return true }
@@ -457,22 +461,21 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         guard coordinate >= 0, coordinate < variableCount else {
             throw rationalAlgebraFailure("Original derivative coordinate is outside the intersection ring.")
         }
-        let unit = try Self.coordinate(variableCount: variableCount, at: coordinate, usage: &usage)
-        guard let unitPower = try unit.leading(usage: &usage)?.power else {
-            throw rationalAlgebraFailure("Original coordinate polynomial lost its monomial.")
-        }
-        var result = try Self.zero(variableCount: variableCount)
+        try intersectionAlgebraStep(&usage)
+        let unitPower = try Power.coordinate(at: coordinate, variableCount: variableCount, usage: &usage)
+        try RationalAlgebraStorage.retain(coefficients.count,
+            of: (Power, ExactRationalCoefficient).self, usage: &usage)
+        var result: [Power: ExactRationalCoefficient] = [:]
         for (power, value) in try orderedTerms(usage: &usage) {
+            try intersectionAlgebraStep(&usage)
             let exponent = try power.exponent(at: coordinate)
             if exponent == 0 { continue }
             let reduced = try power.quotient(by: unitPower, variableCount: variableCount, usage: &usage)
             let coefficient = try value.multiplied(by: .natural(exponent, usage: &usage), usage: &usage)
-            let term = try Self.monomial(variableCount: variableCount,
-                power: reduced,
-                coefficient: coefficient, usage: &usage)
-            result = try result.adding(term, usage: &usage)
+            // Differentiating distinct surviving monomials is injective.
+            result[reduced] = coefficient
         }
-        return result
+        return try Self.storing(variableCount: variableCount, coefficients: result, usage: &usage)
     }
 
     package func evaluated<B: RationalAlgebraAdmitting>(at coordinates: [ExactRationalCoefficient],
@@ -517,14 +520,19 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         if degree < 0 { return [] }
         let count = try rationalAlgebraCount(degree, 1)
         try RationalAlgebraStorage.retain(count, of: Self.self, usage: &usage)
-        var result = Array(repeating: try Self.zero(variableCount: variableCount), count: count)
+        try RationalAlgebraStorage.retain(count, of: [Power: ExactRationalCoefficient].self, usage: &usage)
+        try RationalAlgebraStorage.retain(terms.count, of: (Power, ExactRationalCoefficient).self, usage: &usage)
+        var tables = Array(repeating: [Power: ExactRationalCoefficient](), count: count)
         for term in terms {
             try intersectionAlgebraStep(&usage)
-            let power = term.key
-            let exponent = try power.exponent(at: axis)
-            let coefficient = try Self.monomial(variableCount: variableCount,
-                power: try power.removing(axis, variableCount: variableCount, usage: &usage), coefficient: term.value, usage: &usage)
-            result[exponent] = try result[exponent].adding(coefficient, usage: &usage)
+            let exponent = try term.key.exponent(at: axis)
+            let power = try term.key.removing(axis, variableCount: variableCount, usage: &usage)
+            tables[exponent][power] = term.value
+        }
+        var result: [Self] = []; result.reserveCapacity(count)
+        for table in tables {
+            try intersectionAlgebraStep(&usage)
+            result.append(try Self.storing(variableCount: variableCount, coefficients: table, usage: &usage))
         }
         return result
     }
@@ -571,6 +579,6 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
 }
 
 func intersectionAlgebraStep<B: RationalAlgebraAdmitting>(_ usage: inout B) throws {
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     try usage.consumeExactWork(1)
 }

@@ -1,3 +1,5 @@
+import CADCore
+
 /// Exact rational functions in one retained original real algebraic tower.
 package struct OriginalSingularFieldElement: Sendable {
     enum Storage: Sendable {
@@ -10,13 +12,23 @@ package struct OriginalSingularFieldElement: Sendable {
 
     package static func constant<B: RationalAlgebraAdmitting>(_ value: ExactRationalCoefficient,
         in context: OriginalSingularFieldContext, maximumDepth: Int, usage: inout B) throws -> Self {
-        switch context.source {
-        case .rational, .original:
-            return try Self(context: context, storage: .original(.constant(value, usage: &usage), .constant(.one, usage: &usage)))
-        case .extended(let root):
-            let coefficient = try Self.constant(value, in: root.polynomial.context, maximumDepth: maximumDepth, usage: &usage)
-            return try coefficient.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+        let result: Self
+        switch (context.source, context.constantAuthority) {
+        case (.rational, .original(let unit)), (.original, .original(let unit)):
+            let numerator = value == .one ? unit : try ExactBivariatePolynomial.constant(value, usage: &usage)
+            result = Self(context: context, storage: .original(numerator, unit))
+        case (.extended(let root), .extended(let zero, let unit)):
+            if value.isZero { result = Self(context: context, storage: .extended(zero, unit)) }
+            else if value == .one { result = Self(context: context, storage: .extended(unit, unit)) }
+            else {
+                let coefficient = try Self.constant(value, in: root.polynomial.context, maximumDepth: maximumDepth, usage: &usage)
+                result = try coefficient.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
+            }
+        default: throw rationalAlgebraFailure("Structural constants contradict their immutable field owner.")
         }
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return result
     }
 
     package static func original<B: RationalAlgebraAdmitting>(_ polynomial: ExactBivariatePolynomial,
@@ -35,6 +47,7 @@ package struct OriginalSingularFieldElement: Sendable {
             if b == .one { return a }
             return try a.divided(by: b, usage: &usage)
         case .extended(let n, let d):
+            guard !d.isZero else { throw rationalAlgebraFailure("Original singular field denominator vanishes.") }
             if n.degree > 0 || d.degree > 0 { return nil }
             if n.isZero { return .zero }
             guard let a = n.coefficients.first, let b = d.coefficients.first,
@@ -90,18 +103,35 @@ package struct OriginalSingularFieldElement: Sendable {
 
     package func embedded<B: RationalAlgebraAdmitting>(in target: OriginalSingularFieldContext,
         maximumDepth: Int, usage: inout B) throws -> Self {
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation()
         if context === target { return self }
-        guard let parent = target.parent else { throw rationalAlgebraFailure("Unrelated original field contexts cannot be implicitly identified.") }
+        guard let parent = target.parent, case .extended(let zero, let unit) = target.constantAuthority else {
+            throw rationalAlgebraFailure("Unrelated original field contexts cannot be implicitly identified.")
+        }
         let value = try embedded(in: parent, maximumDepth: maximumDepth, usage: &usage)
-        let one = try Self.constant(.one, in: parent, maximumDepth: maximumDepth, usage: &usage)
-        try RationalAlgebraStorage.retain(2, of: Self.self, usage: &usage)
-        return try Self(context: target, storage: .extended(
-            OriginalSingularFieldPolynomial(context: parent, coefficients: [value], maximumDepth: maximumDepth, usage: &usage),
-            OriginalSingularFieldPolynomial(context: parent, coefficients: [one], maximumDepth: maximumDepth, usage: &usage)))
+        if let constant = try value.rationalValue(usage: &usage) {
+            if constant.isZero {
+                try CurrentTaskCancellationChecker().checkCancellation()
+                return Self(context: target, storage: .extended(zero, unit))
+            }
+            if constant == .one {
+                try CurrentTaskCancellationChecker().checkCancellation()
+                return Self(context: target, storage: .extended(unit, unit))
+            }
+        }
+        try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
+        let result = try Self(context: target, storage: .extended(
+            OriginalSingularFieldPolynomial(context: parent, coefficients: [value], maximumDepth: maximumDepth, usage: &usage), unit))
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return result
     }
 
     package func adding<B: RationalAlgebraAdmitting>(_ other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         let b = try other.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
+        if try rationalValue(usage: &usage)?.isZero == true { return b }
+        if try b.rationalValue(usage: &usage)?.isZero == true { return self }
         if let (a, c) = try originalConstants(with: b, usage: &usage) {
             return try .constant(a.adding(c, usage: &usage), in: context, maximumDepth: maximumDepth, usage: &usage)
         }
@@ -128,7 +158,29 @@ package struct OriginalSingularFieldElement: Sendable {
         try adding(other.negated(maximumDepth: maximumDepth, usage: &usage), maximumDepth: maximumDepth, usage: &usage)
     }
     package func multiplied<B: RationalAlgebraAdmitting>(by other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         let b = try other.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
+        let first = try rationalValue(usage: &usage), second = try b.rationalValue(usage: &usage)
+        if first == .one { return b }
+        if second == .one { return self }
+        if first?.isZero == true {
+            switch (storage, b.storage) {
+            case (.original(let zero, _), .original(_, let denominator)):
+                return Self(context: context, storage: .original(zero, denominator))
+            case (.extended(let zero, _), .extended(_, let denominator)):
+                return Self(context: context, storage: .extended(zero, denominator))
+            default: throw rationalAlgebraFailure("Original zero product has incompatible value storage.")
+            }
+        }
+        if second?.isZero == true {
+            switch (storage, b.storage) {
+            case (.original(_, let denominator), .original(let zero, _)):
+                return Self(context: context, storage: .original(zero, denominator))
+            case (.extended(_, let denominator), .extended(let zero, _)):
+                return Self(context: context, storage: .extended(zero, denominator))
+            default: throw rationalAlgebraFailure("Original zero product has incompatible value storage.")
+            }
+        }
         if let (a, c) = try originalConstants(with: b, usage: &usage) {
             return try .constant(a.multiplied(by: c, usage: &usage), in: context, maximumDepth: maximumDepth, usage: &usage)
         }
@@ -144,8 +196,11 @@ package struct OriginalSingularFieldElement: Sendable {
         }
     }
     package func divided<B: RationalAlgebraAdmitting>(by other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         let b = try other.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
         if case .zero = try b.sign(maximumDepth: maximumDepth, usage: &usage) { throw rationalAlgebraFailure("Original field division by zero.") }
+        if try b.rationalValue(usage: &usage) == .one { return self }
+        if try rationalValue(usage: &usage)?.isZero == true { return self }
         if let (a, c) = try originalConstants(with: b, usage: &usage) {
             return try .constant(a.divided(by: c, usage: &usage), in: context, maximumDepth: maximumDepth, usage: &usage)
         }
@@ -165,7 +220,7 @@ package struct OriginalSingularFieldElement: Sendable {
     private func originalConstants<B: RationalAlgebraAdmitting>(with other: Self,
         usage: inout B) throws -> (ExactRationalCoefficient, ExactRationalCoefficient)? {
         try usage.consumeExactWork(1)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard case .original = storage, case .original = other.storage else { return nil }
         switch context.source {
         case .rational, .original: break

@@ -108,7 +108,28 @@ control net or interval coefficient becomes source authority.
 
 Integers use canonical base-2^32 magnitude limbs and an explicit sign. Rational
 numerators and positive denominators are reduced by exact integer GCD. Zero has
-one canonical representation. Portable exact endpoint source identity uses canonical sign and little-endian
+one canonical representation. Reduction returns unit numerators and already
+coprime numerator/denominator buffers without dividing both buffers by one.
+The exact GCD remains the authority for coprimality; this reuse changes neither
+the canonical value nor cancellation and caller admission. Original intersection
+projection is a composing consumer and must retain its work/storage limits.
+Equal rational denominators retain their original immutable denominator and add
+only signed numerators. A denominator proved to be exactly a power of two uses
+the numerator's exact trailing-zero count to remove their common power by right
+shifts. Odd numerators already prove coprimality. General fractions keep integer
+GCD and exact division. One-limb integer GCD uses scalar Euclidean remainders
+and retains only its final magnitude; every inspected limb/iteration and new
+buffer is admitted. This removes repeated dyadic root-refinement allocations
+without changing canonical original coefficient words or root depth.
+Division by a one-limb divisor processes canonical base-2^32 limbs from most
+significant to least significant. Its UInt64 partial numerator is bounded by
+`(divisor - 1) * 2^32 + (2^32 - 1)`; its quotient limb fits UInt32. Each limb
+consumes caller work and cancellation checks, and both output buffers are
+admitted before allocation. Multi-limb divisors retain exact binary long
+division. Behavioral verification reconstructs numerator = quotient * divisor
++ remainder and checks the strict remainder bound, including multi-limb input,
+maximum limb values, exact division and independent admission failure.
+Portable exact endpoint source identity uses canonical sign and little-endian
 UInt32 numerator/denominator words. The caller-admitted original-parts initializer
 rejects noncanonical signs, trailing zero limbs, unreduced fractions and zero
 with a nonunit denominator; reconstruction uses the same composing algebra
@@ -900,3 +921,144 @@ queries. This port changes no root identity, equation coverage or depth ceiling.
 [Native Point Relations](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md)
 owns section extraction and geometric bound production. NativeCurveSurfacePointTests
 owns invalid/reversed/excluding seed rejection and depth-preserving refinement.
+
+### Original Root Separation Refinement
+
+Whole root-union ordering and disjoint-sector separation select the existing
+Sturm bisection branch for rational root brackets. Their exact dyadic midpoint
+and retained Sturm sequence preserve exactly one original root in a shrinking
+closed/excluded interval, using the same inherited caller depth and work/storage
+ledger. They do not run interval Newton to manufacture large rational endpoint
+denominators. Ordinary scalar localization and sign refinement keep their
+existing Newton behavior. Both modes retain the original field polynomial and
+root admission domain; cancellation, root-count contradiction and exhausted
+depth remain explicit failures. Separation changes no root identity, precision
+threshold, maximum depth or allowance.
+
+Root-union ordering contracts only the wider overlapping unique-root bracket.
+The narrower root keeps its localization until it becomes the wider one. Equality
+preserves each original admission domain and the maximum intersection depth. A
+linear expression at a linear root uses exact cross multiplication in the same
+parent field; an already issued identical linear root is retained before issuing
+another isolation.
+
+The complete issuer retains its immutable field Sturm sequence and, for rational
+laws, the existing rational-root authority. Bracket contractions reuse the same
+original law and parent context. `minimalSectionRoot` preserves that issued root
+when its original law already has the minimum degree. Rational expression signs
+reuse the rational Sturm sequence after verifying the contracted unique-root
+bracket under `OriginalScalarRootDomainAdmission`. An identical bracket reuses
+that exact receipt only when both endpoints, endpoint exclusions, rational-station
+flag and inherited depth match the same immutable root owner. Every reuse still
+checks cancellation, admits the endpoint comparisons and visits the original
+parameter or coefficient depth. Rational refinement binds its already certified
+contracted authority into the returned receipt; a changed bracket keeps the
+original unique-root validation. Nonrational expression signs
+keep the existing field path. All retained buffers belong to immutable root
+receipts; no shared mutable cache or admission reset is introduced. Linear
+expression signs at a nonlinear root reuse this same original Sturm sequence
+for exact threshold rank after evaluating the original law at that threshold;
+there is no equivalent-law reconstruction or repeated derivative/GCD issuance.
+
+A degree-one root whose exact parent-field value is a rational affine or observed linear-fractional image of
+an already retained rational-law ancestor may contract that ancestor's existing
+Sturm bracket and map its endpoints exactly. A degree-one numerator and denominator over a
+rational quadratic ancestor use this same port after certifying the linear
+denominator has the same strict nonzero sign at both endpoints. A bracket
+straddling a pole, including a pole at an excluded endpoint, requires further
+ancestor Sturm contraction under its remaining depth. The exact derivative
+determinant selects endpoint orientation. The ancestor keeps its own admission
+domain and attained subdivision depth; the derived receipt keeps the maximum of
+its previously inherited depth and the ancestor's attained depth. Intersection
+with the derived original bracket retains endpoint exclusions and is validated
+against its original linear law. This reuses the same unique-root proof without
+creating a field extension or restarting any root's depth. Both roots must use
+the parameter admission domain; other structural cases keep the existing field
+refinement. All endpoint arithmetic and retained proof buffers use the same
+cumulative ledger. The retained ancestor contraction is immutable and reused by
+subsequent contractions. AdmittedIntersectionRingTests checks positive and
+negative image orientation, endpoint/interior pole contraction, inherited depth
+24, original source-law equality,
+and independent depth/work/storage refusal.
+
+A retained root exposes original-law counting only for a subset of its current
+isolation with preserved endpoint exclusions, nondecreasing inherited depth and
+its unchanged admission domain/ceiling. It reuses its original immutable Sturm
+sequence; a root without that retained issuer constructs the original-law
+sequence under the same ledger. This contract counts original roots, not roots
+of a proposed common factor. AdmittedIntersectionRingTests checks admitted and
+foreign subintervals, excluded endpoints, depth and independent budget refusal.
+
+An exact magnitude GCD with a unit input returns the immutable unit after one
+work admission and retains no intermediate limbs. This preserves the canonical
+scalar result while avoiding binary subtraction buffers during rational integer
+cross cancellation. AdmittedIntersectionRingTests owns the fixed allowance,
+independent limit, retained-depth and wider-bracket regression evidence.
+
+### Canonical Field Polynomial Division
+
+Exact long division eliminates the same original leading terms in one immutable
+field context. It owns one quotient and one remainder coefficient buffer and
+updates those buffers with the existing exact field multiply/subtract operations.
+Each eliminated leading coefficient is checked to have exact zero sign; trimming
+checks the remaining leading coefficient under the unchanged caller depth.
+Canonical results transfer these owned buffers without materializing monomials,
+full product polynomials or a second canonical copy. All created scalar buffers
+and both output buffers remain admitted to the cumulative ledger. Undefined
+denominators, unrelated contexts, zero divisors and independent depth/work/storage
+limits propagate their existing failures. AdmittedIntersectionRingTests checks
+quotient/remainder reconstruction over an algebraic parent and these refusals.
+
+### Immutable Structural Constants
+
+Each immutable field context owns canonical rational zero/one authority and its
+unit denominator. Construction admits the additional heap payload and generated
+unit buffers in the same caller ledger before retaining them. An extended
+context's zero/unit polynomials refer only to its parent context, so authority
+retention follows the existing acyclic parent ownership graph. This is structural
+Q0/Q1 authority, not a source-root or query-truth cache. Constant creation and
+embedding borrow these buffers only in their matching context and admit work and
+cancellation on every call, including after the final admission callback before
+returning a borrowed value. Context construction likewise checks cancellation
+after its last unit-buffer admission before publishing the owner. Other constants
+still construct their original
+numerators under the existing sign/depth and storage checks; undefined source
+denominators remain failures. No global intern or mutable shared storage exists.
+AdmittedIntersectionRingTests verifies zero-storage Q0/Q1 borrowing, nonunit
+allocation refusal, independent work/cancellation, retained parent context and
+construction-storage refusal.
+
+### Exact Ordered-Field Identity Reuse
+
+Multiplication of canonical field polynomials by the exact rational constant one
+retains the other polynomial's buffers only in the identical immutable field
+context. It admits cancellation and work and checks the retained leading
+coefficient's sign with the unchanged caller depth, as canonical construction
+does. Original coefficients and undefined denominators remain in that retained
+polynomial. This removes unit-denominator products during original Sturm
+endpoint evaluation without changing its root-count proof or allocating another
+coefficient buffer. AdmittedIntersectionRingTests checks both orientations,
+zero-allocation reuse, independent work/depth refusal and retained undefined
+denominator failure.
+
+After embedding into the same immutable field owner, addition by an exact
+rational zero and multiplication/division by an exact rational one retain the
+existing operand buffers. A zero product retains the other operand's original
+denominator, so undefined source fractions remain detectable. Zero division
+still validates the divisor sign before retaining the numerator. Cancellation
+and inspected work remain admitted; field ownership, source laws and independent
+root depths do not change. AdmittedIntersectionRingTests compares these results
+with their original algebraic value and checks zero-divisor failure.
+
+Multi-limb magnitude GCD uses exact Euclidean remainders from the retained aligned
+integer division buffers. Each nonzero remainder is strictly smaller than its
+divisor; every limb inspection, division and retained result stays in the same
+caller ledger. This avoids allocating a new shifted/subtracted magnitude for
+each binary GCD bit step. AdmittedIntersectionRingTests checks multi-limb common
+factors, coprime inputs and canonical rational reconstruction.
+
+A degree-one field Sturm issuer retains the same exact monic source `[B/A, 1]`
+and derivative chain `[source, 1]` directly after validating its nonzero leading
+coefficient. These are the same quotient and chain that generic GCD/long division
+produce; the linear polynomial has no repeated factor. Root counts, endpoint
+exclusions, bisection, original field and admission domains remain unchanged.

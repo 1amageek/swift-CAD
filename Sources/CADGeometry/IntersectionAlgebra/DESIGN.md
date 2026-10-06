@@ -65,7 +65,7 @@ the internal rings required by exact coefficient transport or closure proofs.
 All polynomial operations preserve the complete exponent sequence, including
 coordinate injection, differentiation, division, ideal normalization and
 projection. Lowering may discard only proved-zero suffix slots. The closure
-formula uses exactly two copies of the admitted source ring and one radius;
+formula uses two copies before certified reductions of the admitted source ring and one radius;
 its dimension is checked before building the quantified proof. Whole-cell
 closure and finite-branch/affine sufficient theorems have no separate inline capacity.
 No unsupported dimension is silently truncated or classified as absence.
@@ -77,6 +77,14 @@ complete original coordinate power, including non-inline main coordinates.
 Remapping keeps inline targets on stack scalars and reuses one admitted scratch
 buffer per polynomial for larger targets; each retained overflowing monomial
 owns its canonical immutable suffix.
+
+Equality first compares immutable canonical term counts, then compares their
+ordered entries until the first difference. Each inspected entry and overflow
+power is admitted; neither unequal term counts nor an early difference requires
+a full traversal of both tables. Derivatives issue one coefficient table directly:
+subtracting the coordinate unit is injective among surviving source monomials,
+so intermediate monomial polynomials and repeatedly sorted prefix sums are
+unnecessary. The full output table and canonical ordering remain caller-admitted.
 
 Each admitted polynomial publication retains one canonical descending term table
 alongside its immutable coefficient lookup. The table's allocation and sorting
@@ -183,6 +191,30 @@ closure rather than a relaxed coefficient-dependent solution set.
 Every original candidate sign remains an explicit guard. Source zero conditions
 still form the free closed-support equations, and original free partition laws
 make incidence membership constant on each whole refined cell.
+
+A source-issued linear equation `A*q+B=0` in the last candidate coordinate,
+together with a retained strict original sign for A, proves exactly one candidate
+q = -B/A for every remaining candidate tuple satisfying that guard. The generic
+quantified path substitutes this identity into every predicate by exact
+denominator clearing with the positive multiplier sign(A)*A. Every zero
+condition other than the selected equation remains a substituted zero condition;
+it is not reduced by its own ideal and discarded. The selected equation becomes
+the identically true zero atom. All box constraints, source signs, radius and
+free closed support remain in the program. Only this proved unique existential
+coordinate is removed; the original candidate map and A/B receipt retain its
+reconstruction. A zero or unproved leading sign never issues this reduction.
+This exact quantifier elimination is part of the general neighborhood formula,
+not an affine or finite-branch sufficient theorem or post-exhaustion fallback.
+
+A quantified free-prefix lift may reuse the issued suffix of its full projection
+tower. Before reuse, every requested equation/partition witness must match a
+retained prefix source after exact monic square-free normalization; a missing
+witness refuses reuse before lifting. The first prefix source array preserves
+its original equation and partition offsets, and all lower projection laws are
+lowered only after proving their discarded suffix powers zero. The same root
+lifting, sign evaluation, original support, caller ledger and inherited depths
+remain authoritative. A foreign source order or ring fails explicitly. This is
+reuse of an unchanged full projection proof, not a second CAD or quota.
 
 Quantified free-prefix lifting retains the coefficient count, unchanged
 coefficient limit and both achieved source depths. Radius/candidate roots spend
@@ -512,13 +544,28 @@ projection polynomials. Specialize level-k source polynomials at its retained
 exact sample and isolate all distinct real roots of each nonconstant source.
 A linear source with an exact rational parent-field quotient issues that root
 directly with a point isolation. Other sources use the complete Sturm issuer.
-Merge these complete source root sets by exact ordering and equality: disjoint
-isolations establish order; overlapping isolations establish equality only when
-the exact source GCD has a root in their intersection. The unique-root contracts
-limit that count to one. Distinct overlapping roots refine under inherited depth
-until separated. A duplicate retains the intersection isolation and both causal
-depths; it never merges on interval overlap alone. Known rational roots are not
-bisected and no aggregate product introduces avoidable degree/coefficient growth.
+Merge these complete source root sets by exact ordering and equality. Disjoint
+isolations establish order. Two original degree-one laws in the identical parent
+field consume the lower ordered-field linear-sign authority at the retained
+deeper root and the original leading sign for exact order or equality. Both
+original admission limits are checked independently. A zero result additionally validates
+the unique original linear root in their isolation intersection. This avoids
+polynomial GCD/long division for that exact linear case. Other overlapping roots
+establish equality only when the exact source GCD has a root in their intersection.
+After computing the exact GCD of two original laws in the same field, if its
+degree equals one retained original law's whole degree, divisibility proves those
+root sets equal. Count the isolation intersection with that law's retained
+original Sturm authority. Equality still requires count one; degree alone
+never identifies roots. A proper-factor GCD keeps its own original common-law
+Sturm issuer. The unique-root contracts limit intersection counts to one.
+Distinct overlapping roots refine under inherited depth until separated;
+subsequent `separate` always proves
+disjoint rational sector brackets. A duplicate retains each original admission
+domain and the maximum intersection depth; interval overlap alone never merges
+roots. Known rational roots are not bisected and no aggregate product introduces
+avoidable degree/coefficient growth. AdmittedIntersectionRingTests owns positive
+and negative leading signs, overlapping linear order, equality depths and
+independent allowance evidence.
 Admission or arithmetic failure propagates without changing the allowance.
 Full projection fixes each source's degree, nullification, root multiplicities,
 root ordering and shared-root membership over the whole lower cell. Its ordered
@@ -718,14 +765,53 @@ quantifier supplies both implications without rounded norms or a tolerance.
 Using this equivalent linear predicate avoids introducing quadratic norm roots
 that are unrelated to original topology.
 
-The polynomial ring requires `2*n+1` coordinates: the free original point, one
-radius and one original candidate tuple. Rational CS/SSI uses three/four original
+The unreduced polynomial ring uses `2*n+1` coordinates: the free original point,
+one radius and one original candidate tuple. Closure Over Fixed Original
+Coefficients owns the coefficient-prefix reduction; the exact fixed geometric
+coordinate reduction below further reduces only the candidate suffix. Rational CS/SSI uses three/four original
 parameter coordinates; ordered coefficient transport may require additional
 retained auxiliary coordinates. The admitted ring preserves all of them. This
 additional predicate capacity is not extra geometric,
 source-recursion, coefficient-root or algebraic depth and creates no work or
 storage allowance. Inline exponent payload growth is charged by its actual
 storage type. Remapping must be injective and retain every original monomial.
+
+A geometric coordinate may share the free point's coordinate in the candidate
+map only when an original zero-sign cell condition is affine in that coordinate
+and has no other variable. Its nonzero rational leading coefficient proves one
+unique constant coordinate on the whole source cell. The same original equation
+is retained as a free closed-support equation; outside that support, continuity
+excludes closure. On that support p_i=q_i exactly, so that neighborhood difference
+is zero and its existential coordinate is redundant. No sampled value, nonlinear
+station polynomial or mixed-coordinate affine law may issue this reduction.
+The original free ring, all source guards and every published coordinate remain
+retained. The quantified receipt records the full injective candidate map and
+quantifies one positive radius plus every remaining mobile geometric coordinate.
+A refused reduction retains the original candidate coordinate and formula; it
+is not an unsupported source family or a post-exhaustion fallback.
+
+Axis coefficient extraction groups the immutable original terms directly into
+one table per exponent, then issues each canonical coefficient once. Removing
+the selected axis is injective among terms with the same exponent, so no
+per-term polynomial construction or repeated prefix canonicalization is needed.
+The coefficient vector, temporary table vector, retained term tables, overflowing
+powers and final ordered tables are all charged before their allocation. This
+preserves the exact coefficient ring/order while reducing the cumulative storage
+required by full projection/GCD normalization. Differential arithmetic, overflow
+coordinates and independent rejection remain part of its verification.
+
+The retained positive-guard reduction above owns exact candidate substitution.
+A free-coordinate source law A*y+B=0 with nonzero rational constant B supplies
+an additional normalization on the retained closed support. Continuity preserves
+the source's weak A sign, while that same equation excludes A=0 everywhere on
+the support; together they prove the original strict sign. Substitute y=-B/A in
+quantified atoms with the positive multiplier sign(A)*A. The free ring, original
+free support equation, source guards and original partition witnesses remain
+retained and independently lifted. No free coordinate is removed, no source
+zero constraint is discarded and no excluded A=0 point becomes a candidate.
+The receipt retains its original source equation/guard indexes and multiplier
+powers. A nonconstant or zero B, or missing original strict A atom, refuses this
+normalization and keeps the original formula.
 
 An immutable postfix Boolean program binds atom indexes to original polynomial
 signs. Full projection and complete ordered root stacks cover unbounded sectors,
@@ -740,9 +826,15 @@ formula is decided. The retained partial sign vector is its proof; omitted atoms
 remain unknown rather than being assigned a sample sign. Unknown atoms stay unknown;
 An exact prefix sign remains valid in every descendant coordinate extension.
 Carry those signs to child decisions and retain them with each prefix proof;
-only unknown atoms require fresh field substitution. At a leaf, reuse an issued
-prefix sign rather than evaluating that same original constant again. All child
-tuple owners and original atom indexes stay bound to the retained projection.
+only unknown atoms require fresh field substitution. At a leaf, apply the same
+partial Boolean consequence after each newly evaluated original atom. Retain the
+optional sign vector with the child proof; an irrelevant unevaluated atom remains
+`nil`. A leaf cannot publish truth while the original program is undecided, and
+a required atom's work, storage, depth or cancellation failure propagates. All
+original polynomials, complete root stacks, child tuple owners, quantifier coverage
+and atom indexes stay bound to the retained projection. The leaf regression checks
+both constant truth values without an unnecessary algebraic substitution and
+refuses the same budget when that substitution is logically required.
 When exact partial Boolean evaluation proves that either nonzero sign of an
 active univariate atom makes an existential formula false, retain that atom as
 a necessary zero guard. Its complete real root union supplies every possible
@@ -1055,3 +1147,33 @@ domain, tolerance, shared mutable state or caller budget is introduced.
 conditions, independent admission/cancellation, original rank/source retention;
 NativeSurfaceSurfacePointTests owns the weighted bowl and close-root public
 success/failure under the unchanged finite caller budget.
+
+### Preferred Isolated Native Execution
+
+`OriginalRationalIntersectionDecomposition.prepare(preferIsolatedCells:)` defaults
+to false. When requested, guarded normalization removes repeated factors and
+the existing prepared ideal first lifts the selected original equation/domain
+partition without Jacobian minors. Its actual selected cell dimensions choose
+the rank method: an all-zero-dimensional partition is reused for isolated rank
+signs; positive or mixed cells use the complete unpruned rank-witness partition with the
+same ideal, domains and cumulative ledger. Complex ideal classification never
+selects real dimension or guarantees real emptiness. A strict `isolatedOnly`
+request still rejects any actual positive-dimensional cell before publication.
+No failed solver, caught refusal, reset ledger or second ideal preparation is
+used. Source rank equations and all original laws remain retained.
+[NativeIntersectionDecompositionTests](../../../Tests/CADGeometryTests/NativeIntersectionDecompositionTests.swift)
+verifies isolated points/raw rank, domain-isolated points in positive-dimensional
+ideals, complete positive/mixed components and genuine empty coverage.
+
+### Quantified Closure Free-Domain Exclusion
+
+The quantified closure free prefix uses the original closed exact parameter
+domains. Continuity keeps the closure of a source cell constrained by those
+domains inside them, and its original weak closed-support predicates exclude
+outside targets. Free lifting retains the complete original ring and zero laws,
+and records the exact endpoint sign and parent cell for each excluded domain
+prefix. General quantified truth uses unbounded free domains unless its caller
+supplies them. Preferred full rank partitions keep their unpruned contract.
+AdmittedIntersectionRingTests checks both original boundary points, positive and
+negative leading guards, retained domain exclusions and forced full incidence
+under the unchanged 20M work/storage and depth24 allowance.

@@ -12,7 +12,7 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
         package let kind: OriginalRationalIntersectionCells.Kind
         package let context: OriginalSingularFieldContext
         package let coordinates: [OriginalSingularFieldElement]
-        package let signs: [ExactAlgebraicRealRoot.Sign]
+        package let signs: [ExactAlgebraicRealRoot.Sign?]
         package let decisionIndex: Int?
         package let value: Bool
     }
@@ -54,6 +54,7 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
     package static func prepare<B: RationalAlgebraAdmitting>(polynomials: [ExactIntersectionPolynomial],
         program: ExactIntersectionBooleanProgram, variableCount: Int, freeVariableCount: Int,
         quantifiers: [Quantifier], freeDomainEquations: [ExactIntersectionPolynomial] = [],
+        freeDomains: [OriginalRationalParameterDomain]? = nil,
         coefficientVariableCount: Int = 0, maximumCoefficientDepth: Int = 0,
         inheritedParameterDepth: Int = 0, inheritedCoefficientDepth: Int = 0,
         maximumDepth: Int, usage: inout B) throws -> Self {
@@ -63,6 +64,7 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
             quantifiers.count == variableCount - freeVariableCount,
             program.polynomialCount == polynomials.count,
             freeVariableCount > 0 || freeDomainEquations.isEmpty,
+            freeDomains == nil || freeDomains?.count == freeVariableCount,
             coefficientVariableCount >= 0, coefficientVariableCount <= freeVariableCount,
             (0...32).contains(maximumCoefficientDepth), inheritedParameterDepth >= 0, inheritedParameterDepth <= maximumDepth,
             inheritedCoefficientDepth >= 0, inheritedCoefficientDepth <= maximumCoefficientDepth else {
@@ -95,11 +97,28 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
             var projected: [ExactIntersectionPolynomial] = []; projected.reserveCapacity(sources.count)
             for source in sources { projected.append(try source.lowered(to: freeVariableCount, usage: &usage)) }
             try RationalAlgebraStorage.retain(freeVariableCount, of: ScalarInterval?.self, usage: &usage)
+            try RationalAlgebraStorage.retain(try rationalAlgebraCount(freeDomainEquations.count, projected.count),
+                of: ExactIntersectionPolynomial.self, usage: &usage)
+            var retainedSources = freeDomainEquations
+            if let freeDomains {
+                for (axis, domain) in freeDomains.enumerated() {
+                    let coordinate = try ExactIntersectionPolynomial.coordinate(variableCount: freeVariableCount, at: axis, usage: &usage)
+                    for endpoint in [domain.lower, domain.upper] {
+                        guard let endpoint else { continue }
+                        try RationalAlgebraStorage.retain(1, of: ExactIntersectionPolynomial.self, usage: &usage)
+                        retainedSources.append(try coordinate.subtracting(.constant(variableCount: freeVariableCount,
+                            value: endpoint, usage: &usage), usage: &usage))
+                    }
+                }
+            }
+            retainedSources += projected
+            let retainedProjection = try tower.retainedPrefix(variableCount: freeVariableCount,
+                sources: retainedSources, usage: &usage)
             let partition = try OriginalRationalIntersectionCells.prepare(equations: freeDomainEquations, variableCount: freeVariableCount,
-                domains: Array(repeating: nil, count: freeVariableCount), partitionPolynomials: projected, pruneExcludedPrefixes: !freeDomainEquations.isEmpty,
+                exactDomains: freeDomains ?? Array(repeating: OriginalRationalParameterDomain(lower: nil, upper: nil, usage: &usage), count: freeVariableCount), partitionPolynomials: projected, pruneExcludedPrefixes: !freeDomainEquations.isEmpty,
                 coefficientVariableCount: coefficientVariableCount, maximumCoefficientDepth: maximumCoefficientDepth,
                 inheritedParameterDepth: inheritedParameterDepth, inheritedCoefficientDepth: inheritedCoefficientDepth,
-                maximumDepth: maximumDepth, usage: &usage)
+                preparedProjectionTower: retainedProjection, pruneDomainPrefixes: freeDomains != nil, maximumDepth: maximumDepth, usage: &usage)
             for index in partition.solutionCells {
                 try intersectionAlgebraStep(&usage)
                 let cell = partition.cells[index]
@@ -133,6 +152,33 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
             freeVariableCount: freeVariableCount, freePartition: prefix, freeCells: free,
             decisions: decisions, closedTruth: closed, coefficientVariableCount: coefficientVariableCount,
             maximumCoefficientDepth: maximumCoefficientDepth)
+    }
+
+    /// Original atom signs needed to prove the whole leaf formula; omitted signs remain unknown.
+    package static func evaluateLeaf<B: RationalAlgebraAdmitting>(polynomials: [ExactIntersectionPolynomial],
+        program: ExactIntersectionBooleanProgram, context: OriginalSingularFieldContext,
+        coordinates: [OriginalSingularFieldElement], inheritedSigns: [ExactAlgebraicRealRoot.Sign?],
+        maximumDepth: Int, scratch: inout [Bool?], usage: inout B) throws
+        -> (signs: [ExactAlgebraicRealRoot.Sign?], value: Bool) {
+        try intersectionAlgebraStep(&usage)
+        guard polynomials.count == program.polynomialCount, inheritedSigns.count == program.polynomialCount else {
+            throw rationalAlgebraFailure("A quantified leaf lost its original atom bindings.")
+        }
+        try RationalAlgebraStorage.retain(inheritedSigns.count, of: ExactAlgebraicRealRoot.Sign?.self, usage: &usage)
+        var signs = inheritedSigns
+        var truth = try program.partialValue(signs: signs, scratch: &scratch, usage: &usage)
+        for instruction in program.instructions {
+            if truth != nil { break }
+            try intersectionAlgebraStep(&usage)
+            guard case .atom(let index, _) = instruction, signs[index] == nil else { continue }
+            signs[index] = try OriginalIntersectionFieldEvaluation.evaluated(polynomials[index], context: context,
+                coordinates: coordinates, maximumDepth: maximumDepth, usage: &usage)
+                .sign(maximumDepth: maximumDepth, usage: &usage)
+            truth = try program.partialValue(signs: signs, scratch: &scratch, usage: &usage)
+        }
+        guard let truth else { throw rationalAlgebraFailure("A quantified leaf has no complete Boolean consequence.") }
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return (signs, truth)
     }
 
     private static func decide<B: RationalAlgebraAdmitting>(axis: Int,
@@ -248,18 +294,13 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
             }
             tuple.append(value)
             let childProof: Int?, truth: Bool
-            var signs: [ExactAlgebraicRealRoot.Sign] = []
+            var signs: [ExactAlgebraicRealRoot.Sign?] = []
             if axis + 1 == tower.variableCount {
-                try RationalAlgebraStorage.retain(original.count, of: ExactAlgebraicRealRoot.Sign.self, usage: &usage)
-                signs.reserveCapacity(original.count)
-                for (index, source) in original.enumerated() {
-                    try intersectionAlgebraStep(&usage)
-                    if index < known.count, let sign = known[index] { signs.append(sign); continue }
-                    signs.append(try OriginalIntersectionFieldEvaluation.evaluated(source, context: value.context,
-                        coordinates: tuple, maximumDepth: maximumDepth, usage: &usage)
-                        .sign(maximumDepth: maximumDepth, usage: &usage))
-                }
-                childProof = nil; truth = try program.evaluate(signs: signs, scratch: &scratch, usage: &usage)
+                let leaf = try evaluateLeaf(polynomials: original, program: program, context: value.context,
+                    coordinates: tuple, inheritedSigns: known, maximumDepth: maximumDepth,
+                    scratch: &partialScratch, usage: &usage)
+                signs = leaf.signs
+                childProof = nil; truth = leaf.value
             } else {
                 childProof = try decide(axis: axis + 1, context: value.context, coordinates: tuple,
                     inheritedDepth: depth, tower: tower, program: program, inheritedSigns: known, freeVariableCount: freeVariableCount,

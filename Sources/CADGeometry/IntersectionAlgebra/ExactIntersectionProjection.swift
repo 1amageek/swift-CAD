@@ -11,6 +11,17 @@ package struct ExactIntersectionProjection: Sendable {
         self.axis = axis; self.sources = sources; self.polynomials = polynomials
     }
 
+    package func lowered<B: RationalAlgebraAdmitting>(to count: Int,
+        sources replacement: [ExactIntersectionPolynomial]? = nil, usage: inout B) throws -> Self {
+        try intersectionAlgebraStep(&usage)
+        guard axis < count else { throw rationalAlgebraFailure("A retained projection axis is outside its prefix.") }
+        try RationalAlgebraStorage.retain(sources.count, of: ExactIntersectionPolynomial.self, usage: &usage)
+        let original = try sources.map { try $0.lowered(to: count, usage: &usage) }
+        try RationalAlgebraStorage.retain(polynomials.count, of: ExactIntersectionPolynomial.self, usage: &usage)
+        let projected = try polynomials.map { try $0.lowered(to: count, usage: &usage) }
+        return Self(axis: axis, sources: replacement ?? original, polynomials: projected)
+    }
+
     package static func prepare<B: RationalAlgebraAdmitting>(
         sources: [ExactIntersectionPolynomial], variableCount: Int, axis: Int,
         usage: inout B) throws -> Self {

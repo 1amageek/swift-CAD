@@ -64,19 +64,46 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         guard !denominator.isZero else { throw rationalAlgebraFailure("Exact rational division by zero.") }
         if numerator.isZero { return .zero }
         if denominator == .one { return Self(sign: sign, numerator: numerator, denominator: .one) }
+        if numerator == .one { return Self(sign: sign, numerator: numerator, denominator: denominator) }
+        if let exponent = try denominator.powerOfTwoExponent(usage: &usage) {
+            let common = min(exponent, try numerator.trailingZeroBits(usage: &usage))
+            if common == 0 { return Self(sign: sign, numerator: numerator, denominator: denominator) }
+            return try Self(sign: sign, numerator: numerator.shiftedRight(by: common, usage: &usage),
+                denominator: denominator.shiftedRight(by: common, usage: &usage))
+        }
         let gcd = try ExactNaturalMagnitude.gcd(numerator, denominator, usage: &usage)
+        if gcd == .one { return Self(sign: sign, numerator: numerator, denominator: denominator) }
         let n = try numerator.quotientAndRemainder(dividingBy: gcd, usage: &usage)
         let d = try denominator.quotientAndRemainder(dividingBy: gcd, usage: &usage)
         guard n.1.isZero, d.1.isZero else { throw rationalAlgebraFailure("Inconsistent exact rational reduction.") }
         return Self(sign: sign, numerator: n.0, denominator: d.0)
     }
+    private static func dividedMagnitude<B: RationalAlgebraAdmitting>(_ value: ExactNaturalMagnitude,
+        by divisor: ExactNaturalMagnitude, usage: inout B) throws -> ExactNaturalMagnitude {
+        if divisor == .one { return value }
+        let result = try value.quotientAndRemainder(dividingBy: divisor, usage: &usage)
+        guard result.1.isZero else { throw rationalAlgebraFailure("Canonical rational cancellation has a nonzero remainder.") }
+        return result.0
+    }
     public func adding<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         if isZero { return other }; if other.isZero { return self }
-        let lhs = try other.denominator == .one ? numerator : numerator.multiplied(by: other.denominator, usage: &usage)
-        let rhs = try denominator == .one ? other.numerator : other.numerator.multiplied(by: denominator, usage: &usage)
-        let denominator = try self.denominator == .one ? other.denominator
-            : other.denominator == .one ? self.denominator : self.denominator.multiplied(by: other.denominator, usage: &usage)
+        if denominator == other.denominator {
+            let magnitude: ExactNaturalMagnitude, resultSign: Int
+            if sign == other.sign { magnitude = try numerator.adding(other.numerator, usage: &usage); resultSign = sign }
+            else if numerator.compared(to: other.numerator) >= 0 {
+                magnitude = try numerator.subtracting(other.numerator, usage: &usage); resultSign = sign
+            } else {
+                magnitude = try other.numerator.subtracting(numerator, usage: &usage); resultSign = other.sign
+            }
+            return try Self.reduced(sign: resultSign, numerator: magnitude, denominator: denominator, usage: &usage)
+        }
+        let common = try ExactNaturalMagnitude.gcd(denominator, other.denominator, usage: &usage)
+        let firstScale = try Self.dividedMagnitude(other.denominator, by: common, usage: &usage)
+        let secondScale = try Self.dividedMagnitude(denominator, by: common, usage: &usage)
+        let lhs = try firstScale == .one ? numerator : numerator.multiplied(by: firstScale, usage: &usage)
+        let rhs = try secondScale == .one ? other.numerator : other.numerator.multiplied(by: secondScale, usage: &usage)
+        let denominator = try firstScale == .one ? self.denominator : self.denominator.multiplied(by: firstScale, usage: &usage)
         let magnitude: ExactNaturalMagnitude, sign: Int
         if self.sign == other.sign { magnitude = try lhs.adding(rhs, usage: &usage); sign = self.sign }
         else if lhs.compared(to: rhs) >= 0 { magnitude = try lhs.subtracting(rhs, usage: &usage); sign = self.sign }
@@ -87,21 +114,25 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         try adding(other.negated, usage: &usage)
     }
     public func multiplied<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         if isZero || other.isZero { return .zero }
         if numerator == .one && denominator == .one { return sign > 0 ? other : other.negated }
         if other.numerator == .one && other.denominator == .one { return other.sign > 0 ? self : negated }
-        return try Self.reduced(sign: sign * other.sign,
-            numerator: numerator.multiplied(by: other.numerator, usage: &usage),
-            denominator: denominator.multiplied(by: other.denominator, usage: &usage), usage: &usage)
+        let firstCommon = try ExactNaturalMagnitude.gcd(numerator, other.denominator, usage: &usage)
+        let secondCommon = try ExactNaturalMagnitude.gcd(other.numerator, denominator, usage: &usage)
+        let firstNumerator = try Self.dividedMagnitude(numerator, by: firstCommon, usage: &usage)
+        let secondNumerator = try Self.dividedMagnitude(other.numerator, by: secondCommon, usage: &usage)
+        let firstDenominator = try Self.dividedMagnitude(denominator, by: secondCommon, usage: &usage)
+        let secondDenominator = try Self.dividedMagnitude(other.denominator, by: firstCommon, usage: &usage)
+        return try Self(sign: sign * other.sign,
+            numerator: firstNumerator.multiplied(by: secondNumerator, usage: &usage),
+            denominator: firstDenominator.multiplied(by: secondDenominator, usage: &usage))
     }
     public func divided<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
-        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
         guard !other.isZero else { throw rationalAlgebraFailure("Exact rational division by zero.") }
         if isZero { return .zero }
         if other.numerator == .one && other.denominator == .one { return other.sign > 0 ? self : negated }
-        return try Self.reduced(sign: sign * other.sign,
-            numerator: numerator.multiplied(by: other.denominator, usage: &usage),
-            denominator: denominator.multiplied(by: other.numerator, usage: &usage), usage: &usage)
+        return try multiplied(by: Self(sign: other.sign, numerator: other.denominator, denominator: other.numerator), usage: &usage)
     }
 }
