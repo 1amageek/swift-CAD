@@ -7,18 +7,9 @@ struct NativeCurveSurfacePointProducer {
         tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil)
         throws -> CurveSurfaceIntersectionResult? {
         guard case .bSpline(let source) = curve, case .bSpline(let target) = surface,
-            !source.isPeriodic, !target.isUPeriodic, !target.isVPeriodic,
-            source.degree >= 0, source.degree < Int.max - 1,
-            target.uDegree >= 0, target.uDegree < Int.max - 1,
-            target.vDegree >= 0, target.vDegree < Int.max - 1,
-            source.controlPointCount == source.degree + 1,
-            target.uControlPointCount == target.uDegree + 1,
-            target.vControlPointCount == target.vDegree + 1 else { return nil }
+            !source.isPeriodic, !target.isUPeriodic, !target.isVPeriodic else { return nil }
         try options.validate(tolerance: tolerance)
         var usage = try NativeCurveSurfacePointAllowance(options: options, invocation: invocation)
-        guard try singleSpan(source.knots, degree: source.degree, usage: &usage),
-            try singleSpan(target.uKnots, degree: target.uDegree, usage: &usage),
-            try singleSpan(target.vKnots, degree: target.vDegree, usage: &usage) else { return nil }
         try usage.consumeExactWork(1)
         guard invocation.map({ $0.remainingSourceDepth > 0 }) ?? true else {
             throw failure(.resourceLimitExceeded, "Native point preparation exhausted original source depth.", tolerance)
@@ -29,87 +20,196 @@ struct NativeCurveSurfacePointProducer {
         }
         try source.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
         try target.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
-        let t = try ScalarInterval(lower: source.knots[source.degree], upper: source.knots[source.degree + 1])
-        let u = try ScalarInterval(lower: target.uKnots[target.uDegree], upper: target.uKnots[target.uDegree + 1])
-        let v = try ScalarInterval(lower: target.vKnots[target.vDegree], upper: target.vKnots[target.vDegree + 1])
+        let t = try ScalarInterval(lower: source.knots[source.degree], upper: source.knots[source.controlPointCount])
+        let u = try ScalarInterval(lower: target.uKnots[target.uDegree], upper: target.uKnots[target.uControlPointCount])
+        let v = try ScalarInterval(lower: target.vKnots[target.vDegree], upper: target.vKnots[target.vControlPointCount])
         let nativeBox = SurfaceParameterBox(u: u, v: v)
+        let maximumSpans = min(invocation?.maximumSpanCount ?? options.maximumCandidateCount, 262_144)
         let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: tolerance,
             consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: { try usage.retainBytes($0) })
         let spans = try prepared.originalNativeSpans(over: nativeBox, tolerance: tolerance,
-            maximumSpanCount: 1, consumeWork: { try usage.consumeExactWork(1) },
+            maximumSpanCount: min(maximumSpans, 262_144), consumeWork: { try usage.consumeExactWork(1) },
             consumeStorage: { try usage.retainBytes($0) })
-        guard let span = spans.first, spans.count == 1 else {
-            throw failure(.intersectionFailure, "Admitted native product has no unique complete source span.", tolerance)
+        var curveSpanCount = 0
+        for index in source.degree..<source.controlPointCount {
+            try usage.consumeExactWork(1)
+            if source.knots[index] < source.knots[index + 1] { curveSpanCount += 1 }
         }
-        let curveLaw = try OriginalRationalCurvePolynomial(source: source, spanIndex: source.degree,
-            tolerance: tolerance, usage: &usage)
-        let surfaceLaw = try OriginalRationalSurfacePolynomial(source: target, native: span,
-            domain: nativeBox, view: .init(x: 0, y: 0, z: 1), tolerance: tolerance, usage: &usage)
-        let system = try OriginalRationalIntersectionSystem(curve: curveLaw, surface: surfaceLaw, usage: &usage)
-        try RationalAlgebraStorage.retain(3, of: OriginalRationalParameterDomain.self, usage: &usage)
+        let productCount = try rationalAlgebraCount(curveSpanCount, spans.count, multiply: true)
+        guard productCount > 0, productCount <= maximumSpans else {
+            throw failure(.resourceLimitExceeded, "Native point product count exceeds the cumulative span ceiling.", tolerance)
+        }
+        try RationalAlgebraStorage.retain(9, of: OriginalRationalParameterDomain.self, usage: &usage)
+        let native = try [OriginalRationalParameterDomain(t, usage: &usage),
+            OriginalRationalParameterDomain(u, usage: &usage), OriginalRationalParameterDomain(v, usage: &usage)]
         let requested = try [OriginalRationalParameterDomain(options.curveRange ?? t, usage: &usage),
             OriginalRationalParameterDomain(options.surfaceURange ?? u, usage: &usage),
             OriginalRationalParameterDomain(options.surfaceVRange ?? v, usage: &usage)]
-        let decomposition = try OriginalRationalIntersectionDecomposition.prepare(system: system,
-            requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
-            isolatedOnly: true,
-            maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
-        var indices: [Int] = []
-        if case .parameterCells(let strata, _, _) = decomposition.coverage {
-            let partition = strata.partition
-            for index in partition.solutionCells {
+        var effective: [OriginalRationalParameterDomain]? = []
+        for axis in 0..<3 {
+            if let intersection = try native[axis].intersecting(requested[axis], usage: &usage) {
+                effective?.append(intersection)
+            } else { effective = nil }
+        }
+        try RationalAlgebraStorage.retain(productCount, of: NativeCurveSurfacePointChart.self, usage: &usage)
+        var charts: [NativeCurveSurfacePointChart] = []; charts.reserveCapacity(productCount)
+        var references: [NativeCurveSurfacePointCell] = []
+        var points: [CurveSurfaceIntersection] = []
+        var retainedParameters: [OriginalSingularFieldValueIsolation] = []
+        var retainedLocalizations: [NativeCurveSurfaceScalarLocalization?] = []
+        var capacity = 0
+        for curveSpan in source.degree..<source.controlPointCount {
+            try usage.consumeExactWork(1)
+            guard source.knots[curveSpan] < source.knots[curveSpan + 1] else { continue }
+            let curveLaw = try OriginalRationalCurvePolynomial(source: source, spanIndex: curveSpan,
+                tolerance: tolerance, usage: &usage)
+            for span in spans {
                 try usage.consumeExactWork(1)
-                guard partition.cells[index].dimension == 0 else {
-                    throw failure(.nonDiscreteIntersection,
-                        "The original requested native product contains a positive-dimensional intersection.", tolerance)
+                let surfaceLaw = try OriginalRationalSurfacePolynomial(source: target, native: span,
+                    domain: .init(u: span.uBounds, v: span.vBounds), view: .init(x: 0, y: 0, z: 1),
+                    tolerance: tolerance, usage: &usage)
+                let system = try OriginalRationalIntersectionSystem(curve: curveLaw, surface: surfaceLaw, usage: &usage)
+                let decomposition = try OriginalRationalIntersectionDecomposition.prepare(system: system,
+                    requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
+                    isolatedOnly: true, maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                let chartIndex = charts.count
+                charts.append(.init(curve: curveLaw, surface: surfaceLaw, decomposition: decomposition))
+                if case .parameterCells(let strata, _, _) = decomposition.coverage,
+                    let chartDomains = decomposition.effectiveDomains {
+                    let partition = strata.partition
+                    for index in partition.solutionCells {
+                        try usage.consumeExactWork(1)
+                        guard partition.cells[index].dimension == 0 else {
+                            throw failure(.nonDiscreteIntersection,
+                                "The original requested native product contains a positive-dimensional intersection.", tolerance)
+                        }
+                    }
+                    for index in partition.solutionCells {
+                        try RationalAlgebraStorage.retain(3, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
+                        try RationalAlgebraStorage.retain(3, of: NativeCurveSurfaceScalarLocalization?.self, usage: &usage)
+                        var parameters: [OriginalSingularFieldValueIsolation] = []; parameters.reserveCapacity(3)
+                        var localizations: [NativeCurveSurfaceScalarLocalization?] = []; localizations.reserveCapacity(3)
+                        let point = try publish(cell: partition.cells[index], partition: partition,
+                            cellIndex: index, effectiveDomains: chartDomains, curve: curveLaw, surface: surfaceLaw,
+                            options: options, tolerance: tolerance,
+                            nativeDomains: (try .init(lower: source.knots[curveSpan], upper: source.knots[curveSpan + 1]), span.uBounds, span.vBounds),
+                            retainingParameters: &parameters, retainingLocalizations: &localizations, usage: &usage)
+                        // Source basis chooses the right positive span at every internal knot.
+                        // Chart closure remains retained for coverage, but does not duplicate a tuple.
+                        var owns = true
+                        for axis in 0..<3 {
+                            let upper: Double, final: Double
+                            switch axis {
+                            case 0: upper = source.knots[curveSpan + 1]; final = t.upper
+                            case 1: upper = span.uBounds.upper; final = u.upper
+                            default: upper = span.vBounds.upper; final = v.upper
+                            }
+                            if upper == final { continue }
+                            let comparison = try parameters[axis].compared(to: .originalDouble(upper, usage: &usage),
+                                maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                            parameters[axis] = comparison.isolation
+                            if comparison.sign == .zero { owns = false }
+                        }
+                        guard owns else { continue }
+                        guard points.count < options.maximumCandidateCount else {
+                            throw failure(.resourceLimitExceeded, "Native isolated tuple count exceeds the cumulative result ceiling.", tolerance)
+                        }
+                        if points.count == capacity {
+                            let doubled = try rationalAlgebraCount(max(1, capacity), 2, multiply: true)
+                            capacity = min(options.maximumCandidateCount, doubled)
+                            let scalarCapacity = try rationalAlgebraCount(capacity, 3, multiply: true)
+                            try RationalAlgebraStorage.retain(capacity, of: CurveSurfaceIntersection.self, usage: &usage)
+                            try RationalAlgebraStorage.retain(capacity, of: NativeCurveSurfacePointCell.self, usage: &usage)
+                            try RationalAlgebraStorage.retain(scalarCapacity, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
+                            try RationalAlgebraStorage.retain(scalarCapacity, of: NativeCurveSurfaceScalarLocalization?.self, usage: &usage)
+                            points.reserveCapacity(capacity); references.reserveCapacity(capacity)
+                            retainedParameters.reserveCapacity(scalarCapacity); retainedLocalizations.reserveCapacity(scalarCapacity)
+                        }
+                        points.append(point); references.append(.init(chartIndex: chartIndex, cellIndex: index))
+                        retainedParameters.append(contentsOf: parameters); retainedLocalizations.append(contentsOf: localizations)
+                    }
                 }
             }
-            guard partition.solutionCells.count <= options.maximumCandidateCount else {
-                throw failure(.resourceLimitExceeded, "Native isolated tuple count exceeds the result ceiling.", tolerance)
-            }
-            // Lifting visits parents and ordered section/sector children in exact
-            // coordinate order. Selected terminal cells are an ordered subsequence.
-            indices = partition.solutionCells
         }
-        try RationalAlgebraStorage.retain(indices.count, of: CurveSurfaceIntersection.self, usage: &usage)
-        let parameterCount = try rationalAlgebraCount(indices.count, 3, multiply: true)
-        try RationalAlgebraStorage.retain(parameterCount, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
-        var points: [CurveSurfaceIntersection] = []; points.reserveCapacity(indices.count)
-        var retainedParameters: [OriginalSingularFieldValueIsolation] = []; retainedParameters.reserveCapacity(parameterCount)
-        try RationalAlgebraStorage.retain(parameterCount, of: NativeCurveSurfaceScalarLocalization?.self, usage: &usage)
-        var retainedLocalizations: [NativeCurveSurfaceScalarLocalization?] = []; retainedLocalizations.reserveCapacity(parameterCount)
-        if case .parameterCells(let strata, _, _) = decomposition.coverage,
-            let effective = decomposition.effectiveDomains {
-            for index in indices {
-                points.append(try publish(cell: strata.partition.cells[index], partition: strata.partition,
-                    cellIndex: index, effectiveDomains: effective, curve: curveLaw, surface: surfaceLaw,
-                    options: options, tolerance: tolerance, nativeDomains: (t, u, v),
-                    retainingParameters: &retainedParameters, retainingLocalizations: &retainedLocalizations, usage: &usage))
-            }
-        }
+        try order(points: &points, references: &references, parameters: &retainedParameters,
+            localizations: &retainedLocalizations, charts: charts, usage: &usage)
         try RationalAlgebraStorage.retainBytes(MemoryLayout<BSplineCurve3D>.stride + MemoryLayout<BSplineSurface3D>.stride
-            + MemoryLayout<ModelingTolerance>.stride + 3 * MemoryLayout<[Int]>.stride
-            + MemoryLayout<OriginalRationalIntersectionDecomposition>.stride
+            + MemoryLayout<ModelingTolerance>.stride + 8 * MemoryLayout<[Int]>.stride
             + 2 * MemoryLayout<UnsafeRawPointer>.stride, usage: &usage)
         let receipt = OriginalNativeCurveSurfacePoints(curve: source, surface: target, tolerance: tolerance,
-            decomposition: decomposition, cellIndices: indices, parameterIsolations: retainedParameters,
+            nativeDomains: native, requestedDomains: requested, effectiveDomains: effective,
+            charts: charts, pointCells: references, parameterIsolations: retainedParameters,
             parameterLocalizations: retainedLocalizations)
         try RationalAlgebraStorage.retain(1, of: CurveSurfaceIntersectionResult.self, usage: &usage)
         try Task.checkCancellation()
         return .init(points: points, overlaps: [], originalNativePoints: receipt)
     }
 
-    private func singleSpan(_ knots: [Double], degree: Int,
-        usage: inout NativeCurveSurfacePointAllowance) throws -> Bool {
-        try usage.consumeExactWork(1)
-        guard degree >= 0, degree < Int.max / 2, knots.count == 2 * (degree + 1),
-            let lower = knots.first, let upper = knots.last,
-            lower.isFinite, upper.isFinite, lower < upper else { return false }
-        for index in 0...degree {
-            try usage.consumeExactWork(2)
-            if knots[index] != lower || knots[index + degree + 1] != upper { return false }
+    /// Stable merge ordering compares original tuples, never their numerical image.
+    private func order(points: inout [CurveSurfaceIntersection],
+        references: inout [NativeCurveSurfacePointCell],
+        parameters: inout [OriginalSingularFieldValueIsolation],
+        localizations: inout [NativeCurveSurfaceScalarLocalization?],
+        charts: [NativeCurveSurfacePointChart], usage: inout NativeCurveSurfacePointAllowance) throws {
+        guard points.count > 1, charts.count > 1 else { return }
+        let count = points.count
+        try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
+        try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
+        var indices: [Int] = []; indices.reserveCapacity(count)
+        for index in 0..<count { try usage.consumeExactWork(1); indices.append(index) }
+        var scratch = [Int](repeating: 0, count: count)
+        func precedes(_ first: Int, _ second: Int, usage: inout NativeCurveSurfacePointAllowance) throws -> Bool {
+            for axis in 0..<3 {
+                var a = parameters[first * 3 + axis], b = parameters[second * 3 + axis]
+                let sign = try OriginalSingularFieldValueOrder.compare(&a, &b,
+                    maximumDepth: usage.maximumAlgebraicDepth, maximumCoefficientDepth: 0, usage: &usage)
+                parameters[first * 3 + axis] = a; parameters[second * 3 + axis] = b
+                if sign != .zero { return sign == .negative }
+            }
+            // Exact source ownership forbids a duplicate tuple across different products.
+            throw rationalAlgebraFailure("Distinct native chart owners issued the same exact parameter tuple.")
         }
-        return true
+        var width = 1
+        while width < count {
+            var start = 0
+            while start < count {
+                let middle = min(count, try rationalAlgebraCount(start, width))
+                let end = min(count, try rationalAlgebraCount(middle, width))
+                var left = start, right = middle, destination = start
+                while left < middle || right < end {
+                    try usage.consumeExactWork(1)
+                    let useLeft: Bool
+                    if right == end { useLeft = true }
+                    else if left == middle { useLeft = false }
+                    else { useLeft = try precedes(indices[left], indices[right], usage: &usage) }
+                    if useLeft { scratch[destination] = indices[left]; left += 1 }
+                    else { scratch[destination] = indices[right]; right += 1 }
+                    destination += 1
+                }
+                start = end
+            }
+            swap(&indices, &scratch)
+            width = try rationalAlgebraCount(width, 2, multiply: true)
+        }
+        try RationalAlgebraStorage.retain(count, of: CurveSurfaceIntersection.self, usage: &usage)
+        try RationalAlgebraStorage.retain(count, of: NativeCurveSurfacePointCell.self, usage: &usage)
+        let scalarCount = try rationalAlgebraCount(count, 3, multiply: true)
+        try RationalAlgebraStorage.retain(scalarCount, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
+        try RationalAlgebraStorage.retain(scalarCount, of: NativeCurveSurfaceScalarLocalization?.self, usage: &usage)
+        var orderedPoints: [CurveSurfaceIntersection] = []; orderedPoints.reserveCapacity(count)
+        var orderedReferences: [NativeCurveSurfacePointCell] = []; orderedReferences.reserveCapacity(count)
+        var orderedParameters: [OriginalSingularFieldValueIsolation] = []; orderedParameters.reserveCapacity(scalarCount)
+        var orderedLocalizations: [NativeCurveSurfaceScalarLocalization?] = []; orderedLocalizations.reserveCapacity(scalarCount)
+        for ordinal in indices {
+            try usage.consumeExactWork(1)
+            orderedPoints.append(points[ordinal]); orderedReferences.append(references[ordinal])
+            for axis in 0..<3 {
+                orderedParameters.append(parameters[ordinal * 3 + axis])
+                orderedLocalizations.append(localizations[ordinal * 3 + axis])
+            }
+        }
+        points = orderedPoints; references = orderedReferences
+        parameters = orderedParameters; localizations = orderedLocalizations
     }
 
     private func value(_ polynomial: ExactBivariatePolynomial, curve: Bool,

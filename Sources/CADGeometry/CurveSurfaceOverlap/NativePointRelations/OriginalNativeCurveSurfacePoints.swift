@@ -5,39 +5,44 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
     public let curve: BSplineCurve3D
     public let surface: BSplineSurface3D
     public let certificationTolerance: ModelingTolerance
-    public var nativeDomains: [OriginalRationalParameterDomain] { decomposition.nativeDomains }
-    public var requestedDomains: [OriginalRationalParameterDomain] { decomposition.requestedDomains }
-    public var effectiveDomains: [OriginalRationalParameterDomain]? { decomposition.effectiveDomains }
-    public var count: Int { cellIndices.count }
-    package let decomposition: OriginalRationalIntersectionDecomposition
-    package let cellIndices: [Int]
+    public let nativeDomains: [OriginalRationalParameterDomain]
+    public let requestedDomains: [OriginalRationalParameterDomain]
+    public let effectiveDomains: [OriginalRationalParameterDomain]?
+    public var count: Int { pointCells.count }
+    /// Every closed original span product, including complete exclusion proofs.
+    public var coverageChartCount: Int { charts.count }
+    package let charts: [NativeCurveSurfacePointChart]
+    package let pointCells: [NativeCurveSurfacePointCell]
     private let parameterIsolations: [OriginalSingularFieldValueIsolation]
     let parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]
 
     init(curve: BSplineCurve3D, surface: BSplineSurface3D,
-        tolerance: ModelingTolerance, decomposition: OriginalRationalIntersectionDecomposition,
-        cellIndices: [Int], parameterIsolations: [OriginalSingularFieldValueIsolation],
+        tolerance: ModelingTolerance, nativeDomains: [OriginalRationalParameterDomain],
+        requestedDomains: [OriginalRationalParameterDomain], effectiveDomains: [OriginalRationalParameterDomain]?,
+        charts: [NativeCurveSurfacePointChart], pointCells: [NativeCurveSurfacePointCell],
+        parameterIsolations: [OriginalSingularFieldValueIsolation],
         parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]) {
         self.curve = curve; self.surface = surface; certificationTolerance = tolerance
-        self.decomposition = decomposition; self.cellIndices = cellIndices
+        self.nativeDomains = nativeDomains; self.requestedDomains = requestedDomains
+        self.effectiveDomains = effectiveDomains; self.charts = charts; self.pointCells = pointCells
         self.parameterIsolations = parameterIsolations
         self.parameterLocalizations = parameterLocalizations
     }
 
     public func point(at index: Int) throws -> OriginalNativeCurveSurfacePoint {
-        guard cellIndices.indices.contains(index) else {
+        guard pointCells.indices.contains(index) else {
             throw GeometryConversionError.invalidInput("Native point index is outside its complete receipt.")
         }
         return .init(owner: self, ordinal: index)
     }
 
     public func owns(_ point: OriginalNativeCurveSurfacePoint) -> Bool {
-        point.owner === self && cellIndices.indices.contains(point.ordinal)
+        point.owner === self && pointCells.indices.contains(point.ordinal)
     }
 
     package func parameterIsolation(at ordinal: Int, axis: Int) throws -> OriginalSingularFieldValueIsolation {
-        guard cellIndices.indices.contains(ordinal), (0..<3).contains(axis),
-            parameterIsolations.count == cellIndices.count * 3 else {
+        guard pointCells.indices.contains(ordinal), (0..<3).contains(axis),
+            parameterIsolations.count == pointCells.count * 3 else {
             throw GeometryConversionError.invalidInput("Native coordinate requires its retained localization receipt.")
         }
         return parameterIsolations[ordinal * 3 + axis]
@@ -75,9 +80,15 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
     }
 
     package func cell(at index: Int) throws -> OriginalRationalIntersectionCells.Cell {
-        guard cellIndices.indices.contains(index), case .parameterCells(let strata, _, _) = decomposition.coverage else {
+        guard pointCells.indices.contains(index) else {
             throw GeometryConversionError.invalidInput("Native point is not owned by this coverage receipt.")
         }
-        return strata.partition.cells[cellIndices[index]]
+        let reference = pointCells[index]
+        guard charts.indices.contains(reference.chartIndex),
+            case .parameterCells(let strata, _, _) = charts[reference.chartIndex].decomposition.coverage,
+            strata.partition.cells.indices.contains(reference.cellIndex) else {
+            throw GeometryConversionError.invalidInput("Native point lost its owning original chart cell.")
+        }
+        return strata.partition.cells[reference.cellIndex]
     }
 }

@@ -1,6 +1,6 @@
 # CurveSurfaceOverlap
 
-Native isolated Bezier/tensor products are owned by [Native Point Relations](NativePointRelations/DESIGN.md). Their complete exact parameter receipt accompanies rich results and identical point publication serves discrete entries; positive-dimensional coverage fails explicitly.
+Finite nonperiodic positive-weight source-valid B-spline curve/tensor products across native spans are owned by [Native Point Relations](NativePointRelations/DESIGN.md). Their complete exact parameter receipt accompanies rich results and identical point publication serves discrete entries; positive-dimensional coverage fails explicitly.
 
 ## Purpose and Scope
 

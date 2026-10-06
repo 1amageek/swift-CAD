@@ -2,8 +2,8 @@
 
 ## Purpose and Scope
 Child of [Curve Surface Overlap](../DESIGN.md). Owns complete isolated original
-parameter tuples for nonperiodic, positive-weight, single-span Bezier B-spline
-curve and tensor B-spline surface products on finite closed native domains.
+parameter tuples for nonperiodic, positive-weight, source-valid B-spline
+curve and tensor B-spline surface products across all positive native knot spans on finite closed native domains.
 
 ## Responsibilities and Boundaries
 Admit original sources, prepare exact homogeneous laws and consume complete
@@ -30,17 +30,36 @@ on selected singleton cells; positive-dimensional coverage fails atomically.
 ## Architecture
 ```text
 public rich/discrete entry -> source eligibility -> query-local allowance
-  -> original laws -> complete native decomposition -> all cells zero dimensional
-  -> exact lexicographic tuple order -> localization -> points + immutable receipt
+  -> original curve spans x source-issued surface chart tokens
+  -> original laws -> complete decomposition for every closed product
+  -> all selected cells zero dimensional -> exact source endpoint ownership
+  -> exact lexicographic tuple order -> localization -> points + chart-indexed receipt
 ```
 
 ## Contracts and Invariants
 Intersect requested and native closed domains exactly, including singleton and
 excluded products. Empty success retains complete exclusion coverage. Repeated
 roots yield one tuple; distinct UV tuples at the same XYZ and close roots remain
-distinct. Ordering follows exact decomposition stack coordinate order.
-The receipt retains raw sources, complete decomposition, cell identities and
-exact ordered-field coordinates. Foreign receipt identities are rejected.
+distinct. Each chart retains its complete closed decomposition, including empty
+and domain-exclusion coverage. Source endpoint ownership follows the original
+BSplineBasis knotSpan rule: lower inclusive, internal upper exclusive, final
+native upper inclusive on the last positive span. Exact field-to-authored-knot
+comparison applies this rule independently to t/u/v before publication. Repeated
+zero-length knot intervals are not charts. Closed singleton requests at a knot
+therefore select the right original owner, including surface corners. Source
+validation remains authority for admission: it currently rejects position
+discontinuities with internal multiplicity greater than degree; no new admission
+or smoothing is introduced here.
+Within a decomposition, stack order is exact. Across charts, lexicographic order
+uses the existing algebra owner's exact scalar comparison port, retaining achieved
+parameter/coefficient depths. Chart indices, numerical representatives, XYZ and
+isolation-overlap alone never establish cross-field equality or order. Boundary
+ownership gives one chart for each admitted tuple; distinct UV stays distinct.
+The receipt's public native/requested/effectiveDomains describe the entire query,
+preserving single-span semantics. Its retained decomposition collection and each
+point's (chartIndex, cellIndex) identify the exact law and original span; cell
+indices alone never address a different chart. Raw sources and exact ordered-field
+coordinates remain retained. Foreign receipt identities are rejected.
 Numerical parameter isolation starts from the retained original zero-cell section
 bounds, verified against the actual field coordinate. Exactly equal coordinates
 reuse the same retained bounds; achieved localization depths survive publication
@@ -61,7 +80,14 @@ squared tangent/normal incidence to the exact represented angle threshold;
 undefined tangent or normal is mixed. Point Codable stays unchanged.
 
 ## Runtime Flows
-The same allowance admits preparation, decomposition, retention and localization.
+The same allowance admits preparation, every chart decomposition, exact ordering,
+retention and localization. Product count uses checked multiplication and the
+existing caller maximumSpanCount (ordinary maximumCandidateCount) as one cumulative
+ceiling; it never resets for a curve span or surface axis. The result ceiling
+counts source-owned tuples across the whole query after boundary ownership.
+Every product is visited even when earlier products yield points; any later
+positive-dimensional, unresolved, resource or cancellation failure rejects the
+entire query. All collection allocation is admitted before reserve/append.
 Iteration limits bound publication. Geometric, source recursion and exact algebra
 depths remain independent. Ordinary queries use local value option allowances;
 selected queries forward caller callbacks. The ordinary allowance admits at most

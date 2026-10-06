@@ -54,11 +54,13 @@ struct BSplineCurveSurfaceTangencyTests {
             options: .init(maximumSubdivisionDepth: 12, maximumIterations: 64), tolerance: tolerance)
         #expect(rich.points == result)
         let receipt = try #require(rich.originalNativePoints)
-        guard case .parameterCells(let strata, _, _) = receipt.decomposition.coverage else {
+        let reference = receipt.pointCells[0]
+        let decomposition = receipt.charts[reference.chartIndex].decomposition
+        guard case .parameterCells(let strata, _, _) = decomposition.coverage else {
             Issue.record("Original repeated-root contact lost its complete native coverage.")
             return
         }
-        #expect(strata.jacobian.equations == receipt.decomposition.system.equations)
+        #expect(strata.jacobian.equations == decomposition.system.equations)
         #expect(strata.strata.first?.originalJacobianRank == 2)
         #expect(strata.strata.first?.isolatedRankSigns?.count == strata.jacobian.minors.count)
         var proofUsage = OriginalRelationUsage(consumeWork: { _ in }, retainStorage: { _ in },
@@ -67,7 +69,7 @@ struct BSplineCurveSurfaceTangencyTests {
         let vProof = try #require(receipt.parameterLocalizations[2])
         #expect(uProof.primitiveCoordinate.context === vProof.primitiveCoordinate.context)
         #expect(uProof.parameterDepth <= 32 && vProof.parameterDepth <= 32)
-        #expect(uProof.parameterDepth >= strata.partition.cells[receipt.cellIndices[0]].admissionDepth)
+        #expect(uProof.parameterDepth >= strata.partition.cells[reference.cellIndex].admissionDepth)
         #expect(vProof.multiplier == (try ExactRationalCoefficient.originalDouble(-4.0,
             usage: &proofUsage).divided(by: .natural(9, usage: &proofUsage), usage: &proofUsage)))
         #expect(vProof.offset == (try ExactRationalCoefficient.natural(7, usage: &proofUsage)

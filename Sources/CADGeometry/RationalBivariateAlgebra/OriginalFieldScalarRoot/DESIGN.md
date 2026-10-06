@@ -43,6 +43,24 @@ Each norm step preserves the original selected embedding. Saturation removes onl
 factors proved nonzero at the retained original root. The final polynomial is
 verified to vanish at the ORIGINAL value before any scalar endpoint is issued.
 Root count equals one on exact retained bounds with explicit endpoint exclusions.
+`OriginalSingularFieldValueOrder.compare` returns the sign of first minus second
+across unrelated immutable field owners. Verified disjoint bounds and rational
+singletons decide directly; overlapping algebraic bounds bind each selected
+original value to its existing rational norm law and use the existing endpoint
+GCD/Sturm equality and order port. Its inout isolations retain the original values
+and achieved causal depth. Endpoint bounds are verified against the original value
+before replacing a retained enclosure.
+
+Seeded transport maps original source operations from `context.depth` to the
+retained `sourceDepth`, with only the remaining caller depth available. Source
+isolation and rational endpoint operations already carry causal depth and pass
+through without a second mapping. Coefficient visits preserve their independent
+domain and cap; transporting parameter roots creates no coefficient-root visits.
+Every phase checks cancellation and forwards paid work/storage to the same caller.
+The legacy fresh initializer rejects inadmissible original depth domains before
+any work, storage or root visit, then guards both caps throughout fresh isolation
+with identity depth admission. Cancellation from the last paid callback is checked
+before a scalar root or scalar order can be issued.
 Every endpoint exclusion comparison advances the retained source-value isolation rather
 than restarting its depth from the original context. Achieved source depth is preserved; coefficient-cell admission remains independent
 from geometric scalar refinement. All typed coefficient/matrix buffers are paid
@@ -56,7 +74,13 @@ invocation-exclusive; retained original field owners are immutable Sendable valu
 
 ## Verification and Change Impact
 
-Deferred behavior covers unrelated algebraic embeddings, reducible defining laws,
-pole conjugates, rational singleton values, distinct closer-than-Double roots,
-multiple norm factors, changed caller coefficient cap and exhausted cumulative
-depth. Source implementation is not behavior verification or whole S8 completion.
+[OriginalSingularFieldValueOrderTests](../../../../Tests/CADGeometryTests/OriginalSingularFieldValueOrderTests.swift)
+owns scalar-order behavior: unrelated equal embeddings, opposite and distinct
+values, retained causal depth with C0, independent depth/work/storage failure,
+legacy coefficient-cap admission and final-callback cancellation. Near distinct
+values succeed within parameter depth 32 and unchanged finite budgets. The tested
+closer-than-Double input instead exhausts finite work explicitly and preserves its
+original seeds; this is not evidence of successful order for that input.
+
+Reducible defining laws, pole conjugates and multiple norm factors remain outside
+this comparison verification. These tests do not establish whole S8 completion.

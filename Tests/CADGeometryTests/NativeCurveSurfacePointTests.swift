@@ -290,4 +290,235 @@ struct NativeCurveSurfacePointTests {
         } catch is CancellationError { #expect(visits.withLock { $0 } >= 20) }
     }
 
+    private func multiSpanCurve(spanCount: Int = 3) -> BSplineCurve3D {
+        .init(degree: 1, knots: [0] + (0...spanCount).map(Double.init) + [Double(spanCount)],
+            controlPoints: (0...spanCount).map { .init(x: 0.5, y: 0.5, z: $0.isMultiple(of: 2) ? -1 : 1) })
+    }
+
+    private func multiChartPlane() -> BSplineSurface3D {
+        .init(uDegree: 1, vDegree: 1, uKnots: [0,0,0.5,1,1], vKnots: [0,0,1,1], controlPoints: [
+            [.init(x: 0,y: 0,z: 0), .init(x: 0.5,y: 0,z: 0), .init(x: 1,y: 0,z: 0)],
+            [.init(x: 0,y: 1,z: 0), .init(x: 0.5,y: 1,z: 0), .init(x: 1,y: 1,z: 0)]])
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func multiSpanPublicProductOrderAndAllFourRoutes() throws {
+        let solver = DefaultCurveSurfaceIntersector()
+        let curve = Curve3D.bSpline(multiSpanCurve()), surface = Surface3D.bSpline(multiChartPlane())
+        let result = try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance)
+        let receipt = try #require(result.originalNativePoints)
+        #expect(receipt.count == 3 && result.points.map(\.curveParameter) == [0.5,1.5,2.5])
+        #expect(result.points.allSatisfy { $0.surfaceU == 0.5 && $0.surfaceV == 0.5 })
+        let selected = try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
+            maximumSpanCount: 6, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+            consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+        #expect(selected.points == result.points)
+        #expect(try solver.intersections(curve: curve, surface: surface, options: .init(), tolerance: tolerance) == result.points)
+        #expect(try solver.intersections(curve: curve, surface: surface, options: .init(), tolerance: tolerance,
+            maximumSpanCount: 6, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+            consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32) == result.points)
+        var admission = usage()
+        for ordinal in 0..<receipt.count {
+            #expect(try receipt.point(at: ordinal).compareParameter(axis: 0,
+                to: .originalDouble(Double(ordinal) + 0.5, usage: &admission), in: receipt,
+                maximumAlgebraicDepth: 32, usage: &admission) == .zero)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [2,4])
+    func twoAndMoreSpanCompleteReceipts(spanCount: Int) throws {
+        let result = try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(multiSpanCurve(spanCount: spanCount)),
+            surface: .bSpline(plane()), tolerance: tolerance)
+        let receipt = try #require(result.originalNativePoints)
+        #expect(result.points.count == spanCount && receipt.coverageChartCount == spanCount)
+        #expect(receipt.nativeDomains.count == 3 && receipt.nativeDomains == receipt.requestedDomains)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func repeatedCurveKnotAndSurfaceCornerHaveOneSourceOwner() throws {
+        let curve = BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,2,2,2], controlPoints: [
+            .init(x: 0.5,y: 0.5,z: -1), .init(x: 0.5,y: 0.5,z: -0.5),
+            .init(x: 0.5,y: 0.5,z: 0), .init(x: 0.5,y: 0.5,z: 0.5), .init(x: 0.5,y: 0.5,z: 1)])
+        let surface = BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: [0,0,0.5,1,1], vKnots: [0,0,0.5,1,1],
+            controlPoints: [0.0,0.5,1.0].map { y in [0.0,0.5,1.0].map { .init(x: $0,y: y,z: 0) } })
+        let solver = DefaultCurveSurfaceIntersector()
+        let whole = try solver.intersectionResult(curve: .bSpline(curve), surface: .bSpline(surface), tolerance: tolerance)
+        #expect(whole.points.count == 1 && whole.points.first?.curveParameter == 1)
+        #expect(whole.originalNativePoints?.coverageChartCount == 8)
+        let cut = try solver.intersectionResult(curve: .bSpline(curve), surface: .bSpline(surface),
+            options: .init(curveRange: .init(lower: 1,upper: 1), surfaceURange: .init(lower: 0.5,upper: 0.5),
+                surfaceVRange: .init(lower: 0.5,upper: 0.5)), tolerance: tolerance)
+        #expect(cut.points == whole.points && cut.originalNativePoints?.coverageChartCount == 8)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func multiChartSameXYZDistinctUVUsesGlobalTupleOrder() throws {
+        let surface = BSplineSurface3D(uDegree: 1, vDegree: 1, uKnots: [-1,-1,0,1,1], vKnots: [0,0,1,1], controlPoints: [
+            [.init(x: 1,y: 0,z: 0), .init(x: 0,y: 0,z: 0), .init(x: 1,y: 0,z: 0)],
+            [.init(x: 1,y: 1,z: 0), .init(x: 0,y: 1,z: 0), .init(x: 1,y: 1,z: 0)]])
+        let result = try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(multiSpanCurve(spanCount: 2)),
+            surface: .bSpline(surface), tolerance: tolerance)
+        #expect(result.points.count == 4)
+        #expect(result.points.map(\.curveParameter) == [0.5,0.5,1.5,1.5])
+        #expect(result.points.map(\.surfaceU) == [-0.5,0.5,-0.5,0.5])
+        #expect(result.points.allSatisfy { $0.point == result.points[0].point })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func multiSpanEmptyAndRetainedSourceLifetime() throws {
+        let solver = DefaultCurveSurfaceIntersector()
+        let retained: OriginalNativeCurveSurfacePoints
+        do {
+            let result = try solver.intersectionResult(curve: .bSpline(multiSpanCurve(spanCount: 2)),
+                surface: .bSpline(multiChartPlane()), tolerance: tolerance)
+            retained = try #require(result.originalNativePoints)
+        }
+        #expect(retained.coverageChartCount == 4 && retained.count == 2)
+        var admission = usage()
+        #expect(try retained.point(at: 1).compareParameter(axis: 0,
+            to: .originalDouble(1.5, usage: &admission), in: retained,
+            maximumAlgebraicDepth: 32, usage: &admission) == .zero)
+        let outside = try solver.intersectionResult(curve: .bSpline(multiSpanCurve(spanCount: 2)),
+            surface: .bSpline(multiChartPlane()), options: .init(curveRange: .init(lower: 3,upper: 3)), tolerance: tolerance)
+        #expect(outside.points.isEmpty && outside.originalNativePoints?.coverageChartCount == 4)
+        #expect(outside.originalNativePoints?.effectiveDomains == nil)
+        var source = multiSpanCurve(spanCount: 2)
+        for index in source.controlPoints.indices { source.controlPoints[index].z = 1 }
+        let empty = try solver.intersectionResult(curve: .bSpline(source), surface: .bSpline(multiChartPlane()), tolerance: tolerance)
+        #expect(empty.points.isEmpty && empty.originalNativePoints?.coverageChartCount == 4)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func laterPositiveDimensionalChartRejectsEarlierIsolatedPoint() throws {
+        let source = BSplineCurve3D(degree: 1, knots: [0,0,1,2,3,3], controlPoints: [
+            .init(x: 0.25,y: 0.5,z: -1), .init(x: 0.25,y: 0.5,z: 1),
+            .init(x: 0.25,y: 0.5,z: 0), .init(x: 0.75,y: 0.5,z: 0)])
+        let solver = DefaultCurveSurfaceIntersector()
+        for discrete in [false,true] {
+            do {
+                if discrete { _ = try solver.intersections(curve: .bSpline(source), surface: .bSpline(plane()), options: .init(), tolerance: tolerance) }
+                else { _ = try solver.intersectionResult(curve: .bSpline(source), surface: .bSpline(plane()), tolerance: tolerance) }
+                Issue.record("A later positive-dimensional chart published an earlier isolated subset.")
+            } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func multiSpanCeilingsAreCumulativeAndIndependent() throws {
+        let solver = DefaultCurveSurfaceIntersector()
+        let curve = Curve3D.bSpline(multiSpanCurve(spanCount: 2)), surface = Surface3D.bSpline(multiChartPlane())
+        #expect(throws: (any Error).self) {
+            try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
+                maximumSpanCount: 3, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+                consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+        }
+        #expect(throws: KernelError.self) {
+            try solver.intersectionResult(curve: curve, surface: surface,
+                options: .init(maximumCandidateCount: 1), tolerance: tolerance,
+                maximumSpanCount: 4, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+                consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
+        }
+        #expect(throws: KernelError.self) {
+            try solver.intersectionResult(curve: curve, surface: surface,
+                options: .init(maximumSubdivisionCells: 1), tolerance: tolerance)
+        }
+        let work = Mutex(0), bytes = Mutex(0)
+        _ = try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
+            maximumSpanCount: 4, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+            consumeWork: { _ in work.withLock { $0 += 1 } }, consumeStorage: { n in bytes.withLock { $0 += n } }, maximumAlgebraicDepth: 32)
+        let workCap = work.withLock { $0 } - 1, byteCap = bytes.withLock { $0 } - 1
+        let exhausted = KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil, message: "Cumulative test allowance exhausted.")
+        for storage in [false,true] {
+            let visits = Mutex(0)
+            #expect(throws: KernelError.self) {
+                try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
+                    maximumSpanCount: 4, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+                    consumeWork: { _ in
+                        if !storage, visits.withLock({ $0 += 1; return $0 > workCap }) { throw exhausted }
+                    }, consumeStorage: { n in
+                        if storage, visits.withLock({ $0 += n; return $0 > byteCap }) { throw exhausted }
+                    }, maximumAlgebraicDepth: 32)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false,true])
+    func multiSpanCancellationAfterChartSuccessOrFinalCallback(final: Bool) async throws {
+        let curve = Curve3D.bSpline(multiSpanCurve(spanCount: 2)), surface = Surface3D.bSpline(plane())
+        let solver = DefaultCurveSurfaceIntersector(), calls = Mutex(0)
+        _ = try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
+            maximumSpanCount: 2, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+            consumeWork: { _ in }, consumeStorage: { _ in calls.withLock { $0 += 1 } }, maximumAlgebraicDepth: 32)
+        let finalCall = calls.withLock { $0 }, visits = Mutex(0)
+        // Both equal-size linear products have the same source cost; three quarters
+        // of cumulative storage callbacks is after the first completed product.
+        let stop = final ? finalCall : finalCall * 3 / 4
+        let operation = Task {
+            try solver.intersectionResult(curve: curve, surface: surface, tolerance: tolerance,
+                maximumSpanCount: 2, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+                consumeWork: { _ in }, consumeStorage: { _ in
+                    if visits.withLock({ $0 += 1; return $0 }) == stop { withUnsafeCurrentTask { $0?.cancel() } }
+                }, maximumAlgebraicDepth: 32)
+        }
+        do { _ = try await operation.value; Issue.record("Cancelled multi-span query published a subset or success.") }
+        catch is CancellationError { #expect(visits.withLock { $0 } == stop) }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func independentChartFieldsRetainTheSameIrrationalT() throws {
+        let surface = BSplineSurface3D(uDegree: 2, vDegree: 1, uKnots: [-1,-1,-1,0,0,1,1,1], vKnots: [0,0,1,1], controlPoints: [
+            [1.0,0,0,0,1].map { .init(x: $0,y: 0,z: 0) },
+            [1.0,0,0,0,1].map { .init(x: $0,y: 1,z: 0) }])
+        let curve = BSplineCurve3D(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
+            .init(x: 0.25,y: 0.5,z: -0.5), .init(x: 0.25,y: 0.5,z: -0.5), .init(x: 0.25,y: 0.5,z: 0.5)])
+        let result = try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve), surface: .bSpline(surface), tolerance: tolerance)
+        #expect(result.points.count == 2 && result.originalNativePoints?.coverageChartCount == 2)
+        #expect(result.points.map(\.surfaceU) == [-0.5,0.5])
+        #expect(result.points.allSatisfy { abs($0.curveParameter - 0.5.squareRoot()) < tolerance.distance })
+        let receipt = try #require(result.originalNativePoints)
+        let first = try receipt.point(at: 0).parameter(axis: 0, in: receipt)
+        let second = try receipt.point(at: 1).parameter(axis: 0, in: receipt)
+        let a = try first.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: usage())
+        let b = try second.enclosed(maximumDepth: 32, maximumCoefficientDepth: 0, usage: usage())
+        #expect(a.lower == b.lower && a.upper == b.upper)
+        #expect(throws: (any Error).self) {
+            try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(curve), surface: .bSpline(surface), tolerance: tolerance,
+                maximumSpanCount: 2, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+                consumeWork: { _ in }, consumeStorage: { _ in }, maximumAlgebraicDepth: 0)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func closeRootsOnOppositeNativeSpansRemainSeparate() throws {
+        let epsilon = 1.0 / 1_048_576
+        var source = multiSpanCurve(spanCount: 2)
+        source.controlPoints[1].z = epsilon
+        let largeTolerance = ModelingTolerance(distance: 1e-4, angle: 1e-9)
+        let result = try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(source), surface: .bSpline(plane()), tolerance: largeTolerance)
+        #expect(result.points.count == 2)
+        #expect(result.points[0].curveParameter < 1 && result.points[1].curveParameter > 1)
+        #expect(result.points[1].curveParameter - result.points[0].curveParameter < largeTolerance.distance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonClampedNativeSpansUseOriginalSourceBounds() throws {
+        var source = multiSpanCurve(spanCount: 2)
+        source.knots = [-1,0,1,2,3]
+        var target = multiChartPlane()
+        target.uKnots = [-0.5,0,0.5,1,1.5]
+        let result = try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(source), surface: .bSpline(target), tolerance: tolerance)
+        #expect(result.points.map(\.curveParameter) == [0.5,1.5])
+        #expect(result.originalNativePoints?.coverageChartCount == 4)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func unadmittedDiscontinuousKnotRemainsExplicitFailure() throws {
+        let source = BSplineCurve3D(degree: 1, knots: [0,0,1,1,2,2], controlPoints: [
+            .init(x: 0.5,y: 0.5,z: -1), .init(x: 0.5,y: 0.5,z: 1),
+            .init(x: 0.5,y: 0.5,z: -1), .init(x: 0.5,y: 0.5,z: 1)])
+        #expect(throws: (any Error).self) {
+            try DefaultCurveSurfaceIntersector().intersectionResult(curve: .bSpline(source), surface: .bSpline(plane()), tolerance: tolerance)
+        }
+    }
+
 }
