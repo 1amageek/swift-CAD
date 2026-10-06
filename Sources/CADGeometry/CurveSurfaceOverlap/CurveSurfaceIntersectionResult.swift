@@ -12,6 +12,9 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete isolated original polynomial-source tuples and closed-domain coverage.
     public let originalPolynomialPoints: OriginalPolynomialCurveSurfacePoints?
 
+    /// Complete original affine-image tuples and exact closed-domain coverage.
+    public let originalAffinePoints: OriginalAffineCurveSurfacePoints?
+
     public var hasPositiveDimensionalSolutions: Bool {
         !overlaps.isEmpty || originalNativeRelations?.hasPositiveDimensionalSolutions == true
     }
@@ -19,11 +22,13 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap],
         originalNativePoints: OriginalNativeCurveSurfacePoints? = nil,
         originalNativeRelations: OriginalNativeCurveSurfaceRelation? = nil,
-        originalPolynomialPoints: OriginalPolynomialCurveSurfacePoints? = nil) {
+        originalPolynomialPoints: OriginalPolynomialCurveSurfacePoints? = nil,
+        originalAffinePoints: OriginalAffineCurveSurfacePoints? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
         self.originalNativeRelations = originalNativeRelations
         self.originalPolynomialPoints = originalPolynomialPoints
+        self.originalAffinePoints = originalAffinePoints
     }
 }

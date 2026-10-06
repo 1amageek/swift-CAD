@@ -1345,3 +1345,7 @@ proved incidence, exact multivalued fibers and maximal t projections. Rich nativ
 results expose originalNativeRelations; legacy overlap arrays do not represent
 collapsed or multivalued relations. hasPositiveDimensionalSolutions includes both
 legacy overlaps and retained native positive-dimensional cells.
+
+### Original affine isolated publication
+
+[Original Affine Curve-Surface Points](../OriginalAffineCurveSurfacePoints/DESIGN.md) owns bounded complete isolated/empty original Native curve and rational affine-word Native surface publication. Shared rich and discrete, ordinary and caller-admitted entries select its same source producer before legacy dispatch. The additive readonly `originalAffinePoints` receipt defaults to nil for other source families and preserves the existing ruled/native receipt contracts. Once its source shape is recognized, source, domain, admission, non-discrete or cancellation failures propagate atomically. All shape/word and parameter correspondence authority remains with that child and the original affine issuer; numerical representative publication uses the existing raw homogeneous port.

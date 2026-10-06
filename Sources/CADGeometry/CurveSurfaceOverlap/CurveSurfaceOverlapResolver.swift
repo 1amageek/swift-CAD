@@ -25,6 +25,8 @@ struct CurveSurfaceOverlapResolver {
             options: options, tolerance: tolerance, retainingRelations: true) { return native }
         if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
             options: options, tolerance: tolerance) { return original }
+        if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+            options: options, tolerance: tolerance) { return affine }
         try options.validate(tolerance: tolerance)
         try curve.validate(tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
@@ -186,6 +188,8 @@ struct CurveSurfaceOverlapResolver {
             options: options, tolerance: tolerance, invocation: invocation, retainingRelations: true) { return native }
         if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
             options: options, tolerance: tolerance, invocation: invocation) { return original }
+        if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+            options: options, tolerance: tolerance, invocation: invocation) { return affine }
         try options.validate(tolerance: tolerance)
         try invocation.consumeFixedWork()
         guard case .bSpline(let spline) = curve, case .plane(let plane) = surface,
