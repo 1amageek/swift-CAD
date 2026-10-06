@@ -102,6 +102,65 @@ struct IntersectionProjectionTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
+    func sharedFactorQuotientsPreserveOriginalMultiplicityAndIndependentAdmission() throws {
+        var construction = Admission()
+        let x = try Polynomial.coordinate(variableCount: 3, at: 0, usage: &construction)
+        let y = try Polynomial.coordinate(variableCount: 3, at: 1, usage: &construction)
+        let z = try Polynomial.coordinate(variableCount: 3, at: 2, usage: &construction)
+        let one = try Polynomial.constant(variableCount: 3, value: .one, usage: &construction)
+        let common = try z.subtracting(x, usage: &construction)
+        let first = try z.subtracting(y, usage: &construction)
+        let second = try z.subtracting(one, usage: &construction)
+        let product = try common.multiplied(by: first, usage: &construction)
+        let repeated = try product.multiplied(by: product, usage: &construction)
+            .scaled(by: .natural(2, usage: &construction), usage: &construction)
+        // Repeated originals must normalize before any quotient can reuse that proof.
+        // The overlapping products require further splitting and duplicate suppression.
+        let sources = [repeated, try common.multiplied(by: second, usage: &construction),
+            try first.multiplied(by: second, usage: &construction), product]
+        var usage = Admission()
+        let projection = try ExactIntersectionProjection.prepare(sources: sources,
+            variableCount: 3, axis: 2, usage: &usage)
+        var reference = Admission()
+        let factors = try ExactIntersectionProjection.prepare(sources: [common, first, second],
+            variableCount: 3, axis: 2, usage: &reference)
+        #expect(projection.sources == sources)
+        #expect(projection.polynomials.count == factors.polynomials.count)
+        #expect(factors.polynomials.allSatisfy { projection.polynomials.contains($0) })
+        let expected = [x, y, try x.subtracting(y, usage: &construction),
+            try x.subtracting(one, usage: &construction), try y.subtracting(one, usage: &construction)]
+        var normalized: [Polynomial] = []
+        for polynomial in expected { normalized.append(try polynomial.monic(usage: &construction)) }
+        #expect(normalized.allSatisfy { projection.polynomials.contains($0) })
+        #expect(projection.polynomials.count == normalized.count)
+
+        // The measured successful ledger is sufficient without a private allowance.
+        var exact = Admission(maximumWork: usage.work, maximumStorage: usage.storage)
+        let bounded = try ExactIntersectionProjection.prepare(sources: sources,
+            variableCount: 3, axis: 2, usage: &exact)
+        #expect(bounded.sources == sources && bounded.polynomials == projection.polynomials)
+        #expect(exact.work == usage.work && exact.storage == usage.storage)
+        var work = Admission(maximumWork: usage.work - 1, maximumStorage: usage.storage)
+        do {
+            _ = try ExactIntersectionProjection.prepare(sources: sources,
+                variableCount: 3, axis: 2, usage: &work)
+            Issue.record("Insufficient caller work cannot publish a shared-factor projection.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+        #expect(work.work <= work.maximumWork && work.storage <= work.maximumStorage)
+        var storage = Admission(maximumWork: usage.work, maximumStorage: usage.storage - 1)
+        do {
+            _ = try ExactIntersectionProjection.prepare(sources: sources,
+                variableCount: 3, axis: 2, usage: &storage)
+            Issue.record("Insufficient caller storage cannot publish a shared-factor projection.")
+        } catch let error as KernelError {
+            #expect(error.code == .resourceLimitExceeded)
+        }
+        #expect(storage.work <= storage.maximumWork && storage.storage <= storage.maximumStorage)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func exactDivisionPreservesMultivariateIdentityAndRejectsRemainders() throws {
         var usage = Admission()
         let x = try Polynomial.coordinate(variableCount: 3, at: 0, usage: &usage)

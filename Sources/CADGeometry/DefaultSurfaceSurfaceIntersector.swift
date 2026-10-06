@@ -4,8 +4,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
   public init() {}
 
   // FIXME(INCOMPLETE_IMPLEMENTATION): This caller-admitted production route
-  // currently uses the finite regular original parametric producer. Admitted
-  // specialized unbounded analytic/plane-cone and critical/coincident contacts
+  // publishes finite Native isolated tuples and regular original parametric results.
+  // Specialized unbounded analytic/plane-cone and remaining critical/coincident contacts
   // still require their complete same-ledger proof before full domain closure.
   public func intersections(first: Surface3D, second: Surface3D,
     options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
@@ -16,13 +16,15 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
     let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
       maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
       consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+    if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
+      options: options, tolerance: tolerance, admission: admission) { return native.intersections }
     return try BoundedParametricSurfaceIntersector().intersections(first: first, second: second,
       options: options, tolerance: tolerance, admission: admission)
   }
 
   // FIXME(INCOMPLETE_IMPLEMENTATION): The bounded domain-pair path uses
   // original surfaces and their declared UV boxes with the same producer.
-  // Critical/tangent/coincident branches still require complete original proof
+  // Remaining non-isolated critical and coincident branches require complete proof
   // and cannot be replaced by rounded restricted support geometry.
   public func intersections(first: Surface3D, over firstBox: SurfaceParameterBox,
         second: Surface3D, over secondBox: SurfaceParameterBox,
@@ -34,6 +36,9 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
     let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
       maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
       consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+    if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
+      firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance,
+      admission: admission) { return native.intersections }
     return try BoundedParametricSurfaceIntersector().intersections(first: first, over: firstBox,
       second: second, over: secondBox, options: options, tolerance: tolerance, admission: admission)
   }
@@ -73,6 +78,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
     options: SurfaceSurfaceIntersectionOptions = .init(),
     tolerance: ModelingTolerance
   ) throws -> [SurfaceSurfaceIntersection] {
+    if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
+      options: options, tolerance: tolerance) { return native.intersections }
     try options.validate(tolerance: tolerance)
     try first.validate(tolerance: tolerance)
     try second.validate(tolerance: tolerance)

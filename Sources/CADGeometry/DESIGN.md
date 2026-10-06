@@ -2,6 +2,8 @@
 
 Finite nonperiodic positive-weight source-valid B-spline curve/tensor queries across native spans are owned by [Native Point Relations](CurveSurfaceOverlap/NativePointRelations/DESIGN.md), a child of CurveSurfaceOverlap. Complete original coverage and exact parameter identity authorize its publication.
 
+Single-span Native SSI isolated tuples are owned by [Native Surface Surface Point Relations](NativeSurfaceSurfacePointRelations/DESIGN.md). Rich normal, caller-admitted, domain-pair and retained-session requirements expose complete original tuple coverage, including empty results. Existing array entries use the same producer; positive-dimensional selected Native products fail atomically until their relation publisher is complete.
+
 Public arc-length inverse localization accepts CADCore's ScalarInterval. Its
 stored closed endpoints enter internal outward arithmetic unchanged; the
 package-only OutwardScalarInterval remains an implementation boundary. This

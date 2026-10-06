@@ -1,6 +1,19 @@
 import CADCore
 
 public protocol SurfaceSurfaceIntersecting: Sendable {
+    func intersectionResult(first: Surface3D, second: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> SurfaceSurfaceIntersectionResult
+    func intersectionResult(first: Surface3D, second: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable () throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int?) throws -> SurfaceSurfaceIntersectionResult
+    func intersectionResult(first: Surface3D, over firstBox: SurfaceParameterBox,
+        second: Surface3D, over secondBox: SurfaceParameterBox,
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable () throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int?) throws -> SurfaceSurfaceIntersectionResult
     func intersections(
         first: Surface3D,
         second: Surface3D,
@@ -39,6 +52,34 @@ public protocol SurfaceSurfaceIntersecting: Sendable {
 }
 
 public extension SurfaceSurfaceIntersecting {
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Custom SSI conformers must implement rich
+    // original coverage before this public witness may return a complete receipt.
+    func intersectionResult(first: Surface3D, second: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> SurfaceSurfaceIntersectionResult {
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "This surface-pair conformer has no rich original result producer.")
+    }
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Custom SSI conformers must forward the
+    // caller ledger through rich publication; array replay is not that witness.
+    func intersectionResult(first: Surface3D, second: Surface3D,
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable () throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int? = nil) throws -> SurfaceSurfaceIntersectionResult {
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "This surface-pair conformer has no admitted rich result producer.")
+    }
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Custom SSI conformers must retain selected
+    // original domain-pair coverage before publishing this rich public result.
+    func intersectionResult(first: Surface3D, over firstBox: SurfaceParameterBox,
+        second: Surface3D, over secondBox: SurfaceParameterBox,
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable () throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int? = nil) throws -> SurfaceSurfaceIntersectionResult {
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "This surface-pair conformer has no rich original domain-pair producer.")
+    }
     // FIXME(INCOMPLETE_IMPLEMENTATION): An injected surface-pair conformer
     // must forward every original work/storage visit before bounded callers can
     // consume its results. The legacy requirement cannot supply that witness.

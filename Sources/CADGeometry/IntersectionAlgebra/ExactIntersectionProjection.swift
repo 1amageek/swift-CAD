@@ -99,6 +99,18 @@ package struct ExactIntersectionProjection: Sendable {
         result.append(normalized)
     }
 
+    private static func insertVerifiedSquareFree<B: RationalAlgebraAdmitting>(_ polynomial: Polynomial,
+        into result: inout [Polynomial], usage: inout B) throws {
+        try intersectionAlgebraStep(&usage)
+        if polynomial.isZero || polynomial.isConstant { return }
+        let normalized = try polynomial.monic(usage: &usage)
+        for existing in result {
+            if try existing.matches(normalized, usage: &usage) { return }
+        }
+        try RationalAlgebraStorage.retain(1, of: Polynomial.self, usage: &usage)
+        result.append(normalized)
+    }
+
     private static func splitCommonFactors<B: RationalAlgebraAdmitting>(_ basis: inout [Polynomial],
         usage: inout B) throws {
         var changed = true
@@ -114,8 +126,11 @@ package struct ExactIntersectionProjection: Sendable {
                     basis[first] = common
                     try usage.consumeExactWork(basis.count - second)
                     basis.remove(at: second)
-                    try insert(a, into: &basis, usage: &usage)
-                    try insert(b, into: &basis, usage: &usage)
+                    // Every basis member was normalized square-free before splitting.
+                    // Its exact divisors, including both quotients and the common
+                    // factor, remain square-free over the original rational UFD.
+                    try insertVerifiedSquareFree(a, into: &basis, usage: &usage)
+                    try insertVerifiedSquareFree(b, into: &basis, usage: &usage)
                     changed = true
                     break outer
                 }

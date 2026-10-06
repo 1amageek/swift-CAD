@@ -6,6 +6,8 @@ public struct SurfaceSurfaceIntersectionPoint: Hashable, Sendable {
     public let secondSurfaceParameter: SurfaceParameterProjection
     public let residual: Double
     public let certificationTolerance: ModelingTolerance
+    /// Original tuple authority when issued by complete native SSI coverage.
+    public let originalNativePoint: OriginalNativeSurfaceSurfacePoint?
 
     public init(
         point: Point3D,
@@ -34,6 +36,28 @@ public struct SurfaceSurfaceIntersectionPoint: Hashable, Sendable {
         self.secondSurfaceParameter = secondSurfaceParameter
         self.residual = residual
         certificationTolerance = tolerance
+        originalNativePoint = nil
+    }
+
+    init(numerical: Self, originalNativePoint: OriginalNativeSurfaceSurfacePoint) {
+        point = numerical.point
+        firstSurfaceParameter = numerical.firstSurfaceParameter
+        secondSurfaceParameter = numerical.secondSurfaceParameter
+        residual = numerical.residual
+        certificationTolerance = numerical.certificationTolerance
+        self.originalNativePoint = originalNativePoint
+    }
+
+    public static func == (lhs: Self, rhs: Self) -> Bool {
+        lhs.point == rhs.point && lhs.firstSurfaceParameter == rhs.firstSurfaceParameter
+            && lhs.secondSurfaceParameter == rhs.secondSurfaceParameter
+            && lhs.residual == rhs.residual && lhs.certificationTolerance == rhs.certificationTolerance
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(point); hasher.combine(firstSurfaceParameter)
+        hasher.combine(secondSurfaceParameter); hasher.combine(residual)
+        hasher.combine(certificationTolerance)
     }
 
 #if !hasFeature(Embedded)

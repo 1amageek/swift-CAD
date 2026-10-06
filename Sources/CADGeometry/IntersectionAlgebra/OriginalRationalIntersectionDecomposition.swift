@@ -24,6 +24,7 @@ package struct OriginalRationalIntersectionDecomposition: Sendable {
     package static func prepare<B: RationalAlgebraAdmitting>(system: OriginalRationalIntersectionSystem,
         requestedDomains: [OriginalRationalParameterDomain]? = nil,
         pruneExcludedPrefixes: Bool = false, normalizeDenominatorFactors: Bool = false, isolatedOnly: Bool = false,
+        reducePureEvenPowerZeroSets: Bool = false,
         maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard maximumDepth >= 0, (3...4).contains(system.variableCount),
@@ -45,7 +46,8 @@ package struct OriginalRationalIntersectionDecomposition: Sendable {
         let guarded: OriginalGuardedIntersectionEquations?
         if normalizeDenominatorFactors {
             guarded = try .prepare(equations: system.equations, denominatorGuards: system.denominatorGuards,
-                variableCount: system.variableCount, squareFreeRepeatedFactors: isolatedOnly, usage: &usage)
+                variableCount: system.variableCount, squareFreeRepeatedFactors: isolatedOnly,
+                reducePureEvenPowerZeroSets: reducePureEvenPowerZeroSets, usage: &usage)
         } else { guarded = nil }
         let ideal = try ExactIntersectionIdeal.prepare(equations: guarded?.normalizedEquations ?? system.equations,
             variableCount: system.variableCount, usage: &usage)

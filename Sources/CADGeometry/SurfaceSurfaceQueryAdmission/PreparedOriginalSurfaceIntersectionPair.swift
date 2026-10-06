@@ -48,8 +48,20 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
     // the session represents the entire required self-contact domain.
     public func intersections(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
         options: SurfaceSurfaceIntersectionOptions) throws -> [SurfaceSurfaceIntersection] {
-        try BoundedParametricSurfaceIntersector().intersections(first: first, over: firstBox,
+        try intersectionResult(firstBox: firstBox, secondBox: secondBox, options: options).intersections
+    }
+
+    public func intersectionResult(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
+        options: SurfaceSurfaceIntersectionOptions) throws -> SurfaceSurfaceIntersectionResult {
+        if let native = try NativeSurfaceSurfacePointProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, admission: admission) {
+            return native
+        }
+        let intersections = try BoundedParametricSurfaceIntersector().intersections(first: first, over: firstBox,
             second: second, over: secondBox, options: options,
             tolerance: tolerance, admission: admission)
+        try admission.reserve(count: 1, stride: MemoryLayout<SurfaceSurfaceIntersectionResult>.stride)
+        try Task.checkCancellation()
+        return .init(intersections: intersections)
     }
 }

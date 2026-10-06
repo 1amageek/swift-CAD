@@ -32,10 +32,12 @@ package struct OriginalGuardedIntersectionEquations: Sendable {
     package let normalizedEquations: [ExactIntersectionPolynomial]
     package let divisions: [Division]
     package let zeroSetEquivalences: [ZeroSetEquivalence]
+    package let evenPowerZeroSets: [OriginalEvenPowerEquationZeroSet]
 
     package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
         denominatorGuards: [ExactIntersectionPolynomial], variableCount: Int,
-        squareFreeRepeatedFactors: Bool = false, usage: inout B) throws -> Self {
+        squareFreeRepeatedFactors: Bool = false, reducePureEvenPowerZeroSets: Bool = false,
+        usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         var product = try ExactIntersectionPolynomial.constant(variableCount: variableCount, value: .one, usage: &usage)
         for guardPolynomial in denominatorGuards {
@@ -46,8 +48,11 @@ package struct OriginalGuardedIntersectionEquations: Sendable {
         }
         try RationalAlgebraStorage.retain(equations.count, of: ExactIntersectionPolynomial.self, usage: &usage)
         var normalized: [ExactIntersectionPolynomial] = []; normalized.reserveCapacity(equations.count)
+        var normalizedCapacity = equations.count
         var divisions: [Division] = []
         var equivalences: [ZeroSetEquivalence] = []
+        var evenPowerZeroSets: [OriginalEvenPowerEquationZeroSet] = []
+        var evenPowerZeroSetCapacity = 0
         for (index, equation) in equations.enumerated() {
             try intersectionAlgebraStep(&usage)
             guard equation.variableCount == variableCount else {
@@ -71,17 +76,46 @@ package struct OriginalGuardedIntersectionEquations: Sendable {
                     quotient: quotient, guardQuotient: guardQuotient))
                 current = quotient
             }
-            if squareFreeRepeatedFactors, let equivalence = try squareFreeEquivalence(current,
+            if reducePureEvenPowerZeroSets, let proof = try OriginalEvenPowerEquationZeroSet.prepare(current,
+                equationIndex: index, usage: &usage) {
+                try appendAdmitted(proof, to: &evenPowerZeroSets,
+                    capacity: &evenPowerZeroSetCapacity, usage: &usage)
+                for coordinateEquation in proof.coordinateEquations {
+                    try intersectionAlgebraStep(&usage)
+                    try appendAdmitted(coordinateEquation, to: &normalized,
+                        capacity: &normalizedCapacity, usage: &usage)
+                }
+            } else if squareFreeRepeatedFactors, let equivalence = try squareFreeEquivalence(current,
                 equationIndex: index, usage: &usage) {
                 try RationalAlgebraStorage.retain(1, of: ZeroSetEquivalence.self, usage: &usage)
                 equivalences.append(equivalence)
-                normalized.append(equivalence.support)
-            } else { normalized.append(current) }
+                try appendAdmitted(equivalence.support, to: &normalized,
+                    capacity: &normalizedCapacity, usage: &usage)
+            } else {
+                try appendAdmitted(current, to: &normalized, capacity: &normalizedCapacity, usage: &usage)
+            }
         }
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
+        try Task.checkCancellation()
         return Self(originalEquations: equations, denominatorGuards: denominatorGuards,
             guardProduct: product, normalizedEquations: normalized, divisions: divisions,
-            zeroSetEquivalences: equivalences)
+            zeroSetEquivalences: equivalences, evenPowerZeroSets: evenPowerZeroSets)
+    }
+
+    private static func appendAdmitted<Element, B: RationalAlgebraAdmitting>(_ element: Element,
+        to values: inout [Element], capacity: inout Int, usage: inout B) throws {
+        if values.count == capacity {
+            try intersectionAlgebraStep(&usage)
+            let required = try rationalAlgebraCount(values.count, 1)
+            let grown = capacity == 0 ? 1 : try rationalAlgebraCount(capacity, 2, multiply: true)
+            let nextCapacity = max(required, grown)
+            // The caller ledger is cumulative: a replacement allocation admits
+            // its entire new buffer while the previous allocation stays charged.
+            try RationalAlgebraStorage.retain(nextCapacity, of: Element.self, usage: &usage)
+            values.reserveCapacity(nextCapacity)
+            capacity = nextCapacity
+        }
+        values.append(element)
     }
 
     private static func squareFreeEquivalence<B: RationalAlgebraAdmitting>(_ equation: ExactIntersectionPolynomial,

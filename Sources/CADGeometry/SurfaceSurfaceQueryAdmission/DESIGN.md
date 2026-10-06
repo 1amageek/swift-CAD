@@ -96,7 +96,10 @@ the legacy normalized plane-basis selection rule.
 
 An explicit pair of finite closed UV boxes selects regions of the unchanged
 original supports. Each box must be contained in any closed source domain;
-singleton or nonfinite spans are rejected. The producer prepares each original
+the regular producer rejects singleton or nonfinite spans. Native isolated pairs use
+the [Native point contract](../NativeSurfaceSurfacePointRelations/DESIGN.md) instead:
+closed singleton selections and exact intersection with native domains retain complete
+coverage or complete exclusion. The producer prepares each original
 support once and uses the same domain map, completeness search, continuation,
 atlas and final original curve publication as the whole-domain entry. It does
 not construct or round a restricted surface. Completeness is scoped to this
@@ -174,3 +177,16 @@ Caller work admission and byte policy are independent. A selected caller work
 ledger retains its source/span/depth contract when storage admission is nil.
 Only a nonnil byte callback selects bounded descendant allocation admission;
 legacy work-only callers receive no no-op callback and no storage guarantee.
+
+### Native Isolated Rich Publication
+
+`OriginalSurfacePairIntersecting.intersectionResult` is a non-generic protocol
+requirement, so existential session queries dispatch through a witness on every
+target. The prepared pair keeps its original admitted support owners and ledger.
+Native single-span pairs use the exact four-coordinate point producer before
+regular search; the rich result retains immutable original coverage even when
+empty. Array queries return this same result’s intersections. Positive-dimensional
+Native selections fail atomically. Ineligible source families keep existing regular
+search and return a nil Native receipt. Final result admission is followed by a
+cancellation check; a cancelled callback cannot publish success. No synchronization
+or Sendable contract changes across targets.

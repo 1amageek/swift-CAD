@@ -1032,3 +1032,26 @@ complete guarded equation cells
 NativeGuardedNormalizationTests compares the isolated rank receipt with the
 general rank partition. BSplineCurveSurfaceTangencyTests owns the nonseparable
 positive-weight repeated-root regression using unchanged published option limits.
+
+### Certified pure even-power real zero reduction
+The guarded equation normalization owner may explicitly reduce a nonzero original
+rational equation whose terms are all same-sign nonzero coefficients times pure
+positive even powers of single coordinates, with no constant or mixed monomial.
+For real coordinates each sign-normalized term is nonnegative, so the equation
+is zero if and only if every occurring coordinate is zero. A retained certificate
+binds the equation index, guarded original polynomial, exact coefficient/power
+terms, unique coordinate equations and verified reconstruction. Mixed signs, odd
+powers, constant terms, and products of coordinates do not issue this certificate.
+The original equations and denominator divisions remain authority for source
+identity and raw Jacobian rank. This is real-zero equivalence, not rational ideal
+equality or a replacement solver. The existing ideal, full projection, selected
+cell decomposition and incidence consume the certified coordinate equations.
+The opt-in is selected only by the Native SSI isolated producer; its default is
+false, preserving unchanged CS and general decomposition paths. Preparation,
+term/axis traversal, exact reconstruction, retained proof and all buffer growth
+share the same checked work/storage/cancellation admission. No new roots, depth
+domain, tolerance, shared mutable state or caller budget is introduced.
+[GuardedEvenPowerZeroSetTests](../../../Tests/CADGeometryTests/GuardedEvenPowerZeroSetTests.swift) owns both implication witnesses and refusal
+conditions, independent admission/cancellation, original rank/source retention;
+NativeSurfaceSurfacePointTests owns the weighted bowl and close-root public
+success/failure under the unchanged finite caller budget.
