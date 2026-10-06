@@ -306,3 +306,45 @@ sectors, repeated roots, nested irrational sections and independent failures.
 The finite-fiber and cell-lifting paths share ordered-field polynomial evaluation;
 that helper owns original coordinate substitution only and does not issue
 whole-cell proofs independently of the retained projection owner.
+
+### Original Differential Rank Strata
+
+`ExactIntersectionDeterminant` owns exact square polynomial matrix evaluation;
+principal subresultants and Jacobian minors both consume this contract rather
+than duplicating fraction-free elimination. It validates dimensions and rings,
+retains row permutation sign, and rejects nonexact divisions. Matrix payload
+creation remains the caller's responsibility; the caller supplies admitted,
+uniquely held invocation scratch. Both production callers construct fresh local
+arrays before evaluation. The determinant owns admitted updates to that buffer.
+
+`ExactIntersectionJacobian` retains derivatives of each original equation and
+all square minors with their original row/coordinate indices. Its witness set
+includes constants and zeros so rank remains traceable to the original matrix.
+Minor enumeration is exhaustive through min(equationCount, coordinateCount),
+with checked payload dimensions and caller admission before combination growth.
+Equations are not replaced by a radical or square-free ideal: repeated contact
+laws retain their own linearization, even when their zero sets are the same.
+
+`OriginalRationalIntersectionStrata` augments real-cell partition preparation
+with those minors as sign witnesses, not additional zero constraints. The cell
+owner publishes the witness sign offset so no consumer reconstructs its internal
+domain/source ordering. On each selected solution cell the maximum order of a
+nonzero minor proves the original equation Jacobian's constant rank throughout
+that cell. No nonzero minor means rank zero. Empty original equation sets have
+rank zero over their whole selected domain.
+
+```text
+original equations -> exact derivatives -> all indexed square minors
+  -> original equations + domain boundaries + partition-only witnesses
+  -> sign-invariant real cells -> retained original Jacobian rank per cell
+  -> singular branch incidence (separate completion obligation)
+```
+
+This partitions the crossing of xy=0 into the origin and four open rays by
+adding x and y as derivative witnesses. Rank evidence alone does not prove
+geometric regularity, contact multiplicity, Whitney conditions, image rank,
+connected components, adjacency, or a particular branch attachment. Those
+contracts remain with their composing owners. All stages are immutable outputs
+and invocation-local scratch, using the same cumulative admission and atomic
+failure publication. Tests must verify higher-order indexed minors, crossings,
+repeated original equations, zero equations and independent work/storage failures.

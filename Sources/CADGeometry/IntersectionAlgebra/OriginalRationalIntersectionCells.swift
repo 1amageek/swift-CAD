@@ -24,14 +24,18 @@ package struct OriginalRationalIntersectionCells: Sendable {
     }
     package let equations: [ExactIntersectionPolynomial]
     package let domains: [ScalarInterval?]
+    package let partitionPolynomials: [ExactIntersectionPolynomial]
+    package let partitionSignOffset: Int
     package let tower: ExactIntersectionProjectionTower
     package let stacks: [Stack]
     package let cells: [Cell]
     package let solutionCells: [Int]
 
     private init(equations: [ExactIntersectionPolynomial], domains: [ScalarInterval?],
+        partitionPolynomials: [ExactIntersectionPolynomial], partitionSignOffset: Int,
         tower: ExactIntersectionProjectionTower, stacks: [Stack], cells: [Cell], solutionCells: [Int]) {
         self.equations = equations; self.domains = domains; self.tower = tower
+        self.partitionPolynomials = partitionPolynomials; self.partitionSignOffset = partitionSignOffset
         self.stacks = stacks; self.cells = cells; self.solutionCells = solutionCells
     }
     private struct Admission<B: RationalAlgebraAdmitting>: RationalAlgebraAdmitting {
@@ -51,21 +55,24 @@ package struct OriginalRationalIntersectionCells: Sendable {
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
-        variableCount: Int, domains: [ScalarInterval?], maximumDepth: Int, usage: inout B) throws -> Self {
+        variableCount: Int, domains: [ScalarInterval?],
+        partitionPolynomials: [ExactIntersectionPolynomial] = [], maximumDepth: Int, usage: inout B) throws -> Self {
         var admission = Admission(base: usage)
         defer { usage = admission.base }
         return try prepareAdmitted(equations: equations, variableCount: variableCount,
-            domains: domains, maximumDepth: maximumDepth, usage: &admission)
+            domains: domains, partitionPolynomials: partitionPolynomials, maximumDepth: maximumDepth, usage: &admission)
     }
 
     private static func prepareAdmitted<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
-        variableCount: Int, domains: [ScalarInterval?], maximumDepth: Int, usage: inout B) throws -> Self {
+        variableCount: Int, domains: [ScalarInterval?], partitionPolynomials: [ExactIntersectionPolynomial],
+        maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard (1...5).contains(variableCount), domains.count == variableCount, maximumDepth >= 0 else {
             throw rationalAlgebraFailure("Real-cell lifting requires bound original coordinates, domains and admission depth.")
         }
         let boundaryCount = try rationalAlgebraCount(variableCount, 2, multiply: true)
-        try RationalAlgebraStorage.retain(rationalAlgebraCount(equations.count, boundaryCount),
+        try RationalAlgebraStorage.retain(rationalAlgebraCount(
+            rationalAlgebraCount(equations.count, boundaryCount), partitionPolynomials.count),
             of: ExactIntersectionPolynomial.self, usage: &usage)
         var sources = equations
         for (axis, domain) in domains.enumerated() {
@@ -80,6 +87,11 @@ package struct OriginalRationalIntersectionCells: Sendable {
                     value: .originalDouble(endpoint, usage: &usage), usage: &usage)
                 sources.append(try coordinate.subtracting(boundary, usage: &usage))
             }
+        }
+        let partitionSignOffset = sources.count
+        for polynomial in partitionPolynomials {
+            try intersectionAlgebraStep(&usage)
+            sources.append(polynomial)
         }
         let tower = try ExactIntersectionProjectionTower.prepare(sources: sources, variableCount: variableCount, usage: &usage)
         let rational = try OriginalSingularFieldContext(usage: &usage)
@@ -168,7 +180,9 @@ package struct OriginalRationalIntersectionCells: Sendable {
             }
         }
         try RationalAlgebraStorage.retain(domains.count, of: ScalarInterval?.self, usage: &usage)
-        return Self(equations: equations, domains: domains, tower: tower, stacks: stacks, cells: cells, solutionCells: selected)
+        return Self(equations: equations, domains: domains,
+            partitionPolynomials: partitionPolynomials, partitionSignOffset: partitionSignOffset,
+            tower: tower, stacks: stacks, cells: cells, solutionCells: selected)
     }
 
     private static func completeRootUnion<B: RationalAlgebraAdmitting>(

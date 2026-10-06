@@ -39,47 +39,9 @@ package struct ExactIntersectionSubresultants: Sendable {
                     if column < size { matrix[(aRows + row) * size + column] = b[n - offset] }
                 }
             }
-            result.append(try determinant(&matrix, size: size, ring: first.variableCount, usage: &usage))
+            result.append(try ExactIntersectionDeterminant.evaluate(&matrix, size: size, variableCount: first.variableCount, usage: &usage))
         }
         return result
     }
 
-    private static func determinant<B: RationalAlgebraAdmitting>(_ matrix: inout [Polynomial],
-        size: Int, ring: Int, usage: inout B) throws -> Polynomial {
-        var previous = try Polynomial.constant(variableCount: ring, value: .one, usage: &usage)
-        if size == 0 { return previous }
-        var sign = ExactRationalCoefficient.one
-        if size > 1 {
-            for column in 0..<(size - 1) {
-                try intersectionAlgebraStep(&usage)
-                var pivotRow: Int?
-                for row in column..<size {
-                    try intersectionAlgebraStep(&usage)
-                    if !matrix[row * size + column].isZero { pivotRow = row; break }
-                }
-                guard let pivotRow else { return try .zero(variableCount: ring) }
-                if pivotRow != column {
-                    for j in 0..<size {
-                        try intersectionAlgebraStep(&usage)
-                        matrix.swapAt(column * size + j, pivotRow * size + j)
-                    }
-                    sign = sign.negated
-                }
-                let pivot = matrix[column * size + column]
-                for row in (column + 1)..<size {
-                    let eliminated = matrix[row * size + column]
-                    for j in (column + 1)..<size {
-                        try intersectionAlgebraStep(&usage)
-                        let numerator = try pivot.multiplied(by: matrix[row * size + j], usage: &usage)
-                            .subtracting(eliminated.multiplied(by: matrix[column * size + j], usage: &usage),
-                                         usage: &usage)
-                        matrix[row * size + j] = try numerator.dividedExactly(by: previous, usage: &usage)
-                    }
-                    matrix[row * size + column] = try .zero(variableCount: ring)
-                }
-                previous = pivot
-            }
-        }
-        return try matrix[matrix.count - 1].scaled(by: sign, usage: &usage)
-    }
 }
