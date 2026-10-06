@@ -195,6 +195,9 @@ evaluated source arrays + reference
 
 ## Contracts and Invariants
 
+A face Profile facade defines its own deterministic plane chart from the proved plane origin and oriented normal. Its world-space boundary points and retained original segments do not inherit the supporting surface UV basis. Constructed-region consumers use retained loop charts through the shared span builder rather than the Profile facade as original source.
+
+
 Closed-curve extrusion winding uses the same original line-integral issuer as
 face sections, borrowing its prepared source and directed native endpoints.
 Display samples never select a loop's traversal direction. Conversion to a

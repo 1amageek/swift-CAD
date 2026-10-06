@@ -234,7 +234,21 @@ public struct CurveOffsetFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEv
             throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
                 "A rigid-image curve offset requires a certified offset-locus implementation."
             )
-        case .affineImage:
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Original wrapper charts are not
+        // implemented by this specialized path. Production feature evaluation
+        // must retain the original law and refuse this arm until its complete
+        // native-parameter and whole-domain construction proof is available.
+        case .parameterImage,
+             .originalAffineWord,
+             .originalConstructionChart,
+             .originalEndpointConnector,
+             .originalPlaneDerivative,
+             .originalGuideTraversalChain,
+             .originalGuideEndpointConnector,
+             .originalPolyline,
+             .originalDrafted,
+             .originalAngularTransport,
+             .affineImage:
             throw kernelError(.unsupportedCapability, featureID: featureID, tolerance: tolerance,
                 "An affine-image curve offset requires a certified offset-locus implementation."
             )

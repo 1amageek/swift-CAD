@@ -29,7 +29,7 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
         let sectionSpans: [ExactBSplineCurveSpan]
         let sectionPlane: SketchPlane
         switch section {
-        case .profile, .face:
+        case .profile, .face, .constructedRegion:
             sectionSpans = try spanBuilder.loopSpans(from: section).flatMap { $0 }
             sectionPlane = try section.plane()
         case .curve(let curve):

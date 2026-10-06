@@ -117,7 +117,7 @@ public struct CurveTrimFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEval
                 tolerance: tolerance, admission: admission)
             closed = try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
                 remainingSourceDepth: admission.remainingSourceDepth,
-                consumeWork: { try admission.chargeWork() },
+                consumeWork: { try admission.visit(depth: $0) },
                 consumeStorage: { try admission.chargeStorage(bytes: $0) },
                 maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
                 .kind(curve: exactCurve, from: lowerBound, to: upperBound, tolerance: tolerance) == .closed

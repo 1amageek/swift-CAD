@@ -291,7 +291,7 @@ package struct PipeFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluati
         admission: GeometryConversionAdmission
     ) throws -> [ExactBSplineCurveSpan] {
         guard start > 0 || end < 1 else { return spans }
-        if let span = spans.onlyElement, case .affine = span.originalChart.mapping,
+        if spans.count == 1, let span = spans.first, case .affine = span.originalChart.mapping,
            try isOriginalConstantSpeedLine(span.originalChart.curve, depth: 0, admission: admission) {
             let chart = try span.originalChart.admittingConstruction(admission)
                 .restricted(from: start, to: end, in: .closed(0, 1), tolerance: tolerance)

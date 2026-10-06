@@ -21,6 +21,9 @@ source parent IDs + caller work/byte allowance
 ```
 
 ## Contracts and Invariants
+
+Storage overflow reports the existing topology resource-limit error without a geometric tolerance value. Callback failure propagates before canonical source allocation.
+
 The result is identical to the legacy sorted Set projection. All comparisons use the original SubshapeID total order and exact equality. In-place heap sorting uses no merge buffer or Set; input immutable role strings remain retained values. A bounded constructor reserves checked count-times-stride bytes before creating the independently mutable output array. Each element visit, sort comparison and swap consumes a callback at depth zero. Callback invocation means one unit of original work; its Int argument is depth, never a work count.
 
 The algorithm owns array payload admission, not standard-library allocator metadata or a complete geometry/feature budget. Scalar arithmetic overflow, cancellation and caller callback failures propagate before publication. Invalid parent identity values preserve legacy construction semantics and are rejected by the existing sewing validation boundary.

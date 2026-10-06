@@ -2,9 +2,9 @@ package struct SurfaceParameterAreaBounds: Sendable, Hashable {
     package let lower: Double
     package let upper: Double
 
-    static let zero = SurfaceParameterAreaBounds(lower: 0.0, upper: 0.0)
+    package static let zero = SurfaceParameterAreaBounds(lower: 0.0, upper: 0.0)
 
-    var minimumAbsoluteValue: Double {
+    package var minimumAbsoluteValue: Double {
         if lower <= 0.0, upper >= 0.0 {
             return 0.0
         }
@@ -15,7 +15,7 @@ package struct SurfaceParameterAreaBounds: Sendable, Hashable {
         (upper - lower).nextUp
     }
 
-    func adding(
+    package func adding(
         _ other: SurfaceParameterAreaBounds
     ) -> SurfaceParameterAreaBounds {
         SurfaceParameterAreaBounds(

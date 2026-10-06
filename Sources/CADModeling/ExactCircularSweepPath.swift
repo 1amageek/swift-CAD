@@ -54,6 +54,16 @@ package struct ExactCircularSweepPath: Sendable, Hashable {
                 radius: source.radius
             )
         case .line, .bSpline, .implicit, .surfaceLift, .certifiedIntersection,
+             .parameterImage,
+             .originalAffineWord,
+             .originalConstructionChart,
+             .originalEndpointConnector,
+             .originalPlaneDerivative,
+             .originalGuideTraversalChain,
+             .originalGuideEndpointConnector,
+             .originalPolyline,
+             .originalDrafted,
+             .originalAngularTransport,
              .affineImage:
             return nil
         }
@@ -104,7 +114,17 @@ package struct ExactCircularSweepPath: Sendable, Hashable {
                 radius: source.radius
             )
         case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection, .affineImage:
+             .certifiedIntersection, .parameterImage,
+             .originalAffineWord,
+             .originalConstructionChart,
+             .originalEndpointConnector,
+             .originalPlaneDerivative,
+             .originalGuideTraversalChain,
+             .originalGuideEndpointConnector,
+             .originalPolyline,
+             .originalDrafted,
+             .originalAngularTransport,
+             .affineImage:
             return nil
         }
     }

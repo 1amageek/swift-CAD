@@ -164,12 +164,14 @@ package struct CertifiedTwistSweepPlan: Sendable {
         }
         guard divisions.reduce(0, +) <= maximumIntervals else { throw Self.exhausted(tolerance) }
         let intervalCount = divisions.reduce(0, +)
-        try Self.retain(loops.count, of: [[BSplineSurface3D]].self, admission: admission, tolerance: tolerance)
+        typealias SurfaceIntervals = [[BSplineSurface3D]]
+        typealias SurfaceRow = [BSplineSurface3D]
+        try Self.retain(loops.count, of: SurfaceIntervals.self, admission: admission, tolerance: tolerance)
         var built: [[[BSplineSurface3D]]] = []
         built.reserveCapacity(loops.count)
         for _ in loops {
             try admission.chargeWork()
-            try Self.retain(intervalCount, of: [BSplineSurface3D].self, admission: admission, tolerance: tolerance)
+            try Self.retain(intervalCount, of: SurfaceRow.self, admission: admission, tolerance: tolerance)
             var intervals: [[BSplineSurface3D]] = []
             intervals.reserveCapacity(intervalCount)
             built.append(intervals)

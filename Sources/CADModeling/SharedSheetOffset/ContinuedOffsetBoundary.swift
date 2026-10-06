@@ -13,7 +13,8 @@ struct ContinuedOffsetBoundary {
         if (a - start).length <= tolerance.distance && (b - end).length <= tolerance.distance { return original }
         let startUV = try surface.parameterProjection(of: start, tolerance: tolerance)
         let endUV = try surface.parameterProjection(of: end, tolerance: tolerance)
-        let continued = try continuedChart(original, start: startUV, end: endUV, tolerance: tolerance)
+        let continued = try continuedChart(original, start: SurfaceParameter(u: startUV.u, v: startUV.v),
+            end: SurfaceParameter(u: endUV.u, v: endUV.v), tolerance: tolerance)
         let result = SurfaceLiftCurve3D(surface: surface, parameterCurve: continued)
         guard (try result.point(atNormalizedFraction: 0, tolerance: tolerance) - start).length <= tolerance.distance,
               (try result.point(atNormalizedFraction: 1, tolerance: tolerance) - end).length <= tolerance.distance else {

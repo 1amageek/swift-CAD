@@ -76,6 +76,9 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Native dependency repair preserves representation dispatch authority. Specialized analytic predicates decline original wrappers without the required chart proof; extension and offset report typed unsupported errors for unfinished representations. General affine projection retains the complete original curve and its parameter domain. Classifier callbacks forward actual visit depth to the composing admission, independently of storage-byte charges. Display sampling density does not establish geometric correspondence.
+
+
 EvaluatedCurve's bounded original-geometry admission checks the owning feature,
 retained exact curve and authored native domain under caller source, subdivision,
 algebra, work and byte allowances. It does not certify display points or cached
@@ -1436,6 +1439,9 @@ fails before returning incomplete topology when a required surface, edge,
 vertex, or pcurve cannot be built.
 
 ## Verification and Change Impact
+
+[NativeModelingDependencyContractTests](../../Tests/CADModelingTests/NativeModelingDependencyContractTests.swift) exercises parameter-image projection, explicit unsupported extension/offset and zero-subdivision trim with caller failure propagation. Native full-module compilation and the composing Loft factory verification own the dependency integration evidence.
+
 
 Primitive tests assert exact topology counts, analytic volume, pcurve presence,
 and stable-reference generation for every sphere subshape. All-edge fillet tests

@@ -98,7 +98,7 @@ package struct OriginalRevolveGeneratorResolver: Sendable {
             // FIXME(INCOMPLETE_IMPLEMENTATION): Periodically translated original
             // knot spans need source-bound translated root receipts. Public Revolve
             // must not wrap numeric endpoints and drop their original parameter chart.
-            if case .periodic = source.parameterDomain {
+            if case .periodic = source.domain {
                 throw KernelError(phase: .geometry, code: .unsupportedCapability,
                     tolerance: tolerance,
                     message: "Periodic original revolution requires retained translated native root charts.")

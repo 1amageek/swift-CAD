@@ -30,6 +30,9 @@ SweepOptions -> certified plan -> Hermite tensor patches -> Sweep face request
 
 ## Contracts and Invariants
 
+Package interval operations expose the underlying outward interval type. Retained nested surface-array capacity uses the actual array element metatype and its stride, independently of surface payload admission.
+
+
 The allowance bounds distance to the ideal sweep of the retained input profile,
 not distance to an analytic curve that the input profile itself approximates.
 Normalized law positions increase from zero to one; angles start at zero and

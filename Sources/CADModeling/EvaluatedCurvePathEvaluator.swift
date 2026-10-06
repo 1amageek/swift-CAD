@@ -464,7 +464,17 @@ public struct EvaluatedCurvePathEvaluator: Sendable {
                 ),
                 maximumSplineSegmentCount
             )
-        case .implicit, .surfaceLift, .certifiedIntersection:
+        case .parameterImage,
+             .originalAffineWord,
+             .originalConstructionChart,
+             .originalEndpointConnector,
+             .originalPlaneDerivative,
+             .originalGuideTraversalChain,
+             .originalGuideEndpointConnector,
+             .originalPolyline,
+             .originalDrafted,
+             .originalAngularTransport,
+             .implicit, .surfaceLift, .certifiedIntersection:
             return max(
                 min(maximumSplineSegmentCount, curve.points.count - 1),
                 8

@@ -681,7 +681,7 @@ struct CurvedRevolveBodyBuilder {
         guard case let .closed(vLower, vUpper) = segment.curve.domain else {
             throw GeometryError.invalidDistance(0.0)
         }
-        if profileRadialDirection == nil && !(try originalEndpointPoleIsolated(segment.curve)) {
+        if profileRadialDirection == nil, try !originalEndpointPoleIsolated(segment.curve) {
             try DefaultSurfaceRegularityValidator().validate(surface,
                 over: SurfaceParameterBox(u: try ScalarInterval(lower: 0, upper: 1),
                     v: try ScalarInterval(lower: vLower, upper: vUpper)),

@@ -259,7 +259,7 @@ public struct PlanarExtrudeFeatureEvaluator: FeatureEvaluating, ValidatedFeature
         guard lower.isFinite, upper.isFinite, lower < upper,
             try BRepEdgeGeometryClassifier(maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
                 remainingSourceDepth: admission.remainingSourceDepth,
-                consumeWork: { try admission.chargeWork() },
+                consumeWork: { try admission.visit(depth: $0) },
                 consumeStorage: { try admission.chargeStorage(bytes: $0) },
                 maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
                 .kind(curve: selected.curve, from: lower, to: upper, tolerance: tolerance) == .closed else {

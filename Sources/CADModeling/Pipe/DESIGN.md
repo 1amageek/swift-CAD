@@ -32,6 +32,9 @@ original Pipe path + section -> source preparation
 
 ## Contracts and Invariants
 
+The exact constant-speed cut arm requires exactly one retained source span. A first span alone cannot establish that cardinality; all other cuts retain the existing typed inverse-arc-length refusal.
+
+
 One existing source allowance begins before path conversion and survives all
 nested Sweep operations. Every retained span keeps its original curve, directed
 chart and actual final correspondence. Circle symmetry does not permit erasing
