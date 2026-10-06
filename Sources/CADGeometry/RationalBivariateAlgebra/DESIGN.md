@@ -974,7 +974,12 @@ with the derived original bracket retains endpoint exclusions and is validated
 against its original linear law. This reuses the same unique-root proof without
 creating a field extension or restarting any root's depth. Both roots must use
 the parameter admission domain; other structural cases keep the existing field
-refinement. All endpoint arithmetic and retained proof buffers use the same
+refinement. This parameter-only image path forwards the original caller admission
+directly: its parameter-cell routing is identical to the parameter-domain adapter.
+It must not nest a generic admission wrapper across recursive field refinement,
+which requires unbounded specialization in Embedded Swift. Coefficient-domain
+sign and ordinary refinement retain their domain adapter. The direct path preserves
+every work/storage charge, parameter visit, inherited depth and cancellation check. All endpoint arithmetic and retained proof buffers use the same
 cumulative ledger. The retained ancestor contraction is immutable and reused by
 subsequent contractions. AdmittedIntersectionRingTests checks positive and
 negative image orientation, endpoint/interior pole contraction, inherited depth

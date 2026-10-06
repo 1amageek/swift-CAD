@@ -48,7 +48,7 @@ package struct OriginalSphereCurvePullback: Sendable {
         let domain = try OriginalRationalParameterDomain(lower: curve.lowerParameter,
             upper: curve.upperParameter, usage: &usage)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         self.sphere = sphere; self.curve = curve; self.domain = domain
         equation = raw; denominator = weight
     }
@@ -66,7 +66,7 @@ package struct OriginalSphereCurvePullback: Sendable {
         try RationalAlgebraStorage.retain(1, of: OriginalRationalParameterDomain.self, usage: &usage)
         let relation = try OriginalPolynomialRelation(variableCount: 1, polynomials: [equation, denominator],
             predicate: predicate, domains: [domain], usage: &usage)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return relation
     }
 

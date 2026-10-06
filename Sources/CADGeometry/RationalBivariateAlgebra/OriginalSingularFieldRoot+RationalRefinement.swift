@@ -94,59 +94,59 @@ extension OriginalSingularFieldRoot {
         let d = try d0.multiplied(by: leading, usage: &usage)
         let determinant = try a.multiplied(by: d, usage: &usage)
             .subtracting(b.multiplied(by: c, usage: &usage), usage: &usage)
-        var admission = OriginalScalarRootDomainAdmission(base: usage, domain: parent.admissionDomain)
-        defer { usage = admission.base }
+        // Both guarded domains are parameter domains; forward the same caller ledger
+        // without recursively nesting a generic admission adapter in Embedded Swift.
         var ancestor: ExactAlgebraicRealRoot
         if let retainedRationalImageAncestor { ancestor = retainedRationalImageAncestor }
         else {
-            guard let issued = try parent.retainedRationalRoot ?? parent.rationalAuthority(usage: &admission) else { return nil }
+            guard let issued = try parent.retainedRationalRoot ?? parent.rationalAuthority(usage: &usage) else { return nil }
             ancestor = try issued.retainingIsolation(.init(lower: parent.isolation.lower, upper: parent.isolation.upper,
                 isRationalStation: parent.isolation.lower == parent.isolation.upper,
                 isolationDepth: parent.isolation.depth, excludesLowerEndpoint: parent.isolation.excludesLower,
-                excludesUpperEndpoint: parent.isolation.excludesUpper), usage: &admission)
+                excludesUpperEndpoint: parent.isolation.excludesUpper), usage: &usage)
         }
-        let width = try isolation.upper.subtracting(isolation.lower, usage: &admission)
-            .divided(by: .natural(2, usage: &admission), usage: &admission)
+        let width = try isolation.upper.subtracting(isolation.lower, usage: &usage)
+            .divided(by: .natural(2, usage: &usage), usage: &usage)
         while true {
-            try admission.consumeExactWork(1)
-            let lowerDenominator = try c.multiplied(by: ancestor.isolation.lower, usage: &admission).adding(d, usage: &admission)
-            let upperDenominator = try c.multiplied(by: ancestor.isolation.upper, usage: &admission).adding(d, usage: &admission)
+            try usage.consumeExactWork(1)
+            let lowerDenominator = try c.multiplied(by: ancestor.isolation.lower, usage: &usage).adding(d, usage: &usage)
+            let upperDenominator = try c.multiplied(by: ancestor.isolation.upper, usage: &usage).adding(d, usage: &usage)
             // A linear denominator has a nonzero sign throughout the bracket only
             // when both endpoints have that same strict sign. A pole requires
             // contraction of this same ancestor, even at an excluded endpoint.
             if !lowerDenominator.isZero, !upperDenominator.isZero,
                 lowerDenominator.isPositive == upperDenominator.isPositive {
-                let first = try a.multiplied(by: ancestor.isolation.lower, usage: &admission).adding(b, usage: &admission)
-                    .divided(by: lowerDenominator, usage: &admission)
-                let second = try a.multiplied(by: ancestor.isolation.upper, usage: &admission).adding(b, usage: &admission)
-                    .divided(by: upperDenominator, usage: &admission)
+                let first = try a.multiplied(by: ancestor.isolation.lower, usage: &usage).adding(b, usage: &usage)
+                    .divided(by: lowerDenominator, usage: &usage)
+                let second = try a.multiplied(by: ancestor.isolation.upper, usage: &usage).adding(b, usage: &usage)
+                    .divided(by: upperDenominator, usage: &usage)
                 let imageLower = determinant.isNegative ? second : first
                 let imageUpper = determinant.isNegative ? first : second
                 let imageExcludesLower = !determinant.isZero && (determinant.isNegative
                     ? ancestor.isolation.excludesUpperEndpoint : ancestor.isolation.excludesLowerEndpoint)
                 let imageExcludesUpper = !determinant.isZero && (determinant.isNegative
                     ? ancestor.isolation.excludesLowerEndpoint : ancestor.isolation.excludesUpperEndpoint)
-                let lowerDifference = try imageLower.subtracting(isolation.lower, usage: &admission)
-                let upperDifference = try imageUpper.subtracting(isolation.upper, usage: &admission)
+                let lowerDifference = try imageLower.subtracting(isolation.lower, usage: &usage)
+                let upperDifference = try imageUpper.subtracting(isolation.upper, usage: &usage)
                 let lower = lowerDifference.isNegative ? isolation.lower : imageLower
                 let upper = upperDifference.isPositive ? isolation.upper : imageUpper
                 let excludesLower = lowerDifference.isZero ? isolation.excludesLower || imageExcludesLower
                     : lowerDifference.isNegative ? isolation.excludesLower : imageExcludesLower
                 let excludesUpper = upperDifference.isZero ? isolation.excludesUpper || imageExcludesUpper
                     : upperDifference.isPositive ? isolation.excludesUpper : imageExcludesUpper
-                let attainedWidth = try upper.subtracting(lower, usage: &admission)
+                let attainedWidth = try upper.subtracting(lower, usage: &usage)
                 guard !attainedWidth.isNegative else {
                     throw rationalAlgebraFailure("Original scalar image contradicts its retained bracket.")
                 }
-                if !(try attainedWidth.subtracting(width, usage: &admission)).isPositive {
+                if !(try attainedWidth.subtracting(width, usage: &usage)).isPositive {
                     let depth = max(isolation.depth, ancestor.isolation.isolationDepth)
-                    try admissionDomain.visit(depth, usage: &admission)
-                    let sequence = try OriginalSingularFieldSturm(polynomial, maximumDepth: maximumDepth, usage: &admission)
+                    try admissionDomain.visit(depth, usage: &usage)
+                    let sequence = try OriginalSingularFieldSturm(polynomial, maximumDepth: maximumDepth, usage: &usage)
                     guard try sequence.count(lower: lower, upper: upper, excludesLower: excludesLower,
-                        excludesUpper: excludesUpper, maximumDepth: maximumDepth, usage: &admission) == 1 else {
+                        excludesUpper: excludesUpper, maximumDepth: maximumDepth, usage: &usage) == 1 else {
                         throw rationalAlgebraFailure("Original scalar image lost unique-root authority.")
                     }
-                    try RationalAlgebraStorage.retain(1, of: Self.self, usage: &admission)
+                    try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
                     return retainingIsolation(.init(lower: lower, upper: upper, excludesLower: excludesLower,
                         excludesUpper: excludesUpper, depth: depth), imageAncestor: ancestor)
                 }
@@ -154,11 +154,11 @@ extension OriginalSingularFieldRoot {
             guard ancestor.isolation.lower != ancestor.isolation.upper else {
                 throw rationalAlgebraFailure("Original scalar image has a zero source denominator.")
             }
-            let ancestorWidth = try ancestor.isolation.upper.subtracting(ancestor.isolation.lower, usage: &admission)
-                .divided(by: .natural(2, usage: &admission), usage: &admission)
+            let ancestorWidth = try ancestor.isolation.upper.subtracting(ancestor.isolation.lower, usage: &usage)
+                .divided(by: .natural(2, usage: &usage), usage: &usage)
             ancestor = try forSeparation
-                ? ancestor.refinedForSeparation(maximumWidth: ancestorWidth, maximumDepth: maximumDepth, usage: &admission)
-                : ancestor.refined(maximumWidth: ancestorWidth, maximumDepth: maximumDepth, usage: &admission)
+                ? ancestor.refinedForSeparation(maximumWidth: ancestorWidth, maximumDepth: maximumDepth, usage: &usage)
+                : ancestor.refined(maximumWidth: ancestorWidth, maximumDepth: maximumDepth, usage: &usage)
         }
     }
 }
