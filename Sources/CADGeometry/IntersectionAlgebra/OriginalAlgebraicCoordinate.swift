@@ -37,7 +37,8 @@ public struct OriginalAlgebraicCoordinate: Sendable {
         }
         package init(original: OriginalSingularFieldElement, inheritedDepth: Int,
             inheritedCoefficientDepth: Int, maximumDepth: Int, maximumCoefficientDepth: Int,
-            usage: OriginalRelationUsage) throws {
+            usage: OriginalRelationUsage,
+            certifiedBounds: (lower: ExactRationalCoefficient, upper: ExactRationalCoefficient)? = nil) throws {
             let parameterDepth = max(inheritedDepth, original.context.depth)
             let coefficientDepth = max(inheritedCoefficientDepth, original.context.coefficientDepth)
             guard parameterDepth <= maximumDepth, coefficientDepth <= maximumCoefficientDepth,
@@ -48,17 +49,26 @@ public struct OriginalAlgebraicCoordinate: Sendable {
                 coefficientDepth: coefficientDepth, maximumDepth: maximumDepth,
                 maximumCoefficientDepth: maximumCoefficientDepth, usage: usage)
             try intersectionAlgebraStep(&admission)
-            let value = try OriginalSingularFieldValueIsolation(original: original, inheritedDepth: parameterDepth,
-                maximumDepth: maximumDepth, usage: &admission)
+            let value: OriginalSingularFieldValueIsolation
+            if let certifiedBounds {
+                value = try .init(original: original, lower: certifiedBounds.lower, upper: certifiedBounds.upper,
+                    inheritedDepth: parameterDepth, maximumDepth: maximumDepth, usage: &admission)
+            } else {
+                value = try .init(original: original, inheritedDepth: parameterDepth,
+                    maximumDepth: maximumDepth, usage: &admission)
+            }
             self.init(value, coefficientDepth: admission.coefficientDepth)
         }
     }
     package let original: OriginalSingularFieldElement
     package let inheritedDepth: Int
     package let inheritedCoefficientDepth: Int
+    private let certifiedBounds: (lower: ExactRationalCoefficient, upper: ExactRationalCoefficient)?
 
     package init(original: OriginalSingularFieldElement, inheritedDepth: Int,
-        inheritedCoefficientDepth: Int = 0) {
+        inheritedCoefficientDepth: Int = 0,
+        certifiedBounds: (lower: ExactRationalCoefficient, upper: ExactRationalCoefficient)? = nil) {
+        self.certifiedBounds = certifiedBounds
         self.original = original; self.inheritedDepth = max(inheritedDepth, original.context.depth)
         self.inheritedCoefficientDepth = max(inheritedCoefficientDepth, original.context.coefficientDepth)
     }
@@ -74,6 +84,6 @@ public struct OriginalAlgebraicCoordinate: Sendable {
         usage: OriginalRelationUsage) throws -> Enclosure {
         try Enclosure(original: original, inheritedDepth: inheritedDepth,
             inheritedCoefficientDepth: inheritedCoefficientDepth, maximumDepth: maximumDepth,
-            maximumCoefficientDepth: maximumCoefficientDepth, usage: usage)
+            maximumCoefficientDepth: maximumCoefficientDepth, usage: usage, certifiedBounds: certifiedBounds)
     }
 }

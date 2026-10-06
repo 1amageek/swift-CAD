@@ -7,10 +7,14 @@ extension ExactRationalCoefficient {
         func approximation(_ magnitude: ExactNaturalMagnitude) throws -> (Double, Int) {
             let words = magnitude.words
             guard let last = words.last else { return (0, 0) }
-            try usage.consumeExactWork(2)
+            try usage.consumeExactWork(3)
             let next = words.count > 1 ? words[words.count - 2] : 0
-            let significand = Double(last) * 4_294_967_296 + Double(next)
-            let shift = (words.count - 2).multipliedReportingOverflow(by: 32)
+            let third = words.count > 2 ? words[words.count - 3] : 0
+            // Three words retain at least 65 source bits even when the
+            // leading word is one; two words can retain only 33 bits.
+            let significand = Double(last) * 18_446_744_073_709_551_616
+                + Double(next) * 4_294_967_296 + Double(third)
+            let shift = (words.count - 3).multipliedReportingOverflow(by: 32)
             guard !shift.overflow else { throw rationalAlgebraFailure("Exact rational interval exponent overflows.") }
             return (significand, shift.partialValue)
         }

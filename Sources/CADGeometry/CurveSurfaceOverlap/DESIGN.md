@@ -1,5 +1,7 @@
 # CurveSurfaceOverlap
 
+Native isolated Bezier/tensor products are owned by [Native Point Relations](NativePointRelations/DESIGN.md). Their complete exact parameter receipt accompanies rich results and identical point publication serves discrete entries; positive-dimensional coverage fails explicitly.
+
 ## Purpose and Scope
 
 This component is a child of [CADGeometry](../DESIGN.md). It owns the G4

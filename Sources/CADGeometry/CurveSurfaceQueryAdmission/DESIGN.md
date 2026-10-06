@@ -1,5 +1,7 @@
 # Curve Surface Query Admission
 
+[Native Point Relations](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md) forwards the same invocation through preparation, exact decomposition and publication. Algebra depth is independent of geometric depth. UInt32 storage words convert to callback bytes with checked arithmetic. Ordinary queries use value-local option allowances.
+
 ## Purpose and Scope
 
 Child of [CADGeometry](../DESIGN.md), without children. Owns invocation admission

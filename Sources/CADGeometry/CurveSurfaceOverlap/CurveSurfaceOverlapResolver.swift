@@ -11,6 +11,8 @@ struct CurveSurfaceOverlapResolver {
 
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
                  tolerance: ModelingTolerance, intersector: DefaultCurveSurfaceIntersector) throws -> CurveSurfaceIntersectionResult {
+        if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+            options: options, tolerance: tolerance) { return native }
         try options.validate(tolerance: tolerance)
         try curve.validate(tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
@@ -168,6 +170,8 @@ struct CurveSurfaceOverlapResolver {
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, intersector: DefaultCurveSurfaceIntersector,
         invocation: CurveSurfaceQueryInvocation) throws -> CurveSurfaceIntersectionResult {
+        if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+            options: options, tolerance: tolerance, invocation: invocation) { return native }
         try options.validate(tolerance: tolerance)
         try invocation.consumeFixedWork()
         guard case .bSpline(let spline) = curve, case .plane(let plane) = surface,

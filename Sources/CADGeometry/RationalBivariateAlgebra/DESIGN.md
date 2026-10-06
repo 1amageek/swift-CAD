@@ -273,6 +273,16 @@ arithmetic overflow and cumulative budget exhaustion are typed failures.
 
 ## Verification and Change Impact
 
+Exact rational to Double enclosure starts with the leading three UInt32 magnitude
+words (at least 65 significant source bits when the highest word is one), padded
+with zero words for one- and two-word values. The checked binary shift is
+(wordCount-3)*32 and admission charges three inspected words per magnitude.
+Exact rational comparisons and adjacent Double endpoint checks retain final
+outward authority. The extra prefix word prevents long ULP walks caused by a
+33-bit initial ratio estimate; it changes no source value or accuracy threshold.
+ExactRationalIntervalConversionTests checks short magnitudes, both signs,
+highest-one large fractions and subnormals under a bounded conversion work ledger.
+
 The current source-only phase precedes all build/test/compile/runtime/review.
 Later behavioral evidence must exercise exact subnormal/normal Double conversion,
 signed arithmetic, integer division/GCD, polynomial content and primitive GCD,
@@ -878,3 +888,15 @@ Original and extended algebraic contexts retain their full original field path.
 Native, WASM and Embedded use the same immutable owner and implementation.
 Identity powers may reuse their original coefficient without allocating new
 polynomial storage; cancellation and inspected work are still admitted.
+
+### Verified Original Scalar Seeds
+
+A complete native zero-cell consumer may seed scalar localization with retained
+rational section bounds. OriginalSingularFieldValueIsolation validates ordered
+bounds against the actual retained field value using exact lower/upper signs,
+rejects a foreign or invalid interval, and preserves every inherited depth.
+OriginalAlgebraicCoordinate can retain those bounds for later caller-admitted
+queries. This port changes no root identity, equation coverage or depth ceiling.
+[Native Point Relations](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md)
+owns section extraction and geometric bound production. NativeCurveSurfacePointTests
+owns invalid/reversed/excluding seed rejection and depth-preserving refinement.

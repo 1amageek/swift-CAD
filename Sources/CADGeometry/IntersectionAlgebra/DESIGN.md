@@ -944,3 +944,91 @@ and the same original source-cell identity. No theorem is selected after generic
 exhaustion. Native coincidence uses this affine proof when its actual conditions
 qualify; curved native overlaps use the verified source ideal and finite-branch
 proof when their actual reduced conditions qualify.
+
+### Retained Native Scalar Localization
+
+OriginalAlgebraicCoordinate optionally retains original section bounds supplied
+by [Native Point Relations](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md).
+Its enclosure operation consumes the [verified original scalar seed contract](../RationalBivariateAlgebra/DESIGN.md#verified-original-scalar-seeds)
+and preserves independent parameter/coefficient admission depths. Coordinates
+without source bounds keep the existing exact localization path. This connection
+changes no original cell selection, identity, ordering or coverage.
+
+### Native Prefix Exclusion Selection
+
+Native decomposition and strata accept the existing exact prefix-exclusion
+selection and forward it to OriginalRationalIntersectionCells. The default is
+false, preserving other consumers and SSI. Native Point Relations selects true;
+every skipped lifting prefix retains the existing nonzero-constant equation
+witness in ExcludedPrefix. No projection, root or lifting engine changes.
+[NativePrefixPruningTests](../../../Tests/CADGeometryTests/NativePrefixPruningTests.swift)
+compares complete selected native tuples, empty and positive-dimensional coverage
+with this selection enabled and disabled.
+
+### Guarded Native Equation Normalization
+
+OriginalGuardedIntersectionEquations retains the original equations and denominator
+guards, their product D, normalized equations and every exact division identity
+F = g Q and D = g H. It repeatedly cancels gcd(F,D) only while that factor is
+nonconstant. Zero equations are skipped before GCD and division. Therefore each
+equation is equivalent to its normalized equation only on D != 0; the retained
+original nonzero guards remain mandatory in complete parameter-cell selection.
+All polynomial work and cumulative retention use the caller admission.
+
+The isolated native selection additionally removes actual repeated factors before
+ideal preparation using the existing squareFree operation. Original guarded F is
+retained with support S and the checked exact identity F=S Q. Only nonconstant Q
+selects this change. A retained finite descent removes gcd(current,S) until a
+nonzero constant remains, checking current=g R and S=g H at each step and strict
+total-degree descent. Thus S=0 implies F=0 by the first identity, and F=0 implies
+S=0 because each removed factor divides S and the final cofactor cannot vanish.
+Raw original multiplicities and Jacobian remain authoritative. Zero/constant
+equations bypass this optional simplification; invalid support, constant factors
+before completion, failed identities or failed descent propagate typed failure.
+No polynomial powers or new factorization engine are introduced. Other consumers
+keep this option disabled.
+
+Native decomposition can opt into this receipt before ideal preparation; the
+default remains false for all other consumers. The resulting normalized ideal
+is distinct from the raw original ideal. Strata computes Jacobian and minors
+from the raw original equations, then reduces those witnesses by the normalized
+ideal for partitioning. The decomposition retains both the raw native system
+and the guarded identities. No source, root, projection or lifting engine is
+changed, and no budget ceiling or causal depth is raised.
+
+```text
+raw native equations + original guards
+    -> exact GCD / quotient identities (valid where guards != 0)
+    -> normalized ideal + raw Jacobian witnesses
+    -> complete guarded native partition + retained normalization receipt
+```
+
+[NativeGuardedNormalizationTests](../../../Tests/CADGeometryTests/NativeGuardedNormalizationTests.swift)
+checks retained identities, guarded zero-locus equivalence, denominator-zero
+exclusion, zero-equation termination and raw Jacobian rank. Native Point Relations
+selects normalization; its public weighted oracle checks the actual entry path.
+
+### Isolated Native Rank Evaluation
+
+Native decomposition may select isolatedOnly (default false). This finite closed
+domain port first retains complete cells for the normalized basis and original
+nonzero denominator guards, without adding Jacobian minors to projection. Thom
+encoding remains enabled to satisfy the retained incidence receipt contract. Any
+selected positive-dimensional cell fails atomically with nonDiscreteIntersection
+before issuing a rank or decomposition receipt. For all-zero-dimensional coverage,
+the raw original Jacobian and indexed minors are retained. Each minor is reduced
+exactly by the retained ideal and evaluated in the same singleton cell's ordered
+field. Its exact signs and achieved independent causal depths are retained in the
+stratum; rank is constant on that zero-dimensional singleton. Empty coverage is
+still complete exclusion. The general sign-invariant rank partition remains the
+default for every other consumer.
+
+```text
+complete guarded equation cells
+    -> positive dimension: atomic nonDiscreteIntersection
+    -> all singleton cells: raw indexed minors -> exact field signs + rank receipt
+```
+
+NativeGuardedNormalizationTests compares the isolated rank receipt with the
+general rank partition. BSplineCurveSurfaceTangencyTests owns the nonseparable
+positive-weight repeated-root regression using unchanged published option limits.

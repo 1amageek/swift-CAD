@@ -3,8 +3,13 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     public let points: [CurveSurfaceIntersection]
     public let overlaps: [CurveSurfaceOverlap]
 
-    init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap]) {
+    /// Complete original native tuple coverage; nil for legacy source families.
+    public let originalNativePoints: OriginalNativeCurveSurfacePoints?
+
+    init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap],
+        originalNativePoints: OriginalNativeCurveSurfacePoints? = nil) {
         self.points = points
         self.overlaps = overlaps
+        self.originalNativePoints = originalNativePoints
     }
 }
