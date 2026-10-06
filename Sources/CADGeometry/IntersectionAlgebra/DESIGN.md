@@ -150,8 +150,9 @@ real isolation, and retains the source laws and parameter suffix. Those fixed
 coordinates have dimension zero in the selected relation and never become
 geometric parameters. Closure candidates quantify geometric coordinates only;
 the coefficient prefix is shared original authority, not a second independent
-coefficient embedding. This composition and public ordered publication remain
-unfinished until their own behavioral verification is complete.
+coefficient embedding. The fixed-fiber composition is owned below; the public ordered publication
+contract is owned by Public Ordered Relation Binding. Whole-family source and
+portable completion remain separate obligations.
 
 Verification must distinguish positive/negative conjugates, algebraically equal
 and different coefficients, coefficient-only towers and retained parameter-root
@@ -194,7 +195,53 @@ exhaustion does not select an alternative theorem afterward.
 The actual generic ordered path is verified through closure incidence for a
 half-line endpoint and a two-dimensional fixed-coefficient region, with complete
 refined-cell truth, conjugate exclusion, nonfixed-prefix rejection and independent
-failure behavior. Public ordered publication remains a separate unfinished port.
+failure behavior. Public ordered publication is owned by Public Ordered Relation Binding.
+
+### Public Ordered Relation Binding
+
+The public input owns one explicitly discriminated rational or ordered law list.
+`OriginalOrderedPolynomial` retains full original geometric monomials whose
+coefficients are exact immutable `OriginalAlgebraicCoordinate` values. A public
+cell sample may be reused as one exact scalar, never as a whole-cell range.
+Exact rational scalars have a rational-field issuer; original source producers
+retain their actual field value rather than reconstructing it from an enclosure.
+The original sample's achieved parameter and coefficient depths travel with the
+value, including when exact simplification yields a rational constant or zero.
+Sample enclosure/refinement accepts both explicit limits and retains both
+achieved domains; parameter causality is owned by the existing persistent value
+isolation, while coefficient refinements map from the original context to the
+retained coefficient baseline. No second parameter mapping is applied.
+Polynomial differentiation and zero-term removal retain those causal baselines.
+
+Coefficient transport maps each original-field parameter visit to the retained
+source baseline plus refinement beyond the original context depth. Its internal
+parameter limit is the remaining caller allowance plus the context depth.
+Coefficient visits use their independent unchanged caller limit; inherited
+coefficient depth is retained even when it exceeds the field's stored depth.
+Reuse may share a coefficient axis only when both retained depth authorities
+are covered by the reused issuer; algebraic equality does not justify a shallower causal receipt.
+
+The public resolver's non-generic protocol requirement accepts both explicit
+depth limits. Rational input uses the same zero-coefficient decomposition;
+ordered input uses the complete source-bound compiler, closure and incidence.
+Publication checks the exact retained ordered compiler/partition binding before
+issuing the common result. Public samples omit auxiliary coordinates, public
+signs refer to input laws only, and fixed coefficients add no image dimension.
+
+Exact rational geometric membership obtains the issued fixed coefficient-prefix
+point for each candidate cell. It evaluates the complete cell condition in that
+prefix's original field with rational geometry appended, never substitutes a
+rounded coefficient and never inherits unrelated geometric sample roots.
+Independent parameter/coefficient limits apply to both retained baselines and
+new sign refinements. Foreign identifiers, cancellation and budget exhaustion
+fail before publication or membership success.
+
+This port's behavioral evidence must execute the public existential requirement,
+source sample reuse, exact opposite-conjugate exclusion, geometric-only samples,
+ordered region/isolated-point components, rational geometric membership, source
+and caller depth rejection, work/storage failure and foreign-owner failure.
+This port does not establish every existing analytic/procedural source producer
+or arbitrary quantified-budget completion. Those remain separate fixed gaps.
 
 ### Public Original Rational Relation Selection
 

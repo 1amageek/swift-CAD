@@ -38,22 +38,45 @@ package struct OriginalOrderedIntersectionCells: Sendable {
             guard polynomial.variableCount == variableCount else {
                 throw rationalAlgebraFailure("An ordered relation has a foreign original geometric polynomial ring.")
             }
+            guard polynomial.inheritedParameterDepth <= maximumDepth,
+                polynomial.inheritedCoefficientDepth <= maximumCoefficientDepth else {
+                throw rationalAlgebraFailure("An ordered relation cannot erase its retained source polynomial depth.")
+            }
+            admission.parameterDepth = max(admission.parameterDepth, polynomial.inheritedParameterDepth)
+            admission.coefficientDepth = max(admission.coefficientDepth, polynomial.inheritedCoefficientDepth)
             try RationalAlgebraStorage.retain(polynomial.terms.count, of: TermBinding.self, usage: &admission)
             var row: [TermBinding] = []; row.reserveCapacity(polynomial.terms.count)
             for term in polynomial.terms {
                 try intersectionAlgebraStep(&admission)
                 var existing: Int?
-                for index in sources.indices where sources[index].original.context === term.coefficient.context {
-                    if try sources[index].original.subtracting(term.coefficient,
-                        maximumDepth: maximumDepth, usage: &admission).sign(maximumDepth: maximumDepth, usage: &admission) == .zero {
-                        existing = index; break
-                    }
+                for index in sources.indices where sources[index].original.context === term.coefficient.context
+                    && sources[index].parameterAdmissionDepth >= term.inheritedParameterDepth
+                    && sources[index].coefficientAdmissionDepth >= term.inheritedCoefficientDepth {
+                    let retained = sources[index]
+                    var source = OriginalSourceScalarAdmission(base: admission, maximumDepth: maximumDepth,
+                        maximumCoefficientDepth: maximumCoefficientDepth, originalParameterDepth: term.coefficient.context.depth,
+                        originalCoefficientDepth: term.coefficient.context.coefficientDepth,
+                        inheritedParameterDepth: retained.parameterAdmissionDepth,
+                        inheritedCoefficientDepth: retained.coefficientAdmissionDepth,
+                        parameterDepth: retained.parameterAdmissionDepth, coefficientDepth: retained.coefficientAdmissionDepth)
+                    let available = try rationalAlgebraCount(term.coefficient.context.depth,
+                        maximumDepth - retained.parameterAdmissionDepth)
+                    let equal: Bool
+                    do { equal = try retained.original.subtracting(term.coefficient, maximumDepth: available,
+                        usage: &source).sign(maximumDepth: available, usage: &source) == .zero }
+                    catch { admission = source.base; throw error }
+                    admission = source.base
+                    admission.parameterDepth = max(admission.parameterDepth, source.parameterDepth)
+                    admission.coefficientDepth = max(admission.coefficientDepth, source.coefficientDepth)
+                    if equal { existing = index; break }
                 }
                 if let existing {
                     row.append(.init(coefficient: sources[existing], coefficientAxis: existing)); continue
                 }
                 let coefficient = try OriginalIntersectionCoefficient.prepare(original: term.coefficient,
-                    maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth, usage: &admission)
+                    maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth,
+                    inheritedParameterDepth: term.inheritedParameterDepth,
+                    inheritedCoefficientDepth: term.inheritedCoefficientDepth, usage: &admission)
                 admission.parameterDepth = max(admission.parameterDepth, coefficient.parameterAdmissionDepth)
                 admission.coefficientDepth = max(admission.coefficientDepth, coefficient.coefficientAdmissionDepth)
                 switch coefficient.representation {

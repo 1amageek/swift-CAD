@@ -1,5 +1,5 @@
-/// Complete real coverage of one rational relation; partial publication is forbidden.
+/// Complete real coverage of one original relation; partial publication is forbidden.
 public protocol OriginalPolynomialRelationResolving: Sendable {
     func decompose(_ relation: OriginalPolynomialRelation, maximumDepth: Int,
-        usage: OriginalRelationUsage) throws -> OriginalRealRelation
+        maximumCoefficientDepth: Int, usage: OriginalRelationUsage) throws -> OriginalRealRelation
 }
