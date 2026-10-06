@@ -89,8 +89,23 @@ package struct OriginalSingularFieldElement: Sendable {
             numerator = try root.sign(of: n, maximumDepth: maximumDepth, usage: &usage)
             denominator = try root.sign(of: d, maximumDepth: maximumDepth, usage: &usage)
         case (.extended(let root), .extended(let n, let d)):
-            numerator = try root.sign(of: n, maximumDepth: maximumDepth, usage: &usage)
-            denominator = try root.sign(of: d, maximumDepth: maximumDepth, usage: &usage)
+            func operandSign(_ polynomial: OriginalSingularFieldPolynomial, usage: inout B)
+                throws -> ExactAlgebraicRealRoot.Sign {
+                try CurrentTaskCancellationChecker().checkCancellation()
+                try usage.consumeExactWork(1)
+                if polynomial.isZero {
+                    try CurrentTaskCancellationChecker().checkCancellation()
+                    return .zero
+                }
+                if polynomial.degree == 0, let coefficient = polynomial.coefficients.first,
+                    let value = try coefficient.rationalValue(usage: &usage) {
+                    try CurrentTaskCancellationChecker().checkCancellation()
+                    return value.isPositive ? .positive : value.isNegative ? .negative : .zero
+                }
+                return try root.sign(of: polynomial, maximumDepth: maximumDepth, usage: &usage)
+            }
+            numerator = try operandSign(n, usage: &usage)
+            denominator = try operandSign(d, usage: &usage)
         default: throw rationalAlgebraFailure("Original field value contradicts its retained context.")
         }
         if case .zero = denominator { throw rationalAlgebraFailure("Original singular field denominator vanishes.") }

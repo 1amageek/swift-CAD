@@ -16,7 +16,7 @@ struct NativeSurfaceSurfacePointProducer {
     func resolve(first: Surface3D, second: Surface3D,
         firstBox: SurfaceParameterBox? = nil, secondBox: SurfaceParameterBox? = nil,
         options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
-        admission: SurfaceSurfaceQueryAdmission = .legacy) throws -> SurfaceSurfaceIntersectionResult? {
+        includeRelations: Bool = false, admission: SurfaceSurfaceQueryAdmission = .legacy) throws -> SurfaceSurfaceIntersectionResult? {
         guard case .bSpline(let source) = first, case .bSpline(let target) = second,
             !source.isUPeriodic, !source.isVPeriodic, !target.isUPeriodic, !target.isVPeriodic,
             source.uDegree >= 0, source.uDegree < Int.max - 1,
@@ -58,23 +58,47 @@ struct NativeSurfaceSurfacePointProducer {
         for interval in requested { domains.append(try .init(interval, usage: &usage)) }
         let decomposition = try OriginalRationalIntersectionDecomposition.prepare(system: system,
             requestedDomains: domains, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
-            isolatedOnly: true, reducePureEvenPowerZeroSets: true,
+            isolatedOnly: !includeRelations, reducePureEvenPowerZeroSets: true, preferIsolatedCells: includeRelations,
             maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
         var indices: [Int] = []
-        if case .parameterCells(let strata, _, _) = decomposition.coverage {
+        var relations: OriginalNativeSurfaceSurfaceRelations?
+        if case .parameterCells(let strata, _, let components) = decomposition.coverage {
+            guard components.components.count <= options.maximumSeedCount else {
+                throw failure(.resourceLimitExceeded,
+                    "Native original parameter component count exceeds the existing SSI component ceiling.", tolerance)
+            }
+            var hasPositiveDimension = false
             for index in strata.partition.solutionCells {
                 try usage.consumeExactWork(1)
-                guard strata.partition.cells[index].dimension == 0 else {
+                if strata.partition.cells[index].dimension > 0 { hasPositiveDimension = true }
+            }
+            if hasPositiveDimension {
+                guard includeRelations else {
                     throw failure(.nonDiscreteIntersection,
                         "The original requested native surface product contains a positive-dimensional intersection.", tolerance)
                 }
+                relations = try NativeSurfaceSurfaceRelationPublisher.publish(first: source, second: target,
+                    tolerance: tolerance, decomposition: decomposition, maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                // Zero-dimensional cells attached to a curve/region are retained by that relation,
+                // rather than incorrectly exposed as separate isolated point intersections.
+                var isolatedCount = 0
+                for component in components.components {
+                    try usage.consumeExactWork(component.cellIndexes.count)
+                    if component.cellIndexes.allSatisfy({ strata.partition.cells[$0].dimension == 0 }) {
+                        isolatedCount = try rationalAlgebraCount(isolatedCount, component.cellIndexes.count)
+                    }
+                }
+                try RationalAlgebraStorage.retain(isolatedCount, of: Int.self, usage: &usage)
+                indices.reserveCapacity(isolatedCount)
+                for component in components.components {
+                    try usage.consumeExactWork(component.cellIndexes.count)
+                    if component.cellIndexes.allSatisfy({ strata.partition.cells[$0].dimension == 0 }) {
+                        for index in component.cellIndexes { try usage.consumeExactWork(1); indices.append(index) }
+                    }
+                }
+            } else {
+                indices = strata.partition.solutionCells
             }
-            guard strata.partition.solutionCells.count <= options.maximumSeedCount else {
-                throw failure(.resourceLimitExceeded,
-                    "Native isolated parameter component count exceeds the existing SSI component ceiling.", tolerance)
-            }
-            // Original lifting orders parents and section/sector children exactly.
-            indices = strata.partition.solutionCells
         }
         let parameterCount = try rationalAlgebraCount(indices.count, 4, multiply: true)
         try RationalAlgebraStorage.retain(indices.count, of: SurfaceSurfaceIntersectionPoint.self, usage: &usage)
@@ -92,23 +116,27 @@ struct NativeSurfaceSurfacePointProducer {
                     retainingParameters: &retainedParameters, retainingLocalizations: &retainedLocalizations, usage: &usage))
             }
         }
-        try RationalAlgebraStorage.retainBytes(2 * MemoryLayout<BSplineSurface3D>.stride
-            + MemoryLayout<ModelingTolerance>.stride + 3 * MemoryLayout<[Int]>.stride
-            + MemoryLayout<OriginalRationalIntersectionDecomposition>.stride
-            + 2 * MemoryLayout<UnsafeRawPointer>.stride, usage: &usage)
-        let receipt = OriginalNativeSurfaceSurfacePoints(first: source, second: target, tolerance: tolerance,
-            decomposition: decomposition, cellIndices: indices, parameterIsolations: retainedParameters,
-            parameterLocalizations: retainedLocalizations)
+        let receipt: OriginalNativeSurfaceSurfacePoints?
+        if relations == nil || !indices.isEmpty {
+            try RationalAlgebraStorage.retainBytes(2 * MemoryLayout<BSplineSurface3D>.stride
+                + MemoryLayout<ModelingTolerance>.stride + 3 * MemoryLayout<[Int]>.stride
+                + MemoryLayout<OriginalRationalIntersectionDecomposition>.stride
+                + 2 * MemoryLayout<UnsafeRawPointer>.stride, usage: &usage)
+            receipt = OriginalNativeSurfaceSurfacePoints(first: source, second: target, tolerance: tolerance,
+                decomposition: decomposition, cellIndices: indices, parameterIsolations: retainedParameters,
+                parameterLocalizations: retainedLocalizations)
+        } else { receipt = nil }
         try RationalAlgebraStorage.retain(indices.count, of: SurfaceSurfaceIntersection.self, usage: &usage)
         var intersections: [SurfaceSurfaceIntersection] = []; intersections.reserveCapacity(indices.count)
         for ordinal in points.indices {
             try usage.consumeExactWork(1)
             let point = points[ordinal]
+            guard let receipt else { throw rationalAlgebraFailure("Native isolated component lost its exact point owner.") }
             intersections.append(.point(.init(numerical: point, originalNativePoint: try receipt.point(at: ordinal))))
         }
         try RationalAlgebraStorage.retain(1, of: SurfaceSurfaceIntersectionResult.self, usage: &usage)
         try CurrentTaskCancellationChecker().checkCancellation()
-        return .init(intersections: intersections, originalNativePoints: receipt)
+        return .init(intersections: intersections, originalNativePoints: receipt, originalNativeRelations: relations)
     }
 
     private func prepare(_ surface: BSplineSurface3D, box: SurfaceParameterBox,

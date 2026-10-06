@@ -7,8 +7,9 @@ tensor B-spline products. This contract does not claim full SSI coverage.
 
 ## Responsibilities and Boundaries
 Admit original source laws and consume the existing four-coordinate decomposition.
-Publish only complete zero-dimensional coverage. Any selected positive-dimensional
-cell fails with nonDiscreteIntersection before points are exposed. Ineligible
+Publish complete zero-dimensional coverage through the isolated fast path. Rich
+positive-dimensional publication delegates to [Native SSI Relations](../NativeSurfaceSurfaceRelations/DESIGN.md)
+under the same ledger; discrete entries retain nonDiscreteIntersection rejection. Ineligible
 sources remain with existing dispatch; failures after admission propagate.
 
 ## Related Designs

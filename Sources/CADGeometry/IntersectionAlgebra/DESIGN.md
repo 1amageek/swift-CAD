@@ -419,6 +419,8 @@ remain separate capabilities of composing callers.
 
 ## Verification and Change Impact
 
+[NativeSSILowerResourceTests](../../../Tests/CADGeometryTests/NativeSSILowerResourceTests.swift) verifies the Native SSI causal resource delta with original projection cuts/source lists, necessary root visits, denominator and parent authority, independent admission limits and cancellation. The original public folded and mixed inputs are the upper composition evidence at unchanged caller caps.
+
 IntersectionAlgebraTests must check original equations, denominator exclusion,
 elimination, redundant generators, deterministic finite/positive-dimensional/unit
 classification, fractional coefficients and independent work/storage failures.
@@ -658,6 +660,34 @@ repeated original equations, zero equations and independent work/storage failure
 
 ### Original Cell Identity and Quantified Incidence
 
+The final candidate coordinate may also be removed using an original zero law
+A*q+B=0 when A is an exactly nonzero rational constant. Its original reduced
+coefficient supplies the strict sign and proves a unique real q=-B/A for every
+remaining assignment. The reduction receipt distinguishes this coefficient
+from an issued original source guard; no guard index or sign is fabricated.
+Every other original zero law, candidate/domain/box/radius atom is substituted
+with the same positive multiplier |A| to its recorded degree. The eliminated
+original equation remains bound in the receipt and original predicate list;
+free support and candidate correspondence remain original. Only the existing
+one-final-coordinate lowering and quantified-variable accounting are used.
+When the original conjunction contains a rational-linear candidate law whose B
+has nonlinear dependence on other existential candidates, its coordinate may
+be transported to the final elimination slot. Selection follows the original
+source order. Verify the original full conjunction, ideal and correspondence in
+the original ring before transport. The complete forward/inverse permutation is
+retained in the readonly reduction receipt, together with the original candidate
+coordinate. It is identity on every free coordinate and on the radius; only the
+uniform existential suffix is permuted bijectively. Every original atom is
+transported before the same unique substitution, so all other zero/domain/box
+conditions survive. Original predicates, ideal, free source correspondence and
+public parameter identity stay original. Both map buffers are checked and paid
+before allocation. This is one coordinate elimination, with the existing
+quantifier accounting. Preserve an eligible traditional nonconstant guard and
+preserve existing ordering when no nonlinear rational-linear law is available.
+The nonconstant original strict-guard branch and free-support B!=0/strict-A
+continuity proof are unchanged. Same-ledger arithmetic/storage/cancellation
+and inherited independent depths remain obligations of the existing consumer.
+
 The full projection operator acts on a polynomial set. Before computing reducta
 or pair principal subresultants, form that set by exact rational monic
 normalization and duplicate removal. Keep the original source list and order in
@@ -668,6 +698,17 @@ and zero sources have no projection cuts. Removing equivalent computational set
 members therefore preserves full projection without constructing redundant
 Sylvester matrices. All normalization, comparisons and set storage use the same
 caller ledger; this is chosen before projection, never after exhaustion.
+Projected-set membership uses a query-local index of canonical monic coefficient
+fingerprints. A fingerprint selects candidates only: every collision is decided
+by the existing exact same-ring coefficient comparison. The index refers to
+unchanged insertion offsets, owns no source polynomial or root authority, and
+never changes source order, square-free normalization, factors or projection
+coverage. Hash traversal, checked index growth and buffer retention are admitted
+by the same caller before allocation; cancellation and callback failures propagate.
+The active factor-splitting basis retains its existing exact scan because its
+entries can be replaced and removed. Projection candidate indexing changes no
+cell visit or independent depth admission.
+
 Set equality compares the immutable sparse coefficient tables directly after
 admitting their traversal, without allocating sorted copies solely to compare.
 Ring identities for zero, unit scale, constant products and constant exact
@@ -891,6 +932,37 @@ so it is the one-sided limit of the whole branch. The closure is exactly the
 original branch plus these original endpoint cells. Unbounded sector ends add no
 finite point in the original parameter space. This proves both inclusion and
 absence, including cusp/repeated section roots, without distance or root rank.
+
+For a higher-dimensional original cell with no coefficient variables, the same
+finite-branch owner may prove a bounded section graph over an affine prefix.
+The base ends at the last sector. Every original projection witness through that
+axis must be affine in the geometric coordinates; no partial source condition
+is fabricated. Enumerate every original base cell satisfying the source prefix's
+weak signs. Each trailing source section must retain a zero law with an exactly
+nonzero rational constant leading coefficient. These original laws prove local
+boundedness recursively, without a new root or solver authority.
+
+For every enumerated weak base cell, require exactly one original full cell
+satisfying all source weak signs, with section-only suffix and dimension equal
+to the base dimension. The readonly receipt binds the original source path,
+base axis and every base/full fiber pair; included cells are those same original
+full cells. Missing or nonunique fibers, nonaffine prefixes, coefficient fibers,
+or unsupported leading laws return nil before the existing quantified path.
+Original excluded equation prefixes must be absent. A retained domain-pruned
+prefix must contradict a source weak sign on its existing parent path; otherwise
+this theorem refuses, since an omitted compatible fiber would invalidate whole
+closure coverage. Affine weak closure supplies paths from each base point to the
+source base. Bounded section laws supply cluster points, continuity retains all
+original weak signs, and the unique original weak fiber identifies every cluster
+point. This proves both inclusion and absence on every base cell, including
+positive-dimensional edges and corners and repeated roots where branches meet.
+The one-dimensional theorem and forced quantified flags retain their existing
+selection and proof. All path, witness and receipt storage is admitted before
+allocation; original source/target depths, work refusal and cancellation remain
+with the same caller. The scoped lower tests verify both signs of a two-sector
+fold, all base edges/corners and branch merging, refusal of unsupported prefixes
+or missing/nonunique weak fibers, and the unchanged one-sector path. The original
+public Native SSI folded/mixed tests own the composing unchanged-budget proof.
 
 The issued closure owns one common free partition and its whole included cells,
 with an explicit point, finite-branch or quantified proof. No finite-branch certificate

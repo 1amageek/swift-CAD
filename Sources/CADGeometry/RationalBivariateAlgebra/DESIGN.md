@@ -55,6 +55,15 @@ the same work, storage and depth capabilities.
 Exactly rational constant fractions use their reduced rational sign directly,
 without invoking an unrelated root Sturm proof. Nonconstant expressions keep
 the retained original-root sign issuer.
+A fraction with only one exactly rational operand determines that operand's
+sign directly from its original reduced rational coefficient. The other operand
+still uses the retained original-root sign issuer, including its unchanged cell
+visits and parameter/coefficient depth. Extended operands must belong to that
+root's identical parent context before either sign is queried. A degree-zero
+operand with a nonrational parent coefficient still uses the original root path;
+zero denominators and unrelated contexts remain failures. Constant recognition
+uses the same caller work and cancellation checks; it creates no root receipt
+or shared cache and grants no admission to the nonconstant operand.
 Constant root expressions delegate their sign to the parent field. Linear
 expressions compare their exact parent-field zero against the retained isolating
 interval; an interior zero is accepted only when the original defining polynomial
@@ -293,6 +302,8 @@ Nonfinite source, division by zero, inconsistent exact division, index/exponent
 arithmetic overflow and cumulative budget exhaustion are typed failures.
 
 ## Verification and Change Impact
+
+[NativeSSILowerResourceTests](../../../Tests/CADGeometryTests/NativeSSILowerResourceTests.swift) verifies the Native SSI causal resource delta with original projection cuts/source lists, necessary root visits, denominator and parent authority, independent admission limits and cancellation. The original public folded and mixed inputs are the upper composition evidence at unchanged caller caps.
 
 Exact rational to Double enclosure starts with the leading three UInt32 magnitude
 words (at least 65 significant source bits when the highest word is one), padded

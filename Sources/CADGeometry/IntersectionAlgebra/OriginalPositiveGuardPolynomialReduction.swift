@@ -1,19 +1,42 @@
+import CADCore
+
 /// Exact sign-preserving predicate normalization under retained original guards.
 package struct OriginalPositiveGuardPolynomialReduction: Sendable {
     package let candidateCoordinate: Int
     package let equationIndex: Int
-    package let guardIndex: Int
-    package let guardSign: ExactAlgebraicRealRoot.Sign
+    package enum Authority: Sendable {
+        case originalGuard(index: Int, sign: ExactAlgebraicRealRoot.Sign)
+        case rationalLeadingCoefficient(ExactRationalCoefficient)
+
+        var sign: ExactAlgebraicRealRoot.Sign {
+            switch self {
+            case .originalGuard(_, let sign): return sign
+            case .rationalLeadingCoefficient(let coefficient):
+                return coefficient.isPositive ? .positive : coefficient.isNegative ? .negative : .zero
+            }
+        }
+    }
+    package enum CoordinateTransport: Sendable {
+        case identity
+        /// Maps every original ring slot to a working slot, and back.
+        case existentialSuffix(originalToWorking: [Int], workingToOriginal: [Int])
+    }
+    package let originalCandidateCoordinate: Int
+    package let coordinateTransport: CoordinateTransport
+    package let authority: Authority
     package let multiplier: ExactIntersectionPolynomial
     package let constantCoefficient: ExactIntersectionPolynomial
     package let predicateIndexes: [Int]
     package let multiplierPowers: [Int]
 
-    private init(candidateCoordinate: Int, equationIndex: Int, guardIndex: Int,
-        guardSign: ExactAlgebraicRealRoot.Sign, multiplier: ExactIntersectionPolynomial,
+    private init(candidateCoordinate: Int, equationIndex: Int, authority: Authority,
+        multiplier: ExactIntersectionPolynomial,
+        originalCandidateCoordinate: Int? = nil, coordinateTransport: CoordinateTransport = .identity,
         constantCoefficient: ExactIntersectionPolynomial, predicateIndexes: [Int], multiplierPowers: [Int]) {
         self.candidateCoordinate = candidateCoordinate; self.equationIndex = equationIndex
-        self.guardIndex = guardIndex; self.guardSign = guardSign; self.multiplier = multiplier
+        self.authority = authority; self.multiplier = multiplier
+        self.originalCandidateCoordinate = originalCandidateCoordinate ?? candidateCoordinate
+        self.coordinateTransport = coordinateTransport
         self.constantCoefficient = constantCoefficient
         self.predicateIndexes = predicateIndexes; self.multiplierPowers = multiplierPowers
     }
@@ -62,8 +85,8 @@ package struct OriginalPositiveGuardPolynomialReduction: Sendable {
                     indexes.append(index); powers.append(degree)
                 }
                 try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-                return Self(candidateCoordinate: axis, equationIndex: equationIndex, guardIndex: guardIndex,
-                    guardSign: source.signs[guardIndex], multiplier: multiplier,
+                return Self(candidateCoordinate: axis, equationIndex: equationIndex,
+                    authority: .originalGuard(index: guardIndex, sign: source.signs[guardIndex]), multiplier: multiplier,
                     constantCoefficient: coefficients[0], predicateIndexes: indexes, multiplierPowers: powers)
             }
         }
@@ -105,59 +128,157 @@ package struct OriginalPositiveGuardPolynomialReduction: Sendable {
         guard generator == ideal.originalEquations.count else {
             throw rationalAlgebraFailure("Guarded predicate reduction used an unrelated ideal equation.")
         }
-        for equationIndex in sourceSigns.indices where sourceSigns[equationIndex] == .zero {
-            try intersectionAlgebraStep(&usage)
-            let coefficients = try original[equationIndex].axisCoefficients(at: candidateCoordinate, usage: &usage)
-            guard coefficients.count == 2, !coefficients[1].isZero, !coefficients[1].isConstant else { continue }
-            let leading = coefficients[1]
-            for guardIndex in sourceSigns.indices where sourceSigns[guardIndex] != .zero {
-                guard try original[guardIndex].matches(leading, usage: &usage) else { continue }
-                let multiplier = sourceSigns[guardIndex] == .positive ? leading :
-                    try leading.scaled(by: .one.negated, usage: &usage)
-                try RationalAlgebraStorage.retain(polynomials.count, of: Int.self, usage: &usage)
-                try RationalAlgebraStorage.retain(polynomials.count, of: Int.self, usage: &usage)
-                var indexes: [Int] = [], powers: [Int] = []
-                indexes.reserveCapacity(polynomials.count); powers.reserveCapacity(polynomials.count)
-                for index in polynomials.indices {
-                    try intersectionAlgebraStep(&usage)
-                    if index == equationIndex {
-                        polynomials[index] = try .zero(variableCount: first.variableCount)
-                        continue
+        typealias Selection = (index: Int, coefficients: [ExactIntersectionPolynomial], authority: Authority)
+        func selection(at axis: Int, original: [ExactIntersectionPolynomial], usage: inout B) throws -> Selection? {
+            for index in sourceSigns.indices where sourceSigns[index] == .zero {
+                try intersectionAlgebraStep(&usage)
+                let coefficients = try original[index].axisCoefficients(at: axis, usage: &usage)
+                guard coefficients.count == 2, !coefficients[1].isZero else { continue }
+                let leading = coefficients[1]
+                if leading.isConstant {
+                    guard let value = try leading.leading(usage: &usage)?.coefficient, !value.isZero else {
+                        throw rationalAlgebraFailure("Original candidate substitution lost its nonzero rational leading coefficient.")
                     }
-                    // Other zero conditions must remain genuine constraints.
-                    // Reducing them by the whole source ideal would erase them.
-                    let predicate = index < sourceSigns.count && sourceSigns[index] == .zero ?
-                        original[index] : polynomials[index]
-                    let values = try predicate.axisCoefficients(at: candidateCoordinate, usage: &usage)
-                    let degree = values.count - 1
-                    if degree <= 0 { polynomials[index] = predicate; continue }
-                    guard let last = values.last else {
-                        throw rationalAlgebraFailure("Guarded substitution lost an original predicate coefficient.")
-                    }
-                    let negativeConstant = try coefficients[0].scaled(by: .one.negated, usage: &usage)
-                    var substituted = last, leadingPower = leading
-                    for ordinal in stride(from: degree - 1, through: 0, by: -1) {
-                        try intersectionAlgebraStep(&usage)
-                        substituted = try substituted.multiplied(by: negativeConstant, usage: &usage)
-                            .adding(values[ordinal].multiplied(by: leadingPower, usage: &usage), usage: &usage)
-                        if ordinal > 0 { leadingPower = try leadingPower.multiplied(by: leading, usage: &usage) }
-                    }
-                    if sourceSigns[guardIndex] == .negative && degree & 1 != 0 {
-                        substituted = try substituted.scaled(by: .one.negated, usage: &usage)
-                    }
-                    polynomials[index] = substituted
-                    indexes.append(index); powers.append(degree)
+                    return (index, coefficients, .rationalLeadingCoefficient(value))
                 }
-                for index in polynomials.indices {
-                    try intersectionAlgebraStep(&usage)
-                    polynomials[index] = try polynomials[index].lowered(to: first.variableCount - 1, usage: &usage)
+                for guardIndex in sourceSigns.indices where sourceSigns[guardIndex] != .zero {
+                    if try original[guardIndex].matches(leading, usage: &usage) {
+                        return (index, coefficients, .originalGuard(index: guardIndex, sign: sourceSigns[guardIndex]))
+                    }
                 }
-                try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-                return Self(candidateCoordinate: candidateCoordinate, equationIndex: equationIndex,
-                    guardIndex: guardIndex, guardSign: sourceSigns[guardIndex], multiplier: multiplier,
-                    constantCoefficient: coefficients[0], predicateIndexes: indexes, multiplierPowers: powers)
+            }
+            return nil
+        }
+        func nonlinearCandidateDependence(_ polynomial: ExactIntersectionPolynomial, usage: inout B) throws -> Bool {
+            for term in try polynomial.orderedTerms(usage: &usage) {
+                var degree = 0
+                for axis in (source.variableCount + 1)..<first.variableCount {
+                    try intersectionAlgebraStep(&usage)
+                    degree = try rationalAlgebraCount(degree, term.key.exponent(at: axis))
+                    if degree > 1 { return true }
+                }
+            }
+            return false
+        }
+        let legacy = try selection(at: candidateCoordinate, original: original, usage: &usage)
+        var chosen = candidateCoordinate
+        var chosenEquation: Int?
+        var transport = CoordinateTransport.identity
+        var workingOriginal = original
+        // Preserve an existing strict original-guard proof and its ordering.
+        let keepsOriginalGuard: Bool
+        if let legacy, case .originalGuard = legacy.authority { keepsOriginalGuard = true }
+        else { keepsOriginalGuard = false }
+        if !keepsOriginalGuard {
+            outer: for index in sourceSigns.indices where sourceSigns[index] == .zero {
+                for coordinate in candidateCoordinates where coordinate > source.variableCount && coordinate != candidateCoordinate {
+                    try intersectionAlgebraStep(&usage)
+                    let coefficients = try original[index].axisCoefficients(at: coordinate, usage: &usage)
+                    guard coefficients.count == 2, !coefficients[1].isZero, coefficients[1].isConstant,
+                        try nonlinearCandidateDependence(coefficients[0], usage: &usage) else { continue }
+                    chosen = coordinate
+                    chosenEquation = index
+                    break outer
+                }
             }
         }
-        return nil
+        if chosen != candidateCoordinate {
+            // The original conjunction and source/ideal binding above precede
+            // the paid bijection. Free coordinates and the radius never move.
+            let count = first.variableCount
+            try RationalAlgebraStorage.retain(try rationalAlgebraCount(count, count), of: Int.self, usage: &usage)
+            try CurrentTaskCancellationChecker().checkCancellation()
+            var forward: [Int] = [], inverse: [Int] = []
+            forward.reserveCapacity(count); inverse.reserveCapacity(count)
+            for axis in 0..<count {
+                try intersectionAlgebraStep(&usage)
+                forward.append(axis == chosen ? candidateCoordinate : axis > chosen ? axis - 1 : axis)
+                inverse.append(axis == candidateCoordinate ? chosen : axis >= chosen ? axis + 1 : axis)
+            }
+            try CurrentTaskCancellationChecker().checkCancellation()
+            guard chosen > source.variableCount, candidateCoordinate == count - 1 else {
+                throw rationalAlgebraFailure("Original candidate transport crossed the free or radius prefix.")
+            }
+            for axis in 0..<count {
+                try intersectionAlgebraStep(&usage)
+                guard forward[axis] >= 0, forward[axis] < count, inverse[forward[axis]] == axis,
+                    axis > source.variableCount || forward[axis] == axis else {
+                    throw rationalAlgebraFailure("Original candidate transport is not a suffix bijection.")
+                }
+            }
+            try RationalAlgebraStorage.retain(original.count, of: ExactIntersectionPolynomial.self, usage: &usage)
+            var originals: [ExactIntersectionPolynomial] = []; originals.reserveCapacity(original.count)
+            try RationalAlgebraStorage.retain(polynomials.count, of: ExactIntersectionPolynomial.self, usage: &usage)
+            var transported: [ExactIntersectionPolynomial] = []; transported.reserveCapacity(polynomials.count)
+            for index in original.indices {
+                originals.append(try original[index].remapped(to: count, coordinates: forward, usage: &usage))
+                transported.append(try polynomials[index].remapped(to: count, coordinates: forward, usage: &usage))
+            }
+            workingOriginal = originals
+            polynomials = transported
+            transport = .existentialSuffix(originalToWorking: forward, workingToOriginal: inverse)
+        }
+        let selected: Selection
+        if chosen == candidateCoordinate {
+            guard let legacy else { return nil }
+            selected = legacy
+        } else {
+            guard let index = chosenEquation else {
+                throw rationalAlgebraFailure("Original candidate transport lost its bound source equation.")
+            }
+            let coefficients = try workingOriginal[index].axisCoefficients(at: candidateCoordinate, usage: &usage)
+            guard coefficients.count == 2, coefficients[1].isConstant,
+                let value = try coefficients[1].leading(usage: &usage)?.coefficient, !value.isZero else {
+                throw rationalAlgebraFailure("Original candidate transport changed its rational substitution authority.")
+            }
+            selected = (index, coefficients, .rationalLeadingCoefficient(value))
+        }
+        let equationIndex = selected.index, coefficients = selected.coefficients, authority = selected.authority
+        let leading = coefficients[1]
+        let multiplier = authority.sign == .positive ? leading :
+            try leading.scaled(by: .one.negated, usage: &usage)
+        try RationalAlgebraStorage.retain(polynomials.count, of: Int.self, usage: &usage)
+        try RationalAlgebraStorage.retain(polynomials.count, of: Int.self, usage: &usage)
+        var indexes: [Int] = [], powers: [Int] = []
+        indexes.reserveCapacity(polynomials.count); powers.reserveCapacity(polynomials.count)
+        for index in polynomials.indices {
+            try intersectionAlgebraStep(&usage)
+            if index == equationIndex {
+                polynomials[index] = try .zero(variableCount: first.variableCount)
+                continue
+            }
+            // Every other original zero remains a constraint after transport.
+            let predicate = index < sourceSigns.count && sourceSigns[index] == .zero ?
+                workingOriginal[index] : polynomials[index]
+            let values = try predicate.axisCoefficients(at: candidateCoordinate, usage: &usage)
+            let degree = values.count - 1
+            if degree <= 0 { polynomials[index] = predicate; continue }
+            guard let last = values.last else {
+                throw rationalAlgebraFailure("Guarded substitution lost an original predicate coefficient.")
+            }
+            let negativeConstant = try coefficients[0].scaled(by: .one.negated, usage: &usage)
+            var substituted = last, leadingPower = leading
+            for ordinal in stride(from: degree - 1, through: 0, by: -1) {
+                try intersectionAlgebraStep(&usage)
+                substituted = try substituted.multiplied(by: negativeConstant, usage: &usage)
+                    .adding(values[ordinal].multiplied(by: leadingPower, usage: &usage), usage: &usage)
+                if ordinal > 0 { leadingPower = try leadingPower.multiplied(by: leading, usage: &usage) }
+            }
+            if authority.sign == .negative && degree & 1 != 0 {
+                substituted = try substituted.scaled(by: .one.negated, usage: &usage)
+            }
+            polynomials[index] = substituted
+            indexes.append(index); powers.append(degree)
+        }
+        for index in polynomials.indices {
+            try intersectionAlgebraStep(&usage)
+            polynomials[index] = try polynomials[index].lowered(to: first.variableCount - 1, usage: &usage)
+        }
+        try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return Self(candidateCoordinate: candidateCoordinate, equationIndex: equationIndex,
+            authority: authority, multiplier: multiplier, originalCandidateCoordinate: chosen,
+            coordinateTransport: transport, constantCoefficient: coefficients[0],
+            predicateIndexes: indexes, multiplierPowers: powers)
     }
 }

@@ -269,8 +269,8 @@ struct NativeSurfaceSurfacePointTests {
             consumeWork: {}, consumeStorage: { _ in }, maximumAlgebraicDepth: 32)
         #expect(outside.intersections.isEmpty && outside.originalNativePoints?.effectiveDomains == nil)
         do {
-            _ = try solver.intersectionResult(first: .bSpline(plane()), second: .bSpline(plane()), tolerance: tolerance)
-            Issue.record("Positive-dimensional native coverage must fail atomically.")
+            _ = try solver.intersections(first: .bSpline(plane()), second: .bSpline(plane()), tolerance: tolerance)
+            Issue.record("Positive-dimensional native coverage must fail in the discrete adapter.")
         } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
     }
 
