@@ -41,6 +41,17 @@ package struct OriginalSingularFieldElement: Sendable {
     }
 
     package func sign<B: RationalAlgebraAdmitting>(maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
+        switch (context.source, storage) {
+        case (.rational, .original), (.original, .original): break
+        case (.extended(let root), .extended(let n, let d)):
+            guard n.context === root.polynomial.context, d.context === root.polynomial.context else {
+                throw rationalAlgebraFailure("Original field constant has an unrelated parent field.")
+            }
+        default: throw rationalAlgebraFailure("Original field value contradicts its retained context.")
+        }
+        if let value = try rationalValue(usage: &usage) {
+            return value.isPositive ? .positive : value.isNegative ? .negative : .zero
+        }
         let numerator: ExactAlgebraicRealRoot.Sign, denominator: ExactAlgebraicRealRoot.Sign
         switch (context.source, storage) {
         case (.rational, .original(let n, let d)):
@@ -86,9 +97,10 @@ package struct OriginalSingularFieldElement: Sendable {
             return try Self(context: context, storage: .original(a.multiplied(by: e, usage: &usage)
                 .adding(c.multiplied(by: d, usage: &usage), usage: &usage), d.multiplied(by: e, usage: &usage)))
         case (.extended(let a, let d), .extended(let c, let e)):
-            return try Self(context: context, storage: .extended(a.multiplied(by: e, maximumDepth: maximumDepth, usage: &usage)
+            return try Self.reducedFraction(in: context, numerator: a.multiplied(by: e, maximumDepth: maximumDepth, usage: &usage)
                 .adding(c.multiplied(by: d, maximumDepth: maximumDepth, usage: &usage), maximumDepth: maximumDepth, usage: &usage),
-                d.multiplied(by: e, maximumDepth: maximumDepth, usage: &usage)))
+                denominator: d.multiplied(by: e, maximumDepth: maximumDepth, usage: &usage),
+                maximumDepth: maximumDepth, usage: &usage)
         default: throw rationalAlgebraFailure("Original field sum has incompatible value storage.")
         }
     }
@@ -108,8 +120,10 @@ package struct OriginalSingularFieldElement: Sendable {
         case (.original(let a, let d), .original(let c, let e)):
             return try Self(context: context, storage: .original(a.multiplied(by: c, usage: &usage), d.multiplied(by: e, usage: &usage)))
         case (.extended(let a, let d), .extended(let c, let e)):
-            return try Self(context: context, storage: .extended(a.multiplied(by: c, maximumDepth: maximumDepth, usage: &usage),
-                d.multiplied(by: e, maximumDepth: maximumDepth, usage: &usage)))
+            return try Self.reducedFraction(in: context,
+                numerator: a.multiplied(by: c, maximumDepth: maximumDepth, usage: &usage),
+                denominator: d.multiplied(by: e, maximumDepth: maximumDepth, usage: &usage),
+                maximumDepth: maximumDepth, usage: &usage)
         default: throw rationalAlgebraFailure("Original field product has incompatible value storage.")
         }
     }
@@ -120,9 +134,45 @@ package struct OriginalSingularFieldElement: Sendable {
         case (.original(let a, let d), .original(let c, let e)):
             return try Self(context: context, storage: .original(a.multiplied(by: e, usage: &usage), d.multiplied(by: c, usage: &usage)))
         case (.extended(let a, let d), .extended(let c, let e)):
-            return try Self(context: context, storage: .extended(a.multiplied(by: e, maximumDepth: maximumDepth, usage: &usage),
-                d.multiplied(by: c, maximumDepth: maximumDepth, usage: &usage)))
+            return try Self.reducedFraction(in: context,
+                numerator: a.multiplied(by: e, maximumDepth: maximumDepth, usage: &usage),
+                denominator: d.multiplied(by: c, maximumDepth: maximumDepth, usage: &usage),
+                maximumDepth: maximumDepth, usage: &usage)
         default: throw rationalAlgebraFailure("Original field quotient has incompatible value storage.")
         }
+    }
+
+    /// Bounds symbolic degree without changing the selected original root.
+    private static func reducedFraction<B: RationalAlgebraAdmitting>(in context: OriginalSingularFieldContext,
+        numerator: OriginalSingularFieldPolynomial, denominator: OriginalSingularFieldPolynomial,
+        maximumDepth: Int, usage: inout B) throws -> Self {
+        guard case .extended(let root) = context.source,
+              numerator.context === root.polynomial.context,
+              denominator.context === root.polynomial.context else {
+            throw rationalAlgebraFailure("Ordered-field reduction requires the retained root's original parent field.")
+        }
+        let n = numerator.degree >= root.polynomial.degree
+            ? try numerator.divided(by: root.polynomial, maximumDepth: maximumDepth, usage: &usage).remainder
+            : numerator
+        let d = denominator.degree >= root.polynomial.degree
+            ? try denominator.divided(by: root.polynomial, maximumDepth: maximumDepth, usage: &usage).remainder
+            : denominator
+        guard let leading = d.coefficients.last else {
+            throw rationalAlgebraFailure("Ordered-field reduction exposes an original zero denominator.")
+        }
+        if try leading.rationalValue(usage: &usage) == .one {
+            return Self(context: context, storage: .extended(n, d))
+        }
+        func normalized(_ polynomial: OriginalSingularFieldPolynomial, usage: inout B)
+            throws -> OriginalSingularFieldPolynomial {
+            try RationalAlgebraStorage.retain(polynomial.coefficients.count, of: Self.self, usage: &usage)
+            var values: [Self] = []; values.reserveCapacity(polynomial.coefficients.count)
+            for value in polynomial.coefficients {
+                values.append(try value.divided(by: leading, maximumDepth: maximumDepth, usage: &usage))
+            }
+            return try .init(context: polynomial.context, coefficients: values,
+                maximumDepth: maximumDepth, usage: &usage)
+        }
+        return try Self(context: context, storage: .extended(normalized(n, usage: &usage), normalized(d, usage: &usage)))
     }
 }

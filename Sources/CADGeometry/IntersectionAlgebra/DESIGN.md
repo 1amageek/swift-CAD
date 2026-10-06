@@ -160,6 +160,11 @@ against their original Double coefficient values. Final tuples must satisfy ever
 retained original generator exactly. Repeated algebraic roots are emitted once;
 the original ideal remains retained for the later contact-order owner.
 
+A linear fiber uses its exact parent-field quotient rather than adding a
+redundant algebraic extension. Every coordinate retains its original root witness
+separately, including linear coordinates. The source ideal, root witnesses and
+coordinate tuple therefore survive this exact representation reduction.
+
 ```text
 verified original ideal
  -> all real coordinate-0 roots
@@ -171,6 +176,9 @@ verified original ideal
 One caller ledger owns all stages, root visits, field allocations and final
 tuples. Its parameter-root depth is passed unchanged; coefficient-root depth is
 not invented for original rational coefficients. Failure in any stage discards
-the whole publication. Tests must cover irrational towers, distinct roots with
+the whole publication. A cancellation-checking adapter holds the exclusively
+borrowed ledger value during lifting and restores it on both return and throw;
+it forwards all four admission operations without creating or resetting an
+allowance. Tests must cover irrational towers, distinct roots with
 the same preceding coordinate, repeated roots, complex-only fibers, exact closed
 endpoint inclusion, excluded domains, cancellation and root/work/storage limits.

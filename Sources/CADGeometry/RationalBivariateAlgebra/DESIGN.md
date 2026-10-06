@@ -36,6 +36,23 @@ finite original Double bits -> exact integer ratio
 
 ## Contracts and Invariants
 
+Ordered-field fraction operations reduce numerator and denominator modulo the
+retained extension root's defining polynomial. This is an exact identity at that
+root, not a change to its defining source or isolation. Denominator leading
+coefficients are normalized over the parent field to control expression growth;
+root identity, nonzero-denominator obligations and caller admission remain intact.
+Reduction never cancels a root-zero denominator into a successful value. Polynomial
+division and coefficient normalization recurse only into the parent field under
+the same work, storage and depth capabilities.
+Exactly rational constant fractions use their reduced rational sign directly,
+without invoking an unrelated root Sturm proof. Nonconstant expressions keep
+the retained original-root sign issuer.
+Constant root expressions delegate their sign to the parent field. Linear
+expressions compare their exact parent-field zero against the retained isolating
+interval; an interior zero is accepted only when the original defining polynomial
+vanishes there. Otherwise original root refinement separates the two stations.
+This preserves original equality while avoiding repeated expression Sturm chains.
+
 Exact rational hashing consumes only the canonical reduced sign, numerator
 words and denominator words used by equality. Equivalent rational values have
 the same hash contribution; no rounded representative or derived enclosure is

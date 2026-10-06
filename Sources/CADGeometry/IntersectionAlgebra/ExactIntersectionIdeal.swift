@@ -8,12 +8,14 @@ package struct ExactIntersectionIdeal: Sendable {
         case positiveDimensional
     }
 
+    package let variableCount: Int
     package let originalEquations: [ExactIntersectionPolynomial]
     package let reducedBasis: [ExactIntersectionPolynomial]
     package let classification: Classification
 
-    private init(originalEquations: [ExactIntersectionPolynomial],
+    private init(variableCount: Int, originalEquations: [ExactIntersectionPolynomial],
         reducedBasis: [ExactIntersectionPolynomial], classification: Classification) {
+        self.variableCount = variableCount
         self.originalEquations = originalEquations
         self.reducedBasis = reducedBasis
         self.classification = classification
@@ -51,6 +53,7 @@ package struct ExactIntersectionIdeal: Sendable {
             }
             classification = hasEveryPurePower ? .zeroDimensional : .positiveDimensional
         }
-        return Self(originalEquations: equations, reducedBasis: basis, classification: classification)
+        return Self(variableCount: variableCount, originalEquations: equations,
+                    reducedBasis: basis, classification: classification)
     }
 }

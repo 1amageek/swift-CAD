@@ -61,6 +61,12 @@ package struct OriginalSingularFieldRoot: Sendable {
         try admissionDomain.visit(isolation.depth, usage: &usage)
         guard polynomial.context === expression.context else { throw rationalAlgebraFailure("Original tangent root sign has an unrelated parent field.") }
         if expression.isZero { return .zero }
+        if expression.degree == 0 {
+            return try expression.coefficients[0].sign(maximumDepth: maximumDepth, usage: &usage)
+        }
+        if expression.degree == 1 {
+            return try linearSign(expression, maximumDepth: maximumDepth, usage: &usage)
+        }
         let common = try OriginalSingularFieldPolynomial.gcd(polynomial, expression, maximumDepth: maximumDepth, usage: &usage)
         if common.degree > 0 {
             let sequence = try OriginalSingularFieldSturm(common, maximumDepth: maximumDepth, usage: &usage)
@@ -80,6 +86,46 @@ package struct OriginalSingularFieldRoot: Sendable {
                 switch (first, second) { case (.positive, .positive): return .positive
                 case (.negative, .negative): return .negative
                 default: throw rationalAlgebraFailure("Original tangent root sign contradicts complete no-zero coverage.") }
+            }
+            retained = try retained.refinedOnce(maximumDepth: maximumDepth, usage: &usage)
+        }
+    }
+
+    private func linearSign<B: RationalAlgebraAdmitting>(_ expression: OriginalSingularFieldPolynomial,
+        maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
+        let leading = expression.coefficients[1]
+        let orientation = try leading.sign(maximumDepth: maximumDepth, usage: &usage)
+        guard orientation != .zero else {
+            throw rationalAlgebraFailure("A retained linear root expression cannot have a zero leading coefficient.")
+        }
+        let zero = try expression.coefficients[0].negated(maximumDepth: maximumDepth, usage: &usage)
+            .divided(by: leading, maximumDepth: maximumDepth, usage: &usage)
+        var retained = self
+        var testedOriginalEquality = false
+        while true {
+            try usage.consumeExactWork(1)
+            let lower = try OriginalSingularFieldElement.constant(retained.isolation.lower,
+                in: polynomial.context, maximumDepth: maximumDepth, usage: &usage)
+            let upper = try OriginalSingularFieldElement.constant(retained.isolation.upper,
+                in: polynomial.context, maximumDepth: maximumDepth, usage: &usage)
+            let below = try zero.subtracting(lower, maximumDepth: maximumDepth, usage: &usage)
+                .sign(maximumDepth: maximumDepth, usage: &usage)
+            let above = try zero.subtracting(upper, maximumDepth: maximumDepth, usage: &usage)
+                .sign(maximumDepth: maximumDepth, usage: &usage)
+            if case .negative = below {
+                return orientation
+            }
+            if case .zero = below, retained.isolation.excludesLower { return orientation }
+            if case .positive = above {
+                return orientation == .positive ? .negative : .positive
+            }
+            if case .zero = above, retained.isolation.excludesUpper {
+                return orientation == .positive ? .negative : .positive
+            }
+            if !testedOriginalEquality {
+                if case .zero = try polynomial.evaluated(at: zero, maximumDepth: maximumDepth, usage: &usage)
+                    .sign(maximumDepth: maximumDepth, usage: &usage) { return .zero }
+                testedOriginalEquality = true
             }
             retained = try retained.refinedOnce(maximumDepth: maximumDepth, usage: &usage)
         }
