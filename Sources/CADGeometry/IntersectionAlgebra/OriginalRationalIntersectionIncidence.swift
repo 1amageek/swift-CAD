@@ -44,7 +44,7 @@ package struct OriginalRationalIntersectionIncidence: Sendable {
                 let cell = freePartition.cells[index]
                 var selected: Int?
                 switch closure.proof {
-                case .point, .monicBranch, .affineCell:
+                case .point, .finiteBranch, .affineCell:
                     for target in conditions {
                         try intersectionAlgebraStep(&usage)
                         if target.cellIndex == index { selected = index; break }

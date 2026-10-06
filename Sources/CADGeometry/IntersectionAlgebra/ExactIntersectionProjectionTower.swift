@@ -15,7 +15,7 @@ package struct ExactIntersectionProjectionTower: Sendable {
         sources: [ExactIntersectionPolynomial], variableCount: Int, thomEncoding: Bool = false,
         usage: inout B) throws -> Self {
         guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount) else {
-            throw rationalAlgebraFailure("Projection tower requires one through nine predicate coordinates.")
+            throw rationalAlgebraFailure("Projection tower requires a positive original predicate coordinate count.")
         }
         try intersectionAlgebraStep(&usage)
         try RationalAlgebraStorage.retain(variableCount, of: ExactIntersectionProjection.self, usage: &usage)

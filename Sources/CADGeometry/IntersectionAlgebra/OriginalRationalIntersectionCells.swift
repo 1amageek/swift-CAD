@@ -324,7 +324,7 @@ package struct OriginalRationalIntersectionCells: Sendable {
     }
 
     /// Distinct roots are ordered by separated isolations; equality requires a common original root in their intersection.
-    private static func ordered<B: RationalAlgebraAdmitting>(_ first: inout OriginalSingularFieldRoot,
+    package static func ordered<B: RationalAlgebraAdmitting>(_ first: inout OriginalSingularFieldRoot,
         _ second: inout OriginalSingularFieldRoot, maximumDepth: Int, usage: inout B) throws -> Int {
         guard first.polynomial.context === second.polynomial.context else {
             throw rationalAlgebraFailure("Root union ordering requires one retained parent field.")

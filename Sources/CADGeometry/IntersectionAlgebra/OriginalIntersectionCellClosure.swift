@@ -4,7 +4,7 @@ import CADCore
 package struct OriginalIntersectionCellClosure: Sendable {
     package enum Proof: Sendable {
         case point
-        case monicBranch(OriginalMonicBranchClosure)
+        case finiteBranch(OriginalFiniteBranchClosure)
         case affineCell(OriginalAffineCellClosure)
         case quantified(ExactIntersectionQuantifiedCells)
     }
@@ -27,8 +27,8 @@ package struct OriginalIntersectionCellClosure: Sendable {
         cellIndex: Int, allowAffineProofs: Bool = true, maximumDepth: Int, usage: inout B) throws -> Self {
         let source = try OriginalIntersectionCellCondition(partition: partition, cellIndex: cellIndex, usage: &usage)
         let count = source.variableCount
-        guard (1...4).contains(count) else {
-            throw rationalAlgebraFailure("CS/SSI closure requires at most four original parameter coordinates.")
+        guard count > 0 else {
+            throw rationalAlgebraFailure("Original closure requires a positive original parameter count.")
         }
         guard maximumDepth >= 0, partition.cells[cellIndex].admissionDepth <= maximumDepth else {
             throw rationalAlgebraFailure("Original closure cannot reset its issued source-cell depth.")
@@ -38,9 +38,9 @@ package struct OriginalIntersectionCellClosure: Sendable {
             return Self(source: source, proof: .point, freePartition: partition, includedCells: [cellIndex],
                 originalPredicates: source.polynomials, predicateIdeal: nil)
         }
-        if let monic = try OriginalMonicBranchClosure.prepare(partition: partition,
+        if let monic = try OriginalFiniteBranchClosure.prepare(partition: partition,
             cellIndex: cellIndex, maximumDepth: maximumDepth, usage: &usage) {
-            return Self(source: source, proof: .monicBranch(monic), freePartition: partition, includedCells: monic.includedCells,
+            return Self(source: source, proof: .finiteBranch(monic), freePartition: partition, includedCells: monic.includedCells,
                 originalPredicates: source.polynomials, predicateIdeal: nil)
         }
         if allowAffineProofs, let affine = try OriginalAffineCellClosure.prepare(partition: partition,
@@ -141,7 +141,8 @@ package struct OriginalIntersectionCellClosure: Sendable {
                 closedGuards.append((index, source.signs[ordinal]))
             }
         }
-        let instructionCount = try rationalAlgebraCount(rationalAlgebraCount(source.signs.count, 2, multiply: true), rationalAlgebraCount(rationalAlgebraCount(count, 4, multiply: true) + 4, rationalAlgebraCount(closedGuards.count, 4, multiply: true)))
+        let neighborhoodInstructions = try rationalAlgebraCount(rationalAlgebraCount(count, 4, multiply: true), 4)
+        let instructionCount = try rationalAlgebraCount(rationalAlgebraCount(source.signs.count, 2, multiply: true), rationalAlgebraCount(neighborhoodInstructions, rationalAlgebraCount(closedGuards.count, 4, multiply: true)))
         try RationalAlgebraStorage.retain(instructionCount, of: ExactIntersectionBooleanProgram.Instruction.self, usage: &usage)
         var instructions: [ExactIntersectionBooleanProgram.Instruction] = [.atom(radiusIndex, .positive), .not, .literal(true)]
         instructions.reserveCapacity(instructionCount)

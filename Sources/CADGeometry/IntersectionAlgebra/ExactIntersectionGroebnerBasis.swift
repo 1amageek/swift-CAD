@@ -44,7 +44,9 @@ enum ExactIntersectionGroebnerBasis {
             var redundant = false
             for j in basis.indices where i != j {
                 try intersectionAlgebraStep(&usage)
-                guard let other = try basis[j].leading(usage: &usage), other.power.divides(lead.power) else { continue }
+                guard let other = try basis[j].leading(usage: &usage) else { continue }
+                try usage.consumeExactWork(max(other.power.overflowCount, lead.power.overflowCount))
+                guard other.power.divides(lead.power) else { continue }
                 if other.power != lead.power || j < i { redundant = true; break }
             }
             if !redundant {
@@ -73,6 +75,7 @@ enum ExactIntersectionGroebnerBasis {
             guard let a = try left.leading(usage: &usage), let b = try right.leading(usage: &usage) else {
                 throw rationalAlgebraFailure("A reduced intersection basis cannot contain a zero generator.")
             }
+            try usage.consumeExactWork(max(a.power.overflowCount, b.power.overflowCount))
             return a.power.precedes(b.power)
         }
         return try verified(result, equations: equations, usage: &usage)
@@ -86,17 +89,19 @@ enum ExactIntersectionGroebnerBasis {
             var canceled = false
             for divisor in basis {
                 try intersectionAlgebraStep(&usage)
-                guard let d = try divisor.leading(usage: &usage), d.power.divides(lead.power) else { continue }
-                let power = try lead.power.quotient(by: d.power, variableCount: source.variableCount)
+                guard let d = try divisor.leading(usage: &usage) else { continue }
+                try usage.consumeExactWork(max(d.power.overflowCount, lead.power.overflowCount))
+                guard d.power.divides(lead.power) else { continue }
+                let power = try lead.power.quotient(by: d.power, variableCount: source.variableCount, usage: &usage)
                 let factor = try ExactIntersectionPolynomial.monomial(variableCount: source.variableCount,
-                    powers: power.values,
+                    power: power,
                     coefficient: lead.coefficient.divided(by: d.coefficient, usage: &usage), usage: &usage)
                 pending = try pending.subtracting(divisor.multiplied(by: factor, usage: &usage), usage: &usage)
                 canceled = true; break
             }
             if !canceled {
                 let term = try ExactIntersectionPolynomial.monomial(variableCount: source.variableCount,
-                    powers: lead.power.values,
+                    power: lead.power,
                     coefficient: lead.coefficient, usage: &usage)
                 remainder = try remainder.adding(term, usage: &usage)
                 pending = try pending.subtracting(term, usage: &usage)
@@ -113,14 +118,14 @@ enum ExactIntersectionGroebnerBasis {
         guard let a = try first.leading(usage: &usage), let b = try second.leading(usage: &usage) else {
             throw rationalAlgebraFailure("Intersection S-pair requires two nonzero original generators.")
         }
-        let lcm = try a.power.leastCommonMultiple(b.power, variableCount: first.variableCount)
-        let ap = try lcm.quotient(by: a.power, variableCount: first.variableCount)
-        let bp = try lcm.quotient(by: b.power, variableCount: first.variableCount)
+        let lcm = try a.power.leastCommonMultiple(b.power, variableCount: first.variableCount, usage: &usage)
+        let ap = try lcm.quotient(by: a.power, variableCount: first.variableCount, usage: &usage)
+        let bp = try lcm.quotient(by: b.power, variableCount: first.variableCount, usage: &usage)
         let af = try ExactIntersectionPolynomial.monomial(variableCount: first.variableCount,
-            powers: ap.values,
+            power: ap,
             coefficient: .one.divided(by: a.coefficient, usage: &usage), usage: &usage)
         let bf = try ExactIntersectionPolynomial.monomial(variableCount: first.variableCount,
-            powers: bp.values,
+            power: bp,
             coefficient: .one.divided(by: b.coefficient, usage: &usage), usage: &usage)
         return try first.multiplied(by: af, usage: &usage)
             .subtracting(second.multiplied(by: bf, usage: &usage), usage: &usage)

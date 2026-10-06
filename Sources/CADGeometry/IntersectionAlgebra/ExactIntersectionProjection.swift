@@ -27,14 +27,16 @@ package struct ExactIntersectionProjection: Sendable {
         var active: [Polynomial] = []
         for source in sources { try insert(source, into: &active, usage: &usage) }
         try splitCommonFactors(&active, usage: &usage)
-        try RationalAlgebraStorage.retain(active.count, of: [Polynomial].self, usage: &usage)
-        var families: [[Polynomial]] = []
+        typealias Prepared = ExactIntersectionSubresultants.PreparedPolynomial
+        try RationalAlgebraStorage.retain(active.count, of: [Prepared].self, usage: &usage)
+        var families: [[Prepared]] = []
         var projected: [Polynomial] = []
         let coordinate = try Polynomial.coordinate(variableCount: variableCount, at: axis, usage: &usage)
         for source in active {
             try intersectionAlgebraStep(&usage)
-            let coefficients = try source.axisCoefficients(at: axis, usage: &usage)
-            var reducta: [Polynomial] = []
+            let original = try Prepared(source, axis: axis, usage: &usage)
+            let coefficients = original.coefficients
+            var reducta: [Prepared] = []
             var remainder = source
             var degree = coefficients.count - 1
             while degree >= 0 {
@@ -44,12 +46,14 @@ package struct ExactIntersectionProjection: Sendable {
                     try insert(remainder, into: &projected, usage: &usage)
                     break
                 }
-                try RationalAlgebraStorage.retain(1, of: Polynomial.self, usage: &usage)
-                reducta.append(remainder)
+                let prepared = degree == coefficients.count - 1 ? original :
+                    try Prepared(remainder, axis: axis, usage: &usage)
+                try RationalAlgebraStorage.retain(1, of: Prepared.self, usage: &usage)
+                reducta.append(prepared)
                 try insert(coefficients[degree], into: &projected, usage: &usage)
                 let derivative = try remainder.differentiated(at: axis, usage: &usage)
                 for coefficient in try ExactIntersectionSubresultants.principal(
-                    remainder, derivative, axis: axis, usage: &usage) {
+                    prepared, Prepared(derivative, axis: axis, usage: &usage), usage: &usage) {
                     try insert(coefficient, into: &projected, usage: &usage)
                 }
                 var leadingTerm = coefficients[degree]
@@ -67,7 +71,7 @@ package struct ExactIntersectionProjection: Sendable {
                 for a in families[first] {
                     for b in families[second] {
                         for coefficient in try ExactIntersectionSubresultants.principal(
-                            a, b, axis: axis, usage: &usage) {
+                            a, b, usage: &usage) {
                             try insert(coefficient, into: &projected, usage: &usage)
                         }
                     }
@@ -81,6 +85,12 @@ package struct ExactIntersectionProjection: Sendable {
         into result: inout [Polynomial], usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         if polynomial.isZero || polynomial.isConstant { return }
+        let monic = try polynomial.monic(usage: &usage)
+        // Existing entries already own a verified square-free law. Equality
+        // proves this incoming original needs no second normalization.
+        for existing in result {
+            if try existing.matches(monic, usage: &usage) { return }
+        }
         let normalized = try ExactIntersectionPolynomialGCD.squareFree(polynomial, usage: &usage)
         for existing in result {
             if try existing.matches(normalized, usage: &usage) { return }

@@ -14,16 +14,18 @@ package enum ExactIntersectionPolynomialGCD {
             return try .constant(variableCount: first.variableCount, value: .one, usage: &usage)
         }
         if try first.matches(second, usage: &usage) { return try first.monic(usage: &usage) }
-        let firstMask = try coordinateMask(first, usage: &usage)
-        let secondMask = try coordinateMask(second, usage: &usage)
-        if firstMask & secondMask == 0 {
+        let firstMask = try coordinateSupport(first, usage: &usage)
+        let secondMask = try coordinateSupport(second, usage: &usage)
+        if try !firstMask.intersects(secondMask, usage: &usage) {
             return try .constant(variableCount: first.variableCount, value: .one, usage: &usage)
         }
         if let result = try rationalLinearGCD(first, second, mask: firstMask, usage: &usage) { return result }
         if let result = try rationalLinearGCD(second, first, mask: secondMask, usage: &usage) { return result }
-        let mask = firstMask | secondMask
-        let axis = Int.bitWidth - mask.leadingZeroBitCount - 1
-        guard axis >= 0, axis < first.variableCount else {
+        guard let firstAxis = firstMask.last, let secondAxis = secondMask.last else {
+            throw rationalAlgebraFailure("Nonconstant GCD lost its original coordinate support.")
+        }
+        let axis = max(firstAxis, secondAxis)
+        guard axis < first.variableCount else {
             throw rationalAlgebraFailure("Nonconstant GCD lost its original main coordinate.")
         }
         let firstContent = try content(first, axis: axis, usage: &usage)
@@ -53,32 +55,70 @@ package enum ExactIntersectionPolynomialGCD {
         usage: inout B) throws -> ExactIntersectionPolynomial {
         try intersectionAlgebraStep(&usage)
         if source.isZero || source.isConstant { return try source.monic(usage: &usage) }
-        let mask = try coordinateMask(source, usage: &usage)
+        let mask = try coordinateSupport(source, usage: &usage)
         var repeated = source
-        for axis in 0..<source.variableCount where mask & (1 << axis) != 0 {
+        for axis in 0..<source.variableCount {
+            try intersectionAlgebraStep(&usage)
+            if try !mask.contains(axis, usage: &usage) { continue }
             repeated = try gcd(repeated, source.differentiated(at: axis, usage: &usage), usage: &usage)
             if repeated.isConstant { break }
         }
         return try source.dividedExactly(by: repeated, usage: &usage).monic(usage: &usage)
     }
 
-    private static func coordinateMask<B: RationalAlgebraAdmitting>(_ source: Polynomial,
-        usage: inout B) throws -> Int {
-        var mask = 0
-        for term in try source.orderedTerms(usage: &usage) {
-            for axis in 0..<source.variableCount {
+    private struct CoordinateSupport {
+        let inline: UInt
+        let overflow: [Int]
+        var last: Int? { overflow.last ?? (inline == 0 ? nil : UInt.bitWidth - inline.leadingZeroBitCount - 1) }
+        var singleAxis: Int? {
+            if inline == 0 { return overflow.count == 1 ? overflow[0] : nil }
+            return overflow.isEmpty && inline.nonzeroBitCount == 1 ? inline.trailingZeroBitCount : nil
+        }
+        func contains<B: RationalAlgebraAdmitting>(_ axis: Int, usage: inout B) throws -> Bool {
+            if axis < UInt.bitWidth { return inline & (UInt(1) << axis) != 0 }
+            var lower = 0, upper = overflow.count
+            while lower < upper {
                 try intersectionAlgebraStep(&usage)
-                if try term.key.exponent(at: axis) > 0 { mask |= 1 << axis }
+                let middle = lower + (upper - lower) / 2
+                if overflow[middle] < axis { lower = middle + 1 } else { upper = middle }
+            }
+            return lower < overflow.count && overflow[lower] == axis
+        }
+        func intersects<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Bool {
+            if inline & other.inline != 0 { return true }
+            var first = 0, second = 0
+            while first < overflow.count && second < other.overflow.count {
+                try intersectionAlgebraStep(&usage)
+                if overflow[first] == other.overflow[second] { return true }
+                if overflow[first] < other.overflow[second] { first += 1 } else { second += 1 }
+            }
+            return false
+        }
+    }
+
+    private static func coordinateSupport<B: RationalAlgebraAdmitting>(_ source: Polynomial,
+        usage: inout B) throws -> CoordinateSupport {
+        let terms = try source.orderedTerms(usage: &usage)
+        var inline: UInt = 0, overflow: [Int] = []
+        for axis in 0..<source.variableCount {
+            for term in terms {
+                try intersectionAlgebraStep(&usage)
+                if try term.key.exponent(at: axis) == 0 { continue }
+                if axis < UInt.bitWidth { inline |= UInt(1) << axis }
+                else {
+                    try RationalAlgebraStorage.retain(1, of: Int.self, usage: &usage)
+                    overflow.append(axis)
+                }
+                break
             }
         }
-        return mask
+        return CoordinateSupport(inline: inline, overflow: overflow)
     }
 
     private static func rationalLinearGCD<B: RationalAlgebraAdmitting>(_ factor: Polynomial, _ other: Polynomial,
-        mask: Int, usage: inout B) throws -> Polynomial? {
+        mask: CoordinateSupport, usage: inout B) throws -> Polynomial? {
         try intersectionAlgebraStep(&usage)
-        if mask == 0 || mask & (mask - 1) != 0 { return nil }
-        let axis = mask.trailingZeroBitCount
+        guard let axis = mask.singleAxis else { return nil }
         let coefficients = try factor.axisCoefficients(at: axis, usage: &usage)
         if coefficients.count != 2 { return nil }
         guard coefficients[0].isConstant, coefficients[1].isConstant,
@@ -156,9 +196,8 @@ package enum ExactIntersectionPolynomialGCD {
             guard let numeratorLead = values.last else { throw rationalAlgebraFailure("Original pseudo-division lost its leading coefficient.") }
             let shift = degree - divisorDegree
             let factor = try Polynomial.monomial(variableCount: source.variableCount,
-                powers: (axis == 0 ? shift : 0, axis == 1 ? shift : 0, axis == 2 ? shift : 0,
-                    axis == 3 ? shift : 0, axis == 4 ? shift : 0, axis == 5 ? shift : 0,
-                    axis == 6 ? shift : 0, axis == 7 ? shift : 0, axis == 8 ? shift : 0),
+                power: Polynomial.Power.coordinate(at: axis, exponent: shift,
+                    variableCount: source.variableCount, usage: &usage),
                 coefficient: .one, usage: &usage)
             remainder = try remainder.multiplied(by: lead, usage: &usage)
                 .subtracting(divisor.multiplied(by: numeratorLead, usage: &usage).multiplied(by: factor, usage: &usage), usage: &usage)

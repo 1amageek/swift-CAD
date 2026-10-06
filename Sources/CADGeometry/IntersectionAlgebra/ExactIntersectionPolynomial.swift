@@ -2,29 +2,85 @@ import CADCore
 
 /// Original rational polynomial with inline coordinates for source laws and quantified incidence.
 package struct ExactIntersectionPolynomial: Equatable, Sendable {
-    package static let maximumVariableCount = 9
+    // Coordinate counts are admitted by the caller ledger, never truncated to inline storage.
+    package static let maximumVariableCount = Int.max
     package struct Power: Hashable, Sendable {
         let a: Int, b: Int, c: Int, d: Int, e: Int
         let f: Int, g: Int, h: Int, i: Int
-        var values: (Int, Int, Int, Int, Int, Int, Int, Int, Int) { (a, b, c, d, e, f, g, h, i) }
+        private let overflow: [Int]
+        var overflowCount: Int { overflow.count }
+        var isConstant: Bool {
+            a == 0 && b == 0 && c == 0 && d == 0 && e == 0 && f == 0 && g == 0 && h == 0 && i == 0 && overflow.isEmpty
+        }
 
         init(_ values: (Int, Int, Int, Int, Int), variableCount: Int) throws {
             try self.init((values.0, values.1, values.2, values.3, values.4, 0, 0, 0, 0), variableCount: variableCount)
         }
         init(_ values: (Int, Int, Int, Int, Int, Int, Int, Int, Int), variableCount: Int) throws {
-            guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount) else {
-                throw rationalAlgebraFailure("Intersection powers require the admitted polynomial ring.")
+            guard variableCount > 0 else {
+                throw rationalAlgebraFailure("Intersection powers require a positive original coordinate count.")
             }
             a = values.0; b = values.1; c = values.2; d = values.3; e = values.4
             f = values.5; g = values.6; h = values.7; i = values.8
-            for coordinate in 0..<ExactIntersectionPolynomial.maximumVariableCount {
+            overflow = []
+            for coordinate in 0..<9 {
                 let exponent = try exponent(at: coordinate)
                 guard exponent >= 0, coordinate < variableCount || exponent == 0 else {
                     throw rationalAlgebraFailure("Intersection powers do not belong to the original polynomial ring.")
                 }
             }
         }
+        fileprivate init<B: RationalAlgebraAdmitting>(variableCount: Int,
+            exponent: (Int) throws -> Int, usage: inout B) throws {
+            guard variableCount > 0 else {
+                throw rationalAlgebraFailure("Intersection powers require a positive original coordinate count.")
+            }
+            func value(_ axis: Int) throws -> Int { axis < variableCount ? try exponent(axis) : 0 }
+            a = try value(0); b = try value(1); c = try value(2); d = try value(3); e = try value(4)
+            f = try value(5); g = try value(6); h = try value(7); i = try value(8)
+            guard a >= 0, b >= 0, c >= 0, d >= 0, e >= 0, f >= 0, g >= 0, h >= 0, i >= 0 else {
+                throw rationalAlgebraFailure("An original exponent cannot be negative.")
+            }
+            var last = variableCount - 1
+            while last >= 9 {
+                try intersectionAlgebraStep(&usage)
+                let power = try exponent(last)
+                guard power >= 0 else { throw rationalAlgebraFailure("An original exponent cannot be negative.") }
+                if power > 0 { break }
+                last -= 1
+            }
+            if last < 9 { overflow = []; return }
+            let count = last - 8
+            try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
+            var retained: [Int] = []; retained.reserveCapacity(count)
+            for axis in 9...last {
+                try intersectionAlgebraStep(&usage)
+                let power = try exponent(axis)
+                guard power >= 0 else { throw rationalAlgebraFailure("An original exponent cannot be negative.") }
+                retained.append(power)
+            }
+            overflow = retained
+        }
+        init<B: RationalAlgebraAdmitting>(_ values: [Int], variableCount: Int, usage: inout B) throws {
+            guard values.count == variableCount else {
+                throw rationalAlgebraFailure("Original exponents must bind every coordinate exactly once.")
+            }
+            try self.init(variableCount: variableCount, exponent: { values[$0] }, usage: &usage)
+        }
+        static func coordinate<B: RationalAlgebraAdmitting>(at axis: Int, exponent: Int = 1, variableCount: Int, usage: inout B) throws -> Self {
+            guard axis >= 0, axis < variableCount, exponent >= 0 else {
+                throw rationalAlgebraFailure("Original coordinate exponent is outside its ring.")
+            }
+            // No overflowing suffix is allocated for the existing inline rings.
+            if axis < 9 {
+                return try Self((axis == 0 ? exponent : 0, axis == 1 ? exponent : 0, axis == 2 ? exponent : 0,
+                    axis == 3 ? exponent : 0, axis == 4 ? exponent : 0, axis == 5 ? exponent : 0,
+                    axis == 6 ? exponent : 0, axis == 7 ? exponent : 0, axis == 8 ? exponent : 0), variableCount: variableCount)
+            }
+            return try Self(variableCount: axis + 1, exponent: { $0 == axis ? exponent : 0 }, usage: &usage)
+        }
         func exponent(at coordinate: Int) throws -> Int {
+            guard coordinate >= 0 else { throw rationalAlgebraFailure("An original coordinate cannot be negative.") }
             switch coordinate {
             case 0: return a
             case 1: return b
@@ -35,10 +91,16 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             case 6: return g
             case 7: return h
             case 8: return i
-            default: throw rationalAlgebraFailure("Intersection polynomial coordinate is outside its ring.")
+            default: return coordinate - 9 < overflow.count ? overflow[coordinate - 9] : 0
             }
         }
         func precedes(_ other: Self) -> Bool {
+            let count = max(overflow.count, other.overflow.count)
+            for axis in (0..<count).reversed() {
+                let first = axis < overflow.count ? overflow[axis] : 0
+                let second = axis < other.overflow.count ? other.overflow[axis] : 0
+                if first != second { return first < second }
+            }
             if i != other.i { return i < other.i }
             if h != other.h { return h < other.h }
             if g != other.g { return g < other.g }
@@ -50,37 +112,94 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             return a < other.a
         }
         func divides(_ other: Self) -> Bool {
-            a <= other.a && b <= other.b && c <= other.c && d <= other.d && e <= other.e &&
-            f <= other.f && g <= other.g && h <= other.h && i <= other.i
+            guard a <= other.a, b <= other.b, c <= other.c, d <= other.d, e <= other.e,
+                f <= other.f, g <= other.g, h <= other.h, i <= other.i else { return false }
+            for axis in overflow.indices {
+                if overflow[axis] > (axis < other.overflow.count ? other.overflow[axis] : 0) { return false }
+            }
+            return true
         }
-        func sum(_ other: Self, variableCount: Int) throws -> Self {
-            try Self((rationalAlgebraCount(a, other.a), rationalAlgebraCount(b, other.b),
-                rationalAlgebraCount(c, other.c), rationalAlgebraCount(d, other.d), rationalAlgebraCount(e, other.e),
-                rationalAlgebraCount(f, other.f), rationalAlgebraCount(g, other.g), rationalAlgebraCount(h, other.h),
-                rationalAlgebraCount(i, other.i)), variableCount: variableCount)
+        func sum<B: RationalAlgebraAdmitting>(_ other: Self, variableCount: Int, usage: inout B) throws -> Self {
+            if overflow.isEmpty && other.overflow.isEmpty {
+                return try Self((rationalAlgebraCount(a, other.a), rationalAlgebraCount(b, other.b),
+                    rationalAlgebraCount(c, other.c), rationalAlgebraCount(d, other.d), rationalAlgebraCount(e, other.e),
+                    rationalAlgebraCount(f, other.f), rationalAlgebraCount(g, other.g), rationalAlgebraCount(h, other.h),
+                    rationalAlgebraCount(i, other.i)), variableCount: variableCount)
+            }
+            return try Self(variableCount: variableCount,
+                exponent: { try rationalAlgebraCount(self.exponent(at: $0), other.exponent(at: $0)) }, usage: &usage)
         }
-        func quotient(by other: Self, variableCount: Int) throws -> Self {
+        func quotient<B: RationalAlgebraAdmitting>(by other: Self, variableCount: Int, usage: inout B) throws -> Self {
+            try usage.consumeExactWork(max(overflow.count, other.overflow.count))
             guard other.divides(self) else { throw rationalAlgebraFailure("Original monomial quotient has a negative exponent.") }
-            return try Self((a-other.a, b-other.b, c-other.c, d-other.d, e-other.e,
-                f-other.f, g-other.g, h-other.h, i-other.i), variableCount: variableCount)
+            if overflow.isEmpty && other.overflow.isEmpty {
+                return try Self((a-other.a, b-other.b, c-other.c, d-other.d, e-other.e,
+                    f-other.f, g-other.g, h-other.h, i-other.i), variableCount: variableCount)
+            }
+            return try Self(variableCount: variableCount,
+                exponent: { try self.exponent(at: $0) - other.exponent(at: $0) }, usage: &usage)
         }
-        func leastCommonMultiple(_ other: Self, variableCount: Int) throws -> Self {
-            try Self((max(a,other.a), max(b,other.b), max(c,other.c), max(d,other.d), max(e,other.e),
-                max(f,other.f), max(g,other.g), max(h,other.h), max(i,other.i)), variableCount: variableCount)
+        func leastCommonMultiple<B: RationalAlgebraAdmitting>(_ other: Self, variableCount: Int, usage: inout B) throws -> Self {
+            if overflow.isEmpty && other.overflow.isEmpty {
+                return try Self((max(a,other.a), max(b,other.b), max(c,other.c), max(d,other.d), max(e,other.e),
+                    max(f,other.f), max(g,other.g), max(h,other.h), max(i,other.i)), variableCount: variableCount)
+            }
+            return try Self(variableCount: variableCount,
+                exponent: { try max(self.exponent(at: $0), other.exponent(at: $0)) }, usage: &usage)
         }
-        func removing(_ coordinate: Int, variableCount: Int) throws -> Self {
-            try Self((coordinate == 0 ? 0 : a, coordinate == 1 ? 0 : b, coordinate == 2 ? 0 : c,
-                coordinate == 3 ? 0 : d, coordinate == 4 ? 0 : e, coordinate == 5 ? 0 : f,
-                coordinate == 6 ? 0 : g, coordinate == 7 ? 0 : h, coordinate == 8 ? 0 : i), variableCount: variableCount)
+        func removing<B: RationalAlgebraAdmitting>(_ coordinate: Int, variableCount: Int, usage: inout B) throws -> Self {
+            guard coordinate >= 0, coordinate < variableCount else {
+                throw rationalAlgebraFailure("Original coefficient extraction has a foreign coordinate.")
+            }
+            if overflow.isEmpty {
+                return try Self((coordinate == 0 ? 0 : a, coordinate == 1 ? 0 : b, coordinate == 2 ? 0 : c,
+                    coordinate == 3 ? 0 : d, coordinate == 4 ? 0 : e, coordinate == 5 ? 0 : f,
+                    coordinate == 6 ? 0 : g, coordinate == 7 ? 0 : h, coordinate == 8 ? 0 : i), variableCount: variableCount)
+            }
+            return try Self(variableCount: variableCount,
+                exponent: { $0 == coordinate ? 0 : try self.exponent(at: $0) }, usage: &usage)
+        }
+        func validate<B: RationalAlgebraAdmitting>(variableCount: Int, usage: inout B) throws {
+            guard variableCount > 0 else { throw rationalAlgebraFailure("An original ring must be nonempty.") }
+            try usage.consumeExactWork(overflow.count)
+            guard overflow.count <= max(0, variableCount - 9) else {
+                throw rationalAlgebraFailure("Original monomial contains an active coordinate outside its ring.")
+            }
+            for axis in min(variableCount, 9)..<9 {
+                if try exponent(at: axis) != 0 {
+                    throw rationalAlgebraFailure("Original monomial contains an active inline coordinate outside its ring.")
+                }
+            }
         }
     }
 
     package let variableCount: Int
     private let coefficients: [Power: ExactRationalCoefficient]
+    private let orderedCoefficients: [(key: Power, value: ExactRationalCoefficient)]
 
-    private init(variableCount: Int, coefficients: [Power: ExactRationalCoefficient]) {
-        self.variableCount = variableCount
-        self.coefficients = coefficients
+    private init(variableCount: Int, coefficients: [Power: ExactRationalCoefficient],
+        orderedCoefficients: [(key: Power, value: ExactRationalCoefficient)]) {
+        self.variableCount = variableCount; self.coefficients = coefficients
+        self.orderedCoefficients = orderedCoefficients
+    }
+    private static func storing<B: RationalAlgebraAdmitting>(variableCount: Int,
+        coefficients: [Power: ExactRationalCoefficient], usage: inout B) throws -> Self {
+        try intersectionAlgebraStep(&usage)
+        try RationalAlgebraStorage.retain(coefficients.count,
+            of: (Power, ExactRationalCoefficient).self, usage: &usage)
+        let levels = coefficients.count <= 1 ? 0 : Int.bitWidth - (coefficients.count - 1).leadingZeroBitCount
+        var comparisonWidth = 1
+        for term in coefficients {
+            try intersectionAlgebraStep(&usage)
+            comparisonWidth = max(comparisonWidth, try rationalAlgebraCount(term.key.overflowCount, 1))
+        }
+        try usage.consumeExactWork(rationalAlgebraCount(
+            rationalAlgebraCount(coefficients.count, levels + 1, multiply: true), comparisonWidth, multiply: true))
+        let ordered = coefficients.sorted { $1.key.precedes($0.key) }
+        return Self(variableCount: variableCount, coefficients: coefficients, orderedCoefficients: ordered)
+    }
+    package static func == (first: Self, second: Self) -> Bool {
+        first.variableCount == second.variableCount && first.coefficients == second.coefficients
     }
 
     package var isZero: Bool { coefficients.isEmpty }
@@ -89,30 +208,27 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         try requireSameRing(other)
         try intersectionAlgebraStep(&usage)
         try usage.consumeExactWork(rationalAlgebraCount(coefficients.count, other.coefficients.count))
+        for term in coefficients { try usage.consumeExactWork(term.key.overflowCount) }
+        for term in other.coefficients { try usage.consumeExactWork(term.key.overflowCount) }
         return coefficients == other.coefficients
     }
     package var isConstant: Bool {
         if coefficients.isEmpty { return true }
         guard coefficients.count == 1, let power = coefficients.first?.key else { return false }
-        return power.a == 0 && power.b == 0 && power.c == 0 && power.d == 0 && power.e == 0 && power.f == 0 && power.g == 0 && power.h == 0 && power.i == 0
+        return power.isConstant
     }
     func leading<B: RationalAlgebraAdmitting>(usage: inout B)
         throws -> (power: Power, coefficient: ExactRationalCoefficient)? {
-        var result: (power: Power, coefficient: ExactRationalCoefficient)?
-        for (power, coefficient) in coefficients {
-            try intersectionAlgebraStep(&usage)
-            if let previous = result {
-                if previous.power.precedes(power) { result = (power, coefficient) }
-            } else { result = (power, coefficient) }
-        }
-        return result
+        try intersectionAlgebraStep(&usage)
+        guard let term = orderedCoefficients.first else { return nil }
+        return (term.key, term.value)
     }
 
     package static func zero(variableCount: Int) throws -> Self {
         guard (1...Self.maximumVariableCount).contains(variableCount) else {
-            throw rationalAlgebraFailure("Intersection polynomial ring requires one through nine coordinates.")
+            throw rationalAlgebraFailure("Intersection polynomial ring requires a positive coordinate count.")
         }
-        return Self(variableCount: variableCount, coefficients: [:])
+        return Self(variableCount: variableCount, coefficients: [:], orderedCoefficients: [])
     }
 
     package static func monomial<B: RationalAlgebraAdmitting>(variableCount: Int,
@@ -129,7 +245,23 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         let power = try Power(powers, variableCount: variableCount)
         if coefficient.isZero { return try .zero(variableCount: variableCount) }
         try RationalAlgebraStorage.retain(1, of: (Power, ExactRationalCoefficient).self, usage: &usage)
-        return Self(variableCount: variableCount, coefficients: [power: coefficient])
+        return try storing(variableCount: variableCount, coefficients: [power: coefficient], usage: &usage)
+    }
+
+    package static func monomial<B: RationalAlgebraAdmitting>(variableCount: Int,
+        powers: [Int], coefficient: ExactRationalCoefficient, usage: inout B) throws -> Self {
+        try intersectionAlgebraStep(&usage)
+        let power = try Power(powers, variableCount: variableCount, usage: &usage)
+        return try monomial(variableCount: variableCount, power: power, coefficient: coefficient, usage: &usage)
+    }
+
+    package static func monomial<B: RationalAlgebraAdmitting>(variableCount: Int,
+        power: Power, coefficient: ExactRationalCoefficient, usage: inout B) throws -> Self {
+        try intersectionAlgebraStep(&usage)
+        try power.validate(variableCount: variableCount, usage: &usage)
+        if coefficient.isZero { return try .zero(variableCount: variableCount) }
+        try RationalAlgebraStorage.retain(1, of: (Power, ExactRationalCoefficient).self, usage: &usage)
+        return try storing(variableCount: variableCount, coefficients: [power: coefficient], usage: &usage)
     }
 
     package static func constant<B: RationalAlgebraAdmitting>(variableCount: Int,
@@ -144,10 +276,8 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             throw rationalAlgebraFailure("Original intersection coordinate does not belong to its ring.")
         }
         return try monomial(variableCount: variableCount,
-            powers: (coordinate == 0 ? 1 : 0, coordinate == 1 ? 1 : 0,
-                     coordinate == 2 ? 1 : 0, coordinate == 3 ? 1 : 0,
-                     coordinate == 4 ? 1 : 0, coordinate == 5 ? 1 : 0, coordinate == 6 ? 1 : 0,
-                     coordinate == 7 ? 1 : 0, coordinate == 8 ? 1 : 0), coefficient: .one, usage: &usage)
+            power: Power.coordinate(at: coordinate, variableCount: variableCount, usage: &usage),
+            coefficient: .one, usage: &usage)
     }
 
     package static func embedding<B: RationalAlgebraAdmitting>(_ source: ExactBivariatePolynomial,
@@ -158,16 +288,9 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         }
         var result = try Self.zero(variableCount: variableCount)
         for (power, coefficient) in try source.orderedTerms(usage: &usage) {
-            let term = try monomial(variableCount: variableCount,
-                powers: (uCoordinate == 0 ? power.u : vCoordinate == 0 ? power.v : 0,
-                         uCoordinate == 1 ? power.u : vCoordinate == 1 ? power.v : 0,
-                         uCoordinate == 2 ? power.u : vCoordinate == 2 ? power.v : 0,
-                         uCoordinate == 3 ? power.u : vCoordinate == 3 ? power.v : 0,
-                         uCoordinate == 4 ? power.u : vCoordinate == 4 ? power.v : 0,
-                         uCoordinate == 5 ? power.u : vCoordinate == 5 ? power.v : 0,
-                         uCoordinate == 6 ? power.u : vCoordinate == 6 ? power.v : 0,
-                         uCoordinate == 7 ? power.u : vCoordinate == 7 ? power.v : 0,
-                         uCoordinate == 8 ? power.u : vCoordinate == 8 ? power.v : 0),
+            let targetPower = try Power(variableCount: max(uCoordinate, vCoordinate) + 1,
+                exponent: { $0 == uCoordinate ? power.u : $0 == vCoordinate ? power.v : 0 }, usage: &usage)
+            let term = try monomial(variableCount: variableCount, power: targetPower,
                 coefficient: coefficient, usage: &usage)
             result = try result.adding(term, usage: &usage)
         }
@@ -188,7 +311,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
                 }
             }
         }
-        return Self(variableCount: count, coefficients: coefficients)
+        return Self(variableCount: count, coefficients: coefficients, orderedCoefficients: orderedCoefficients)
     }
 
     /// Injective coordinate renaming preserves original coefficients and source monomials.
@@ -209,25 +332,41 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             }
         }
         var result = try Self.zero(variableCount: count)
+        // One admitted reusable remapping buffer serves every overflowing monomial.
+        var overflowExponents: [Int] = []
+        if count > 9 {
+            try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
+            overflowExponents = Array(repeating: 0, count: count)
+        }
         for term in try orderedTerms(usage: &usage) {
-            var values = (0, 0, 0, 0, 0, 0, 0, 0, 0)
-            for coordinate in coordinates.indices {
-                try intersectionAlgebraStep(&usage)
-                let exponent = try term.key.exponent(at: coordinate)
-                switch coordinates[coordinate] {
-                case 0: values.0 = exponent
-                case 1: values.1 = exponent
-                case 2: values.2 = exponent
-                case 3: values.3 = exponent
-                case 4: values.4 = exponent
-                case 5: values.5 = exponent
-                case 6: values.6 = exponent
-                case 7: values.7 = exponent
-                case 8: values.8 = exponent
-                default: throw rationalAlgebraFailure("Admitted remapping lost its target coordinate.")
+            let power: Power
+            if count <= 9 {
+                var values = (0, 0, 0, 0, 0, 0, 0, 0, 0)
+                for coordinate in coordinates.indices {
+                    try intersectionAlgebraStep(&usage)
+                    let exponent = try term.key.exponent(at: coordinate)
+                    switch coordinates[coordinate] {
+                    case 0: values.0 = exponent
+                    case 1: values.1 = exponent
+                    case 2: values.2 = exponent
+                    case 3: values.3 = exponent
+                    case 4: values.4 = exponent
+                    case 5: values.5 = exponent
+                    case 6: values.6 = exponent
+                    case 7: values.7 = exponent
+                    case 8: values.8 = exponent
+                    default: throw rationalAlgebraFailure("Original inline remapping lost its target coordinate.")
+                    }
                 }
+                power = try Power(values, variableCount: count)
+            } else {
+                for coordinate in coordinates.indices {
+                    try intersectionAlgebraStep(&usage)
+                    overflowExponents[coordinates[coordinate]] = try term.key.exponent(at: coordinate)
+                }
+                power = try Power(overflowExponents, variableCount: count, usage: &usage)
             }
-            result = try result.adding(Self.monomial(variableCount: count, powers: values,
+            result = try result.adding(Self.monomial(variableCount: count, power: power,
                 coefficient: term.value, usage: &usage), usage: &usage)
         }
         return result
@@ -238,17 +377,15 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         guard count >= variableCount, count <= Self.maximumVariableCount else {
             throw rationalAlgebraFailure("Original polynomial lifting cannot remove coordinates.")
         }
-        return Self(variableCount: count, coefficients: coefficients)
+        return Self(variableCount: count, coefficients: coefficients, orderedCoefficients: orderedCoefficients)
     }
 
+    /// The immutable canonical table remains shared with its polynomial owner.
     func orderedTerms<B: RationalAlgebraAdmitting>(usage: inout B)
         throws -> [(key: Power, value: ExactRationalCoefficient)] {
         try intersectionAlgebraStep(&usage)
-        try RationalAlgebraStorage.retain(coefficients.count,
-            of: (Power, ExactRationalCoefficient).self, usage: &usage)
-        let levels = coefficients.count <= 1 ? 0 : Int.bitWidth - (coefficients.count - 1).leadingZeroBitCount
-        try usage.consumeExactWork(rationalAlgebraCount(coefficients.count, levels + 1, multiply: true))
-        return coefficients.sorted { $1.key.precedes($0.key) }
+        try usage.consumeExactWork(orderedCoefficients.count)
+        return orderedCoefficients
     }
 
     package func adding<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
@@ -265,7 +402,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             let sum = try (result[power] ?? .zero).adding(value, usage: &usage)
             if sum.isZero { result.removeValue(forKey: power) } else { result[power] = sum }
         }
-        return Self(variableCount: variableCount, coefficients: result)
+        return try Self.storing(variableCount: variableCount, coefficients: result, usage: &usage)
     }
 
     package func scaled<B: RationalAlgebraAdmitting>(by scale: ExactRationalCoefficient,
@@ -281,7 +418,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             let coefficient = try value.multiplied(by: scale, usage: &usage)
             if !coefficient.isZero { result[power] = coefficient }
         }
-        return Self(variableCount: variableCount, coefficients: result)
+        return try Self.storing(variableCount: variableCount, coefficients: result, usage: &usage)
     }
 
     package func subtracting<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
@@ -300,7 +437,8 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         for (a, x) in try orderedTerms(usage: &usage) {
             for (b, y) in rhs {
                 try intersectionAlgebraStep(&usage)
-                let power = try a.sum(b, variableCount: variableCount)
+                let power = try a.sum(b, variableCount: variableCount, usage: &usage)
+                try usage.consumeExactWork(rationalAlgebraCount(power.overflowCount, 3, multiply: true))
                 let value = try (result[power] ?? .zero).adding(x.multiplied(by: y, usage: &usage), usage: &usage)
                 if value.isZero { result.removeValue(forKey: power) }
                 else {
@@ -311,7 +449,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
                 }
             }
         }
-        return Self(variableCount: variableCount, coefficients: result)
+        return try Self.storing(variableCount: variableCount, coefficients: result, usage: &usage)
     }
 
     package func differentiated<B: RationalAlgebraAdmitting>(at coordinate: Int,
@@ -327,10 +465,10 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         for (power, value) in try orderedTerms(usage: &usage) {
             let exponent = try power.exponent(at: coordinate)
             if exponent == 0 { continue }
-            let reduced = try power.quotient(by: unitPower, variableCount: variableCount)
+            let reduced = try power.quotient(by: unitPower, variableCount: variableCount, usage: &usage)
             let coefficient = try value.multiplied(by: .natural(exponent, usage: &usage), usage: &usage)
             let term = try Self.monomial(variableCount: variableCount,
-                powers: reduced.values,
+                power: reduced,
                 coefficient: coefficient, usage: &usage)
             result = try result.adding(term, usage: &usage)
         }
@@ -385,7 +523,7 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
             let power = term.key
             let exponent = try power.exponent(at: axis)
             let coefficient = try Self.monomial(variableCount: variableCount,
-                powers: try power.removing(axis, variableCount: variableCount).values, coefficient: term.value, usage: &usage)
+                power: try power.removing(axis, variableCount: variableCount, usage: &usage), coefficient: term.value, usage: &usage)
             result[exponent] = try result[exponent].adding(coefficient, usage: &usage)
         }
         return result
@@ -404,17 +542,21 @@ package struct ExactIntersectionPolynomial: Equatable, Sendable {
         var quotient = try Self.zero(variableCount: variableCount)
         while let lead = try pending.leading(usage: &usage) {
             try intersectionAlgebraStep(&usage)
+            try usage.consumeExactWork(max(denominator.power.overflowCount, lead.power.overflowCount))
             guard denominator.power.divides(lead.power) else {
                 throw rationalAlgebraFailure("Exact intersection polynomial division has a nonzero remainder.")
             }
-            let power = try lead.power.quotient(by: denominator.power, variableCount: variableCount)
+            let power = try lead.power.quotient(by: denominator.power, variableCount: variableCount, usage: &usage)
             let term = try Self.monomial(variableCount: variableCount,
-                powers: power.values,
+                power: power,
                 coefficient: lead.coefficient.divided(by: denominator.coefficient, usage: &usage),
                 usage: &usage)
             pending = try pending.subtracting(term.multiplied(by: divisor, usage: &usage), usage: &usage)
-            if let next = try pending.leading(usage: &usage), !next.power.precedes(lead.power) {
-                throw rationalAlgebraFailure("Exact polynomial division did not decrease its leading monomial.")
+            if let next = try pending.leading(usage: &usage) {
+                try usage.consumeExactWork(max(next.power.overflowCount, lead.power.overflowCount))
+                guard next.power.precedes(lead.power) else {
+                    throw rationalAlgebraFailure("Exact polynomial division did not decrease its leading monomial.")
+                }
             }
             quotient = try quotient.adding(term, usage: &usage)
         }

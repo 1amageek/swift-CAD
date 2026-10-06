@@ -48,6 +48,57 @@ original native laws + original selected domains
 
 ## Contracts and Invariants
 
+### Admitted Original Coordinate Rings
+
+The original polynomial ring has a positive caller-selected coordinate count.
+The first nine exponents remain inline. Higher coordinates use an immutable,
+canonical overflow suffix: trailing zero exponents are omitted, equality and
+hashing are independent of unused ring slots, and the original ring count owns
+coordinate validity. Every overflow allocation, traversal and copy is admitted
+before mutation. Exponent, ring-count and quantified-ring arithmetic is checked
+for integer overflow. Work/storage admission, not a guessed fixed coordinate
+capacity, bounds a computation. Existing public rational geometry relations
+continue to expose one through four geometric coordinates; this does not bound
+the internal rings required by exact coefficient transport or closure proofs.
+
+All polynomial operations preserve the complete exponent sequence, including
+coordinate injection, differentiation, division, ideal normalization and
+projection. Lowering may discard only proved-zero suffix slots. The closure
+formula uses exactly two copies of the admitted source ring and one radius;
+its dimension is checked before building the quantified proof. Whole-cell
+closure and finite-branch/affine sufficient theorems have no separate inline capacity.
+No unsupported dimension is silently truncated or classified as absence.
+
+Recursive GCD support uses an unsigned inline word and an admitted sorted
+overflow coordinate list. A coordinate beyond the machine word cannot disappear
+through a shifted bit mask. Pseudo-division constructs its degree shift using the
+complete original coordinate power, including non-inline main coordinates.
+Remapping keeps inline targets on stack scalars and reuses one admitted scratch
+buffer per polynomial for larger targets; each retained overflowing monomial
+owns its canonical immutable suffix.
+
+Each admitted polynomial publication retains one canonical descending term table
+alongside its immutable coefficient lookup. The table's allocation and sorting
+are paid once by that publication; leading-term reads and subsequent ordered
+traversals share it without allocating another sorted table. Lifted/lowered
+polynomials retain the same immutable tables after their coordinate proof.
+No mutable lazy cache, shared lock bypass or independent allocation quota is
+introduced. Projection may reuse an existing square-free normalized witness
+when the incoming monic law matches it exactly before recomputing a GCD.
+Within one projection level, each reductum retains its issued original axis
+coefficient table. Principal subresultant pairs share these tables rather than
+extracting both operands again for every pair. The table issuer owns the source
+and axis; mismatched axes/rings are rejected. The projection-level owner pays
+each table once and releases it with that level's preparation state.
+
+This change owns only the exact coordinate representation and the consumers
+that previously assumed its inline size. Ordered coefficient producers and
+geometric public composition remain separate unfinished work. Verification
+crosses coordinate nine in original arithmetic, lexicographic division,
+injective remapping, full real projection and incidence, checks overflow and
+independent work/storage rejection, and reuses the existing rational suites to
+reject changes to their original laws and results.
+
 ### Public Original Rational Relation Selection
 
 `OriginalPolynomialRelationResolving` is the public witness-table boundary for
@@ -524,10 +575,10 @@ Using this equivalent linear predicate avoids introducing quadratic norm roots
 that are unrelated to original topology.
 
 The polynomial ring requires `2*n+1` coordinates: the free original point, one
-radius and one original candidate tuple. CS/SSI use at most four original
-parameter coordinates, hence nine predicate coordinates suffice. Original
-intersection equations still have three/four coordinates, or one extra for
-saturation. This additional predicate capacity is not extra geometric,
+radius and one original candidate tuple. Rational CS/SSI uses three/four original
+parameter coordinates; ordered coefficient transport may require additional
+retained auxiliary coordinates. The admitted ring preserves all of them. This
+additional predicate capacity is not extra geometric,
 source-recursion, coefficient-root or algebraic depth and creates no work or
 storage allowance. Inline exponent payload growth is charged by its actual
 storage type. Remapping must be injective and retain every original monomial.
@@ -581,9 +632,17 @@ An issued zero-dimensional cell is one exact algebraic point, hence closed.
 Its original cell index therefore issues closure without a radius quantifier.
 
 For a one-dimensional cell with one free sector and only trailing root sections,
-`OriginalMonicBranchClosure` may issue an exact finite-boundary certificate. Each
+`OriginalFiniteBranchClosure` may issue an exact finite-boundary certificate. Each
 trailing section must have a retained zero-sign polynomial with a nonzero
-constant leading coefficient in that section coordinate. Cauchy's root bound
+leading coefficient in that section coordinate. A constant nonzero coefficient
+already proves this. Otherwise the leading polynomial must depend only on the
+fixed earlier prefix and the free coordinate, and complete original root
+enumeration must exclude every root from the closed free sector using exact
+root comparisons. `OriginalNonvanishingSectorPolynomial` retains that source,
+parent field, complete roots and their proved exterior boundary ownership.
+Roots at either finite endpoint prevent this theorem. This is a whole-sector
+proof, including irrational original cuts, not a representative sign test.
+Cauchy's root bound
 then proves local boundedness recursively as the free coordinate approaches
 either finite sector endpoint. The earlier zero-dimensional prefix is fixed.
 Every limit satisfies the original weak sign conditions by continuity. Enumerate
@@ -598,7 +657,7 @@ finite point in the original parameter space. This proves both inclusion and
 absence, including cusp/repeated section roots, without distance or root rank.
 
 The issued closure owns one common free partition and its whole included cells,
-with an explicit point, monic-branch or quantified proof. No monic certificate
+with an explicit point, finite-branch or quantified proof. No finite-branch certificate
 is issued when sections lack the bounding law, candidates are absent/multiple,
 or the parent partition omitted cylinders. In those cases select the general
 quantified definition before solving. These theorem paths are selected before
@@ -736,8 +795,8 @@ whole-cell signs, not approximate coordinates. An omitted ambient prefix or a
 nonaffine condition declines this sufficient theorem before solving.
 
 The common closure port can explicitly disable the affine theorem before work, so verification still executes the full nine-coordinate quantified region
-path while retaining the existing one-dimensional monic proof. Point, monic, affine and quantified receipts all retain their proof kind
+path while retaining the existing one-dimensional finite-branch proof. Point, finite-branch, affine and quantified receipts all retain their proof kind
 and the same original source-cell identity. No theorem is selected after generic
 exhaustion. Native coincidence uses this affine proof when its actual conditions
-qualify; curved native overlaps use the verified source ideal and monic branch
+qualify; curved native overlaps use the verified source ideal and finite-branch
 proof when their actual reduced conditions qualify.

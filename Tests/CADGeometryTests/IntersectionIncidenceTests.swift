@@ -42,7 +42,8 @@ struct IntersectionIncidenceTests {
         #expect(try coefficients[2].evaluated(at: values, usage: &usage) == .natural(3, usage: &usage))
         #expect(throws: KernelError.self) { try original.remapped(to: 9, coordinates: [8, 8], usage: &usage) }
         #expect(throws: KernelError.self) { try original.remapped(to: 9, coordinates: [8, 9], usage: &usage) }
-        #expect(throws: KernelError.self) { try Polynomial.zero(variableCount: 10) }
+        #expect(try Polynomial.zero(variableCount: 10).variableCount == 10)
+        #expect(throws: KernelError.self) { try Polynomial.zero(variableCount: 0) }
         #expect(throws: KernelError.self) {
             try Polynomial.monomial(variableCount: 9, powers: (0,0,0,0,0,0,0,0,Int.max), coefficient: .one, usage: &usage)
                 .multiplied(by: .coordinate(variableCount: 9, at: 8, usage: &usage), usage: &usage)
@@ -170,7 +171,7 @@ struct IntersectionIncidenceTests {
                 #expect(incidence.attachments.filter { $0.sourceCellIndex == endpoint }.allSatisfy { $0.targetCellIndex == endpoint })
             }
             #expect(incidence.closures.allSatisfy { $0.freePartition.tower.variableCount == count })
-            #expect(incidence.closures.contains { if case .monicBranch = $0.proof { true } else { false } })
+            #expect(incidence.closures.contains { if case .finiteBranch = $0.proof { true } else { false } })
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -471,7 +472,7 @@ struct IntersectionIncidenceTests {
             domains: [nil], thomEncoding: true, maximumDepth: 24, usage: &usage)
         for index in [-1, partition.cells.count] {
             #expect(throws: KernelError.self) {
-                try OriginalMonicBranchClosure.prepare(partition: partition, cellIndex: index, maximumDepth: 24, usage: &usage)
+                try OriginalFiniteBranchClosure.prepare(partition: partition, cellIndex: index, maximumDepth: 24, usage: &usage)
             }
         }
         let cancelled = try await Task { () throws -> Bool in
@@ -501,7 +502,7 @@ struct IntersectionIncidenceTests {
         let partition = try OriginalRationalIntersectionCells.prepare(equations: [hyperbola], variableCount: 2,
             domains: [try .init(lower: 0, upper: 1), nil], thomEncoding: true, maximumDepth: 24, usage: &usage)
         let branch = try #require(partition.solutionCells.first { partition.cells[$0].dimension == 1 })
-        #expect(try OriginalMonicBranchClosure.prepare(partition: partition, cellIndex: branch,
+        #expect(try OriginalFiniteBranchClosure.prepare(partition: partition, cellIndex: branch,
             maximumDepth: 24, usage: &usage) == nil)
         let two = try Polynomial.constant(variableCount: 2, value: .natural(2, usage: &usage), usage: &usage)
         let irrational = try x.multiplied(by: x, usage: &usage).subtracting(two, usage: &usage)

@@ -1,8 +1,9 @@
 /// Complete one-sided branch limits from original bounded section laws and unique weak fibers.
-package struct OriginalMonicBranchClosure: Sendable {
+package struct OriginalFiniteBranchClosure: Sendable {
     package struct Witness: Sendable {
         package let axis: Int
         package let sourceOrdinal: Int
+        package let nonvanishingLeading: OriginalNonvanishingSectorPolynomial?
     }
     package let freeAxis: Int
     package let sectionWitnesses: [Witness]
@@ -16,11 +17,11 @@ package struct OriginalMonicBranchClosure: Sendable {
     package static func prepare<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
         cellIndex: Int, maximumDepth: Int, usage: inout B) throws -> Self? {
         try intersectionAlgebraStep(&usage)
-        guard partition.tower.hasThomEncoding, (1...4).contains(partition.tower.variableCount),
+        guard partition.tower.hasThomEncoding, partition.tower.variableCount > 0,
             cellIndex >= 0, cellIndex < partition.cells.count,
             partition.cells[cellIndex].coordinates.count == partition.tower.variableCount,
             maximumDepth >= 0, partition.cells[cellIndex].admissionDepth <= maximumDepth else {
-            throw rationalAlgebraFailure("Monic closure requires its complete original cell and inherited caller depth.")
+            throw rationalAlgebraFailure("Finite branch closure requires its complete original cell and inherited caller depth.")
         }
         guard partition.cells[cellIndex].dimension == 1, partition.excludedPrefixes.isEmpty else { return nil }
         let sourcePath = try path(partition: partition, cellIndex: cellIndex, usage: &usage)
@@ -33,26 +34,30 @@ package struct OriginalMonicBranchClosure: Sendable {
             }
         }
         guard let freeAxis else { throw rationalAlgebraFailure("A one-dimensional original cell lost its free sector.") }
+        let base = sourcePath[freeAxis]
         var witnesses: [Witness] = []
         for axis in (freeAxis + 1)..<sourcePath.count {
             let sources = partition.tower.levels[sourcePath.count - 1 - axis].sources
             let signs = partition.cells[sourcePath[axis]].signs
             var witness: Int?
+            var nonvanishing: OriginalNonvanishingSectorPolynomial?
             for (ordinal, polynomial) in sources.enumerated() where signs[ordinal] == .zero {
                 try intersectionAlgebraStep(&usage)
                 let coefficients = try polynomial.axisCoefficients(at: axis, usage: &usage)
-                if coefficients.count > 1, let leading = coefficients.last, leading.isConstant, !leading.isZero {
-                    witness = ordinal; break
+                guard coefficients.count > 1, let leading = coefficients.last, !leading.isZero else { continue }
+                if leading.isConstant { witness = ordinal; break }
+                if let proof = try OriginalNonvanishingSectorPolynomial.prepare(leading,
+                    partition: partition, baseCell: base, maximumDepth: maximumDepth, usage: &usage) {
+                    witness = ordinal; nonvanishing = proof; break
                 }
             }
             guard let witness else { return nil }
             try RationalAlgebraStorage.retain(1, of: Witness.self, usage: &usage)
-            witnesses.append(Witness(axis: axis, sourceOrdinal: witness))
+            witnesses.append(Witness(axis: axis, sourceOrdinal: witness, nonvanishingLeading: nonvanishing))
         }
-        let base = sourcePath[freeAxis]
         let sourceCell = partition.cells[base]
         guard case .sector(let lower, let upper) = sourceCell.kind else {
-            throw rationalAlgebraFailure("A monic branch certificate lost its free sector identity.")
+            throw rationalAlgebraFailure("A finite branch certificate lost its free sector identity.")
         }
         let stack = partition.stacks[sourceCell.stackIndex]
         var endpoints: [Int] = []
@@ -64,7 +69,7 @@ package struct OriginalMonicBranchClosure: Sendable {
                 try intersectionAlgebraStep(&usage)
                 if case .section(let root) = partition.cells[index].kind, root == ordinal { selected = index; break }
             }
-            guard let selected else { throw rationalAlgebraFailure("A monic branch lost its original finite endpoint section.") }
+            guard let selected else { throw rationalAlgebraFailure("A finite branch lost its original finite endpoint section.") }
             endpoints.append(selected)
         }
         try RationalAlgebraStorage.retain(endpoints.count, of: Int?.self, usage: &usage)
@@ -86,7 +91,7 @@ package struct OriginalMonicBranchClosure: Sendable {
             }
             if targetBase != base && endpointOrdinal == nil { continue }
             guard partition.cells[index].admissionDepth <= maximumDepth else {
-                throw rationalAlgebraFailure("Monic incidence cannot reset an original cell's inherited root depth.")
+                throw rationalAlgebraFailure("Finite branch incidence cannot reset an original cell's inherited root depth.")
             }
             var compatible = true
             for axis in sourcePath.indices {
@@ -110,7 +115,7 @@ package struct OriginalMonicBranchClosure: Sendable {
             if targetBase == base {
                 if index != cellIndex { return nil }
             } else {
-                guard let ordinal = endpointOrdinal else { throw rationalAlgebraFailure("A finite monic fiber lost its endpoint owner.") }
+                guard let ordinal = endpointOrdinal else { throw rationalAlgebraFailure("A finite branch fiber lost its endpoint owner.") }
                 if targets[ordinal] != nil || partition.cells[index].dimension != 0 { return nil }
                 targets[ordinal] = index
             }
