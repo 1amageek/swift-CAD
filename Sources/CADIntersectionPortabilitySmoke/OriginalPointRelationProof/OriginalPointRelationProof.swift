@@ -59,6 +59,7 @@ enum OriginalPointRelationProof {
     static nonisolated func run() throws {
         try planeDerivativeValueProof()
         try ruledPublicProof()
+        try affinePublicProof()
         let cs: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
         let discrete: any CurveSurfaceIntersecting = DefaultCurveSurfaceIntersector()
         let c = Curve3D.bSpline(curve()), p = Surface3D.bSpline(plane())
@@ -165,7 +166,7 @@ enum OriginalPointRelationProof {
     private static func admittedRuled(_ discrete: Bool, curve: Curve3D, surface: Surface3D,
         options: CurveSurfaceIntersectionOptions = .init(), allowance: OriginalPointRelationAllowance,
         sourceDepth: Int = 1, algebraDepth: Int = 32,
-        cancelAtStorageOrdinal: Int? = nil) throws -> [CurveSurfaceIntersection] {
+        cancelAtStorageOrdinal: Int? = nil, affineReceipt: Bool = false) throws -> [CurveSurfaceIntersection] {
         let storage: @Sendable (Int) throws -> Void = { count in
             try allowance.consumeStorage(count)
             if let ordinal = cancelAtStorageOrdinal, allowance.counts.storageCalls == ordinal {
@@ -184,7 +185,7 @@ enum OriginalPointRelationProof {
             tolerance: tolerance, maximumSpanCount: 1, maximumSubdivisionDepth: 0,
             remainingSourceDepth: sourceDepth, consumeWork: { _ in try allowance.consumeWork() },
             consumeStorage: storage, maximumAlgebraicDepth: algebraDepth)
-        try require(result.originalPolynomialPoints?.count == result.points.count)
+        try require((affineReceipt ? result.originalAffinePoints?.count : result.originalPolynomialPoints?.count) == result.points.count)
         return result.points
     }
 
@@ -310,6 +311,144 @@ enum OriginalPointRelationProof {
         print("PORTABLE_RULED_FINAL_STORAGE_CANCELLATION_POINT_EMPTY_OK")
     }
 
+    private static func affineImage(folded: Bool = false, inverse: Bool? = nil) throws -> OriginalAffineWordSurface3D {
+        let source: BSplineSurface3D
+        if folded {
+            source = .init(uDegree: 2, vDegree: 1, uKnots: [-1,-1,-1,1,1,1], vKnots: [3,3,5,5],
+                controlPoints: [[.init(x: 1,y: 0,z: 0), .init(x: -1,y: 0,z: 0), .init(x: 1,y: 0,z: 0)],
+                    [.init(x: 1,y: 1,z: 0), .init(x: -1,y: 1,z: 0), .init(x: 1,y: 1,z: 0)]])
+        } else {
+            source = .init(uDegree: 1, vDegree: 1, uKnots: [2,2,4,4], vKnots: [3,3,5,5],
+                controlPoints: [[.init(x: 0,y: 0,z: 0), .init(x: 1,y: 0,z: 0)],
+                    [.init(x: 0,y: 1,z: 0), .init(x: 1,y: 1,z: 0)]], weights: [[1,2],[1,2]])
+        }
+        let transform = try AffineTransform3D(
+            basisX: inverse == nil ? .unitX : .init(x: 2,y: 0,z: 0),
+            basisY: inverse == nil ? .unitY : .init(x: 1,y: -2,z: 0),
+            basisZ: inverse == nil ? .unitZ : .init(x: 0,y: 0,z: 2),
+            translation: inverse == nil ? .zero : .init(x: 5,y: 7,z: 11))
+        let allowance = OriginalPointRelationAllowance()
+        var usage = OriginalRelationUsage(consumeWork: { try allowance.consumeWork($0) },
+            retainStorage: { try allowance.consumeWordStorage($0) }, visitCell: { _ in try allowance.consumeWork() },
+            visitCoefficientCell: { _ in try allowance.consumeWork() })
+        let word = try OriginalAffineOperationWord(factors: [inverse == true ? .inverse(transform) : .forward(transform)],
+            tolerance: tolerance, maximumDepth: 32, usage: &usage)
+        return try .init(source: .bSpline(source), operationWord: word, tolerance: tolerance,
+            remainingSourceDepth: 2, maximumSubdivisionDepth: 8, maximumAlgebraicDepth: 32, usage: &usage)
+    }
+
+    private static func affinePublicProof() throws {
+        let rich: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
+        let discrete: any CurveSurfaceIntersecting = DefaultCurveSurfaceIntersector()
+        for inverse in [false, true] {
+            let expected = inverse ? Point3D(x: -3.875,y: 3.25,z: -5.5) : Point3D(x: 6.5,y: 6,z: 11)
+            let retained: OriginalAffineCurveSurfacePoints
+            do {
+                var image = try affineImage(inverse: inverse)
+                var curve = BSplineCurve3D(degree: 1, knots: [-2,-2,4,4], controlPoints: [
+                    .init(x: expected.x,y: expected.y,z: expected.z - 1),
+                    .init(x: expected.x,y: expected.y,z: expected.z + 1)], weights: [1,2])
+                let c = Curve3D.bSpline(curve), surface = Surface3D.procedural(.originalAffineWord(image))
+                let result = try rich.intersectionResult(curve: c, surface: surface, options: .init(), tolerance: tolerance)
+                try require(result.points.count == 1 && result.originalAffinePoints?.count == 1)
+                let point = result.points[0]
+                try require(point.point == expected && point.kind == .transverse && point.curveParameter == 0
+                    && abs(point.surfaceU - 8.0 / 3) < 1e-9 && point.surfaceV == 4)
+                for mode in [false, true] {
+                    try require(try admittedRuled(mode, curve: c, surface: surface,
+                        allowance: OriginalPointRelationAllowance(), affineReceipt: true) == result.points)
+                }
+                try require(try discrete.intersections(curve: c, surface: surface,
+                    options: .init(), tolerance: tolerance) == result.points)
+                guard let owner = result.originalAffinePoints else { throw ProofError.incorrectPublication }
+                curve.controlPoints[0] = .init(x: 100,y: 100,z: 100)
+                image = try affineImage()
+                retained = owner
+            }
+            try require(retained.surface == affineImage(inverse: inverse))
+            let handle = try retained.point(at: 0), ledger = OriginalPointRelationAllowance()
+            try require(retained.owns(handle))
+            var usage = OriginalRelationUsage(consumeWork: { try ledger.consumeWork($0) },
+                retainStorage: { try ledger.consumeWordStorage($0) }, visitCell: { _ in try ledger.consumeWork() },
+                visitCoefficientCell: { _ in try ledger.consumeWork() })
+            let u = try ExactRationalCoefficient.originalDouble(8, usage: &usage).divided(
+                by: .originalDouble(3, usage: &usage), usage: &usage)
+            let v = try ExactRationalCoefficient.originalDouble(4, usage: &usage)
+            for (axis, station) in [(0, ExactRationalCoefficient.zero), (1, u), (2, v)] {
+                try require(try handle.compareParameter(axis: axis, to: station, in: retained,
+                    maximumAlgebraicDepth: 32, usage: &usage) == .zero)
+            }
+            try require(ledger.counts.work > 0 && ledger.counts.storage > 0)
+        }
+        print("PORTABLE_AFFINE_FORWARD_INVERSE_FOUR_ROUTES_RETAINED_UV_WORD_OK")
+        let c = Curve3D.bSpline(ruledCurve()), surface = Surface3D.procedural(.originalAffineWord(try affineImage()))
+        let empty = try rich.intersectionResult(curve: .bSpline(ruledCurve(z0: 1,z1: 2)), surface: surface,
+            options: .init(), tolerance: tolerance)
+        try require(empty.points.isEmpty && empty.originalAffinePoints?.count == 0
+            && (empty.originalAffinePoints?.coverageCellCount ?? 0) > 0 && empty.originalAffinePoints?.effectiveDomains?.count == 3)
+        let continuous = Curve3D.bSpline(.init(degree: 1, knots: [0,0,1,1], controlPoints: [
+            .init(x: 0,y: 0.5,z: 0), .init(x: 1,y: 0.5,z: 0)]))
+        for mode in [false, true] {
+            try expectFailure(.nonDiscreteIntersection) {
+                _ = try admittedRuled(mode, curve: continuous, surface: surface,
+                    allowance: OriginalPointRelationAllowance(), affineReceipt: true)
+            }
+        }
+        try expectFailure(.nonDiscreteIntersection) {
+            _ = try rich.intersectionResult(curve: continuous, surface: surface, options: .init(), tolerance: tolerance)
+        }
+        try expectFailure(.nonDiscreteIntersection) {
+            _ = try discrete.intersections(curve: continuous, surface: surface, options: .init(), tolerance: tolerance)
+        }
+        for allowance in [OriginalPointRelationAllowance(work: 0), OriginalPointRelationAllowance(storage: 0)] {
+            try expectFailure(.resourceLimitExceeded) {
+                _ = try admittedRuled(false, curve: c, surface: surface, allowance: allowance, affineReceipt: true)
+            }
+        }
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try admittedRuled(false, curve: c, surface: surface,
+                allowance: OriginalPointRelationAllowance(), sourceDepth: 0, affineReceipt: true)
+        }
+        let irrational = Curve3D.bSpline(.init(degree: 2, knots: [0,0,0,1,1,1], controlPoints: [
+            .init(x: 0,y: 0.5,z: -0.5), .init(x: 0.5,y: 0.5,z: -0.5), .init(x: 1,y: 0.5,z: 0.5)]))
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try admittedRuled(false, curve: irrational, surface: surface,
+                allowance: OriginalPointRelationAllowance(), algebraDepth: 0, affineReceipt: true)
+        }
+        try expectFailure(.resourceLimitExceeded) {
+            _ = try rich.intersectionResult(curve: .bSpline(ruledCurve(weighted: false, x: 0.25)),
+                surface: .procedural(.originalAffineWord(affineImage(folded: true))),
+                options: .init(maximumCandidateCount: 1), tolerance: tolerance)
+        }
+        print("PORTABLE_AFFINE_EMPTY_ATOMIC_INDEPENDENT_LIMITS_OK")
+    }
+
+    private static nonisolated func affineCancellationProof() async throws {
+        let c = Curve3D.bSpline(ruledCurve()), surface = Surface3D.procedural(.originalAffineWord(try affineImage()))
+        for discrete in [false, true] {
+            for empty in [false, true] {
+                let options = CurveSurfaceIntersectionOptions(surfaceURange: empty ? try .init(lower: 5,upper: 6) : nil)
+                let baseline = OriginalPointRelationAllowance()
+                try require(try admittedRuled(discrete, curve: c, surface: surface,
+                    options: options, allowance: baseline, affineReceipt: true).count == (empty ? 0 : 1))
+                let finalCall = baseline.counts.storageCalls
+                try require(finalCall > 0)
+                let cancelled = OriginalPointRelationAllowance()
+                let operation = Task {
+                    try admittedRuled(discrete, curve: c, surface: surface, options: options,
+                        allowance: cancelled, cancelAtStorageOrdinal: finalCall, affineReceipt: true)
+                }
+                do { _ = try await operation.value }
+                catch is CancellationError {
+                    try require(cancelled.counts.storageCalls == finalCall)
+                    continue
+                }
+                throw ProofError.incorrectPublication
+            }
+        }
+        print("PORTABLE_AFFINE_FINAL_STORAGE_CANCELLATION_POINT_EMPTY_OK")
+    }
+
     private static func planeDerivativeValueProof() throws {
         var usage = OriginalRelationUsage(consumeWork: { _ in }, retainStorage: { _ in },
             visitCell: { _ in }, visitCoefficientCell: { _ in })
@@ -385,6 +524,7 @@ enum OriginalPointRelationProof {
 
     static nonisolated func cancellation() async throws {
         try await ruledCancellationProof()
+        try await affineCancellationProof()
         let operation = Task {
             let solver: any CurveSurfaceIntersectionResolving = DefaultCurveSurfaceIntersector()
             return try solver.intersectionResult(curve: .bSpline(curve()), surface: .bSpline(plane()),

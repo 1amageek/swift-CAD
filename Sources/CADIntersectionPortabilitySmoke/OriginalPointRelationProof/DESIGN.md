@@ -19,6 +19,7 @@ insufficient. Geometry algorithms remain production-owned.
 |---|---|---|---|---|
 | [Intersection Portability Smoke](../DESIGN.md) | parent | Fixed-target entry and bounded recipe | Joins cancellation proof | A failed target is not completion |
 | [Native CS Points](../../CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md) | depends on | Original tuple publication | Supplies curve/surface receipts | Positive dimension cannot publish an isolated subset |
+| [Original Affine CS Points](../../CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md) | depends on | Exact affine source word and complete original UV tuples | Checks common public witness and retained source | Native detailed cases remain their own proof |
 | [Original Polynomial CS Points](../../CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md) | depends on | Complete isolated original tuple receipts and atomic non-discrete refusal | Supplies unchanged ruled source authority | Native-only detailed cases are reused; this executable checks target public capabilities |
 | [Native SSI Points](../../CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md) | depends on | Original tuple publication | Supplies surface/surface receipts | Empty success requires full coverage |
 | [Original Plane Derivatives](../../CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md) | depends on | Immutable generated source and native decoding allowance | Exercises common indirect storage | Copying must preserve source semantics and lifetime |
@@ -47,6 +48,13 @@ retains complete empty coverage, and positive dimension fails atomically. Indepe
 work, storage, source-depth, algebra-depth and candidate limits fail explicitly.
 The actual last storage callback of point and domain-excluded empty publication
 cancels a joined Task and must reject success for admitted rich and discrete paths.
+The affine fixture preserves weighted Native UV under a rational forward/inverse
+shear and reflection, checks independent literal world coordinates through all four
+public requirements, and retains its exact source word after authored inputs are
+mutated and released. Exact point queries use the same checked work/word-storage
+ledger. Complete empty coverage, positive-dimensional atomic refusal, independent
+work/storage/source/algebra/candidate limits and final point/empty storage-callback
+cancellation are exercised on each executable target. Native detailed cases are reused.
 An original plane-derivative value must survive release of its original local
 value, retain equality and hash identity, and evaluate its literal center.
 Its retained RootSpan must also share directed source identity through double

@@ -68,6 +68,10 @@ Run `Scripts/verify_intersection_portability.py` with `--lane`, `--swift`, and
 to that matching SDK's WASI Embedded library. Each lane retains its receipt,
 build/runtime logs and raw artifact under `.build/intersection-portability/`.
 
+The original affine public checkpoint uses the same immutable receipt and ledger
+contract on Native, normal WASM and Embedded WASM; target evidence is scoped to
+the executed common source snapshot.
+
 ## Verification and Change Impact
 
 The bounded recipe compiles the complete modules using registered dependency
