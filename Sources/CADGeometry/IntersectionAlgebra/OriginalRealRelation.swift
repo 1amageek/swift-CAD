@@ -1,3 +1,5 @@
+import CADCore
+
 /// Complete selected original geometric parameter cells and their proved connected components.
 public struct OriginalRealRelation: Sendable {
     fileprivate final class Identity: Sendable {}
@@ -153,6 +155,7 @@ public struct OriginalRealRelation: Sendable {
             }
             connected.append(.init(cellIdentifiers: identifiers, dimension: dimension))
         }
+        try CurrentTaskCancellationChecker().checkCancellation()
         self.original = original; self.incidence = incidence; cells = published; self.components = connected
         identity = owner
     }
@@ -209,8 +212,10 @@ public struct OriginalRealRelation: Sendable {
                     maximumDepth: available, usage: &evaluated)
             } catch { admission = evaluated.base; throw error }
             admission = evaluated.base
+            try CurrentTaskCancellationChecker().checkCancellation()
             if included { return true }
         }
+        try CurrentTaskCancellationChecker().checkCancellation()
         return false
     }
 }

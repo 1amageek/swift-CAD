@@ -189,6 +189,55 @@ struct OriginalPolynomialRelationTests {
         #expect(operationBudget.consumedWork == 0)
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func finalStorageCallbackCancellationCannotPublishAnEmptyRelation() async throws {
+        let construction = Budget(); var constructionUsage = construction.usage
+        let predicate = try OriginalPolynomialPredicate(polynomialCount: 0,
+            instructions: [.literal(false)], usage: &constructionUsage)
+        let domain = try OriginalRationalParameterDomain(nil, usage: &constructionUsage)
+        let input = try OriginalPolynomialRelation(variableCount: 1, polynomials: [],
+            predicate: predicate, domains: [domain], usage: &constructionUsage)
+        let baseline = Budget(), observed = Mutex<[Int]>([])
+        let baselineUsage = baseline.usage
+        let counted = OriginalRelationUsage(consumeWork: { count in
+            var usage = baselineUsage; try usage.consumeExactWork(count)
+        }, retainStorage: { count in
+            var usage = baselineUsage; try usage.retainExactStorage(count)
+            observed.withLock { $0.append(count) }
+        }, visitCell: { depth in
+            var usage = baselineUsage; try usage.visitExactCell(depth: depth)
+        }, visitCoefficientCell: { depth in
+            var usage = baselineUsage; try usage.visitCoefficientCell(depth: depth)
+        })
+        let empty = try resolver.decompose(input, maximumDepth: 24,
+            maximumCoefficientDepth: 0, usage: counted)
+        #expect(empty.cells.isEmpty && empty.components.isEmpty)
+        let finalOrdinal = observed.withLock { $0.count }
+        #expect(finalOrdinal > 0 && observed.withLock { $0.last } == 0)
+        let operation = Budget(), calls = Mutex(0)
+        let operationUsage = operation.usage
+        let task = Task {
+            let cancelling = OriginalRelationUsage(consumeWork: { count in
+                var usage = operationUsage; try usage.consumeExactWork(count)
+            }, retainStorage: { count in
+                var usage = operationUsage; try usage.retainExactStorage(count)
+                let final = calls.withLock { $0 += 1; return $0 == finalOrdinal }
+                if final { withUnsafeCurrentTask { $0?.cancel() } }
+            }, visitCell: { depth in
+                var usage = operationUsage; try usage.visitExactCell(depth: depth)
+            }, visitCoefficientCell: { depth in
+                var usage = operationUsage; try usage.visitCoefficientCell(depth: depth)
+            })
+            return try resolver.decompose(input, maximumDepth: 24,
+                maximumCoefficientDepth: 0, usage: cancelling)
+        }
+        do {
+            _ = try await task.value
+            Issue.record("The final normal-return storage callback published a cancelled empty relation.")
+        } catch is CancellationError {}
+        #expect(calls.withLock { $0 } == finalOrdinal)
+    }
+
     private func relation(_ polynomials: [OriginalRationalPolynomial],
         instructions: [OriginalPolynomialPredicate.Instruction], bounded: Bool = false,
         usage: inout OriginalRelationUsage) throws -> OriginalPolynomialRelation {

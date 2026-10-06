@@ -344,7 +344,8 @@ struct IntersectionIncidenceTests {
             thomEncoding: true, maximumDepth: 24, usage: &usage)
         let interior = try #require(partition.solutionCells.first { partition.cells[$0].dimension == 2 })
         let incidence = try OriginalRationalIntersectionIncidence.prepare(partition: partition,
-            allowAffineClosureProofs: false, maximumDepth: 24, usage: &usage)
+            allowAffineClosureProofs: false, allowFiniteBranchClosureProofs: false,
+            maximumDepth: 24, usage: &usage)
         let closure = try #require(incidence.closures.first { $0.source.cellIndex == interior })
         let components = try incidence.connectedComponents(usage: &usage)
         #expect(components.components.count == 1)

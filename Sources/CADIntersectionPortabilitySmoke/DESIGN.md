@@ -2,10 +2,12 @@
 
 ## Purpose and Scope
 
-This executable verifies the public original native curve/surface and surface/surface
-isolated-point publication paths, including the bounded original Native curve/ruled
-public checkpoint. Parent: [Swift-CAD](../../DESIGN.md).
-Child: [Original Point Relation Proof](OriginalPointRelationProof/DESIGN.md).
+This executable verifies direct public original real polynomial decomposition
+and exact result queries, together with the public original native curve/surface
+and surface/surface isolated-point publication paths and bounded Native
+curve/ruled checkpoint. Parent: [Swift-CAD](../../DESIGN.md).
+Children: [Original Point Relation Proof](OriginalPointRelationProof/DESIGN.md) and
+[Original Real Relation Proof](OriginalRealRelationProof/DESIGN.md).
 
 ## Responsibilities and Boundaries
 
@@ -22,6 +24,7 @@ actual successful proof, and failure terminates the executable.
 | [CADGeometry](../CADGeometry/DESIGN.md) | depends on | Public original result and admission requirements | Owns actual producers and retained receipts | Complete module compilation is required |
 | [CADCore](../CADCore/DESIGN.md) | depends on | Typed failure and cancellation | Owns target-common failure meaning | Cancellation remains a failure |
 | [Original Point Relation Proof](OriginalPointRelationProof/DESIGN.md) | child | Public behavioral proof | Owns fixtures and comparisons | Marker follows all checks |
+| [Original Real Relation Proof](OriginalRealRelationProof/DESIGN.md) | child | Direct public rational/ordered decomposition and original result ownership | Owns requirement-5 common runtime matrix | No geometric-family completion inferred |
 
 ## Architecture
 
@@ -47,7 +50,10 @@ no ASCII-only replacement or weakened common String semantics is used.
 ## Runtime Flows
 
 The entry runs the synchronous public proof, joins the cancellation task, then
-prints the final marker. Any unexpected failure exits without that marker.
+prints the final marker. The real-relation proof separately executes the public
+decomposition/membership/refinement matrix and joins its own terminal cancellation
+checks before printing its Q5 marker. Any unexpected failure exits without the
+affected final marker.
 
 ## Failure, Concurrency, and Constraints
 

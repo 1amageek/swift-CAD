@@ -311,6 +311,36 @@ Non-generic protocol requirements remain usable through Native/WASM/Embedded
 existentials. Invalid rings/programs, foreign cell identifiers, cancellation,
 overflow and independent limits fail before atomic result publication.
 
+Atomic public publication and membership check current-task cancellation after
+the last composing admission callback, including a callback that cancels the
+current task and returns normally. Empty selections retain the same final
+boundary: no result or membership Boolean may escape a cancelled invocation.
+This invocation-local boundary adds no state, quota, source substitution or
+alternative mathematical path. The direct public final-callback regression owns
+this guarantee independently of pre-cancelled entry tests and upper wrappers.
+
+| Changed state/boundary | Native | WASM | Embedded WASM |
+|---|---|---|---|
+| Published source/cells/components | Same immutable retained owners | Same | Same |
+| Invocation admission | Local value forwarding caller callbacks | Same | Same |
+| Terminal cancellation | Current-task checker, no new callback | Same | Same |
+| Test callback counters | Mutex; forwarding/cancellation outside lock | Same proof driver contract | Same proof driver contract |
+
+There is no conditional storage, conformance, unchecked sharing or new mutable
+production state in this boundary change. Target compilation and execution of
+the common public proof driver establish the respective target evidence.
+
+The whole public polynomial completion matrix is owned by
+[OriginalRealPolynomialCompletionTests](../../../Tests/CADGeometryTests/OriginalRealPolynomialCompletionTests.swift),
+with the original rational and ordered public suites retained. It executes
+nonconstant laws with free axes in three/four geometric coordinates, all public
+cell dimensions, mixed region/point components, a singular crossing, repeated
+close root identities, and source-sample ordered coefficients after the local
+input/issuer scope ends. Membership and algebraic refinement retain original
+conjugates and independent limits. The forced general four-coordinate incidence
+fixture disables both affine and finite-branch certificates; enabling a new
+sufficient certificate does not silently replace that formula's evidence.
+
 Verification owns the public protocol path, real isolated points in positive
 complex-dimensional ideals, vertical/crossing/cusp components, open boundary
 disconnection, boolean unions, denominator exclusions, exact nonrepresentable
