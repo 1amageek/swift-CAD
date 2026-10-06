@@ -2,12 +2,13 @@
 
 ## Purpose and Scope
 Child of [Curve Surface Overlap](../DESIGN.md). Owns complete isolated original
-parameter tuples for nonperiodic, positive-weight, source-valid B-spline
-curve and tensor B-spline surface products across all positive native knot spans on finite closed native domains.
+parameter tuples for positive-weight, source-valid B-spline
+curve and tensor B-spline surface products across finite selected native knot spans,
+including exactly represented periodic transports.
 
 ## Responsibilities and Boundaries
 Admit original sources, prepare exact homogeneous laws and consume complete
-three-coordinate decomposition. Discrete publication requires every selected cell to have zero dimension.
+three-coordinate decomposition or authoritative whole common refinement. Discrete publication requires every selected cell to have zero dimension.
 Rich publication preserves globally isolated connected components and delegates complete
 positive-dimensional coverage to [Native Relation](../NativeRelation/DESIGN.md).
 Any positive-dimensional cell fails discrete queries with nonDiscreteIntersection;
@@ -30,13 +31,15 @@ on selected singleton cells; positive-dimensional coverage fails atomically.
 | [Overlap](../DESIGN.md) | parent | complete result | Native receipt accompanies points | Legacy receipts remain nil |
 | [Intersection Algebra](../../IntersectionAlgebra/DESIGN.md) | depends on | original system and decomposition | All equations, guards, closed-domain coverage | No sampled absence |
 | [Rational Algebra](../../RationalBivariateAlgebra/DESIGN.md) | depends on | homogeneous laws, ordered fields, retained isolation | Exact coordinates and representatives | Retain immutable field owners |
+| [Curve Chart Cover](../../OriginalNativeCurveChartCover/DESIGN.md) | depends on | original finite span/cycle owners | Exact translated curve laws | Every seam incident owner retained before publication |
+| [Surface Chart Cover](../../OriginalNativeSurfaceChartCover/DESIGN.md) | depends on | original finite tensor span/cycle owners | Exact independent U/V transports | Selected closed support and source binding retained |
 | [Query Admission](../../CurveSurfaceQueryAdmission/DESIGN.md) | coordinates with | independent depth, work and bytes | Shared caller allowance | Check word to byte arithmetic |
 
 ## Architecture
 ```text
 public rich/discrete entry -> source eligibility -> query-local allowance
   -> original curve spans x source-issued surface chart tokens
-  -> original laws -> complete decomposition for every closed product
+  -> original laws -> local proof or common original refinement
   -> all selected cells zero dimensional -> exact source endpoint ownership
   -> exact lexicographic tuple order -> localization -> points + chart-indexed receipt
 ```
@@ -45,10 +48,15 @@ public rich/discrete entry -> source eligibility -> query-local allowance
 Intersect requested and native closed domains exactly, including singleton and
 excluded products. Empty success retains complete exclusion coverage. Repeated
 roots yield one tuple; distinct UV tuples at the same XYZ and close roots remain
-distinct. Each chart retains its complete closed decomposition, including empty
-and domain-exclusion coverage. Source endpoint ownership follows the original
+distinct. Each chart retains its immutable original laws and issuer-native domains.
+Discrete and single-chart rich entries retain complete local decompositions;
+multi-chart rich entries retain one complete common refinement and exact
+source-owner exclusion evidence, including empty and domain-exclusion coverage. Source endpoint ownership follows the original
 BSplineBasis knotSpan rule: lower inclusive, internal upper exclusive, final
-native upper inclusive on the last positive span. Exact field-to-authored-knot
+nonperiodic native upper inclusive on the last positive span. Every periodic
+upper seam is exclusive on its left chart and owned by the right translated
+chart, including a selected final singleton. Periodic chart issuers retain both
+incident owners, so this exact choice loses no selected endpoint. Exact field-to-authored-knot
 comparison applies this rule independently to t/u/v before publication. Repeated
 zero-length knot intervals are not charts. Closed singleton requests at a knot
 therefore select the right original owner, including surface corners. Source
@@ -60,8 +68,17 @@ uses the existing algebra owner's exact scalar comparison port, retaining achiev
 parameter/coefficient depths. Chart indices, numerical representatives, XYZ and
 isolation-overlap alone never establish cross-field equality or order. Boundary
 ownership gives one chart for each admitted tuple; distinct UV stays distinct.
+Periodic public nativeDomains have nil bounds for the whole parameter ambient;
+nonperiodic axes retain closed native bounds. Requested periodic ranges are finite
+explicit selections or the existing public [0, period] default. Effective domains
+intersect only nonperiodic native constraints; they never wrap, restrict or
+canonicalize distinct unwrapped parameter tuples. Immutable sourceCharts expose
+issuer-bound native domains, span indices, independent cycles and original
+translations. Original point handles select their chart descriptor through their
+retained receipt. Publisher enclosures and representatives use translated
+issuer-native bounds, never unshifted knot indexes.
 The receipt's public native/requested/effectiveDomains describe the entire query,
-preserving single-span semantics. Its retained decomposition collection and each
+preserving single-span semantics. Its retained source binding collection and each
 point's chartIndex identifies the exact law and original span. Its cellIndex
 addresses the retained common refinement for rich multi-chart queries, or that
 chart's decomposition for the unchanged isolated path. The receipt records this
@@ -87,7 +104,7 @@ squared tangent/normal incidence to the exact represented angle threshold;
 undefined tangent or normal is mixed. Point Codable stays unchanged.
 
 ## Runtime Flows
-The same allowance admits preparation, every chart decomposition, exact ordering,
+The same allowance admits preparation, source bindings, selected complete decomposition, exact ordering,
 retention and localization. Product count uses checked multiplication and the
 existing caller maximumSpanCount (ordinary maximumCandidateCount) as one cumulative
 ceiling; it never resets for a curve span or surface axis. The result ceiling
@@ -126,6 +143,9 @@ Later public coordinate queries receive their own explicit allowance.
 owns public weighted/transverse, repeated/tangent, curved, multi-UV, close-root,
 closed/singleton/exclusion, selected equality, lifetime and explicit-limit tests.
 Selected rich and discrete entries also test cancellation inside their final storage
-callback for both a point result and complete empty coverage.
+callback for both a point result and complete empty coverage. NativePeriodicCurveSurfaceRelationTests
+owns curve-only, surface-only and both-periodic ordinary/admitted rich/discrete
+coverage, independent translated tuples, closed seams/singletons, full positive
+and mixed components, empty exclusion, retained lifetime and independent failure.
 Review the actual public entry, preparation, decomposition, all-cell dimension
 gate and exact-root publication paths when this contract changes.

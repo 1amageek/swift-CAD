@@ -5,6 +5,7 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
     public let curve: BSplineCurve3D
     public let surface: BSplineSurface3D
     public let certificationTolerance: ModelingTolerance
+    public let sourceCharts: [OriginalNativeCurveSurfaceChart]
     public let nativeDomains: [OriginalRationalParameterDomain]
     public let requestedDomains: [OriginalRationalParameterDomain]
     public let effectiveDomains: [OriginalRationalParameterDomain]?
@@ -20,11 +21,11 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
     init(curve: BSplineCurve3D, surface: BSplineSurface3D,
         tolerance: ModelingTolerance, nativeDomains: [OriginalRationalParameterDomain],
         requestedDomains: [OriginalRationalParameterDomain], effectiveDomains: [OriginalRationalParameterDomain]?,
-        charts: [NativeCurveSurfacePointChart], composedPartition: OriginalRationalIntersectionCells? = nil, pointCells: [NativeCurveSurfacePointCell],
+        charts: [NativeCurveSurfacePointChart], sourceCharts: [OriginalNativeCurveSurfaceChart], composedPartition: OriginalRationalIntersectionCells? = nil, pointCells: [NativeCurveSurfacePointCell],
         parameterIsolations: [OriginalSingularFieldValueIsolation],
         parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]) {
         self.curve = curve; self.surface = surface; certificationTolerance = tolerance
-        self.nativeDomains = nativeDomains; self.requestedDomains = requestedDomains
+        self.sourceCharts = sourceCharts; self.nativeDomains = nativeDomains; self.requestedDomains = requestedDomains
         self.effectiveDomains = effectiveDomains; self.charts = charts; self.composedPartition = composedPartition; self.pointCells = pointCells
         self.parameterIsolations = parameterIsolations
         self.parameterLocalizations = parameterLocalizations
@@ -92,7 +93,8 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
             return composedPartition.cells[reference.cellIndex]
         }
         guard charts.indices.contains(reference.chartIndex),
-            case .parameterCells(let strata, _, _) = charts[reference.chartIndex].decomposition.coverage,
+            let decomposition = charts[reference.chartIndex].decomposition,
+            case .parameterCells(let strata, _, _) = decomposition.coverage,
             strata.partition.cells.indices.contains(reference.cellIndex) else {
             throw GeometryConversionError.invalidInput("Native point lost its owning original chart cell.")
         }

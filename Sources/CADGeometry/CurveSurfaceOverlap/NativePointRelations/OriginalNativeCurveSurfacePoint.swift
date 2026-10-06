@@ -9,6 +9,13 @@ public struct OriginalNativeCurveSurfacePoint: Sendable {
         self.owner = owner; self.ordinal = ordinal
     }
 
+    public func sourceChart(in receipt: OriginalNativeCurveSurfacePoints) throws -> OriginalNativeCurveSurfaceChart {
+        guard receipt.owns(self) else {
+            throw GeometryConversionError.invalidInput("Original chart access requires the point's retained source receipt.")
+        }
+        return receipt.sourceCharts[receipt.pointCells[ordinal].chartIndex]
+    }
+
     /// Coordinate order is original native t, u, v. Foreign receipts are rejected.
     public func compareParameter<B: RationalAlgebraAdmitting>(axis: Int,
         to station: ExactRationalCoefficient, in receipt: OriginalNativeCurveSurfacePoints,

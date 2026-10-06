@@ -33,7 +33,7 @@ extension OriginalNativeCurveSurfaceRelation {
                 }
             }
         }
-        let system = charts[0].decomposition.system
+        let system = charts[0].system
         let lawCount = try composition?.laws.count ?? rationalAlgebraCount(system.equations.count, system.denominatorGuards.count)
         try RationalAlgebraStorage.retain(lawCount, of: OriginalOrderedPolynomial.self, usage: &admission)
         var laws: [OriginalOrderedPolynomial] = []; laws.reserveCapacity(lawCount)
@@ -102,7 +102,7 @@ extension OriginalNativeCurveSurfaceRelation {
                 instructions: instructions, usage: &admission)
         }
         try RationalAlgebraStorage.retain(2, of: OriginalRationalParameterDomain.self, usage: &admission)
-        let domains = Array((effectiveDomains ?? nativeDomains)[1...2])
+        let domains = Array((effectiveDomains ?? requestedDomains)[1...2])
         let relation = try OriginalPolynomialRelation(variableCount: 2, orderedPolynomials: laws,
             predicate: predicate, domains: domains, usage: &admission)
         return try DefaultOriginalPolynomialRelationResolver().decompose(relation,

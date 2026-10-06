@@ -17,8 +17,7 @@ struct NativeCurveSurfacePointProducer {
         tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil,
         retainingRelations: Bool = false)
         throws -> CurveSurfaceIntersectionResult? {
-        guard case .bSpline(let source) = curve, case .bSpline(let target) = surface,
-            !source.isPeriodic, !target.isUPeriodic, !target.isVPeriodic else { return nil }
+        guard case .bSpline(let source) = curve, case .bSpline(let target) = surface else { return nil }
         try options.validate(tolerance: tolerance)
         var usage = try NativeCurveSurfacePointAllowance(options: options, invocation: invocation)
         try usage.consumeExactWork(1)
@@ -34,33 +33,39 @@ struct NativeCurveSurfacePointProducer {
         let t = try ScalarInterval(lower: source.knots[source.degree], upper: source.knots[source.controlPointCount])
         let u = try ScalarInterval(lower: target.uKnots[target.uDegree], upper: target.uKnots[target.uControlPointCount])
         let v = try ScalarInterval(lower: target.vKnots[target.vDegree], upper: target.vKnots[target.vControlPointCount])
-        let nativeBox = SurfaceParameterBox(u: u, v: v)
-        let maximumSpans = min(invocation?.maximumSpanCount ?? options.maximumCandidateCount, 262_144)
-        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: { try usage.retainBytes($0) })
-        let spans = try prepared.originalNativeSpans(over: nativeBox, tolerance: tolerance,
-            maximumSpanCount: min(maximumSpans, 262_144), consumeWork: { try usage.consumeExactWork(1) },
-            consumeStorage: { try usage.retainBytes($0) })
-        var curveSpanCount = 0
-        for index in source.degree..<source.controlPointCount {
-            try usage.consumeExactWork(1)
-            if source.knots[index] < source.knots[index + 1] { curveSpanCount += 1 }
+        func selected(_ explicit: ScalarInterval?, native: ScalarInterval, periodic: Bool) throws -> ScalarInterval {
+            if let explicit { return explicit }
+            return periodic ? try .init(lower: 0, upper: native.upper - native.lower) : native
         }
-        let productCount = try rationalAlgebraCount(curveSpanCount, spans.count, multiply: true)
-        guard productCount > 0, productCount <= maximumSpans else {
-            throw failure(.resourceLimitExceeded, "Native point product count exceeds the cumulative span ceiling.", tolerance)
-        }
+        let selectedT = try selected(options.curveRange, native: t, periodic: source.isPeriodic)
+        let selectedU = try selected(options.surfaceURange, native: u, periodic: target.isUPeriodic)
+        let selectedV = try selected(options.surfaceVRange, native: v, periodic: target.isVPeriodic)
         try RationalAlgebraStorage.retain(9, of: OriginalRationalParameterDomain.self, usage: &usage)
-        let native = try [OriginalRationalParameterDomain(t, usage: &usage),
-            OriginalRationalParameterDomain(u, usage: &usage), OriginalRationalParameterDomain(v, usage: &usage)]
-        let requested = try [OriginalRationalParameterDomain(options.curveRange ?? t, usage: &usage),
-            OriginalRationalParameterDomain(options.surfaceURange ?? u, usage: &usage),
-            OriginalRationalParameterDomain(options.surfaceVRange ?? v, usage: &usage)]
+        let native = try [OriginalRationalParameterDomain(source.isPeriodic ? nil : t, usage: &usage),
+            OriginalRationalParameterDomain(target.isUPeriodic ? nil : u, usage: &usage),
+            OriginalRationalParameterDomain(target.isVPeriodic ? nil : v, usage: &usage)]
+        let requested = try [OriginalRationalParameterDomain(selectedT, usage: &usage),
+            OriginalRationalParameterDomain(selectedU, usage: &usage), OriginalRationalParameterDomain(selectedV, usage: &usage)]
         var effective: [OriginalRationalParameterDomain]? = []
+        effective?.reserveCapacity(3)
         for axis in 0..<3 {
             if let intersection = try native[axis].intersecting(requested[axis], usage: &usage) {
                 effective?.append(intersection)
             } else { effective = nil }
+        }
+        let maximumSpans = min(invocation?.maximumSpanCount ?? options.maximumCandidateCount, 262_144)
+        let curveCover = try OriginalNativeCurveChartCover(source: source,
+            over: source.isPeriodic ? selectedT : t, tolerance: tolerance,
+            maximumSpanCount: maximumSpans, usage: &usage)
+        let nativeBox = SurfaceParameterBox(u: target.isUPeriodic ? selectedU : u, v: target.isVPeriodic ? selectedV : v)
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: target, tolerance: tolerance,
+            consumeWork: { try usage.consumeExactWork(1) }, consumeStorage: { try usage.retainBytes($0) })
+        let spans = try prepared.originalIntersectionNativeSpans(over: nativeBox, tolerance: tolerance,
+            maximumSpanCount: maximumSpans, consumeWork: { try usage.consumeExactWork(1) },
+            consumeStorage: { try usage.retainBytes($0) })
+        let productCount = try rationalAlgebraCount(curveCover.spans.count, spans.count, multiply: true)
+        guard productCount > 0, productCount <= maximumSpans else {
+            throw failure(.resourceLimitExceeded, "Native point product count exceeds the cumulative span ceiling.", tolerance)
         }
         try RationalAlgebraStorage.retain(productCount, of: NativeCurveSurfacePointChart.self, usage: &usage)
         var charts: [NativeCurveSurfacePointChart] = []; charts.reserveCapacity(productCount)
@@ -69,24 +74,34 @@ struct NativeCurveSurfacePointProducer {
         var retainedParameters: [OriginalSingularFieldValueIsolation] = []
         var retainedLocalizations: [NativeCurveSurfaceScalarLocalization?] = []
         var capacity = 0
-        for curveSpan in source.degree..<source.controlPointCount {
+        for curveOwner in curveCover.spans {
             try usage.consumeExactWork(1)
-            guard source.knots[curveSpan] < source.knots[curveSpan + 1] else { continue }
-            let curveLaw = try OriginalRationalCurvePolynomial(source: source, spanIndex: curveSpan,
-                tolerance: tolerance, usage: &usage)
+            let curveLaw = curveOwner.law
             for span in spans {
                 try usage.consumeExactWork(1)
                 let surfaceLaw = try OriginalRationalSurfacePolynomial(source: target, native: span,
                     domain: .init(u: span.uBounds, v: span.vBounds), view: .init(x: 0, y: 0, z: 1),
                     tolerance: tolerance, usage: &usage)
                 let system = try OriginalRationalIntersectionSystem(curve: curveLaw, surface: surfaceLaw, usage: &usage)
-                let decomposition = try OriginalRationalIntersectionDecomposition.prepare(system: system,
-                    requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
-                    isolatedOnly: !retainingRelations, preferIsolatedCells: retainingRelations,
-                    maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                let decomposition: OriginalRationalIntersectionDecomposition?
+                let domains: [OriginalRationalParameterDomain]
+                if retainingRelations && productCount > 1 {
+                    // The whole common refinement proves these retained original source bindings.
+                    decomposition = nil
+                    try RationalAlgebraStorage.retain(3, of: OriginalRationalParameterDomain.self, usage: &usage)
+                    domains = try [.init(lower: curveLaw.lowerParameter, upper: curveLaw.upperParameter, usage: &usage),
+                        .init(span.uBounds, usage: &usage), .init(span.vBounds, usage: &usage)]
+                } else {
+                    let proved = try OriginalRationalIntersectionDecomposition.prepare(system: system,
+                        requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
+                        isolatedOnly: !retainingRelations, preferIsolatedCells: retainingRelations,
+                        maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+                    decomposition = proved; domains = proved.nativeDomains
+                }
                 let chartIndex = charts.count
-                charts.append(.init(curve: curveLaw, surface: surfaceLaw, decomposition: decomposition))
-                if !(retainingRelations && productCount > 1),
+                charts.append(.init(curveOwner: curveOwner, surfaceOwner: span, surface: surfaceLaw,
+                    system: system, nativeDomains: domains, decomposition: decomposition))
+                if let decomposition,
                     case .parameterCells(let strata, _, _) = decomposition.coverage,
                     let chartDomains = decomposition.effectiveDomains {
                     let partition = strata.partition
@@ -121,7 +136,7 @@ struct NativeCurveSurfacePointProducer {
                         let point = try publish(cell: partition.cells[index], partition: partition,
                             cellIndex: index, effectiveDomains: chartDomains, curve: curveLaw, surface: surfaceLaw,
                             options: options, tolerance: tolerance,
-                            nativeDomains: (try .init(lower: source.knots[curveSpan], upper: source.knots[curveSpan + 1]), span.uBounds, span.vBounds),
+                            nativeDomains: (curveOwner.nativeDomain, span.uBounds, span.vBounds),
                             retainingParameters: &parameters, retainingLocalizations: &localizations, usage: &usage)
                         // Source basis chooses the right positive span at every internal knot.
                         // Chart closure remains retained for coverage, but does not duplicate a tuple.
@@ -129,11 +144,12 @@ struct NativeCurveSurfacePointProducer {
                         for axis in 0..<3 {
                             let upper: Double, final: Double
                             switch axis {
-                            case 0: upper = source.knots[curveSpan + 1]; final = t.upper
+                            case 0: upper = curveOwner.nativeDomain.upper; final = t.upper
                             case 1: upper = span.uBounds.upper; final = u.upper
                             default: upper = span.vBounds.upper; final = v.upper
                             }
-                            if upper == final { continue }
+                            let periodic = axis == 0 ? source.isPeriodic : axis == 1 ? target.isUPeriodic : target.isVPeriodic
+                            if !periodic && upper == final { continue }
                             let comparison = try parameters[axis].compared(to: .originalDouble(upper, usage: &usage),
                                 maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
                             parameters[axis] = comparison.isolation
@@ -160,19 +176,17 @@ struct NativeCurveSurfacePointProducer {
                 }
             }
         }
+        try RationalAlgebraStorage.retain(charts.count, of: OriginalNativeCurveSurfaceChart.self, usage: &usage)
+        var sourceCharts: [OriginalNativeCurveSurfaceChart] = []; sourceCharts.reserveCapacity(charts.count)
+        for chart in charts { try usage.consumeExactWork(1); sourceCharts.append(.init(chart: chart)) }
         let relation: OriginalNativeCurveSurfaceRelation?
         if retainingRelations {
             try RationalAlgebraStorage.retain(1, of: OriginalNativeCurveSurfaceRelation.self, usage: &usage)
-            if charts.count == 1 {
-                relation = try .init(chart: charts[0], curve: source, surface: target, tolerance: tolerance,
-                    maximumCandidateCount: options.maximumCandidateCount,
-                    maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
-            } else {
-                relation = try .init(charts: charts, curve: source, surface: target, tolerance: tolerance,
-                    nativeDomains: native, requestedDomains: requested, effectiveDomains: effective,
-                    maximumCandidateCount: options.maximumCandidateCount,
-                    maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
-            }
+            relation = try .init(charts: charts, sourceCharts: sourceCharts,
+                curve: source, surface: target, tolerance: tolerance,
+                nativeDomains: native, requestedDomains: requested, effectiveDomains: effective,
+                maximumCandidateCount: options.maximumCandidateCount,
+                maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
         } else { relation = nil }
         if let common = relation?.composition, let effective {
             for component in common.connected.components {
@@ -191,8 +205,7 @@ struct NativeCurveSurfacePointProducer {
                     let point = try publish(cell: common.partition.cells[index], partition: common.partition,
                         cellIndex: index, effectiveDomains: effective, curve: chart.curve, surface: chart.surface,
                         options: options, tolerance: tolerance,
-                        nativeDomains: (try .init(lower: source.knots[chart.curve.spanIndex], upper: source.knots[chart.curve.spanIndex + 1]),
-                            chart.surface.domain.u, chart.surface.domain.v),
+                        nativeDomains: (chart.curveOwner.nativeDomain, chart.surfaceOwner.uBounds, chart.surfaceOwner.vBounds),
                         retainingParameters: &parameters, retainingLocalizations: &localizations, usage: &usage)
                     guard points.count < options.maximumCandidateCount else {
                         throw failure(.resourceLimitExceeded, "Native composed isolated tuple count exceeds the cumulative result ceiling.", tolerance)
@@ -216,12 +229,12 @@ struct NativeCurveSurfacePointProducer {
         try order(points: &points, references: &references, parameters: &retainedParameters,
             localizations: &retainedLocalizations, charts: charts, usage: &usage)
         try RationalAlgebraStorage.retainBytes(MemoryLayout<BSplineCurve3D>.stride + MemoryLayout<BSplineSurface3D>.stride
-            + MemoryLayout<ModelingTolerance>.stride + 8 * MemoryLayout<[Int]>.stride
+            + MemoryLayout<ModelingTolerance>.stride + 9 * MemoryLayout<[Int]>.stride
             + MemoryLayout<OriginalRationalIntersectionCells?>.stride
             + 2 * MemoryLayout<UnsafeRawPointer>.stride, usage: &usage)
         let receipt = OriginalNativeCurveSurfacePoints(curve: source, surface: target, tolerance: tolerance,
             nativeDomains: native, requestedDomains: requested, effectiveDomains: effective,
-            charts: charts, composedPartition: relation?.composition?.partition, pointCells: references,
+            charts: charts, sourceCharts: sourceCharts, composedPartition: relation?.composition?.partition, pointCells: references,
             parameterIsolations: retainedParameters, parameterLocalizations: retainedLocalizations)
         try RationalAlgebraStorage.retain(1, of: CurveSurfaceIntersectionResult.self, usage: &usage)
         try CurrentTaskCancellationChecker().checkCancellation()
