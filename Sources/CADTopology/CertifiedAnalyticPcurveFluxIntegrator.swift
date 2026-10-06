@@ -535,6 +535,11 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       )
     }
     switch curve {
+    case .originalAffineWord, .originalImage, .originalBSplineContinuation:
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Specialized analytic Green flux has
+      // no original image/continuation jet here. Its volume callers must use
+      // the support-bound parametric producer; nil is unsupported, not zero flux.
+      return nil
     case .affine(let origin, let direction, let startParameter, let endParameter):
       return try adaptiveJetBounds(
         requestedWidth: requestedWidth,
@@ -5434,6 +5439,14 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           + .constant(majorAxis.z * majorRadius) * values.cosine
           + .constant(minorAxis.z * minorRadius) * values.sine
       )
+    case .parameterImage, .originalAffineWord, .originalConstructionChart,
+      .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain,
+      .originalGuideEndpointConnector, .originalPolyline, .originalDrafted, .originalAngularTransport:
+      // FIXME(INCOMPLETE_IMPLEMENTATION): The specialized projected analytic
+      // flux path has no retained original image/chart jet producer. Volume
+      // callers must not replace its typed failure with a primitive proxy.
+      throw KernelError(phase: .topology, code: .unsupportedCapability,
+        tolerance: tolerance, message: "Projected analytic flux requires original image/chart jets.")
     case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
       .certifiedIntersection, .rigidImage, .affineImage:
       throw KernelError(

@@ -33,7 +33,7 @@ public struct BRepEdgeGeometryClassifier: Sendable {
             || remainingSourceDepth != 16 || maximumSubdivisionDepth != 32 {
             try curve.validate(tolerance: tolerance,
                 remainingSourceDepth: remainingSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { try consumeWork?(0) },
+                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { depth in try consumeWork?(depth) },
                 consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
         } else { try curve.validate(tolerance: tolerance) }
         return try classifiedKind(curve: curve, from: start, to: end, tolerance: tolerance)

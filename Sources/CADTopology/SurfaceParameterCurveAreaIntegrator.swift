@@ -97,7 +97,7 @@ package struct SurfaceParameterCurveAreaIntegrator {
     case .originalBSplineContinuation:
       // A numeric UV law needs no physical support metric. The canonical plane
       // binds its two source coordinates for the original chart producer.
-      return try originalChartBounds(for: curve, on: .plane(Plane3D(origin: .zero, normal: .unitZ)),
+      return try originalChartBounds(for: curve, on: .plane(Plane3D(origin: Point3D(x: 0, y: 0, z: 0), normal: .unitZ)),
         uShift: uShift, requestedWidth: requestedWidth, tolerance: tolerance)
     case .affine(let origin, let direction, let startParameter, let endParameter):
       let start = SurfaceParameter(

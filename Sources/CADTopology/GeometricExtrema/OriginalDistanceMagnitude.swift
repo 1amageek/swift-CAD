@@ -1,4 +1,5 @@
 import CADCore
+import CADGeometry
 
 /// Shared outward physical magnitude of nonnegative original coordinate gaps.
 package enum OriginalDistanceMagnitude {

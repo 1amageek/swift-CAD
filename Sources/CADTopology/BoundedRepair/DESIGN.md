@@ -33,6 +33,12 @@ never inherit a binary intrinsic period merely from their primitive source.
   and mesh position proofs; repair retains its own unchanged physical allowance.
 Vertex sewing moves references only within the requested distance tolerance and records the maximum displacement. Curve replacement preserves every incident directed pcurve by whole-interval proof. Shared edges have one canonical 3D curve. Shell face orientation propagation rejects contradictory incidence. Solid component repair retains explicit outer/void ownership, restores its forward/reversed shell law and uses original signed volume intervals to orient each shell boundary outward before applying its material role. A zero-straddling signed-volume proof leaves an explicit unresolved diagnostic. Generated/deleted topology and geometry are identified explicitly; tolerance is not silently increased. Each action is staged against its pre-action immutable snapshot. Surviving edge endpoint references are compared to the task-original source points; a sequence whose cumulative displacement exceeds the one requested allowance is rolled back with an explicit diagnostic. Each accepted action publishes exact generated/deleted source entity IDs and its cumulative maximum displacement.
 
+Bounded curve validation forwards the producer's actual source-depth visit to
+the same classifier work callback. Its arity adapter preserves that depth; it
+does not replace every visit with depth zero. A throwing caller admission aborts
+classification before an edge kind can be published.
+Regression owner: [Native dependency contracts](../../../Tests/CADTopologyTests/NativeDependencyContractTests.swift).
+
 ## Failure, Concurrency, and Constraints
 Cancellation propagates. A missing or ambiguous reconstruction leaves an explicit diagnostic. No partially proved candidate is reported as repaired.
 

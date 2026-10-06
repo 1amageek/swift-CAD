@@ -134,7 +134,6 @@ package struct CertifiedSurfaceParameterCurveEncloser {
       return try CertifiedAnalyticPcurveFluxIntegrator(maximumDepth: maximumDepth, consumeWork: consumeWork)
         .parameterEnclosures(
           for: curve,
-        on: surface,
           fromNormalizedFraction: boundedLower,
           toNormalizedFraction: boundedUpper,
           maximumWidth: maximumWidth,
@@ -409,7 +408,6 @@ package struct CertifiedSurfaceParameterCurveEncloser {
   ) throws -> [SurfaceParameterCurveEnclosure] {
     let derivativeBounds = try normalizedParameterDerivativeBounds(
       for: curve,
-      on: surface,
       tolerance: tolerance
     )
     var remainingCells = maximumCellCount

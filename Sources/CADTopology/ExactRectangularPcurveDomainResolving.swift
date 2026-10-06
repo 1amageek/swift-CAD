@@ -19,7 +19,7 @@ extension ExactRectangularPcurveDomainResolving {
         // have no original bounded traversal. Face bounds and query callers
         // must not publish complete accounting through their opaque resolver.
         guard consumeWork == nil, consumeStorage == nil else {
-            throw KernelError(phase: .topology, code: .unsupportedGeometry,
+            throw KernelError(phase: .topology, code: .unsupportedCapability,
                 tolerance: tolerance, message: "The injected rectangle provider has no bounded original traversal.")
         }
         return try resolve(face: face, model: model, tolerance: tolerance)

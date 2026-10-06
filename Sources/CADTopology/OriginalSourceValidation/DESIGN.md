@@ -55,6 +55,13 @@ Seam displacements stay as original rational coefficients through support
 period-lattice proof. Nonrepresentable differences are never rounded to a stored
 Double translation before deciding seam identity.
 
+Periodic seam and bounded loop-unwrapping operations borrow a nonescaping work
+callback for their entire synchronous invocation. Invocation-local exact proof
+adapters and edge classifiers may retain that borrowed callback only inside
+`withoutActuallyEscaping`; no adapter, classifier or callback is returned.
+Typed callback failures propagate unchanged through validation and publication.
+Regression owner: [Native dependency contracts](../../../Tests/CADTopologyTests/NativeDependencyContractTests.swift).
+
 ## Failure, Concurrency, and Constraints
 Admission contains only an immutable callback and invocation-local value state. It preserves Sendable across all targets. Cancellation and caller resource failures propagate. A bounded validation receipt must cover every lower source and correspondence visit; an opaque phase debit is insufficient.
 
