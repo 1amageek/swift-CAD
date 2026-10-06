@@ -273,6 +273,16 @@ arithmetic overflow and cumulative budget exhaustion are typed failures.
 
 ## Verification and Change Impact
 
+Exact rational to Double enclosure starts with the leading three UInt32 magnitude
+words (at least 65 significant source bits when the highest word is one), padded
+with zero words for one- and two-word values. The checked binary shift is
+(wordCount-3)*32 and admission charges three inspected words per magnitude.
+Exact rational comparisons and adjacent Double endpoint checks retain final
+outward authority. The extra prefix word prevents long ULP walks caused by a
+33-bit initial ratio estimate; it changes no source value or accuracy threshold.
+ExactRationalIntervalConversionTests checks short magnitudes, both signs,
+highest-one large fractions and subnormals under a bounded conversion work ledger.
+
 The current source-only phase precedes all build/test/compile/runtime/review.
 Later behavioral evidence must exercise exact subnormal/normal Double conversion,
 signed arithmetic, integer division/GCD, polynomial content and primitive GCD,

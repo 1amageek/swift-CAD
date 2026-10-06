@@ -15,6 +15,9 @@ nonzero-constant original equation prefixes and retains their exclusion witnesse
 The native producer also selects the [guarded native equation normalization
 contract](../../IntersectionAlgebra/DESIGN.md#guarded-native-equation-normalization)
 before decomposition, retaining original laws, guards and exact division identities.
+It selects [isolated native rank evaluation](../../IntersectionAlgebra/DESIGN.md#isolated-native-rank-evaluation),
+which keeps complete guarded equation coverage and evaluates original rank only
+on selected singleton cells; positive-dimensional coverage fails atomically.
 
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -41,7 +44,16 @@ exact ordered-field coordinates. Foreign receipt identities are rejected.
 Numerical parameter isolation starts from the retained original zero-cell section
 bounds, verified against the actual field coordinate. Exactly equal coordinates
 reuse the same retained bounds; achieved localization depths survive publication
-in the immutable receipt. Original curve interval
+in the immutable receipt. Native localization may reuse a retained rational-coefficient
+section root through the existing root refinement port. An exact affine field
+identity binds that prefix root to the final coordinate; both the identity and
+transported lower/upper signs are verified, with the original final field owner
+retained. Linear tower fibers are substituted only by their original exact law.
+The same primitive's refined interval can serve affine coordinates of that cell,
+without independent bisection of a linear fiber. Original parameter and coefficient
+causal depths, all work and all cumulative allocations survive transport. The
+receipt retains these affine/root proofs together with the final scalar bounds.
+Original curve interval
 laws produce XYZ seeds, likewise verified against the exact original point.
 Numerical XYZ and parameters lie inside outward exact-root enclosures; position
 error and residual obey unchanged distance tolerance. Kind compares original

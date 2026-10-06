@@ -52,6 +52,7 @@ struct NativeCurveSurfacePointProducer {
             OriginalRationalParameterDomain(options.surfaceVRange ?? v, usage: &usage)]
         let decomposition = try OriginalRationalIntersectionDecomposition.prepare(system: system,
             requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
+            isolatedOnly: true,
             maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
         var indices: [Int] = []
         if case .parameterCells(let strata, _, _) = decomposition.coverage {
@@ -75,21 +76,24 @@ struct NativeCurveSurfacePointProducer {
         try RationalAlgebraStorage.retain(parameterCount, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
         var points: [CurveSurfaceIntersection] = []; points.reserveCapacity(indices.count)
         var retainedParameters: [OriginalSingularFieldValueIsolation] = []; retainedParameters.reserveCapacity(parameterCount)
+        try RationalAlgebraStorage.retain(parameterCount, of: NativeCurveSurfaceScalarLocalization?.self, usage: &usage)
+        var retainedLocalizations: [NativeCurveSurfaceScalarLocalization?] = []; retainedLocalizations.reserveCapacity(parameterCount)
         if case .parameterCells(let strata, _, _) = decomposition.coverage,
             let effective = decomposition.effectiveDomains {
             for index in indices {
                 points.append(try publish(cell: strata.partition.cells[index], partition: strata.partition,
                     cellIndex: index, effectiveDomains: effective, curve: curveLaw, surface: surfaceLaw,
                     options: options, tolerance: tolerance, nativeDomains: (t, u, v),
-                    retainingParameters: &retainedParameters, usage: &usage))
+                    retainingParameters: &retainedParameters, retainingLocalizations: &retainedLocalizations, usage: &usage))
             }
         }
         try RationalAlgebraStorage.retainBytes(MemoryLayout<BSplineCurve3D>.stride + MemoryLayout<BSplineSurface3D>.stride
-            + MemoryLayout<ModelingTolerance>.stride + 2 * MemoryLayout<[Int]>.stride
+            + MemoryLayout<ModelingTolerance>.stride + 3 * MemoryLayout<[Int]>.stride
             + MemoryLayout<OriginalRationalIntersectionDecomposition>.stride
             + 2 * MemoryLayout<UnsafeRawPointer>.stride, usage: &usage)
         let receipt = OriginalNativeCurveSurfacePoints(curve: source, surface: target, tolerance: tolerance,
-            decomposition: decomposition, cellIndices: indices, parameterIsolations: retainedParameters)
+            decomposition: decomposition, cellIndices: indices, parameterIsolations: retainedParameters,
+            parameterLocalizations: retainedLocalizations)
         try RationalAlgebraStorage.retain(1, of: CurveSurfaceIntersectionResult.self, usage: &usage)
         return .init(points: points, overlaps: [], originalNativePoints: receipt)
     }
@@ -121,7 +125,9 @@ struct NativeCurveSurfacePointProducer {
         effectiveDomains: [OriginalRationalParameterDomain], curve: OriginalRationalCurvePolynomial, surface: OriginalRationalSurfacePolynomial,
         options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
         nativeDomains: (ScalarInterval, ScalarInterval, ScalarInterval),
-        retainingParameters: inout [OriginalSingularFieldValueIsolation], usage: inout NativeCurveSurfacePointAllowance) throws -> CurveSurfaceIntersection {
+        retainingParameters: inout [OriginalSingularFieldValueIsolation],
+        retainingLocalizations: inout [NativeCurveSurfaceScalarLocalization?],
+        usage: inout NativeCurveSurfacePointAllowance) throws -> CurveSurfaceIntersection {
         let depth = usage.maximumAlgebraicDepth
         let weight = try value(curve.homogeneous[3], curve: true, cell: cell, usage: &usage)
         try RationalAlgebraStorage.retain(6, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
@@ -173,6 +179,27 @@ struct NativeCurveSurfacePointProducer {
                 inheritedDepth: cell.admissionDepth, maximumDepth: depth, usage: &usage))
         }
         let kind = try classify(cell: cell, curve: curve, surface: surface, tolerance: tolerance, usage: &usage)
+        try RationalAlgebraStorage.retain(3, of: NativeCurveSurfaceScalarLocalization?.self, usage: &usage)
+        var localizations: [NativeCurveSurfaceScalarLocalization?] = []; localizations.reserveCapacity(3)
+        for axis in 0..<3 {
+            var localization: NativeCurveSurfaceScalarLocalization?
+            if isolations[axis].lower != isolations[axis].upper {
+                for prefix in 0...axis {
+                    let section = try OriginalNativeCurveSurfacePoints.sectionCellIndex(partition: partition,
+                        cellIndex: cellIndex, axis: prefix)
+                    localization = try NativeCurveSurfaceScalarLocalization.prepare(original: cell.coordinates[axis],
+                        sectionCoordinate: partition.cells[section].coordinates[prefix], isolation: isolations[axis],
+                        inheritedCoefficientDepth: cell.coefficientAdmissionDepth, maximumDepth: depth,
+                        maximumCoefficientDepth: partition.maximumCoefficientDepth, usage: &usage)
+                    if let localization {
+                        isolations[axis] = try isolations[axis].inheriting(depth: localization.parameterDepth,
+                            maximumDepth: depth, usage: &usage)
+                        break
+                    }
+                }
+            }
+            localizations.append(localization)
+        }
         var width = ExactRationalCoefficient.one
         try RationalAlgebraStorage.retain(6, of: OutwardScalarInterval.self, usage: &usage)
         var bounds: [OutwardScalarInterval] = []; bounds.reserveCapacity(6)
@@ -180,8 +207,20 @@ struct NativeCurveSurfacePointProducer {
             try usage.consumeExactWork(1)
             bounds.removeAll(keepingCapacity: true)
             for index in isolations.indices {
-                isolations[index] = try isolations[index].refined(maximumWidth: width,
-                    maximumDepth: depth, usage: &usage)
+                if index < 3, let localization = localizations[index] {
+                    var reusable: NativeCurveSurfaceScalarLocalization?
+                    for previous in 0..<index {
+                        if let proof = localizations[previous],
+                            proof.primitiveCoordinate.context === localization.primitiveCoordinate.context { reusable = proof }
+                    }
+                    let refined = try localization.refined(maximumWidth: width, isolation: isolations[index],
+                        reusing: reusable, maximumDepth: depth,
+                        maximumCoefficientDepth: partition.maximumCoefficientDepth, usage: &usage)
+                    localizations[index] = refined.proof; isolations[index] = refined.isolation
+                } else {
+                    isolations[index] = try isolations[index].refined(maximumWidth: width,
+                        maximumDepth: depth, usage: &usage)
+                }
                 bounds.append(try isolations[index].enclosure(usage: &usage))
             }
             let parameters = (
@@ -201,7 +240,10 @@ struct NativeCurveSurfacePointProducer {
                 bounds[0].upper - bounds[0].lower <= tolerance.distance,
                 bounds[1].upper - bounds[1].lower <= tolerance.distance,
                 bounds[2].upper - bounds[2].lower <= tolerance.distance {
-                for axis in 0..<3 { try usage.consumeExactWork(1); retainingParameters.append(isolations[axis]) }
+                for axis in 0..<3 {
+                    try usage.consumeExactWork(1); retainingParameters.append(isolations[axis])
+                    retainingLocalizations.append(localizations[axis])
+                }
                 return try .init(point: point, curveParameter: parameters.0, surfaceU: parameters.1,
                     surfaceV: parameters.2, kind: kind, residual: residual, iterations: iteration)
             }

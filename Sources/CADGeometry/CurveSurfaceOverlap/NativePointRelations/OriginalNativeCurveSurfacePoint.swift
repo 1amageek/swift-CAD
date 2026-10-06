@@ -28,7 +28,8 @@ public struct OriginalNativeCurveSurfacePoint: Sendable {
         let cell = try owner.cell(at: ordinal)
         let isolation = try owner.parameterIsolation(at: ordinal, axis: axis)
         return .init(original: isolation.original, inheritedDepth: isolation.sourceDepth,
-            inheritedCoefficientDepth: cell.coefficientAdmissionDepth,
+            inheritedCoefficientDepth: max(cell.coefficientAdmissionDepth,
+                owner.parameterLocalizations[ordinal * 3 + axis]?.coefficientDepth ?? 0),
             certifiedBounds: (isolation.lower, isolation.upper))
     }
 }

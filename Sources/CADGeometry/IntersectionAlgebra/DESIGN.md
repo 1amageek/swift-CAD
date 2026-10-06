@@ -975,6 +975,19 @@ equation is equivalent to its normalized equation only on D != 0; the retained
 original nonzero guards remain mandatory in complete parameter-cell selection.
 All polynomial work and cumulative retention use the caller admission.
 
+The isolated native selection additionally removes actual repeated factors before
+ideal preparation using the existing squareFree operation. Original guarded F is
+retained with support S and the checked exact identity F=S Q. Only nonconstant Q
+selects this change. A retained finite descent removes gcd(current,S) until a
+nonzero constant remains, checking current=g R and S=g H at each step and strict
+total-degree descent. Thus S=0 implies F=0 by the first identity, and F=0 implies
+S=0 because each removed factor divides S and the final cofactor cannot vanish.
+Raw original multiplicities and Jacobian remain authoritative. Zero/constant
+equations bypass this optional simplification; invalid support, constant factors
+before completion, failed identities or failed descent propagate typed failure.
+No polynomial powers or new factorization engine are introduced. Other consumers
+keep this option disabled.
+
 Native decomposition can opt into this receipt before ideal preparation; the
 default remains false for all other consumers. The resulting normalized ideal
 is distinct from the raw original ideal. Strata computes Jacobian and minors
@@ -994,3 +1007,28 @@ raw native equations + original guards
 checks retained identities, guarded zero-locus equivalence, denominator-zero
 exclusion, zero-equation termination and raw Jacobian rank. Native Point Relations
 selects normalization; its public weighted oracle checks the actual entry path.
+
+### Isolated Native Rank Evaluation
+
+Native decomposition may select isolatedOnly (default false). This finite closed
+domain port first retains complete cells for the normalized basis and original
+nonzero denominator guards, without adding Jacobian minors to projection. Thom
+encoding remains enabled to satisfy the retained incidence receipt contract. Any
+selected positive-dimensional cell fails atomically with nonDiscreteIntersection
+before issuing a rank or decomposition receipt. For all-zero-dimensional coverage,
+the raw original Jacobian and indexed minors are retained. Each minor is reduced
+exactly by the retained ideal and evaluated in the same singleton cell's ordered
+field. Its exact signs and achieved independent causal depths are retained in the
+stratum; rank is constant on that zero-dimensional singleton. Empty coverage is
+still complete exclusion. The general sign-invariant rank partition remains the
+default for every other consumer.
+
+```text
+complete guarded equation cells
+    -> positive dimension: atomic nonDiscreteIntersection
+    -> all singleton cells: raw indexed minors -> exact field signs + rank receipt
+```
+
+NativeGuardedNormalizationTests compares the isolated rank receipt with the
+general rank partition. BSplineCurveSurfaceTangencyTests owns the nonseparable
+positive-weight repeated-root regression using unchanged published option limits.

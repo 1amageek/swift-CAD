@@ -1,5 +1,5 @@
 import CADCore
-import CADGeometry
+@testable import CADGeometry
 import Testing
 
 @Suite("B-spline Curve-Surface Tangency")
@@ -50,6 +50,38 @@ struct BSplineCurveSurfaceTangencyTests {
         #expect(abs(intersection.curveParameter - 0.5) <= 1.0e-5)
         #expect(intersection.residual <= tolerance.distance)
         #expect(intersection.iterations > 0)
+        let rich = try DefaultCurveSurfaceIntersector().intersectionResult(curve: curve, surface: surface,
+            options: .init(maximumSubdivisionDepth: 12, maximumIterations: 64), tolerance: tolerance)
+        #expect(rich.points == result)
+        let receipt = try #require(rich.originalNativePoints)
+        guard case .parameterCells(let strata, _, _) = receipt.decomposition.coverage else {
+            Issue.record("Original repeated-root contact lost its complete native coverage.")
+            return
+        }
+        #expect(strata.jacobian.equations == receipt.decomposition.system.equations)
+        #expect(strata.strata.first?.originalJacobianRank == 2)
+        #expect(strata.strata.first?.isolatedRankSigns?.count == strata.jacobian.minors.count)
+        var proofUsage = OriginalRelationUsage(consumeWork: { _ in }, retainStorage: { _ in },
+            visitCell: { _ in }, visitCoefficientCell: { _ in })
+        let uProof = try #require(receipt.parameterLocalizations[1])
+        let vProof = try #require(receipt.parameterLocalizations[2])
+        #expect(uProof.primitiveCoordinate.context === vProof.primitiveCoordinate.context)
+        #expect(uProof.parameterDepth <= 32 && vProof.parameterDepth <= 32)
+        #expect(uProof.parameterDepth >= strata.partition.cells[receipt.cellIndices[0]].admissionDepth)
+        #expect(vProof.multiplier == (try ExactRationalCoefficient.originalDouble(-4.0,
+            usage: &proofUsage).divided(by: .natural(9, usage: &proofUsage), usage: &proofUsage)))
+        #expect(vProof.offset == (try ExactRationalCoefficient.natural(7, usage: &proofUsage)
+            .divided(by: .natural(9, usage: &proofUsage), usage: &proofUsage)))
+        #expect(try uProof.identityDifference.sign(maximumDepth: 32, usage: &proofUsage) == .zero)
+        #expect(try vProof.identityDifference.sign(maximumDepth: 32, usage: &proofUsage) == .zero)
+        let handle = try receipt.point(at: 0)
+        for axis in [1, 2] {
+            let enclosed = try handle.parameter(axis: axis, in: receipt).enclosed(maximumDepth: 32,
+                maximumCoefficientDepth: 32, usage: proofUsage)
+            let lower = try enclosed.lower.outwardInterval(usage: &proofUsage)
+            let upper = try enclosed.upper.outwardInterval(usage: &proofUsage)
+            #expect(upper.upper - lower.lower <= tolerance.distance)
+        }
     }
 
     @Test(.timeLimit(.minutes(1)))
@@ -97,7 +129,8 @@ struct BSplineCurveSurfaceTangencyTests {
         ))
         #expect(abs(intersection.curveParameter - 0.5) <= 1.0e-5)
         #expect(intersection.residual <= tolerance.distance)
-        #expect(intersection.iterations > 0)
+        #expect(abs(intersection.surfaceU - 0.5) <= tolerance.distance)
+        #expect(abs(intersection.surfaceV - 0.5) <= tolerance.distance)
     }
 
     @Test(.timeLimit(.minutes(1)))

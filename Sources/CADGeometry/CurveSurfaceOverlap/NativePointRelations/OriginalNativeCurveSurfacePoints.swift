@@ -12,13 +12,16 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
     package let decomposition: OriginalRationalIntersectionDecomposition
     package let cellIndices: [Int]
     private let parameterIsolations: [OriginalSingularFieldValueIsolation]
+    let parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]
 
-    package init(curve: BSplineCurve3D, surface: BSplineSurface3D,
+    init(curve: BSplineCurve3D, surface: BSplineSurface3D,
         tolerance: ModelingTolerance, decomposition: OriginalRationalIntersectionDecomposition,
-        cellIndices: [Int], parameterIsolations: [OriginalSingularFieldValueIsolation]) {
+        cellIndices: [Int], parameterIsolations: [OriginalSingularFieldValueIsolation],
+        parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]) {
         self.curve = curve; self.surface = surface; certificationTolerance = tolerance
         self.decomposition = decomposition; self.cellIndices = cellIndices
         self.parameterIsolations = parameterIsolations
+        self.parameterLocalizations = parameterLocalizations
     }
 
     public func point(at index: Int) throws -> OriginalNativeCurveSurfacePoint {
@@ -42,6 +45,16 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
 
     package static func sectionBounds(partition: OriginalRationalIntersectionCells, cellIndex: Int, axis: Int)
         throws -> (lower: ExactRationalCoefficient, upper: ExactRationalCoefficient) {
+        let index = try sectionCellIndex(partition: partition, cellIndex: cellIndex, axis: axis)
+        let cell = partition.cells[index], stack = partition.stacks[cell.stackIndex]
+        guard case .section(let rootOrdinal) = cell.kind, stack.roots.indices.contains(rootOrdinal) else {
+            throw rationalAlgebraFailure("A zero-dimensional native tuple lost its original section root.")
+        }
+        let bounds = stack.roots[rootOrdinal].isolation
+        return (bounds.lower, bounds.upper)
+    }
+
+    static func sectionCellIndex(partition: OriginalRationalIntersectionCells, cellIndex: Int, axis: Int) throws -> Int {
         guard partition.cells.indices.contains(cellIndex), (0..<3).contains(axis) else {
             throw GeometryConversionError.invalidInput("Native coordinate seed requires its owning original section.")
         }
@@ -52,8 +65,7 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
                 guard case .section(let rootOrdinal) = cell.kind, stack.roots.indices.contains(rootOrdinal) else {
                     throw rationalAlgebraFailure("A zero-dimensional native tuple lost its original section root.")
                 }
-                let bounds = stack.roots[rootOrdinal].isolation
-                return (bounds.lower, bounds.upper)
+                return index
             }
             guard stack.axis > axis, let parent = stack.parentCell else {
                 throw rationalAlgebraFailure("Native coordinate seed lost its complete parent stack.")
