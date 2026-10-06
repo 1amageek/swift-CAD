@@ -26,3 +26,5 @@ Immutable Sendable values own the source graph. Invalid decimal grammar, nonposi
 
 ## Verification and Change Impact
 Source authoring precedes execution. Behavioral evidence must distinguish exact MILLImetre location 1000 -> 1 metre from a binary 0.001 factor, retain two-generation raw custom chains, reject malformed decimal/exponent/dimensions and exercise the original caller limits. Changes affect placement/primitive readers, Native strict codecs, portable source encoding and context writers.
+
+Native identity fields use the parent [Native identity adapter](../DESIGN.md#native-identity-adapter). Explicit encoding retains every original conversion field and nullable prefix; source schema and exact decimal interpretation do not change.

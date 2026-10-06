@@ -64,13 +64,17 @@ public enum IndependentShapeAngularCurveSelection {
         case .canonicalGain(let gain):
             let selected = Curve3D.parameterImage(ParameterImageCurve3D(validatedSource: basis,
                 parameterGain: gain, offset: 0))
-            try selected.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: maximumSourceDepth,
-                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try usage.consumeExactWork(1) },
-                consumeStorage: { bytes in
-                    let rounded = bytes.addingReportingOverflow(MemoryLayout<UInt32>.stride - 1)
-                    guard bytes >= 0, !rounded.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Angular selected chart storage overflows.") }
-                    try usage.retainExactStorage(rounded.partialValue / MemoryLayout<UInt32>.stride)
-                }, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            func storage(_ bytes: Int) throws {
+                let rounded = bytes.addingReportingOverflow(MemoryLayout<UInt32>.stride - 1)
+                guard bytes >= 0, !rounded.overflow else { throw IndependentShapeSourceError.resourceLimitExceeded("Angular selected chart storage overflows.") }
+                try usage.retainExactStorage(rounded.partialValue / MemoryLayout<UInt32>.stride)
+            }
+            // Original source validation is synchronous and does not retain its callbacks.
+            try withoutActuallyEscaping(storage) { storage in
+                try selected.validateOriginalSource(tolerance: tolerance, remainingSourceDepth: maximumSourceDepth,
+                    maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: { _ in try usage.consumeExactWork(1) },
+                    consumeStorage: storage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+            }
             return selected
         case .physicalRadians(let gain):
             let transport = OriginalAngularParameterTransport.physicalRadians(gain: gain, offset: .zero)

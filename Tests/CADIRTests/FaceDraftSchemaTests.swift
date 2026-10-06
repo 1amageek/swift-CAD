@@ -7,6 +7,26 @@ import CADTopology
 @Suite("Face Draft Schema")
 struct FaceDraftSchemaTests {
     @Test(.timeLimit(.minutes(1)))
+    func defaultMethodRoundTripsWithoutChangingEarlierSchema() throws {
+        let id = FeatureID()
+        let face = StableSubshapeReference(subshapeID: .init(featureID: id, role: "face", ordinal: 0),
+            geometrySignature: .untrimmedPlane(origin: .origin))
+        let neutral = StableSubshapeReference(subshapeID: .init(featureID: id, role: "face", ordinal: 1),
+            geometrySignature: .untrimmedPlane(origin: .init(x: 0, y: 0, z: 1)))
+        let feature = FaceDraftFeature(target: .init(featureID: id), faces: [face], neutralFace: neutral,
+            angle: .constant(.angle(5, unit: .degree)))
+        let data = try JSONEncoder().encode(feature)
+        let object = try #require(JSONSerialization.jsonObject(with: data) as? [String: Any])
+        #expect(object["method"] == nil)
+        #expect(try JSONDecoder().decode(FaceDraftFeature.self, from: data) == feature)
+        #expect(try JSONDecoder().decode(FaceDraftFeature.self, from: data).method == .isocline)
+        var explicit = feature
+        explicit.method = .surface(reference: neutral)
+        #expect(try JSONDecoder().decode(FaceDraftFeature.self,
+            from: JSONEncoder().encode(explicit)) == explicit)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
     func rejectsLegacyPullDirectionField() throws {
         let featureID = FeatureID()
         let target = StableSubshapeReference(

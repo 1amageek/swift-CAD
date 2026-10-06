@@ -1,3 +1,12 @@
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADIR numeric algorithms require the target C math module.")
+#endif
 import CADCore
 import CADGeometry
 import CADTopology
@@ -17,11 +26,19 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
         var budget = Budget(limits: limits, check: check)
         // Admit all record storage and scan work before creating a duplicate/index set.
         for count in [source.geometry.curves.count, source.geometry.surfaces.count,
-                      source.items.count, source.geometricSets.count, source.contexts.count, source.ambientContexts.count, source.representations.count,
-                      source.frames.count, source.definitions.count, source.curveNames.count, source.surfaceNames.count,
-                      source.curvePositionFrames.count, source.surfacePositionFrames.count, source.surfaceAngularMeasures.count, source.curveLinearSources.count,
-                      source.curveSplineSources.count, source.surfaceSplineSources.count,
-                      source.groups.count, source.originalSTEPGroups.count, source.instances.count, source.productAssociations.count, source.roots.count] {
+                      source.items.count, source.geometricSets.count, source.contexts.count,
+                      source.ambientContexts.count, source.representations.count] {
+            try budget.records(count)
+        }
+        for count in [source.frames.count, source.definitions.count, source.curveNames.count,
+                      source.surfaceNames.count, source.curvePositionFrames.count,
+                      source.surfacePositionFrames.count, source.surfaceAngularMeasures.count,
+                      source.curveLinearSources.count] {
+            try budget.records(count)
+        }
+        for count in [source.curveSplineSources.count, source.surfaceSplineSources.count,
+                      source.groups.count, source.originalSTEPGroups.count, source.instances.count,
+                      source.productAssociations.count, source.roots.count] {
             try budget.records(count)
         }
         for group in source.groups { try budget.records(group.members.count); try budget.records(group.backPointerMembers.count) }
@@ -416,7 +433,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
                     try budget.records(1); angularAssociatedItems.insert(item.id)
                     try validateAngularBinding(item: item, source: source, originalAngularSource: context.originalAngularSource, tolerance: tolerance, budget: &budget)
                     try validateLengthBinding(item: item, source: source, frames: frames,
-                        originalLengthSource: context.originalLengthSource, units: context.units, budget: &budget)
+                        originalLengthSource: context.originalLengthSource, lengthUnit: context.units.length, budget: &budget)
                 case .geometricSet(let id):
                     guard let set = sets[id] else { throw missing("Original representation geometric set.") }
                     for id in set.members {
@@ -425,7 +442,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
                         try budget.records(1); angularAssociatedItems.insert(item.id)
                     try validateAngularBinding(item: item, source: source, originalAngularSource: context.originalAngularSource, tolerance: tolerance, budget: &budget)
                     try validateLengthBinding(item: item, source: source, frames: frames,
-                        originalLengthSource: context.originalLengthSource, units: context.units, budget: &budget)
+                        originalLengthSource: context.originalLengthSource, lengthUnit: context.units.length, budget: &budget)
                     }
                 case .body:
                     guard representation.family == .shape || representation.family == .representation else {
@@ -462,7 +479,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
                     }
                 })?.originalSTEPPlacement?.lengthUnit ?? .meter
                 try validateLengthBinding(item: item, source: source, frames: frames,
-                    originalLengthSource: source.ambientOriginalLengthSource, units: UnitSystem(length: nativeUnits), budget: &budget)
+                    originalLengthSource: source.ambientOriginalLengthSource, lengthUnit: nativeUnits, budget: &budget)
             }
         }
         for (id, measure) in source.surfaceAngularMeasures {
@@ -832,10 +849,10 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
 
     private func validateLengthBinding(item: IndependentShapeItem, source: IndependentShapeSource,
         frames: [IndependentShapeFrameID: IndependentShapeFrame], originalLengthSource: OriginalSTEPLengthSource?,
-        units: UnitSystem, budget: inout Budget) throws {
+        lengthUnit: LengthUnit, budget: inout Budget) throws {
         if case .curve(let id, _) = item.geometry, let linear = source.curveLinearSources[id] {
             let contextGain = try originalLengthSource?.exactGain(maximumDepth: budget.limits.maximumDepth, usage: &budget)
-                ?? ExactRationalCoefficient.originalDouble(units.length.toInternal(1), usage: &budget)
+                ?? ExactRationalCoefficient.originalDouble(lengthUnit.toInternal(1), usage: &budget)
             let lineGain = try linear.originalLengthSource?.exactGain(maximumDepth: budget.limits.maximumDepth, usage: &budget)
                 ?? ExactRationalCoefficient.originalDouble(linear.lengthUnit.toInternal(1), usage: &budget)
             guard try contextGain.subtracting(lineGain, usage: &budget).isZero else {
@@ -850,7 +867,7 @@ public struct DefaultIndependentShapeSourceValidator: IndependentShapeSourceVali
         }
         guard let association, let frame = frames[association.frameID], let original = frame.originalSTEPPlacement else { return }
         let contextGain = try originalLengthSource?.exactGain(maximumDepth: budget.limits.maximumDepth, usage: &budget)
-            ?? ExactRationalCoefficient.originalDouble(units.length.toInternal(1), usage: &budget)
+            ?? ExactRationalCoefficient.originalDouble(lengthUnit.toInternal(1), usage: &budget)
         let frameGain = try original.originalLengthSource?.exactGain(maximumDepth: budget.limits.maximumDepth, usage: &budget)
             ?? ExactRationalCoefficient.originalDouble(original.lengthUnit.toInternal(1), usage: &budget)
         guard try contextGain.subtracting(frameGain, usage: &budget).isZero else {

@@ -194,3 +194,22 @@ IndependentShapeGroup.id identifies one original assignment. Required-nullable o
 ### Ambient original STEP GROUP declarations
 
 Required originalSTEPGroups retains every actual GROUP owner independently of zero or more assignments; the [owner child](OriginalSTEPGroup/DESIGN.md) owns its raw contract. Declarations are explicit ambient metadata anchors, like ambientContexts, and are not inferred geometry roots. An owner-only source may have empty geometry/items/frames/roots. Geometric graph owners still require complete original root reachability. Assignment originalSTEPGroupID must resolve to this collection and its bound metadata must agree exactly. Translation copies declarations unchanged. Native Source23 requires the collection, including empty arrays; all parent copying and portable encoding must preserve it.
+
+Native dependency repair preserves the original angular descriptor authority.
+The private length-only binding accepts LengthUnit, with representation contexts
+supplying their existing units.length and unassociated items supplying the
+retained LINE/frame length unit or the existing metre convention. It does not
+construct or infer an angle unit. Angular binding remains independently derived
+from the actual `ambientOriginalAngularSource`. Record
+admission scans bounded batches in original order before creating index storage.
+`IndependentShapeNativeDependencyTests` checks public validation and cancellation.
+
+`IndependentShapeAngularCurveSelection.foreignCurve` lends its canonical-gain
+storage callback only during the synchronous original source validation call.
+The [lower validation contract](../../CADGeometry/OriginalGeometrySourceValidation/DESIGN.md)
+stores no callbacks; `withoutActuallyEscaping` expresses this scope for the
+optional callback parameter. Both work and checked byte-to-UInt32 storage
+admission mutate the original inout caller ledger directly, including failures;
+no copied usage or replacement allowance is created. A selected source retains
+its original laws, not the callback. The focused independent-source tests own
+same-ledger work/storage success, storage refusal and cancellation evidence.

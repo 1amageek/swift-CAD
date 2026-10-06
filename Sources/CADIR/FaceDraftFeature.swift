@@ -100,10 +100,11 @@ public struct FaceDraftFeature: Hashable, Sendable {
         // Isocline, the method of every earlier document, is left out so those stay byte-identical.
         if method != .isocline { try container.encode(method, forKey: .method) }
     }
+#endif
 }
 
 /// Draft Face's taper method.
-public enum FaceDraftMethod: Codable, Hashable, Sendable {
+public enum FaceDraftMethod: Hashable, Sendable {
     /// Each face turns about its crossing with the neutral plane, making the angle with the pull
     /// direction (the neutral face's outward normal).
     case isocline
@@ -136,7 +137,6 @@ public enum FaceDraftMethod: Codable, Hashable, Sendable {
             try reference.validate()
         }
     }
-#endif
 }
 
 public struct FaceDraftTargetReference: Hashable, Sendable {
@@ -173,6 +173,7 @@ public struct FaceDraftTargetReference: Hashable, Sendable {
 }
 
 #if !hasFeature(Embedded)
+extension FaceDraftMethod: Codable {}
 extension FaceDraftFeature: Codable {}
 extension FaceDraftTargetReference: Codable {}
 #endif

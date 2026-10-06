@@ -21,14 +21,14 @@ extension OriginalSTEPPlacementElement: Codable {
         try OriginalSTEPPlacementDecoding.admitRecord(from: decoder, work: 3)
         let object = try decoder.container(keyedBy: Keys.self)
         try object.validateOnlyExpectedKeys([.id, .name, .coordinates], in: decoder)
-        id = try object.decode(PortableIdentity128.self, forKey: .id)
+        id = try OriginalSTEPIdentityCoding.decode(from: object.superDecoder(forKey: .id))
         name = try object.decode(String.self, forKey: .name)
         let vectorDecoder = try object.superDecoder(forKey: .coordinates)
         coordinates = try IndependentShapeFrameDecoding.decodeVector(from: vectorDecoder)
     }
     public func encode(to encoder: Encoder) throws {
         var object = encoder.container(keyedBy: Keys.self)
-        try object.encode(id, forKey: .id); try object.encode(name, forKey: .name)
+        try object.encode(id.canonicalString, forKey: .id); try object.encode(name, forKey: .name)
         try object.encode(coordinates, forKey: .coordinates)
     }
 }

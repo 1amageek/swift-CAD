@@ -29,3 +29,5 @@ Preparation borrows caller RationalAlgebraAdmitting work/storage/depth. Nonfinit
 
 ## Verification and Change Impact
 Independent original LINE fixtures must exercise nonunit direction ratios, every length prefix/conversion chain, shared named elements, directed Cartesian/parameter trims, translation and Native/two standard generations. Caller budget/cancellation and exact physical endpoints are required. New source fields require parent Native/portable writer composition; runtime verification occurs after all source authoring.
+
+Native vector IDs use the shared [Native identity adapter](../OriginalSTEPPlacement/DESIGN.md#native-identity-adapter), preserving the original canonical text schema independently of Core Codable capability.
