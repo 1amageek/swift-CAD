@@ -234,6 +234,44 @@ struct NativeCurveSurfacePointTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true], [false, true])
+    func cancellationInFinalStorageAdmissionRejectsPublication(discrete: Bool, empty: Bool) async throws {
+        let solver = DefaultCurveSurfaceIntersector()
+        let curve = Curve3D.bSpline(weighted()), surface = Surface3D.bSpline(plane())
+        let options = CurveSurfaceIntersectionOptions(
+            surfaceURange: empty ? try ScalarInterval(lower: 2, upper: 3) : nil)
+        @Sendable func query(_ consumeStorage: @escaping @Sendable (Int) throws -> Void) throws -> [CurveSurfaceIntersection] {
+            if discrete {
+                return try solver.intersections(curve: curve, surface: surface, options: options, tolerance: tolerance,
+                    maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+                    consumeWork: { _ in }, consumeStorage: consumeStorage, maximumAlgebraicDepth: 32)
+            }
+            let result = try solver.intersectionResult(curve: curve, surface: surface, options: options, tolerance: tolerance,
+                maximumSpanCount: 1, maximumSubdivisionDepth: 0, remainingSourceDepth: 1,
+                consumeWork: { _ in }, consumeStorage: consumeStorage, maximumAlgebraicDepth: 32)
+            #expect(result.originalNativePoints?.count == (empty ? 0 : 1))
+            return result.points
+        }
+        let total = Mutex(0)
+        let baseline = try query { _ in total.withLock { $0 += 1 } }
+        #expect(baseline.count == (empty ? 0 : 1))
+        let finalCall = total.withLock { $0 }
+        #expect(finalCall > 0)
+        let visits = Mutex(0)
+        let operation = Task {
+            try query { _ in
+                let count = visits.withLock { $0 += 1; return $0 }
+                if count == finalCall { withUnsafeCurrentTask { $0?.cancel() } }
+            }
+        }
+        do {
+            _ = try await operation.value
+            Issue.record("Cancellation in final native storage admission returned success.")
+        } catch is CancellationError {
+            #expect(visits.withLock { $0 } == finalCall)
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func cancellationInsideOriginalPreparationPropagates() async throws {
         let visits = Mutex(0)

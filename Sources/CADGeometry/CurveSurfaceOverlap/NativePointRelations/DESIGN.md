@@ -79,6 +79,9 @@ no shared state, target isolation branch or unsafe synchronization is introduced
 ## Failure, Concurrency, and Constraints
 Degree, span, source, work, storage, exact depth, result count, iteration and
 cancellation failures propagate. Incomplete coverage never grants empty success.
+Publication checks cancellation after the final storage-admission callback returns
+and before exposing either points or complete empty coverage. A callback that cancels
+the current task and returns normally must still produce CancellationError.
 No tolerance equality, XYZ deduplication, fitted law or fallback grants authority.
 Later public coordinate queries receive their own explicit allowance.
 
@@ -86,5 +89,7 @@ Later public coordinate queries receive their own explicit allowance.
 [NativeCurveSurfacePointTests](../../../../Tests/CADGeometryTests/NativeCurveSurfacePointTests.swift)
 owns public weighted/transverse, repeated/tangent, curved, multi-UV, close-root,
 closed/singleton/exclusion, selected equality, lifetime and explicit-limit tests.
+Selected rich and discrete entries also test cancellation inside their final storage
+callback for both a point result and complete empty coverage.
 Review the actual public entry, preparation, decomposition, all-cell dimension
 gate and exact-root publication paths when this contract changes.

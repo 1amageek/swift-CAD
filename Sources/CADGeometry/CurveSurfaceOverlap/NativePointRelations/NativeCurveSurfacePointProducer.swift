@@ -95,6 +95,7 @@ struct NativeCurveSurfacePointProducer {
             decomposition: decomposition, cellIndices: indices, parameterIsolations: retainedParameters,
             parameterLocalizations: retainedLocalizations)
         try RationalAlgebraStorage.retain(1, of: CurveSurfaceIntersectionResult.self, usage: &usage)
+        try Task.checkCancellation()
         return .init(points: points, overlaps: [], originalNativePoints: receipt)
     }
 
