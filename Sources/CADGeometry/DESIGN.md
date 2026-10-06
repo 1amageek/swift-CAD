@@ -1,5 +1,7 @@
 # CADGeometry
 
+Native isolated Bezier curve/tensor surface queries are owned by [Native Point Relations](CurveSurfaceOverlap/NativePointRelations/DESIGN.md), a child of CurveSurfaceOverlap. Complete original coverage and exact parameter identity authorize its publication.
+
 Public arc-length inverse localization accepts CADCore's ScalarInterval. Its
 stored closed endpoints enter internal outward arithmetic unchanged; the
 package-only OutwardScalarInterval remains an implementation boundary. This

@@ -10,16 +10,21 @@ package struct OriginalRationalIntersectionDecomposition: Sendable {
     package let requestedDomains: [OriginalRationalParameterDomain]
     package let effectiveDomains: [OriginalRationalParameterDomain]?
     package let coverage: Coverage
+    package let guardedEquations: OriginalGuardedIntersectionEquations?
 
     private init(system: OriginalRationalIntersectionSystem,
         nativeDomains: [OriginalRationalParameterDomain], requestedDomains: [OriginalRationalParameterDomain],
-        effectiveDomains: [OriginalRationalParameterDomain]?, coverage: Coverage) {
+        effectiveDomains: [OriginalRationalParameterDomain]?, coverage: Coverage,
+        guardedEquations: OriginalGuardedIntersectionEquations? = nil) {
         self.system = system; self.nativeDomains = nativeDomains; self.requestedDomains = requestedDomains
         self.effectiveDomains = effectiveDomains; self.coverage = coverage
+        self.guardedEquations = guardedEquations
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(system: OriginalRationalIntersectionSystem,
-        requestedDomains: [OriginalRationalParameterDomain]? = nil, maximumDepth: Int, usage: inout B) throws -> Self {
+        requestedDomains: [OriginalRationalParameterDomain]? = nil,
+        pruneExcludedPrefixes: Bool = false, normalizeDenominatorFactors: Bool = false,
+        maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard maximumDepth >= 0, (3...4).contains(system.variableCount),
             requestedDomains == nil || requestedDomains?.count == system.variableCount else {
@@ -37,15 +42,22 @@ package struct OriginalRationalIntersectionDecomposition: Sendable {
             }
             effective.append(domain)
         }
-        let ideal = try ExactIntersectionIdeal.prepare(equations: system.equations, variableCount: system.variableCount, usage: &usage)
+        let guarded: OriginalGuardedIntersectionEquations?
+        if normalizeDenominatorFactors {
+            guarded = try .prepare(equations: system.equations, denominatorGuards: system.denominatorGuards,
+                variableCount: system.variableCount, usage: &usage)
+        } else { guarded = nil }
+        let ideal = try ExactIntersectionIdeal.prepare(equations: guarded?.normalizedEquations ?? system.equations,
+            variableCount: system.variableCount, usage: &usage)
         let strata = try OriginalRationalIntersectionStrata.prepare(ideal: ideal, exactDomains: effective,
             nonzeroPolynomials: system.denominatorGuards, thomEncoding: true,
-            maximumDepth: maximumDepth, usage: &usage)
+            originalRankEquations: guarded?.originalEquations,
+            pruneExcludedPrefixes: pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &usage)
         let incidence = try OriginalRationalIntersectionIncidence.prepare(partition: strata.partition,
             maximumDepth: maximumDepth, usage: &usage)
         let components = try incidence.connectedComponents(usage: &usage)
         return Self(system: system, nativeDomains: native, requestedDomains: requested,
-            effectiveDomains: effective, coverage: .parameterCells(strata, incidence, components))
+            effectiveDomains: effective, coverage: .parameterCells(strata, incidence, components), guardedEquations: guarded)
     }
 
     private static func nativeDomains<B: RationalAlgebraAdmitting>(system: OriginalRationalIntersectionSystem,

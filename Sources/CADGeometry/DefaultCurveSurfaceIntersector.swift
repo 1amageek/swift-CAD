@@ -210,6 +210,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
       consumeWork: consumeWork, consumeStorage: consumeStorage,
       maximumAlgebraicDepth: maximumAlgebraicDepth)
+    if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+      options: options, tolerance: tolerance, invocation: context) { return native.points }
     try curve.validateOriginalSource(tolerance: tolerance,
       remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: context.maximumSubdivisionDepth,
       consumeWork: { _ in try context.consumeFixedWork() }, consumeStorage: consumeStorage,
@@ -238,6 +240,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     options: CurveSurfaceIntersectionOptions,
     tolerance: ModelingTolerance
   ) throws -> [CurveSurfaceIntersection] {
+    if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+      options: options, tolerance: tolerance, invocation: invocation) { return native.points }
     try invocation?.consumeFixedWork()
     try options.validate(tolerance: tolerance)
     try curve.validate(tolerance: tolerance)

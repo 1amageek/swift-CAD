@@ -878,3 +878,15 @@ Original and extended algebraic contexts retain their full original field path.
 Native, WASM and Embedded use the same immutable owner and implementation.
 Identity powers may reuse their original coefficient without allocating new
 polynomial storage; cancellation and inspected work are still admitted.
+
+### Verified Original Scalar Seeds
+
+A complete native zero-cell consumer may seed scalar localization with retained
+rational section bounds. OriginalSingularFieldValueIsolation validates ordered
+bounds against the actual retained field value using exact lower/upper signs,
+rejects a foreign or invalid interval, and preserves every inherited depth.
+OriginalAlgebraicCoordinate can retain those bounds for later caller-admitted
+queries. This port changes no root identity, equation coverage or depth ceiling.
+[Native Point Relations](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md)
+owns section extraction and geometric bound production. NativeCurveSurfacePointTests
+owns invalid/reversed/excluding seed rejection and depth-preserving refinement.

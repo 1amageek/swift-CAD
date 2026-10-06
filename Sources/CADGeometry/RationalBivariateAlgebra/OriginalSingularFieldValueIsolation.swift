@@ -80,6 +80,29 @@ package struct OriginalSingularFieldValueIsolation: Sendable {
         }
     }
 
+    /// Verifies a retained source enclosure before using it as a localization seed.
+    package init<B: RationalAlgebraAdmitting>(original: OriginalSingularFieldElement,
+        lower: ExactRationalCoefficient, upper: ExactRationalCoefficient,
+        inheritedDepth: Int, maximumDepth: Int, usage: inout B) throws {
+        var depth = max(inheritedDepth, original.context.depth)
+        guard inheritedDepth >= 0, depth <= maximumDepth else { throw Self.exhausted() }
+        guard !(try upper.subtracting(lower, usage: &usage)).isNegative else {
+            throw rationalAlgebraFailure("Original scalar seed has reversed rational bounds.")
+        }
+        let lowerSign = try Self.compare(original, to: lower, depth: &depth,
+            maximumDepth: maximumDepth, usage: &usage)
+        let upperSign = try Self.compare(original, to: upper, depth: &depth,
+            maximumDepth: maximumDepth, usage: &usage)
+        guard lowerSign != .negative, upperSign != .positive else {
+            throw rationalAlgebraFailure("Original scalar seed excludes its retained exact field value.")
+        }
+        try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
+        self.original = original; sourceDepth = depth
+        if let rational = try original.rationalValue(usage: &usage) {
+            self.lower = rational; self.upper = rational
+        } else { self.lower = lower; self.upper = upper }
+    }
+
     package func refined<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> Self {
         guard maximumWidth.isPositive, sourceDepth <= maximumDepth else { throw Self.exhausted() }
