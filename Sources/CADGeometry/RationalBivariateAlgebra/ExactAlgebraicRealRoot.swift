@@ -26,6 +26,36 @@ public struct ExactAlgebraicRealRoot: Sendable {
         self.polynomial = polynomial; self.isolation = isolation; self.sequence = sequence
     }
 
+    /// Reuse the retained Sturm authority for a contracted original unique-root bracket.
+    package func retainingIsolation<B: RationalAlgebraAdmitting>(_ bounds: ExactUnivariateRootIsolator.Root,
+        usage: inout B) throws -> Self {
+        try CurrentTaskCancellationChecker().checkCancellation()
+        try usage.visitExactCell(depth: bounds.isolationDepth)
+        let comparisonWork = try rationalAlgebraCount(
+            max(bounds.lower.numerator.words.count, isolation.lower.numerator.words.count),
+            max(bounds.lower.denominator.words.count, isolation.lower.denominator.words.count))
+        let upperComparisonWork = try rationalAlgebraCount(
+            max(bounds.upper.numerator.words.count, isolation.upper.numerator.words.count),
+            max(bounds.upper.denominator.words.count, isolation.upper.denominator.words.count))
+        try usage.consumeExactWork(try rationalAlgebraCount(comparisonWork, upperComparisonWork))
+        if bounds.isolationDepth == isolation.isolationDepth,
+            bounds.isRationalStation == isolation.isRationalStation,
+            bounds.excludesLowerEndpoint == isolation.excludesLowerEndpoint,
+            bounds.excludesUpperEndpoint == isolation.excludesUpperEndpoint,
+            bounds.lower == isolation.lower, bounds.upper == isolation.upper {
+            return self
+        }
+        guard bounds.isolationDepth >= isolation.isolationDepth,
+            !(try bounds.lower.subtracting(isolation.lower, usage: &usage)).isNegative,
+            !(try isolation.upper.subtracting(bounds.upper, usage: &usage)).isNegative,
+            try sequence.count(lower: bounds.lower, upper: bounds.upper,
+                excludesLower: bounds.excludesLowerEndpoint, excludesUpper: bounds.excludesUpperEndpoint,
+                usage: &usage) == 1 else {
+            throw rationalAlgebraFailure("Retained rational root contraction lost original unique-root authority.")
+        }
+        return Self(polynomial: polynomial, isolation: bounds, sequence: sequence)
+    }
+
     /// Carries causal pair depth without changing the certified original root.
     func retainingDepth(_ depth: Int) throws -> Self {
         guard depth >= isolation.isolationDepth else {
@@ -40,6 +70,16 @@ public struct ExactAlgebraicRealRoot: Sendable {
 
     public func refined<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> Self {
+        try refined(maximumWidth: maximumWidth, maximumDepth: maximumDepth, useIntervalNewton: true, usage: &usage)
+    }
+
+    package func refinedForSeparation<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
+        maximumDepth: Int, usage: inout B) throws -> Self {
+        try refined(maximumWidth: maximumWidth, maximumDepth: maximumDepth, useIntervalNewton: false, usage: &usage)
+    }
+
+    private func refined<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
+        maximumDepth: Int, useIntervalNewton: Bool, usage: inout B) throws -> Self {
         guard maximumWidth.isPositive, maximumDepth >= isolation.isolationDepth else {
             throw rationalAlgebraFailure("Exact algebraic refinement needs positive width and caller depth.")
         }
@@ -73,7 +113,7 @@ public struct ExactAlgebraicRealRoot: Sendable {
                 excludesLowerEndpoint: false, excludesUpperEndpoint: false)
             return Self(polynomial: polynomial, isolation: station, sequence: sequence)
         }
-        let derivative = try polynomial.differentiated(alongU: true, usage: &usage)
+        let derivative = useIntervalNewton ? try polynomial.differentiated(alongU: true, usage: &usage) : nil
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
         while try upper.subtracting(lower, usage: &usage).subtracting(maximumWidth, usage: &usage).isPositive {
             try usage.visitExactCell(depth: depth)
@@ -86,29 +126,31 @@ public struct ExactAlgebraicRealRoot: Sendable {
             if middleValue.isZero {
                 lower = middle; upper = middle; excludesLower = false; excludesUpper = false; depth += 1; break
             }
-            let derivativeRange = try OriginalRationalPolynomialRange(original: derivative,
-                lower: lower, upper: upper, usage: &usage)
-            if derivativeRange.lower.isPositive || derivativeRange.upper.isNegative {
-                let first = try middleValue.divided(by: derivativeRange.lower, usage: &usage)
-                let last = try middleValue.divided(by: derivativeRange.upper, usage: &usage)
-                let ascending = try last.subtracting(first, usage: &usage).isPositive
-                let newtonLower = try middle.subtracting(ascending ? last : first, usage: &usage)
-                let newtonUpper = try middle.subtracting(ascending ? first : last, usage: &usage)
-                let nextLower = try newtonLower.subtracting(lower, usage: &usage).isPositive ? newtonLower : lower
-                let nextUpper = try upper.subtracting(newtonUpper, usage: &usage).isPositive ? newtonUpper : upper
-                let nextExcludesLower = nextLower == lower ? excludesLower : false
-                let nextExcludesUpper = nextUpper == upper ? excludesUpper : false
-                guard !(try nextUpper.subtracting(nextLower, usage: &usage)).isNegative,
-                      nextLower != lower || nextUpper != upper,
-                      try sequence.count(lower: nextLower, upper: nextUpper,
-                        excludesLower: nextExcludesLower, excludesUpper: nextExcludesUpper,
-                        usage: &usage) == 1 else {
-                    throw rationalAlgebraFailure("Original rational interval Newton contraction contradicted unique-root authority.")
+            if let derivative {
+                let derivativeRange = try OriginalRationalPolynomialRange(original: derivative,
+                    lower: lower, upper: upper, usage: &usage)
+                if derivativeRange.lower.isPositive || derivativeRange.upper.isNegative {
+                    let first = try middleValue.divided(by: derivativeRange.lower, usage: &usage)
+                    let last = try middleValue.divided(by: derivativeRange.upper, usage: &usage)
+                    let ascending = try last.subtracting(first, usage: &usage).isPositive
+                    let newtonLower = try middle.subtracting(ascending ? last : first, usage: &usage)
+                    let newtonUpper = try middle.subtracting(ascending ? first : last, usage: &usage)
+                    let nextLower = try newtonLower.subtracting(lower, usage: &usage).isPositive ? newtonLower : lower
+                    let nextUpper = try upper.subtracting(newtonUpper, usage: &usage).isPositive ? newtonUpper : upper
+                    let nextExcludesLower = nextLower == lower ? excludesLower : false
+                    let nextExcludesUpper = nextUpper == upper ? excludesUpper : false
+                    guard !(try nextUpper.subtracting(nextLower, usage: &usage)).isNegative,
+                          nextLower != lower || nextUpper != upper,
+                          try sequence.count(lower: nextLower, upper: nextUpper,
+                            excludesLower: nextExcludesLower, excludesUpper: nextExcludesUpper,
+                            usage: &usage) == 1 else {
+                        throw rationalAlgebraFailure("Original rational interval Newton contraction contradicted unique-root authority.")
+                    }
+                    lower = nextLower; upper = nextUpper
+                    excludesLower = nextExcludesLower; excludesUpper = nextExcludesUpper
+                    depth += 1
+                    continue
                 }
-                lower = nextLower; upper = nextUpper
-                excludesLower = nextExcludesLower; excludesUpper = nextExcludesUpper
-                depth += 1
-                continue
             }
             let left = try sequence.count(lower: lower, upper: middle,
                 excludesLower: excludesLower, excludesUpper: false, usage: &usage)

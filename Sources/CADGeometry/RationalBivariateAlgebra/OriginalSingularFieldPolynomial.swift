@@ -1,3 +1,5 @@
+import CADCore
+
 /// Canonical univariate polynomial over one exact retained ordered field.
 package struct OriginalSingularFieldPolynomial: Sendable {
     package let context: OriginalSingularFieldContext
@@ -19,6 +21,11 @@ package struct OriginalSingularFieldPolynomial: Sendable {
             else { break }
         }
         self.coefficients = values
+    }
+
+    /// Receives only owned, same-context buffers whose leading zero trim was verified.
+    private init(context: OriginalSingularFieldContext, canonicalCoefficients: [OriginalSingularFieldElement]) {
+        self.context = context; self.coefficients = canonicalCoefficients
     }
 
     package func adding<B: RationalAlgebraAdmitting>(_ other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
@@ -46,7 +53,16 @@ package struct OriginalSingularFieldPolynomial: Sendable {
     }
     package func multiplied<B: RationalAlgebraAdmitting>(by other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
         try sameContext(other, usage: &usage)
+        try CurrentTaskCancellationChecker().checkCancellation()
         if isZero || other.isZero { return try Self(context: context, coefficients: [], maximumDepth: maximumDepth, usage: &usage) }
+        if degree == 0, try coefficients[0].rationalValue(usage: &usage) == .one {
+            _ = try other.coefficients[other.degree].sign(maximumDepth: maximumDepth, usage: &usage)
+            return other
+        }
+        if other.degree == 0, try other.coefficients[0].rationalValue(usage: &usage) == .one {
+            _ = try coefficients[degree].sign(maximumDepth: maximumDepth, usage: &usage)
+            return self
+        }
         let count = try rationalAlgebraCount(coefficients.count, other.degree)
         let zero = try OriginalSingularFieldElement.constant(.zero, in: context, maximumDepth: maximumDepth, usage: &usage)
         try RationalAlgebraStorage.retain(count, of: OriginalSingularFieldElement.self, usage: &usage)
@@ -92,24 +108,36 @@ package struct OriginalSingularFieldPolynomial: Sendable {
         maximumDepth: Int, usage: inout B) throws -> (quotient: Self, remainder: Self) {
         try sameContext(divisor, usage: &usage)
         guard let leading = divisor.coefficients.last else { throw rationalAlgebraFailure("Original tower polynomial divisor is zero.") }
-        var remainder = self
+        try CurrentTaskCancellationChecker().checkCancellation()
         let zero = try OriginalSingularFieldElement.constant(.zero, in: context, maximumDepth: maximumDepth, usage: &usage)
-        let count = max(0, degree - divisor.degree + 1)
+        let count = degree >= divisor.degree ? try rationalAlgebraCount(degree - divisor.degree, 1) : 0
         try RationalAlgebraStorage.retain(count, of: OriginalSingularFieldElement.self, usage: &usage)
         var quotient = Array(repeating: zero, count: count)
-        while remainder.degree >= divisor.degree, let value = remainder.coefficients.last {
-            try usage.consumeExactWork(1)
-            let oldDegree = remainder.degree, shift = oldDegree - divisor.degree
+        try RationalAlgebraStorage.retain(coefficients.count, of: OriginalSingularFieldElement.self, usage: &usage)
+        var remainder: [OriginalSingularFieldElement] = []; remainder.reserveCapacity(coefficients.count)
+        for coefficient in coefficients { try usage.consumeExactWork(1); remainder.append(coefficient) }
+        while remainder.count > divisor.degree, let value = remainder.last {
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+            let oldCount = remainder.count, shift = oldCount - divisor.coefficients.count
             let ratio = try value.divided(by: leading, maximumDepth: maximumDepth, usage: &usage)
             quotient[shift] = ratio
-            try RationalAlgebraStorage.retain(try rationalAlgebraCount(shift, 1), of: OriginalSingularFieldElement.self, usage: &usage)
-            var term = Array(repeating: zero, count: shift); term.reserveCapacity(try rationalAlgebraCount(shift, 1)); term.append(ratio)
-            let monomial = try Self(context: context, coefficients: term, maximumDepth: maximumDepth, usage: &usage)
-            remainder = try remainder.subtracting(divisor.multiplied(by: monomial, maximumDepth: maximumDepth, usage: &usage),
-                maximumDepth: maximumDepth, usage: &usage)
-            guard remainder.degree < oldDegree else { throw rationalAlgebraFailure("Original tower polynomial division did not lower degree.") }
+            for index in divisor.coefficients.indices {
+                try usage.consumeExactWork(1)
+                let product = try ratio.multiplied(by: divisor.coefficients[index], maximumDepth: maximumDepth, usage: &usage)
+                remainder[shift + index] = try remainder[shift + index].subtracting(product,
+                    maximumDepth: maximumDepth, usage: &usage)
+            }
+            while let last = remainder.last {
+                if try last.sign(maximumDepth: maximumDepth, usage: &usage) == .zero { remainder.removeLast() }
+                else { break }
+            }
+            guard remainder.count < oldCount else { throw rationalAlgebraFailure("Original tower polynomial division did not lower degree.") }
         }
-        return try (Self(context: context, coefficients: quotient, maximumDepth: maximumDepth, usage: &usage), remainder)
+        while let last = quotient.last {
+            if try last.sign(maximumDepth: maximumDepth, usage: &usage) == .zero { quotient.removeLast() }
+            else { break }
+        }
+        return (Self(context: context, canonicalCoefficients: quotient), Self(context: context, canonicalCoefficients: remainder))
     }
     package static func gcd<B: RationalAlgebraAdmitting>(_ first: Self, _ second: Self,
         maximumDepth: Int, usage: inout B) throws -> Self {

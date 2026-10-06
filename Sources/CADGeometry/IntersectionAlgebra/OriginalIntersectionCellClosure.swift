@@ -14,13 +14,21 @@ package struct OriginalIntersectionCellClosure: Sendable {
     package let includedCells: [Int]
     package let originalPredicates: [ExactIntersectionPolynomial]
     package let predicateIdeal: ExactIntersectionIdeal?
+    package let candidateCoordinateMap: [Int]?
+    package let freeSupportReduction: OriginalPositiveGuardPolynomialReduction?
+    package let predicateReduction: OriginalPositiveGuardPolynomialReduction?
 
     private init(source: OriginalIntersectionCellCondition, proof: Proof,
         freePartition: OriginalRationalIntersectionCells, includedCells: [Int],
-        originalPredicates: [ExactIntersectionPolynomial], predicateIdeal: ExactIntersectionIdeal?) {
+        originalPredicates: [ExactIntersectionPolynomial], predicateIdeal: ExactIntersectionIdeal?,
+        candidateCoordinateMap: [Int]? = nil,
+        predicateReduction: OriginalPositiveGuardPolynomialReduction? = nil,
+        freeSupportReduction: OriginalPositiveGuardPolynomialReduction? = nil) {
         self.source = source; self.proof = proof
         self.freePartition = freePartition; self.includedCells = includedCells
         self.originalPredicates = originalPredicates; self.predicateIdeal = predicateIdeal
+        self.candidateCoordinateMap = candidateCoordinateMap; self.predicateReduction = predicateReduction
+        self.freeSupportReduction = freeSupportReduction
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
@@ -38,7 +46,6 @@ package struct OriginalIntersectionCellClosure: Sendable {
         guard coefficientCount == 0 || source.fixedCoefficientCellIndex != nil else {
             throw rationalAlgebraFailure("Ordered closure requires one issued fixed coefficient-prefix point.")
         }
-        let geometryCount = count - coefficientCount
         if partition.cells[cellIndex].dimension == 0 {
             try RationalAlgebraStorage.retain(1, of: Int.self, usage: &usage)
             return Self(source: source, proof: .point, freePartition: partition, includedCells: [cellIndex],
@@ -62,13 +69,21 @@ package struct OriginalIntersectionCellClosure: Sendable {
                 closedSupport.append(polynomial)
             }
         }
-        let variables = try rationalAlgebraCount(rationalAlgebraCount(count, geometryCount), 1)
+        try RationalAlgebraStorage.retain(count - coefficientCount, of: Int.self, usage: &usage)
+        var mobile: [Int] = []; mobile.reserveCapacity(count - coefficientCount)
         try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
         var candidates: [Int] = []; candidates.reserveCapacity(count)
         for axis in 0..<count {
             try intersectionAlgebraStep(&usage)
-            candidates.append(axis < coefficientCount ? axis : count + 1 + (axis - coefficientCount))
+            if try axis < coefficientCount || isFixedOriginalCoordinate(axis, source: source, usage: &usage) {
+                candidates.append(axis)
+            } else {
+                candidates.append(try rationalAlgebraCount(try rationalAlgebraCount(count, 1), mobile.count))
+                mobile.append(axis)
+            }
         }
+        let geometryCount = mobile.count
+        var variables = try rationalAlgebraCount(try rationalAlgebraCount(count, geometryCount), 1)
         try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
         let free = Array(0..<count)
         var polynomials: [ExactIntersectionPolynomial] = []
@@ -82,11 +97,11 @@ package struct OriginalIntersectionCellClosure: Sendable {
         try RationalAlgebraStorage.retain(1, of: ExactIntersectionPolynomial.self, usage: &usage)
         polynomials.append(radius)
         let boxIndex = polynomials.count
-        for axis in coefficientCount..<count {
+        for axis in mobile {
             try intersectionAlgebraStep(&usage)
             let p = try ExactIntersectionPolynomial.coordinate(variableCount: variables, at: axis, usage: &usage)
             let q = try ExactIntersectionPolynomial.coordinate(variableCount: variables,
-                at: count + 1 + (axis - coefficientCount), usage: &usage)
+                at: candidates[axis], usage: &usage)
             let difference = try p.subtracting(q, usage: &usage)
             try RationalAlgebraStorage.retain(2, of: ExactIntersectionPolynomial.self, usage: &usage)
             polynomials.append(try radius.subtracting(difference, usage: &usage))
@@ -113,6 +128,16 @@ package struct OriginalIntersectionCellClosure: Sendable {
             polynomials[index] = try ExactIntersectionGroebnerBasis.reduced(polynomials[index],
                 by: predicateIdeal.reducedBasis, usage: &usage)
         }
+        let predicateReduction: OriginalPositiveGuardPolynomialReduction?
+        if let axis = mobile.last {
+            predicateReduction = try .prepare(polynomials: &polynomials, original: originalPredicates,
+                source: source, candidateCoordinates: candidates, candidateCoordinate: candidates[axis], ideal: predicateIdeal,
+                radiusIndex: radiusIndex, usage: &usage)
+        } else { predicateReduction = nil }
+        let quantifiedGeometryCount = geometryCount - (predicateReduction == nil ? 0 : 1)
+        if predicateReduction != nil { variables -= 1 }
+        let freeSupportReduction = try OriginalPositiveGuardPolynomialReduction.prepareFreeSupport(
+            polynomials: &polynomials, source: source, usage: &usage)
         // Original free-coordinate conditions are partition witnesses, not extra
         // constraints. They prove target membership constant on each free cell.
         for level in partition.tower.levels {
@@ -176,14 +201,14 @@ package struct OriginalIntersectionCellClosure: Sendable {
             instructions.append(.and)
         }
         let program = try ExactIntersectionBooleanProgram(polynomialCount: polynomials.count, instructions: instructions, usage: &usage)
-        let quantifierCount = try rationalAlgebraCount(geometryCount, 1)
+        let quantifierCount = try rationalAlgebraCount(quantifiedGeometryCount, 1)
         try RationalAlgebraStorage.retain(quantifierCount, of: ExactIntersectionQuantifiedCells.Quantifier.self, usage: &usage)
         var quantifiers: [ExactIntersectionQuantifiedCells.Quantifier] = [.forall]
         quantifiers.reserveCapacity(quantifierCount)
-        for _ in 0..<geometryCount { quantifiers.append(.exists) }
+        for _ in 0..<quantifiedGeometryCount { quantifiers.append(.exists) }
         let truth = try ExactIntersectionQuantifiedCells.prepare(polynomials: polynomials, program: program,
             variableCount: variables, freeVariableCount: count, quantifiers: quantifiers,
-            freeDomainEquations: closedSupport, coefficientVariableCount: coefficientCount,
+            freeDomainEquations: closedSupport, freeDomains: partition.domains, coefficientVariableCount: coefficientCount,
             maximumCoefficientDepth: partition.maximumCoefficientDepth,
             inheritedParameterDepth: partition.cells[cellIndex].admissionDepth,
             inheritedCoefficientDepth: partition.cells[cellIndex].coefficientAdmissionDepth,
@@ -196,6 +221,29 @@ package struct OriginalIntersectionCellClosure: Sendable {
             included.append(cell.cellIndex)
         }
         return Self(source: source, proof: .quantified(truth), freePartition: freePartition, includedCells: included,
-            originalPredicates: originalPredicates, predicateIdeal: predicateIdeal)
+            originalPredicates: originalPredicates, predicateIdeal: predicateIdeal, candidateCoordinateMap: candidates, predicateReduction: predicateReduction, freeSupportReduction: freeSupportReduction)
+    }
+
+    private static func isFixedOriginalCoordinate<B: RationalAlgebraAdmitting>(_ axis: Int,
+        source: OriginalIntersectionCellCondition, usage: inout B) throws -> Bool {
+        for index in source.polynomials.indices where source.signs[index] == .zero {
+            try intersectionAlgebraStep(&usage)
+            let polynomial = source.polynomials[index]
+            if polynomial.isZero || polynomial.isConstant { continue }
+            var linear = false, scalarLaw = true
+            for term in try polynomial.orderedTerms(usage: &usage) {
+                for coordinate in 0..<source.variableCount {
+                    try intersectionAlgebraStep(&usage)
+                    let power = try term.key.exponent(at: coordinate)
+                    if coordinate == axis {
+                        if power > 1 { scalarLaw = false; break }
+                        if power == 1 { linear = true }
+                    } else if power != 0 { scalarLaw = false; break }
+                }
+                if !scalarLaw { break }
+            }
+            if scalarLaw && linear { return true }
+        }
+        return false
     }
 }

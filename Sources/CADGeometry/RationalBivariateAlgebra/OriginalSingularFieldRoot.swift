@@ -33,10 +33,70 @@ package struct OriginalSingularFieldRoot: Sendable {
     package let polynomial: OriginalSingularFieldPolynomial
     package let isolation: Isolation
     package let admissionDomain: AdmissionDomain
+    private let retainedSturm: OriginalSingularFieldSturm?
+    let retainedRationalRoot: ExactAlgebraicRealRoot?
+    let retainedRationalImageAncestor: ExactAlgebraicRealRoot?
 
     package init(polynomial: OriginalSingularFieldPolynomial, isolation: Isolation,
         admissionDomain: AdmissionDomain = .parameter) {
         self.polynomial = polynomial; self.isolation = isolation; self.admissionDomain = admissionDomain
+        self.retainedSturm = nil
+        self.retainedRationalRoot = nil
+        self.retainedRationalImageAncestor = nil
+    }
+
+    private init(polynomial: OriginalSingularFieldPolynomial, isolation: Isolation,
+        admissionDomain: AdmissionDomain, retainedSturm: OriginalSingularFieldSturm?,
+        retainedRationalRoot: ExactAlgebraicRealRoot? = nil,
+        retainedRationalImageAncestor: ExactAlgebraicRealRoot? = nil) {
+        self.polynomial = polynomial; self.isolation = isolation; self.admissionDomain = admissionDomain
+        self.retainedSturm = retainedSturm
+        self.retainedRationalRoot = retainedRationalRoot
+        self.retainedRationalImageAncestor = retainedRationalImageAncestor
+    }
+
+    /// The original law, parent field and admission domain survive bracket contraction.
+    package func retainingIsolation(_ bounds: Isolation) -> Self {
+        retainingIsolation(bounds, imageAncestor: retainedRationalImageAncestor)
+    }
+
+    func retainingIsolation(_ bounds: Isolation, imageAncestor: ExactAlgebraicRealRoot?) -> Self {
+        Self(polynomial: polynomial, isolation: bounds, admissionDomain: admissionDomain,
+            retainedSturm: retainedSturm, retainedRationalRoot: retainedRationalRoot,
+            retainedRationalImageAncestor: imageAncestor)
+    }
+
+    /// Bind the exact contraction returned by this root's rational refinement.
+    func retainingRationalIsolation(_ authority: ExactAlgebraicRealRoot) -> Self {
+        let bounds = authority.isolation
+        return Self(polynomial: polynomial,
+            isolation: .init(lower: bounds.lower, upper: bounds.upper,
+                excludesLower: bounds.excludesLowerEndpoint, excludesUpper: bounds.excludesUpperEndpoint,
+                depth: bounds.isolationDepth), admissionDomain: admissionDomain,
+            retainedSturm: retainedSturm, retainedRationalRoot: authority,
+            retainedRationalImageAncestor: retainedRationalImageAncestor)
+    }
+
+    /// Count this original law only in an admitted subset of its retained isolation.
+    package func countOriginalRoots<B: RationalAlgebraAdmitting>(in bounds: Isolation,
+        maximumDepth: Int, usage: inout B) throws -> Int {
+        let maximumDepth = admissionDomain.limit(maximumDepth)
+        guard bounds.depth >= isolation.depth, bounds.depth <= maximumDepth,
+            !(try bounds.lower.subtracting(isolation.lower, usage: &usage)).isNegative,
+            !(try isolation.upper.subtracting(bounds.upper, usage: &usage)).isNegative,
+            !(try bounds.upper.subtracting(bounds.lower, usage: &usage)).isNegative,
+            !(bounds.lower == isolation.lower && isolation.excludesLower && !bounds.excludesLower),
+            !(bounds.upper == isolation.upper && isolation.excludesUpper && !bounds.excludesUpper) else {
+            throw rationalAlgebraFailure("Original root counting needs an admitted retained subinterval.")
+        }
+        try admissionDomain.visit(bounds.depth, usage: &usage)
+        let sequence = try retainedSturm ?? OriginalSingularFieldSturm(polynomial,
+            maximumDepth: maximumDepth, usage: &usage)
+        let count = try sequence.count(lower: bounds.lower, upper: bounds.upper,
+            excludesLower: bounds.excludesLower, excludesUpper: bounds.excludesUpper,
+            maximumDepth: maximumDepth, usage: &usage)
+        guard count <= 1 else { throw rationalAlgebraFailure("Retained original root counting contradicts unique isolation.") }
+        return count
     }
 
     package func value<B: RationalAlgebraAdmitting>(maximumDepth: Int, usage: inout B) throws -> OriginalSingularFieldElement {
@@ -64,6 +124,7 @@ package struct OriginalSingularFieldRoot: Sendable {
         if expression.degree == 0 {
             return try expression.coefficients[0].sign(maximumDepth: maximumDepth, usage: &usage)
         }
+        if polynomial.degree > 1, let rational = try rationalSign(of: expression, maximumDepth: maximumDepth, usage: &usage) { return rational }
         if expression.degree == 1 {
             return try linearSign(expression, maximumDepth: maximumDepth, usage: &usage)
         }
@@ -93,6 +154,20 @@ package struct OriginalSingularFieldRoot: Sendable {
 
     private func linearSign<B: RationalAlgebraAdmitting>(_ expression: OriginalSingularFieldPolynomial,
         maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
+        if polynomial.degree == 1 {
+            // Both values belong to the retained parent field. Cross multiplication
+            // evaluates the original linear expression without creating another root.
+            let ownLeading = polynomial.coefficients[1]
+            let numerator = try expression.coefficients[0].multiplied(by: ownLeading,
+                maximumDepth: maximumDepth, usage: &usage)
+                .subtracting(expression.coefficients[1].multiplied(by: polynomial.coefficients[0],
+                    maximumDepth: maximumDepth, usage: &usage), maximumDepth: maximumDepth, usage: &usage)
+            let sign = try numerator.sign(maximumDepth: maximumDepth, usage: &usage)
+            if sign == .zero { return .zero }
+            let denominatorSign = try ownLeading.sign(maximumDepth: maximumDepth, usage: &usage)
+            guard denominatorSign != .zero else { throw rationalAlgebraFailure("Original linear root lost its leading coefficient.") }
+            return sign == denominatorSign ? .positive : .negative
+        }
         let leading = expression.coefficients[1]
         let orientation = try leading.sign(maximumDepth: maximumDepth, usage: &usage)
         guard orientation != .zero else {
@@ -113,7 +188,7 @@ package struct OriginalSingularFieldRoot: Sendable {
         if above == .positive || above == .zero && isolation.excludesUpper { return reversed }
         if try polynomial.evaluated(at: zero, maximumDepth: maximumDepth, usage: &usage)
             .sign(maximumDepth: maximumDepth, usage: &usage) == .zero { return .zero }
-        let sequence = try OriginalSingularFieldSturm(polynomial, maximumDepth: maximumDepth, usage: &usage)
+        let sequence = try retainedSturm ?? OriginalSingularFieldSturm(polynomial, maximumDepth: maximumDepth, usage: &usage)
         var left = try sequence.variations(at: isolation.lower, maximumDepth: maximumDepth, usage: &usage)
             - sequence.variations(at: zero, maximumDepth: maximumDepth, usage: &usage)
         if !isolation.excludesLower,
@@ -126,14 +201,16 @@ package struct OriginalSingularFieldRoot: Sendable {
         return left == 0 ? orientation : reversed
     }
 
-    package func refinedOnce<B: RationalAlgebraAdmitting>(maximumDepth: Int, usage: inout B) throws -> Self {
+    package func refinedOnce<B: RationalAlgebraAdmitting>(maximumDepth: Int, forSeparation: Bool = false, usage: inout B) throws -> Self {
         let maximumDepth = admissionDomain.limit(maximumDepth)
         let bounds = isolation
         if try bounds.upper.subtracting(bounds.lower, usage: &usage).isZero { return self }
         guard bounds.depth <= maximumDepth else {
             throw rationalAlgebraFailure("Original field scalar refinement exceeds its retained admission domain.")
         }
-        if let rational = try rationalRefinedOnce(maximumDepth: maximumDepth, usage: &usage) { return rational }
+        if let rational = try rationalRefinedOnce(maximumDepth: maximumDepth, forSeparation: forSeparation, usage: &usage) { return rational }
+        if let affine = try rationalImageRefinedOnce(maximumDepth: maximumDepth,
+            forSeparation: forSeparation, usage: &usage) { return affine }
         guard bounds.depth < maximumDepth else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Original singular tangent refinement exhausted inherited caller depth.")
@@ -141,10 +218,10 @@ package struct OriginalSingularFieldRoot: Sendable {
         let depth = try rationalAlgebraCount(bounds.depth, 1)
         try admissionDomain.visit(depth, usage: &usage)
         let midpoint = try bounds.lower.adding(bounds.upper, usage: &usage).divided(by: .natural(2, usage: &usage), usage: &usage)
-        let sequence = try OriginalSingularFieldSturm(polynomial, maximumDepth: maximumDepth, usage: &usage)
+        let sequence = try retainedSturm ?? OriginalSingularFieldSturm(polynomial, maximumDepth: maximumDepth, usage: &usage)
         if case .zero = try sequence.sign(polynomial, at: midpoint, maximumDepth: maximumDepth, usage: &usage) {
             return Self(polynomial: polynomial, isolation: .init(lower: midpoint, upper: midpoint,
-                excludesLower: false, excludesUpper: false, depth: depth), admissionDomain: admissionDomain)
+                excludesLower: false, excludesUpper: false, depth: depth), admissionDomain: admissionDomain, retainedSturm: sequence, retainedRationalRoot: retainedRationalRoot)
         }
         let left = try sequence.count(lower: bounds.lower, upper: midpoint, excludesLower: bounds.excludesLower,
             excludesUpper: false, maximumDepth: maximumDepth, usage: &usage)
@@ -153,9 +230,9 @@ package struct OriginalSingularFieldRoot: Sendable {
         guard left + right == 1 else { throw rationalAlgebraFailure("Original tangent refinement lost unique-root coverage.") }
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
         if left == 1 { return Self(polynomial: polynomial, isolation: .init(lower: bounds.lower, upper: midpoint,
-            excludesLower: bounds.excludesLower, excludesUpper: false, depth: depth), admissionDomain: admissionDomain) }
+            excludesLower: bounds.excludesLower, excludesUpper: false, depth: depth), admissionDomain: admissionDomain, retainedSturm: sequence, retainedRationalRoot: retainedRationalRoot) }
         return Self(polynomial: polynomial, isolation: .init(lower: midpoint, upper: bounds.upper,
-            excludesLower: true, excludesUpper: bounds.excludesUpper, depth: depth), admissionDomain: admissionDomain)
+            excludesLower: true, excludesUpper: bounds.excludesUpper, depth: depth), admissionDomain: admissionDomain, retainedSturm: sequence, retainedRationalRoot: retainedRationalRoot)
     }
 
     package func refined<B: RationalAlgebraAdmitting>(maximumWidth: ExactRationalCoefficient,
@@ -210,7 +287,13 @@ package struct OriginalSingularFieldRoot: Sendable {
             try admissionDomain.visit(cell.interval.depth, usage: &usage)
             if cell.count == 0 { continue }
             if cell.count == 1 {
-                try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage); roots.append(Self(polynomial: source, isolation: cell.interval, admissionDomain: admissionDomain)); continue
+                let issued = Self(polynomial: source, isolation: cell.interval, admissionDomain: admissionDomain)
+                let rational = try issued.rationalAuthority(usage: &usage)
+                try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
+                let retained = Self(polynomial: source, isolation: cell.interval, admissionDomain: admissionDomain,
+                    retainedSturm: sequence, retainedRationalRoot: rational)
+                roots.append(try retained.rationalImageRefinedOnce(maximumDepth: maximumDepth,
+                    forSeparation: true, usage: &usage) ?? retained); continue
             }
             guard cell.interval.depth < maximumDepth else {
                 throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: nil,

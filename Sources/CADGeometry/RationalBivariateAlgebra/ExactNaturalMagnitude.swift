@@ -77,21 +77,61 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
                                                           usage: inout B) throws -> (Self, Self) {
         guard !divisor.isZero else { throw rationalAlgebraFailure("Exact integer division by zero.") }
         if compared(to: divisor) < 0 { return (.zero, self) }
-        let bitCount = try admittedBitCount(usage: &usage)
-        try usage.retainExactStorage(words.count)
-        var quotient = [UInt32](repeating: 0, count: words.count); var remainder = Self.zero
-        for bit in (0..<bitCount).reversed() {
-            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
-            remainder = try remainder.shifted(by: 1, usage: &usage)
-            if words[bit / 32] & (UInt32(1) << (bit % 32)) != 0 {
-                remainder = try remainder.adding(.one, usage: &usage)
+        if divisor.words.count == 1 {
+            try usage.retainExactStorage(try rationalAlgebraCount(words.count, 1))
+            var quotient = [UInt32](repeating: 0, count: words.count)
+            let denominator = UInt64(divisor.words[0])
+            var remainder: UInt64 = 0
+            for index in words.indices.reversed() {
+                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+                // The retained remainder is less than the one-limb divisor,
+                // so this base-2^32 partial numerator fits UInt64 exactly.
+                let partial = (remainder << 32) | UInt64(words[index])
+                quotient[index] = UInt32(partial / denominator)
+                remainder = partial % denominator
             }
-            if remainder.compared(to: divisor) >= 0 {
-                remainder = try remainder.subtracting(divisor, usage: &usage)
+            return (Self(quotient), Self([UInt32(remainder)]))
+        }
+        let bitCount = try admittedBitCount(usage: &usage)
+        let divisorBitCount = try divisor.admittedBitCount(usage: &usage)
+        let shift = bitCount - divisorBitCount
+        try usage.retainExactStorage(try rationalAlgebraCount(words.count, words.count))
+        var quotient = [UInt32](repeating: 0, count: words.count)
+        var remainder = words
+        var shiftedDivisor = try divisor.shifted(by: shift, usage: &usage).words
+        for bit in (0...shift).reversed() {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            try usage.consumeExactWork(words.count)
+            var comparison = 0
+            for index in words.indices.reversed() {
+                let second = index < shiftedDivisor.count ? shiftedDivisor[index] : 0
+                if remainder[index] != second {
+                    comparison = remainder[index] < second ? -1 : 1
+                    break
+                }
+            }
+            if comparison >= 0 {
+                try usage.consumeExactWork(words.count)
+                var borrow: UInt64 = 0
+                for index in remainder.indices {
+                    let first = UInt64(remainder[index])
+                    let second = UInt64(index < shiftedDivisor.count ? shiftedDivisor[index] : 0) + borrow
+                    remainder[index] = UInt32(truncatingIfNeeded: first &- second)
+                    borrow = first < second ? 1 : 0
+                }
                 quotient[bit / 32] |= UInt32(1) << (bit % 32)
             }
+            if bit > 0 {
+                try usage.consumeExactWork(shiftedDivisor.count)
+                // Each iteration aligns the next quotient bit. No new magnitude
+                // is materialized for a shifted or subtracted intermediate.
+                for index in shiftedDivisor.indices {
+                    let high = index + 1 < shiftedDivisor.count ? UInt64(shiftedDivisor[index + 1]) << 32 : 0
+                    shiftedDivisor[index] = UInt32(truncatingIfNeeded: (high | UInt64(shiftedDivisor[index])) >> 1)
+                }
+            }
         }
-        return (Self(quotient), remainder)
+        return (Self(quotient), Self(remainder))
     }
     func trailingZeroBits<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Int {
         for i in words.indices {
@@ -101,6 +141,16 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
             }
         }
         return 0
+    }
+    func powerOfTwoExponent<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Int? {
+        guard let last = words.last, last.nonzeroBitCount == 1 else { return nil }
+        for index in words.indices.dropLast() {
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+            if words[index] != 0 { return nil }
+        }
+        try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+        return try rationalAlgebraCount(rationalAlgebraCount(words.count - 1, 32, multiply: true),
+            last.trailingZeroBitCount)
     }
     func shiftedRight<B: RationalAlgebraAdmitting>(by bits: Int, usage: inout B) throws -> Self {
         guard bits >= 0 else { throw rationalAlgebraFailure("Negative exact magnitude right shift.") }
@@ -118,21 +168,29 @@ struct ExactNaturalMagnitude: Equatable, Sendable {
     }
     static func gcd<B: RationalAlgebraAdmitting>(_ a: Self, _ b: Self, usage: inout B) throws -> Self {
         if a.isZero { return b }; if b.isZero { return a }
-        let az = try a.trailingZeroBits(usage: &usage), bz = try b.trailingZeroBits(usage: &usage)
-        let common = min(az, bz)
-        var lhs = try a.shiftedRight(by: az, usage: &usage)
-        var rhs = try b.shiftedRight(by: bz, usage: &usage)
-        while true {
-            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(max(lhs.words.count, rhs.words.count))
-            let comparison = lhs.compared(to: rhs)
-            if comparison == 0 { return try lhs.shifted(by: common, usage: &usage) }
-            if comparison > 0 {
-                lhs = try lhs.subtracting(rhs, usage: &usage)
-                lhs = try lhs.shiftedRight(by: lhs.trailingZeroBits(usage: &usage), usage: &usage)
-            } else {
-                rhs = try rhs.subtracting(lhs, usage: &usage)
-                rhs = try rhs.shiftedRight(by: rhs.trailingZeroBits(usage: &usage), usage: &usage)
-            }
+        if a == .one || b == .one {
+            try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+            return .one
         }
+        if a.words.count == 1, b.words.count == 1 {
+            var first = a.words[0], second = b.words[0]
+            while second != 0 {
+                try CurrentTaskCancellationChecker().checkCancellation(); try usage.consumeExactWork(1)
+                let remainder = first % second
+                first = second; second = remainder
+            }
+            if first == 1 { return .one }
+            try usage.retainExactStorage(1)
+            return Self([first])
+        }
+        var lhs = a, rhs = b
+        while !rhs.isZero {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            try usage.consumeExactWork(max(lhs.words.count, rhs.words.count))
+            if rhs == .one { return .one }
+            let remainder = try lhs.quotientAndRemainder(dividingBy: rhs, usage: &usage).1
+            lhs = rhs; rhs = remainder
+        }
+        return lhs
     }
 }
