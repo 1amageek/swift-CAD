@@ -45,6 +45,7 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
     public let curve: BSplineCurve3D
     public let surface: BSplineSurface3D
     public let certificationTolerance: ModelingTolerance
+    public let sourceCharts: [OriginalNativeCurveSurfaceChart]
     public let sourceChartDomains: [[OriginalRationalParameterDomain]]
     public let nativeDomains: [OriginalRationalParameterDomain]
     public let requestedDomains: [OriginalRationalParameterDomain]
@@ -58,17 +59,8 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
     package let composition: NativeCurveSurfaceRelationComposition?
     package let partition: OriginalRationalIntersectionCells?
 
-    package convenience init<B: RationalAlgebraAdmitting>(chart: NativeCurveSurfacePointChart,
-        curve: BSplineCurve3D, surface: BSplineSurface3D, tolerance: ModelingTolerance,
-        maximumCandidateCount: Int, maximumDepth: Int, usage: inout B) throws {
-        try RationalAlgebraStorage.retain(1, of: NativeCurveSurfacePointChart.self, usage: &usage)
-        try self.init(charts: [chart], curve: curve, surface: surface, tolerance: tolerance,
-            nativeDomains: chart.decomposition.nativeDomains, requestedDomains: chart.decomposition.requestedDomains,
-            effectiveDomains: chart.decomposition.effectiveDomains,
-            maximumCandidateCount: maximumCandidateCount, maximumDepth: maximumDepth, usage: &usage)
-    }
-
     package init<B: RationalAlgebraAdmitting>(charts: [NativeCurveSurfacePointChart],
+        sourceCharts: [OriginalNativeCurveSurfaceChart],
         curve: BSplineCurve3D, surface: BSplineSurface3D, tolerance: ModelingTolerance,
         nativeDomains: [OriginalRationalParameterDomain], requestedDomains: [OriginalRationalParameterDomain],
         effectiveDomains: [OriginalRationalParameterDomain]?,
@@ -80,6 +72,7 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
             + MemoryLayout<NativeCurveSurfaceRelationComposition?>.stride
             + MemoryLayout<OriginalRationalIntersectionCells?>.stride
             + MemoryLayout<[[OriginalRationalParameterDomain]]>.stride
+            + MemoryLayout<[OriginalNativeCurveSurfaceChart]>.stride
             + 2 * MemoryLayout<[OriginalRationalParameterDomain]>.stride
             + MemoryLayout<[OriginalRationalParameterDomain]?>.stride
             + MemoryLayout<[Cell]>.stride + MemoryLayout<[Attachment]>.stride + MemoryLayout<[Component]>.stride
@@ -87,8 +80,8 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
         try RationalAlgebraStorage.retain(2, of: UInt.self, usage: &usage)
         try RationalAlgebraStorage.retain(charts.count, of: [OriginalRationalParameterDomain].self, usage: &usage)
         var chartDomains: [[OriginalRationalParameterDomain]] = []; chartDomains.reserveCapacity(charts.count)
-        for chart in charts { try intersectionAlgebraStep(&usage); chartDomains.append(chart.decomposition.nativeDomains) }
-        sourceChartDomains = chartDomains
+        for chart in charts { try intersectionAlgebraStep(&usage); chartDomains.append(chart.nativeDomains) }
+        self.sourceCharts = sourceCharts; sourceChartDomains = chartDomains
         let owner = Identity()
         identity = owner; self.charts = charts; self.curve = curve; self.surface = surface
         certificationTolerance = tolerance; self.nativeDomains = nativeDomains
@@ -99,12 +92,15 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
         let connected: OriginalRationalParameterComponents
         if charts.count > 1 {
             let common = try NativeCurveSurfaceRelationComposition(charts: charts, nativeDomains: nativeDomains,
-                effectiveDomains: effectiveDomains, maximumCandidateCount: maximumCandidateCount,
+                requestedDomains: requestedDomains, effectiveDomains: effectiveDomains, maximumCandidateCount: maximumCandidateCount,
                 maximumDepth: maximumDepth, tolerance: tolerance, usage: &usage)
             composition = common; partition = common.partition; incidence = common.incidence; connected = common.connected
-        } else if case .parameterCells(let strata, let joins, let groups) = first.decomposition.coverage {
+        } else if let local = first.decomposition, case .parameterCells(let strata, let joins, let groups) = local.coverage {
             composition = nil; partition = strata.partition; incidence = joins; connected = groups
         } else {
+            guard let local = first.decomposition, case .excludedNativeProduct = local.coverage else {
+                throw rationalAlgebraFailure("Single-chart relation requires its proved local coverage.")
+            }
             composition = nil; self.partition = nil; cells = []; attachments = []; components = []; return
         }
         self.partition = partition
@@ -135,7 +131,7 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
             let original = partition.cells[index]
             let originalRank: Int
             if let composition { originalRank = composition.ranks[index] }
-            else if case .parameterCells(let strata, _, _) = first.decomposition.coverage {
+            else if let local = first.decomposition, case .parameterCells(let strata, _, _) = local.coverage {
                 originalRank = strata.strata[ordinal].originalJacobianRank
             } else { throw rationalAlgebraFailure("Native relation lost its original rank proof.") }
             let prefix = try Self.prefix(index, in: partition, usage: &usage)
