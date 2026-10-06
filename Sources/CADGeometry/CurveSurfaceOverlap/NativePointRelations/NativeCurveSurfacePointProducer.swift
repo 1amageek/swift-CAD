@@ -80,25 +80,14 @@ struct NativeCurveSurfacePointProducer {
                     domain: .init(u: span.uBounds, v: span.vBounds), view: .init(x: 0, y: 0, z: 1),
                     tolerance: tolerance, usage: &usage)
                 let system = try OriginalRationalIntersectionSystem(curve: curveLaw, surface: surfaceLaw, usage: &usage)
-                let decomposition: OriginalRationalIntersectionDecomposition
-                do {
-                    decomposition = try OriginalRationalIntersectionDecomposition.prepare(system: system,
-                        requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
-                        isolatedOnly: !retainingRelations || productCount > 1,
-                        preferIsolatedCells: retainingRelations && productCount == 1,
-                        maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
-                } catch let error as KernelError where retainingRelations && productCount > 1
-                    && error.code == .nonDiscreteIntersection {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): Rich native multi-chart positive-dimensional
-                    // publication requires complete original cross-chart ownership and incidence.
-                    // The public native query reaches this branch; no relation may be published
-                    // before all chart joins and selected cells have exact whole-component proof.
-                    throw failure(.unsupportedCapability,
-                        "Positive-dimensional native relations currently require one complete original chart product.", tolerance)
-                }
+                let decomposition = try OriginalRationalIntersectionDecomposition.prepare(system: system,
+                    requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
+                    isolatedOnly: !retainingRelations, preferIsolatedCells: retainingRelations,
+                    maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
                 let chartIndex = charts.count
                 charts.append(.init(curve: curveLaw, surface: surfaceLaw, decomposition: decomposition))
-                if case .parameterCells(let strata, _, _) = decomposition.coverage,
+                if !(retainingRelations && productCount > 1),
+                    case .parameterCells(let strata, _, _) = decomposition.coverage,
                     let chartDomains = decomposition.effectiveDomains {
                     let partition = strata.partition
                     var hasPositiveDimension = false
@@ -171,22 +160,69 @@ struct NativeCurveSurfacePointProducer {
                 }
             }
         }
+        let relation: OriginalNativeCurveSurfaceRelation?
+        if retainingRelations {
+            try RationalAlgebraStorage.retain(1, of: OriginalNativeCurveSurfaceRelation.self, usage: &usage)
+            if charts.count == 1 {
+                relation = try .init(chart: charts[0], curve: source, surface: target, tolerance: tolerance,
+                    maximumCandidateCount: options.maximumCandidateCount,
+                    maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+            } else {
+                relation = try .init(charts: charts, curve: source, surface: target, tolerance: tolerance,
+                    nativeDomains: native, requestedDomains: requested, effectiveDomains: effective,
+                    maximumCandidateCount: options.maximumCandidateCount,
+                    maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
+            }
+        } else { relation = nil }
+        if let common = relation?.composition, let effective {
+            for component in common.connected.components {
+                var dimension = 0
+                for index in component.cellIndexes {
+                    try usage.consumeExactWork(1)
+                    dimension = max(dimension, common.partition.cells[index].dimension)
+                }
+                guard dimension == 0 else { continue }
+                for index in component.cellIndexes {
+                    let chartIndex = common.chartOwners[index], chart = charts[chartIndex]
+                    try RationalAlgebraStorage.retain(3, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
+                    try RationalAlgebraStorage.retain(3, of: NativeCurveSurfaceScalarLocalization?.self, usage: &usage)
+                    var parameters: [OriginalSingularFieldValueIsolation] = []; parameters.reserveCapacity(3)
+                    var localizations: [NativeCurveSurfaceScalarLocalization?] = []; localizations.reserveCapacity(3)
+                    let point = try publish(cell: common.partition.cells[index], partition: common.partition,
+                        cellIndex: index, effectiveDomains: effective, curve: chart.curve, surface: chart.surface,
+                        options: options, tolerance: tolerance,
+                        nativeDomains: (try .init(lower: source.knots[chart.curve.spanIndex], upper: source.knots[chart.curve.spanIndex + 1]),
+                            chart.surface.domain.u, chart.surface.domain.v),
+                        retainingParameters: &parameters, retainingLocalizations: &localizations, usage: &usage)
+                    guard points.count < options.maximumCandidateCount else {
+                        throw failure(.resourceLimitExceeded, "Native composed isolated tuple count exceeds the cumulative result ceiling.", tolerance)
+                    }
+                    if points.count == capacity {
+                        let doubled = try rationalAlgebraCount(max(1, capacity), 2, multiply: true)
+                        capacity = min(options.maximumCandidateCount, doubled)
+                        let scalarCapacity = try rationalAlgebraCount(capacity, 3, multiply: true)
+                        try RationalAlgebraStorage.retain(capacity, of: CurveSurfaceIntersection.self, usage: &usage)
+                        try RationalAlgebraStorage.retain(capacity, of: NativeCurveSurfacePointCell.self, usage: &usage)
+                        try RationalAlgebraStorage.retain(scalarCapacity, of: OriginalSingularFieldValueIsolation.self, usage: &usage)
+                        try RationalAlgebraStorage.retain(scalarCapacity, of: NativeCurveSurfaceScalarLocalization?.self, usage: &usage)
+                        points.reserveCapacity(capacity); references.reserveCapacity(capacity)
+                        retainedParameters.reserveCapacity(scalarCapacity); retainedLocalizations.reserveCapacity(scalarCapacity)
+                    }
+                    points.append(point); references.append(.init(chartIndex: chartIndex, cellIndex: index))
+                    retainedParameters.append(contentsOf: parameters); retainedLocalizations.append(contentsOf: localizations)
+                }
+            }
+        }
         try order(points: &points, references: &references, parameters: &retainedParameters,
             localizations: &retainedLocalizations, charts: charts, usage: &usage)
         try RationalAlgebraStorage.retainBytes(MemoryLayout<BSplineCurve3D>.stride + MemoryLayout<BSplineSurface3D>.stride
             + MemoryLayout<ModelingTolerance>.stride + 8 * MemoryLayout<[Int]>.stride
+            + MemoryLayout<OriginalRationalIntersectionCells?>.stride
             + 2 * MemoryLayout<UnsafeRawPointer>.stride, usage: &usage)
         let receipt = OriginalNativeCurveSurfacePoints(curve: source, surface: target, tolerance: tolerance,
             nativeDomains: native, requestedDomains: requested, effectiveDomains: effective,
-            charts: charts, pointCells: references, parameterIsolations: retainedParameters,
-            parameterLocalizations: retainedLocalizations)
-        let relation: OriginalNativeCurveSurfaceRelation?
-        if retainingRelations, charts.count == 1 {
-            try RationalAlgebraStorage.retain(1, of: OriginalNativeCurveSurfaceRelation.self, usage: &usage)
-            relation = try .init(chart: charts[0], curve: source, surface: target, tolerance: tolerance,
-                maximumCandidateCount: options.maximumCandidateCount,
-                maximumDepth: usage.maximumAlgebraicDepth, usage: &usage)
-        } else { relation = nil }
+            charts: charts, composedPartition: relation?.composition?.partition, pointCells: references,
+            parameterIsolations: retainedParameters, parameterLocalizations: retainedLocalizations)
         try RationalAlgebraStorage.retain(1, of: CurveSurfaceIntersectionResult.self, usage: &usage)
         try CurrentTaskCancellationChecker().checkCancellation()
         return .init(points: points, overlaps: [], originalNativePoints: receipt,

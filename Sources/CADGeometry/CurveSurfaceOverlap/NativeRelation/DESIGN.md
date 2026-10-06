@@ -2,15 +2,17 @@
 
 ## Purpose and Scope
 Child of [Curve Surface Overlap](../DESIGN.md). Publishes the complete original
-finite nonperiodic single-chart native CS relation, including mixed-dimensional
+finite nonperiodic native CS relation, including mixed-dimensional
 components. Multi-span isolated publication remains owned by
 [Native Point Relations](../NativePointRelations/DESIGN.md).
 
 ## Responsibilities and Boundaries
 Retain original operands, domains, cells, closure incidence and connected components.
 Numerical overlap correspondence does not represent this multivalued relation.
-Positive-dimensional multi-chart composition requires an original ownership proof;
-the current producer fails explicitly rather than joining numerical boundaries.
+Multi-chart composition refines all original chart equations, denominator guards,
+Jacobian minors and source bounds in one original sign-invariant parameter partition.
+Each internal knot belongs to its right positive span; final native endpoints are
+closed. This predicate, rather than numerical boundary pairing, owns source values.
 
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -21,7 +23,8 @@ the current producer fails explicitly rather than joining numerical boundaries.
 
 ## Architecture
 ```text
-original native product -> isolated fast path or full decomposition
+original native products -> isolated fast path or complete chart decompositions
+  -> multi-chart owner predicate + common original sign refinement
   -> retained cells + closure attachments + connected components
   -> exact maximal t-prefix projections + image/fiber dimensions
   -> immutable public owner
@@ -38,14 +41,25 @@ fiber dimension is cell dimension minus its t-prefix dimension; geometric image
 fiber dimension is cell dimension minus image dimension. Samples are exact points,
 not whole-cell ranges. Rich legacy points contain isolated components only.
 Discrete queries fail atomically on every positive-dimensional selected cell.
+A common refinement retains all original chart laws and partitions on their exact
+bounds and indexed Jacobian minors. Exact identical laws share one admitted
+partition polynomial through a retained original-to-issued ordinal mapping; original
+chart predicates and rank witnesses use that mapping without changing their laws.
+Public sourceChartDomains retain every closed source chart product; a cell's
+sourceChartIndex selects its exact original source domain. Each selected cell has
+exactly one original source-chart owner, whose rank and curve image law apply throughout that cell.
+The global incidence and connected components determine rich isolated points; a
+locally isolated knot value attached to a neighboring positive component is never
+published as an isolated point. Identical XYZ values with different UV tuples remain
+distinct. Closed requested boundaries remain selected even at internal knots.
 
 ## Runtime Flows
 The public fiber query substitutes an exact retained scalar into every original
-equation and denominator guard, preserves its causal source depths and requested
+equation, denominator guard and chart owner predicate, preserves its causal source depths and requested
 t membership, and uses the existing ordered real relation engine for all UV cells.
 
 ## State, Ownership, and Lifecycle
-The receipt retains immutable original chart laws, complete decomposition and
+The receipt retains immutable original chart laws, complete chart decompositions and common refinement and
 source operands. Samples retain their exact field owners. CellIdentifier is an
 immutable identity-only token scoped to one receipt; it requires that receipt for
 membership and does not independently retain original geometry or chart laws.
@@ -63,12 +77,14 @@ dimensional complex ideal. Any positive-dimensional real cell selects full
 original rank partition and incidence. The positive preferred path retains an
 unpruned full partition to satisfy the existing finite-branch closure theorem;
 initial isolated pruning remains unchanged. There is no failed-solver retry. Fiber queries use caller-provided
-OriginalRelationUsage and independent parameter/coefficient depth. No private quota. Multi-chart rich queries keep the isolated-only original proof
-path and translate its positive-dimensional result to unsupportedCapability; they
-do not spend full closure work on a relation the current owner cannot compose.
+OriginalRelationUsage and independent parameter/coefficient depth. No private quota. Multi-chart rich queries use the same admission ledger for chart
+decompositions, common refinement, closure and final publication. The discrete N2
+path remains isolated-only and keeps its existing exact closed-boundary ownership
+proof. Source validation retains its existing rejection of position discontinuities;
+internal multiplicities above degree and periodic operands remain outside this contract.
 
 ## Verification and Change Impact
-NativeCurveSurfaceRelationTests exercises full overlap, multiple UV, collapsed
+NativeCurveSurfaceRelationTests and NativeCurveSurfaceMultiChartRelationTests exercise full overlap, multiple UV, collapsed
 images/fibers, mixed components, exact membership/projection, foreign handles and
 independent admitted failure. Changes to decomposition or incidence require this
 owner's full relation evidence; isolated fast-path evidence remains separate.

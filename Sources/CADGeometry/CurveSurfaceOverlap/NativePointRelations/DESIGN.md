@@ -8,7 +8,7 @@ curve and tensor B-spline surface products across all positive native knot spans
 ## Responsibilities and Boundaries
 Admit original sources, prepare exact homogeneous laws and consume complete
 three-coordinate decomposition. Discrete publication requires every selected cell to have zero dimension.
-Rich publication preserves isolated connected components and delegates complete
+Rich publication preserves globally isolated connected components and delegates complete
 positive-dimensional coverage to [Native Relation](../NativeRelation/DESIGN.md).
 Any positive-dimensional cell fails discrete queries with nonDiscreteIntersection;
 no subset is returned. Rich preferIsolatedCells selects the existing isolated
@@ -62,8 +62,10 @@ isolation-overlap alone never establish cross-field equality or order. Boundary
 ownership gives one chart for each admitted tuple; distinct UV stays distinct.
 The receipt's public native/requested/effectiveDomains describe the entire query,
 preserving single-span semantics. Its retained decomposition collection and each
-point's (chartIndex, cellIndex) identify the exact law and original span; cell
-indices alone never address a different chart. Raw sources and exact ordered-field
+point's chartIndex identifies the exact law and original span. Its cellIndex
+addresses the retained common refinement for rich multi-chart queries, or that
+chart's decomposition for the unchanged isolated path. The receipt records this
+partition owner explicitly; cell indices never address a foreign partition. Raw sources and exact ordered-field
 coordinates remain retained. Foreign receipt identities are rejected.
 Numerical parameter isolation starts from the retained original zero-cell section
 bounds, verified against the actual field coordinate. Exactly equal coordinates
@@ -90,7 +92,10 @@ retention and localization. Product count uses checked multiplication and the
 existing caller maximumSpanCount (ordinary maximumCandidateCount) as one cumulative
 ceiling; it never resets for a curve span or surface axis. The result ceiling
 counts source-owned tuples across the whole query after boundary ownership.
-Every product is visited even when earlier products yield points; any later
+Rich multi-chart publication composes the retained chart products first, then
+localizes only zero-dimensional global connected components. Local boundary cells
+attached to a positive neighbor do not enter points. Every product is visited even
+when earlier products yield points; any later
 positive-dimensional, unresolved, resource or cancellation failure rejects the
 entire query. All collection allocation is admitted before reserve/append.
 Iteration limits bound publication. Geometric, source recursion and exact algebra

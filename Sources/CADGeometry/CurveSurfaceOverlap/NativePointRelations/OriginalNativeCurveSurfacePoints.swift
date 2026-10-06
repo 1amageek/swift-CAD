@@ -12,6 +12,7 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
     /// Every closed original span product, including complete exclusion proofs.
     public var coverageChartCount: Int { charts.count }
     package let charts: [NativeCurveSurfacePointChart]
+    package let composedPartition: OriginalRationalIntersectionCells?
     package let pointCells: [NativeCurveSurfacePointCell]
     private let parameterIsolations: [OriginalSingularFieldValueIsolation]
     let parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]
@@ -19,12 +20,12 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
     init(curve: BSplineCurve3D, surface: BSplineSurface3D,
         tolerance: ModelingTolerance, nativeDomains: [OriginalRationalParameterDomain],
         requestedDomains: [OriginalRationalParameterDomain], effectiveDomains: [OriginalRationalParameterDomain]?,
-        charts: [NativeCurveSurfacePointChart], pointCells: [NativeCurveSurfacePointCell],
+        charts: [NativeCurveSurfacePointChart], composedPartition: OriginalRationalIntersectionCells? = nil, pointCells: [NativeCurveSurfacePointCell],
         parameterIsolations: [OriginalSingularFieldValueIsolation],
         parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]) {
         self.curve = curve; self.surface = surface; certificationTolerance = tolerance
         self.nativeDomains = nativeDomains; self.requestedDomains = requestedDomains
-        self.effectiveDomains = effectiveDomains; self.charts = charts; self.pointCells = pointCells
+        self.effectiveDomains = effectiveDomains; self.charts = charts; self.composedPartition = composedPartition; self.pointCells = pointCells
         self.parameterIsolations = parameterIsolations
         self.parameterLocalizations = parameterLocalizations
     }
@@ -84,6 +85,12 @@ public final class OriginalNativeCurveSurfacePoints: Sendable {
             throw GeometryConversionError.invalidInput("Native point is not owned by this coverage receipt.")
         }
         let reference = pointCells[index]
+        if let composedPartition {
+            guard charts.indices.contains(reference.chartIndex), composedPartition.solutionCells.contains(reference.cellIndex) else {
+                throw GeometryConversionError.invalidInput("Native point lost its owning common-refinement cell.")
+            }
+            return composedPartition.cells[reference.cellIndex]
+        }
         guard charts.indices.contains(reference.chartIndex),
             case .parameterCells(let strata, _, _) = charts[reference.chartIndex].decomposition.coverage,
             strata.partition.cells.indices.contains(reference.cellIndex) else {

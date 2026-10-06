@@ -396,13 +396,14 @@ struct NativeCurveSurfacePointTests {
             .init(x: 0.25,y: 0.5,z: -1), .init(x: 0.25,y: 0.5,z: 1),
             .init(x: 0.25,y: 0.5,z: 0), .init(x: 0.75,y: 0.5,z: 0)])
         let solver = DefaultCurveSurfaceIntersector()
-        for discrete in [false,true] {
-            do {
-                if discrete { _ = try solver.intersections(curve: .bSpline(source), surface: .bSpline(plane()), options: .init(), tolerance: tolerance) }
-                else { _ = try solver.intersectionResult(curve: .bSpline(source), surface: .bSpline(plane()), tolerance: tolerance) }
-                Issue.record("A later positive-dimensional chart published an earlier isolated subset.")
-            } catch let error as KernelError { #expect(error.code == (discrete ? .nonDiscreteIntersection : .unsupportedCapability)) }
-        }
+        let result = try solver.intersectionResult(curve: .bSpline(source), surface: .bSpline(plane()), tolerance: tolerance)
+        #expect(result.points.count == 1 && result.points[0].curveParameter == 0.5)
+        #expect(result.originalNativeRelations?.components.count == 2)
+        #expect(result.hasPositiveDimensionalSolutions)
+        do {
+            _ = try solver.intersections(curve: .bSpline(source), surface: .bSpline(plane()), options: .init(), tolerance: tolerance)
+            Issue.record("A later positive-dimensional chart published an earlier isolated subset.")
+        } catch let error as KernelError { #expect(error.code == .nonDiscreteIntersection) }
     }
 
     @Test(.timeLimit(.minutes(1)))

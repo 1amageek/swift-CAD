@@ -12,6 +12,7 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
     }
     public struct Cell: Sendable {
         public let identifier: CellIdentifier
+        public let sourceChartIndex: Int
         public let parameterDimension: Int
         public let curveParameterDimension: Int
         public let imageDimension: Int
@@ -44,6 +45,7 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
     public let curve: BSplineCurve3D
     public let surface: BSplineSurface3D
     public let certificationTolerance: ModelingTolerance
+    public let sourceChartDomains: [[OriginalRationalParameterDomain]]
     public let nativeDomains: [OriginalRationalParameterDomain]
     public let requestedDomains: [OriginalRationalParameterDomain]
     public let effectiveDomains: [OriginalRationalParameterDomain]?
@@ -52,50 +54,93 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
     public let components: [Component]
     public var hasPositiveDimensionalSolutions: Bool { cells.contains { $0.parameterDimension > 0 } }
     private let identity: Identity
-    package let chart: NativeCurveSurfacePointChart
+    package let charts: [NativeCurveSurfacePointChart]
+    package let composition: NativeCurveSurfaceRelationComposition?
+    package let partition: OriginalRationalIntersectionCells?
 
-    package init<B: RationalAlgebraAdmitting>(chart: NativeCurveSurfacePointChart,
+    package convenience init<B: RationalAlgebraAdmitting>(chart: NativeCurveSurfacePointChart,
         curve: BSplineCurve3D, surface: BSplineSurface3D, tolerance: ModelingTolerance,
+        maximumCandidateCount: Int, maximumDepth: Int, usage: inout B) throws {
+        try RationalAlgebraStorage.retain(1, of: NativeCurveSurfacePointChart.self, usage: &usage)
+        try self.init(charts: [chart], curve: curve, surface: surface, tolerance: tolerance,
+            nativeDomains: chart.decomposition.nativeDomains, requestedDomains: chart.decomposition.requestedDomains,
+            effectiveDomains: chart.decomposition.effectiveDomains,
+            maximumCandidateCount: maximumCandidateCount, maximumDepth: maximumDepth, usage: &usage)
+    }
+
+    package init<B: RationalAlgebraAdmitting>(charts: [NativeCurveSurfacePointChart],
+        curve: BSplineCurve3D, surface: BSplineSurface3D, tolerance: ModelingTolerance,
+        nativeDomains: [OriginalRationalParameterDomain], requestedDomains: [OriginalRationalParameterDomain],
+        effectiveDomains: [OriginalRationalParameterDomain]?,
         maximumCandidateCount: Int, maximumDepth: Int, usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         let metadataBytes = 3 * MemoryLayout<UInt>.stride
             + MemoryLayout<BSplineCurve3D>.stride + MemoryLayout<BSplineSurface3D>.stride
-            + MemoryLayout<ModelingTolerance>.stride + MemoryLayout<NativeCurveSurfacePointChart>.stride
+            + MemoryLayout<ModelingTolerance>.stride + MemoryLayout<[NativeCurveSurfacePointChart]>.stride
+            + MemoryLayout<NativeCurveSurfaceRelationComposition?>.stride
+            + MemoryLayout<OriginalRationalIntersectionCells?>.stride
+            + MemoryLayout<[[OriginalRationalParameterDomain]]>.stride
             + 2 * MemoryLayout<[OriginalRationalParameterDomain]>.stride
             + MemoryLayout<[OriginalRationalParameterDomain]?>.stride
             + MemoryLayout<[Cell]>.stride + MemoryLayout<[Attachment]>.stride + MemoryLayout<[Component]>.stride
         try RationalAlgebraStorage.retainBytes(metadataBytes, usage: &usage)
         try RationalAlgebraStorage.retain(2, of: UInt.self, usage: &usage)
+        try RationalAlgebraStorage.retain(charts.count, of: [OriginalRationalParameterDomain].self, usage: &usage)
+        var chartDomains: [[OriginalRationalParameterDomain]] = []; chartDomains.reserveCapacity(charts.count)
+        for chart in charts { try intersectionAlgebraStep(&usage); chartDomains.append(chart.decomposition.nativeDomains) }
+        sourceChartDomains = chartDomains
         let owner = Identity()
-        identity = owner; self.chart = chart; self.curve = curve; self.surface = surface
-        certificationTolerance = tolerance; nativeDomains = chart.decomposition.nativeDomains
-        requestedDomains = chart.decomposition.requestedDomains
-        effectiveDomains = chart.decomposition.effectiveDomains
-        guard case .parameterCells(let strata, let incidence, let connected) = chart.decomposition.coverage else {
-            cells = []; attachments = []; components = []; return
+        identity = owner; self.charts = charts; self.curve = curve; self.surface = surface
+        certificationTolerance = tolerance; self.nativeDomains = nativeDomains
+        self.requestedDomains = requestedDomains; self.effectiveDomains = effectiveDomains
+        guard let first = charts.first else { throw rationalAlgebraFailure("Native relation requires its complete source charts.") }
+        let partition: OriginalRationalIntersectionCells
+        let incidence: OriginalRationalIntersectionIncidence
+        let connected: OriginalRationalParameterComponents
+        if charts.count > 1 {
+            let common = try NativeCurveSurfaceRelationComposition(charts: charts, nativeDomains: nativeDomains,
+                effectiveDomains: effectiveDomains, maximumCandidateCount: maximumCandidateCount,
+                maximumDepth: maximumDepth, tolerance: tolerance, usage: &usage)
+            composition = common; partition = common.partition; incidence = common.incidence; connected = common.connected
+        } else if case .parameterCells(let strata, let joins, let groups) = first.decomposition.coverage {
+            composition = nil; partition = strata.partition; incidence = joins; connected = groups
+        } else {
+            composition = nil; self.partition = nil; cells = []; attachments = []; components = []; return
         }
-        let partition = strata.partition
+        self.partition = partition
         guard partition.solutionCells.count <= maximumCandidateCount,
             connected.components.count <= maximumCandidateCount else {
             throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                 message: "Native relation selected cell or component count exceeds the cumulative result ceiling.")
         }
-        let derivativeWeight = try chart.curve.homogeneous[3].differentiated(alongU: true, usage: &usage)
-        var constantImage = true
-        for axis in 0..<3 {
-            let numerator = try chart.curve.homogeneous[axis].differentiated(alongU: true, usage: &usage)
-                .multiplied(by: chart.curve.homogeneous[3], usage: &usage)
-                .subtracting(chart.curve.homogeneous[axis].multiplied(by: derivativeWeight, usage: &usage), usage: &usage)
-            if !numerator.isZero { constantImage = false }
+        try RationalAlgebraStorage.retain(charts.count, of: Bool.self, usage: &usage)
+        var constantImages: [Bool] = []; constantImages.reserveCapacity(charts.count)
+        for chart in charts {
+            let derivativeWeight = try chart.curve.homogeneous[3].differentiated(alongU: true, usage: &usage)
+            var constantImage = true
+            for axis in 0..<3 {
+                let numerator = try chart.curve.homogeneous[axis].differentiated(alongU: true, usage: &usage)
+                    .multiplied(by: chart.curve.homogeneous[3], usage: &usage)
+                    .subtracting(chart.curve.homogeneous[axis].multiplied(by: derivativeWeight, usage: &usage), usage: &usage)
+                if !numerator.isZero { constantImage = false }
+            }
+            constantImages.append(constantImage)
         }
+        let commonComposition = composition
+        func chartOwner(_ index: Int) -> Int { commonComposition?.chartOwners[index] ?? 0 }
         try RationalAlgebraStorage.retain(partition.solutionCells.count, of: Cell.self, usage: &usage)
         var published: [Cell] = []; published.reserveCapacity(partition.solutionCells.count)
-        for stratum in strata.strata {
+        for (ordinal, index) in partition.solutionCells.enumerated() {
             try intersectionAlgebraStep(&usage)
-            let index = stratum.cellIndex, original = partition.cells[index]
+            let original = partition.cells[index]
+            let originalRank: Int
+            if let composition { originalRank = composition.ranks[index] }
+            else if case .parameterCells(let strata, _, _) = first.decomposition.coverage {
+                originalRank = strata.strata[ordinal].originalJacobianRank
+            } else { throw rationalAlgebraFailure("Native relation lost its original rank proof.") }
             let prefix = try Self.prefix(index, in: partition, usage: &usage)
             let tDimension = partition.cells[prefix].dimension
-            let imageDimension = constantImage ? 0 : tDimension
+            let imageDimension = constantImages[chartOwner(index)] ? 0 : tDimension
             try RationalAlgebraStorage.retain(3, of: OriginalAlgebraicCoordinate.self, usage: &usage)
             var sample: [OriginalAlgebraicCoordinate] = []; sample.reserveCapacity(3)
             for coordinate in original.coordinates {
@@ -103,11 +148,11 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
                 sample.append(.init(original: coordinate, inheritedDepth: original.admissionDepth,
                     inheritedCoefficientDepth: original.coefficientAdmissionDepth))
             }
-            published.append(.init(identifier: .init(owner: owner, ordinal: index),
+            published.append(.init(identifier: .init(owner: owner, ordinal: index), sourceChartIndex: chartOwner(index),
                 parameterDimension: original.dimension, curveParameterDimension: tDimension,
                 imageDimension: imageDimension, surfaceParameterFiberDimension: original.dimension - tDimension,
                 imageFiberDimension: original.dimension - imageDimension,
-                originalJacobianRank: stratum.originalJacobianRank, sample: sample))
+                originalJacobianRank: originalRank, sample: sample))
         }
         try RationalAlgebraStorage.retain(incidence.attachments.count, of: Attachment.self, usage: &usage)
         var links: [Attachment] = []; links.reserveCapacity(incidence.attachments.count)
@@ -127,7 +172,7 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
                 try intersectionAlgebraStep(&usage)
                 dimension = max(dimension, partition.cells[index].dimension)
                 let prefix = try Self.prefix(index, in: partition, usage: &usage)
-                imageDimension = max(imageDimension, constantImage ? 0 : partition.cells[prefix].dimension)
+                imageDimension = max(imageDimension, constantImages[chartOwner(index)] ? 0 : partition.cells[prefix].dimension)
                 handles.append(.init(owner: owner, ordinal: index))
             }
             let projections = try Self.projections(component.cellIndexes, in: partition,
@@ -153,19 +198,19 @@ public final class OriginalNativeCurveSurfaceRelation: Sendable {
             identifier.map({ owns($0) }) ?? true else {
             throw GeometryConversionError.invalidInput("Native relation membership requires its owner and all t/u/v coordinates.")
         }
-        guard case .parameterCells(let strata, _, _) = chart.decomposition.coverage else { return false }
+        guard let partition else { return false }
         let context = try OriginalSingularFieldContext(usage: &admission)
         try RationalAlgebraStorage.retain(3, of: OriginalSingularFieldElement.self, usage: &admission)
         var values: [OriginalSingularFieldElement] = []; values.reserveCapacity(3)
         for parameter in rationalParameters {
             values.append(try .constant(parameter, in: context, maximumDepth: maximumDepth, usage: &admission))
         }
-        for index in strata.partition.solutionCells where identifier == nil || index == identifier?.ordinal {
-            let cell = strata.partition.cells[index]
+        for index in partition.solutionCells where identifier == nil || index == identifier?.ordinal {
+            let cell = partition.cells[index]
             guard cell.admissionDepth <= maximumDepth else {
                 throw rationalAlgebraFailure("Native membership cannot reset original cell depth.")
             }
-            let condition = try OriginalIntersectionCellCondition(partition: strata.partition,
+            let condition = try OriginalIntersectionCellCondition(partition: partition,
                 cellIndex: index, usage: &admission)
             if try condition.contains(context: context, coordinates: values,
                 maximumDepth: maximumDepth - cell.admissionDepth, usage: &admission) { return true }
