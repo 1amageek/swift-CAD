@@ -59,6 +59,61 @@ Numerical residual and whole-component proof are distinct obligations. Empty
 results require exclusion of the whole requested domain. Exhaustion or unresolved
 required coverage cannot return partial success. Upper feature repairs are excluded.
 
+### Intersection Classification and Proximity Boundary
+
+This is the approved target contract; it is not a claim that the existing
+public implementations already satisfy it. The workspace policy is linked
+from the parent module design. Algebra preparation continues to own equations
+and ideals only; composing intersection/proximity producers own the obligations
+below.
+
+| Contract | Assumption | Guarantee | Failure |
+|---|---|---|---|
+| Original intersection | Authoritative source laws and selected domains are retained | All original common points/curves and their parameter fibers are covered; tangent and singular contacts remain distinct from absence | Unresolved coverage cannot publish complete success |
+| Original coincidence | A common image region and both source domains are identified | Whole-region source equality and parameter correspondence are established, including differing parameterizations | Small residuals, parallelism within angular tolerance, and samples alone cannot establish coincidence |
+| Proximity | The metric, threshold, and compared domains are explicit | Certified distance bounds and corresponding source locations/regions justify the threshold decision | A bound straddling the threshold is unresolved, not silently accepted |
+| Empty intersection | The whole selected product domain has been examined or otherwise excluded | No original common point exists in the requested domain | A failed search or exhausted allowance is not an empty result |
+
+Intersection classification describes the common geometric image and retains
+parameter-fiber dimension separately. In particular, a collapsed parameter
+region is not automatically an image coincidence region. Proximity is a separate
+relation that may hold alongside exact intersection; query kind and guarantee
+remain explicit. Equality at a proximity threshold is accepted only when the
+specified non-strict bound is established. No numerical residual tolerance is
+an equality predicate.
+
+```text
+retained original sources and selected domains
+  -> original intersection/coincidence proof -> original relation and coverage
+  -> independent proximity proof            -> metric bounds and correspondence
+                    -> explicit modeling repair policy
+                    -> changed geometry/connectivity and deviation evidence
+```
+
+The original coefficients/laws determine identity. Numerical enclosures control
+representation error; modeling tolerances bound a proximity query; input-source
+uncertainty is separately retained when provided. None changes the authored
+source law implicitly. Filtered numerical predicates may accelerate a decision
+only when their bounds prove it; uncertain cases refine under the same caller
+allowance or fail explicitly. Arbitrary-precision work does not imply an
+unbounded time or storage entitlement.
+
+The existing plane-pair tolerance branch and original interval-exclusion branch
+currently have different public semantics. Migrate them through explicit result
+contracts and dispatch, with caller migration recorded rather than a silent
+change to the meaning of the existing coincidence result. This document resolves
+the design decision, not those unimplemented migrations. General legacy source
+coverage remains required before foundation completion.
+
+Verification must distinguish separated parallel planes within the proximity
+threshold, truly coincident planes, a shallow-angle real intersection, exact
+tangency and nearby disjoint geometry. The same authoritative sources must
+produce the same original classification through every public dispatch route.
+Additional checks must reject transitive merging of pairwise-near entities,
+unproven whole-region equality, threshold-straddling distance bounds, and partial
+coverage reported as complete. Exhaustion and cancellation must remain explicit.
+These are future behavioral completion obligations, not tests already passed.
+
 ## State, Ownership, and Lifecycle
 
 Immutable Sendable source values own equations. Scratch buffers and pair queues

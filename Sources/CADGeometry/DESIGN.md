@@ -89,6 +89,16 @@ flowchart LR
 
 ## Contracts and Invariants
 
+### Intersection, Coincidence, and Proximity Authority
+
+The [workspace CAD policy](/Users/1amageek/Desktop/3D/AGENTS.md#cad-intersection-and-proximity-policy)
+is the decision authority for separating original intersection from tolerance
+proximity. This module owns their geometric evidence; topology and modeling
+operations own explicit repair and connection decisions. The detailed result,
+failure, and migration obligations are specified in the
+[Intersection Algebra foundation contract](IntersectionAlgebra/DESIGN.md#intersection-classification-and-proximity-boundary).
+Legacy tolerance-based coincidence is not evidence of migration completion.
+
 ### Canonical Ideal Angular Primitive Authority
 
 [Canonical Sphere Chart](CanonicalSphereChart/DESIGN.md) owns the shared phase producer.
