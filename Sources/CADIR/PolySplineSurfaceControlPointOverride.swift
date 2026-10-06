@@ -1,6 +1,6 @@
 import CADCore
 
-public struct PolySplineSurfaceControlPointOverride: Codable, Sendable, Hashable {
+public struct PolySplineSurfaceControlPointOverride: Sendable, Hashable {
     public var patchID: Int
     public var uIndex: Int
     public var vIndex: Int
@@ -40,3 +40,7 @@ public struct PolySplineSurfaceControlPointOverride: Codable, Sendable, Hashable
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension PolySplineSurfaceControlPointOverride: Codable {}
+#endif

@@ -244,12 +244,14 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
         var resultModel = model
         var removedSubshapeIDs = Set<SubshapeID>()
         var resultSubshapes: [SubshapeID: TopologyReference] = [:]
+        var retainedToolLineage: [SubshapeID: TopologyLineage] = [:]
 
         if keepTools {
             resultSubshapes = try newlyPublishedToolSubshapes(
                 toolSubshapes,
                 existingSubshapes: subshapes,
-                featureID: featureID
+                featureID: featureID,
+                lineage: &retainedToolLineage
             )
         } else {
             for targetBodyID in targetBodyIDs {
@@ -301,7 +303,7 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
             brep: resultModel,
             subshapes: resultSubshapes,
             removedSubshapeIDs: removedSubshapeIDs,
-            lineage: sewn.lineage(remappedTo: builtSubshapes)
+            lineage: sewn.lineage(remappedTo: builtSubshapes).merging(retainedToolLineage) { sewnEntry, _ in sewnEntry }
         )
         if resultModel == sewn.brep {
             evaluation.validatedBRep = sewn.validatedBRep
@@ -1074,11 +1076,13 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
     private func newlyPublishedToolSubshapes(
         _ subshapes: [SubshapeID: TopologyReference],
         existingSubshapes: [SubshapeID: TopologyReference],
-        featureID: FeatureID
+        featureID: FeatureID,
+        lineage: inout [SubshapeID: TopologyLineage]
     ) throws -> [SubshapeID: TopologyReference] {
         let indexedReferences = Set(existingSubshapes.values)
         var remapped: [SubshapeID: TopologyReference] = [:]
         for (sourceID, reference) in subshapes {
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard indexedReferences.contains(reference) == false else {
                 continue
             }
@@ -1094,6 +1098,10 @@ public struct ExactBRepBooleanEvaluator: BRepBooleanEvaluating {
                 throw FeatureEvaluationError.invalidGraph("Boolean tool subshape collision.")
             }
             remapped[remappedID] = reference
+            // The retained tool has the identical original topology reference.
+            // Its immediate source identity does not require geometry matching.
+            lineage[remappedID] = TopologyLineage(output: remappedID,
+                parents: [sourceID], relation: .preserved)
         }
         return remapped
     }

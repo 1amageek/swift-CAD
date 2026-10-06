@@ -1,0 +1,174 @@
+import CADCore
+
+/// Proves injectivity through stationary speed on exact original straight native spans.
+struct OriginalNativeStationaryLinearContact {
+    enum Result {
+        case notApplicable
+        case excluded
+        case unique(first: ScalarInterval, second: ScalarInterval, axes: (Int, Int))
+    }
+
+    private struct Support {
+        let origin: Point3D
+        let end: Point3D
+        let direction: [[Double]]
+        let axis: Int
+        let homogeneous: [[[Double]]]
+    }
+
+    func certificate(firstSource: BSplineCurve3D, first: RationalBezierCurveJetEncloser.NativeSpan,
+                     secondSource: BSplineCurve3D, second: RationalBezierCurveJetEncloser.NativeSpan,
+                     budget: inout NativeCurveCurveContactBudget) throws -> Result {
+        let arithmetic = OriginalCurveCurveWitness()
+        func multiply(_ a: [Double], _ b: [Double]) throws -> [Double]? { try arithmetic.multiply(a, b, budget: &budget) }
+        func sum(_ a: [Double], _ b: [Double]) throws -> [Double] {
+            try budget.work(a.count + b.count)
+            return FloatingPointExpansion.sum(a, b)
+        }
+        func subtract(_ a: [Double], _ b: [Double]) throws -> [Double] {
+            try budget.work(a.count + b.count)
+            return FloatingPointExpansion.subtract(a, b)
+        }
+        func coordinate(_ point: Point3D, _ axis: Int) -> Double { axis == 0 ? point.x : axis == 1 ? point.y : point.z }
+        func binomial(_ n: Int, _ k: Int) -> Int {
+            guard k > 0, k < n else { return 1 }
+            var result = 1
+            for i in 1...min(k, n - k) { result = result * (n - i + 1) / i }
+            return result
+        }
+        func split(_ values: [[Double]], q: Double) throws -> (left: [[Double]], right: [[Double]])? {
+            var level = values
+            var left = [level[0]], right = [level[level.count - 1]]
+            try budget.work(values.count * 3)
+            var count = level.count
+            while count > 1 {
+                for i in 0..<(count - 1) {
+                    guard let a = try multiply(level[i], FloatingPointExpansion.difference(1, q)),
+                          let b = try multiply(level[i + 1], [q]) else { return nil }
+                    level[i] = try sum(a, b)
+                }
+                count -= 1
+                left.append(level[0])
+                right.append(level[count - 1])
+            }
+            right.reverse()
+            return (left, right)
+        }
+        func support(_ source: BSplineCurve3D, _ span: RationalBezierCurveJetEncloser.NativeSpan) throws -> Support? {
+            let p = source.degree, index = span.index
+            // Native coefficient ownership is exact only for the original isolated span.
+            guard p >= 1, p <= 3,
+                  source.knots[(index - p + 1)...index].allSatisfy({ $0 == span.lower }),
+                  source.knots[(index + 1)...(index + p)].allSatisfy({ $0 == span.upper }) else { return nil }
+            let origin = source.controlPoints[index - p], end = source.controlPoints[index]
+            let direction = (0..<3).map { FloatingPointExpansion.difference(coordinate(end, $0), coordinate(origin, $0)) }
+            guard let axis = (0..<3).max(by: { abs(FloatingPointExpansion.estimate(direction[$0])) < abs(FloatingPointExpansion.estimate(direction[$1])) }),
+                  FloatingPointExpansion.sign(direction[axis]) != .zero else { return nil }
+            var homogeneous: [[[Double]]] = []
+            try budget.work((p + 1) * 4)
+            for i in (index - p)...index {
+                let point = source.controlPoints[i], weight = source.weights[i]
+                let displacement = (0..<3).map { FloatingPointExpansion.difference(coordinate(point, $0), coordinate(origin, $0)) }
+                for other in 0..<3 where other != axis {
+                    guard let a = try multiply(displacement[other], direction[axis]),
+                          let b = try multiply(displacement[axis], direction[other]),
+                          FloatingPointExpansion.sign(try subtract(a, b)) == .zero else { return nil }
+                }
+                var row: [[Double]] = []
+                for coordinateIndex in 0..<3 {
+                    guard let value = try multiply([coordinate(point, coordinateIndex)], [weight]) else { return nil }
+                    row.append(value)
+                }
+                row.append([weight])
+                homogeneous.append(row)
+            }
+            // The rational derivative numerator is H'W-HW'. Clearing every
+            // positive Bernstein denominator preserves its exact sign.
+            let degree = 2 * p - 1
+            let denominators = (0...degree).map { binomial(degree, $0) }
+            let scale = denominators.reduce(1, *) // p <= 3 bounds this exact integer by 2500.
+            var derivative: [[Double]] = Array(repeating: [0], count: degree + 1)
+            try budget.work(degree + 1)
+            for i in 0..<p {
+                let dh = try subtract(homogeneous[i + 1][axis], homogeneous[i][axis])
+                let dw = try subtract(homogeneous[i + 1][3], homogeneous[i][3])
+                for j in 0...p {
+                    guard let a = try multiply(dh, homogeneous[j][3]),
+                          let b = try multiply(dw, homogeneous[j][axis]) else { return nil }
+                    let factor = p * binomial(p - 1, i) * binomial(p, j) * (scale / denominators[i + j])
+                    guard let coefficient = try multiply(try subtract(a, b), [Double(factor)]) else { return nil }
+                    derivative[i + j] = try sum(derivative[i + j], coefficient)
+                }
+            }
+            let increasing = FloatingPointExpansion.sign(direction[axis]) == .positive
+            var pending: [(values: [[Double]], depth: Int)] = [(derivative, 0)]
+            while let cell = pending.popLast() {
+                try budget.cell()
+                let signs = cell.values.map { FloatingPointExpansion.sign($0) }
+                let correct = signs.allSatisfy { $0 == .zero || $0 == (increasing ? .positive : .negative) }
+                let strict = signs.contains { $0 == (increasing ? .positive : .negative) }
+                if correct && strict { continue }
+                if signs.allSatisfy({ $0 == .zero }) { return nil }
+                if signs.allSatisfy({ $0 == .zero || $0 == (increasing ? .negative : .positive) }) { return nil }
+                guard cell.depth < budget.maximumDepth, let halves = try split(cell.values, q: 0.5) else { return nil }
+                try budget.work(2)
+                pending.append((halves.left, cell.depth + 1))
+                pending.append((halves.right, cell.depth + 1))
+            }
+            return Support(origin: origin, end: end, direction: direction, axis: axis, homogeneous: homogeneous)
+        }
+        guard let a = try support(firstSource, first), let b = try support(secondSource, second) else { return .notApplicable }
+        var selected: (Int, Int)?
+        var determinant: [Double] = []
+        for axes in [(0, 1), (0, 2), (1, 2)] {
+            guard let x = try multiply(a.direction[axes.0], b.direction[axes.1]),
+                  let y = try multiply(a.direction[axes.1], b.direction[axes.0]) else { return .notApplicable }
+            let value = try subtract(x, y)
+            if FloatingPointExpansion.sign(value) != .zero { selected = axes; determinant = value; break }
+        }
+        guard let axes = selected else { return .notApplicable }
+        let delta = (0..<3).map { FloatingPointExpansion.difference(coordinate(b.origin, $0), coordinate(a.origin, $0)) }
+        guard let a0 = try multiply(delta[axes.0], b.direction[axes.1]),
+              let a1 = try multiply(delta[axes.1], b.direction[axes.0]),
+              let b0 = try multiply(delta[axes.0], a.direction[axes.1]),
+              let b1 = try multiply(delta[axes.1], a.direction[axes.0]) else { return .notApplicable }
+        let na = try subtract(a0, a1), nb = try subtract(b0, b1)
+        let remainingAxis = 3 - axes.0 - axes.1
+        guard let d = try multiply(delta[remainingAxis], determinant),
+              let ad = try multiply(a.direction[remainingAxis], na),
+              let bd = try multiply(b.direction[remainingAxis], nb) else { return .notApplicable }
+        if FloatingPointExpansion.sign(try subtract(subtract(ad, bd), d)) != .zero { return .excluded }
+        func inverse(_ support: Support, span: RationalBezierCurveJetEncloser.NativeSpan,
+                     numerator: [Double]) throws -> ScalarInterval? {
+            guard let origin = try multiply([coordinate(support.origin, support.axis)], determinant),
+                  let displacement = try multiply(support.direction[support.axis], numerator) else { return nil }
+            let target = try sum(origin, displacement)
+            var polynomial: [[Double]] = []
+            try budget.work(support.homogeneous.count)
+            for row in support.homogeneous {
+                guard let h = try multiply(row[support.axis], determinant), let w = try multiply(row[3], target) else { return nil }
+                polynomial.append(try subtract(h, w))
+            }
+            let startSign = FloatingPointExpansion.sign(polynomial[0])
+            let endSign = FloatingPointExpansion.sign(polynomial[polynomial.count - 1])
+            if startSign == .zero { return try ScalarInterval(lower: span.lower, upper: span.lower) }
+            if endSign == .zero { return try ScalarInterval(lower: span.upper, upper: span.upper) }
+            if startSign == endSign { return nil }
+            var lower = 0.0, upper = 1.0
+            for _ in 0..<budget.maximumDepth {
+                try budget.cell()
+                let middle = lower + (upper - lower) * 0.5
+                guard let value = try split(polynomial, q: middle)?.left.last else { return nil }
+                let sign = FloatingPointExpansion.sign(value)
+                if sign == .zero { lower = middle; upper = middle; break }
+                if sign == startSign { lower = middle } else { upper = middle }
+            }
+            let range = OutwardScalarInterval.exact(span.lower)
+                + (.exact(span.upper) - .exact(span.lower)) * OutwardScalarInterval(lower: lower, upper: upper)
+            return try ScalarInterval(lower: max(span.lower, range.lower), upper: min(span.upper, range.upper))
+        }
+        guard let firstParameters = try inverse(a, span: first, numerator: na),
+              let secondParameters = try inverse(b, span: second, numerator: nb) else { return .notApplicable }
+        return .unique(first: firstParameters, second: secondParameters, axes: axes)
+    }
+}

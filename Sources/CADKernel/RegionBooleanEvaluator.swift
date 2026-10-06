@@ -50,7 +50,7 @@ struct RegionBooleanEvaluator {
                 ).patch)
             }
         }
-        let request = try BRepCellComplexBuilder(tolerance: tolerance).request(patches: patches, featureID: featureID)
+        let request = try BRepCellComplexBuilder(tolerance: tolerance).request(patches: try CoincidentFacePatchMerger().merge(patches, tolerance: tolerance), featureID: featureID)
         var resultModel = model
         var removedSubshapeIDs = Set<SubshapeID>()
         let removal = BRepBodyTopologyRemoval()
@@ -102,12 +102,19 @@ struct RegionBooleanEvaluator {
                 + parentSubshapeIDs(.face(split.facePair.toolFaceID), subshapes)
             for component in split.components {
                 if case .coincident = component.geometry {
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): Operands whose faces overlap on a common
-                    // surface are refused. The Region Boolean reaches here from every operand pair;
-                    // it is incomplete until coincident regions are merged into one shared face
-                    // piece bounding the cells on both sides, with volumes checked in a test.
-                    throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
-                        message: "A Region Boolean cannot yet divide space where operand faces overlap.")
+                    let reference = BooleanFaceSplitComponentReference(facePair: split.facePair, componentID: component.id)
+                    for (source, opposing) in [(split.facePair.targetFaceID, split.facePair.toolFaceID),
+                                               (split.facePair.toolFaceID, split.facePair.targetFaceID)] {
+                        let outline = try CoincidentBooleanFaceArrangementBoundaryBuilder().outlineEdges(
+                            of: opposing, onto: source, reference: reference, model: model,
+                            sourceSubshapes: subshapes, tolerance: tolerance)
+                        result += outline.enumerated().map { ordinal, edge in
+                            BooleanFaceArrangementBoundary(reference: reference, segmentOrdinal: ordinal,
+                                faceID: source, edge: edge, forwardLeftAction: .keep,
+                                forwardRightAction: .keep, forcedPartitioning: true)
+                        }
+                    }
+                    continue
                 }
                 let reference = BooleanFaceSplitComponentReference(facePair: split.facePair, componentID: component.id)
                 for (faceID, side) in [(split.facePair.targetFaceID, BooleanFaceArrangementBoundary.SurfaceSide.first),

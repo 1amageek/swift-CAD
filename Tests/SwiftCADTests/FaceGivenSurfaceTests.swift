@@ -2,6 +2,7 @@ import Foundation
 import Testing
 import CADCore
 import CADGeometry
+import CADExchange
 import CADIR
 import CADTopology
 @testable import CADKernel
@@ -63,6 +64,47 @@ struct FaceGivenSurfaceTests {
         // The method persists as it is.
         let decoded = try JSONDecoder().decode(FaceRebuildMethod.self, from: try JSONEncoder().encode(FaceRebuildMethod.given(surface)))
         #expect(decoded == .given(surface))
+        let source = try builder.build(name: "given-native")
+        let sink = DataByteSink()
+        let store = NativePackageStore(tolerance: .standard)
+        try store.writePackage(for: source, to: sink)
+        let restored = try store.loadDocument(from: BorrowedBytes(sink.bytes))
+        #expect(restored == source)
+        let replay = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(restored)
+        #expect(abs(try volume(given, in: replay) - s * s * s) < s * s * s * 1e-9)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func malformedGivenSurfaceCannotPublishNativePackage() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let box = try builder.box(width: length(s), depth: length(s), height: length(s))
+        let top = try face(of: box, in: builder, normal: .unitZ)
+        let surface = try FaceBSplineSurfaceConverter().surface(of: top, in: try evaluate(builder))
+        let given = try builder.rebuildFaces(target: box, faces: [top], method: .given(surface))
+        let source = try builder.build(name: "given-native-invalid")
+        var negativeWeight = surface
+        negativeWeight.weights[0][0] = -1
+        var missingKnot = surface
+        missingKnot.uKnots.removeLast()
+        var missingWeight = surface
+        missingWeight.weights[0].removeLast()
+        let store = NativePackageStore(tolerance: .standard)
+        for malformed in [negativeWeight, missingKnot, missingWeight] {
+            var invalid = source
+            var node = try #require(invalid.designGraph.nodes[given])
+            guard case .faceRebuild(var rebuild) = node.operation else {
+                Issue.record("The given feature changed operation."); return
+            }
+            rebuild.method = .given(malformed)
+            node.operation = .faceRebuild(rebuild)
+            invalid.designGraph.nodes[given] = node
+            let sink = DataByteSink()
+            #expect(throws: (any Error).self) { try store.writePackage(for: invalid, to: sink) }
+            #expect(sink.bytes.isEmpty)
+            #expect(throws: (any Error).self) {
+                _ = try JSONEncoder().encode(FaceRebuildMethod.given(malformed))
+            }
+        }
     }
 
     @Test(.timeLimit(.minutes(2)))
@@ -250,17 +292,35 @@ struct FaceGivenSurfaceTests {
             return true
         }.keys.sorted()
         #expect(keys.count == 8)
-        for (index, key) in keys.enumerated() {
+        for key in keys {
             var builder = base
             let face = try builder.stableSubshape(key)
             let rational = try FaceBSplineSurfaceConverter().surface(of: face, in: start)
             _ = try builder.rebuildFaces(target: body, faces: [face], method: .given(rational))
             try evaluate(builder).brep.validate(level: .volumetric, tolerance: .standard)
-            // The display mesh of one octant on each side of the seam, the pole's normal read just
-            // inside the face (meshing a rational face is slow: every octant would take minutes).
-            if index == 0 || index == 1 {
-                _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .materialized).evaluate(try builder.build(name: "given"))
-            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)), arguments: [1.0, -1.0])
+    func givenPoleFaceMeshesOnBothSidesOfTheSeam(_ side: Double) throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let body = try builder.sphere(radius: length(0.01))
+        let start = try evaluate(builder)
+        var selected: (SubshapeID, BSplineSurface3D)?
+        for key in start.subshapes.entries.keys.sorted() {
+            guard key.featureID == body, case .face? = start.subshapes.entries[key] else { continue }
+            let reference = try builder.stableSubshape(key)
+            let spline = try FaceBSplineSurfaceConverter().surface(of: reference, in: start)
+            let point = try spline.point(u: (spline.uKnots[spline.uDegree] + spline.uKnots[spline.controlPoints[0].count]) * 0.5, v: (spline.vKnots[spline.vDegree] + spline.vKnots[spline.controlPoints.count]) * 0.5, tolerance: .standard)
+            if point.x > 0 && point.y * side > 0 && point.z > 0 { selected = (key, spline); break }
+        }
+        let (key, rational) = try #require(selected)
+        _ = try builder.rebuildFaces(target: body, faces: [builder.stableSubshape(key)], method: .given(rational))
+        let meshed = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .materialized).evaluate(try builder.build(name: "given"))
+        #expect(!meshed.meshes.isEmpty)
+        for mesh in meshed.meshes.values {
+            #expect(!mesh.indices.isEmpty && mesh.positions.count == mesh.normals.count)
+            #expect(mesh.normals.allSatisfy { $0.length.isFinite && abs($0.length - 1) < 1e-8 })
         }
     }
 

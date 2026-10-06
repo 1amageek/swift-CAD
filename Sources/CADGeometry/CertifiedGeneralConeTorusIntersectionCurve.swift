@@ -2,7 +2,7 @@ import CADCore
 import Synchronization
 import Foundation
 
-public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sendable {
+public struct CertifiedGeneralConeTorusIntersectionCurve: Hashable, Sendable {
     public struct DifferentialGeometry: Hashable, Sendable {
         public let position: Point3D
         public let firstDerivative: Vector3D
@@ -139,6 +139,25 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             hasher.combine(traceParameters.last ?? 0.0)
             hasher.combine(slantsByBranch.first?.first ?? 0.0)
             hasher.combine(slantsByBranch.last?.last ?? 0.0)
+        }
+
+        package func chargeStructuralComparisonWork(
+            using charge: GeometryStructuralComparisonWork.Charge
+        ) throws {
+            // DifferentialPartitionIndex is a derived query index and is
+            // intentionally excluded from Certificate equality/hash payload.
+            try charge(2)
+            try charge(differentialPartitions.count)
+            for _ in differentialPartitions {
+                try Task.checkCancellation()
+                try charge(10)
+            }
+            try charge(traceParameters.count)
+            try charge(slantsByBranch.count)
+            for row in slantsByBranch {
+                try Task.checkCancellation()
+                try charge(row.count)
+            }
         }
 
         func referenceSlant(
@@ -651,6 +670,12 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
     public let maximumResidualUpperBound: Double
     public let apexReduction: ApexReduction?
     private let certificate: Certificate
+
+    package func chargeStructuralComparisonWork(
+        using charge: GeometryStructuralComparisonWork.Charge
+    ) throws {
+        try certificate.chargeStructuralComparisonWork(using: charge)
+    }
 
     public init(
         coneSurface: Surface3D,
@@ -2981,6 +3006,7 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             || (direction.x == 0.0 && direction.y == 0.0 && direction.z < 0.0)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case coneSurface
         case torusSurface
@@ -2992,7 +3018,9 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         case maximumResidualUpperBound
         case apexReduction
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -3077,7 +3105,9 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -3091,4 +3121,9 @@ public struct CertifiedGeneralConeTorusIntersectionCurve: Codable, Hashable, Sen
         try container.encode(maximumResidualUpperBound, forKey: .maximumResidualUpperBound)
         try container.encodeIfPresent(apexReduction, forKey: .apexReduction)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedGeneralConeTorusIntersectionCurve: Codable {}
+#endif

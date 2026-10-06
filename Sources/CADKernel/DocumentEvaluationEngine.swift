@@ -1,4 +1,3 @@
-import Foundation
 import CADCore
 import CADIR
 import CADModeling
@@ -15,6 +14,7 @@ struct DocumentEvaluationEngine {
     let meshArtifactPurpose: MeshArtifactPurpose
     let tessellationLimits: TessellationLimits
     let artifactPolicy: EvaluationArtifactPolicy
+    let assemblyResourceLimits: AssemblyResourceLimits
     let incrementalEvaluatorIdentity: String?
 
     func evaluate(
@@ -30,6 +30,11 @@ struct DocumentEvaluationEngine {
         }
         try tolerance.validate()
         try tessellationOptions.validate()
+        try assemblyResourceLimits.validate()
+        if let assembly = document.assembly {
+            _ = try DocumentAssemblyValidator().expandedOccurrences(of: assembly, in: document.designGraph,
+                tolerance: tolerance, limits: assemblyResourceLimits)
+        }
 
         let parameters = try parameterResolver.resolve(document.parameters)
         let reusableState = reusableState(for: document, from: previous)
@@ -81,7 +86,7 @@ struct DocumentEvaluationEngine {
         var subshapes = evaluationBase.subshapes
         var lineage = PersistentMap<SubshapeID, TopologyLineage>()
         if incrementalEvaluatorIdentity != nil, let previous {
-            lineage = PersistentMap(previous.lineage)
+            lineage = PersistentMap(previous.assembly?.local.lineage ?? previous.lineage)
             let activeFeatureIDs = Set(document.designGraph.order)
             for lineageID in lineage.keys where activeFeatureIDs.contains(lineageID.featureID) == false {
                 lineage.removeValue(forKey: lineageID)
@@ -160,9 +165,21 @@ struct DocumentEvaluationEngine {
 
         metrics.invalidatedFeatureCount = invalidatedFeatureIDs.count
         metrics.reusedFeatureCount = document.designGraph.order.count - metrics.rebuiltFeatureCount
-        let validatedBRep = try brepBuffer.finalizedValidatedModel(
+        var validatedBRep = try brepBuffer.finalizedValidatedModel(
             tolerance: tolerance
         )
+        var assemblyArtifact: AssemblyEvaluationArtifact?
+        if let assembly = document.assembly {
+            let result = try AssemblyEvaluator().evaluate(assembly, in: document.designGraph,
+                local: AssemblyLocalEvaluationBase(model: validatedBRep.model,
+                    subshapes: SubshapeIndex(subshapes.materializedDictionary()),
+                    lineage: lineage.materializedDictionary()), tolerance: tolerance, limits: assemblyResourceLimits)
+            validatedBRep = try ValidatedBRepModel(result.model, tolerance: tolerance, validationLevel: .exact)
+            subshapes = PersistentMap(result.subshapes.entries)
+            lineage = PersistentMap(result.lineage)
+            changedBodyIDs = Set(result.model.bodies.keys)
+            assemblyArtifact = result.artifact
+        }
         let brep = validatedBRep.model
         let meshResult: MeshEvaluationResult
         switch artifactPolicy {
@@ -175,7 +192,7 @@ struct DocumentEvaluationEngine {
         case .materialized:
             meshResult = try makeMeshes(
                 for: validatedBRep,
-                reusing: reusableState == nil ? nil : previous,
+                reusing: reusableState == nil || document.assembly != nil ? nil : previous,
                 changedBodyIDs: changedBodyIDs,
                 subshapes: subshapes
             )
@@ -211,8 +228,8 @@ struct DocumentEvaluationEngine {
         } else {
             caches = DocumentCaches()
         }
-        var evaluatedDocument = EvaluatedDocument(
-            document: document,
+        var evaluatedDocument = try EvaluatedDocument(
+            validatedSourceReceipt: validatedDocument,
             parameters: parameters,
             brep: brep,
             meshes: meshResult.meshes,
@@ -226,6 +243,7 @@ struct DocumentEvaluationEngine {
                 meshArtifactPurpose: meshArtifactPurpose,
                 tessellationLimits: tessellationLimits
             ),
+            assembly: assemblyArtifact,
             evaluationMetrics: metrics
         )
         if let incrementalEvaluatorIdentity {
@@ -484,7 +502,8 @@ struct DocumentEvaluationEngine {
               state.documentID == document.id,
               state.schemaVersion == document.schemaVersion,
               state.units == document.units,
-              state.tolerance == tolerance else {
+              state.tolerance == tolerance,
+              (previous?.document.assembly == nil) == (document.assembly == nil) else {
             return nil
         }
         return state
@@ -508,7 +527,9 @@ struct DocumentEvaluationEngine {
             }
         }
         let previousValidatedBRep: ValidatedBRepModel
-        if let certificate = previous.validatedBRep,
+        if let local = previous.assembly?.local {
+            previousValidatedBRep = try ValidatedBRepModel(local.model, tolerance: tolerance, validationLevel: .exact)
+        } else if let certificate = previous.validatedBRep,
            certificate.model == previous.brep,
            certificate.tolerance == tolerance,
            certificate.validationLevel != .modeling {
@@ -521,7 +542,7 @@ struct DocumentEvaluationEngine {
             )
         }
         let brepBuffer = BRepEditBuffer(validatedModel: previousValidatedBRep)
-        var subshapes = PersistentMap(previous.subshapes.entries)
+        var subshapes = PersistentMap(previous.assembly?.local.subshapes.entries ?? previous.subshapes.entries)
         var rollbackMutationCount = 0
         var affectedBodyIDs = Set<BodyID>()
 
@@ -630,6 +651,9 @@ struct DocumentEvaluationEngine {
         subshapes: PersistentMap<SubshapeID, TopologyReference>
     ) throws -> MeshEvaluationResult {
         let brep = validatedBRep.model
+        guard Set(tessellationOptions.faceOverrides.keys).isSubset(of: Set(brep.faces.keys)) else {
+            throw TessellationError.invalidTolerance
+        }
         guard let previous else {
             let meshes = try tessellate(
                 validatedModel: validatedBRep,
@@ -663,7 +687,9 @@ struct DocumentEvaluationEngine {
         // exact B-rep reuse when only the mesh request changed.
         let reusableBodyIDs = meshes.keys.filter { bodyID in
             brep.bodies[bodyID] != nil && !bodyIDsToTessellate.contains(bodyID)
-        }
+        }.sorted()
+        let previousSourceFingerprint = reusableBodyIDs.isEmpty ? nil :
+            try previous.document.sourceFingerprint(tolerance: previous.configuration.tolerance)
         for bodyID in reusableBodyIDs {
             guard let cache = previous.caches.meshes[bodyID] else {
                 throw CacheValidationError.staleMeshCache(
@@ -671,7 +697,10 @@ struct DocumentEvaluationEngine {
                     reason: "A reused mesh has no cache artifact metadata."
                 )
             }
-            if try validateReusableMeshCache(cache, bodyID: bodyID) == false {
+            guard let previousSourceFingerprint else {
+                throw CacheValidationError.staleMeshCache(bodyID: bodyID, reason: "Original source fingerprint receipt is absent.")
+            }
+            if try validateReusableMeshCache(cache, bodyID: bodyID, previous: previous, sourceFingerprint: previousSourceFingerprint) == false {
                 // A previous evaluation is a reuse hint, not an authority for
                 // the requested artifact. Keep its exact B-rep state, but
                 // regenerate this body's mesh under the requested fidelity and
@@ -728,9 +757,13 @@ struct DocumentEvaluationEngine {
         subshapes: PersistentMap<SubshapeID, TopologyReference>,
         reserving reservation: TessellationUsage
     ) throws -> [BodyID: Mesh] {
-        guard !tessellationOptions.featureOverrides.isEmpty else {
+        var scopedOptions = tessellationOptions
+        scopedOptions.faceOverrides = tessellationOptions.faceOverrides.filter {
+            validatedModel.model.faces[$0.key] != nil
+        }
+        guard !scopedOptions.featureOverrides.isEmpty else {
             return try tessellator.tessellate(validatedModel: validatedModel,
-                options: tessellationOptions, limits: tessellationLimits, reserving: reservation)
+                options: scopedOptions, limits: tessellationLimits, reserving: reservation)
         }
         var bodyOptions: [BodyID: TessellationOptions] = [:]
         for (id, reference) in subshapes {
@@ -739,7 +772,7 @@ struct DocumentEvaluationEngine {
                 bodyOptions[bodyID] = options
             }
         }
-        var defaults = tessellationOptions
+        var defaults = scopedOptions
         defaults.featureOverrides = [:]
         var result: [BodyID: Mesh] = [:]
         var budget = try TessellationBudget(limits: tessellationLimits, reserving: reservation)
@@ -747,8 +780,11 @@ struct DocumentEvaluationEngine {
             let model = try BRepBodySubmodelExtractor().extract(bodyIDs: [bodyID], from: validatedModel.model)
             let validated = try ValidatedBRepModel(composingValidatedBodies: [bodyID: validatedModel],
                                                   as: model, tolerance: tolerance)
+            var localOptions = bodyOptions[bodyID] ?? defaults
+            localOptions.featureOverrides = [:]
+            localOptions.faceOverrides = scopedOptions.faceOverrides.filter { model.faces[$0.key] != nil }
             let meshes = try tessellator.tessellate(validatedModel: validated,
-                options: bodyOptions[bodyID] ?? defaults, limits: tessellationLimits, reserving: budget.usage)
+                options: localOptions, limits: tessellationLimits, reserving: budget.usage)
             for (id, mesh) in meshes {
                 try budget.reserve(TessellationUsage(mesh: mesh))
                 result[id] = mesh
@@ -759,8 +795,36 @@ struct DocumentEvaluationEngine {
 
     private func validateReusableMeshCache(
         _ cache: MeshCache,
-        bodyID: BodyID
+        bodyID: BodyID,
+        previous: EvaluatedDocument,
+        sourceFingerprint: CADDocumentSourceFingerprint
     ) throws -> Bool {
+        // Validate the old artifact against its original source before comparing
+        // the new request. A fidelity change may regenerate a valid artifact,
+        // but must not disguise corrupted or foreign previous metadata.
+        guard let previousBRepCache = previous.caches.brep else {
+            throw CacheValidationError.staleMeshCache(
+                bodyID: bodyID,
+                reason: "The previous evaluation has no original B-rep cache."
+            )
+        }
+        try cache.validateMetadataFreshness(
+            for: previous.document,
+            sourceFingerprint: sourceFingerprint,
+            brep: previousBRepCache,
+            tolerance: previous.configuration.tolerance,
+            tessellationOptions: previous.configuration.tessellationOptions,
+            purpose: previous.configuration.meshArtifactPurpose,
+            limits: previous.configuration.tessellationLimits,
+            kernelVersion: .current
+        )
+        guard previousBRepCache.model == previous.brep,
+              let retainedMesh = previous.meshes[bodyID], cache.mesh == retainedMesh else {
+            throw CacheValidationError.staleMeshCache(
+                bodyID: bodyID,
+                reason: "Cached original B-rep or mesh differs from the retained previous evaluation."
+            )
+        }
         try meshArtifactPurpose.validate()
         try cache.purpose.validate()
         guard cache.purpose == meshArtifactPurpose else {

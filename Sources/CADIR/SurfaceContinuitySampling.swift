@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-public struct SurfaceContinuitySamplingSide: Codable, Sendable, Hashable {
+public struct SurfaceContinuitySamplingSide: Sendable, Hashable {
     public var surface: Surface3D
     public var parameterCurve: SurfaceParameterCurve
     public var parameterDirection: SurfaceParameterCurveDirection
@@ -43,7 +43,7 @@ public struct SurfaceContinuitySamplingSide: Codable, Sendable, Hashable {
     }
 }
 
-public struct SurfaceContinuitySamplingOptions: Codable, Sendable, Hashable {
+public struct SurfaceContinuitySamplingOptions: Sendable, Hashable {
     public var sampleCount: Int
 
     public init(sampleCount: Int = 5) {
@@ -90,3 +90,8 @@ public struct SurfaceContinuitySampler: Sendable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceContinuitySamplingSide: Codable {}
+extension SurfaceContinuitySamplingOptions: Codable {}
+#endif

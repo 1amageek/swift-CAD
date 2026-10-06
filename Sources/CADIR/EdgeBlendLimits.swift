@@ -4,7 +4,7 @@ import CADCore
 /// start, that the blend runs over; outside it the edge stays sharp and each limit inside the edge
 /// closes the blend on its cross-section. Reversed (a limit point clicked), the blend runs over the
 /// rest of the edge instead: from its start to `start` and from `end` to its end.
-public struct EdgeBlendLimits: Codable, Hashable, Sendable {
+public struct EdgeBlendLimits: Hashable, Sendable {
     public let start: Double
     public let end: Double
     public let reversed: Bool
@@ -28,23 +28,33 @@ public struct EdgeBlendLimits: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case start
         case end
         case reversed
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         start = try container.decode(Double.self, forKey: .start)
         end = try container.decode(Double.self, forKey: .end)
         reversed = try container.decodeIfPresent(Bool.self, forKey: .reversed) ?? false
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(start, forKey: .start)
         try container.encode(end, forKey: .end)
         if reversed { try container.encode(true, forKey: .reversed) }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension EdgeBlendLimits: Codable {}
+#endif

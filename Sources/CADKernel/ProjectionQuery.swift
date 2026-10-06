@@ -1,25 +1,30 @@
 import CADCore
 import CADIR
 
-public struct ProjectionQuery: Codable, Sendable, Hashable {
-    public enum Target: Codable, Sendable, Hashable {
+public struct ProjectionQuery: Sendable, Hashable {
+    public enum Target: Sendable, Hashable {
         case curve(CurveOutputReference)
         case edge(EdgeReference)
         case surface(SurfaceReference)
 
+        #if !hasFeature(Embedded)
         private enum CodingKeys: String, CodingKey {
             case kind
             case curve
             case edge
             case surface
         }
+        #endif
 
+        #if !hasFeature(Embedded)
         private enum Kind: String, Codable {
             case curve
             case edge
             case surface
         }
+        #endif
 
+        #if !hasFeature(Embedded)
         public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             let kind = try container.decode(Kind.self, forKey: .kind)
@@ -35,7 +40,9 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
                 self = .surface(try container.decode(SurfaceReference.self, forKey: .surface))
             }
         }
+        #endif
 
+        #if !hasFeature(Embedded)
         public func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             switch self {
@@ -50,6 +57,7 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
                 try container.encode(reference, forKey: .surface)
             }
         }
+        #endif
 
         fileprivate func validate() throws {
             switch self {
@@ -63,26 +71,31 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
         }
     }
 
-    public enum DirectionRange: String, Codable, Sendable, Hashable {
+    public enum DirectionRange: String, Sendable, Hashable {
         case line
         case ray
     }
 
-    public enum Mode: Codable, Sendable, Hashable {
+    public enum Mode: Sendable, Hashable {
         case closest
         case directional(direction: Vector3D, range: DirectionRange)
 
+        #if !hasFeature(Embedded)
         private enum CodingKeys: String, CodingKey {
             case kind
             case direction
             case range
         }
+        #endif
 
+        #if !hasFeature(Embedded)
         private enum Kind: String, Codable {
             case closest
             case directional
         }
+        #endif
 
+        #if !hasFeature(Embedded)
         public init(from decoder: Decoder) throws {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             let kind = try container.decode(Kind.self, forKey: .kind)
@@ -98,7 +111,9 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
                 )
             }
         }
+        #endif
 
+        #if !hasFeature(Embedded)
         public func encode(to encoder: Encoder) throws {
             var container = encoder.container(keyedBy: CodingKeys.self)
             switch self {
@@ -110,6 +125,7 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
                 try container.encode(range, forKey: .range)
             }
         }
+        #endif
 
         fileprivate func validate(tolerance: ModelingTolerance) throws {
             guard case let .directional(direction, _) = self else {
@@ -127,12 +143,14 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
     public var mode: Mode
     public var resourceLimits: ProjectionResourceLimits
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case point
         case target
         case mode
         case resourceLimits
     }
+    #endif
 
     public init(
         point: Point3D,
@@ -146,6 +164,7 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
         self.resourceLimits = resourceLimits
     }
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -157,6 +176,7 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
         mode = try container.decode(Mode.self, forKey: .mode)
         resourceLimits = try container.decode(ProjectionResourceLimits.self, forKey: .resourceLimits)
     }
+    #endif
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -166,3 +186,10 @@ public struct ProjectionQuery: Codable, Sendable, Hashable {
         try resourceLimits.validate(tolerance: tolerance)
     }
 }
+
+#if !hasFeature(Embedded)
+extension ProjectionQuery: Codable {}
+extension ProjectionQuery.Target: Codable {}
+extension ProjectionQuery.DirectionRange: Codable {}
+extension ProjectionQuery.Mode: Codable {}
+#endif

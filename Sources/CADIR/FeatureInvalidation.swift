@@ -1,18 +1,21 @@
 import CADCore
 
-public enum FeatureEvaluationState: Codable, Sendable, Hashable {
+public enum FeatureEvaluationState: Sendable, Hashable {
     case unevaluated
     case evaluated
     case suppressed
     case blocked(upstreamFeatureID: FeatureID)
     case failed(FeatureFailure)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case failure
         case upstreamFeatureID
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case unevaluated
         case evaluated
@@ -20,7 +23,9 @@ public enum FeatureEvaluationState: Codable, Sendable, Hashable {
         case blocked
         case failed
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -42,7 +47,9 @@ public enum FeatureEvaluationState: Codable, Sendable, Hashable {
             self = .failed(try container.decode(FeatureFailure.self, forKey: .failure))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -60,9 +67,10 @@ public enum FeatureEvaluationState: Codable, Sendable, Hashable {
             try container.encode(failure, forKey: .failure)
         }
     }
+#endif
 }
 
-public struct FeatureFailure: Codable, Sendable, Hashable {
+public struct FeatureFailure: Sendable, Hashable {
     public var featureID: FeatureID
     public var message: String
     public var invalidatedFeatureIDs: [FeatureID]
@@ -118,3 +126,8 @@ package extension DesignGraph {
         return order.filter { visited.contains($0) }
     }
 }
+
+#if !hasFeature(Embedded)
+extension FeatureEvaluationState: Codable {}
+extension FeatureFailure: Codable {}
+#endif

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct Mesh: Codable, Sendable, Hashable {
+public struct Mesh: Sendable, Hashable {
     /// The contiguous run of triangles one B-rep face generated.
     ///
     /// Runs are recorded in emission order and are contiguous, so the triangles
@@ -8,7 +8,7 @@ public struct Mesh: Codable, Sendable, Hashable {
     /// where `start` is the sum of the preceding runs' counts. A face that
     /// generated no triangle has no run, and a mesh that was not tessellated
     /// from a B-rep records no run at all.
-    public struct FaceRun: Codable, Sendable, Hashable {
+    public struct FaceRun: Sendable, Hashable {
         public var faceID: FaceID
         public var triangleCount: Int
 
@@ -59,6 +59,7 @@ public struct Mesh: Codable, Sendable, Hashable {
         return uses.values.allSatisfy { $0 == 2 }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case positions
         case normals
@@ -68,7 +69,9 @@ public struct Mesh: Codable, Sendable, Hashable {
         case material
         case faceRuns
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
@@ -88,7 +91,9 @@ public struct Mesh: Codable, Sendable, Hashable {
         material = try container.decodeIfPresent(MaterialID.self, forKey: .material)
         faceRuns = try container.decodeIfPresent([FaceRun].self, forKey: .faceRuns) ?? []
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: any Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(positions, forKey: .positions)
@@ -105,6 +110,7 @@ public struct Mesh: Codable, Sendable, Hashable {
             try container.encode(faceRuns, forKey: .faceRuns)
         }
     }
+#endif
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -240,18 +246,21 @@ public struct Mesh: Codable, Sendable, Hashable {
     }
 }
 
-public struct TessellationOptions: Codable, Hashable, Sendable {
+public struct TessellationOptions: Hashable, Sendable {
     public var linearTolerance: Double
     public var angularTolerance: Double
     public var maxEdgeLength: Double?
     public var featureOverrides: [FeatureID: TessellationOptions]
+    public var faceOverrides: [FaceID: TessellationOptions]
 
     public init(linearTolerance: Double, angularTolerance: Double, maxEdgeLength: Double? = nil,
-                featureOverrides: [FeatureID: TessellationOptions] = [:]) {
+                featureOverrides: [FeatureID: TessellationOptions] = [:],
+                faceOverrides: [FaceID: TessellationOptions] = [:]) {
         self.linearTolerance = linearTolerance
         self.angularTolerance = angularTolerance
         self.maxEdgeLength = maxEdgeLength
         self.featureOverrides = featureOverrides
+        self.faceOverrides = faceOverrides
     }
 
     /// A 0.1 mm chord bound with at most 2π/64 of turning per segment or facet. The turn is
@@ -264,7 +273,15 @@ public struct TessellationOptions: Codable, Hashable, Sendable {
 
     public func validate() throws {
         for options in featureOverrides.values {
-            guard options.featureOverrides.isEmpty else { throw TessellationError.invalidTolerance }
+            guard options.featureOverrides.isEmpty, options.faceOverrides.isEmpty else {
+                throw TessellationError.invalidTolerance
+            }
+            try options.validate()
+        }
+        for options in faceOverrides.values {
+            guard options.featureOverrides.isEmpty, options.faceOverrides.isEmpty else {
+                throw TessellationError.invalidTolerance
+            }
             try options.validate()
         }
         guard linearTolerance.isFinite,
@@ -280,20 +297,31 @@ public struct TessellationOptions: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
-        case linearTolerance, angularTolerance, maxEdgeLength, featureOverrides
+        case linearTolerance, angularTolerance, maxEdgeLength, featureOverrides, faceOverrides
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
+        try container.validateOnlyExpectedKeys(
+            [.linearTolerance, .angularTolerance, .maxEdgeLength, .featureOverrides, .faceOverrides],
+            in: decoder
+        )
         linearTolerance = try container.decode(Double.self, forKey: .linearTolerance)
         angularTolerance = try container.decode(Double.self, forKey: .angularTolerance)
         maxEdgeLength = try container.decodeIfPresent(Double.self, forKey: .maxEdgeLength)
         featureOverrides = try container.decodeIfPresent([FeatureID: TessellationOptions].self,
                                                          forKey: .featureOverrides) ?? [:]
+        faceOverrides = try container.decodeIfPresent([FaceID: TessellationOptions].self,
+                                                       forKey: .faceOverrides) ?? [:]
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -301,5 +329,13 @@ public struct TessellationOptions: Codable, Hashable, Sendable {
         try container.encode(angularTolerance, forKey: .angularTolerance)
         try container.encodeIfPresent(maxEdgeLength, forKey: .maxEdgeLength)
         if !featureOverrides.isEmpty { try container.encode(featureOverrides, forKey: .featureOverrides) }
+        if !faceOverrides.isEmpty { try container.encode(faceOverrides, forKey: .faceOverrides) }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension Mesh: Codable {}
+extension Mesh.FaceRun: Codable {}
+extension TessellationOptions: Codable {}
+#endif

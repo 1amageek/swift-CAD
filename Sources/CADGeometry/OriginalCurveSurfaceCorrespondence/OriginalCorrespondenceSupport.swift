@@ -22,10 +22,7 @@ struct OriginalCorrespondenceSupport {
             plane = value; basisU = basis.u; basisV = basis.v
             spline = nil; uSpans = []; uDomain = nil; vDomain = nil
         case let .bSpline(value):
-            // Main-native BSplineSurface3D has no cyclic metadata; exact
-            // closed-domain validation and the clamped/multiplicity checks below
-            // are the nonperiodic support admission authority.
-            guard value.uDegree == 3,
+            guard !value.isUPeriodic, !value.isVPeriodic, value.uDegree == 3,
                   value.vDegree == 1, value.vControlPointCount == 2 else { throw budget.unsupported() }
             try value.validate(tolerance: budget.tolerance)
             let u0 = value.uKnots[3], u1 = value.uKnots[value.uControlPointCount]

@@ -1,6 +1,6 @@
 import CADIR
 
-public struct SketchConstraintSolveResult: Codable, Sendable {
+public struct SketchConstraintSolveResult: Sendable {
     public let sketch: Sketch
     public let status: SketchConstraintSolveStatus
     public let remainingDegreesOfFreedom: Int
@@ -24,3 +24,7 @@ public struct SketchConstraintSolveResult: Codable, Sendable {
         self.iterations = iterations
     }
 }
+
+#if !hasFeature(Embedded)
+extension SketchConstraintSolveResult: Codable {}
+#endif

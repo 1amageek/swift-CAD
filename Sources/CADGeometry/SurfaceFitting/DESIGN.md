@@ -158,3 +158,5 @@ stationarity, redundant/conflicting constraints, rejection, resource ceilings an
 propagated evaluator failures. The line-search formulation follows the
 [NTNU SQP notes](https://wiki.math.ntnu.no/_media/tma4180/2019v/sqp.pdf);
 the local quadratic model uses the least-squares Jacobian rather than BFGS.
+
+Bounded SurfaceFittingQR initialization retains an optional GeometryConversionAdmission through factorization, Q formation and solve. It admits concrete normalized matrix, permutation, reflector, Q and least-squares buffers before allocation and charges actual norm, pivot, reflector, substitution and coefficient scans. The rank rule, relative tolerance, maximumElements and algorithm stay unchanged; nil preserves the legacy invocation.

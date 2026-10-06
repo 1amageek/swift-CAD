@@ -3,9 +3,10 @@ import CADGeometry
 import CADTopology
 import Foundation
 
-// FIXME(INCOMPLETE_IMPLEMENTATION): Native machining integration tests consume
-// this selection step; feature publication still requires complete cap trimming,
-// terminal closure, volumetric admission and stable topology lineage.
+// FIXME(INCOMPLETE_IMPLEMENTATION): Ordinary KernelRollingBallFilletEvaluator
+// and its request builder consume this selection step for the admitted original
+// cap-chain domain. Mandatory general partner/network selection, terminal closure,
+// volumetric admission and lineage behavior remain required for full support.
 package struct RollingBallTangentChainResolver {
     package init() {}
 
@@ -54,6 +55,15 @@ package struct RollingBallTangentChainResolver {
             cursor += 1
             guard let edge = model.edges[current] else { throw failure("Missing selected chain edge.") }
             let firstID = try otherFace(current)
+            if edge.startVertexID == edge.endVertexID,
+               let incidences = vertexEdges[edge.startVertexID],
+               incidences.count == 2, incidences.allSatisfy({ $0 == current }) {
+                guard try BRepEdgeGeometryClassifier().kind(of: edge, in: model,
+                    tolerance: tolerance) == .closed else {
+                    throw failure("A single-edge partner loop requires an original closed-curve certificate.")
+                }
+                continue
+            }
             for vertex in [edge.startVertexID, edge.endVertexID] {
                 guard let candidates = vertexEdges[vertex], candidates.count == 2,
                       let next = candidates.first(where: { $0 != current }) else {

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct TopologyValidationDiagnostic: Codable, Equatable, Sendable {
+public struct TopologyValidationDiagnostic: Equatable, Sendable {
     public let scope: TopologyValidationScope
     public let code: KernelErrorCode
     public let entityID: String?
@@ -21,6 +21,7 @@ public struct TopologyValidationDiagnostic: Codable, Equatable, Sendable {
         self.message = message
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case scope
         case code
@@ -28,7 +29,9 @@ public struct TopologyValidationDiagnostic: Codable, Equatable, Sendable {
         case residual
         case message
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -43,7 +46,9 @@ public struct TopologyValidationDiagnostic: Codable, Equatable, Sendable {
             message: try container.decode(String.self, forKey: .message)
         )
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(scope, forKey: .scope)
@@ -52,4 +57,9 @@ public struct TopologyValidationDiagnostic: Codable, Equatable, Sendable {
         try container.encodeIfPresent(residual, forKey: .residual)
         try container.encode(message, forKey: .message)
     }
+    #endif
 }
+
+#if !hasFeature(Embedded)
+extension TopologyValidationDiagnostic: Codable {}
+#endif

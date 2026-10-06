@@ -20,6 +20,8 @@ public extension KernelQuery {
             try query.validate(tolerance: tolerance)
         case let .measurement(query):
             try query.validate()
+        case let .massProperties(query):
+            try query.validate(tolerance: tolerance)
         case .selectionDimensionEvaluation:
             return
         case let .projection(query):

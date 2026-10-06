@@ -7,7 +7,7 @@ import CADTopology
 /// faces it runs into, as far as it lies on the face. With `subdividesControlNet` a B-spline
 /// surface first gains knots at those lines, as many as its degree, so each line is a row of
 /// control points the pieces on either side share.
-public struct IsoparamFeature: Codable, Hashable, Sendable {
+public struct IsoparamFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var face: StableSubshapeReference
     /// The parameter the lines hold constant.
@@ -44,10 +44,13 @@ public struct IsoparamFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, face, direction, fractions, subdividesControlNet
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .face, .direction, .fractions, .subdividesControlNet], in: decoder)
@@ -58,7 +61,9 @@ public struct IsoparamFeature: Codable, Hashable, Sendable {
         subdividesControlNet = try container.decode(Bool.self, forKey: .subdividesControlNet)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -68,4 +73,9 @@ public struct IsoparamFeature: Codable, Hashable, Sendable {
         try container.encode(fractions, forKey: .fractions)
         try container.encode(subdividesControlNet, forKey: .subdividesControlNet)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension IsoparamFeature: Codable {}
+#endif

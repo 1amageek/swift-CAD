@@ -221,10 +221,12 @@ struct ClosedIntersectionUnsplitFaceMaterializer {
         let subdivider = BRepSewingEdgeSubdivider()
         var changed = false
         let loops = try patch.loops.map { loop in
-            BRepSewingLoop(
+            try Task.checkCancellation()
+            return BRepSewingLoop(
                 stableID: loop.stableID,
                 role: loop.role,
                 edges: try loop.edges.flatMap { edge -> [BRepSewingEdge] in
+                    try Task.checkCancellation()
                     let interior = junctionPoints.filter {
                         ($0 - edge.startPoint).length > tolerance.distance
                             && ($0 - edge.endPoint).length > tolerance.distance

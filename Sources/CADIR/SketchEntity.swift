@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SketchPoint: Codable, Sendable, Hashable {
+public struct SketchPoint: Sendable, Hashable {
     public var x: CADExpression
     public var y: CADExpression
 
@@ -10,7 +10,7 @@ public struct SketchPoint: Codable, Sendable, Hashable {
     }
 }
 
-public struct SketchLine: Codable, Sendable, Hashable {
+public struct SketchLine: Sendable, Hashable {
     public var start: SketchPoint
     public var end: SketchPoint
 
@@ -20,7 +20,7 @@ public struct SketchLine: Codable, Sendable, Hashable {
     }
 }
 
-public struct SketchCircle: Codable, Sendable, Hashable {
+public struct SketchCircle: Sendable, Hashable {
     public var center: SketchPoint
     public var radius: CADExpression
 
@@ -30,7 +30,7 @@ public struct SketchCircle: Codable, Sendable, Hashable {
     }
 }
 
-public struct SketchArc: Codable, Sendable, Hashable {
+public struct SketchArc: Sendable, Hashable {
     public var center: SketchPoint
     public var radius: CADExpression
     public var startAngle: CADExpression
@@ -49,13 +49,14 @@ public struct SketchArc: Codable, Sendable, Hashable {
     }
 }
 
-public enum SketchEntity: Codable, Sendable, Hashable {
+public enum SketchEntity: Sendable, Hashable {
     case point(SketchPoint)
     case line(SketchLine)
     case circle(SketchCircle)
     case arc(SketchArc)
     case spline(SketchSpline)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case point
@@ -64,7 +65,9 @@ public enum SketchEntity: Codable, Sendable, Hashable {
         case arc
         case spline
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case point
         case line
@@ -72,7 +75,9 @@ public enum SketchEntity: Codable, Sendable, Hashable {
         case arc
         case spline
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -94,7 +99,9 @@ public enum SketchEntity: Codable, Sendable, Hashable {
             self = .spline(try container.decode(SketchSpline.self, forKey: .spline))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -115,4 +122,13 @@ public enum SketchEntity: Codable, Sendable, Hashable {
             try container.encode(spline, forKey: .spline)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SketchPoint: Codable {}
+extension SketchLine: Codable {}
+extension SketchCircle: Codable {}
+extension SketchArc: Codable {}
+extension SketchEntity: Codable {}
+#endif

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SketchPointSelectionReference: Codable, Hashable, Sendable {
+public struct SketchPointSelectionReference: Hashable, Sendable {
     public var featureID: FeatureID
     public var entityID: SketchEntityID
 
@@ -11,3 +11,7 @@ public struct SketchPointSelectionReference: Codable, Hashable, Sendable {
 
     public func validate() throws {}
 }
+
+#if !hasFeature(Embedded)
+extension SketchPointSelectionReference: Codable {}
+#endif

@@ -1,8 +1,8 @@
 import CADCore
 import Foundation
 
-public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, Sendable {
-    public enum ComponentKind: String, Codable, Hashable, Sendable {
+public struct CertifiedParallelTorusTorusIntersectionCurve: Hashable, Sendable {
+    public enum ComponentKind: String, Hashable, Sendable {
         case regularClosed
         case nodalSelfLoop
         case nearNodalClosedLoop
@@ -2537,6 +2537,7 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         )
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case primarySurface
         case secondarySurface
@@ -2548,7 +2549,9 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         case certificationTolerance
         case maximumResidualUpperBound
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -2620,7 +2623,9 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -2634,4 +2639,10 @@ public struct CertifiedParallelTorusTorusIntersectionCurve: Codable, Hashable, S
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
         try container.encode(maximumResidualUpperBound, forKey: .maximumResidualUpperBound)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedParallelTorusTorusIntersectionCurve: Codable {}
+extension CertifiedParallelTorusTorusIntersectionCurve.ComponentKind: Codable {}
+#endif

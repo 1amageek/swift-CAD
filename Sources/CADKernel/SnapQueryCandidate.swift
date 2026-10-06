@@ -1,7 +1,7 @@
 import CADCore
 import CADIR
 
-public struct SnapQueryCandidate: Codable, Sendable, Hashable {
+public struct SnapQueryCandidate: Sendable, Hashable {
     public var kind: SnapCandidateKind
     public var selection: SelectionReference
     public var subshapeID: SubshapeID?
@@ -34,3 +34,7 @@ public struct SnapQueryCandidate: Codable, Sendable, Hashable {
         self.curvature = curvature
     }
 }
+
+#if !hasFeature(Embedded)
+extension SnapQueryCandidate: Codable {}
+#endif

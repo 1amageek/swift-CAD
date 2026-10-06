@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SketchDimensionMeasurement: Codable, Sendable, Hashable {
+public struct SketchDimensionMeasurement: Sendable, Hashable {
     public var dimension: SketchDimension
     public var measured: Quantity
     public var target: Quantity
@@ -38,3 +38,7 @@ public struct SketchDimensionMeasurement: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SketchDimensionMeasurement: Codable {}
+#endif

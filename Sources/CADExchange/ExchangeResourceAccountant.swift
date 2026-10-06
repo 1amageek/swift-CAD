@@ -9,11 +9,11 @@ struct ExchangeResourceAccountant: Sendable {
     private(set) var iterationCount = 0
     private(set) var byteCount = 0
 
-    init(limits: ExchangeResourceLimits, format: ExchangeFileFormat) throws {
+    init(limits: ExchangeResourceLimits, format: ExchangeFileFormat, processingBudget: ExchangeProcessingBudget? = nil) throws {
         try limits.validate()
         self.limits = limits
         self.format = format
-        budget = ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration)
+        budget = processingBudget ?? ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration)
     }
 
     func validateInputByteCount(_ byteCount: Int) throws {
@@ -97,13 +97,14 @@ final class ExchangeBoundedByteSink: ByteSink {
     init(
         downstream: any ByteSink,
         limits: ExchangeResourceLimits,
-        format: ExchangeFileFormat
+        format: ExchangeFileFormat,
+        processingBudget: ExchangeProcessingBudget? = nil
     ) throws {
         try limits.validate()
         self.downstream = downstream
         maximumBytes = limits.maximumBytes
         self.format = format
-        budget = ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration)
+        budget = processingBudget ?? ExchangeProcessingBudget(maximumDuration: limits.maximumProcessingDuration)
     }
 
     func write(_ bytes: UnsafeRawBufferPointer) throws {

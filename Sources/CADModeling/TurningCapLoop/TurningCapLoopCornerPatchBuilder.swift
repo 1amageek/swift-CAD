@@ -141,8 +141,8 @@ package struct TurningCapLoopCornerPatchBuilder {
         // Opposite sides on one basis, which the surface keeps (tangent continuous at its knots).
         let across = max(Self.minimumSpans, try spans(bottom), try spans(top))
         let along = max(Self.minimumSpans, try spans(left), try spans(right))
-        let (bottom, top) = (try hermite(bottom, spans: across), try hermite(top, spans: across))
-        let (left, right) = (try hermite(left, spans: along), try hermite(right, spans: along))
+        let (bottom, top) = (try certifiedHermite(bottom, spans: across), try certifiedHermite(top, spans: across))
+        let (left, right) = (try certifiedHermite(left, spans: along), try certifiedHermite(right, spans: along))
         let corners = [bottom.controlPoints[0], bottom.controlPoints[bottom.controlPoints.count - 1],
                        top.controlPoints[0], top.controlPoints[top.controlPoints.count - 1]]
         let interior = Point3D.origin + corners.reduce(Vector3D.zero) { $0 + ($1 - .origin) } * 0.25
@@ -168,22 +168,13 @@ package struct TurningCapLoopCornerPatchBuilder {
         )
     }
 
-    /// The fewest spans, halving from four up to 64, whose `hermite` spline stays within an
-    /// eighth of the distance tolerance of `curve` at the spans' sixths.
-    private func spans(_ curve: BSplineCurve3D) throws -> Int {
-        guard case let .closed(t0, t1) = curve.domain else {
-            throw failure(.invalidInput, "A corner patch's side is bounded.")
-        }
+    /// The fewest dyadic spans from four through 64 with a whole-domain difference certificate.
+    func spans(_ curve: BSplineCurve3D) throws -> Int {
+        try validateSide(curve)
         var count = 4
         while true {
             let spline = try hermite(curve, spans: count)
-            var deviation = 0.0
-            for k in 0..<(6 * count) {
-                let fraction = (Double(k) + 0.5) / Double(6 * count)
-                let exact = try Curve3D.bSpline(curve).point(at: t0 + (t1 - t0) * fraction, tolerance: tolerance)
-                deviation = max(deviation, (try Curve3D.bSpline(spline).point(at: fraction, tolerance: tolerance) - exact).length)
-            }
-            if deviation <= tolerance.distance / 8 { return count }
+            if try certifiesSide(curve, spline: spline, spans: count) { return count }
             guard count < 64 else {
                 throw failure(.classificationFailure, "A corner patch's side could not be followed by a polynomial spline.")
             }
@@ -191,10 +182,152 @@ package struct TurningCapLoopCornerPatchBuilder {
         }
     }
 
+    private func certifiedHermite(_ curve: BSplineCurve3D, spans: Int) throws -> BSplineCurve3D {
+        let spline = try hermite(curve, spans: spans)
+        guard try certifiesSide(curve, spline: spline, spans: spans) else {
+            throw failure(.classificationFailure, "The final corner side has no whole-domain polynomial approximation certificate.")
+        }
+        return spline
+    }
+
+    private func validateSide(_ curve: BSplineCurve3D) throws {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The public Turning corner route certifies only
+        // positive single-clamped sides of degree at most eight. General multi-span or periodic
+        // side admission requires an original-span whole-difference certificate before success.
+        guard case let .closed(lower, upper) = curve.domain,
+              curve.degree >= 1, curve.degree <= 8,
+              curve.controlPoints.count == curve.degree + 1,
+              curve.knots.count == 2 * (curve.degree + 1),
+              curve.knots.prefix(curve.degree + 1).allSatisfy({ $0 == lower }),
+              curve.knots.suffix(curve.degree + 1).allSatisfy({ $0 == upper }),
+              curve.weights.count == curve.controlPoints.count,
+              curve.weights.allSatisfy({ $0.isFinite && $0 > 0 }),
+              lower.isFinite, upper.isFinite, upper > lower else {
+            throw failure(.unsupportedCapability, "Corner side certification requires a positive single-clamped curve of degree at most eight.")
+        }
+        try curve.validate(tolerance: tolerance)
+    }
+
+    /// Encloses X-WH in Bernstein form, then divides its convex hull by the positive W hull.
+    /// All inputs describe the original source and the actual stored approximation, not samples.
+    func certifiesSide(_ curve: BSplineCurve3D, spline: BSplineCurve3D, spans: Int) throws -> Bool {
+        try validateSide(curve)
+        guard spans >= 4, spans <= 64, spans.nonzeroBitCount == 1 else {
+            throw failure(.invalidInput, "Corner side certification requires four through 64 dyadic spans.")
+        }
+        var expectedKnots: [Double] = [0, 0, 0, 0]
+        for index in 1..<spans {
+            let knot = Double(index) / Double(spans)
+            expectedKnots.append(knot)
+            expectedKnots.append(knot)
+        }
+        expectedKnots.append(contentsOf: [1, 1, 1, 1])
+        guard spline.degree == 3, spline.isPeriodic == false,
+              spline.controlPoints.count == 2 * spans + 2,
+              spline.weights.count == spline.controlPoints.count,
+              spline.weights.allSatisfy({ $0 == 1 }),
+              spline.knots == expectedKnots else {
+            throw failure(.invalidInput, "Corner side certification requires the stored uniform dyadic Hermite basis.")
+        }
+        try spline.validate(tolerance: tolerance)
+        typealias Interval = OutwardScalarInterval
+        let controls = curve.controlPoints.indices.map { index -> [Interval] in
+            let p = curve.controlPoints[index]
+            let w = Interval.exact(curve.weights[index])
+            return [Interval.exact(p.x) * w, Interval.exact(p.y) * w, Interval.exact(p.z) * w, w]
+        }
+        func point(_ index: Int) -> [Interval] {
+            let p = spline.controlPoints[index]
+            return [.exact(p.x), .exact(p.y), .exact(p.z)]
+        }
+        func midpoint(_ a: Int, _ b: Int) -> [Interval] {
+            zip(point(a), point(b)).map { pair in (pair.0 + pair.1) * .exact(0.5) }
+        }
+        let n = curve.degree
+        let sourceBinomial = binomialRow(n)
+        let cubicBinomial = binomialRow(3)
+        let productBinomial = binomialRow(n + 3)
+        let allowance = try checkedSideAllowance()
+        for span in 0..<spans {
+            // Dyadic restriction retains outward original homogeneous coefficients.
+            var net = controls
+            var mask = spans / 2
+            while mask > 0 {
+                var row = net
+                var first = [row[0]]
+                var last = [row[n]]
+                for level in 1...n {
+                    for i in 0...(n - level) {
+                        row[i] = zip(row[i], row[i + 1]).map { pair in (pair.0 + pair.1) * .exact(0.5) }
+                    }
+                    first.append(row[0])
+                    last.append(row[n - level])
+                }
+                net = (span & mask) == 0 ? first : Array(last.reversed())
+                mask /= 2
+            }
+            let denominator = net.map { $0[3].lower }.min() ?? 0
+            guard denominator.isFinite, denominator > 0 else {
+                throw failure(.singularSystem, "Corner side certification lost a positive homogeneous denominator.")
+            }
+            // Interior endpoints are the actual double-knot spline's adjacent-handle averages.
+            let h = [span == 0 ? point(0) : midpoint(2 * span, 2 * span + 1),
+                     point(2 * span + 1), point(2 * span + 2),
+                     span == spans - 1 ? point(2 * spans + 1) : midpoint(2 * span + 2, 2 * span + 3)]
+            var maximum = [0.0, 0.0, 0.0]
+            for k in 0...(n + 3) {
+                var coefficient = [Interval.exact(0), .exact(0), .exact(0)]
+                for i in max(0, k - 3)...min(n, k) {
+                    let j = k - i
+                    guard let factor = (Interval.exact(sourceBinomial[i]) * .exact(cubicBinomial[j]))
+                        .divided(by: .exact(productBinomial[k])) else {
+                        throw failure(.resourceLimitExceeded, "Corner Bernstein product coefficients exceed finite arithmetic.")
+                    }
+                    for axis in 0..<3 {
+                        coefficient[axis] = coefficient[axis] + (net[i][axis] - net[i][3] * h[j][axis]) * factor
+                    }
+                }
+                for axis in 0..<3 {
+                    guard coefficient[axis].isFinite else {
+                        throw failure(.resourceLimitExceeded, "Corner side difference exceeds finite arithmetic.")
+                    }
+                    maximum[axis] = max(maximum[axis], max(abs(coefficient[axis].lower), abs(coefficient[axis].upper)))
+                }
+            }
+            let square = maximum.reduce(Interval.exact(0)) { $0 + .exact($1) * .exact($1) }
+            let magnitude = square.upper.squareRoot().nextUp
+            guard let bound = Interval.exact(magnitude).divided(by: .exact(denominator)), bound.isFinite else {
+                throw failure(.resourceLimitExceeded, "Corner side distance bound exceeds finite arithmetic.")
+            }
+            if bound.upper > allowance { return false }
+        }
+        return true
+    }
+
+    private func binomialRow(_ degree: Int) -> [Double] {
+        // Degree is at most eleven, so these exact integer operations cannot overflow.
+        var row = [1]
+        for k in 1...degree { row.append(row[k - 1] * (degree - k + 1) / k) }
+        return row.map(Double.init)
+    }
+
+    private func checkedSideAllowance() throws -> Double {
+        try tolerance.validate()
+        let value = (tolerance.distance / 8).nextDown
+        guard value.isFinite, value > 0 else {
+            throw failure(.resourceLimitExceeded, "Corner side allowance is not a positive finite bound.")
+        }
+        return value
+    }
+
     /// `curve` over [0, 1] as a cubic spline of `spans` even spans, tangent continuous at its
     /// double knots: through its points with its derivatives at the knots (each span's Bézier
     /// handles a third of the span along them).
-    private func hermite(_ curve: BSplineCurve3D, spans: Int) throws -> BSplineCurve3D {
+    func hermite(_ curve: BSplineCurve3D, spans: Int) throws -> BSplineCurve3D {
+        try validateSide(curve)
+        guard spans >= 4, spans <= 64, spans.nonzeroBitCount == 1 else {
+            throw failure(.invalidInput, "A corner Hermite side requires four through 64 dyadic spans.")
+        }
         guard case let .closed(t0, t1) = curve.domain else {
             throw failure(.invalidInput, "A corner patch's side is bounded.")
         }

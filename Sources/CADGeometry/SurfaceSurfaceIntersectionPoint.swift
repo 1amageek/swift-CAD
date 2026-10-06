@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceSurfaceIntersectionPoint: Codable, Hashable, Sendable {
+public struct SurfaceSurfaceIntersectionPoint: Hashable, Sendable {
     public let point: Point3D
     public let firstSurfaceParameter: SurfaceParameterProjection
     public let secondSurfaceParameter: SurfaceParameterProjection
@@ -36,6 +36,7 @@ public struct SurfaceSurfaceIntersectionPoint: Codable, Hashable, Sendable {
         certificationTolerance = tolerance
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case point
         case firstSurfaceParameter
@@ -43,7 +44,9 @@ public struct SurfaceSurfaceIntersectionPoint: Codable, Hashable, Sendable {
         case residual
         case certificationTolerance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -70,7 +73,9 @@ public struct SurfaceSurfaceIntersectionPoint: Codable, Hashable, Sendable {
             tolerance: container.decode(ModelingTolerance.self, forKey: .certificationTolerance)
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         _ = try SurfaceSurfaceIntersectionPoint(
             point: point,
@@ -86,4 +91,9 @@ public struct SurfaceSurfaceIntersectionPoint: Codable, Hashable, Sendable {
         try container.encode(residual, forKey: .residual)
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceSurfaceIntersectionPoint: Codable {}
+#endif

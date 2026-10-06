@@ -58,9 +58,27 @@ public struct BooleanFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvalua
         }
         let targetBodyIDs = try boolean.targets.map { try context.bodyID(generatedBy: $0.featureID) }
         let toolBodyIDs = try boolean.tools.map { try context.bodyID(generatedBy: $0.featureID) }
-        return try evaluateStaged(
+        func shape(_ bodyID: BodyID) throws -> Shape {
+            guard let body = context.brep.bodies[bodyID] else {
+                throw KernelError(phase: .validation, code: .missingReference, featureID: feature.id,
+                    tolerance: context.tolerance, message: "A dimensional Boolean operand body is missing.")
+            }
+            let root: ShapeReference = body.kind == .solid ? .solid(bodyID)
+                : .compound(body.shellIDs.map(ShapeReference.shell))
+            return Shape(root: root, model: context.brep)
+        }
+        let contract = try DefaultBooleanDimensionResolver().resolve(feature: boolean,
+            targets: try targetBodyIDs.map { try shape($0) }, tools: try toolBodyIDs.map { try shape($0) },
+            tolerance: context.tolerance)
+        guard feature.outputs.map(\.role) == [contract.outputPort] else {
+            throw KernelError(phase: .validation, code: .invalidInput, featureID: feature.id,
+                tolerance: context.tolerance, message: "Boolean output port differs from its admitted operand dimension.")
+        }
+        let result = try evaluateStaged(
             boolean, targetBodyIDs: targetBodyIDs, toolBodyIDs: toolBodyIDs, featureID: feature.id, context: context
         )
+        try contract.validateResult(result, featureID: feature.id, tolerance: context.tolerance)
+        return result
     }
 
     /// Moves every placed operand rigidly into the result's frame, unites several tools into one,

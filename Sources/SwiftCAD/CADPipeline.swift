@@ -1,10 +1,12 @@
 import CADCapabilities
 import CADCore
+#if CAD_EXCHANGE
 import CADExchange
+import Foundation
+#endif
 import CADIR
 import CADKernel
 import CADModeling
-import Foundation
 
 public struct CADPipeline: Sendable {
   private let evaluator: DocumentEvaluator
@@ -14,12 +16,15 @@ public struct CADPipeline: Sendable {
   private let surfaceQueryEvaluator: SurfaceQueryEvaluator
   private let selectionMeasurementEvaluator: SelectionMeasurementEvaluator
   private let selectionDimensionEvaluator: SelectionDimensionEvaluator
+#if CAD_EXCHANGE
   private let stlExporter: STLExporter
   private let packageStore: NativePackageStore
   private let officialExchange: OfficialFormatExchange
+#endif
   private let documentEditor: any DocumentEditing
   private let capabilityCatalog: KernelCapabilityCatalog
 
+#if CAD_EXCHANGE
   public init(
     tolerance: ModelingTolerance,
     evaluator: DocumentEvaluator? = nil,
@@ -53,6 +58,37 @@ public struct CADPipeline: Sendable {
     self.documentEditor = documentEditor
     self.capabilityCatalog = capabilityCatalog
   }
+
+#else
+  public init(
+    tolerance: ModelingTolerance,
+    evaluator: DocumentEvaluator? = nil,
+    snapQueryEvaluator: SnapQueryEvaluator? = nil,
+    curveQueryEvaluator: CurveQueryEvaluator? = nil,
+    edgeQueryEvaluator: EdgeQueryEvaluator? = nil,
+    surfaceQueryEvaluator: SurfaceQueryEvaluator? = nil,
+    selectionMeasurementEvaluator: SelectionMeasurementEvaluator? = nil,
+    selectionDimensionEvaluator: SelectionDimensionEvaluator? = nil,
+    documentEditor: any DocumentEditing = DocumentEditor(),
+    capabilityCatalog: KernelCapabilityCatalog = KernelCapabilities.current
+  ) {
+    self.evaluator = evaluator ?? DocumentEvaluator(tolerance: tolerance)
+    self.snapQueryEvaluator = snapQueryEvaluator ?? SnapQueryEvaluator(tolerance: tolerance)
+    self.curveQueryEvaluator = curveQueryEvaluator ?? CurveQueryEvaluator(tolerance: tolerance)
+    self.edgeQueryEvaluator = edgeQueryEvaluator ?? EdgeQueryEvaluator(tolerance: tolerance)
+    self.surfaceQueryEvaluator =
+      surfaceQueryEvaluator ?? SurfaceQueryEvaluator(tolerance: tolerance)
+    self.selectionMeasurementEvaluator =
+      selectionMeasurementEvaluator
+      ?? SelectionMeasurementEvaluator(tolerance: tolerance)
+    self.selectionDimensionEvaluator =
+      selectionDimensionEvaluator
+      ?? SelectionDimensionEvaluator(tolerance: tolerance)
+    self.documentEditor = documentEditor
+    self.capabilityCatalog = capabilityCatalog
+  }
+
+#endif
 
   public func capabilities() -> KernelCapabilityCatalog {
     capabilityCatalog
@@ -116,6 +152,12 @@ public struct CADPipeline: Sendable {
           query,
           in: evaluateExactForQuery(document)
         ))
+    case .massProperties(let query):
+      let evaluated = try evaluateExactForQuery(document)
+      return .massProperties(
+        try MassPropertyEvaluator(tolerance: evaluator.evaluationTolerance).measure(
+          query.components, in: evaluated, options: query.options, reference: query.reference
+        ))
     case .selectionDimensionEvaluation(let query):
       let evaluated = try evaluateExactForQuery(document)
       if let dimensionID = query.dimensionID {
@@ -141,6 +183,11 @@ public struct CADPipeline: Sendable {
   private func evaluateExactForQuery(
     _ document: CADDocument
   ) throws -> EvaluatedDocument {
+    try evaluateExact(document)
+  }
+
+  /// Uses the retained evaluator configuration without render mesh materialization.
+  public func evaluateExact(_ document: CADDocument) throws -> EvaluatedDocument {
     do {
       return try evaluator.evaluateExact(document)
     } catch {
@@ -460,6 +507,7 @@ public struct CADPipeline: Sendable {
     )
   }
 
+#if CAD_EXCHANGE
   public func writeBinarySTL(
     from evaluatedDocument: EvaluatedDocument,
     lengthUnit: LengthUnit = .meter,
@@ -503,4 +551,5 @@ public struct CADPipeline: Sendable {
   {
     try officialExchange.import(source, as: format)
   }
+#endif
 }

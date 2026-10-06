@@ -1,7 +1,7 @@
 import CADCore
 import Foundation
 
-public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sendable {
+public struct CertifiedAnalyticPairSurfaceParameterCurve: Hashable, Sendable {
     public let intersection: CertifiedAnalyticAnalyticIntersectionCurve
     public let role: SurfaceIntersectionSurfaceRole
     public let startFraction: Double
@@ -382,13 +382,16 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         lower + (upper - lower) * fraction
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case intersection
         case role
         case startFraction
         case endFraction
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -407,7 +410,9 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
             tolerance: intersection.certificationTolerance
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(
             on: intersection.surface(for: role),
@@ -419,4 +424,9 @@ public struct CertifiedAnalyticPairSurfaceParameterCurve: Codable, Hashable, Sen
         try container.encode(startFraction, forKey: .startFraction)
         try container.encode(endFraction, forKey: .endFraction)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedAnalyticPairSurfaceParameterCurve: Codable {}
+#endif

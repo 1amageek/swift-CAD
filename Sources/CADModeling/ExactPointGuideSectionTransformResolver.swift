@@ -5,9 +5,11 @@ import Foundation
 
 package struct ExactPointGuideSectionTransformResolver: Sendable {
     private let tolerance: ModelingTolerance
+    private let admission: GeometryConversionAdmission?
 
-    package init(tolerance: ModelingTolerance) {
+    package init(tolerance: ModelingTolerance, admission: GeometryConversionAdmission? = nil) {
         self.tolerance = tolerance
+        self.admission = admission
     }
 
     /// The section's end transform for straight guides along a straight path: one guide turns and
@@ -23,13 +25,13 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
         featureID: FeatureID?
     ) throws -> ExactSectionTransform2D {
         try tolerance.validate()
-        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance)
+        let spanBuilder = ExactBSplineCurveSpanBuilder(tolerance: tolerance, admission: admission)
         let sectionSpans: [ExactBSplineCurveSpan]
         let sectionPlane: SketchPlane
         switch section {
-        case .profile(let profile, _):
-            sectionSpans = try spanBuilder.profileLoopSpans(from: profile).flatMap { $0 }
-            sectionPlane = profile.plane
+        case .profile, .face:
+            sectionSpans = try spanBuilder.loopSpans(from: section).flatMap { $0 }
+            sectionPlane = try section.plane()
         case .curve(let curve):
             guard let plane = curve.plane else {
                 throw KernelError(phase: .geometry, code: .sweepGuideContactUnavailable, featureID: featureID, tolerance: tolerance,
@@ -62,7 +64,7 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
             let (b, c) = (a.m11 + a.m22, a.determinant)
             var candidates = [0.0, 1.0]
             if c != 0 { candidates.append(min(1, max(0, -b / (2 * c)))) }
-            guard candidates.allSatisfy({ 1 + b * $0 + c * $0 * $0 > tolerance.relative }) else {
+            guard transform.isTerminalCollapse || candidates.allSatisfy({ 1 + b * $0 + c * $0 * $0 > tolerance.relative }) else {
                 throw KernelError(phase: .geometry, code: .sweepGuideTransformCollapse, featureID: featureID, tolerance: tolerance,
                                   message: "Two Point guides fold the section on its way along the path.")
             }
@@ -116,7 +118,8 @@ package struct ExactPointGuideSectionTransformResolver: Sendable {
         let source = plane.localOffset(from: pathAnchor, to: contact)
         let target = plane.localOffset(targetOffset)
         let targetLengthSquared = target.x * target.x + target.y * target.y
-        guard targetLengthSquared > tolerance.distance * tolerance.distance else {
+        guard (guideEnd == pathEnd && target.x == 0 && target.y == 0)
+            || targetLengthSquared > tolerance.distance * tolerance.distance else {
             throw KernelError(
                 phase: .geometry,
                 code: .sweepGuideTransformCollapse,

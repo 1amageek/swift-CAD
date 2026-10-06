@@ -2,14 +2,29 @@ import CADCore
 import CADGeometry
 
 package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving {
+    private let maximumSubdivisionDepth: Int
+    private let consumeWork: (@Sendable (Int) throws -> Void)?
+    private let consumeStorage: (@Sendable (Int) throws -> Void)?
+    private let remainingSourceDepth: Int
+    private let maximumAlgebraicDepth: Int
     private let rectangularDomainResolver:
         any ExactRectangularPcurveDomainResolving
 
     package init(
         rectangularDomainResolver:
             any ExactRectangularPcurveDomainResolving =
-                ExactRectangularPcurveDomainResolver()
+                ExactRectangularPcurveDomainResolver(),
+        maximumSubdivisionDepth: Int = 48,
+        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
+        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
+        remainingSourceDepth: Int = 16,
+        maximumAlgebraicDepth: Int = 32
     ) {
+        self.maximumSubdivisionDepth = maximumSubdivisionDepth
+        self.consumeWork = consumeWork
+        self.consumeStorage = consumeStorage
+        self.remainingSourceDepth = min(16, remainingSourceDepth)
+        self.maximumAlgebraicDepth = maximumAlgebraicDepth
         self.rectangularDomainResolver = rectangularDomainResolver
     }
 
@@ -18,7 +33,12 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
         in model: BRepModel,
         tolerance: ModelingTolerance
     ) throws -> SurfaceParameterBox {
+        try consumeWork?(0)
         try tolerance.validate()
+        guard (0...32).contains(maximumAlgebraicDepth) else {
+            throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
+                message: "Original face parameter algebra depth must lie in 0...32.")
+        }
         guard let face = model.faces[faceID],
               let surface = model.geometry.surfaces[face.surfaceID] else {
             throw KernelError(
@@ -45,7 +65,11 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
         if let rectangle = try rectangularDomainResolver.resolve(
             face: face,
             model: model,
-            tolerance: tolerance
+            tolerance: tolerance,
+            maximumSubdivisionDepth: maximumSubdivisionDepth,
+            remainingSourceDepth: remainingSourceDepth,
+            consumeWork: consumeWork,
+            consumeStorage: consumeStorage
         ) {
             return SurfaceParameterBox(
                 u: try ScalarInterval(
@@ -73,6 +97,7 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
                 )
             }
             for coedge in loop.coedges {
+                try consumeWork?(0)
                 guard let pcurve = coedge.surfaceParameterCurve else {
                     throw KernelError(
                         phase: .topology,
@@ -81,9 +106,12 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
                         message: "A bounded face requires an exact pcurve on every coedge."
                     )
                 }
-                let enclosures = try CertifiedSurfaceParameterCurveEncloser()
+                let enclosures = try CertifiedSurfaceParameterCurveEncloser(maximumSubdivisionDepth: maximumSubdivisionDepth,
+                    consumeWork: consumeWork, consumeStorage: consumeStorage,
+                    maximumAlgebraicDepth: maximumAlgebraicDepth, remainingSourceDepth: remainingSourceDepth)
                     .enclosures(
                         for: pcurve,
+                        on: surface,
                         maximumWidth: 0.25,
                         tolerance: tolerance
                     )
@@ -96,6 +124,7 @@ package struct DefaultFaceParameterBoundsResolver: FaceParameterBoundsResolving 
                     )
                 }
                 for enclosure in enclosures {
+                    try consumeWork?(0)
                     lowerU = min(lowerU, enclosure.u.lower)
                     upperU = max(upperU, enclosure.u.upper)
                     lowerV = min(lowerV, enclosure.v.lower)

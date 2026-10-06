@@ -5,9 +5,10 @@ import CADGeometry
 import CADIR
 @testable import CADModeling
 
-/// Square's fit over a skewed, non-planar bilinear frame: Degree and Spans as minimums, hard sides
-/// kept exactly, the fairness never worse than the exact sheet, the boundary flows, Free sides by
-/// their weight and an undetermined frame refused.
+/// Square's exact requested Degree and Spans, refined hard sides and polynomial
+/// Greville stand-in interpolation. The stand-in has no continuous original-sheet
+/// position, tangent or curvature error proof here. Bilinear cases verify fairness,
+/// boundary flows, weighted Free sides and refusal of an undetermined frame.
 @Suite("Square surface fitter")
 struct SquareSurfaceFitterTests {
     private let tolerance = ModelingTolerance.standard
@@ -44,6 +45,40 @@ struct SquareSurfaceFitterTests {
             }
         }
         return sum / 1600
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nearbyOriginalKnotCannotReplaceTheRequestedUniformNet() throws {
+        let knot = 0.5 + Double(sign: .plus, exponent: -42, significand: 1)
+        let source = BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, knot, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [0.0, 1.0].map { y in
+                [0.0, 0.5, 1.0].map { Point3D(x: $0, y: y, z: 0) }
+            })
+        let fitted = try SquareSurfaceFitter(tolerance: tolerance).fit(exact: source,
+            boundaries: Array(repeating: .init(constraint: .hard(order: 0), flows: false), count: 4),
+            options: SquareFitOptions(uDegree: 1, vDegree: 1, uSpans: 2, vSpans: 1,
+                boundaryFlow: .natural), featureID: featureID)
+        #expect(fitted.uDegree == 1 && fitted.vDegree == 1)
+        #expect(fitted.uKnots == [0, 0, 0.5, 1, 1])
+        #expect(fitted.vKnots == [0, 0, 1, 1])
+        #expect(fitted.weights == [[1, 1, 1], [1, 1, 1]])
+        // On the original first native span X(u) = u / (2*q).
+        // The stand-in interpolates X(.5) = .25/q, then linearly reaches X(1)=1.
+        for v in [0.0, 1.0] {
+            for (u, x) in [(0.0, 0.0), (0.5, 0.25 / knot), (1.0, 1.0)] {
+                let sample = try fitted.point(u: u, v: v, tolerance: tolerance)
+                #expect((sample - Point3D(x: x, y: v, z: 0)).length <= Double.ulpOfOne * 32)
+            }
+        }
+        let original = try source.point(u: 0.75, v: 0.5, tolerance: tolerance)
+        let originalX = 0.5 + 0.5 * (0.75 - knot) / (1 - knot)
+        #expect((original - Point3D(x: originalX, y: 0.5, z: 0)).length <= Double.ulpOfOne * 32)
+        let standIn = try fitted.point(u: 0.75, v: 0.5, tolerance: tolerance)
+        let standInX = 0.5 + 0.125 / knot
+        #expect((standIn - Point3D(x: standInX, y: 0.5, z: 0)).length <= Double.ulpOfOne * 32)
+        #expect(abs(standIn.x - 0.75) > Double.ulpOfOne * 32)
+        #expect(source.uKnots == [0, 0, knot, 1, 1])
     }
 
     @Test(.timeLimit(.minutes(1)))

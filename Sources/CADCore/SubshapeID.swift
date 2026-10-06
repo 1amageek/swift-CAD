@@ -1,4 +1,4 @@
-public struct SubshapeID: Codable, Comparable, Equatable, Hashable, Sendable {
+public struct SubshapeID: Comparable, Equatable, Hashable, Sendable {
     public let featureID: FeatureID
     public let role: String
     public let ordinal: Int
@@ -23,3 +23,7 @@ public struct SubshapeID: Codable, Comparable, Equatable, Hashable, Sendable {
         return lhs.ordinal < rhs.ordinal
     }
 }
+
+#if !hasFeature(Embedded)
+extension SubshapeID: Codable {}
+#endif

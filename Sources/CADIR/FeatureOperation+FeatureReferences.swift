@@ -241,7 +241,14 @@ extension FeatureOperation {
                 endBoundary: try subshape(feature.endBoundary),
                 endOrientation: feature.endOrientation,
                 startTransform: feature.startTransform,
-                endTransform: feature.endTransform
+                endTransform: feature.endTransform,
+                startContinuity: feature.startContinuity,
+                endContinuity: feature.endContinuity,
+                startTension: feature.startTension,
+                endTension: feature.endTension,
+                width: feature.width,
+                startWall: try feature.startWall.map(subshape),
+                endWall: try feature.endWall.map(subshape)
             ))
         case .faceOffset(let feature):
             return .faceOffset(FaceOffsetFeature(

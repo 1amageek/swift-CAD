@@ -6,7 +6,7 @@ import Foundation
 /// This value intentionally does not require a regular parameter frame. It is
 /// the differential truth consumed by higher-order procedural surfaces; callers
 /// that need normals or curvature must apply their own regularity contract.
-public struct SurfaceParameterThirdOrderDerivatives: Codable, Hashable, Sendable {
+public struct SurfaceParameterThirdOrderDerivatives: Hashable, Sendable {
     public let position: Point3D
     public let tangentU: Vector3D
     public let tangentV: Vector3D
@@ -71,7 +71,7 @@ public extension Surface3D {
             )
             return SurfaceParameterThirdOrderDerivatives(
                 lowerOrder: lowerOrder,
-                thirdDerivativeUUU: -lowerOrder.tangentU,
+                thirdDerivativeUUU: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
                 thirdDerivativeUUV: .zero,
                 thirdDerivativeUVV: .zero,
                 thirdDerivativeVVV: .zero
@@ -115,7 +115,7 @@ public extension AnalyticSurface3D {
         case .cylinder:
             return SurfaceParameterThirdOrderDerivatives(
                 lowerOrder: lowerOrder,
-                thirdDerivativeUUU: -lowerOrder.tangentU,
+                thirdDerivativeUUU: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
                 thirdDerivativeUUV: .zero,
                 thirdDerivativeUVV: .zero,
                 thirdDerivativeVVV: .zero
@@ -125,11 +125,11 @@ public extension AnalyticSurface3D {
                 axis,
                 tolerance: tolerance
             )
-            let radial = basis.u * cos(u) + basis.v * sin(u)
+            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
             return SurfaceParameterThirdOrderDerivatives(
                 lowerOrder: lowerOrder,
-                thirdDerivativeUUU: -lowerOrder.tangentU,
-                thirdDerivativeUUV: -radial * sin(halfAngle),
+                thirdDerivativeUUU: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeUUV: -radial * (sin(halfAngle) * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
                 thirdDerivativeUVV: .zero,
                 thirdDerivativeVVV: .zero
             )
@@ -138,27 +138,27 @@ public extension AnalyticSurface3D {
                 .unitZ,
                 tolerance: tolerance
             )
-            let radialU = basis.u * cos(u) + basis.v * sin(u)
+            let radialU = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
             return SurfaceParameterThirdOrderDerivatives(
                 lowerOrder: lowerOrder,
-                thirdDerivativeUUU: -lowerOrder.tangentU,
-                thirdDerivativeUUV: radialU * (radius * sin(v)),
-                thirdDerivativeUVV: -lowerOrder.tangentU,
-                thirdDerivativeVVV: -lowerOrder.tangentV
+                thirdDerivativeUUU: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeUUV: radialU * (radius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)) * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeUVV: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeVVV: -lowerOrder.tangentV * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint)
             )
         case let .torus(_, axis, _, minorRadius):
             let basis = try analyticOrthonormalBasis(
                 axis,
                 tolerance: tolerance
             )
-            let radial = basis.u * cos(u) + basis.v * sin(u)
-            let tangent = -basis.u * sin(u) + basis.v * cos(u)
+            let radial = basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let tangent = -basis.u * CanonicalSphereAngularPhase.candidate(at: u, cosine: false) + basis.v * CanonicalSphereAngularPhase.candidate(at: u, cosine: true)
             return SurfaceParameterThirdOrderDerivatives(
                 lowerOrder: lowerOrder,
-                thirdDerivativeUUU: -lowerOrder.tangentU,
-                thirdDerivativeUUV: radial * (minorRadius * sin(v)),
-                thirdDerivativeUVV: tangent * (-minorRadius * cos(v)),
-                thirdDerivativeVVV: -lowerOrder.tangentV
+                thirdDerivativeUUU: -lowerOrder.tangentU * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeUUV: radial * (minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: false)) * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeUVV: tangent * (-minorRadius * CanonicalSphereAngularPhase.candidate(at: v, cosine: true)) * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint),
+                thirdDerivativeVVV: -lowerOrder.tangentV * (CanonicalSphereAngularPhase.scaleBounds.midpoint * CanonicalSphereAngularPhase.scaleBounds.midpoint)
             )
         }
     }
@@ -177,16 +177,8 @@ public extension BSplineSurface3D {
             throw GeometryError.invalidDistance(0.0)
         }
 
-        let clampedU = BSplineBasis.clampedParameter(
-            u,
-            knots: uKnots,
-            degree: uDegree
-        )
-        let clampedV = BSplineBasis.clampedParameter(
-            v,
-            knots: vKnots,
-            degree: vDegree
-        )
+        let clampedU = try basisParameter(u, direction: .u, tolerance: tolerance)
+        let clampedV = try basisParameter(v, direction: .v, tolerance: tolerance)
         let uBasis = (0...3).map { order in
             BSplineBasis.derivativeValues(
                 parameter: clampedU,
@@ -228,9 +220,8 @@ public extension BSplineSurface3D {
             )
         }
 
-        // Equal weights make the surface polynomial: the weight's derivatives vanish, so the
-        // quotient-rule corrections are skipped rather than left to add roundoff residues to
-        // derivatives that vanish (a degree-one direction's higher derivatives).
+        // A uniform original weight makes the denominator constant. Its higher
+        // derivatives vanish exactly; numerical quotient residues are candidates only.
         let firstWeight = weights.first?.first
         let isPolynomial = weights.allSatisfy { row in row.allSatisfy { $0 == firstWeight } }
         var euclidean: [Int: Vector3D] = [:]
@@ -400,3 +391,7 @@ private func binomial(_ n: Int, _ k: Int) -> Int {
     }
     return 1
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceParameterThirdOrderDerivatives: Codable {}
+#endif

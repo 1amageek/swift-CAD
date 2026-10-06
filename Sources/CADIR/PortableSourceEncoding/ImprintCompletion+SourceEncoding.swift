@@ -1,0 +1,10 @@
+import CADCore
+import CADGeometry
+import CADTopology
+
+/// Encodes original source fields owned by `CADIR.ImprintCompletion`.
+extension CADIR.ImprintCompletion: PortableSourceEncodable {
+    public func encodeSource(to encoder: inout PortableSourceEncoder) throws {
+        try encoder.enumeration("CADIR.ImprintCompletion", caseName: rawValue, values: 0)
+    }
+}

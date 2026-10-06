@@ -1,6 +1,6 @@
 import CADCore
 
-public enum CurveParameterDomain: Codable, Equatable, Hashable, Sendable {
+public enum CurveParameterDomain: Equatable, Hashable, Sendable {
     case unbounded
     case bounded(lower: Double, upper: Double)
     case periodic(period: Double)
@@ -35,3 +35,7 @@ public enum CurveParameterDomain: Codable, Equatable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveParameterDomain: Codable {}
+#endif

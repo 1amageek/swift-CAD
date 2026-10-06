@@ -136,6 +136,9 @@ package struct ExactRectangularBSplineSurfacePatchBuilder: Sendable {
                     kind: .identity
                 )
             )
+        case .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted), .procedural(.originalAffineWord):
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "An original foreign chart image requires retained-map surface conversion rather than canonical chart substitution.")
         case let .procedural(.offset(offset)):
             if let equivalent = try offset.exactChartPreservingSurface(
                 tolerance: tolerance
@@ -538,7 +541,7 @@ package struct ExactRectangularBSplineSurfacePatchBuilder: Sendable {
                 lower: lower,
                 upper: upper
             )
-        case .analytic(.planeTorus), .implicit, .surfaceLift,
+        case .parameterImage, .originalAffineWord, .analytic(.planeTorus), .implicit, .surfaceLift,
              .certifiedIntersection:
             return nil
         }

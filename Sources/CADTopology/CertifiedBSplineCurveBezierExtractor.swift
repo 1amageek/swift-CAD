@@ -46,6 +46,7 @@ struct CertifiedBSplineCurveBezierExtractor {
         }
 
         var operationCount = 0
+        var spanCursor = curve.degree
         var result: [CertifiedHomogeneousBezierCurvePatch] = []
         result.reserveCapacity(breaks.count - 1)
         for spanIndex in 0..<(breaks.count - 1) {
@@ -63,7 +64,13 @@ struct CertifiedBSplineCurveBezierExtractor {
             }
             // Only the degree + 1 controls of the span are supported on it: the span is read from
             // them and their knots alone, whose basis functions equal the curve's there.
-            let local = localCurve(curve, lower: lower)
+            let local = try localCurve(
+                curve,
+                lower: lower,
+                spanCursor: &spanCursor,
+                operationCount: &operationCount,
+                tolerance: tolerance
+            )
             var derivatives: [Point] = []
             derivatives.reserveCapacity(curve.degree + 1)
             for derivativeOrder in 0...curve.degree {
@@ -105,6 +112,42 @@ struct CertifiedBSplineCurveBezierExtractor {
             ))
         }
         return result
+    }
+
+    /// The span starting at `lower` as its own curve: its degree + 1 controls (from the span's last
+    /// knot index `k`, the largest with `knots[k] <= lower`, back by the degree) with their 2p + 2
+    /// knots.
+    private func localCurve(
+        _ curve: BSplineCurve2D,
+        lower: Double,
+        spanCursor: inout Int,
+        operationCount: inout Int,
+        tolerance: ModelingTolerance
+    ) throws -> BSplineCurve2D {
+        let degree = curve.degree
+        var span = spanCursor
+        while span + 1 < curve.controlPointCount {
+            // Charge the ordered cursor probe before reading the next original knot. A failed
+            // probe is charged too, so the bounded operation contract covers the comparison.
+            try consume(
+                1,
+                operationCount: &operationCount,
+                tolerance: tolerance
+            )
+            guard curve.knots[span + 1] <= lower else { break }
+            span += 1
+        }
+        spanCursor = span
+        // Charge the exact local materialization before any Array slice is allocated: 2p + 2
+        // knots, p + 1 control points, and p + 1 weights.
+        try consume(
+            4 * degree + 4,
+            operationCount: &operationCount,
+            tolerance: tolerance
+        )
+        return BSplineCurve2D(degree: degree, knots: Array(curve.knots[(span - degree)...(span + degree + 1)]),
+                              controlPoints: Array(curve.controlPoints[(span - degree)...span]),
+                              weights: Array(curve.weights[(span - degree)...span]))
     }
 
     private func basisDerivativeValues(

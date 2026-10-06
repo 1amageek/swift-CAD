@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BRepRepairRequest: Codable, Equatable, Sendable {
+public struct BRepRepairRequest: Equatable, Sendable {
     public let actions: [BRepRepairAction]
     public let validationRequest: BRepValidationRequest
 
@@ -12,11 +12,14 @@ public struct BRepRepairRequest: Codable, Equatable, Sendable {
         self.validationRequest = validationRequest
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case actions
         case validationRequest
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -31,12 +34,15 @@ public struct BRepRepairRequest: Codable, Equatable, Sendable {
             )
         )
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(actions, forKey: .actions)
         try container.encode(validationRequest, forKey: .validationRequest)
     }
+    #endif
 
     public func validate(tolerance: ModelingTolerance) throws {
         try validationRequest.validate(tolerance: tolerance)
@@ -64,3 +70,7 @@ public struct BRepRepairRequest: Codable, Equatable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension BRepRepairRequest: Codable {}
+#endif

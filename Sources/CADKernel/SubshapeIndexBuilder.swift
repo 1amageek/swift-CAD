@@ -76,10 +76,10 @@ struct SubshapeIndexBuilder {
 
     private func topologyKey(_ reference: TopologyReference) -> String {
         switch reference {
-        case let .body(id): "0:\(id.rawValue.uuidString)"
-        case let .face(id): "1:\(id.rawValue.uuidString)"
-        case let .edge(id): "2:\(id.rawValue.uuidString)"
-        case let .vertex(id): "3:\(id.rawValue.uuidString)"
+        case let .body(id): "0:\(id.rawValue.canonicalString)"
+        case let .face(id): "1:\(id.rawValue.canonicalString)"
+        case let .edge(id): "2:\(id.rawValue.canonicalString)"
+        case let .vertex(id): "3:\(id.rawValue.canonicalString)"
         }
     }
 

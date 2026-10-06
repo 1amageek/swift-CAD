@@ -54,6 +54,26 @@ let package = Package(
       name: "CADWASMSmoke",
       targets: ["CADWASMSmoke"]
     ),
+    .executable(
+      name: "CADGeometryWASMSmoke",
+      targets: ["CADGeometryWASMSmoke"]
+    ),
+    .executable(
+      name: "CADContractWASMSmoke",
+      targets: ["CADContractWASMSmoke"]
+    ),
+    .executable(
+      name: "A2DocumentTransactionSmoke",
+      targets: ["A2DocumentTransactionSmoke"]
+    ),
+    .executable(
+      name: "CADCorePortabilitySmoke",
+      targets: ["CADCorePortabilitySmoke"]
+    ),
+  ],
+  traits: [
+    .trait(name: "NativeExchange", description: "Native format and package transport adapters"),
+    .default(enabledTraits: ["NativeExchange"]),
   ],
   dependencies: [
     .package(
@@ -129,8 +149,66 @@ let package = Package(
     .target(
       name: "SwiftCAD",
       dependencies: [
-        "CADCore", "CADCapabilities", "CADGeometry", "CADTopology", "CADIR", "CADModeling",
-        "CADKernel", "CADExchange",
+        "CADCore", "CADCapabilities", "CADGeometry", "CADTopology", "CADIR", "CADModeling", "CADKernel",
+        .target(name: "CADExchange", condition: .when(traits: ["NativeExchange"])),
+      ],
+      cSettings: [
+        .define("_WASI_EMULATED_SIGNAL", .when(platforms: [.custom("wasi")])),
+        .define("_WASI_EMULATED_MMAN", .when(platforms: [.custom("wasi")])),
+      ],
+      swiftSettings: [
+        .define("CAD_EXCHANGE", .when(traits: ["NativeExchange"])),
+      ],
+      linkerSettings: [
+        .linkedLibrary("wasi-emulated-signal", .when(platforms: [.custom("wasi")])),
+        .linkedLibrary("wasi-emulated-mman", .when(platforms: [.custom("wasi")])),
+      ]
+    ),
+    .executableTarget(
+      name: "CADGeometryWASMSmoke",
+      dependencies: ["CADCore", "CADGeometry", "CADIR", "CADTopology"],
+      linkerSettings: [
+        .unsafeFlags(
+          ["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],
+          .when(platforms: [.custom("wasi")])
+        )
+      ]
+    ),
+    .executableTarget(
+      name: "CADContractWASMSmoke",
+      dependencies: ["CADCore", "CADCapabilities"]
+    ),
+    .executableTarget(
+      name: "CADWASMSmoke",
+      dependencies: ["CADCore", "CADGeometry", "CADTopology", "CADIR", "CADKernel", "CADCapabilities"],
+      linkerSettings: [
+        .unsafeFlags(
+          ["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],
+          .when(platforms: [.custom("wasi")])
+        )
+      ]
+    ),
+    .executableTarget(
+      name: "A2DocumentTransactionSmoke",
+      dependencies: ["SwiftCAD"],
+      cSettings: [
+        .define("_WASI_EMULATED_SIGNAL", .when(platforms: [.custom("wasi")])),
+        .define("_WASI_EMULATED_MMAN", .when(platforms: [.custom("wasi")])),
+      ],
+      linkerSettings: [
+        .linkedLibrary("wasi-emulated-signal", .when(platforms: [.custom("wasi")])),
+        .linkedLibrary("wasi-emulated-mman", .when(platforms: [.custom("wasi")])),
+        .unsafeFlags(
+          ["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],
+          .when(platforms: [.custom("wasi")])
+        ),
+      ]
+    ),
+    .executableTarget(
+      name: "CADCorePortabilitySmoke",
+      dependencies: [
+        "CADCore",
+        .product(name: "HashTreeCollections", package: "swift-collections"),
       ],
       cSettings: [
         .define("_WASI_EMULATED_SIGNAL", .when(platforms: [.custom("wasi")])),
@@ -139,16 +217,6 @@ let package = Package(
       linkerSettings: [
         .linkedLibrary("wasi-emulated-signal", .when(platforms: [.custom("wasi")])),
         .linkedLibrary("wasi-emulated-mman", .when(platforms: [.custom("wasi")])),
-      ]
-    ),
-    .executableTarget(
-      name: "CADWASMSmoke",
-      dependencies: ["CADCore", "CADGeometry", "CADTopology", "CADIR", "CADKernel"],
-      linkerSettings: [
-        .unsafeFlags(
-          ["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"],
-          .when(platforms: [.custom("wasi")])
-        )
       ]
     ),
     .testTarget(

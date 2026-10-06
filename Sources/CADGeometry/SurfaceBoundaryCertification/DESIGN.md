@@ -32,7 +32,7 @@ success or solver termination stands in for these bounds.
 surface + UV curve + traversal + face orientation
     -> prepared interval surface and UV jets
         -> position / unit normal / shape operator and boundary derivatives
-            -> centered mean-value enclosure of pairwise differences
+            -> whole rectangular differences, tightened only by original continuity receipts
                 -> every interval certified or explicit failure
 ```
 
@@ -70,3 +70,36 @@ reversed boundaries, between-sample displacement/normal/curvature violations,
 rational and nonunit domains, resource failures and degenerate supports.
 Changes require rechecking surface-lift parameter-jet consumers and CADIR's
 continuity tolerance mapping.
+
+## Caller-Admitted Final Sources
+
+The additive admission entry borrows one immutable `GeometryConversionAdmission`
+for preparation, every original closed query, coefficient algebra and temporary
+storage. Work callbacks count visits; storage callbacks receive bytes. Exact
+algebra retains UInt32 word slots and converts them to checked bytes, independently
+of spatial subdivision and source descent. The original chart producer's source
+ceiling of 16 is preserved by taking the minimum with the caller's source ceiling.
+The existing unbounded entry retains its compatibility contract.
+
+Each side retains a support-bound original UV chart and a prepared original
+surface. Singleton UV boxes remain singleton boxes; no nearby parameter substitutes
+for the authored boundary. Whole rectangular differences are always valid value
+bounds. Mean-value tightening requires a smooth owning UV interval and a retained
+original surface continuity receipt of the corresponding order: position C0,
+normal C1 and shape operator C2. Positional continuity alone does not authorize
+normal or curvature tightening. Unknown continuity and unresolved regularity remain
+explicit failures at the caller's existing subdivision limits.
+
+The invocation admits its depth-bounded DFS buffer and fixed quantity buffers
+before allocation. No private aggregate budget or fitted support is introduced.
+CADIR's semantic continuity adapter and Modeling's final publication must forward
+the same admission; nonlinear coedge fraction composition remains owned by its
+original parameter-law producer.
+
+The bounded quantity evaluator scales each original tangent by a finite positive
+constant from its whole interval before forming the normal and metric. The
+fundamental-form coefficients include the reciprocal tangent scales, so the
+ambient shape operator and its boundary derivative still represent the original
+physical law. This is an algebraic change of tangent basis, not a tolerance or
+source change, and prevents squaring the raw coordinate magnitude before
+normalization. Zero or unresolved regularity remains failure.

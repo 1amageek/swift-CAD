@@ -113,7 +113,7 @@ struct DefaultCurveSpatialDerivativeRangeResolver:
           z: image.transform.basisZ.z
         )
       )
-    case .line, .circle, .analytic, .bSpline:
+    case .line, .circle, .analytic, .bSpline, .parameterImage, .originalAffineWord:
       let enclosure = try DefaultCurveDifferentialEncloser().enclosure(
         of: curve,
         over: interval,

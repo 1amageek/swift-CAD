@@ -50,6 +50,14 @@ struct BooleanOperandPointClassifier: SolidPointClassifying, SolidPointClassific
         try makeClassificationSession(in: bodyID, model: model, tolerance: tolerance).classify(point)
     }
 
+    func preparedClassificationSession(
+        in bodyID: BodyID,
+        model: BRepModel,
+        tolerance: ModelingTolerance
+    ) throws -> (any SolidPointClassificationSession)? {
+        try makeClassificationSession(in: bodyID, model: model, tolerance: tolerance)
+    }
+
     func makeClassificationSession(
         in bodyID: BodyID,
         model: BRepModel,

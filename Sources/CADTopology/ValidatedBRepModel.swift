@@ -28,6 +28,38 @@ public struct ValidatedBRepModel: Sendable {
         self.volume = certifiedVolume
     }
 
+    // FIXME(INCOMPLETE_IMPLEMENTATION): This bounded receipt forwards original topology,
+    // source depth and preparation callbacks. Correspondence, seam/chart-lift and
+    // query-local byte owners must complete their bounded ports before all transformed
+    // assembly and drawing families can claim complete invocation admission.
+    public init(
+        _ model: BRepModel,
+        tolerance: ModelingTolerance,
+        validationLevel: BRepValidationLevel = .exact,
+        maximumSubdivisionDepth: Int,
+        remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable () throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil
+    ) throws {
+        try tolerance.validate()
+        guard maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0,
+            maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
+            throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
+                message: "Bounded BRep receipt requires nonnegative original caller depths.")
+        }
+        let invocation = OriginalBRepValidationInvocation(model: model,
+            maximumSubdivisionDepth: maximumSubdivisionDepth,
+            remainingSourceDepth: remainingSourceDepth,
+            consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+        let prerequisiteLevel: BRepValidationLevel = validationLevel == .volumetric ? .exact : validationLevel
+        try invocation.validate(level: prerequisiteLevel, tolerance: tolerance)
+        self.volume = validationLevel == .volumetric
+            ? try invocation.volumeAfterBaseValidation(tolerance: tolerance) : nil
+        self.model = model
+        self.tolerance = tolerance
+        self.validationLevel = validationLevel
+    }
+
     /// Composes an exact model from independently exact-validated body models.
     ///
     /// Exact validation establishes that topology and geometry below each body

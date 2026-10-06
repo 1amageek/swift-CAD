@@ -2,7 +2,7 @@ import CADCore
 import CADGeometry
 
 /// What joining makes of its targets.
-public enum JoinBodiesMode: String, Codable, Hashable, Sendable {
+public enum JoinBodiesMode: String, Hashable, Sendable {
     /// Solids whose material does not meet become the components of one solid body.
     case solidComponents
     /// Sheets sewn along their exactly matching edges into one sheet that stays open.
@@ -22,7 +22,7 @@ public enum JoinBodiesMode: String, Codable, Hashable, Sendable {
 }
 
 /// One body to join and where it sits in the joined body's frame.
-public struct JoinBodiesTargetReference: Codable, Hashable, Sendable {
+public struct JoinBodiesTargetReference: Hashable, Sendable {
     public var featureID: FeatureID
     /// Where the body sits in the joined body's frame: it is moved rigidly there before joining;
     /// `nil` joins it where it was evaluated.
@@ -34,7 +34,7 @@ public struct JoinBodiesTargetReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct JoinBodiesFeature: Codable, Hashable, Sendable {
+public struct JoinBodiesFeature: Hashable, Sendable {
     public let targets: [JoinBodiesTargetReference]
     public let mode: JoinBodiesMode
 
@@ -53,11 +53,14 @@ public struct JoinBodiesFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case targets
         case mode
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.targets, .mode], in: decoder)
@@ -65,11 +68,20 @@ public struct JoinBodiesFeature: Codable, Hashable, Sendable {
         mode = try container.decode(JoinBodiesMode.self, forKey: .mode)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(targets, forKey: .targets)
         try container.encode(mode, forKey: .mode)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension JoinBodiesMode: Codable {}
+extension JoinBodiesTargetReference: Codable {}
+extension JoinBodiesFeature: Codable {}
+#endif

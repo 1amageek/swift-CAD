@@ -3,7 +3,7 @@ import CADTopology
 
 /// Delete Face: faces taken out of a solid. Healing, the faces around them grow over where they
 /// were until they meet and the solid stays closed; otherwise the solid opens into a sheet.
-public struct FaceDeleteFeature: Codable, Hashable, Sendable {
+public struct FaceDeleteFeature: Hashable, Sendable {
     public var target: FaceDeleteTargetReference
     public var faces: [StableSubshapeReference]
     public var heals: Bool
@@ -32,12 +32,15 @@ public struct FaceDeleteFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case faces
         case heals
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .faces, .heals], in: decoder)
@@ -46,7 +49,9 @@ public struct FaceDeleteFeature: Codable, Hashable, Sendable {
         heals = try container.decode(Bool.self, forKey: .heals)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -54,12 +59,13 @@ public struct FaceDeleteFeature: Codable, Hashable, Sendable {
         try container.encode(faces, forKey: .faces)
         try container.encode(heals, forKey: .heals)
     }
+#endif
 
     /// What the deletion publishes: the healed solid, or the sheet it opens into.
     public var outputRole: FeaturePort { heals ? .body : .sheet }
 }
 
-public struct FaceDeleteTargetReference: Codable, Hashable, Sendable {
+public struct FaceDeleteTargetReference: Hashable, Sendable {
     public var featureID: FeatureID
 
     public init(featureID: FeatureID) {
@@ -68,20 +74,31 @@ public struct FaceDeleteTargetReference: Codable, Hashable, Sendable {
 
     public func validate() throws {}
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID], in: decoder)
         featureID = try container.decode(FeatureID.self, forKey: .featureID)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(featureID, forKey: .featureID)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension FaceDeleteFeature: Codable {}
+extension FaceDeleteTargetReference: Codable {}
+#endif

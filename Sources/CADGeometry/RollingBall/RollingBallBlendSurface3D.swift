@@ -2,33 +2,16 @@ import CADCore
 import Foundation
 
 // FIXME(INCOMPLETE_IMPLEMENTATION): This value evaluates blend geometry but is
-// registered in Surface3D but not yet integrated with FeatureEvaluating.
-// Its construction callers are RollingBallSectionEvaluator and geometry tests.
-// Persistent surface integration, full-domain regularity and trimmed-solid reconstruction must
-// succeed before any fillet feature may publish it.
-public struct RollingBallBlendSurface3D: Codable, Hashable, Sendable {
-    let centerSpine: Curve3D
+// registered in Surface3D and consumed by ordinary Fillet through the injected
+// KernelRollingBallFilletEvaluator composition path. General blend networks,
+// all required endpoint/corner domains and whole-solid validity must be established
+// before reporting the complete fillet operation.
+public struct RollingBallBlendSurface3D: Hashable, Sendable {
+    package let centerSpine: Curve3D
     public let firstContact: Curve3D
     public let secondContact: Curve3D
     public let radius: Double
-    let tolerance: ModelingTolerance
-
-    private enum CodingKeys: String, CodingKey {
-        case centerSpine, firstContact, secondContact, radius, tolerance
-    }
-
-    public init(from decoder: Decoder) throws {
-        let values = try decoder.container(keyedBy: CodingKeys.self)
-        try values.validateOnlyExpectedKeys(
-            [.centerSpine, .firstContact, .secondContact, .radius, .tolerance], in: decoder
-        )
-        centerSpine = try values.decode(Curve3D.self, forKey: .centerSpine)
-        firstContact = try values.decode(Curve3D.self, forKey: .firstContact)
-        secondContact = try values.decode(Curve3D.self, forKey: .secondContact)
-        radius = try values.decode(Double.self, forKey: .radius)
-        tolerance = try values.decode(ModelingTolerance.self, forKey: .tolerance)
-        try validate()
-    }
+    package let tolerance: ModelingTolerance
 
     /// Validates stored geometry; does not certify fillet feasibility.
     public func validate() throws {
@@ -69,8 +52,9 @@ public struct RollingBallBlendSurface3D: Codable, Hashable, Sendable {
 
     /// Proves a nondegenerate tangent frame, not complete fillet feasibility.
     // FIXME(INCOMPLETE_IMPLEMENTATION): Production machining latency and
-    // integration remain unverified. Only geometry tests call this entry;
-    // actual selected-edge certification must pass before feature admission.
+    // integration remain unverified for the complete mandatory domain. Ordinary
+    // kernel fillet composition consumes this geometry; selected-edge certification
+    // and whole-solid admission remain required before publication.
     public func validateRegularity(
         over parameters: SurfaceParameterBox,
         maximumSubdivisionDepth: Int,
@@ -243,3 +227,33 @@ public struct RollingBallBlendSurface3D: Codable, Hashable, Sendable {
         KernelError(phase: .geometry, code: code, tolerance: tolerance, message: message)
     }
 }
+
+#if !hasFeature(Embedded)
+extension RollingBallBlendSurface3D: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case centerSpine, firstContact, secondContact, radius, tolerance
+    }
+
+    public init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        try values.validateOnlyExpectedKeys(
+            [.centerSpine, .firstContact, .secondContact, .radius, .tolerance], in: decoder)
+        centerSpine = try values.decode(Curve3D.self, forKey: .centerSpine)
+        firstContact = try values.decode(Curve3D.self, forKey: .firstContact)
+        secondContact = try values.decode(Curve3D.self, forKey: .secondContact)
+        radius = try values.decode(Double.self, forKey: .radius)
+        tolerance = try values.decode(ModelingTolerance.self, forKey: .tolerance)
+        try validate()
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        try validate()
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(centerSpine, forKey: .centerSpine)
+        try values.encode(firstContact, forKey: .firstContact)
+        try values.encode(secondContact, forKey: .secondContact)
+        try values.encode(radius, forKey: .radius)
+        try values.encode(tolerance, forKey: .tolerance)
+    }
+}
+#endif

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveExtendFeature: Codable, Hashable, Sendable {
+public struct CurveExtendFeature: Hashable, Sendable {
     public let source: CurveOutputReference
     public let end: CurveExtensionEnd
     public let distance: CADExpression
@@ -20,12 +20,15 @@ public struct CurveExtendFeature: Codable, Hashable, Sendable {
         try distance.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source
         case end
         case distance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.source, .end, .distance], in: decoder)
@@ -34,7 +37,9 @@ public struct CurveExtendFeature: Codable, Hashable, Sendable {
         distance = try container.decode(CADExpression.self, forKey: .distance)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -42,4 +47,9 @@ public struct CurveExtendFeature: Codable, Hashable, Sendable {
         try container.encode(end, forKey: .end)
         try container.encode(distance, forKey: .distance)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CurveExtendFeature: Codable {}
+#endif

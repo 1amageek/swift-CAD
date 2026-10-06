@@ -9,7 +9,7 @@ import CADCore
 /// with the user 2026-10-05) the inserted sheet is kept whole instead: its open boundary, lying on
 /// the target around the opening, cuts the target back, and the fill is the target so trimmed and
 /// the inserted sheet sewn into one sheet.
-public struct SurfaceFillFeature: Codable, Hashable, Sendable {
+public struct SurfaceFillFeature: Hashable, Sendable {
     public let targetFeatureID: FeatureID
     public let boundarySeed: StableSubshapeReference
     /// The sheet trimmed to the opening, nil for a built fill.
@@ -61,6 +61,7 @@ public struct SurfaceFillFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case targetFeatureID
         case boundarySeed
@@ -68,7 +69,9 @@ public struct SurfaceFillFeature: Codable, Hashable, Sendable {
         case guides
         case trimsToSheet
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.targetFeatureID, .boundarySeed, .insertedSheet, .guides, .trimsToSheet], in: decoder)
@@ -79,7 +82,9 @@ public struct SurfaceFillFeature: Codable, Hashable, Sendable {
         trimsToSheet = try container.decodeIfPresent(Bool.self, forKey: .trimsToSheet) ?? false
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -89,4 +94,9 @@ public struct SurfaceFillFeature: Codable, Hashable, Sendable {
         if guides.isEmpty == false { try container.encode(guides, forKey: .guides) }
         if trimsToSheet { try container.encode(trimsToSheet, forKey: .trimsToSheet) }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceFillFeature: Codable {}
+#endif

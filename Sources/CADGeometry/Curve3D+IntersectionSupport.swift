@@ -37,6 +37,9 @@ extension Curve3D {
     tolerance: ModelingTolerance
   ) throws -> (first: Surface3D, second: Surface3D)? {
     switch self {
+    case .parameterImage(let image):
+      return try image.source.intersectionSupportSurfaces(tolerance: tolerance)
+
     case .analytic(.planeTorus(let curve)):
       return (curve.planeSurface, curve.torusSurface)
     case .implicit(let curve):
@@ -82,7 +85,7 @@ extension Curve3D {
           tolerance: tolerance
         )
       )
-    case .line, .circle, .bSpline, .affineImage,
+    case .line, .circle, .bSpline, .affineImage, .parameterImage,
       .analytic(.line), .analytic(.circle), .analytic(.arc),
       .analytic(.ellipse), .analytic(.hyperbola),
       .analytic(.parabola):

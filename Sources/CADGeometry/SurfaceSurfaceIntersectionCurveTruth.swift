@@ -1,6 +1,6 @@
 import CADCore
 
-public indirect enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Sendable {
+public indirect enum SurfaceSurfaceIntersectionCurveTruth: Hashable, Sendable {
   case parametric(Curve3D)
   case implicit(CertifiedImplicitIntersectionCurve)
   case analyticBSpline(CertifiedAnalyticBSplineIntersectionCurve)
@@ -59,6 +59,7 @@ public indirect enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Se
     }
   }
 
+#if !hasFeature(Embedded)
   private enum CodingKeys: String, CodingKey {
     case kind
     case parametric
@@ -68,7 +69,9 @@ public indirect enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Se
     case analyticAnalytic
     case quadraticTangency
   }
+#endif
 
+#if !hasFeature(Embedded)
   private enum Kind: String, Codable {
     case parametric
     case implicit
@@ -77,7 +80,9 @@ public indirect enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Se
     case analyticAnalytic
     case quadraticTangency
   }
+#endif
 
+#if !hasFeature(Embedded)
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     switch try container.decode(Kind.self, forKey: .kind) {
@@ -124,7 +129,9 @@ public indirect enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Se
         ))
     }
   }
+#endif
 
+#if !hasFeature(Embedded)
   public func encode(to encoder: Encoder) throws {
     var container = encoder.container(keyedBy: CodingKeys.self)
     switch self {
@@ -148,6 +155,7 @@ public indirect enum SurfaceSurfaceIntersectionCurveTruth: Codable, Hashable, Se
       try container.encode(curve, forKey: .quadraticTangency)
     }
   }
+#endif
 }
 
 // The synthesized equality binds every large certified payload pair in one
@@ -219,3 +227,7 @@ extension SurfaceSurfaceIntersectionCurveTruth {
     return l == r
   }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceSurfaceIntersectionCurveTruth: Codable {}
+#endif

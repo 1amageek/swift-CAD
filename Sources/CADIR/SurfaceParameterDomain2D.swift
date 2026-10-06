@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceParameterDomain2D: Codable, Sendable, Hashable {
+public struct SurfaceParameterDomain2D: Sendable, Hashable {
     public var uLowerBound: Double
     public var uUpperBound: Double
     public var vLowerBound: Double
@@ -84,13 +84,16 @@ public struct SurfaceParameterDomain2D: Codable, Sendable, Hashable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case uLowerBound
         case uUpperBound
         case vLowerBound
         case vUpperBound
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -102,4 +105,9 @@ public struct SurfaceParameterDomain2D: Codable, Sendable, Hashable {
         vLowerBound = try container.decode(Double.self, forKey: .vLowerBound)
         vUpperBound = try container.decode(Double.self, forKey: .vUpperBound)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceParameterDomain2D: Codable {}
+#endif

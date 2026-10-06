@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-public struct BooleanTrimmedFaceIntersection: Codable, Hashable, Sendable {
+public struct BooleanTrimmedFaceIntersection: Hashable, Sendable {
   public let intersection: SurfaceSurfaceIntersectionCurve
   public let startParameter: Double
   public let endParameter: Double
@@ -84,3 +84,7 @@ extension BooleanTrimmedFaceIntersection {
     lhs.intersection == rhs.intersection
   }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanTrimmedFaceIntersection: Codable {}
+#endif

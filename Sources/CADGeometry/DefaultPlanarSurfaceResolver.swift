@@ -27,7 +27,18 @@ package struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
                 origin: sourcePlane.origin + sourcePlane.normal * offset.distance,
                 normal: sourcePlane.normal
             )
-        case .procedural(.ruled), .procedural(.rollingBall):
+        case let .procedural(.originalImage(image)):
+            guard let original = canonicalPlane(for: image.source) else { return nil }
+            let vector = image.transform.basisY.cross(image.transform.basisZ) * original.normal.x
+                + image.transform.basisZ.cross(image.transform.basisX) * original.normal.y
+                + image.transform.basisX.cross(image.transform.basisY) * original.normal.z
+            let length = vector.length
+            guard length.isFinite, length > 0 else { return nil }
+            let orientation = ((image.uGain > 0) == (image.vGain > 0) ? 1.0 : -1.0)
+                * (image.swapAxes ? -1.0 : 1.0)
+            return ResolvedPlaneGeometry(origin: image.transform.applying(to: original.origin),
+                normal: vector * (orientation / length))
+        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             return nil
         }
     }
@@ -36,9 +47,22 @@ package struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
         for surface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> ResolvedPlaneGeometry? {
-        if let canonical = canonicalPlane(for: surface) {
-            return canonical
+        if case let .procedural(.originalImage(image)) = surface {
+            _ = try image.transform.originalDeterminantSign(consumeWork: {})
+            guard let original = try exactPlane(for: image.source, tolerance: tolerance) else { return nil }
+            let vector = image.transform.basisY.cross(image.transform.basisZ) * original.normal.x
+                + image.transform.basisZ.cross(image.transform.basisX) * original.normal.y
+                + image.transform.basisX.cross(image.transform.basisY) * original.normal.z
+            let orientation = ((image.uGain > 0) == (image.vGain > 0) ? 1.0 : -1.0)
+                * (image.swapAxes ? -1.0 : 1.0)
+            let length = vector.length
+            guard length.isFinite, length > 0 else {
+                throw GeometryConversionError.resourceLimitExceeded("Original affine plane has no finite nonzero representative normal.")
+            }
+            return ResolvedPlaneGeometry(origin: image.transform.applying(to: original.origin),
+                normal: vector * (orientation / length))
         }
+        if let canonical = canonicalPlane(for: surface) { return canonical }
         if case let .bSpline(surface) = surface {
             return try plane(
                 forControlPoints: surface.controlPoints.joined(),

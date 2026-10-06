@@ -1,11 +1,12 @@
 import CADCore
+import CADCapabilities
 import CADIR
 import CADKernel
 import CADTopology
 
 @main
 struct CADWASMSmoke {
-    static func main() throws {
+    static func main() async throws {
         let tolerance = ModelingTolerance(
             distance: 1.0e-6,
             angle: 1.0e-9,
@@ -61,6 +62,37 @@ struct CADWASMSmoke {
 
         try MainMeshCompactionSmoke.run(model: evaluated.brep, tolerance: tolerance)
         try OriginalNativeRectangleSmoke.run()
+        let resourceFailure = KernelError.wrapping(
+            TessellationError.resourceExhausted(.triangleCount, requested: 12, limit: 10),
+            phase: .evaluation, tolerance: tolerance
+        )
+        let unsupportedFailure = KernelError.wrapping(
+            ImportError.unsupportedFormat("unsupported"), phase: .exchange, tolerance: tolerance
+        )
+        guard resourceFailure.code == .resourceLimitExceeded,
+              resourceFailure.category == .resourceExhaustion,
+              unsupportedFailure.code == .unsupportedCapability,
+              unsupportedFailure.category == .unsupportedDomain else {
+            throw KernelError(
+                phase: .validation, code: .unclassifiedFailure, tolerance: tolerance,
+                message: "The shared failure contract lost the reported cause."
+            )
+        }
+        print("KernelFailureContract passed")
+
+        let domain = try KernelCapabilities.current.domain(operation: "extrude")
+        guard domain.capability.status == .partial,
+              domain.limitations(affecting: .transformation).contains(where: {
+                  $0.sourcePath.hasSuffix("ExactProfileExtrudeBodyBuilder.swift")
+              }) else {
+            throw KernelError(
+                phase: .validation, code: .invalidInput, tolerance: tolerance,
+                message: "The public capability domain lost its source condition."
+            )
+        }
+        print("KernelCapabilityDomain passed")
+
+        try await RectangularBSplineMeshSmoke.run()
         print("CADWASMSmoke passed")
     }
 }

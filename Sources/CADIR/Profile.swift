@@ -1,26 +1,30 @@
 import CADCore
 import CADGeometry
 
-public struct ProfileReference: Codable, Hashable, Sendable {
+public struct ProfileReference: Hashable, Sendable {
     public var featureID: FeatureID
     public var profileIndex: Int
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
         case profileIndex
     }
+#endif
 
     public init(featureID: FeatureID, profileIndex: Int = 0) {
         self.featureID = featureID
         self.profileIndex = profileIndex
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID, .profileIndex], in: decoder)
         featureID = try container.decode(FeatureID.self, forKey: .featureID)
         profileIndex = try container.decode(Int.self, forKey: .profileIndex)
     }
+#endif
 
     public func validate() throws {
         guard profileIndex >= 0 else {
@@ -122,3 +126,7 @@ public struct ProfileCircularArcSegment: Sendable, Hashable {
         self.sweepAngle = sweepAngle
     }
 }
+
+#if !hasFeature(Embedded)
+extension ProfileReference: Codable {}
+#endif

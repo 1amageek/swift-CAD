@@ -19,6 +19,7 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         surface: BSplineSurface3D,
         tolerance: ModelingTolerance
     ) throws -> [CertifiedHomogeneousBezierSurfacePatch]? {
+        try checkCancellation()
         try tolerance.validate()
         try surface.validate(tolerance: tolerance)
         guard surface.uDegree >= 1,
@@ -77,15 +78,20 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                 vUpper: vDomainUpper
             )]
         }
-        let uBreaks = parameterBreaks(
+        var operationCount = 0
+        let uBreaks = try parameterBreaks(
             knots: surface.uKnots,
             lower: uDomainLower,
-            upper: uDomainUpper
+            upper: uDomainUpper,
+            operationCount: &operationCount,
+            tolerance: tolerance
         )
-        let vBreaks = parameterBreaks(
+        let vBreaks = try parameterBreaks(
             knots: surface.vKnots,
             lower: vDomainLower,
-            upper: vDomainUpper
+            upper: vDomainUpper,
+            operationCount: &operationCount,
+            tolerance: tolerance
         )
         let constantWeight = exactConstantWeight(surface.weights)
         guard uBreaks.count >= 2, vBreaks.count >= 2 else {
@@ -97,78 +103,163 @@ struct CertifiedBSplineSurfaceBezierExtractor {
             )
         }
 
-        var operationCount = 0
         var result: [Patch] = []
-        result.reserveCapacity((uBreaks.count - 1) * (vBreaks.count - 1))
+        let uPatchCount = try checkedDifference(
+            uBreaks.count,
+            1,
+            tolerance: tolerance
+        )
+        let vPatchCount = try checkedDifference(
+            vBreaks.count,
+            1,
+            tolerance: tolerance
+        )
+        let patchCount = try checkedProduct(
+            uPatchCount,
+            vPatchCount,
+            tolerance: tolerance
+        )
+        try consume(
+            patchCount,
+            operationCount: &operationCount,
+            tolerance: tolerance
+        )
+        result.reserveCapacity(patchCount)
+        var vSpanCursor = surface.vDegree
         for vSpanIndex in 0..<(vBreaks.count - 1) {
+            try checkCancellation()
             let vLower = vBreaks[vSpanIndex]
             let vUpper = vBreaks[vSpanIndex + 1]
-            let vSpan = Scalar.exact(vUpper) - Scalar.exact(vLower)
-            guard vSpan.lower > 0.0 else {
+            let vSpanWidth = Scalar.exact(vUpper) - Scalar.exact(vLower)
+            guard vSpanWidth.lower > 0.0 else {
                 throw nonPositiveSpanFailure(
-                    residual: vSpan.lower,
+                    residual: vSpanWidth.lower,
                     tolerance: tolerance
                 )
             }
+            let vSpan = try localSpan(
+                lower: vLower,
+                degree: surface.vDegree,
+                knots: surface.vKnots,
+                controlCount: surface.vControlPointCount,
+                spanCursor: &vSpanCursor,
+                operationCount: &operationCount,
+                tolerance: tolerance
+            )
+            let vLocalKnots = try localKnots(
+                degree: surface.vDegree,
+                knots: surface.vKnots,
+                span: vSpan,
+                operationCount: &operationCount,
+                tolerance: tolerance
+            )
             let vBasis = try basisDerivativeTable(
                 parameter: vLower,
                 degree: surface.vDegree,
-                knots: surface.vKnots,
-                count: surface.vControlPointCount,
+                knots: vLocalKnots,
+                count: surface.vDegree + 1,
                 operationCount: &operationCount,
                 tolerance: tolerance
             )
             let vScales = try bernsteinScales(
                 degree: surface.vDegree,
-                span: vSpan,
+                span: vSpanWidth,
                 operationCount: &operationCount,
                 tolerance: tolerance
             )
+            var uSpanCursor = surface.uDegree
             for uSpanIndex in 0..<(uBreaks.count - 1) {
+                try checkCancellation()
                 let uLower = uBreaks[uSpanIndex]
                 let uUpper = uBreaks[uSpanIndex + 1]
-                let uSpan = Scalar.exact(uUpper) - Scalar.exact(uLower)
-                guard uSpan.lower > 0.0 else {
+                let uSpanWidth = Scalar.exact(uUpper) - Scalar.exact(uLower)
+                guard uSpanWidth.lower > 0.0 else {
                     throw nonPositiveSpanFailure(
-                        residual: uSpan.lower,
+                        residual: uSpanWidth.lower,
                         tolerance: tolerance
                     )
                 }
+                let uSpan = try localSpan(
+                    lower: uLower,
+                    degree: surface.uDegree,
+                    knots: surface.uKnots,
+                    controlCount: surface.uControlPointCount,
+                    spanCursor: &uSpanCursor,
+                    operationCount: &operationCount,
+                    tolerance: tolerance
+                )
+                let uLocalKnots = try localKnots(
+                    degree: surface.uDegree,
+                    knots: surface.uKnots,
+                    span: uSpan,
+                    operationCount: &operationCount,
+                    tolerance: tolerance
+                )
                 let uBasis = try basisDerivativeTable(
                     parameter: uLower,
                     degree: surface.uDegree,
-                    knots: surface.uKnots,
-                    count: surface.uControlPointCount,
+                    knots: uLocalKnots,
+                    count: surface.uDegree + 1,
                     operationCount: &operationCount,
                     tolerance: tolerance
                 )
                 let uScales = try bernsteinScales(
                     degree: surface.uDegree,
-                    span: uSpan,
+                    span: uSpanWidth,
+                    operationCount: &operationCount,
+                    tolerance: tolerance
+                )
+                // Charge both local source windows before reading their control
+                // points or weights. The basis arrays contain only the active
+                // degree + 1 functions in each direction.
+                let uLocalCount = try checkedIncrement(
+                    surface.uDegree,
+                    tolerance: tolerance
+                )
+                let vLocalCount = try checkedIncrement(
+                    surface.vDegree,
+                    tolerance: tolerance
+                )
+                let localNetCount = try checkedProduct(
+                    uLocalCount,
+                    vLocalCount,
+                    tolerance: tolerance
+                )
+                let localMaterializationCost = try checkedProduct(
+                    localNetCount,
+                    2,
+                    tolerance: tolerance
+                )
+                try consume(
+                    localMaterializationCost,
                     operationCount: &operationCount,
                     tolerance: tolerance
                 )
                 var derivatives = Array(
                     repeating: Array(
                         repeating: zeroPoint,
-                        count: surface.uDegree + 1
+                        count: uLocalCount
                     ),
-                    count: surface.vDegree + 1
+                    count: vLocalCount
                 )
-                // Only the degree + 1 controls of each direction's span are supported there; the
-                // other basis functions vanish on it exactly.
-                let uActive = activeControls(lower: uLower, degree: surface.uDegree, knots: surface.uKnots,
-                                             count: surface.uControlPointCount)
-                let vActive = activeControls(lower: vLower, degree: surface.vDegree, knots: surface.vKnots,
-                                             count: surface.vControlPointCount)
+                let uControlStart = try checkedDifference(
+                    uSpan,
+                    surface.uDegree,
+                    tolerance: tolerance
+                )
+                let vControlStart = try checkedDifference(
+                    vSpan,
+                    surface.vDegree,
+                    tolerance: tolerance
+                )
                 for vOrder in 0...surface.vDegree {
                     for uOrder in 0...surface.uDegree {
                         derivatives[vOrder][uOrder] = try homogeneousDerivative(
                             surface: surface,
                             uBasis: uBasis[uOrder],
                             vBasis: vBasis[vOrder],
-                            uActive: uActive,
-                            vActive: vActive,
+                            uControlStart: uControlStart,
+                            vControlStart: vControlStart,
                             operationCount: &operationCount,
                             tolerance: tolerance
                         )
@@ -329,27 +420,139 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         return result
     }
 
-    /// The controls whose basis functions are supported on the knot span starting at `lower`:
-    /// the span's last knot index `k` (the largest with `knots[k] <= lower`, below the next knot)
-    /// and the `degree` before it.
-    private func activeControls(lower: Double, degree: Int, knots: [Double], count: Int) -> ClosedRange<Int> {
-        var span = degree
-        while span + 1 < count, knots[span + 1] <= lower { span += 1 }
-        return (span - degree)...span
+    /// Returns the last active knot index for the span starting at `lower`.
+    /// The cursor is monotonic for one parameter direction, so a span never
+    /// restarts a scan over the original knot vector.
+    private func localSpan(
+        lower: Double,
+        degree: Int,
+        knots: [Double],
+        controlCount: Int,
+        spanCursor: inout Int,
+        operationCount: inout Int,
+        tolerance: ModelingTolerance
+    ) throws -> Int {
+        var span = spanCursor
+        while span + 1 < controlCount {
+            try consume(
+                1,
+                operationCount: &operationCount,
+                tolerance: tolerance
+            )
+            guard knots[span + 1] <= lower else { break }
+            span += 1
+        }
+        spanCursor = span
+        return span
+    }
+
+    /// Materializes only the original knot slice supported on one span. The
+    /// checked charge occurs before any source read or Array allocation.
+    private func localKnots(
+        degree: Int,
+        knots: [Double],
+        span: Int,
+        operationCount: inout Int,
+        tolerance: ModelingTolerance
+    ) throws -> [Double] {
+        let lowerIndex = try checkedDifference(
+            span,
+            degree,
+            tolerance: tolerance
+        )
+        let upperBase = try checkedSum(
+            span,
+            degree,
+            tolerance: tolerance
+        )
+        let upperIndex = try checkedIncrement(
+            upperBase,
+            tolerance: tolerance
+        )
+        guard lowerIndex >= 0, upperIndex < knots.count else {
+            throw KernelError(
+                phase: .topology,
+                code: .topologyFailure,
+                tolerance: tolerance,
+                message: "Certified B-spline surface extraction lost its local knot span."
+            )
+        }
+        let localKnotBaseCount = try checkedDifference(
+            upperIndex,
+            lowerIndex,
+            tolerance: tolerance
+        )
+        let localKnotCount = try checkedIncrement(
+            localKnotBaseCount,
+            tolerance: tolerance
+        )
+        try consume(
+            localKnotCount,
+            operationCount: &operationCount,
+            tolerance: tolerance
+        )
+        return Array(knots[lowerIndex...upperIndex])
+    }
+
+    private func checkedIncrement(
+        _ value: Int,
+        tolerance: ModelingTolerance
+    ) throws -> Int {
+        let result = value.addingReportingOverflow(1)
+        guard result.overflow == false else {
+            throw resourceLimitFailure(tolerance: tolerance)
+        }
+        return result.partialValue
+    }
+
+    private func checkedSum(
+        _ lhs: Int,
+        _ rhs: Int,
+        tolerance: ModelingTolerance
+    ) throws -> Int {
+        let result = lhs.addingReportingOverflow(rhs)
+        guard result.overflow == false else {
+            throw resourceLimitFailure(tolerance: tolerance)
+        }
+        return result.partialValue
+    }
+
+    private func checkedDifference(
+        _ lhs: Int,
+        _ rhs: Int,
+        tolerance: ModelingTolerance
+    ) throws -> Int {
+        let result = lhs.subtractingReportingOverflow(rhs)
+        guard result.overflow == false else {
+            throw resourceLimitFailure(tolerance: tolerance)
+        }
+        return result.partialValue
+    }
+
+    private func checkedProduct(
+        _ lhs: Int,
+        _ rhs: Int,
+        tolerance: ModelingTolerance
+    ) throws -> Int {
+        let result = lhs.multipliedReportingOverflow(by: rhs)
+        guard result.overflow == false else {
+            throw resourceLimitFailure(tolerance: tolerance)
+        }
+        return result.partialValue
     }
 
     private func homogeneousDerivative(
         surface: BSplineSurface3D,
         uBasis: [Scalar],
         vBasis: [Scalar],
-        uActive: ClosedRange<Int>,
-        vActive: ClosedRange<Int>,
+        uControlStart: Int,
+        vControlStart: Int,
         operationCount: inout Int,
         tolerance: ModelingTolerance
     ) throws -> Point {
         var result = zeroPoint
-        for vIndex in vActive {
-            for uIndex in uActive {
+        for vIndex in vBasis.indices {
+            for uIndex in uBasis.indices {
                 let basis = uBasis[uIndex] * vBasis[vIndex]
                 guard !isExactlyZero(basis) else { continue }
                 try consume(
@@ -357,9 +560,11 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     operationCount: &operationCount,
                     tolerance: tolerance
                 )
-                let weight = Scalar.exact(surface.weights[vIndex][uIndex])
+                let sourceVIndex = vControlStart + vIndex
+                let sourceUIndex = uControlStart + uIndex
+                let weight = Scalar.exact(surface.weights[sourceVIndex][sourceUIndex])
                 let coefficient = basis * weight
-                let point = surface.controlPoints[vIndex][uIndex]
+                let point = surface.controlPoints[sourceVIndex][sourceUIndex]
                 result = adding(
                     result,
                     Point(
@@ -451,7 +656,8 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         tolerance: ModelingTolerance
     ) throws {
         guard amount >= 0,
-              operationCount <= maximumControlOperations - amount else {
+              operationCount <= maximumControlOperations,
+              amount <= maximumControlOperations - operationCount else {
             throw KernelError(
                 phase: .topology,
                 code: .resourceLimitExceeded,
@@ -463,11 +669,38 @@ struct CertifiedBSplineSurfaceBezierExtractor {
         operationCount += amount
     }
 
+    private func checkCancellation() throws {
+        try Task.checkCancellation()
+    }
+
+    private func resourceLimitFailure(
+        tolerance: ModelingTolerance
+    ) -> KernelError {
+        KernelError(
+            phase: .topology,
+            code: .resourceLimitExceeded,
+            tolerance: tolerance,
+            message: "Certified B-spline surface extraction exceeded its checked local materialization range."
+        )
+    }
+
     private func parameterBreaks(
         knots: [Double],
         lower: Double,
-        upper: Double
-    ) -> [Double] {
+        upper: Double,
+        operationCount: inout Int,
+        tolerance: ModelingTolerance
+    ) throws -> [Double] {
+        let scanAndSlotCount = try checkedSum(
+            knots.count,
+            2,
+            tolerance: tolerance
+        )
+        try consume(
+            scanAndSlotCount,
+            operationCount: &operationCount,
+            tolerance: tolerance
+        )
         var result = [lower]
         for knot in knots where knot > lower && knot < upper && result.last != knot {
             result.append(knot)

@@ -20,7 +20,8 @@ public struct SurfaceBoundaryContinuityEvaluator: Sendable {
     public func certify(
         first: SurfaceContinuitySamplingSide, second: SurfaceContinuitySamplingSide,
         requiredLevel: SurfaceContinuityLevel, tolerances: SurfaceContinuityTolerances,
-        maximumIntervals: Int, maximumDepth: Int
+        maximumIntervals: Int, maximumDepth: Int,
+        admission: GeometryConversionAdmission? = nil
     ) throws -> Certificate {
         try tolerances.validate()
         func side(_ value: SurfaceContinuitySamplingSide) -> SurfaceBoundaryCertifier.Side {
@@ -32,10 +33,19 @@ public struct SurfaceBoundaryContinuityEvaluator: Sendable {
         if requiredLevel >= .tangentPlane {
             chordLimit = tolerances.normalAngle >= .pi ? 2 : (2 * sin(tolerances.normalAngle * 0.5)).nextDown
         } else { chordLimit = nil }
-        let result = try SurfaceBoundaryCertifier.certify(first: side(first), second: side(second),
-            positionTolerance: tolerances.positionDistance, normalChordTolerance: chordLimit,
-            shapeOperatorTolerance: requiredLevel >= .curvature ? tolerances.principalCurvature : nil,
-            maximumCells: maximumIntervals, maximumDepth: maximumDepth, tolerance: modelingTolerance)
+        let result: SurfaceBoundaryCertifier.Certificate
+        if let admission {
+            result = try SurfaceBoundaryCertifier.certify(first: side(first), second: side(second),
+                positionTolerance: tolerances.positionDistance, normalChordTolerance: chordLimit,
+                shapeOperatorTolerance: requiredLevel >= .curvature ? tolerances.principalCurvature : nil,
+                maximumCells: maximumIntervals, maximumDepth: maximumDepth, tolerance: modelingTolerance,
+                admission: admission)
+        } else {
+            result = try SurfaceBoundaryCertifier.certify(first: side(first), second: side(second),
+                positionTolerance: tolerances.positionDistance, normalChordTolerance: chordLimit,
+                shapeOperatorTolerance: requiredLevel >= .curvature ? tolerances.principalCurvature : nil,
+                maximumCells: maximumIntervals, maximumDepth: maximumDepth, tolerance: modelingTolerance)
+        }
         return Certificate(level: requiredLevel, maximumPositionDistance: result.position,
             maximumNormalAngle: result.normalChord.map { min(.pi, (2 * asin(min(1, $0 * 0.5))).nextUp) },
             maximumShapeOperatorDistance: result.shapeOperator, inspectedIntervals: result.inspectedCells)

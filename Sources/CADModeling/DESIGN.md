@@ -34,8 +34,34 @@ stable signature serialization, evaluation caching, or Rupa project authority.
 | [RollingBall](RollingBall/DESIGN.md) | child | contact-preserving blend and cap patches | Uses admitted rails as sewing boundaries. | Does not select treatment regions or close solids. |
 | [SurfaceFill](SurfaceFill/DESIGN.md) | child | exact G0 surface fill from an open B-rep boundary loop | Reuses exact curve conversion, composite curves and Coons construction. | Does not claim G1/G2 optimization or guide-curve constraints. |
 | [TurningCapLoop](TurningCapLoop/DESIGN.md) | child | sewing request for a whole cap loop whose walls rise and fall | Bands per edge, mitres, and corner patches where the walls turn. | Round, chamfer and profile sections; G1 at the corner patches within their allowance. |
-| [BridgeSurface](BridgeSurface/DESIGN.md) | child | exact G0 ruled sheet between two source boundary edges | Resolves current stable edge references and reuses the exact ruled-surface builder. | Sources must share a coordinate frame; this is not full XNURBS fitting. |
+| [BridgeSurface](BridgeSurface/DESIGN.md) | child | ruled G0 and certified G1/G2 Hermite sheets | Resolves source boundaries, builds constrained rows and certifies both retained walls. | General wall clipping and source-chart transfer must close before full Bridge completion. |
+| [EdgeContinuity](EdgeContinuity/DESIGN.md) | child | retained original incident supports and final boundary continuity | Keeps original support/coedge laws through side construction. | Candidate row continuity cannot authorize a corrected final surface. |
+| [Revolve](Revolve/DESIGN.md) | child | original revolution surfaces and singular UV boundaries | Constructs solid and sheet output from retained section spans. | Axis incidence and orbit separation require original witnesses. |
+| [CornerSweep](CornerSweep/DESIGN.md) | child | original straight-arm and round-join construction | Builds retained scaled rows and complete tensor UV boundaries. | General contact charts and corner twist/guide laws retain explicit source gaps. |
+| [ExactFacePcurve](ExactFacePcurve/DESIGN.md) | child | retained original face-chart correspondence | Resolves native boundary pcurves and validates the whole original edge law. | A fitted boundary cannot authorize transfer of the original parameter chart. |
+| [ExactSurfaceTrim](ExactSurfaceTrim/DESIGN.md) | child | original finite trim-loop admission | Composes certified original pcurve enclosures with containment, orientation and area decisions. | Original image and continuation laws retain their parameter authority; unresolved whole-loop bounds fail explicitly. |
+| [CurveTrim](CurveTrim/DESIGN.md) | child | original finite curve restriction and publication | Retains native curve laws and authored parameter trims, including signed images. | Display metadata and samples cannot authorize original boundary incidence. |
+| [DraftedSection](DraftedSection/DESIGN.md) | child | original oblique draft ruling and certified shared section basis | Separates section normal, extrusion axis and pull direction. | Complete closed-boundary corner clipping remains an extrusion responsibility. |
+| [NaturalCurveJoin](NaturalCurveJoin/DESIGN.md) | child | original curve continuation for retained native trims | Supplies unchanged harmonic, homogeneous and image continuation to Modeling and Kernel offset consumers. | Extension requires the existing whole curve/support proof before publication. |
+| [Pipe](Pipe/DESIGN.md) | child | original Pipe path and section composition | Preserves directed source spans through nested Sweep evaluation. | Fraction, extension and section placement require original whole-law receipts. |
+| [SweepInvocation](SweepInvocation/DESIGN.md) | child | immutable original Sweep source carrier | Retains internal section/path laws and one cumulative allowance. | Candidate staging geometry does not replace source or chart authority. |
+| [ThickenedSheet](ThickenedSheet/DESIGN.md) | child | jointly offset original sheet layers and ruled boundaries | Composes SharedSheetOffset and original caps into thickening publication. | General joint and whole-result feasibility remain child-owned source obligations. |
+| [Loft](Loft/DESIGN.md) | child | original section and guide correspondence, side construction and finite cap admission | Matches cyclic traversal and hole identities before constructing retained native sides. | General guide degeneracies and finite clipping retain their child-owned source gaps; public Loft evaluation requires complete admission. |
+| [OriginalCurveSpanCoincidence](OriginalCurveSpanCoincidence/DESIGN.md) | child | original whole-span curve coincidence | Preserves structural proof precedence and consumes native original jets for general spans. | Candidate correspondence and fitted curves cannot authorize coincidence; the existing proof budget stays binding. |
+| [StableTopologyReference](StableTopologyReference/DESIGN.md) | child | current-live topology resolution and iterative lineage closure | Resolves retained provenance before exact same-feature geometry fallback. | Split ambiguity remains explicit; merged paths deduplicate without a call-stack history limit. |
+| [OriginalEvaluatedCurveGeometry](OriginalEvaluatedCurveGeometry/DESIGN.md) | child | bounded immutable original evaluated-curve admission | Retains the owning feature and native curve domain independently of display caches. | Kernel invocation owns document/cache identity; the receipt does not certify presentation samples. |
+| [FaceMatching](FaceMatching/DESIGN.md) | child | finite original landing-line event admission | Uses complete curve/surface events for oriented target selection. | Curved and multiple encounter walls retain their child-owned full source obligations. |
+| [SharedSheetOffset](SharedSheetOffset/DESIGN.md) | child | retained sheet offset construction | Composes original surface offset and explicit boundary ownership for editing operations and thickening, including retained plane UV axes and injected OffsetResultValidating. | Original chart retention must be rechecked when replacement supports change; callers own final topology publication. |
+| [FaceOffset](FaceOffset/DESIGN.md) | child | original surface replacement and staged face growth | Composes resolved source profiles, replacement history and injected Boolean publication. | Finite wall coverage and general growth remain child-owned source obligations. |
+| [FaceDrafting](FaceDrafting/DESIGN.md) | child | original face draft and planar Grow wedge composition | Prepares selected original face laws and publishes one staged composition. | Adjacent planar joints and general curved envelopes retain child-owned source gaps. |
+| [PolygonPrism](PolygonPrism/DESIGN.md) | child | directed polygon prism sewing requests | Preserves constant-length extrusion and explicit oblique terminal-plane construction. | Caller owns original polygon/base admission; supporting-plane reach is not finite-wall coverage. |
+| [SourceFacePatch](SourceFacePatch/DESIGN.md) | child | immutable original face-to-patch copying with caller admission | Retains source supports, curves, native pcurves, oriented trims and ancestry. | Copying does not provide geometric validation; inner provenance temporaries retain their lower accounting obligation. |
+| [BoundedSewingValidation](BoundedSewingValidation/DESIGN.md) | child | Caller-paid original sewing patch value admission | Preserves support, endpoint, provenance and loop invariants | Whole nonlinear correspondence remains a separate sewer premise |
+| [SewingProvenance](SewingProvenance/DESIGN.md) | child | caller-admitted sorted ancestry canonicalization | Preserves exact ancestry deduplication with paid in-place ordering and retained output capacity. | Provenance processing does not provide geometric patch validation. |
+| [ExactBodyTransform](ExactBodyTransform/DESIGN.md) | child | original body transform and pattern publication | Retains original surface and edge laws, native pcurves and carried topology identities. | Whole-body transforms use the original image authority; partial local editing retains its separate admission. |
+| [BooleanDimension](BooleanDimension/DESIGN.md) | child | dimensional admission and published output verification | Composes Shape validity with CADIR material and output authority. | Admission does not certify Boolean geometry; standalone unsupported roots fail explicitly. |
 | [CADTopology OpenBoundaryLoop](../CADTopology/OpenBoundaryLoop/DESIGN.md) | depends on | ordered exact boundary edge cycle | Supplies the shared loop containing the selected seed. | It does not choose corners or surface quality. |
+| [CADKernel SingularSheetBoundary](../CADKernel/SingularSheetBoundary/DESIGN.md) | coordinates with | closed and singular sewing-edge admission | The sewer consumes retained trim and host-surface boundary laws. | Closed endpoints do not by themselves establish a valid singular boundary or correspondence. |
 
 ## Architecture
 
@@ -50,6 +76,44 @@ flowchart LR
 
 ## Contracts and Invariants
 
+EvaluatedCurve's bounded original-geometry admission checks the owning feature,
+retained exact curve and authored native domain under caller source, subdivision,
+algebra, work and byte allowances. It does not certify display points or cached
+point parameters. Kernel invocation owns document/cache source identity; bounded
+geometry receipts cannot assert that independently. Persistent DTO fields and
+native parameter labels remain unchanged. [SectionResolution](SectionResolution/DESIGN.md)
+uses its prepared original owner port for construction rather than replaying
+display-cache validation. Its evaluated-curve admission contract is owned by
+[OriginalEvaluatedCurveGeometry](OriginalEvaluatedCurveGeometry/DESIGN.md).
+
+Round Sweep corners retain the original rational revolution tensor surface.
+Its four face-local isoparametric uses retain the source UV rectangle, including
+collapsed pole uses. The Topology original clamped-control boundary classifier
+owns singularity admission; the sewer consumes its result and preserves the UV
+use while excluding a singular use from physical pairing. Endpoints close in
+model space are never an authority to discard a boundary. General ellipses and
+sphere small circles therefore use the same original tensor law, without an
+analytic support substitution or an inverse-chart approximation. Source-only
+construction is not behavioral evidence for pole validation or publication.
+
+An authored zero terminal Sweep scale is a distinct original endpoint collapse,
+not a tolerance-snapped positive scale. The exact linear scale law remains
+positive on the open path and has one zero endpoint. Tensor faces retain the
+collapsed constant-V UV uses through the original singular-boundary classifier;
+there is no fabricated terminal cap face. The start cap and side topology retain
+their existing stable identities. [Revolve](Revolve/DESIGN.md) retains original
+collapsed rotation UV uses under the lower source coefficient or root witness;
+point proximity and numeric root events do not supply singularity authority.
+An exact Point-guide terminal endpoint coincident with the original path end
+can produce the same zero matrix and pole topology. A proximity-only guide
+contact remains a failure. Negative scale or an interior determinant
+zero remains a typed failure. Closed paths require a periodic, nonvanishing
+section law. Corner arms use one retained linear scale in cumulative straight-arm arc length.
+Both incident arm boundaries consume the same corner scale, and round outer
+pieces rotate that common original corner row. Terminal collapse retains the
+four UV uses and has no end cap. Twist and guide deformation at corners retain
+their separate S5 proof duties and fail explicitly when no producer is selected.
+
 Surface Creation expands the existing feature-evaluation path; it does not add
 a second geometry authority. Extrude, Revolve, Loft, Sweep and Sweep preflight
 share the source-section admission contract in
@@ -63,6 +127,31 @@ curve/surface correspondence proof on the restricted, oriented destination
 pcurve. Matching endpoints alone cannot authorize reuse. The matcher reports
 proved geometric mismatch as false and propagates inconclusive/resource errors.
 CADKernel validates the resulting canonical edge against every incident face.
+`BRepSewingEdge` uses normalized pcurve fraction f. The existing correspondence
+validator initializes the spatial candidate at start + (end - start) * f and may
+solve an oriented monotone spatial correspondence. Endpoint coincidence does not
+prove the whole interval; the original spatial curve's native continuity must
+be accounted for by the derivative proof. Endpoint parent subshape IDs belong
+to the generated vertex lineage.
+
+### Spatial curve fitting
+
+`SpatialCurveFitter` owns sampled fitting of a point-defined curve into a
+Bezier `SpatialPathFeature`. Each span is cubic Hermite with one-sided
+second-order difference tangents, halved until its deviation at seven check
+parameters meets the requested value. Spans never cross a breakpoint, so a
+source corner stays a corner knot. Exceeding the span budget throws a typed
+resource failure. The observed sample deviation does not certify a global
+position, tangent or curvature error bound.
+
+`fitBSpline` retains those spans as a clamped cubic B-spline on the original
+parameters, with multiplicity-three interior knots. Kernel consumers use this
+parameter correspondence to retain edge trims. CADKernel owns their resulting
+B-rep admission and feature evaluation.
+
+[`SpatialCurveFitterTests`](../../Tests/CADModelingTests/SpatialCurveFitterTests.swift)
+owns the existing helix deviation, closed-path closure and breakpoint-corner
+oracles. [CADKernel](../CADKernel/DESIGN.md) consumes this fitting contract.
 
 ### Bridge curve construction
 
@@ -153,53 +242,18 @@ before sewing; tangent-parallel translation must not publish a collapsed sheet.
 
 ### Revolve construction and closure
 
-Rotational tensor control rows and boundary arcs share one Cartesian rotation
-construction using RigidTransform3D. Rotation coefficients are computed once
-per angular patch, not per generator control point. Profile-plane admission
-remains separate from this geometric construction; removing that admission
-requires whole-surface regularity and global overlap validation for spatial
-generators, not merely successful Cartesian rotation. Spatial generators are
-certified in orbit coordinates (axial position, squared radial distance), using
-outward position/derivative enclosures in the rotation frame. Distinct orbit
-coordinates exclude overlap at every rotation angle. A cell with a strictly
-monotone linear functional of those coordinates is locally injective. Two cells
-are admitted when their orbit boxes are separated, or when they are adjacent
-(including a declared closed seam) and one functional is strictly monotone
-through both. All other pairs subdivide until admitted or explicitly unresolved.
-Only declared adjacent endpoints may coincide; nonadjacent coincident orbits
-cannot be admitted by topology proximity or samples. For a sweep shorter than
-half a turn, cells may instead prove angular separation: the upper enclosed
-cosine between their radial vectors must be below the certified lower cosine
-of the absolute sweep angle. Their entire swept angular intervals are then
-disjoint, including negative rotation and crossing an angular chart seam.
-The sweep cosine is computed once; no sampled or inverse-angle chart decides
-admission. At half a turn or more, repeated orbits cannot use this exclusion.
-Original spans must be continuous and a closed section must close within
-modeling tolerance.
-Each generator cell must also prove radial clearance beyond the distance
-tolerance before surface construction; a cell wholly inside the axis tolerance
-is rejected, and unresolved clearance subdivides under the same proof budget.
-Each resulting surface patch must independently pass whole-domain regularity
-validation. The orbit proof processes source-span pairs without allocating a
-quadratic pair array, retaining bounded local subdivision work. Its request-wide
-budget is 65,536 visited pairs and 32 levels per cell; exhaustion is a typed
-resource failure, never permission to construct an unchecked result.
-
-The existing rational surface-of-revolution builder owns both solid and sheet
-construction. It consumes exact generator spans and the rotation axis;
-curve sheets do not fabricate a closed Profile. One span construction path owns
-surfaces, oriented pcurves, sewing and lineage. The requested body kind decides
-whether partial-turn caps and solid shell ownership are built. Open generators
-never receive caps. A curve whose plane does not contain the axis uses the
-spatial proof path; solid profiles still require an axis in their plane.
-Angular seam splitting is shared; whole-span radial half-space validation
-applies to planar generators. A sampled point may choose the radial
-frame but cannot certify that the generator stays on one side of the axis.
-
-`CurvedRevolveFeatureTests` owns solid regression; `RevolveSheetConstructionTests`
-owns uncapped open-generator geometry, full-turn seams and invalid generators.
-Source/API adoption is separately required before this builder is an exposed
-Surface Creation operation.
+The construction, original generator admission, angular charts, singular UV
+boundaries and deferred behavior evidence are owned by
+[Revolve](Revolve/DESIGN.md). The public evaluator resolves the authored section
+before construction and consumes the completed tool before any Boolean operation.
+Native curve sheets retain their original source root charts and pass one orbit
+admission receipt into persistent original-surface publication. Profile solids
+retain their cap and component topology through the same injected sewer.
+Curve sheets remain uncapped; resolving an open curve does not fabricate a closed
+region. Geometry supplies original root/jet/normal authority and Topology supplies
+singular edge authority. General analytic, transformed, cyclic and higher-order
+pole domains remain source gaps in that component until their original lower
+contracts and public output are connected.
 
 A revolve's section may also be a planar face (`FaceSectionProfileResolver`, read before any target
 moves) or, for solid output, a curve: a closed planar curve revolves as the region it bounds and an
@@ -233,22 +287,24 @@ section placed where the leg starts by the frame so far, and the frame it carrie
 leg after a curved one starts on that leg's last rows, so the two meet in the same curves. Side
 faces are numbered along the path, a curved leg taking one number per plan piece. A corner joins
 two straight legs; one beside a curved span (no exact trimming curve of the curved sweep on the
-mitre plane), twist, scale and guides are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`.
+mitre plane), twist and guides are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`.
+A retained linear scale law follows cumulative straight-arm length.
 `MitredSweepTests` own an L-shaped path and a closed frame (exact volumes, the mitre plane's
 vertices, the frame's sixteen faces), a corner then a smooth arc, mitred (area times length) and
-round, and the refused corner beside an arc.
+round, and the refused corner beside an arc. These retained fixture descriptions are not
+behavioral evidence for the merged snapshot.
 
 Round corners keep the mitre inside each turn and round the outside: the section is split where it
 crosses the plane through the path holding the arm and the corner's axis (the line through the
 corner across both arms, carried back to the section's frame); pieces on the outer side end on the
 plane across each arm through the corner and turn between those ends about the axis by the corner's
-angle (rational quadratic in the turn, two pieces past a right angle). A piece reaching the axis
-closes its face there; its tensor surface would have a pole, so the face takes the exact surface the
-piece sweeps: a line across the axis its plane, a slanted line from the axis its cone (the rulings
-and the traced circle as the cone's iso lines), and a circle's arc about a point of the axis its
-sphere (each side a great circle as an exact circle edge on its own angle, which the arms' rational
-rows trace; an end off the axis must lie level with the centre). A spline, and an arc whose end off
-the axis traces a small circle, are refused with `FIXME(INCOMPLETE_IMPLEMENTATION)`. The corner faces
+angle (rational quadratic in the turn, two pieces past a right angle). Every
+piece retains its original rational revolution tensor and all four oriented
+isoparametric UV boundaries. An original collapsed row is classified by
+Topology and retained as a singular face-local use; an ellipse or a small
+circle follows the same source law. No sampled analytic-support substitution
+owns pole admission. One-sided pole normals and behavioral publication remain
+lower and deferred verification duties. The corner faces
 map to side face subshapes after the arms'. `RoundSweepCornerTests` own the L-shaped and
 closed-frame square sweeps' exact volumes (the arms less the inner overlap plus the outer sectors),
 a circle's (a quarter ball at the corner) and a diamond's (cones).
@@ -377,7 +433,9 @@ own Enneper's surface over the disc of radius ½ (its exact area within 0.2 %, b
 Decided 2026-10-04 by the user: the dialog's Degree × Spans is honoured exactly, as in the videos.
 When the exact sheet does not lie in that net, the net's sheet through the exact sheet's points at
 its Greville abscissae stands in for it, and the sides stray from the frame by what the net cannot
-follow; the Analysis measures each side as it is and marks it beyond its limit. Within the net, hard
+follow. Current Refit Analysis resolves the selected reference through lineage to
+the final face and measures its final edges; after regeneration it does not report
+the original frame deviation. That original continuous error proof remains a G6 gap. Within the net, hard
 rows are still the (stand-in) sheet's and never relaxed; only what the page calls loose (Free
 sides, flow, guides) is a weighted term.
 
@@ -397,9 +455,16 @@ sides, flow, guides) is a weighted term.
    fit working on homogeneous control points; otherwise E is replaced by the net's polynomial
    sheet through E's points at the net's Greville abscissae (a tensor interpolation, exact when E
    lies in the net however its knots are written), whose sides then stray from the frame.
-3. **Hard rows.** Along each G0, G1 or G2 side, control rows 0…k (k the continuity order) are E's
-   rows: on a clamped net the side's position and its first k cross derivatives depend only on
-   those rows, so position, tangent planes and curvature equal E's exactly (certified as E was).
+   Exact refinement admission compares the complete requested knot vectors by
+   exact value equality. A nearby original knot is not the requested uniform
+   knot. The polynomial stand-in is an explicit approximation; it has
+   no continuous original position/tangent/curvature error certificate and does
+   not close full G6. Its incomplete production marker names that proof gap.
+3. **Hard rows.** Along each G0, G1 or G2 side, control rows 0…k belong to the active
+   fit-space sheet: the exactly refined E or its polynomial stand-in. The clamped
+   net preserves those rows and their cross derivatives. This is an original E
+   guarantee only on the exact-refinement branch; the approximation branch has
+   no original position/tangent/curvature certificate.
 4. **Fairness.** Every other control point minimizes
    `flatness·∫∫(|S_uu|² + 2|S_uv|² + |S_vv|²) + (1 − flatness)·∫∫(|S_u|² + |S_v|²)` over the unit
    parameter square (Gauss–Legendre, degree + 1 points per span, exact for polynomial nets),
@@ -757,7 +822,7 @@ profile it bounds where its body is, and it takes the profile route (or, beside 
 its single loop takes the curve route). `LoftFaceTests` own a loft between two boxes' facing faces.
 
 
-A guide running on past the first or the last section is trimmed at its one crossing of that section's boundary (the profiles stand, the guides are trimmed — decided 2026-10-02; Plasticity's Trim overlap, `LoftOptions.trimsOverlap`, on by default); an end already on its boundary stays. With Trim overlap off two guides running on past the first or last open curve section take that section carried along them to their ends (`ContinuousLoftEndSectionBuilder.carried`, the similarity taking its ends to the guides' ends) as a section of its own, so the loft runs on to the guides' ends. Trim profiles (`LoftOptions.trimsProfiles`, off by default; Plasticity's documentation does not show its effect, so it is inferred from Trim overlap's, decided with the user 2026-10-05) cuts each open section where two guides cross it and lofts only the stretch between them, the guides its sides (`LoftFeatureEvaluator.trimmedToGuides`, `trimProfilesCutsTheSectionsAtTheGuides`); closed sections or other than two guides are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). An open section a guide meets at the other end from where it meets the first section is turned to run as the first does (Plasticity aligns its curves), so a guide along an edge joining two edges drawn opposite ways lofts. Continuous lofting — one open curve section and two guides, one leaving each of its ends (Plasticity's Loft of a single edge, its neighbouring edges the guides) — runs to a far section `ContinuousLoftEndSectionBuilder` makes: the section carried by the least rotation, uniform scale and move that take its ends to the guides' far ends, exact on its B-spline control points; `ContinuousLoftTests` prove the trapezoid from a 10 mm line along two straight guides and the refusal of a guide that leaves neither end.
+A guide running on past the first or the last section is trimmed at its original crossing of that section's boundary (the profiles stand, the guides are trimmed; `LoftOptions.trimsOverlap` defaults to on). [Loft](Loft/DESIGN.md) owns authored curve direction and original guide correspondence; opposing directed endpoints produce ambiguity rather than automatic curve reversal. The main option vocabulary is retained: Trim profiles requests the stretch of an open section between its guides, while Trim overlap off requests continuation to the guides' far ends. The merged evaluator reports typed `unsupportedCapability` for these requested trimming/extension paths until their original source, endpoint and shared-admission producers are connected; it does not silently run ordinary Loft instead. With no guides there is no guide overlap to extend. Historical inferred reversal or converted-control endpoint placement does not override the original directed-source contract. Continuous single-section Loft retains its existing carried end-section producer and original guide correspondence route; `ContinuousLoftTests` retain the trapezoid and invalid-guide fixtures, without claiming merged-snapshot behavioral evidence.
 
 Guide contact resolution consumes exact boundary loops (`ExactLoftGuideSection`),
 not display vertices or an artificial closed Profile. The profile entry point
@@ -819,8 +884,8 @@ the squared distance tolerance, not the distance tolerance.
 Dynamic programming operates on offset/direction indexes, materializing only
 the selected rings. Relative-offset edge costs are computed once per connection;
 time is O(sectionCount * ringCount^2), storage O(sectionCount * ringCount).
-Finite scores and deterministic ties are required; failed geometry still goes
-through the same patch admission. LoftFeatureTests covers automatic rotating
+See [Loft](Loft/DESIGN.md) for correspondence ambiguity and source-only scope;
+failed geometry still goes through the same patch admission. LoftFeatureTests covers automatic rotating
 closure, explicit traversal/seams, open stacks and invalid correspondence.
 
 Conic span construction preserves the source's signed sweep before adding the
@@ -877,15 +942,10 @@ Loft delegates all non-linear-connector transfinite construction to CADGeometry'
 shared Coons builder, including its exact unit-weight low-degree path. It does not
 own a second polynomial interpolation or approximate rational-weight classifier.
 
-Guide constraints own their geometric locus, not the input curve's traversal
-speed. A single clamped unit-weight Bezier guide whose control points are exactly
-collinear and ordered along its nonzero chord uses that chord's affine parameter
-before contact resolution. Exact planar predicates certify all three projections;
-ordered Bernstein controls prove strictly monotone interior traversal. The source
-feature is unchanged and no fitted tolerance is spent. General curved, rational,
-multi-span or reversing guides keep their original curve and admission path.
-This prevents stationary endpoints of an otherwise identical straight guide from
-changing or folding the Coons interior. CurveLoftFeatureTests owns this regression.
+[Loft](Loft/DESIGN.md) owns the original guide and section contact laws.
+A straight-locus connector image cannot replace the original stationary or
+nonlinear guide parameterization during contact resolution. Original section
+and guide authority survive all candidate image construction.
 
 For unguided ruled profile Loft, parallel section planes require equal traversal
 orientation on each matched loop. Every intermediate ruled section is planar;
@@ -895,8 +955,9 @@ applies equally to Sheet and Solid. It does not establish global embedding for
 nonparallel, guided, smooth, or arbitrary spatial sections; their general
 self-intersection proof remains a separate incomplete admission requirement.
 
-When any Loft section is a curve, the evaluator resolves every section to exact
-B-spline boundary spans before correspondence. A profile contributes its outer
+When any Loft section is a curve, [Loft](Loft/DESIGN.md) retains the original
+curve law, authored trim and direction before constructing rational boundary
+images for correspondence and side construction. A profile contributes its outer
 loop directly, without an intermediate display polyline or composite curve.
 All sections must have the same closure and one loop; a profile with holes
 cannot correspond to a single curve loop. Profile-only multi-loop construction
@@ -981,12 +1042,13 @@ path-normal Sweep along a curved path is owned by
 The precision-modeling extension retains the input profile exactly and stores
 an explicit positional approximation allowance in Sweep source, separate from
 modeling tolerance and presentation tessellation. A straight, profile-normal
-path with unit section scale and no guides may use a piecewise-linear angle
+path with an original linear nonnegative section scale and no guides may use a piecewise-linear angle
 law. The law includes both endpoints, has increasing normalized path positions,
 and may reverse angular velocity at an explicit source knot; this represents a
 double-helical construction without internal caps or a Boolean union.
 
-Each constant-rate interval is subdivided into cubic Hermite rotation patches.
+Each constant-rate interval is subdivided into cubic Hermite rotation candidates,
+whose exact Bernstein product with the linear scale law has five quartic rows.
 The rational profile basis/weights are retained in a tensor-product B-spline
 surface. Numerical coefficient error and the whole-interval Hermite remainder
 must together fit the explicit positional allowance. Sampled agreement alone
@@ -1139,40 +1201,10 @@ facing the same way is that push, Grow and all. One planar face running into ano
 its way out to a curved reference (the re-solve's topology failure) is pushed by Push Face's Grow
 out to where it reaches the reference — Fixed stopping at the wall — and the face it then ends on
 (the wall it carried under Moving, its own bar's end under None) takes the reference's surface in
-place; several faces, curved faces and inward runs still refuse (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face re-solves in place first;
-when one planar drafted face runs into another wall (the re-solve's topology failure) and moves
-out of the body, `FaceDraftGrowWedgeBuilder` builds the material between its old and drafted
-planes as a prism along the pivot line (`PolygonPrismRequestBuilder`), united with the body:
-Moving bounds the wedge by the body's far side along the face over the body's length (a ramp to
-the bottom, the walls beside it carried along), Fixed by the body's extents along and across
-the face over the face's length (it stops at the outer wall), and None as Fixed and then, past the
-body's outer wall, a slab over the plane of the drafted face's neighbour across its far edge (it pokes
-out alone). The Boolean takes coplanar faces touching only along a boundary as sharing no area, and a
-straight crossing along a face's own edge as leaving it whole. The wedge takes a thin column of
-the body's material behind the old face, certified to cross no body face, because the exact
-Boolean cannot yet unite a tool face covering a body face that runs on into the body; the same
-limit refuses a Moving wedge longer than the drafted face, and bodies with curved edges or faces
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`). A face drafted into the body takes the wedge off instead,
-under every Grow (past the drafted face nothing is left to stop at): run on past the body's far
-side and, under Moving or where the face reaches the body's ends, past those ends, its side along
-the old face leaning out of the body from the pivot line through a sliver certified to hold no
-body face, so its only faces inside the body are the drafted face's. `DraftFaceTests` own a
-plate's wall drafted through its far wall (the triangle left above the cut, under each Grow).
-Drafted faces that share no edge grow apart: every face's wedges are read from the body as it
-was and united or taken off in turn (`DraftFaceTests.twoNotchWallsDraftedTogetherGrowApart`,
-a block's two end notch walls under each Grow); faces sharing an edge, whose wedges meet, stay
-refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face's taper method
-(`FaceDraftMethod`, Plasticity's Isocline, Curve, Surface and Normal, their behaviour inferred
-from parting-line and reference-direction drafts elsewhere with the user 2026-10-06): Isocline
-turns each face about its crossing with the neutral plane against the neutral face's pull;
-Curve about the chosen straight edge lying on it, square to that pull (curved pivot edges are
-refused, `FIXME(INCOMPLETE_IMPLEMENTATION)`); Surface about its crossing with the neutral plane
-against another planar face's outward normal, the drafted plane through the pivot line whose
-normal meets that pull at the sine of the angle, the nearest such turn leaning out against the
-pull; Normal against the reference's own normal, which is the isocline draft on a planar
-reference and the ruled draft about the shared edge on a curved one. `DraftFaceTests` own a
-wall drafted about its bottom edge, Normal equal to Isocline on a plane, and a wall drafted
-against a sloping face's pull, by exact volumes. Draft Face turns each drafted face as one surface about its crossing with the neutral
+place; several faces, curved faces and inward runs still refuse (`FIXME(INCOMPLETE_IMPLEMENTATION)`). Draft Face re-solve and multi-face planar Grow construction are owned by
+[FaceDrafting](FaceDrafting/DESIGN.md). Its original-context wedge preparation,
+additive-before-subtractive composition, finite growth domains and one final
+publication follow the child contract. The main taper-method vocabulary is retained: `FaceDraftMethod.isocline`, `.curve(pivots:)`, `.surface(reference:)` and `.normal`. Curve uses its selected straight pivot edge; Surface uses another planar reference's pull; Normal uses the neutral reference normal. Their production dispatch and original re-solve admission remain in the child, and `DraftFaceTests` retain the bottom-edge, planar Normal/Isocline and sloping-reference fixtures. These fixtures have not been rerun for this merge. Draft Face turns each drafted face as one surface about its crossing with the neutral
 plane (the reference face's plane, moved by the offset): the page's pivot. Running against the
 pull (into the body from the reference face) the face leans out by the angle, so beyond the plane
 along the pull it leans in — a face crossing the plane is not split, it simply passes through its
@@ -1181,18 +1213,16 @@ plane to move (Offset is refused): each planar face turns about the edge it shar
 pulled along the reference's outward normal there — a plane about a straight edge along which
 that normal holds; otherwise, at each point of the edge, the ruled line leaning out by the angle
 from the normal there (`CurvedHingeDraftSurfaceBuilder`): exactly the cone through a circular edge
-whose normals run through its centre (a cylinder's or sphere's arc), any other edge's ruled surface
-fitted as a B-spline (cubic along the edge, carried on past its ends — a line or circle along
-itself — linear across it, a little above the edge and one and a half of the face's extents
-below). A plane meets that ruled surface along its exact cut (`RuledBSplinePlaneSection`: along
-each ruling the plane's distance changes linearly, so the cut is the rational curve
-`(F₀·Q₁ − F₁·Q₀) / ((F₀ − F₁)·W)` in the surface's own parameter, over the run of spans whose
-rulings stay steep to the plane), whose trace on the ruled face is exact too and shares its
-parameter; any other neighbour's re-solve the certified intersector does not yet carry through
-(`FIXME(INCOMPLETE_IMPLEMENTATION)`). A spline edge on a spline face with no exact pcurve takes a
-cubic through the surface parameters of the fewest of 8, 16, 32 or 64 of its points whose image
-stays within a thousandth of the distance tolerance of it (`SampledPcurveFitter`). An edge both its
-faces' new surfaces still hold keeps its curve in the re-solve (`FaceSurfaceReplacementRebuilder`). A hole's wall then meets
+on an original coaxial cylinder or equatorial sphere with the drafted face normal aligned
+with the circle's axis. Those structural identities derive the common apex of every ruling.
+The existing admitted cubic-extrusion family carries its original whole-law construction
+receipt into `RuledBSplinePlaneSection.sections`; the complete sign-certified span cover
+and original curve/pcurve correspondence own admission. The legacy near-point section API
+remains available, but neither sampled fitting nor a steepness-selected prefix replaces this
+receipt on the production draft route. Other curved hinges retain typed unsupported failure
+and `FIXME(INCOMPLETE_IMPLEMENTATION)` until original whole-range authority exists. An edge
+both its faces' new surfaces still hold keeps its curve only after complete original trim
+correspondence (`FaceSurfaceReplacementRebuilder`). A hole's wall then meets
 the turned face along an ellipse, whose pcurve on the cylinder is projected exactly.
 `PushFaceTests`, `DraftFaceTests` and `MatchFaceTests` prove boxes, rounded boxes,
 cylinders, holes, adjacent angles, pyramid and cone frustums and placed references
@@ -1209,6 +1239,23 @@ a box's top matched onto a sphere of another body, hollowed into its
 near side or, under Side, run through to its far side (z = 80 ∓ √(4900 − (x − 40)² − y²) integrated),
 and an L block's step matched onto a sphere past its outer wall by each Grow (the block carried out,
 filled to the wall, the step's bar alone).
+
+Integration authority for curved-hinge replacement is structural. An exact cone
+shortcut requires the original analytic supporting surface, the complete circular
+hinge incidence, and a common apex for every original ruling. Agreement at sample
+stations cannot authorize that shortcut. The general curved-hinge branch remains
+incomplete until its original whole-range draft and adjacent-face contracts are
+verified.
+
+A replacement edge may retain its original curve only after its complete original
+trim is proved incident to both new supporting surfaces. A sampled membership
+check cannot bypass the intersection producer. Unsupported incidence proofs use
+the existing replacement-intersection route. An original trim point with the public
+projection result's verified geometric miss also returns to that producer; agreement
+at selected points never replaces the complete incidence proof. Inconclusive numerical
+or exhausted proofs remain explicit failures. Nearest-point search on an unbounded curve cannot
+publish a window-boundary result merely because its search envelope is exhausted;
+that state is a typed resource failure.
 
 `FaceRemovalHealer` heals a solid over faces taken out of it (Delete Face with
 `heals`, and Remove Fillets From Shell), and Remove Fillets heals a sheet the same way, open (its
@@ -1328,13 +1375,12 @@ four they are the uniform B-spline exactly. Around each inner extraordinary vert
 G2 at extraordinary points) the mesh is first refined by Catmull–Clark until the vertex's quads and
 the quads touching them have no other irregular or boundary vertex (a cube twice, a tetrahedron
 three times in all), and its quads become the G2 cap of `PolySplineG2CapBuilder`: one Bézier patch
-of degree eight per quad, C2 with the bicubic patches around (its last three rows their Taylor
-data), G2 across its inner edges under the reparametrization s = −v + e(u)v², t = u + b(u)v +
+of degree eight per quad, retaining the bicubic neighbors' position and first/second normal Taylor data within their existing rounding allowance, and its inner continuity equations under the reparametrization s = −v + e(u)v², t = u + b(u)v +
 d(u)v² with b = 2c(1 − u)³ (c = cos 2π/n) and d = e = −6c²/(1 + c)(1 − u)³ — the second-order
-enclosure about the vertex, which valence three requires — imposed as polynomial identities at
-m + 5 points per edge, the vertex held at its limit position, the least thin-plate energy taken
+enclosure about the vertex, which valence three requires — solved at
+m + 5 collocation points per edge, the vertex held at its limit position, the least thin-plate energy taken
 over what remains (constrained least squares through a column-pivoted QR's null space), its
-conditions' residual checked or the cap refused. A cap's side beside a bicubic patch carries that
+emitted original whole-edge degree10/12 Bernstein residuals and tangent/cross regularity enclosed before admission or the cap refused. Collocation is only candidate construction; the original whole coefficient proof owns numerical continuity within the existing component allowance. A cap's side beside a bicubic patch carries that
 patch's cubic. Boundary extraordinary vertices keep the bicubic patches, meeting in position and
 nearly in tangent (`FIXME(INCOMPLETE_IMPLEMENTATION)`, as are control-point edits on such
 networks). With Merge Patches (the default) `PolySplinePatchMerger` joins the bicubic patches into
@@ -1367,6 +1413,11 @@ edge's fit against the faces' fits, a tenth of a micrometre) spread linearly alo
 Sections are exact arcs; the link's surface, rails and sections are fitted to them within a
 quarter of the distance tolerance and its pcurves are its isoparametric lines, every other face
 taking sampled pcurves (`SampledPcurveFitter`) for its changed edges.
+
+This retained description identifies the legacy Reblend route, not current merged-snapshot
+verification evidence. Original fillet source and admission contracts are owned by
+[Rolling Ball Fillet](../CADKernel/RollingBallFillet/DESIGN.md); the merge does not promote
+sampled pcurve construction or fitted coefficients into original whole-law authority.
 
 ## Runtime Flows
 
@@ -1412,9 +1463,9 @@ thin extrusion without draft), so a drafted circle's rim blends as a cone's does
 (`ConicalRimBlendTests`); caps close both ends with the prism's stable names. An open curve's
 drafted sheet keeps its arcs as rational quadratic spans at one angle, ruled into the same cone. A spline wall's offset (decided 2026-10-02) is
 `PlanarCurveOffsetApproximator`'s: a cubic B-spline through the exact offset at the Greville
-abscissae of a basis refined until, for every shift the extrusion reaches, its deviation — sampled
-at 16 points per span plus half the spacing times the sampled derivative difference — is within a
-quarter of the modeling distance (the Rebuild Face bound); offsets at every height share that basis
+abscissae of a basis refined until native whole-interval derivative certification proves
+position, tangent and curvature error against the original offset law. Position is within a
+quarter of the modeling distance; offsets at every height share that basis
 so walls rule point for point, and an offset past a centre of curvature is refused. A spline meets
 its neighbours tangentially; a sharp corner at a spline, drafted sharp corners at arcs and
 directions off the normal are refused (`FIXME(INCOMPLETE_IMPLEMENTATION)`). A curve section (decided
@@ -1523,3 +1574,43 @@ Expression consumers follow the [CADCore expression contract](../CADCore/DESIGN.
 unit-preserving hypot, dependency discovery, serialization and explicit failure.
 
 Natural Bezier extension expressions use the shared numeric and unit contract in [CADCore](../CADCore/DESIGN.md). Both expression evaluators retain dependencies and propagate continuation errors.
+
+
+### Original Cubic Extrusion Draft Receipt (PAR.CL9RUL1 pending)
+
+The bounded extension admits only an original unit-weight single cubic hinge on an original exact X-extruded 2-by-4 (or transposed) tensor support, with structurally equal translated original cubic boundary coefficients and drafted-plane normal parallel to X. Original trim, reference orientation, tolerance, and endpoint carry intervals are retained. General rational or multi-span hinges remain typed unsupported.
+
+The original law is C(t)+dD(t), D=-N+tan(angle)X, where N is the oriented original extrusion normal derived from C'. Original polynomial derivatives and outward derivative jets through order four prove N/D on every closed native/carry interval; finite samples and finite differences cannot authorize construction. Hermite stored coefficients are candidates only. Their endpoint-coefficient residual and fourth-derivative remainder use outward original widths and certify each actual stored row within distance/8. A separate original ruling/angle proof checks the actual row difference divided by the stored depth difference; position alone cannot authorize the draft angle. Unknown bounds, zero tangent, or exhausted subdivision fail. One common refinement queue and existing maximumSpanCount allowance bound both rows; no new private guessed budget.
+
+The builder owns an immutable construction receipt retaining original hinge/reference/trim/orientation/tolerance, stored output surface, and explicit candidate hinge pcurve. The evaluator carries that receipt into the replacement owner; no serialized or caller-authored success authority is introduced. An original edge may remain only after its complete original trim and supplied pcurves pass the existing whole-curve correspondence validator on both actual supports. Receipt source/output mismatch refuses. Sampled projection cannot bypass this proof. A ruled-plane section helper, if required, produces candidates only; all generated curves/pcurves require original whole-support validation before topology admission. Before branch selection it covers every retained original native/carry span in the bounded output chart. Each span supplies either a sign-certified original plane-denominator candidate cover or a whole-span same-sign row-distance no-cut proof. Unresolved denominator/contact/coverage cases fail within the existing allowance. Midpoint home selection or a percentage steepness cutoff cannot discard an unproved branch. Only a complete admitted cover may reach the existing checked closest-branch selection; the original curve/plane residual and final actual trim/pcurves must then be validated before topology publication.
+
+```mermaid
+flowchart LR
+    O[Original cubic and extrusion] --> J[Original closed ruling jets]
+    J --> C[Stored Hermite candidates]
+    C --> P[Whole position and angle proof]
+    P --> R[Immutable construction receipt]
+    R --> E[Draft evaluator]
+    E --> V[Whole trim and adjacent support validation]
+    V --> T[Replacement topology]
+```
+
+Producer-bound cubic-draft/plane non-hinge edges dispatch directly to the complete plane-cut reconstruction producer before the generic old-curve retention predicate. This category does not assert an old-curve geometric miss: complete original output-span coverage, checked closest branch selection and both actual trimmed-support proofs remain mandatory. Topology IDs remain retained; a coincident old non-hinge curve representation need not take precedence over the proved cut representation. The separately proved original hinge retains its original Curve3D and trim. Nonzero landing is not admitted with this original-source receipt. Unmatched categories retain existing retention/intersection and failure behavior.
+
+The replacement owner also retains each original coedge pcurve together with its original Curve3D, trim, orientation and unchanged support before mutation. A retrimmed edge between unchanged supports may derive a candidate only from that retained original parameterization, with actual trim and coedge direction explicitly mapped. Contained polynomial trims and structurally affine original parameterizations may be admitted only after the existing whole-curve correspondence validator checks each actual support and complete trim; unproved extension, mismatch, gap or orientation remains an explicit failure. The original retained chart is never treated as proof for a changed support. All such candidates are validated before their coedges are published. Typed pcurve failures preserve the original error code and cause while carrying edge/support reconstruction context so that unsupported production paths can be identified without assuming a geometric family from a generic message.
+
+The actual public cubic draft extends an unchanged planar edge from original trim[0,0.03] to[-0.005551361100027012,0.03]; its original chart is a polyline. A retained polyline with exactly two original UV points is structurally affine by the existing normalized-fraction evaluation law. On an unchanged original line curve, its two stored points may therefore produce an extrapolated affine candidate for the actual directed trim, subject to the same complete support validator before publication. More-than-two-point polylines and other non-affine charts retain containment/typed-refusal; no fitted inverse, sample authority, containment tolerance relaxation or changed support reuse is admitted. Actual replacement tests must retain both original planar supports and forward/reverse coedges for an extended trim, not only shorten a chart.
+
+Root also retains the immutable Claude b425c96 `DraftFaceTests.aWallMeetingAnSCurvedReferenceTurnsIntoItsRuledSurface` independent volume oracle and original15min limit, alongside the separate public adjacency assertions.
+
+Builder-local independent literal cubic/normal/ruling/carry tests, endpoint coefficient perturbation, wrong receipt/source/trim, zero tangent and original budget/cancellation refusal precede public S-shaped face-draft integration and adjacent topology checks. The exact cone branch and general unsupported marker retain their authority. This pending subsection is an implementation contract, not evidence of completed general draft support.
+
+### Original PolySpline Inner-Cap Continuity Admission
+
+The immutable81acdd6 modeling unit owns PolySplineFeatureEvaluator, PolySplineSubdivisionPatchBuilder, PolySplineG2CapBuilder, PolySplinePatchMerger and PolySplineGeneralMeshTests. Root integrates this module design; a dedicated CADModeling coefficient-proof test owns lower admission evidence. Incoming collocation remains a candidate solver, not continuity authority. The cap owner bounds the emitted original degree8 seam equations in outward Bernstein coefficients: G1 degree10 and G2 degree12, including the original degree3 b/d/e reparameterization. Degree elevation and Bernstein products enclose their combinatorial factors rather than rounding them into exact coefficients. The whole-edge residual bound uses the existing component residual allowance max(extent,tolerance.distance)*1e-9; no new curvature tolerance or sample-only success is introduced. Both original surface tangent/cross metrics must satisfy the existing BSpline differential regularity contract on the whole seam, including its endpoints. Fixed regular-neighbor Taylor boundaries also retain whole coefficient/rounding admission. A nonfinite, excessive or unproved bound fails explicitly before cap publication.
+
+The proof stays local to the immutable cap builder and carries no retained cache or new public API. Checked original sector/matrix/coefficient counts admit storage before allocation using the existing QR maximumElements1<<22 owner, and cancellation is checked before and between expanding producer phases. Fixed whole coefficient hulls admit the positive fixtures without subdivision or a new private budget. BRepSewing continues to prove curve/pcurve/topology correspondence and does not become G2 authority. Boundary extraordinary vertices retain their existing marked partial position/nearly-tangent profile, without claiming global G2.
+
+Independent degree12 sample-pass/whole-residual-fail coefficients, exact residual success, denominator/regularity and resource/cancellation refusal precede the incoming cube/tetrahedron/icosahedron/open-fan production cases. Existing shared-edge position/normal/curvature observations and closed-solid edge direction counts remain integration evidence; source coefficient enclosure is the continuous authority. Root serializes frozen builds and commits; other draft/ISOAREA/STEP paths and main Wrap work remain separately owned.
+
+Native lower admission5tests pass.020s, including original degree2/8 asymmetric planar nets on allfouredges, the independent collocation alias refusal, degenerate metric, checked storage overflow and cancellation. Native immutable incoming cube/tetrahedron/icosahedron/valence6 fan production4tests pass95.027s under unchanged2/4min limits. Initial actual compile and coefficient-derivative defects were corrected before these results. Other targets remain integration work.

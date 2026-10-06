@@ -44,6 +44,18 @@ extension SurfaceParameterCurve {
       case .second:
         return curve.intersection.firstSurface
       }
+    case .originalAffineWord(let curve):
+      try curve.validate(on: hostingSurface, tolerance: tolerance)
+      guard let support = try curve.source.parameterCurve.otherIntersectionSupportSurface(
+        on: curve.source.surface, tolerance: tolerance) else { return nil }
+      return .procedural(.originalAffineWord(try OriginalAffineWordSurface3D(source: support,
+        operationWord: curve.target.operationWord, tolerance: tolerance)))
+    case .originalImage(let curve):
+      try curve.validate(on: hostingSurface, tolerance: tolerance)
+      guard let support = try curve.source.parameterCurve.otherIntersectionSupportSurface(
+        on: curve.source.surface, tolerance: tolerance) else { return nil }
+      return .affineImage(try OriginalImageSurface3D(source: support,
+        transform: curve.targetImage.transform, tolerance: tolerance))
     case .rigidImage(let curve):
       guard hostingSurface == curve.targetSurface else {
         throw supportSurfaceMismatch(tolerance: tolerance)
@@ -72,7 +84,7 @@ extension SurfaceParameterCurve {
         tolerance: tolerance
       )
     case .affine, .constantU, .constantV, .harmonic,
-      .sphericalGreatCircle, .polyline, .bSpline,
+      .sphericalGreatCircle, .polyline, .bSpline, .originalBSplineContinuation,
       .projectedAnalytic:
       return nil
     }
@@ -112,6 +124,18 @@ extension SurfaceParameterCurve {
       )
     case .certifiedAnalyticPair(let curve):
       return try curve.intersection.boundingBox(tolerance: tolerance)
+    case .originalAffineWord(let curve):
+      let q = try curve.source.boundingBox(over: curve.mappedRange(.init(lower: 0, upper: 1)), tolerance: tolerance)
+      let field = IntervalVector3DBounds(x: .init(lower: q.minimum.x, upper: q.maximum.x),
+        y: .init(lower: q.minimum.y, upper: q.maximum.y), z: .init(lower: q.minimum.z, upper: q.maximum.z))
+      let value = try OriginalAffineWordJetTransport.position(curve.target.preparedWord,
+        bounds: field, consumeWork: { try Task.checkCancellation() })
+      return try BoundingBox3D(minimum: .init(x: value.x.lower, y: value.y.lower, z: value.z.lower),
+        maximum: .init(x: value.x.upper, y: value.y.upper, z: value.z.upper)).expanded(by: tolerance.distance)
+    case .originalImage(let curve):
+      let bounds = try curve.source.boundingBox(over: curve.mappedRange(ScalarInterval(lower: 0, upper: 1)), tolerance: tolerance)
+      return try BoundingBox3D(points: boundingBoxCorners(bounds).map(curve.targetImage.transform.applying(to:)))
+        .expanded(by: tolerance.distance)
     case .rigidImage(let curve):
       let interval = try ScalarInterval(lower: 0.0, upper: 1.0)
       let sourceBounds = try curve.source.boundingBox(
@@ -130,7 +154,7 @@ extension SurfaceParameterCurve {
         tolerance: tolerance
       )
     case .affine, .constantU, .constantV, .harmonic,
-      .sphericalGreatCircle, .polyline, .bSpline,
+      .sphericalGreatCircle, .polyline, .bSpline, .originalBSplineContinuation,
       .projectedAnalytic:
       return nil
     }

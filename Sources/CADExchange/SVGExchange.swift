@@ -1,6 +1,7 @@
 import Foundation
 import CADCore
 import CADIR
+import CADKernel
 
 public struct SVGExchange: Sendable {
     private let tolerance: ModelingTolerance
@@ -14,6 +15,36 @@ public struct SVGExchange: Sendable {
         self.tolerance = tolerance
         self.resourceLimits = resourceLimits
         triangulator = ExchangePolygonTriangulator()
+    }
+
+    public func write(_ page: DrawingExchangePage, outputUnit: LengthUnit = .millimeter,
+                      usage: inout DrawingExchangeUsage, to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(page, as: .svg,
+            outputUnit: outputUnit, usage: &usage, to: sink)
+    }
+
+    public func write(_ section: BRepDrawingSection, in evaluated: EvaluatedDocument,
+                      hatchSegments: [BRepDrawingHatchSegment] = [], regions: [BRepDrawingMaterialRegion] = [], options: DrawingExchangeOptions = .init(),
+                      to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(section, in: evaluated,
+            hatchSegments: hatchSegments, regions: regions, as: .svg, options: options, to: sink)
+    }
+
+    public func write(_ projection: BRepDrawingPlacedProjection, in evaluated: EvaluatedDocument,
+                      options: DrawingExchangeOptions = .init(), to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(projection, in: evaluated,
+            as: .svg, options: options, to: sink)
+    }
+
+    public func write(_ projection: BRepDrawingProjection, in evaluated: EvaluatedDocument,
+                      options: DrawingExchangeOptions = .init(), to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(projection, in: evaluated,
+            as: .svg, options: options, to: sink)
+    }
+
+    public func write(_ projection: BRepDrawingProjection, options: DrawingExchangeOptions = .init(),
+                      to sink: any ByteSink) throws {
+        try BRepDrawingExchange(resourceLimits: resourceLimits).write(projection, as: .svg, options: options, to: sink)
     }
 
     public func write(meshes: [BodyID: Mesh], unit: LengthUnit = .meter, to sink: any ByteSink) throws {

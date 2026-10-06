@@ -41,17 +41,28 @@ public struct StoredZipArchive {
     }
 
     public static func write(entries: [Entry], to sink: any ByteSink) throws {
-        try write(streamedEntries: entries.map { entry in
-            StreamedEntry(
-                path: entry.path,
-                byteCount: entry.data.count,
-                crc: CRC32.checksum(entry.data),
-                write: { sink in try sink.write(entry.data) }
-            )
-        }, to: sink)
+        try write(entries: entries, to: sink, consumeWork: nil)
     }
 
-    static func write(streamedEntries entries: [StreamedEntry], to sink: any ByteSink) throws {
+    public static func write(entries: [Entry], to sink: any ByteSink,
+        consumeWork: (@Sendable (Int) throws -> Void)?) throws {
+        guard entries.count <= Int(UInt16.max) else { throw ZipArchiveError.tooManyEntries }
+        try consumeWork?(entries.count)
+        var streamed: [StreamedEntry] = []
+        streamed.reserveCapacity(entries.count)
+        for entry in entries {
+            guard UInt64(entry.data.count) <= UInt64(UInt32.max) else { throw ZipArchiveError.entryTooLarge(entry.path) }
+            let crc: UInt32
+            if let consumeWork { crc = try CRC32.checksum(entry.data, consumeWork: consumeWork) }
+            else { crc = CRC32.checksum(entry.data) }
+            streamed.append(.init(path: entry.path, byteCount: entry.data.count, crc: crc,
+                write: { sink in try sink.write(entry.data) }))
+        }
+        try write(streamedEntries: streamed, to: sink, consumeWork: consumeWork)
+    }
+
+    static func write(streamedEntries entries: [StreamedEntry], to sink: any ByteSink,
+        consumeWork: (@Sendable (Int) throws -> Void)? = nil) throws {
         guard entries.count <= Int(UInt16.max) else {
             throw ZipArchiveError.tooManyEntries
         }
@@ -61,6 +72,7 @@ public struct StoredZipArchive {
         var seenPaths: Set<String> = []
 
         for entry in entries {
+            try consumeWork?(entry.path.utf8.count + 1)
             try validateEntryPath(entry.path)
             guard seenPaths.insert(entry.path).inserted else {
                 throw ZipArchiveError.duplicateEntry(entry.path)
@@ -93,7 +105,7 @@ public struct StoredZipArchive {
             localHeader.appendLittleEndian(UInt16(0))
             try sink.write(localHeader)
             try sink.write(nameData)
-            let countingSink = CountingCRCByteSink(downstream: sink)
+            let countingSink = CountingCRCByteSink(downstream: sink, consumeWork: consumeWork)
             try entry.write(countingSink)
             guard countingSink.byteCount == entry.byteCount,
                   countingSink.crc == entry.crc else {
@@ -154,13 +166,14 @@ public struct StoredZipArchive {
         from source: any ByteSource,
         maximumEntryCount: Int = Int(UInt16.max),
         maximumTotalUncompressedBytes: Int = Int(clamping: UInt32.max),
+        consumeWork: (@Sendable (Int) throws -> Void)? = nil,
         _ body: ([String: Data]) throws -> Result
     ) throws -> Result {
         try source.withUnsafeBytes { bytes in
             let entries = try readEntries(
                 from: bytes,
                 maximumEntryCount: maximumEntryCount,
-                maximumTotalUncompressedBytes: maximumTotalUncompressedBytes
+                maximumTotalUncompressedBytes: maximumTotalUncompressedBytes, consumeWork: consumeWork
             )
             return try body(entries)
         }
@@ -183,12 +196,13 @@ public struct StoredZipArchive {
     private static func readEntries(
         from bytes: UnsafeRawBufferPointer,
         maximumEntryCount: Int,
-        maximumTotalUncompressedBytes: Int
+        maximumTotalUncompressedBytes: Int,
+        consumeWork: (@Sendable (Int) throws -> Void)? = nil
     ) throws -> [String: Data] {
         guard maximumEntryCount > 0, maximumTotalUncompressedBytes > 0 else {
             throw ZipArchiveError.entryTooLarge("archive")
         }
-        let endOffset = try findEndOfCentralDirectory(in: bytes)
+        let endOffset = try findEndOfCentralDirectory(in: bytes, consumeWork: consumeWork)
         let diskNumber = try bytes.littleEndianUInt16(at: endOffset + 4)
         let centralDirectoryDisk = try bytes.littleEndianUInt16(at: endOffset + 6)
         let diskEntryCount = Int(try bytes.littleEndianUInt16(at: endOffset + 8))
@@ -221,6 +235,7 @@ public struct StoredZipArchive {
         var totalUncompressedBytes = 0
 
         for _ in 0..<entryCount {
+            try consumeWork?(1)
             let nameStart = try checkedOffset(offset, adding: 46)
             guard nameStart <= centralDirectoryEnd else {
                 throw ZipArchiveError.truncatedArchive
@@ -272,7 +287,8 @@ public struct StoredZipArchive {
                   let path = String(data: pathData, encoding: .utf8) else {
                 throw ZipArchiveError.truncatedArchive
             }
-            try validateZipExtraFields(bytes, range: nameEnd..<extraEnd)
+            try validateZipExtraFields(bytes, range: nameEnd..<extraEnd, consumeWork: consumeWork)
+            try consumeWork?(path.utf8.count)
             try validateEntryPath(path)
             guard seenPaths.insert(path).inserted else {
                 throw ZipArchiveError.duplicateEntry(path)
@@ -287,7 +303,7 @@ public struct StoredZipArchive {
                 uncompressedSize: uncompressedSize,
                 maximumUncompressedByteCount: maximumTotalUncompressedBytes,
                 localOffset: localOffset,
-                bytes: bytes
+                bytes: bytes, consumeWork: consumeWork
             )
             entries[path] = localEntry.data
             localRanges.append(localEntry.range)
@@ -296,7 +312,7 @@ public struct StoredZipArchive {
         guard offset == centralDirectoryEnd else {
             throw ZipArchiveError.invalidCentralDirectory
         }
-        try validateLocalEntryCoverage(localRanges, centralDirectoryOffset: centralDirectoryOffset)
+        try validateLocalEntryCoverage(localRanges, centralDirectoryOffset: centralDirectoryOffset, consumeWork: consumeWork)
         return entries
     }
 
@@ -314,8 +330,10 @@ public struct StoredZipArchive {
         uncompressedSize: Int,
         maximumUncompressedByteCount: Int,
         localOffset: Int,
-        bytes: UnsafeRawBufferPointer
+        bytes: UnsafeRawBufferPointer,
+        consumeWork: (@Sendable (Int) throws -> Void)?
     ) throws -> LocalEntry {
+        try consumeWork?(1)
         let localHeaderEnd = try checkedOffset(localOffset, adding: 30)
         guard localHeaderEnd <= bytes.count else {
             throw ZipArchiveError.truncatedArchive
@@ -346,7 +364,8 @@ public struct StoredZipArchive {
               let localPath = String(data: localPathData, encoding: .utf8) else {
             throw ZipArchiveError.truncatedArchive
         }
-        try validateZipExtraFields(bytes, range: nameEnd..<dataStart)
+        try validateZipExtraFields(bytes, range: nameEnd..<dataStart, consumeWork: consumeWork)
+        try consumeWork?(localPath.utf8.count)
         try validateEntryPath(localPath)
         guard localPath == path else {
             throw ZipArchiveError.localHeaderMismatch(path)
@@ -375,15 +394,22 @@ public struct StoredZipArchive {
                 entryData = try RawDeflateDecoder.decode(
                     compressedBytes,
                     expectedByteCount: uncompressedSize,
-                    maximumByteCount: maximumUncompressedByteCount
+                    maximumByteCount: maximumUncompressedByteCount, consumeWork: consumeWork
                 )
             } catch RawDeflateError.outputLimitExceeded {
                 throw ZipArchiveError.entryTooLarge(path)
+            } catch let error as KernelError {
+                throw error
+            } catch let error as CancellationError {
+                throw error
             } catch {
                 throw ZipArchiveError.invalidCompressedData(path)
             }
         }
-        guard CRC32.checksum(entryData) == expectedCRC else {
+        let checksum: UInt32
+        if let consumeWork { checksum = try CRC32.checksum(entryData, consumeWork: consumeWork) }
+        else { checksum = CRC32.checksum(entryData) }
+        guard checksum == expectedCRC else {
             throw ZipArchiveError.crcMismatch(path)
         }
         let entryEnd = usesDataDescriptor
@@ -421,10 +447,14 @@ public struct StoredZipArchive {
 
     private static func validateLocalEntryCoverage(
         _ ranges: [Range<Int>],
-        centralDirectoryOffset: Int
+        centralDirectoryOffset: Int,
+        consumeWork: (@Sendable (Int) throws -> Void)? = nil
     ) throws {
         var expectedLowerBound = 0
-        for range in ranges.sorted(by: { $0.lowerBound < $1.lowerBound }) {
+        for range in try ranges.sorted(by: { first, second in
+            try consumeWork?(1); return first.lowerBound < second.lowerBound
+        }) {
+            try consumeWork?(1)
             guard range.lowerBound == expectedLowerBound,
                   range.upperBound <= centralDirectoryOffset else {
                 throw ZipArchiveError.invalidCentralDirectory
@@ -436,7 +466,7 @@ public struct StoredZipArchive {
         }
     }
 
-    private static func findEndOfCentralDirectory(in bytes: UnsafeRawBufferPointer) throws -> Int {
+    private static func findEndOfCentralDirectory(in bytes: UnsafeRawBufferPointer, consumeWork: (@Sendable (Int) throws -> Void)? = nil) throws -> Int {
         let signature: UInt32 = 0x06054b50
         guard bytes.count >= 22 else {
             throw ZipArchiveError.missingEndOfCentralDirectory
@@ -444,6 +474,7 @@ public struct StoredZipArchive {
         let lowerBound = max(0, bytes.count - 22 - 65535)
         var offset = bytes.count - 22
         while offset >= lowerBound {
+            try consumeWork?(1)
             if try bytes.littleEndianUInt32(at: offset) == signature {
                 let commentLength = Int(try bytes.littleEndianUInt16(at: offset + 20))
                 if UInt64(offset) + UInt64(22) + UInt64(commentLength) == UInt64(bytes.count) {
@@ -481,11 +512,12 @@ public struct StoredZipArchive {
 
 private final class CountingCRCByteSink: ByteSink {
     private let downstream: any ByteSink
+    private let consumeWork: (@Sendable (Int) throws -> Void)?
     private var checksum = CRC32()
     private(set) var byteCount = 0
 
-    init(downstream: any ByteSink) {
-        self.downstream = downstream
+    init(downstream: any ByteSink, consumeWork: (@Sendable (Int) throws -> Void)? = nil) {
+        self.downstream = downstream; self.consumeWork = consumeWork
     }
 
     var crc: UInt32 {
@@ -493,8 +525,11 @@ private final class CountingCRCByteSink: ByteSink {
     }
 
     func write(_ bytes: UnsafeRawBufferPointer) throws {
-        byteCount += bytes.count
-        checksum.update(bytes)
+        let total = byteCount.addingReportingOverflow(bytes.count)
+        guard !total.overflow else { throw ZipArchiveError.entryTooLarge("stream") }
+        if let consumeWork { try checksum.update(bytes, consumeWork: consumeWork) }
+        else { checksum.update(bytes) }
+        byteCount = total.partialValue
         try downstream.write(bytes)
     }
 }
@@ -514,13 +549,15 @@ private func validateEntryPath(_ path: String) throws {
 
 private func validateZipExtraFields(
     _ bytes: UnsafeRawBufferPointer,
-    range: Range<Int>
+    range: Range<Int>,
+    consumeWork: (@Sendable (Int) throws -> Void)? = nil
 ) throws {
     guard range.lowerBound >= 0, range.upperBound <= bytes.count else {
         throw ZipArchiveError.truncatedArchive
     }
     var offset = range.lowerBound
     while offset < range.upperBound {
+        try consumeWork?(1)
         guard offset <= range.upperBound - 4 else {
             throw ZipArchiveError.invalidCentralDirectory
         }

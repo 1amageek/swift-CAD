@@ -1,31 +1,67 @@
-# CADCore Expressions
+# CADCore
 
 ## Purpose and Scope
 
-This module owns unit-bearing expression source values and a stateless current-task
-cancellation checker for Core consumers. Parent: [Swift-CAD](../../DESIGN.md).
-Expression source values have no child designs; current-task cancellation is a
-separate child component.
+This module owns unit-bearing expression source values. Parent: [Swift-CAD](../../DESIGN.md).
+Expressions have no child designs. Typed kernel failure normalization is owned
+by the [Failure Contract](FailureContract/DESIGN.md) child component.
+Public capability domains are owned by the
+[Capability Contract](CapabilityContract/DESIGN.md) child component.
 
 ## Responsibilities and Boundaries
 
-CADCore owns Codable expression structure, literal validation and dependency discovery.
-It also owns stateless current-task cancellation observation; consumer routing and
-domain failure mapping remain outside that component. Evaluation and kind checking
-belong to CADIR and CADModeling.
+CADCore owns expression structure, literal validation and dependency discovery.
+It also owns stateless current-task cancellation observation; consumer routing
+and domain failure mapping remain outside that child component.
+Its Native/normal-WASM Codable capability boundary is owned by
+[Native Codec Capability](NativeCodecCapability/DESIGN.md).
+Evaluation and kind checking belong to CADIR and CADModeling.
+The source envelope number is owned by [SchemaVersion.current](SchemaVersion.swift);
+the current source baseline is 0.16.0. CADIR's required nullable independent
+shape field retains the complete original source graph, including required
+curveLinearSources with original LINE/VECTOR records and curveSplineSources /
+surfaceSplineSources with original spline declarations and shared named control
+points. Group records also require original family and actual backPointerMembers; ordered
+traversals and inverse membership remain source meanings. Prior envelopes
+through 0.15.0 are rejected without migration.
+The active development independent shape graph also requires
+`originalSTEPGroups`, retaining every actual STEP GROUP owner including owners
+without assignments. Assignment records refer to that distinct source identity;
+the owning contract is [Original STEP Group](../CADIR/IndependentShapeSource/OriginalSTEPGroup/DESIGN.md).
+ProductAttributes requires both the
+itemCharacterizations and shapeElementDescriptions arrays, preserving the
+separate nullable physical description and required shape-element description
+contracts. Definition-qualified
+body/face targets retain their existing selector authority. CADIR owns required
+source payloads and CADExchange owns strict native transport admission.
+A baseline change must verify those contracts together without implicit migration.
+PAR.SDESC1 verifies this source baseline through current strict Native admission,
+independent source/resolution fixtures and public STEP generations.
+
+
+The target-common explicit original-value source framing is owned by
+[Portable Source Encoding](PortableSourceEncoding/DESIGN.md). It is independent
+of Native Codable and supplies complete IR fingerprint bytes, cumulative
+resource admission and canonical ordering without reflection.
 
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [Failure Contract](FailureContract/DESIGN.md) | child | Typed failure normalization | Owns diagnostic context and cause categories | Never converts failures to success |
+| [Capability Contract](CapabilityContract/DESIGN.md) | child | Domain descriptions | Owns immutable capability records and validation | Declared coverage is not geometric proof |
 | [CADIR](../CADIR/DESIGN.md) | used by | Parameter validation | Validates kinds and values | New cases require exhaustive handling |
 | [CADModeling](../CADModeling/DESIGN.md) | used by | Expression resolution | Evaluates source and variables | Preserve evaluation equivalence |
-| [Current Task Cancellation](CurrentTaskCancellation/DESIGN.md) | child | Core public module boundary | Preserves typed `CancellationError` for bounded Core consumers | Consumer placement and domain mapping remain outside this component |
+| [Portable Identity](PortableIdentity/DESIGN.md) | child | Foundation-free 128-bit identity and strict UUID text codec | Supplies the storage and textual identity contract used by tagged persistent IDs; `TaggedID` owns explicit Native UUID/Codable adapters | CADExchange owns strict Native/STEP wire and schema admission; Embedded does not claim Codable support |
+| [Current Task Cancellation](CurrentTaskCancellation/DESIGN.md) | child | Foundation-free current-task cancellation check | Preserves typed `CancellationError` across supported targets | Consumer placement and domain mapping remain outside this component |
+| [Native Codec Capability](NativeCodecCapability/DESIGN.md) | child | Common Core values and explicit Native/normal codec adapters | Separates genuinely unavailable Embedded codec capability without changing value storage or meaning | Complete CADCore target proof is required; full document/A2 portability remains separate |
 
 ## Architecture
 
 ```text
 CADExpression -> CADIR parameter validation -> CADModeling evaluation
+
+PersistentIdentity -> TaggedID<Tag> -> CADIR / CADModeling / CADExchange consumers
 CurrentTask -> CurrentTaskCancellationChecker -> bounded Core consumers
 ```
 
@@ -40,11 +76,20 @@ validation, parameter dependency discovery and strict Codable round trips.
 Existing serialized expressions keep their meaning; older readers reject the new
 kind explicitly rather than treating it as a constant.
 
-`KernelError` reads as its `message` wherever it is shown, interpolated or
-localized (`description`, `errorDescription`), so a refusal reaches a person as a
-sentence rather than as the value's fields; `debugDescription` keeps the phase,
-code and context for logs and failure records. A caller that needs the cause
-reads `code`, not the text (`aKernelErrorReadsAsItsMessage`).
+Kernel failure classification and diagnostic presentation follow the
+[Failure Contract](FailureContract/DESIGN.md#contracts-and-invariants).
+
+### Portable identity boundary
+
+`PortableIdentity128` owns two UInt64 words, their existing big-endian UUID byte
+order, RFC 4122 version/variant generation, and strict canonical
+`8-4-4-4-12` text parsing/formatting. `TaggedID<Tag>` owns the phantom tag,
+comparison, hashing, and deterministic high/low constructors over that value.
+Foundation `UUID` conversion and the Native Codable adapter belong to
+`TaggedID` in CADCore. CADExchange owns strict Native/STEP wire and schema
+admission. The common identity contract does not add a conditional or
+placeholder `Codable` conformance for Embedded Swift; source-envelope
+serialization remains a separate capability and migration boundary.
 
 ## Verification and Change Impact
 
@@ -74,3 +119,11 @@ evaluation; CADIR and CADModeling evaluate the same `BezierShapedExtension`. No
 cached coordinate stands in for a failed evaluation.
 `BezierShapedExtensionTests` (CADCoreTests) and
 `BezierShapedExtensionExpressionTests` (CADIRTests) own it.
+
+
+PAR.CIWR2 replaces the physical-only characterization source name with the
+independent item metadata name and required array. The semantic current baseline
+is0.11.0 even though the record payload stays target/name/nullable description.
+Strict Native refuses0.10 and earlier versions and every old array key; an absent
+required itemCharacterizations array is invalid. The source semantics authority
+is [ProductAttributes](../CADIR/ProductAttributes/DESIGN.md).

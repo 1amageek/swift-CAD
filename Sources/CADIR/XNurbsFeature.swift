@@ -8,9 +8,9 @@ import CADCore
 /// along its guides (Patch's Faces Multiple), the trimmed sheet is one face per part of the opening
 /// the guides cut off, each guide running between two of the loop's corners; the faces share the
 /// sheet, so they meet smoothly along the guides.
-public struct XNurbsFeature: Codable, Hashable, Sendable {
+public struct XNurbsFeature: Hashable, Sendable {
     /// Quality: the sheet's starting spans each way (Auto 3, High 6, Max 12).
-    public enum Quality: String, Codable, Hashable, Sendable, CaseIterable {
+    public enum Quality: String, Hashable, Sendable, CaseIterable {
         case auto
         case high
         case max
@@ -98,11 +98,14 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
             .filter { seen.insert($0).inserted }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case boundaries, guides, quadSided, flatness, boundaryFlow, quality, satisfiesTolerances, positionTolerance, angleTolerance, dividesAlongGuides
         case minimizesArea
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.boundaries, .guides, .quadSided, .flatness, .boundaryFlow, .quality, .satisfiesTolerances,
@@ -120,7 +123,9 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         minimizesArea = try container.decodeIfPresent(Bool.self, forKey: .minimizesArea) ?? false
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -136,4 +141,10 @@ public struct XNurbsFeature: Codable, Hashable, Sendable {
         if dividesAlongGuides { try container.encode(dividesAlongGuides, forKey: .dividesAlongGuides) }
         if minimizesArea { try container.encode(minimizesArea, forKey: .minimizesArea) }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension XNurbsFeature: Codable {}
+extension XNurbsFeature.Quality: Codable {}
+#endif

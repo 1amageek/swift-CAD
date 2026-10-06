@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-public struct BooleanTrimmedFaceIntersectionChain: Codable, Hashable, Sendable {
+public struct BooleanTrimmedFaceIntersectionChain: Hashable, Sendable {
     public let segments: [BooleanTrimmedFaceIntersection]
 
     public init(
@@ -47,3 +47,7 @@ public struct BooleanTrimmedFaceIntersectionChain: Codable, Hashable, Sendable {
         segments[segments.count / 2]
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanTrimmedFaceIntersectionChain: Codable {}
+#endif

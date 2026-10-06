@@ -55,13 +55,20 @@ public struct OfficialFormatExchange: Sendable {
         units overrideUnits: UnitSystem? = nil,
         to sink: any ByteSink
     ) throws {
+        if evaluatedDocument.document.independentShapes != nil {
+            try write(evaluatedDocument.document,as:format,units:overrideUnits,to:sink)
+            return
+        }
         try evaluatedDocument.validate()
+        if !evaluatedDocument.document.productAttributes.isEmpty, format != .swiftCAD, format != .step {
+            throw ProductAttributeError.unsupportedSemantics("This format cannot preserve document product attribute scopes and override provenance.")
+        }
         let units = overrideUnits ?? evaluatedDocument.document.units
         switch format {
         case .swiftCAD:
             try nativeStore.writePackage(for: evaluatedDocument.document, to: sink)
         case .step:
-            try stepExchange.write(brep: evaluatedDocument.brep, units: units, to: sink)
+            try stepExchange.write(evaluatedDocument, units: units, to: sink)
         case .iges:
             try igesExchange.write(brep: evaluatedDocument.brep, units: units, to: sink)
         case .stl:
@@ -101,6 +108,233 @@ public struct OfficialFormatExchange: Sendable {
         case .pdf:
             let meshes = evaluatedDocument.meshes.materializedDictionary()
             try pdfExporter.write(meshes: meshes, title: evaluatedDocument.document.metadata.name ?? "Swift-CAD Export", to: sink)
+        }
+    }
+
+    /// Publishes only after the caller accepts every concrete authored source-domain loss.
+    @discardableResult
+    public func write(_ evaluated: EvaluatedDocument, as format: ExchangeFileFormat,
+                      units: UnitSystem? = nil, policy: ExchangeExportPolicy,
+                      to sink: any ByteSink) throws -> ExchangePreservationReport {
+        try evaluated.validate()
+        let planner = DocumentExchangePreservationPlanner()
+        let report = planner.report(for: evaluated.document, as: format)
+        try planner.admit(report, policy: policy)
+        if format == .swiftCAD {
+            try write(evaluated, as: format, units: units, to: sink)
+            return report
+        }
+        if format == .step {
+            let storage = DataByteSink()
+            let writer = report.lostDomains.contains(.independentShapes) ? stepExchange.permittingReportedGroupLoss() : stepExchange
+            try writer.write(evaluated, units: units, to: storage)
+            try sink.write(storage.bytes)
+            return report
+        }
+        let outputUnits = units ?? evaluated.document.units
+        try outputUnits.validate()
+        // The original evaluated source/receipt remains intact. Actual format producers consume its real geometry.
+        let storage = DataByteSink()
+        if format == .iges {
+            if planner.usesIndependentIGESProducer(for: evaluated.document) {
+                try igesExchange.permittingReportedIndependentProjection(report).write(evaluated.document, units: outputUnits, to: storage)
+            } else {
+                try igesExchange.write(brep: evaluated.brep, units: outputUnits, to: storage)
+            }
+        } else {
+            let meshes = evaluated.meshes.materializedDictionary()
+            switch format {
+            case .stl: try stlExporter.writeBinary(meshes: meshes, options: STLExportOptions(lengthUnit: outputUnits.length), to: storage)
+            case .threeMF: try threeMFExchange.write(meshes: meshes, unit: outputUnits.length, to: storage)
+            case .obj: try objExchange.write(meshes: meshes, unit: outputUnits.length, to: storage)
+            case .dxf: try dxfExchange.write(meshes: meshes, unit: outputUnits.length, to: storage)
+            case .svg: try svgExchange.write(meshes: meshes, unit: outputUnits.length, to: storage)
+            case .glb, .gltf, .ply, .vrml:
+                if format == .glb, let glbExporter {
+                    try glbExporter.write(meshes: meshes, to: storage)
+                } else {
+                    try standardMeshExchange.write(meshes: meshes, as: format, unit: outputUnits.length, to: storage)
+                }
+            case .usd, .usda, .usdc, .usdz: try usdExporter.write(meshes: meshes, encoding: format == .usda ? .usda : (format == .usdc ? .usdc : (format == .usdz ? .usdz : .usd)), unit: outputUnits.length, to: storage)
+            case .pdf: try pdfExporter.write(meshes: meshes, title: evaluated.document.metadata.name ?? "Swift-CAD Export", to: storage)
+            case .swiftCAD, .step, .iges: throw ExchangePreservationError.unsupportedPolicyFormat
+            }
+        }
+        try sink.write(storage.bytes)
+        return report
+    }
+
+    @discardableResult
+    public func export(_ evaluated: EvaluatedDocument, as format: ExchangeFileFormat, units: UnitSystem? = nil,
+                       policy: ExchangeExportPolicy, to url: URL) throws -> ExchangePreservationReport {
+        var report = ExchangePreservationReport()
+        do {
+            try writeFileAtomically(to: url) { sink in report = try write(evaluated, as: format, units: units, policy: policy, to: sink) }
+            return report
+        } catch let error as ByteSinkError { throw ExportError.fileWriteFailure(error.localizedDescription) }
+    }
+
+    @discardableResult
+    public func write(_ evaluated: EvaluatedDocument, as format: ExchangeFileFormat, units: UnitSystem? = nil,
+                      policy: ExchangeExportPolicy, geometryPolicy: ExchangeGeometryConversionPolicy,
+                      to sink: any ByteSink) throws -> ExchangeGeometryWriteReport {
+        guard format == .step || format == .iges else { throw ExchangePreservationError.unsupportedPolicyFormat }
+        try evaluated.validate()
+        let planner = DocumentExchangePreservationPlanner()
+        let preservation = planner.report(for: evaluated.document, as: format)
+        try planner.admit(preservation, policy: policy)
+        let output = DataByteSink(), conversions: ExchangeGeometryConversionReport
+        if format == .step {
+            let writer = preservation.lostDomains.contains(.independentShapes) ? stepExchange.permittingReportedGroupLoss() : stepExchange
+            conversions = try writer.writeConverting(evaluated, units: units, geometryPolicy: geometryPolicy, to: output)
+        }
+        else if planner.usesIndependentIGESProducer(for: evaluated.document) {
+            conversions = try igesExchange.permittingReportedIndependentProjection(preservation).writeConverting(evaluated.document,
+                units: units, geometryPolicy: geometryPolicy, to: output)
+        } else { conversions = try igesExchange.writeConverting(brep: evaluated.brep, units: units ?? evaluated.document.units, geometryPolicy: geometryPolicy, to: output) }
+        var losses = preservation.losses
+        for conversion in conversions.surfaceConversions {
+            losses.append(ExchangeInformationLoss(domain: .geometry, reason: .certifiedConversion,
+                description: "Surface \(conversion.surfaceID) changed to a certified standard representation over its unchanged native UV domain."))
+        }
+        for conversion in conversions.curveConversions {
+            losses.append(ExchangeInformationLoss(domain: .geometry, reason: .certifiedConversion,
+                description: "Curve \(conversion.curveID) changed to a certified standard representation over its original directed selection [\(conversion.startParameter), \(conversion.endParameter)]."))
+        }
+        try sink.write(output.bytes)
+        return ExchangeGeometryWriteReport(preservation: .init(losses: losses), surfaceConversions: conversions.surfaceConversions,
+            curveConversions: conversions.curveConversions)
+    }
+    @discardableResult
+    public func export(_ evaluated: EvaluatedDocument, as format: ExchangeFileFormat, units: UnitSystem? = nil,
+                       policy: ExchangeExportPolicy, geometryPolicy: ExchangeGeometryConversionPolicy,
+                       to url: URL) throws -> ExchangeGeometryWriteReport {
+        var result: ExchangeGeometryWriteReport?
+        do { try writeFileAtomically(to: url) { sink in result = try write(evaluated, as: format, units: units, policy: policy, geometryPolicy: geometryPolicy, to: sink) } }
+        catch let error as ByteSinkError { throw ExportError.fileWriteFailure(error.localizedDescription) }
+        guard let result else { throw ExportError.fileWriteFailure("Certified exchange publication did not produce a report.") }
+        return result
+    }
+
+    public func write(_ page: DrawingExchangePage, as format: ExchangeFileFormat,
+                      outputUnit: LengthUnit = .millimeter, usage: inout DrawingExchangeUsage,
+                      to sink: any ByteSink) throws {
+        switch format {
+        case .dxf: try dxfExchange.write(page, outputUnit: outputUnit, usage: &usage, to: sink)
+        case .svg: try svgExchange.write(page, outputUnit: outputUnit, usage: &usage, to: sink)
+        case .pdf: try pdfExporter.write(page, outputUnit: outputUnit, usage: &usage, to: sink)
+        default: throw ImportError.unsupportedFormat(format.displayName)
+        }
+    }
+    public func export(_ page: DrawingExchangePage, as format: ExchangeFileFormat,
+                       outputUnit: LengthUnit = .millimeter, usage: inout DrawingExchangeUsage,
+                       to url: URL) throws {
+        do { try writeFileAtomically(to: url) { sink in
+            try write(page, as: format, outputUnit: outputUnit, usage: &usage, to: sink)
+        } }
+        catch let error as ByteSinkError { throw ExportError.fileWriteFailure(error.localizedDescription) }
+    }
+
+    public func write(_ section: BRepDrawingSection, in evaluated: EvaluatedDocument,
+                      hatchSegments: [BRepDrawingHatchSegment] = [], regions: [BRepDrawingMaterialRegion] = [], as format: ExchangeFileFormat,
+                      options: DrawingExchangeOptions = .init(), to sink: any ByteSink) throws {
+        switch format {
+        case .dxf: try dxfExchange.write(section, in: evaluated, hatchSegments: hatchSegments, regions: regions, options: options, to: sink)
+        case .svg: try svgExchange.write(section, in: evaluated, hatchSegments: hatchSegments, regions: regions, options: options, to: sink)
+        case .pdf: try pdfExporter.write(section, in: evaluated, hatchSegments: hatchSegments, regions: regions, options: options, to: sink)
+        default: throw ImportError.unsupportedFormat(format.displayName)
+        }
+    }
+    public func export(_ section: BRepDrawingSection, in evaluated: EvaluatedDocument,
+                       hatchSegments: [BRepDrawingHatchSegment] = [], regions: [BRepDrawingMaterialRegion] = [], as format: ExchangeFileFormat,
+                       options: DrawingExchangeOptions = .init(), to url: URL) throws {
+        do { try writeFileAtomically(to: url) { sink in try write(section, in: evaluated,
+            hatchSegments: hatchSegments, regions: regions, as: format, options: options, to: sink) } }
+        catch let error as ByteSinkError { throw ExportError.fileWriteFailure(error.localizedDescription) }
+    }
+
+    public func write(_ projection: BRepDrawingPlacedProjection, in evaluated: EvaluatedDocument,
+                      as format: ExchangeFileFormat, options: DrawingExchangeOptions = .init(),
+                      to sink: any ByteSink) throws {
+        switch format {
+        case .dxf: try dxfExchange.write(projection, in: evaluated, options: options, to: sink)
+        case .svg: try svgExchange.write(projection, in: evaluated, options: options, to: sink)
+        case .pdf: try pdfExporter.write(projection, in: evaluated, options: options, to: sink)
+        default: throw ImportError.unsupportedFormat(format.displayName)
+        }
+    }
+    public func export(_ projection: BRepDrawingPlacedProjection, in evaluated: EvaluatedDocument,
+                       as format: ExchangeFileFormat, options: DrawingExchangeOptions = .init(), to url: URL) throws {
+        do { try writeFileAtomically(to: url) { sink in
+            try write(projection, in: evaluated, as: format, options: options, to: sink)
+        } }
+        catch let error as ByteSinkError { throw ExportError.fileWriteFailure(error.localizedDescription) }
+    }
+
+    public func write(_ projection: BRepDrawingProjection, in evaluated: EvaluatedDocument,
+                      as format: ExchangeFileFormat, options: DrawingExchangeOptions = .init(),
+                      to sink: any ByteSink) throws {
+        switch format {
+        case .dxf: try dxfExchange.write(projection, in: evaluated, options: options, to: sink)
+        case .svg: try svgExchange.write(projection, in: evaluated, options: options, to: sink)
+        case .pdf: try pdfExporter.write(projection, in: evaluated, options: options, to: sink)
+        default: throw ImportError.unsupportedFormat(format.displayName)
+        }
+    }
+    public func export(_ projection: BRepDrawingProjection, in evaluated: EvaluatedDocument,
+                       as format: ExchangeFileFormat, options: DrawingExchangeOptions = .init(), to url: URL) throws {
+        do { try writeFileAtomically(to: url) { sink in
+            try write(projection, in: evaluated, as: format, options: options, to: sink)
+        } }
+        catch let error as ByteSinkError { throw ExportError.fileWriteFailure(error.localizedDescription) }
+    }
+
+    public func write(_ projection: BRepDrawingProjection, as format: ExchangeFileFormat,
+                      options: DrawingExchangeOptions = .init(), to sink: any ByteSink) throws {
+        switch format {
+        case .dxf: try dxfExchange.write(projection, options: options, to: sink)
+        case .svg: try svgExchange.write(projection, options: options, to: sink)
+        case .pdf: try pdfExporter.write(projection, options: options, to: sink)
+        default: throw ImportError.unsupportedFormat(format.displayName)
+        }
+    }
+    public func export(_ projection: BRepDrawingProjection, as format: ExchangeFileFormat,
+                       options: DrawingExchangeOptions = .init(), to url: URL) throws {
+        do { try writeFileAtomically(to: url) { sink in try write(projection, as: format, options: options, to: sink) } }
+        catch let error as ByteSinkError { throw ExportError.fileWriteFailure(error.localizedDescription) }
+    }
+
+    public func write(_ document:CADDocument, as format:ExchangeFileFormat, units:UnitSystem? = nil, to sink:any ByteSink) throws {
+        switch format {
+        case .swiftCAD: try nativeStore.writePackage(for:document,to:sink)
+        case .step: try stepExchange.write(document,units:units,to:sink)
+        case .iges: try igesExchange.write(document,units:units,to:sink)
+        default:
+            if document.independentShapes != nil {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Other public exchange formats have no independent-curve/surface/group/placement source producer yet.
+                // Establish actual original source availability and explicit format-loss handling before these paths can publish.
+                throw IndependentShapeExchangeError.unsupportedSemantics("This format cannot yet retain independent CAD source.")
+            }
+            throw IndependentShapeExchangeError.unsupportedSemantics("This document format requires an evaluated mesh artifact.")
+        }
+    }
+
+    public func export(_ document:CADDocument, as format:ExchangeFileFormat, units:UnitSystem? = nil, to url:URL) throws {
+        do {
+            try writeFileAtomically(to:url) { sink in try write(document,as:format,units:units,to:sink) }
+        } catch let error as ByteSinkError { throw ExportError.fileWriteFailure(error.localizedDescription) }
+    }
+
+    public func `import`(_ source: any ByteSource, as format: ExchangeFileFormat,
+                         policy: ExchangeImportPolicy) throws -> ImportedExchangeModel {
+        switch policy {
+        case .strict: return try self.import(source, as: format)
+        case .allowPartial:
+            switch format {
+            case .step: return try stepExchange.import(source, policy: policy)
+            case .iges: return try igesExchange.import(source, policy: policy)
+            default: throw ExchangePreservationError.unsupportedPolicyFormat
+            }
         }
     }
 

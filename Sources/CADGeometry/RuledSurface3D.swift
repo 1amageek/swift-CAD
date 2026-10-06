@@ -1,7 +1,7 @@
 import CADCore
 
 /// An exact linear interpolation between two parameter-matched boundary curves.
-public struct RuledSurface3D: Codable, Hashable, Sendable {
+public struct RuledSurface3D: Hashable, Sendable {
     public let startBoundary: Curve3D
     public let endBoundary: Curve3D
     public let uDomain: ParameterDomain
@@ -51,12 +51,15 @@ public struct RuledSurface3D: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case startBoundary
         case endBoundary
         case uDomain
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -76,7 +79,9 @@ public struct RuledSurface3D: Codable, Hashable, Sendable {
             forKey: .uDomain
         ) ?? .closed(0.0, 1.0)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(startBoundary, forKey: .startBoundary)
@@ -85,6 +90,7 @@ public struct RuledSurface3D: Codable, Hashable, Sendable {
             try container.encode(uDomain, forKey: .uDomain)
         }
     }
+#endif
 
     public func point(
         u: Double,
@@ -317,3 +323,7 @@ private func ruledFactorial(_ value: Int) -> Int {
     guard value > 1 else { return 1 }
     return (2...value).reduce(1, *)
 }
+
+#if !hasFeature(Embedded)
+extension RuledSurface3D: Codable {}
+#endif

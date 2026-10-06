@@ -1,4 +1,4 @@
-public enum LengthUnit: String, Codable, CaseIterable, Sendable {
+public enum LengthUnit: String, CaseIterable, Sendable {
     case micrometer
     case meter
     case millimeter
@@ -35,7 +35,7 @@ public enum LengthUnit: String, Codable, CaseIterable, Sendable {
     }
 }
 
-public enum AngleUnit: String, Codable, CaseIterable, Sendable {
+public enum AngleUnit: String, CaseIterable, Sendable {
     case radian
     case degree
 
@@ -58,7 +58,7 @@ public enum AngleUnit: String, Codable, CaseIterable, Sendable {
     }
 }
 
-public struct UnitSystem: Codable, Hashable, Sendable {
+public struct UnitSystem: Hashable, Sendable {
     public var length: LengthUnit
     public var angle: AngleUnit
 
@@ -81,3 +81,9 @@ public struct UnitSystem: Codable, Hashable, Sendable {
     public static let meters = UnitSystem(length: .meter, angle: .radian)
     public static let kilometers = UnitSystem(length: .kilometer, angle: .radian)
 }
+
+#if !hasFeature(Embedded)
+extension LengthUnit: Codable {}
+extension AngleUnit: Codable {}
+extension UnitSystem: Codable {}
+#endif

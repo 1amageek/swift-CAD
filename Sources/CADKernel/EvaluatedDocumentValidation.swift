@@ -44,6 +44,7 @@ public extension EvaluatedDocument {
         try validateCurveOutputs(tolerance: tolerance)
         try validateLineage()
         try validateSubshapes()
+        try validateAssemblyArtifacts(tolerance: tolerance)
     }
 
     private func validateResolvedParametersMatchSource() throws {
@@ -242,5 +243,23 @@ private func validateBodyIDs(
         .sorted(by: { $0.description < $1.description })
         .first {
         throw CacheValidationError.staleMeshCache(bodyID: extraBodyID, reason: extraReason)
+    }
+}
+
+public extension EvaluatedDocument {
+    func validateAssemblyArtifacts(tolerance: ModelingTolerance, limits: AssemblyResourceLimits? = nil) throws {
+        guard let source = document.assembly else {
+            guard assembly == nil else { throw AssemblyError.inconsistentArtifact("Unexpected assembly artifact.") }
+            return
+        }
+        guard let assembly else { throw AssemblyError.inconsistentArtifact("Missing assembly artifact.") }
+        try assembly.limits.validate()
+        let expected = try AssemblyEvaluator().evaluate(source, in: document.designGraph,
+            local: assembly.local, tolerance: tolerance, limits: limits ?? assembly.limits)
+        guard expected.model == brep, expected.subshapes == subshapes,
+              expected.artifact.local == assembly.local, expected.artifact.occurrences == assembly.occurrences,
+              expected.lineage == lineage else {
+            throw AssemblyError.inconsistentArtifact("Assembly local/world correspondence does not match source.")
+        }
     }
 }

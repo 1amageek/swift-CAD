@@ -1,18 +1,20 @@
 import CADCore
 import CADTopology
 
-public struct DesignGraph: Codable, Equatable, Sendable {
+public struct DesignGraph: Equatable, Sendable {
     public var nodes: PersistentMap<FeatureID, FeatureNode>
     public var order: [FeatureID]
     public var dependencies: [DependencyEdge]
     public var revision: DocumentRevision
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case nodes
         case order
         case dependencies
         case revision
     }
+#endif
 
     public init(
         nodes: [FeatureID: FeatureNode] = [:],
@@ -26,6 +28,7 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         self.revision = revision
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.nodes, .order, .dependencies, .revision], in: decoder)
@@ -36,7 +39,9 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         dependencies = try container.decode([DependencyEdge].self, forKey: .dependencies)
         revision = try container.decode(DocumentRevision.self, forKey: .revision)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(nodes.materializedDictionary(), forKey: .nodes)
@@ -44,6 +49,7 @@ public struct DesignGraph: Codable, Equatable, Sendable {
         try container.encode(dependencies, forKey: .dependencies)
         try container.encode(revision, forKey: .revision)
     }
+#endif
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -2385,7 +2391,7 @@ private enum VisitState {
     case visited
 }
 
-public struct DependencyEdge: Codable, Sendable, Hashable {
+public struct DependencyEdge: Sendable, Hashable {
     public var source: FeatureID
     public var target: FeatureID
 
@@ -2394,21 +2400,32 @@ public struct DependencyEdge: Codable, Sendable, Hashable {
         self.target = target
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source
         case target
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.source, .target], in: decoder)
         source = try container.decode(FeatureID.self, forKey: .source)
         target = try container.decode(FeatureID.self, forKey: .target)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(source, forKey: .source)
         try container.encode(target, forKey: .target)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension DesignGraph: Codable {}
+extension DependencyEdge: Codable {}
+#endif

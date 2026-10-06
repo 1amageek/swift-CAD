@@ -25,6 +25,7 @@ package struct ExactSurfaceParameterBoundsResolver {
         for curve in parameterCurves {
             for enclosure in try encloser.enclosures(
                 for: curve,
+                on: surface,
                 maximumWidth: 0.25,
                 tolerance: tolerance
             ) {

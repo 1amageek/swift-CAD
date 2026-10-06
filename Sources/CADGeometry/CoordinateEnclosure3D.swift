@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CoordinateEnclosure3D: Codable, Equatable, Hashable, Sendable {
+public struct CoordinateEnclosure3D: Equatable, Hashable, Sendable {
     public let x: ScalarInterval
     public let y: ScalarInterval
     public let z: ScalarInterval
@@ -19,3 +19,7 @@ public struct CoordinateEnclosure3D: Codable, Equatable, Hashable, Sendable {
         x.contains(vector.x) && y.contains(vector.y) && z.contains(vector.z)
     }
 }
+
+#if !hasFeature(Embedded)
+extension CoordinateEnclosure3D: Codable {}
+#endif

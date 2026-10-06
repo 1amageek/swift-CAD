@@ -1,6 +1,6 @@
 import CADCore
 
-public enum PrimitiveDefinition: Codable, Hashable, Sendable {
+public enum PrimitiveDefinition: Hashable, Sendable {
     case box(BoxPrimitive)
     case cylinder(CylinderPrimitive)
     case cone(ConePrimitive)
@@ -37,6 +37,7 @@ public enum PrimitiveDefinition: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case box
@@ -45,7 +46,9 @@ public enum PrimitiveDefinition: Codable, Hashable, Sendable {
         case sphere
         case torus
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case box
         case cylinder
@@ -53,7 +56,9 @@ public enum PrimitiveDefinition: Codable, Hashable, Sendable {
         case sphere
         case torus
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -75,7 +80,9 @@ public enum PrimitiveDefinition: Codable, Hashable, Sendable {
         }
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -97,4 +104,9 @@ public enum PrimitiveDefinition: Codable, Hashable, Sendable {
             try container.encode(primitive, forKey: .torus)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension PrimitiveDefinition: Codable {}
+#endif

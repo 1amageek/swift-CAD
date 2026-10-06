@@ -1,7 +1,7 @@
 import CADCore
 import Foundation
 
-public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
+public struct CertifiedImplicitIntersectionCurve: Sendable, Hashable {
   public let firstSurface: Surface3D
   public let secondSurface: Surface3D
   public let cells: [CertifiedImplicitIntersectionGraphCell]
@@ -36,7 +36,7 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
     secondSurface preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
     validatedCells cells: [CertifiedImplicitIntersectionGraphCell],
     isClosed: Bool,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws {
     firstSurface = preparedFirstSurface.surface
     secondSurface = preparedSecondSurface.surface
@@ -44,7 +44,8 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
     self.isClosed = isClosed
     certificationTolerance = tolerance
     try validateCertificationContract(tolerance: tolerance)
-    try validateConnections(tolerance: tolerance)
+    try validateConnections(tolerance: tolerance, admission: admission,
+      preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface)
   }
 
   public func validate(tolerance: ModelingTolerance) throws {
@@ -102,27 +103,33 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
   }
 
   private func validateConnections(
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy,
+    preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
+    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil
   ) throws {
-    let spans = cells.count > 1
+    let domainMap: BoundedSurfaceParameterDomainMap? = cells.count > 1
       ? try BoundedSurfaceParameterDomainMap(
         first: firstSurface, second: secondSurface,
-        tolerance: certificationTolerance).spans
-      : []
+        tolerance: certificationTolerance, admission: admission,
+        preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface)
+      : nil
     for index in 1..<cells.count {
+      try admission.step()
       try validateConnection(
         fromCell: cells[index - 1],
         toCell: cells[index],
-        parameterSpans: spans,
-        tolerance: tolerance
+        parameterDomainMap: domainMap,
+        tolerance: tolerance, admission: admission,
+        preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
       )
     }
     if isClosed {
       try validateConnection(
         fromCell: cells[cells.count - 1],
         toCell: cells[0],
-        parameterSpans: nil,
-        tolerance: tolerance
+        parameterDomainMap: nil,
+        tolerance: tolerance, admission: admission,
+        preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
       )
     }
   }
@@ -157,6 +164,29 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
       secondSurface: secondSurface,
       tolerance: tolerance
     )
+  }
+
+  package func parameterPair(atNormalizedFraction fraction: Double,
+    firstSurface first: PreparedSurfaceDifferentialEncloser,
+    secondSurface second: PreparedSurfaceDifferentialEncloser,
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission) throws -> SurfaceIntersectionParameterPair {
+    try admission.step(); try validateCertificationContract(tolerance: tolerance)
+    try validatePreparedSources(first: first, second: second, admission: admission, tolerance: tolerance)
+    let location = try cellLocation(atNormalizedFraction: fraction, tolerance: tolerance)
+    return try cells[location.index].boundedParameterPair(atNormalizedFraction: location.fraction,
+      firstSurface: first.surface, secondSurface: second.surface, tolerance: tolerance,
+      admission: admission, preparedFirstSurface: first, preparedSecondSurface: second)
+  }
+
+  package func point(atNormalizedFraction fraction: Double,
+    firstSurface first: PreparedSurfaceDifferentialEncloser,
+    secondSurface second: PreparedSurfaceDifferentialEncloser,
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission) throws -> Point3D {
+    try admission.step(); try validateCertificationContract(tolerance: tolerance)
+    try validatePreparedSources(first: first, second: second, admission: admission, tolerance: tolerance)
+    let location = try cellLocation(atNormalizedFraction: fraction, tolerance: tolerance)
+    return try cells[location.index].point(atNormalizedFraction: location.fraction,
+      firstSurface: first, secondSurface: second, tolerance: tolerance, admission: admission)
   }
 
   public func differential(
@@ -257,6 +287,23 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
     return try result.expanded(by: tolerance.distance)
   }
 
+  private func validatePreparedSources(first: PreparedSurfaceDifferentialEncloser,
+    second: PreparedSurfaceDifferentialEncloser, admission: SurfaceSurfaceQueryAdmission,
+    tolerance: ModelingTolerance) throws {
+    func charge(_ count: Int) throws {
+      guard count >= 0 else { throw GeometryConversionError.invalidInput("Original source comparison work is negative.") }
+      for _ in 0..<count { try admission.step() }
+    }
+    try GeometryStructuralComparisonWork.charge(surface: firstSurface, using: charge)
+    try GeometryStructuralComparisonWork.charge(surface: first.surface, using: charge)
+    try GeometryStructuralComparisonWork.charge(surface: secondSurface, using: charge)
+    try GeometryStructuralComparisonWork.charge(surface: second.surface, using: charge)
+    guard first.surface == firstSurface, second.surface == secondSurface else {
+      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+        message: "Original graph query prepared owners do not match its retained supports.")
+    }
+  }
+
   private func cellLocation(
     atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance
@@ -280,116 +327,73 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
   private func validateConnection(
     fromCell: CertifiedImplicitIntersectionGraphCell,
     toCell: CertifiedImplicitIntersectionGraphCell,
-    parameterSpans: [Double]?,
-    tolerance: ModelingTolerance
+    parameterDomainMap: BoundedSurfaceParameterDomainMap?,
+    tolerance: ModelingTolerance, admission: SurfaceSurfaceQueryAdmission = .legacy,
+    preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
+    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil
   ) throws {
-    let fromParameters = fromCell.endAnchor
-    let toParameters = toCell.startAnchor
-    if let parameterSpans {
-      let parameterResidual = zip(zip(fromParameters.values, toParameters.values), parameterSpans)
-        .reduce(0.0) { max($0, abs($1.0.0 - $1.0.1) / $1.1) }
-      guard parameterResidual <= tolerance.relative else {
-        throw KernelError(
-          phase: .geometry,
-          code: .intersectionFailure,
-          residual: parameterResidual,
-          tolerance: tolerance,
-          message:
-            "Certified implicit intersection graph cells are not connected in four-dimensional parameter space."
-        )
+    let preparedFirst = try preparedFirstSurface ?? admission.prepare(firstSurface, tolerance: tolerance)
+    let preparedSecond = try preparedSecondSurface ?? admission.prepare(secondSurface, tolerance: tolerance)
+    let from = try fromCell.connectionSource(atEnd: true, first: preparedFirst,
+      second: preparedSecond, tolerance: tolerance, admission: admission)
+    let to = try toCell.connectionSource(atEnd: false, first: preparedFirst,
+      second: preparedSecond, tolerance: tolerance, admission: admission)
+    if let parameterDomainMap {
+      var parameterResidual = 0.0
+      for coordinate in 0..<4 {
+        let a = from.parameters[coordinate], b = to.parameters[coordinate]
+        let normalizedA = try parameterDomainMap.originalNormalizedBounds(
+          .init(lower: a.lower, upper: a.upper), coordinate: coordinate, admission: admission)
+        let normalizedB = try parameterDomainMap.originalNormalizedBounds(
+          .init(lower: b.lower, upper: b.upper), coordinate: coordinate, admission: admission)
+        parameterResidual = max(parameterResidual, (normalizedA - normalizedB).absoluteUpperBound)
+      }
+      guard parameterResidual.isFinite, parameterResidual <= tolerance.relative else {
+        throw KernelError(phase: .geometry, code: .intersectionFailure,
+          residual: parameterResidual, tolerance: tolerance,
+          message: "Original closed graph roots do not certify four-dimensional parameter continuity.")
       }
     }
-
-    let fromFirstPoint = try firstSurface.point(
-      u: fromParameters.first.u,
-      v: fromParameters.first.v,
-      tolerance: tolerance
-    )
-    let toFirstPoint = try firstSurface.point(
-      u: toParameters.first.u,
-      v: toParameters.first.v,
-      tolerance: tolerance
-    )
-    let fromSecondPoint = try secondSurface.point(
-      u: fromParameters.second.u,
-      v: fromParameters.second.v,
-      tolerance: tolerance
-    )
-    let toSecondPoint = try secondSurface.point(
-      u: toParameters.second.u,
-      v: toParameters.second.v,
-      tolerance: tolerance
-    )
-    let geometricResidual =
-      [
-        (fromFirstPoint - toFirstPoint).length,
-        (fromSecondPoint - toSecondPoint).length,
-        (fromFirstPoint - fromSecondPoint).length,
-        (toFirstPoint - toSecondPoint).length,
-      ].max() ?? .infinity
-    guard geometricResidual <= tolerance.distance else {
-      throw KernelError(
-        phase: .geometry,
-        code: .intersectionFailure,
-        residual: geometricResidual,
-        tolerance: tolerance,
-        message:
-          "Certified implicit intersection graph cells are not connected on both source surfaces."
-      )
+    let geometricResidual = max((from.first - to.first).lengthUpperBound,
+      (from.second - to.second).lengthUpperBound,
+      (from.first - from.second).lengthUpperBound,
+      (to.first - to.second).lengthUpperBound)
+    guard geometricResidual.isFinite, geometricResidual <= tolerance.distance else {
+      throw KernelError(phase: .geometry, code: .intersectionFailure,
+        residual: geometricResidual, tolerance: tolerance,
+        message: "Original closed graph endpoint bounds do not certify continuity on both source surfaces.")
     }
-
-    let fromDifferential = try fromCell.differential(
-      atNormalizedFraction: 1.0,
-      parameterScale: 1.0,
-      firstSurface: firstSurface,
-      secondSurface: secondSurface,
-      tolerance: tolerance
-    )
-    let toDifferential = try toCell.differential(
-      atNormalizedFraction: 0.0,
-      parameterScale: 1.0,
-      firstSurface: firstSurface,
-      secondSurface: secondSurface,
-      tolerance: tolerance
-    )
-    let fromTangent = fromDifferential.firstDerivative
-    let toTangent = toDifferential.firstDerivative
-    let magnitudeProduct = fromTangent.length * toTangent.length
-    let magnitudeFloor = Double.leastNonzeroMagnitude
-    guard magnitudeProduct.isFinite, magnitudeProduct > magnitudeFloor else {
-      throw KernelError(
-        phase: .geometry,
-        code: .singularSystem,
-        tolerance: tolerance,
-        message: "A certified implicit intersection graph connection has a singular tangent."
-      )
+    func scaled(_ vector: IntervalVector3DBounds) throws -> IntervalVector3DBounds {
+      try admission.step()
+      let magnitude = max(vector.x.absoluteUpperBound, vector.y.absoluteUpperBound,
+        vector.z.absoluteUpperBound)
+      guard magnitude.isFinite, magnitude > 0,
+        let x = vector.x.divided(by: .exact(magnitude)),
+        let y = vector.y.divided(by: .exact(magnitude)),
+        let z = vector.z.divided(by: .exact(magnitude)) else {
+        throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
+          message: "Original graph connection has no finite nonzero tangent enclosure.")
+      }
+      return .init(x: x, y: y, z: z)
     }
-    let angularResidual = fromTangent.cross(toTangent).length / magnitudeProduct
-    // The two cells meet within the distance tolerance, not at one point: across that gap the
-    // tangent turns by up to the curvature times the gap, which a G1 connection allows on top of
-    // the angle tolerance.
-    func curvature(_ differential: CertifiedImplicitIntersectionDifferential) -> Double {
-      let speed = differential.firstDerivative.length
-      return differential.firstDerivative.cross(differential.secondDerivative).length
-        / (speed * speed * speed)
+    let fromTangent = try scaled(from.tangent), toTangent = try scaled(to.tangent)
+    let magnitudeProduct = OutwardScalarInterval.exact(fromTangent.lengthLowerBound)
+      * .exact(toTangent.lengthLowerBound)
+    guard magnitudeProduct.isFinite, magnitudeProduct.lower > 0,
+      let angularResidual = OutwardScalarInterval.exact(fromTangent.cross(toTangent).lengthUpperBound)
+        .divided(by: magnitudeProduct), angularResidual.isFinite else {
+      throw KernelError(phase: .geometry, code: .singularSystem, tolerance: tolerance,
+        message: "Original closed graph connection cannot certify regular tangents.")
     }
-    let gap = (fromDifferential.position - toDifferential.position).length
-    let allowedTurn = (sin(tolerance.angle)
-      + max(curvature(fromDifferential), curvature(toDifferential)) * gap * 2.0).nextUp
-    guard fromTangent.dot(toTangent) > 0.0,
-      allowedTurn.isFinite,
-      angularResidual <= allowedTurn
-    else {
-      throw KernelError(
-        phase: .geometry,
-        code: .intersectionFailure,
-        residual: angularResidual,
-        tolerance: tolerance,
-        message: "Certified implicit intersection graph cells do not preserve tangent orientation."
-      )
+    let threshold = min(sin(tolerance.angle), SurfaceIntervalJet.sine(of: .constant(tolerance.angle)).value.lower)
+    guard fromTangent.dot(toTangent).lower > 0, angularResidual.upper <= threshold else {
+      throw KernelError(phase: .geometry, code: .intersectionFailure,
+        residual: angularResidual.upper, tolerance: tolerance,
+        message: "Original closed graph endpoint tangent bounds do not certify orientation and angular continuity.")
     }
   }
 
+#if !hasFeature(Embedded)
   private enum CodingKeys: String, CodingKey {
     case firstSurface
     case secondSurface
@@ -397,7 +401,9 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
     case isClosed
     case certificationTolerance
   }
+#endif
 
+#if !hasFeature(Embedded)
   private struct GraphCellPayload: Codable {
     let parameterBox: SurfaceIntersectionParameterBox
     let freeParameter: SurfaceIntersectionParameterCoordinate
@@ -491,7 +497,9 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
       )
     }
   }
+#endif
 
+#if !hasFeature(Embedded)
   public init(from decoder: Decoder) throws {
     let container = try decoder.container(keyedBy: CodingKeys.self)
     try container.validateOnlyExpectedKeys(
@@ -518,7 +526,9 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
       tolerance: tolerance
     )
   }
+#endif
 
+#if !hasFeature(Embedded)
   public func encode(to encoder: Encoder) throws {
     try validate(tolerance: certificationTolerance)
     var container = encoder.container(keyedBy: CodingKeys.self)
@@ -528,6 +538,7 @@ public struct CertifiedImplicitIntersectionCurve: Codable, Sendable, Hashable {
     try container.encode(isClosed, forKey: .isClosed)
     try container.encode(certificationTolerance, forKey: .certificationTolerance)
   }
+#endif
 }
 
 extension CertifiedImplicitIntersectionCurve {
@@ -547,3 +558,7 @@ extension CertifiedImplicitIntersectionCurve {
     )
   }
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedImplicitIntersectionCurve: Codable {}
+#endif

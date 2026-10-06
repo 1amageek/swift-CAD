@@ -1,12 +1,12 @@
 import CADCore
 
-public enum SketchTangencyConstraint: Codable, Sendable, Hashable {
-    public enum LineSide: String, Codable, Sendable, Hashable {
+public enum SketchTangencyConstraint: Sendable, Hashable {
+    public enum LineSide: String, Sendable, Hashable {
         case left
         case right
     }
 
-    public enum CircularContact: String, Codable, Sendable, Hashable {
+    public enum CircularContact: String, Sendable, Hashable {
         case external
         case firstContainsSecond
         case secondContainsFirst
@@ -23,6 +23,7 @@ public enum SketchTangencyConstraint: Codable, Sendable, Hashable {
         contact: CircularContact
     )
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case line
@@ -32,12 +33,16 @@ public enum SketchTangencyConstraint: Codable, Sendable, Hashable {
         case second
         case contact
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case lineCircular
         case circularCircular
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -58,7 +63,9 @@ public enum SketchTangencyConstraint: Codable, Sendable, Hashable {
         }
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -75,6 +82,7 @@ public enum SketchTangencyConstraint: Codable, Sendable, Hashable {
             try container.encode(contact, forKey: .contact)
         }
     }
+#endif
 
     public func validate() throws {
         switch self {
@@ -89,3 +97,9 @@ public enum SketchTangencyConstraint: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SketchTangencyConstraint: Codable {}
+extension SketchTangencyConstraint.LineSide: Codable {}
+extension SketchTangencyConstraint.CircularContact: Codable {}
+#endif

@@ -1,9 +1,9 @@
-import Foundation
+import CADCore
 
 package struct ValidatedCADDocumentIdentity: Hashable, Sendable {
-    private let rawValue: UUID
+    private let rawValue: PortableIdentity128
 
     package init() {
-        rawValue = UUID()
+        rawValue = PortableIdentity128()
     }
 }

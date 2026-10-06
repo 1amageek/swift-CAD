@@ -2,7 +2,7 @@ import CADCore
 import Foundation
 
 /// An exact affine change of coordinates between two surface parameter charts.
-public struct SurfaceParameterAffineTransform: Codable, Hashable, Sendable {
+public struct SurfaceParameterAffineTransform: Hashable, Sendable {
     public let uu: Double
     public let uv: Double
     public let vu: Double
@@ -261,3 +261,7 @@ package extension RigidTransform3D {
     }
 
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceParameterAffineTransform: Codable {}
+#endif

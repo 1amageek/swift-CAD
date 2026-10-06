@@ -7,7 +7,7 @@ import CADGeometry
 /// scaled and offset as a length; the flips mirror `s`, swap `s` and `t`, and turn the normal.
 /// Reblend recomputes the body's round fillets on the deformed faces at their radii, instead of
 /// leaving them bent with the body.
-public struct WrapOptions: Codable, Hashable, Sendable {
+public struct WrapOptions: Hashable, Sendable {
     public var scaleU: Double
     public var scaleV: Double
     public var scaleN: Double
@@ -17,6 +17,8 @@ public struct WrapOptions: Codable, Hashable, Sendable {
     public var mirrors: Bool
     public var flipsUV: Bool
     public var flipsNormal: Bool
+    /// Requests recomputation of round fillets on the deformed faces at their original radii.
+    /// Evaluation must certify that geometry or explicitly refuse the request.
     public var reblends: Bool
 
     public init(
@@ -36,10 +38,13 @@ public struct WrapOptions: Codable, Hashable, Sendable {
         self.reblends = reblends
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case scaleU, scaleV, scaleN, offsetU, offsetV, offsetN, mirrors, flipsUV, flipsNormal, reblends
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         scaleU = try container.decode(Double.self, forKey: .scaleU)
@@ -51,10 +56,12 @@ public struct WrapOptions: Codable, Hashable, Sendable {
         mirrors = try container.decode(Bool.self, forKey: .mirrors)
         flipsUV = try container.decode(Bool.self, forKey: .flipsUV)
         flipsNormal = try container.decode(Bool.self, forKey: .flipsNormal)
-        // Documents written before Reblend existed deform their fillets with the body.
+        // Earlier documents request ordinary deformation without recomputing round fillets.
         reblends = try container.decodeIfPresent(Bool.self, forKey: .reblends) ?? false
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(scaleU, forKey: .scaleU)
@@ -68,6 +75,7 @@ public struct WrapOptions: Codable, Hashable, Sendable {
         try container.encode(flipsNormal, forKey: .flipsNormal)
         try container.encode(reblends, forKey: .reblends)
     }
+#endif
 
     public func validate() throws {
         for value in [scaleU, scaleV, scaleN, offsetU, offsetV] where !value.isFinite {
@@ -94,7 +102,7 @@ public struct WrapOptions: Codable, Hashable, Sendable {
 /// them, as they are before this feature. The result lives in the target's frame; a face's
 /// placement says where its body sits in that frame (`nil`: where it was evaluated). The body is
 /// replaced unless `keepsTarget`, which leaves it and adds the deformed copy.
-public struct WrapFeature: Codable, Hashable, Sendable {
+public struct WrapFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var referenceFace: StableSubshapeReference
     public var targetFace: StableSubshapeReference
@@ -148,10 +156,13 @@ public struct WrapFeature: Codable, Hashable, Sendable {
         return sourcePort
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, referenceFace, targetFace, referencePlacement, targetPlacement, options, keepsTarget
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .referenceFace, .targetFace, .referencePlacement, .targetPlacement, .options, .keepsTarget], in: decoder)
@@ -164,7 +175,9 @@ public struct WrapFeature: Codable, Hashable, Sendable {
         keepsTarget = try container.decode(Bool.self, forKey: .keepsTarget)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -176,4 +189,10 @@ public struct WrapFeature: Codable, Hashable, Sendable {
         try container.encode(options, forKey: .options)
         try container.encode(keepsTarget, forKey: .keepsTarget)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension WrapOptions: Codable {}
+extension WrapFeature: Codable {}
+#endif

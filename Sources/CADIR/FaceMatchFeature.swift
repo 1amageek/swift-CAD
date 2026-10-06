@@ -7,7 +7,7 @@ import CADTopology
 /// body, `sourcePlacement` putting that body in the target's frame (where it is, when nil). With
 /// `front`, each matched face faces out the way the reference face does; otherwise it keeps the
 /// side it faced.
-public struct FaceMatchFeature: Codable, Hashable, Sendable {
+public struct FaceMatchFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var faces: [StableSubshapeReference]
     public var source: PatternTargetReference
@@ -56,10 +56,13 @@ public struct FaceMatchFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, faces, source, referenceFace, sourcePlacement, front, grow
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .faces, .source, .referenceFace, .sourcePlacement, .front, .grow], in: decoder)
@@ -72,7 +75,9 @@ public struct FaceMatchFeature: Codable, Hashable, Sendable {
         grow = try container.decode(FaceEditGrow.self, forKey: .grow)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -84,6 +89,7 @@ public struct FaceMatchFeature: Codable, Hashable, Sendable {
         try container.encode(front, forKey: .front)
         try container.encode(grow, forKey: .grow)
     }
+#endif
 
     /// The inputs the feature reads: its target, and the reference face's body when that is
     /// another.
@@ -93,3 +99,7 @@ public struct FaceMatchFeature: Codable, Hashable, Sendable {
         return inputs
     }
 }
+
+#if !hasFeature(Embedded)
+extension FaceMatchFeature: Codable {}
+#endif

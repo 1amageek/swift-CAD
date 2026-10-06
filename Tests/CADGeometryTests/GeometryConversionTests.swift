@@ -166,11 +166,46 @@ struct GeometryConversionTests {
         catch { Issue.record("Cancellation became \(error).") }
     }
 
-    // FIXME(INCOMPLETE_IMPLEMENTATION): The main B-spline representation has
-    // no periodic construction capability. The complete negative-cycle and nested
-    // image fixture remains in commit 1017954's parity test owner and must execute
-    // after periodic representation integration before full G6 can be completed.
-
+    @Test
+    func periodicNegativeCycleIsIncludedForNativeAndNestedImageSources() throws {
+        let periodic = try BSplineCurve3D.periodic(degree: 1, cycleKnots: [0, 1, 2, 3, 4],
+            controlPoints: [.origin, .init(x: 1, y: 0, z: 0), .init(x: 1, y: 1, z: 0), .init(x: 0, y: 1, z: 0)],
+            tolerance: tolerance)
+        let curve = Curve3D.bSpline(periodic)
+        let affine = try AffineImageCurve3D(source: curve,
+            transform: AffineTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: .zero), tolerance: tolerance)
+        let nested = try Curve3D.rigidImage(RigidImageCurve3D(source: .affineImage(affine),
+            transform: RigidTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: .zero, tolerance: tolerance),
+            tolerance: tolerance))
+        let candidate = BSplineCurve3D(degree: 1, knots: [-0.25, -0.25, 0.25, 0.25],
+            controlPoints: [.init(x: -0.25, y: 0, z: 0), .init(x: 0.25, y: 0, z: 0)])
+        #expect(try (curve.point(at: -0.25, tolerance: tolerance) - candidate.point(at: -0.25, tolerance: tolerance)).length > 0.35)
+        let range = try ScalarInterval(lower: -0.25, upper: 0.25)
+        let limits = GeometryConversionRequirements(maximumPositionError: 1e-6, maximumTangentAngle: 1e-5,
+            maximumCurvatureError: 1e-5, maximumDegree: 1)
+        let converter: any GeometryConverting = CertifiedGeometryConverter()
+        for value in [curve, nested] {
+            let source = try NativeCurveConversionSource(value, tolerance: tolerance)
+            let enclosure = try source.enclosure(over: range, tolerance: tolerance)
+            for t in [-0.25, -0.125, 0.0, 0.125, 0.25] {
+                #expect(try enclosure.position.contains(value.point(at: t, tolerance: tolerance)))
+            }
+            for anchor in [0.0, -0.5] {
+                let tiny = try ScalarInterval(lower: anchor.nextDown, upper: anchor.nextUp)
+                let anchored = try source.enclosure(over: tiny, tolerance: tolerance)
+                #expect(try anchored.position.contains(value.point(at: anchor, tolerance: tolerance)))
+            }
+            #expect(throws: GeometryConversionError.toleranceRejected) {
+                _ = try converter.certifyCurve(source: source, candidate: candidate, over: range, requirements: limits, tolerance: tolerance)
+            }
+        }
+        // A same-chart restriction on a negative cycle succeeds, so refusal is not an unsupported fallback.
+        let negative = try ScalarInterval(lower: -0.75, upper: -0.25)
+        let exact = try periodic.trimmed(from: negative.lower, to: negative.upper, tolerance: tolerance)
+        let certificate = try converter.certifyCurve(source: NativeCurveConversionSource(curve, tolerance: tolerance),
+            candidate: exact, over: negative, requirements: limits, tolerance: tolerance)
+        #expect(certificate.positionErrorUpperBound < limits.maximumPositionError)
+    }
 
     @Test
     func highDegreeNativeProbeIsChargedBeforeTriangularSplitAllocation() throws {

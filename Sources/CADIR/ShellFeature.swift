@@ -4,7 +4,7 @@ import CADTopology
 /// Hollow: a solid walled `thickness` thick — outside it when positive (the solid becomes the
 /// cavity), inside it when negative — opening through `removedFaces`, or closed when there are
 /// none.
-public struct ShellFeature: Codable, Hashable, Sendable {
+public struct ShellFeature: Hashable, Sendable {
     public let target: ShellTargetReference
     public let removedFaces: [StableSubshapeReference]
     public let thickness: CADExpression
@@ -44,12 +44,15 @@ public struct ShellFeature: Codable, Hashable, Sendable {
         try thickness.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case removedFaces
         case thickness
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .removedFaces, .thickness], in: decoder)
@@ -58,7 +61,9 @@ public struct ShellFeature: Codable, Hashable, Sendable {
         thickness = try container.decode(CADExpression.self, forKey: .thickness)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -66,4 +71,9 @@ public struct ShellFeature: Codable, Hashable, Sendable {
         try container.encode(removedFaces, forKey: .removedFaces)
         try container.encode(thickness, forKey: .thickness)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension ShellFeature: Codable {}
+#endif

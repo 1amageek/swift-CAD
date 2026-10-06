@@ -48,6 +48,7 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
   let domains: BoundedSurfaceParameterDomainMap
   let options: SurfaceSurfaceIntersectionOptions
   let tolerance: ModelingTolerance
+  let admission: SurfaceSurfaceQueryAdmission
   private let preparedFirstSurface: PreparedSurfaceDifferentialEncloser
   private let preparedSecondSurface: PreparedSurfaceDifferentialEncloser
 
@@ -60,7 +61,8 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     second preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
     domains: BoundedSurfaceParameterDomainMap,
     options: SurfaceSurfaceIntersectionOptions,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws {
     let first = preparedFirstSurface.surface
     let second = preparedSecondSurface.surface
@@ -69,8 +71,11 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     self.domains = domains
     self.options = options
     self.tolerance = tolerance
+    self.admission = admission
     self.preparedFirstSurface = preparedFirstSurface
     self.preparedSecondSurface = preparedSecondSurface
+    try admission.reserve(count: 1, stride: MemoryLayout<SearchBox>.stride)
+    try admission.reserve(count: 4, stride: MemoryLayout<(Double, Double)>.stride + MemoryLayout<Int>.stride)
     pending = [
       SearchBox(
         normalizedBounds: Array(
@@ -91,14 +96,14 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     remainingRootAttempts: inout Int
   ) throws -> Result {
     if atlas.count > knownAtlasRecordCount {
-      pending.insert(
-        contentsOf: deferred.map(\.searchBox),
-        at: 0
-      )
+      try admission.reserve(count: deferred.count, stride: MemoryLayout<SearchBox>.stride)
+      let restored = try deferred.map { item in try admission.step(); return item.searchBox }
+      pending.insert(contentsOf: restored, at: 0)
       deferred.removeAll(keepingCapacity: true)
       knownAtlasRecordCount = atlas.count
     }
     while let searchBox = pending.popLast() {
+      try admission.step()
       switch try inspect(
         searchBox: searchBox,
         atlas: atlas,
@@ -110,9 +115,11 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
       case .uncoveredSeed(let seed):
         // The current box may contain more than the discovered
         // component. Revisit it after the caller extends the atlas.
+        try admission.reserve(count: 1, stride: MemoryLayout<SearchBox>.stride)
         pending.append(searchBox)
         return .uncoveredSeed(seed)
       case .unresolved(let reason):
+        try admission.reserve(count: 1, stride: MemoryLayout<DeferredSearchBox>.stride)
         deferred.append(
           DeferredSearchBox(
             searchBox: searchBox,
@@ -120,6 +127,7 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
           ))
         continue
       case .continueWith(let children):
+        try admission.reserve(count: children.count, stride: MemoryLayout<SearchBox>.stride)
         pending.append(contentsOf: children.reversed())
       }
     }
@@ -137,15 +145,15 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
   ) throws -> SearchStep {
     guard remainingCells > 0 else {
       throw resourceLimit(
-        "Parametric surface-intersection completeness exhausted its subdivision-cell limit. Atlas records=\(atlas.count), remaining root attempts=\(remainingRootAttempts), depths=\(searchBox.subdivisionDepths), normalized bounds=\(searchBox.normalizedBounds). \(atlasDiagnostic(searchBox: searchBox, atlas: atlas))"
+        "Parametric surface-intersection completeness exhausted its subdivision-cell limit. Atlas records=\(atlas.count), remaining root attempts=\(remainingRootAttempts), depths=\(searchBox.subdivisionDepths), normalized bounds=\(searchBox.normalizedBounds). \(try atlasDiagnostic(searchBox: searchBox, atlas: atlas))"
       )
     }
     remainingCells -= 1
     let parameterBox = try actualParameterBox(
       normalizedBounds: searchBox.normalizedBounds
     )
-    if atlas.contains(where: {
-      contains($0.parameterBox, parameterBox)
+    if try atlas.contains(where: {
+      try admission.step(); return contains($0.parameterBox, parameterBox)
     }) {
       return .covered
     }
@@ -153,18 +161,18 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     try parameterBox.validate(first: first, second: second, tolerance: tolerance)
     let firstJet: SurfaceIntervalVectorJet
     do {
-      firstJet = try preparedFirstSurface.intervalJet(
+      firstJet = try admission.intervalJet(preparedFirstSurface,
         over: SurfaceParameterBox(u: parameterBox.firstU, v: parameterBox.firstV),
         tolerance: tolerance)
     } catch let error as KernelError
       where error.code == .singularSystem
       || error.code == .intersectionFailure
     {
-      return subdivideOrReport(
+      return try subdivideOrReport(
         searchBox: searchBox,
         reason: error.message,
         atlas: atlas,
-        atlasDiagnostic: atlasDiagnostic(
+        atlasDiagnostic: try atlasDiagnostic(
           searchBox: searchBox,
           atlas: atlas
         ),
@@ -173,27 +181,29 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     }
     let secondJet: SurfaceIntervalVectorJet
     do {
-      secondJet = try preparedSecondSurface.intervalJet(
+      secondJet = try admission.intervalJet(preparedSecondSurface,
         over: SurfaceParameterBox(u: parameterBox.secondU, v: parameterBox.secondV),
         tolerance: tolerance)
     } catch let error as KernelError
       where error.code == .singularSystem || error.code == .intersectionFailure
     {
-      return subdivideOrReport(
+      return try subdivideOrReport(
         searchBox: searchBox, reason: error.message, atlas: atlas,
-        atlasDiagnostic: atlasDiagnostic(searchBox: searchBox, atlas: atlas),
+        atlasDiagnostic: try atlasDiagnostic(searchBox: searchBox, atlas: atlas),
         restrictedTo: (preparedSecondSurface.enclosureRefinementCoordinates.lowerBound + 2)..<(preparedSecondSurface.enclosureRefinementCoordinates.upperBound + 2)
       )
     }
     let prover = ParametricSurfaceIntersectionGraphProver(
       firstSurface: first, secondSurface: second, parameterBox: parameterBox,
-      firstJet: firstJet, secondJet: secondJet
+      firstJet: firstJet, secondJet: secondJet, admission: admission,
+      preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
     )
     if prover.excludesIntersection() { return .covered }
 
-    let freeParameters = prover.rankCertifiedFreeParameters()
+    let freeParameters = try prover.rankCertifiedFreeParameters()
     var contractions: [Contraction] = []
     for freeParameter in freeParameters {
+      try admission.step()
       switch try prover.parameterizedGraphCertificate(
         freeParameter: freeParameter,
         tolerance: tolerance
@@ -221,7 +231,7 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     for contraction in contractions.sorted(by: {
       $0.reduction > $1.reduction
     }) {
-      let contracted = contractedSearchBox(
+      let contracted = try contractedSearchBox(
         searchBox,
         using: contraction
       )
@@ -229,8 +239,8 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
         let contractedParameterBox = try actualParameterBox(
           normalizedBounds: contracted.normalizedBounds
         )
-        if atlas.contains(where: {
-          contains($0.parameterBox, contractedParameterBox)
+        if try atlas.contains(where: {
+          try admission.step(); return contains($0.parameterBox, contractedParameterBox)
         }) {
           return .covered
         }
@@ -260,19 +270,19 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     if let contraction = contractions.max(by: {
       $0.reduction < $1.reduction
     }),
-      let contracted = contractedSearchBox(
+      let contracted = try contractedSearchBox(
         searchBox,
         using: contraction
       )
     {
       return .continueWith([contracted])
     }
-    return subdivideOrReport(
+    return try subdivideOrReport(
       searchBox: searchBox,
       reason:
         "The interval root set was neither excluded, atlas-covered, nor certified as a regular graph.",
       atlas: atlas,
-      atlasDiagnostic: atlasDiagnostic(
+      atlasDiagnostic: try atlasDiagnostic(
         searchBox: searchBox,
         atlas: atlas
       )
@@ -287,9 +297,11 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     remainingRootAttempts: inout Int
   ) throws -> Sample? {
     for freeParameter in freeParameters {
+      try admission.step()
       let freeIndex = freeParameter.rawValue
       let freeBounds = searchBox.normalizedBounds[freeIndex]
       for fraction in [0.5, 0.0, 1.0] {
+        try admission.step()
         guard
           case .uniqueRoot(let localParameters) =
             try prover
@@ -329,8 +341,8 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
         let parameterPair = try SurfaceIntersectionParameterPair(
           values: root.actual
         )
-        if atlas.contains(where: {
-          $0.parameterBox.contains(parameterPair)
+        if try atlas.contains(where: {
+          try admission.step(); return $0.parameterBox.contains(parameterPair)
         }) == false {
           return root
         }
@@ -345,7 +357,8 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
       second: second,
       domains: domains,
       maximumIterations: options.maximumIterations,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission,
+      preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
     )
   }
 
@@ -355,8 +368,8 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
     atlas: [ParametricSurfaceIntersectionGraphCellRecord],
     atlasDiagnostic: String,
     restrictedTo coordinates: Range<Int>? = nil
-  ) -> SearchStep {
-    let atlasSplit = coordinates == nil ? atlasAlignedSplit(
+  ) throws -> SearchStep {
+    let atlasSplit = coordinates == nil ? try atlasAlignedSplit(
       searchBox: searchBox,
       atlas: atlas
     ) : nil
@@ -377,10 +390,12 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
         "Normalized subdivision collapsed in coordinate \(splitIndex)."
       )
     }
-    let children = [
+    try admission.reserve(count: 2, stride: MemoryLayout<SearchBox>.stride)
+    let children = try [
       (lower: bounds.lower, upper: middle),
       (lower: middle, upper: bounds.upper),
     ].map { child -> SearchBox in
+      try admission.reserve(count: 4, stride: MemoryLayout<(Double, Double)>.stride + MemoryLayout<Int>.stride)
       var childBounds = searchBox.normalizedBounds
       childBounds[splitIndex] = child
       var childDepths = searchBox.subdivisionDepths
@@ -399,13 +414,14 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
   private func atlasAlignedSplit(
     searchBox: SearchBox,
     atlas: [ParametricSurfaceIntersectionGraphCellRecord]
-  ) -> (index: Int, value: Double)? {
+  ) throws -> (index: Int, value: Double)? {
     let midpoint = searchBox.normalizedBounds.map {
       $0.lower + ($0.upper - $0.lower) * 0.5
     }
     var candidates: [(index: Int, value: Double, score: Double)] = []
     var greatestOverlap = 0.0
     for record in atlas {
+      try admission.step()
       let normalizedLower = domains.normalized(
         record.parameterBox.intervals.map(\.lower)
       )
@@ -457,9 +473,10 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
   private func atlasDiagnostic(
     searchBox: SearchBox,
     atlas: [ParametricSurfaceIntersectionGraphCellRecord]
-  ) -> String {
+  ) throws -> String {
     guard atlas.isEmpty == false else { return "The graph atlas is empty." }
-    let candidates = atlas.map { record -> (gap: Double, bounds: [Double]) in
+    let candidates = try atlas.map { record -> (gap: Double, bounds: [Double]) in
+      try admission.step()
       let normalizedLower = domains.normalized(
         record.parameterBox.intervals.map(\.lower)
       )
@@ -493,7 +510,7 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
   private func splitIndex(for searchBox: SearchBox, among coordinates: Range<Int>) -> Int? {
     let eligible = coordinates.filter { index in
       searchBox.subdivisionDepths[index]
-        < options.maximumSubdivisionDepth
+        < min(options.maximumSubdivisionDepth, admission.maximumSubdivisionDepth)
         && searchBox.normalizedBounds[index].upper
           - searchBox.normalizedBounds[index].lower
           > tolerance.relative * 4.0
@@ -518,21 +535,26 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
   private func contractedSearchBox(
     _ searchBox: SearchBox,
     using contraction: Contraction
-  ) -> SearchBox? {
+  ) throws -> SearchBox? {
+    try admission.reserve(count: 4, stride: MemoryLayout<(Double, Double)>.stride)
     var bounds = searchBox.normalizedBounds
+    let proofBox = try actualParameterBox(normalizedBounds: searchBox.normalizedBounds)
     var reduction = 0.0
     for index in bounds.indices {
+      try admission.step()
       let original = searchBox.normalizedBounds[index]
       let width = original.upper - original.lower
       let local = contraction.localBounds[index]
-      let lower = max(
-        original.lower,
-        (original.lower + width * local.lower).nextDown
-      )
-      let upper = min(
-        original.upper,
-        (original.lower + width * local.upper).nextUp
-      )
+      guard let coordinate = SurfaceIntersectionParameterCoordinate(rawValue: index) else {
+        throw GeometryConversionError.invalidInput("Original SSI contraction lost its chart coordinate.")
+      }
+      let native = proofBox.interval(for: coordinate)
+      let actual = OutwardScalarInterval.exact(native.lower)
+        + (OutwardScalarInterval.exact(native.upper) - .exact(native.lower))
+          * OutwardScalarInterval(lower: local.lower, upper: local.upper)
+      let normalized = try domains.originalNormalizedBounds(actual, coordinate: index, admission: admission)
+      let lower = max(original.lower, normalized.lower)
+      let upper = min(original.upper, normalized.upper)
       guard lower.isFinite,
         upper.isFinite,
         upper - lower > tolerance.relative * 4.0
@@ -573,14 +595,7 @@ struct ParametricSurfaceIntersectionCompletenessVerifier: Sendable {
   private func actualParameterBox(
     normalizedBounds: [(lower: Double, upper: Double)]
   ) throws -> SurfaceIntersectionParameterBox {
-    let lower = domains.actual(normalizedBounds.map(\.lower))
-    let upper = domains.actual(normalizedBounds.map(\.upper))
-    return SurfaceIntersectionParameterBox(
-      firstU: try ScalarInterval(lower: lower[0], upper: upper[0]),
-      firstV: try ScalarInterval(lower: lower[1], upper: upper[1]),
-      secondU: try ScalarInterval(lower: lower[2], upper: upper[2]),
-      secondV: try ScalarInterval(lower: lower[3], upper: upper[3])
-    )
+    try domains.actualParameterBox(normalizedBounds: normalizedBounds, admission: admission)
   }
 
   private func contains(

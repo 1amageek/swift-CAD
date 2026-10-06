@@ -1,6 +1,6 @@
 import CADCore
 
-public enum FeaturePort: String, Codable, Sendable, Hashable {
+public enum FeaturePort: String, Sendable, Hashable {
     case profile
     case curve
     case path
@@ -10,7 +10,7 @@ public enum FeaturePort: String, Codable, Sendable, Hashable {
     case sheet
 }
 
-public struct FeatureNode: Codable, Sendable, Hashable {
+public struct FeatureNode: Sendable, Hashable {
     public var id: FeatureID
     public var name: String?
     public var operation: FeatureOperation
@@ -34,6 +34,7 @@ public struct FeatureNode: Codable, Sendable, Hashable {
         self.isSuppressed = isSuppressed
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id
         case name
@@ -42,7 +43,9 @@ public struct FeatureNode: Codable, Sendable, Hashable {
         case outputs
         case isSuppressed
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.id, .name, .operation, .inputs, .outputs, .isSuppressed], in: decoder)
@@ -53,7 +56,9 @@ public struct FeatureNode: Codable, Sendable, Hashable {
         outputs = try container.decode([FeatureOutput].self, forKey: .outputs)
         isSuppressed = try container.decode(Bool.self, forKey: .isSuppressed)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -63,9 +68,10 @@ public struct FeatureNode: Codable, Sendable, Hashable {
         try container.encode(outputs, forKey: .outputs)
         try container.encode(isSuppressed, forKey: .isSuppressed)
     }
+#endif
 }
 
-public struct FeatureInput: Codable, Sendable, Hashable {
+public struct FeatureInput: Sendable, Hashable {
     public var featureID: FeatureID
     public var role: FeaturePort
 
@@ -74,46 +80,58 @@ public struct FeatureInput: Codable, Sendable, Hashable {
         self.role = role
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
         case role
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID, .role], in: decoder)
         featureID = try container.decode(FeatureID.self, forKey: .featureID)
         role = try container.decode(FeaturePort.self, forKey: .role)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(featureID, forKey: .featureID)
         try container.encode(role, forKey: .role)
     }
+#endif
 }
 
-public struct FeatureOutput: Codable, Sendable, Hashable {
+public struct FeatureOutput: Sendable, Hashable {
     public var role: FeaturePort
 
     public init(role: FeaturePort) {
         self.role = role
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case role
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.role], in: decoder)
         role = try container.decode(FeaturePort.self, forKey: .role)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(role, forKey: .role)
     }
+#endif
 }
 
 extension FeatureNode {
@@ -123,3 +141,10 @@ extension FeatureNode {
         return ports.count == 1 ? ports.first : nil
     }
 }
+
+#if !hasFeature(Embedded)
+extension FeaturePort: Codable {}
+extension FeatureNode: Codable {}
+extension FeatureInput: Codable {}
+extension FeatureOutput: Codable {}
+#endif

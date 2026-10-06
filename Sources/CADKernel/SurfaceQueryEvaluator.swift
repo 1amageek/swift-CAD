@@ -23,7 +23,7 @@ public struct ResolvedSurface: Sendable, Hashable {
     }
 }
 
-public struct SurfaceQueryFrame: Codable, Sendable, Hashable {
+public struct SurfaceQueryFrame: Sendable, Hashable {
     public var reference: SurfaceParameterReference
     public var point: Point3D
     public var tangentU: Vector3D
@@ -58,7 +58,7 @@ public struct SurfaceQueryFrame: Codable, Sendable, Hashable {
     }
 }
 
-public struct SurfaceSpanQueryResult: Codable, Sendable, Hashable {
+public struct SurfaceSpanQueryResult: Sendable, Hashable {
     public var reference: SurfaceSpanReference
     public var lowerParameter: Double
     public var upperParameter: Double
@@ -70,7 +70,7 @@ public struct SurfaceSpanQueryResult: Codable, Sendable, Hashable {
     }
 }
 
-public struct SurfaceTrimQueryResult: Codable, Sendable, Hashable {
+public struct SurfaceTrimQueryResult: Sendable, Hashable {
     public var reference: SurfaceTrimReference
     public var loopID: LoopID
     public var edgeID: EdgeID
@@ -118,7 +118,7 @@ public struct SurfaceProjectionOptions: Sendable, Hashable {
     }
 }
 
-public struct SurfaceProjectionResult: Codable, Sendable, Hashable {
+public struct SurfaceProjectionResult: Sendable, Hashable {
     public var sourcePoint: Point3D
     public var parameterReference: SurfaceParameterReference
     public var projectedPoint: Point3D
@@ -179,7 +179,7 @@ public struct SurfaceDirectionalProjectionOptions: Sendable, Hashable {
     }
 }
 
-public struct SurfaceDirectionalProjectionResult: Codable, Sendable, Hashable {
+public struct SurfaceDirectionalProjectionResult: Sendable, Hashable {
     public var sourcePoint: Point3D
     public var direction: Vector3D
     public var signedDistanceAlongDirection: Double
@@ -216,6 +216,7 @@ public struct SurfaceDirectionalProjectionResult: Codable, Sendable, Hashable {
 
 public struct SurfaceQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
+    package var queryTolerance: ModelingTolerance { tolerance }
     private let faceDomainResolver: any FaceQueryDomainResolving
 
     public init(tolerance: ModelingTolerance) {
@@ -433,7 +434,10 @@ public struct SurfaceQueryEvaluator: Sendable {
                 model: document.brep,
                 options: options
             )
-        case .procedural(.ruled), .procedural(.rollingBall):
+        case .procedural(.ruled), .procedural(.rollingBall),
+             .procedural(.originalImage), .procedural(.originalRevolution), .procedural(.originalAffineWord),
+             .procedural(.originalCoons), .procedural(.originalBoundaryCorrected),
+             .procedural(.originalPlaneDerivative), .procedural(.originalDrafted), .procedural(.originalAngularTransport):
             return try projectOntoGeneralSurface(
                 point,
                 direction: unitDirection,
@@ -2033,3 +2037,11 @@ private struct SurfaceBoundaryProjection: Sendable, Hashable {
     var parameter: SurfaceParameter
     var distance: Double
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceQueryFrame: Codable {}
+extension SurfaceSpanQueryResult: Codable {}
+extension SurfaceTrimQueryResult: Codable {}
+extension SurfaceProjectionResult: Codable {}
+extension SurfaceDirectionalProjectionResult: Codable {}
+#endif

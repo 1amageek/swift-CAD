@@ -304,6 +304,8 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
                 SurfaceParameter(u: $0.x, v: $0.y)
             }
         case .harmonic,
+             .originalBSplineContinuation,
+             .originalImage,
              .sphericalGreatCircle,
              .certifiedImplicit,
              .certifiedAnalyticImplicit,

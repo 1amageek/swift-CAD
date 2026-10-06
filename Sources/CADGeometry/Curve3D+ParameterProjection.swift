@@ -45,7 +45,7 @@ public extension Curve3D {
                 0
             )
         case .analytic(.planeTorus), .surfaceLift, .certifiedIntersection,
-             .rigidImage, .affineImage:
+             .rigidImage, .affineImage, .originalAffineWord:
             candidate = try iterativeParameter(
                 point,
                 options: options,
@@ -58,6 +58,14 @@ public extension Curve3D {
                 options: options,
                 tolerance: tolerance
             )
+        case let .parameterImage(image):
+            var nativeOptions = options
+            if let range = options.parameterRange {
+                nativeOptions.parameterRange = try image.originalInterval(range)
+            }
+            let native = try image.source.parameterProjectionAssumingValid(of: point,
+                options: nativeOptions, tolerance: tolerance)
+            candidate = ((native.parameter - image.offset) / image.gain, native.iterations)
         case let .bSpline(curve):
             return try curve.parameterProjection(
                 of: point,
@@ -210,10 +218,12 @@ public extension Curve3D {
         tolerance: ModelingTolerance
     ) throws -> Double {
         let offset = point - center
-        var parameter = atan2(
+        // The angular inverse proposes a label of the same original symbolic
+        // phase; the public projection still checks the original spatial law.
+        var parameter = CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: atan2(
             offset.dot(secondAxis) / secondRadius,
             offset.dot(firstAxis) / firstRadius
-        )
+        ))
         if parameter < 0.0 {
             parameter += 2.0 * Double.pi
         }

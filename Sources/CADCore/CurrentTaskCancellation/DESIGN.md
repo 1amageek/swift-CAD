@@ -25,7 +25,9 @@ operation.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
-| [CADCore](../DESIGN.md) | parent | Core public module boundary | Exposes the component to Core consumers | Do not add consumer policy here |
+| [CADCore](../DESIGN.md) | parent | Foundation-free Core module boundary | Exposes the component to Core consumers | Do not add consumer policy here |
+| [Failure Contract](../FailureContract/DESIGN.md) | used by consumers | Cancellation-to-domain mapping | Existing domain boundaries may map `CancellationError` later | This component preserves the original typed cancellation |
+| [Portable Identity](../PortableIdentity/DESIGN.md) | sibling | Foundation-free source values | Shares the no-Foundation portability boundary | No identity or serialization dependency |
 
 ## Architecture
 
@@ -75,7 +77,7 @@ current task.
 ## Verification and Change Impact
 
 Dedicated Core tests verify uncancelled success and `Task.cancel()` followed by
-typed cancellation propagation. Existing component probes verify the same
-source and markers on Native, normal WASM under Node WASI Preview 1, and
+typed cancellation propagation. Private production-file probes verify the
+same source and markers on Native, normal WASM under Node WASI Preview 1, and
 Embedded WASM under the matching SDK. Full CADCore Embedded portability remains
 separate from this component if another Core source imports unavailable modules.

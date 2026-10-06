@@ -33,9 +33,15 @@ struct ExactCertifiedCurveTransferBuilder {
     try curve.validate(tolerance: tolerance)
     let lower = min(trim.startParameter, trim.endParameter)
     let upper = max(trim.startParameter, trim.endParameter)
-    guard lower >= -tolerance.relative,
-      upper <= 1.0 + tolerance.relative,
-      upper - lower > tolerance.relative
+    var originalCurve = curve
+    var originalRange = try ScalarInterval(lower: lower, upper: upper)
+    while case .parameterImage(let image) = originalCurve {
+      originalRange = try image.sourceParameterBounds(over: originalRange, tolerance: tolerance)
+      originalCurve = image.source
+    }
+    guard originalRange.lower >= -tolerance.relative,
+      originalRange.upper <= 1.0 + tolerance.relative,
+      originalRange.upper - originalRange.lower > tolerance.relative
     else {
       throw KernelError(
         phase: .exchange,
@@ -56,8 +62,8 @@ struct ExactCertifiedCurveTransferBuilder {
     let start = try curve.point(at: lower, tolerance: tolerance)
     let end = try curve.point(at: upper, tolerance: tolerance)
     let isClosed =
-      lower <= tolerance.relative
-      && upper >= 1.0 - tolerance.relative
+      originalRange.lower <= tolerance.relative
+      && originalRange.upper >= 1.0 - tolerance.relative
       && start.isApproximatelyEqual(to: end, tolerance: tolerance.distance)
     let transferred = try SurfaceIntersectionSplineBuilder(
       firstSurface: supports.first,
@@ -149,6 +155,14 @@ struct ExactCertifiedCurveTransferBuilder {
           )
         }
       )
+    case .parameterImage(let image):
+      let original = try supportData(for:image.source,tolerance:tolerance)
+      return SupportData(first:original.first,second:original.second,
+        firstParameterAt:{ parameter in
+          try original.firstParameterAt(image.sourceParameter(at:parameter,tolerance:tolerance))
+        },secondParameterAt:{ parameter in
+          try original.secondParameterAt(image.sourceParameter(at:parameter,tolerance:tolerance))
+        })
     case .rigidImage(let image):
       let source = try supportData(
         for: image.source,
@@ -186,6 +200,11 @@ struct ExactCertifiedCurveTransferBuilder {
           )
         }
       )
+    case .originalAffineWord, .originalAngularTransport, .originalEndpointConnector, .originalConstructionChart, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
+      // FIXME(INCOMPLETE_IMPLEMENTATION): The legacy support-pair transfer does not transport these retained original source families.
+      // Actual neutral callers must use the caller-admitted converter and publish its complete guarantees before these curves can succeed.
+      throw KernelError(phase: .exchange, code: .unsupportedCapability, tolerance: tolerance,
+        message: "Retained original curve requires caller-admitted conversion rather than legacy support-pair transfer.")
     case .line, .circle, .analytic, .bSpline, .affineImage:
       throw KernelError(
         phase: .exchange,

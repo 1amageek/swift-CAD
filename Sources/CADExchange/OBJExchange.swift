@@ -41,7 +41,7 @@ public struct OBJExchange: Sendable {
         var normalBase = 1
 
         for (bodyID, mesh) in sortedMeshes {
-            try output.writeUTF8("\no body_\(bodyID.rawValue.uuidString.replacingOccurrences(of: "-", with: "_"))")
+            try output.writeUTF8("\no body_\(bodyID.rawValue.canonicalString.replacingOccurrences(of: "-", with: "_"))")
             for point in mesh.positions {
                 let x = try checkedExportUnitValue(
                     unit.fromInternal(point.x),

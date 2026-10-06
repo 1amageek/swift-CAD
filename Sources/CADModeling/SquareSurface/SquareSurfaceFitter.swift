@@ -7,8 +7,9 @@ import CADIR
 /// into it when it lies there, interpolated at its Greville abscissae otherwise), its rows along hard
 /// sides kept, and every other control point minimizing the flatness-weighted
 /// thin plate and membrane energy plus the Weight-scaled loose terms — a Free side's positions
-/// and the boundary flow along sides without a face. A rational sheet keeps its refined weights
-/// and is fitted in homogeneous coordinates.
+/// and the boundary flow along sides without a face. Only the exact-refinement branch keeps a
+/// rational sheet's refined weights and fits it in homogeneous coordinates; the Greville
+/// interpolation branch provides the requested net's polynomial stand-in.
 package struct SquareSurfaceFitter {
     /// What a side of the frame asks of the sheet.
     package enum Constraint: Equatable {
@@ -179,11 +180,11 @@ package struct SquareSurfaceFitter {
                                 controlPoints: surface.controlPoints, weights: surface.weights)
     }
 
-    /// The exact sheet in the net of exactly the requested Degree × Spans (uniform clamped knots):
+    /// The sheet in the net of exactly the requested Degree × Spans (uniform clamped knots):
     /// refined into it exactly when it lies there (no higher degree, no knots of its own off the
-    /// net's), otherwise the net's sheet through its points at the net's Greville abscissae, whose
-    /// sides then stray from the frame by what the net cannot follow — measured and reported by
-    /// the Analysis, as Plasticity reports a side beyond its tolerance.
+    /// net's), otherwise interpolated through its points at the net's Greville abscissae without
+    /// a continuous original-sheet error certificate. Analysis follows lineage to the final
+    /// refitted face and does not certify original boundary deviation after regeneration.
     private func netSpace(_ surface: BSplineSurface3D, options: SquareFitOptions, featureID: FeatureID) throws -> BSplineSurface3D {
         func uniform(_ degree: Int, _ spans: Int) -> [Double] {
             Array(repeating: 0.0, count: degree + 1) + (1..<max(spans, 1)).map { Double($0) / Double(spans) }
@@ -193,11 +194,14 @@ package struct SquareSurfaceFitter {
         if surface.uDegree <= options.uDegree, surface.vDegree <= options.vDegree {
             let refinedSheet = try refined(surface, options: options)
             if refinedSheet.uDegree == options.uDegree, refinedSheet.vDegree == options.vDegree,
-               zip(refinedSheet.uKnots, uKnots).allSatisfy({ abs($0 - $1) <= 1e-12 }), refinedSheet.uKnots.count == uKnots.count,
-               zip(refinedSheet.vKnots, vKnots).allSatisfy({ abs($0 - $1) <= 1e-12 }), refinedSheet.vKnots.count == vKnots.count {
+               refinedSheet.uKnots == uKnots, refinedSheet.vKnots == vKnots {
                 return refinedSheet
             }
         }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The polynomial stand-in has no continuous
+        // original-sheet position, tangent or curvature error certificate. Square's
+        // production fit uses this Greville fallback when exact refinement cannot
+        // provide the requested net; full G6 requires those original-domain proofs.
         // Tensor interpolation at the Greville abscissae: each row of samples along u, then each
         // column of those along v.
         func grevilles(_ knots: [Double], _ degree: Int) -> [Double] {

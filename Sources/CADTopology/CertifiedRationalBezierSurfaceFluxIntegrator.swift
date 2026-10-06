@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// Certifies a rectangular rational B-spline surface-flux integral. Every
 /// active clamped or non-clamped span is reconstructed from outward-rounded
@@ -99,6 +107,44 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 reference: reference,
                 tolerance: tolerance
             )
+        }
+
+        func preparedPolynomialGreenPrimitive(
+            uBase: Double,
+            consumeCoefficientOperations consume: (Int) throws -> Void
+        ) throws -> CertifiedPiecewisePolynomialSurfaceFluxPrimitive? {
+            try Task.checkCancellation()
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic native charts have no prefix owner
+            // on volumetric pcurve queries. Complete only with original cycle/seam coverage.
+            guard !sourceSurface.isUPeriodic, !sourceSurface.isVPeriodic else {
+                throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+                    message: "Polynomial Green prefixes require nonperiodic original charts.")
+            }
+            guard case .closed(let lower, let upper) = sourceSurface.uDomain,
+                  uBase.isFinite, uBase >= lower, uBase <= upper,
+                  let weight = sourceSurface.weights.first?.first, weight.isFinite, weight > 0 else {
+                throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
+                    message: "Polynomial Green preparation requires a contained base and positive original weights.")
+            }
+            for row in sourceSurface.weights {
+                try Task.checkCancellation()
+                try consume(row.count)
+                for value in row where value != weight { return nil }
+            }
+            try consume(patches.count)
+            var inputs: [CertifiedPiecewisePolynomialSurfaceFluxPrimitive.NativePanel] = []
+            inputs.reserveCapacity(patches.count)
+            for source in patches {
+                try Task.checkCancellation()
+                try consume(5)
+                inputs.append(.init(uSpan: .init(lower: source.uLower, upper: source.uUpper),
+                    vSpan: .init(lower: source.vLower, upper: source.vUpper),
+                    fluxCoefficients: try source.patch.polynomialFluxCoefficients(
+                        weight: weight, consume: consume, tolerance: tolerance)))
+            }
+            return try CertifiedPiecewisePolynomialSurfaceFluxPrimitive(
+                source: sourceSurface, reference: reference, tolerance: tolerance, uBase: uBase,
+                uSpans: uSpans, vSpans: vSpans, panels: inputs, field: self, consume: consume)
         }
 
         func containingVSpan(
@@ -897,6 +943,55 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             }
         }
 
+        func polynomialFluxCoefficients(weight: Double, consume: (Int) throws -> Void,
+                                        tolerance: ModelingTolerance) throws -> [[CertifiedUnivariateTaylorJet.Interval]] {
+            // Charge both row metadata traversals and the exact-weight control scan
+            // before inspecting any prepared homogeneous coefficient.
+            let rowWork = controls.count.multipliedReportingOverflow(by: 2)
+            guard !rowWork.overflow else {
+                throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Polynomial Green control-admission row work overflowed.")
+            }
+            try consume(rowWork.partialValue)
+            var controlWork = 0
+            for row in controls {
+                let next = controlWork.addingReportingOverflow(row.count)
+                guard !next.overflow else {
+                    throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+                        message: "Polynomial Green control-admission work overflowed.")
+                }
+                controlWork = next.partialValue
+            }
+            try consume(controlWork)
+            guard hasExactConstantWeight, controls.first?.first?.weight.lower == weight,
+                  let fluxNumerator else {
+                throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+                    message: "Polynomial Green preparation requires retained original constant-weight determinant coefficients.")
+            }
+            try consume(3)
+            let w = Interval.exact(weight)
+            let denominator = Interval.exact(3) * w * w * w
+            guard denominator.lower > 0, denominator.upper.isFinite else {
+                throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Polynomial Green weight scaling exceeded finite arithmetic.")
+            }
+            try consume(fluxNumerator.coefficients.count)
+            var result: [[CertifiedUnivariateTaylorJet.Interval]] = []
+            result.reserveCapacity(fluxNumerator.coefficients.count)
+            for row in fluxNumerator.coefficients {
+                try consume(row.count)
+                var values: [CertifiedUnivariateTaylorJet.Interval] = []
+                values.reserveCapacity(row.count)
+                for coefficient in row {
+                    try consume(1)
+                    let quotient = coefficient / denominator
+                    values.append(.init(lower: quotient.lower, upper: quotient.upper))
+                }
+                result.append(values)
+            }
+            return result
+        }
+
         init(
             certified: CertifiedHomogeneousBezierSurfacePatch,
             reference: Point3D,
@@ -1072,10 +1167,44 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 evaluatedWeight,
                 tolerance: tolerance
             )
-            let numerator = fluxNumerator.evaluated(
+            let evaluatedNumerator = fluxNumerator.evaluated(
                 u: restrictedU,
                 v: restrictedV
             )
+            // Restricted unit coordinates retain the nonnegative, partition-of-unity
+            // tensor Bernstein basis. The same original determinant coefficient hull
+            // therefore independently encloses this scalar numerator. Its scan reads
+            // each coefficient once, bounded by the scalar evaluation already executed,
+            // and creates no additional net, evaluation or private work allowance.
+            var hullLower = Double.infinity
+            var hullUpper = -Double.infinity
+            var finiteCoefficients = true
+            for row in fluxNumerator.coefficients {
+                for coefficient in row {
+                    finiteCoefficients = finiteCoefficients
+                        && coefficient.lower.isFinite
+                        && coefficient.upper.isFinite
+                        && coefficient.lower <= coefficient.upper
+                    hullLower = min(hullLower, coefficient.lower)
+                    hullUpper = max(hullUpper, coefficient.upper)
+                }
+            }
+            let numeratorLower = max(evaluatedNumerator.lower, hullLower)
+            let numeratorUpper = min(evaluatedNumerator.upper, hullUpper)
+            guard finiteCoefficients,
+                  evaluatedNumerator.lower.isFinite,
+                  evaluatedNumerator.upper.isFinite,
+                  hullLower.isFinite,
+                  hullUpper.isFinite,
+                  numeratorLower <= numeratorUpper else {
+                throw KernelError(
+                    phase: .topology,
+                    code: .resourceLimitExceeded,
+                    tolerance: tolerance,
+                    message: "Certified rational surface flux numerator could not intersect its finite original coefficient hull."
+                )
+            }
+            let numerator = Interval(lower: numeratorLower, upper: numeratorUpper)
             return numerator
                 / (weight * weight * weight)
                 / Interval.exact(3.0)

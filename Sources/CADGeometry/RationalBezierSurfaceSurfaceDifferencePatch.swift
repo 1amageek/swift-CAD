@@ -206,6 +206,65 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
     let secondVLower: Double
     let secondVUpper: Double
 
+    init(originalFirst first: NativeSurfaceOriginalCoefficientNet,
+        originalSecond second: NativeSurfaceOriginalCoefficientNet,
+        tolerance: ModelingTolerance, admission: NativeSurfaceEmbeddingAdmission) throws {
+        let a = first.controls, b = second.controls
+        guard !a.isEmpty, !b.isEmpty, !a[0].isEmpty, !b[0].isEmpty else {
+            throw GeometryConversionError.invalidInput("Original surface difference requires nonempty original coefficient nets.")
+        }
+        let count = try NativeSurfaceEmbeddingPreparationReservation.product([a.count, a[0].count, b.count, b[0].count])
+        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.product([count, 8]))
+        var result: [[[[IntervalVector]]]] = []
+        var firstWeight = 0.0, secondWeight = 0.0
+        for row in a { for value in row { try admission.work(1); firstWeight = max(firstWeight, value.weight.upper) } }
+        for row in b { for value in row { try admission.work(1); secondWeight = max(secondWeight, value.weight.upper) } }
+        for row in a {
+            var slab: [[[IntervalVector]]] = []
+            for firstControl in row {
+                var plane: [[IntervalVector]] = []
+                for secondRow in b {
+                    var line: [IntervalVector] = []
+                    for secondControl in secondRow {
+                        try admission.work(1)
+                        func coordinate(_ x: OutwardScalarInterval, _ y: OutwardScalarInterval) -> OutwardInterval {
+                            let value = x * secondControl.weight - y * firstControl.weight
+                            return .enclosing(value.lower, value.upper)
+                        }
+                        let value = IntervalVector(x: coordinate(firstControl.x, secondControl.x),
+                            y: coordinate(firstControl.y, secondControl.y), z: coordinate(firstControl.z, secondControl.z))
+                        guard value.isFinite else {
+                            throw GeometryConversionError.resourceLimitExceeded("Original surface difference exceeds finite homogeneous arithmetic.")
+                        }
+                        line.append(value)
+                    }
+                    plane.append(line)
+                }
+                slab.append(plane)
+            }
+            result.append(slab)
+        }
+        let denominator = (OutwardScalarInterval.exact(firstWeight) * .exact(secondWeight)).upper
+        guard denominator.isFinite, denominator > 0 else {
+            throw GeometryConversionError.resourceLimitExceeded("Original surface difference needs its finite positive source denominator bound.")
+        }
+        controlNet = result; denominatorUpperBound = denominator
+        firstULower = first.workingDomain.u.lower; firstUUpper = first.workingDomain.u.upper
+        firstVLower = first.workingDomain.v.lower; firstVUpper = first.workingDomain.v.upper
+        secondULower = second.workingDomain.u.lower; secondUUpper = second.workingDomain.u.upper
+        secondVLower = second.workingDomain.v.lower; secondVUpper = second.workingDomain.v.upper
+    }
+
+    init(first: RationalBezierSurfacePatch3D, second: RationalBezierSurfacePatch3D,
+        tolerance: ModelingTolerance, admission: NativeSurfaceEmbeddingAdmission) throws {
+        let firstCount = try NativeSurfaceEmbeddingPreparationReservation.net(first.controlPoints, admission: admission)
+        let secondCount = try NativeSurfaceEmbeddingPreparationReservation.net(second.controlPoints, admission: admission)
+        let count = try NativeSurfaceEmbeddingPreparationReservation.product([firstCount, secondCount])
+        try admission.work(NativeSurfaceEmbeddingPreparationReservation.sum([firstCount, secondCount, try NativeSurfaceEmbeddingPreparationReservation.product([count, 2])]))
+        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.product([count, 10]))
+        try self.init(first: first, second: second, tolerance: tolerance)
+    }
+
     init(
         first: RationalBezierSurfacePatch3D,
         second: RationalBezierSurfacePatch3D,
@@ -279,6 +338,32 @@ struct RationalBezierSurfaceSurfaceDifferencePatch: Sendable {
         secondUUpper = secondUBounds.1
         secondVLower = secondVBounds.0
         secondVUpper = secondVBounds.1
+    }
+
+    func excludesZero(admission: NativeSurfaceEmbeddingAdmission) throws -> Bool {
+        let count = try NativeSurfaceEmbeddingPreparationReservation.product(
+            [controlNet.count, controlNet[0].count, controlNet[0][0].count, controlNet[0][0][0].count])
+        try admission.work(NativeSurfaceEmbeddingPreparationReservation.product([count, 3]))
+        return excludesZero()
+    }
+    func excludesZeroAlongSurfaceDirections(allowedCornerContacts: [(first: Point2D, second: Point2D)],
+        admission: NativeSurfaceEmbeddingAdmission) throws -> Bool {
+        let count = try NativeSurfaceEmbeddingPreparationReservation.product(
+            [controlNet.count, controlNet[0].count, controlNet[0][0].count, controlNet[0][0][0].count])
+        try admission.work(NativeSurfaceEmbeddingPreparationReservation.product([count, 44]))
+        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.sum([try NativeSurfaceEmbeddingPreparationReservation.product([count, 16]), 88]))
+        return excludesZeroAlongSurfaceDirections(allowedCornerContacts: allowedCornerContacts)
+    }
+    func subdivided(parameterIndex: Int, admission: NativeSurfaceEmbeddingAdmission) throws -> [Self] {
+        guard (0..<4).contains(parameterIndex) else {
+            throw GeometryConversionError.invalidInput("Native pair subdivision needs an original parameter axis.")
+        }
+        let shape = [controlNet[0].count, controlNet.count, controlNet[0][0][0].count, controlNet[0][0].count]
+        let count = try NativeSurfaceEmbeddingPreparationReservation.product(shape)
+        let levels = try NativeSurfaceEmbeddingPreparationReservation.product([count, shape[parameterIndex] + 1]) / 2
+        try admission.work(NativeSurfaceEmbeddingPreparationReservation.sum([levels, count]))
+        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.sum([try NativeSurfaceEmbeddingPreparationReservation.product([levels, 3]), try NativeSurfaceEmbeddingPreparationReservation.product([count, 8])]))
+        return subdivided(parameterIndex: parameterIndex)
     }
 
     func excludesZero() -> Bool {

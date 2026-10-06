@@ -1,4 +1,4 @@
-public struct Point3D: Codable, Hashable, Sendable {
+public struct Point3D: Hashable, Sendable {
     public var x: Double
     public var y: Double
     public var z: Double
@@ -39,3 +39,7 @@ private func validateCoordinate(_ value: Double) throws {
         throw GeometryError.invalidCoordinate(value)
     }
 }
+
+#if !hasFeature(Embedded)
+extension Point3D: Codable {}
+#endif

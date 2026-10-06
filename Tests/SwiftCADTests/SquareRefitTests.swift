@@ -70,6 +70,92 @@ struct SquareRefitTests {
         #expect(sides.allSatisfy { $0.position < 1e-9 && $0.isWithin && abs(($0.point?.z ?? 0) - s) < 1e-12 })
     }
 
+    @Test(.timeLimit(.minutes(2)))
+    func narrowNativeEdgeBulgesRequireCertifiedRefitAndPreserveBothVertexParents() throws {
+        let tolerance = ModelingTolerance.standard, delta = tolerance.distance
+        let axis = [0.0, 1.0 / 64, 1.0 / 32, 3.0 / 64, 1.0]
+        let heights = [0.0, 0.0, 4 * delta, 0.0, 0.0]
+        let knots = [0.0, 0.0, 1.0 / 64, 1.0 / 32, 3.0 / 64, 1.0, 1.0]
+        let controls = axis.indices.map { v in
+            axis.indices.map { u in Point3D(x: 0.01 * axis[u], y: 0.01 * axis[v],
+                z: (1 + axis[v]) * heights[u] + (1.5 + axis[u]) * heights[v]) }
+        }
+        var builder = DocumentBuilder(units: .meters, tolerance: tolerance)
+        let sheet = try builder.bSplineSurface(BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: knots, vKnots: knots, controlPoints: controls))
+        let original = try evaluate(builder)
+        try original.brep.validate(level: .exact, tolerance: tolerance)
+        var originalVertices: [SubshapeID: Point3D] = [:]
+        for (key, topology) in original.subshapes.entries where key.featureID == sheet {
+            if case let .vertex(id) = topology { originalVertices[key] = try #require(original.brep.vertices[id]).point }
+        }
+        #expect(originalVertices.count == 4)
+        let originalFace = try #require(original.brep.faces.values.first)
+        let originalLoopID = try #require(originalFace.loops.first)
+        let originalLoop = try #require(original.brep.loops[originalLoopID])
+        #expect(originalLoop.coedges.count == 4)
+        let certification = CurveSurfaceCorrespondenceValidationOptions(maximumSubdivisionDepth: 32,
+            maximumCellCount: 1_048_576, maximumDeviation: delta)
+        for coedge in originalLoop.coedges {
+            let edge = try #require(original.brep.edges[coedge.edgeID]), trim = try #require(edge.trim)
+            let curve = try #require(original.brep.geometry.curves[edge.curveID])
+            let start = coedge.orientation == .forward ? trim.startParameter : trim.endParameter
+            let end = coedge.orientation == .forward ? trim.endParameter : trim.startParameter
+            // These witnesses establish the adversarial source; acceptance below requires the continuous public validator.
+            for station in 0...16 {
+                #expect(abs(try curve.point(at: start + (end - start) * Double(station) / 16, tolerance: tolerance).z) < delta / 100)
+            }
+            let peaks = try (0...32).map { try curve.point(at: start + (end - start) * Double($0) / 32, tolerance: tolerance).z }
+            #expect(try #require(peaks.max()) > 3.9 * delta)
+            try DefaultCurveSurfaceCorrespondenceValidator().validate(curve: curve, from: start, to: end,
+                surface: try #require(original.brep.geometry.surfaces[originalFace.surfaceID]),
+                parameterCurve: try #require(coedge.surfaceParameterCurve), options: certification, tolerance: tolerance)
+        }
+        let selected = try face(of: sheet, in: builder) { if case .bSpline = $0 { return true }; return false }
+        let refit = try builder.rebuildFaces(target: sheet, faces: [selected], method: .square(SquareRefit(
+            options: SquareFitOptions(uDegree: 1, vDegree: 1, uSpans: 1, vSpans: 1))))
+        let evaluated = try evaluate(builder)
+        let surfaces = try refitted(refit, in: evaluated)
+        #expect(surfaces.count == 1 && surfaces.allSatisfy {
+            $0.uDegree == 1 && $0.vDegree == 1 && $0.uControlPointCount == 2 && $0.vControlPointCount == 2
+                && $0.controlPoints.joined().allSatisfy { abs($0.z) < delta / 100 }
+        })
+        let faceID = try #require(evaluated.subshapes.entries.first { key, value in
+            guard key.featureID == refit, case .face = value else { return false }; return true
+        }.flatMap { if case let .face(id) = $0.value { return id }; return nil })
+        let face = try #require(evaluated.brep.faces[faceID]), surface = try #require(evaluated.brep.geometry.surfaces[face.surfaceID])
+        let loopID = try #require(face.loops.first)
+        let loop = try #require(evaluated.brep.loops[loopID])
+        #expect(loop.coedges.count == 4)
+        for coedge in loop.coedges {
+            let edge = try #require(evaluated.brep.edges[coedge.edgeID]), trim = try #require(edge.trim)
+            let curve = try #require(evaluated.brep.geometry.curves[edge.curveID])
+            let start = coedge.orientation == .forward ? trim.startParameter : trim.endParameter
+            let end = coedge.orientation == .forward ? trim.endParameter : trim.startParameter
+            // Check the native knot witness independently of the continuous validator's certificate.
+            let witnessParameter = min(start, end) + abs(end - start) / 32
+            let witnessFraction = (witnessParameter - start) / (end - start)
+            let witnessPoint = try curve.point(at: witnessParameter, tolerance: tolerance)
+            let witnessUV = try #require(coedge.surfaceParameterCurve).parameter(atNormalizedFraction: witnessFraction, tolerance: tolerance)
+            let witnessTarget = try surface.point(u: witnessUV.u, v: witnessUV.v, tolerance: tolerance)
+            #expect((witnessPoint - witnessTarget).length <= delta)
+            do {
+                try DefaultCurveSurfaceCorrespondenceValidator().validate(curve: curve, from: start, to: end,
+                    surface: surface, parameterCurve: try #require(coedge.surfaceParameterCurve), options: certification, tolerance: tolerance)
+            } catch { Issue.record("Refit kept an edge without a full distance-tolerance certificate: \(error)") }
+            // All four sides stray, so no retained neighbour can supply a missing regenerated endpoint parent.
+            for vertexID in [edge.startVertexID, edge.endVertexID] {
+                let point = try #require(evaluated.brep.vertices[vertexID]).point
+                let originalKey = try #require(originalVertices.first { ($0.value - point).length <= delta }?.key)
+                let key = try #require(evaluated.subshapes.entries.first { $0.key.featureID == refit && $0.value == .vertex(vertexID) }?.key)
+                #expect(try #require(evaluated.lineage[key]).parents.contains(originalKey))
+            }
+        }
+        let analysis = try FaceRefitAnalyzer().analyze(refit, in: evaluated)
+        // The stable selection resolves through current lineage to the final edges; source peaks are witnessed above.
+        #expect(analysis.count == 4 && analysis.allSatisfy { $0.isWithin })
+    }
+
     /// A square prism with one corner cut at a shallow angle: its top's sharpest corners are the
     /// other three and the cut's sharper end, so one side runs over two edges meeting at a corner.
     private func pentagonalPrism(_ builder: inout DocumentBuilder) throws -> FeatureID {

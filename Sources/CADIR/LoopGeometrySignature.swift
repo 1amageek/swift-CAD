@@ -2,7 +2,7 @@ import CADCore
 import CADGeometry
 import CADTopology
 
-public struct LoopGeometrySignature: Codable, Hashable, Sendable {
+public struct LoopGeometrySignature: Hashable, Sendable {
     public let role: LoopRole
     public let coedges: [CoedgeGeometrySignature]
 
@@ -25,21 +25,31 @@ public struct LoopGeometrySignature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case role
         case coedges
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(Set(CodingKeys.allCases), in: decoder)
         role = try container.decode(LoopRole.self, forKey: .role)
         coedges = try container.decode([CoedgeGeometrySignature].self, forKey: .coedges)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(role, forKey: .role)
         try container.encode(coedges, forKey: .coedges)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension LoopGeometrySignature: Codable {}
+#endif

@@ -5,7 +5,7 @@ import CADTopology
 /// chosen) becomes a shell of its own, and the faces left keep together as one shell per piece
 /// that still hangs together. The result is one sheet body whose shells are those pieces; the
 /// source body is consumed.
-public struct UnjoinFacesFeature: Codable, Hashable, Sendable {
+public struct UnjoinFacesFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var selection: UnjoinFacesSelection
 
@@ -19,10 +19,13 @@ public struct UnjoinFacesFeature: Codable, Hashable, Sendable {
         try selection.validate()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, selection
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .selection], in: decoder)
@@ -30,13 +33,16 @@ public struct UnjoinFacesFeature: Codable, Hashable, Sendable {
         selection = try container.decode(UnjoinFacesSelection.self, forKey: .selection)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(target, forKey: .target)
         try container.encode(selection, forKey: .selection)
     }
+#endif
 }
 
 /// Which faces an unjoin separates.
@@ -61,15 +67,21 @@ public enum UnjoinFacesSelection: Hashable, Sendable {
     }
 }
 
+#if !hasFeature(Embedded)
 extension UnjoinFacesSelection: Codable {
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind, faces
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case everyFace, faces
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -81,7 +93,9 @@ extension UnjoinFacesSelection: Codable {
             self = .faces(try container.decode([StableSubshapeReference].self, forKey: .faces))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -92,4 +106,12 @@ extension UnjoinFacesSelection: Codable {
             try container.encode(faces, forKey: .faces)
         }
     }
+#endif
 }
+#endif
+
+#if !hasFeature(Embedded)
+#if !hasFeature(Embedded)
+extension UnjoinFacesFeature: Codable {}
+#endif
+#endif

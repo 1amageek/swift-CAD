@@ -1,7 +1,7 @@
 import CADCore
 
 /// The motion a Topology Transform applies, in the target body's own frame.
-public enum TopologyMotion: Codable, Hashable, Sendable {
+public enum TopologyMotion: Hashable, Sendable {
     case translation(DirectMoveVector)
     case rotation(DirectRotation)
     case scale(DirectScale)
@@ -23,19 +23,24 @@ public enum TopologyMotion: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case translation
         case rotation
         case scale
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case translation
         case rotation
         case scale
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -50,7 +55,9 @@ public enum TopologyMotion: Codable, Hashable, Sendable {
             self = .scale(try container.decode(DirectScale.self, forKey: .scale))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -65,4 +72,9 @@ public enum TopologyMotion: Codable, Hashable, Sendable {
             try container.encode(scale, forKey: .scale)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension TopologyMotion: Codable {}
+#endif

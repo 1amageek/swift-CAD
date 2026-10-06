@@ -20,6 +20,11 @@ the resulting work before collection growth or mesh allocation. Neither value
 knows a viewport, camera, UI state, Agent request, or product-specific level of
 detail policy.
 
+The complete user-authorized functional parity requirement set is tracked in
+[OCCT_REQUIREMENTS.md](OCCT_REQUIREMENTS.md). Per-owner designs remain the
+authority for implementation contracts; PROGRESS.md alone owns task progress.
+No capability registration constitutes geometric completion.
+
 ## Responsibilities and Boundaries
 
 Swift-CAD owns:
@@ -39,11 +44,17 @@ or bounds data.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADWASMSmoke](Sources/CADWASMSmoke/DESIGN.md) | child | bounded public kernel smoke execution | Owns actual Native and normal-WASM executable witnesses. | Witness scope does not establish full M1 or Embedded completion. |
+| [Portable Geometry Verification](Sources/CADGeometryWASMSmoke/DESIGN.md) | child | G1 geometry and signature runtime checks | Verifies periodic geometry on the exact emitted WASM artifact | Whole-kernel and Embedded evidence remain required |
+| [Portable Contract Verification](Sources/CADContractWASMSmoke/DESIGN.md) | child | Capability and failure runtime checks | Verifies portable contract behavior independently of geometry compilation | Whole-kernel and Embedded evidence remain required |
+| [CADCore](Sources/CADCore/DESIGN.md) | child | Common values, typed failures and Native codec capability | Owns the actual Core module and its explicit platform adapters. | Embedded codec absence does not weaken common value or ownership semantics. |
+| [Core Portability Verification](Sources/CADCorePortabilitySmoke/DESIGN.md) | child | Actual complete CADCore fixed-target behavior | Exercises unchanged values, COW, errors and available Native codecs | Full Embedded A2 remains a separate requirement |
+| [Portable Transaction Verification](Sources/A2DocumentTransactionSmoke/DESIGN.md) | child | Complete public transaction runtime proof | Executes the same exact evaluator and actor snapshot contracts on Native, normal WASM and Embedded | Whole production source/evaluation dependencies must compile and run; a subset probe is insufficient |
 | [CADGeometry](Sources/CADGeometry/DESIGN.md) | child | analytic surface and pcurve validation | Owns parameter-domain and structural geometric validity. | Structural validity is not silently relaxed for a model tolerance. |
 | [CADModeling](Sources/CADModeling/DESIGN.md) | child | exact primitive construction | Owns generated primitive B-rep topology and analytic seam/pole pcurves. | Generated references must remain valid through the shared geometry contract. |
 | [CADIR](Sources/CADIR/DESIGN.md) | child | stable signature value and Codable contract | Owns serialized geometry signatures and their rejection rules. | Signatures retain geometry; they do not identify a new body by themselves. |
 | [CADKernel](Sources/CADKernel/DESIGN.md) | child | evaluated snapshot topology reads | Owns snapshot-scoped stable-reference creation and lookup. | Reads use the supplied immutable evaluation; no second authority is created. |
 | [CADTopology](Sources/CADTopology/DESIGN.md) | child | exact open-boundary edge loops | Owns incidence-based loop discovery shared by evaluation and presentation. | Only closed, non-branching one-face edge components are returned. |
+| [SwiftCAD](Sources/SwiftCAD/DESIGN.md) | child | validated authoring and atomic document transactions | Composes editor, exact evaluation and exchange | Transaction state is separate from application project publication |
 | [CADExchange](Sources/CADExchange/DESIGN.md) | child | bounded exchange parse/write and typed format support | Publishes exact STEP source documents and mesh exchange results at the CADIR boundary. | Exchange format support is explicit; unsupported entities never become partial source. |
 | [RupaCore](../RupaKit/Sources/RupaCore/DESIGN.md) | used by | evaluated solid and Mesh-backed presentation measurement | Consumes exact B-rep volume and derived Mesh area/bounds. | RupaCore does not construct or approximate CAD geometry; a capability it needs is published here, per the [system kernel/application boundary](../DESIGN.md#kernel-and-application-boundary). |
 
@@ -175,23 +186,75 @@ tessellation.
 
 ### Normal-WASI Foundation Environment
 
-The package owns the compiler and linker environment for the normal
-`swift-6.4.0-RELEASE_wasm` SDK. `CADExchange` and `SwiftCAD` import Foundation
-through their existing public facade graph. Each target defines
-`_WASI_EMULATED_SIGNAL` and `_WASI_EMULATED_MMAN` and links
-`wasi-emulated-signal` and `wasi-emulated-mman` only on WASI. Native target
-settings remain unchanged. A missing SDK module or emulation library is a
-build or link failure; it is not an invitation to substitute parser semantics.
+The `NativeExchange` SwiftPM trait is enabled by default and owns the optional
+SwiftCAD-to-CADExchange transport dependency. Native and normal-WASM complete
+exchange builds retain that default. The Embedded document authoring and
+transaction profile explicitly disables default traits, so its public SwiftCAD
+document/evaluation/transaction dependency graph excludes Foundation/OpenUSD
+transport modules. This selection changes transport availability only; common
+source values, source encoding, state ownership, Sendable, cancellation and
+transaction semantics remain the same. SwiftCAD exposes Native exchange
+adapters under `CAD_EXCHANGE`; their absence never substitutes another exporter
+or a fabricated persistence result. The A2 proof executable selects the same
+SwiftCAD public document API under the fixed Embedded SDK and this declared
+transport-free package profile. Compilation and runtime proof are deferred
+until the complete source implementation phase has finished.
 
-The facade runtime must exercise default in-memory Native package admission,
-including typed malformed-record refusal. ZIP byte limits and host
-addressability are owned by [CADExchange](Sources/CADExchange/DESIGN.md#failure-concurrency-and-constraints).
+The fixed Swift 6.4.0 normal-WASM SDK provides Foundation and CoreFoundation.
+CADExchange uses both to distinguish JSON booleans from numeric values in glTF;
+the package owns the corresponding compiler and link environment. On the
+`wasi` platform only, CADExchange defines `_WASI_EMULATED_SIGNAL` and
+`_WASI_EMULATED_MMAN` through SwiftPM `cSettings.define` and links the matching
+SDK `wasi-emulated-signal` and `wasi-emulated-mman` libraries through
+`linkerSettings.linkedLibrary`. These formal settings also apply to Swift's
+Clang importer. Native targets retain their existing flags and libraries.
+No emulation macro weakens geometric, transaction or cancellation semantics.
+An SDK missing these libraries fails build/link admission; no parser fallback
+or unchecked state replaces the unavailable environment. This normal-WASI
+contract does not establish Embedded Foundation or cancellation availability.
 
-SwiftPM target settings do not propagate to a dependent Swift module's Clang
-importer. A private verification executable importing Foundation and SwiftCAD
-therefore repeats these target-local settings. Its existing WASI test stack
-contract is 64 MiB; that setting belongs to the test executable, not the
-production library targets.
+SwiftPM target settings are local to the frontend target and do not propagate
+through a dependent Swift module's Clang importer. `SwiftCAD` directly imports
+and re-exports `CADExchange`, so it repeats the same WASI-only definitions and
+libraries. Any portable runtime harness that imports `SwiftCAD` consumes the
+same settings. These repeated declarations are one package contract; they do
+not change Native targets or provide a separate fallback environment.
+
+```text
+Package.swift WASI condition
+    -> CADExchange + SwiftCAD target-local Clang-importer definitions
+    -> matching SDK emulation libraries
+    -> Foundation/CoreFoundation typed JSON boundary
+    -> full SwiftCAD graph and transaction runtime
+```
+
+Verification separates the fixed-SDK boolean/number compile/link/runtime probe,
+the actual full product build/link, and the transaction behavioral runtime.
+The minimal probe alone does not prove the full product or A2. Changes to this
+environment require checking the full CADExchange/SwiftCAD dependency graph
+and its actual executable under the same SDK; Native platform conditions must
+remain unchanged.
+
+The full normal-WASM transaction executable is verified on Node.js 24.19.0
+with real WASI Preview 1 imports and the existing explicit 64 MiB executable
+stack contract. Its atomic commit, history, stale epoch, exact single concurrent
+admission, resource refusal and cancelled-publication checks must reach the
+final completion marker; returning from `_start` alone is insufficient evidence.
+The Swift 6.4.0 toolchain's default WasmKit 0.3.1 runner cannot translate the
+large synthesized CADCommand copy functions on the same debug artifact:
+its constant-slot/register limit fails during stage. The Node result is scoped
+to that explicitly selected backend, not generalized to WasmKit or Embedded.
+There is no automatic engine substitution or source-semantic fallback.
+
+### Bounded Main Facade Witness
+
+The existing bounded main-graph witness exercises public `appendFeature`,
+deferred exact box topology and literal volume, in-memory Native package
+write/read with complete source equality, and malformed-package typed refusal.
+ZIP byte limits and host addressability remain owned by
+[CADExchange](Sources/CADExchange/DESIGN.md#failure-concurrency-and-constraints).
+Its private Foundation/SwiftCAD harness repeats the target-local WASI importer
+settings and uses the same explicit 64 MiB executable stack contract.
 
 ```mermaid
 flowchart LR
@@ -203,19 +266,14 @@ flowchart LR
     SDK --> E
 ```
 
-The bounded verification uses this main source graph: public `appendFeature`,
-deferred exact box topology and literal volume, in-memory Native package
-write/read with complete source equality, and malformed-package typed refusal.
 The real Node.js WASI Preview 1 runner must exit successfully and emit the
-harness's dedicated final marker. A runner start or module compilation alone
-is insufficient evidence. The receipt identifies the exact commit, overlays,
-private harness, package graph, SDK, runner, artifact and observed backend.
-
-This environment contract does not certify URL persistence, atomic file
-publication, transaction/history APIs, every exchange format, WasmKit, or
-Embedded Swift. Prior receipts for another source graph remain scoped to their
-original snapshots and are not evidence for this main graph. Changes to these
-settings require the same full-facade compile, link and bounded runtime proof.
+harness's dedicated final marker. Its receipt identifies the exact commit,
+overlays, private harness, package graph, SDK, runner, artifact and observed
+backend. That bounded witness does not establish URL persistence, atomic file
+publication, transaction/history behavior, every exchange format, WasmKit, or
+Embedded Swift. Transaction and portable-profile evidence remain scoped to
+those separate actual executables and source snapshots; earlier receipts do
+not certify this merged source snapshot.
 
 ## Verification and Change Impact
 
@@ -253,3 +311,10 @@ Natural Bezier extension expressions use the shared numeric and unit contract in
 
 Authored spline refinement is owned by [CADIR](Sources/CADIR/DESIGN.md#symbolic-spline-refinement):
 coordinate expressions survive affine refinement and are evaluated only by consumers.
+
+The prior main normal-WASI facade receipt exercises public appendFeature,
+deferred exact box topology and literal volume, complete in-memory Native
+source equality, and malformed-package refusal. That receipt is scoped to
+its original source snapshot; it does not verify this stopped composition.
+URL persistence, every exchange format, WasmKit and Embedded remain separate
+proof obligations.

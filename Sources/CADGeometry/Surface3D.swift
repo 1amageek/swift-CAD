@@ -1,8 +1,8 @@
 import Foundation
 import CADCore
 
-public enum Surface3D: Codable, Sendable, Hashable {
-    public struct DifferentialGeometry: Codable, Sendable, Hashable {
+public enum Surface3D: Sendable, Hashable {
+    public struct DifferentialGeometry: Sendable, Hashable {
         public var position: Point3D
         public var tangentU: Vector3D
         public var tangentV: Vector3D
@@ -100,7 +100,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
             return plane.origin + basisU * u + basisV * v
         case let .cylinder(cylinder):
             let (radialU, radialV) = try cylinderBasis(for: cylinder, tolerance: tolerance)
-            let radial = radialU * cos(u) + radialV * sin(u)
+            let radial = radialU * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + radialV * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
             return cylinder.origin + radial * cylinder.radius + cylinder.axis * v
         case let .analytic(surface):
             return try surface.point(u: u, v: v, tolerance: tolerance)
@@ -240,11 +240,12 @@ public enum Surface3D: Codable, Sendable, Hashable {
             )
         case let .cylinder(cylinder):
             let (radialU, radialV) = try cylinderBasis(for: cylinder, tolerance: tolerance)
-            let radial = radialU * cos(u) + radialV * sin(u)
-            let tangentU = radialU * (-cylinder.radius * sin(u)) +
-                radialV * (cylinder.radius * cos(u))
+            let radial = radialU * CanonicalSphereAngularPhase.candidate(at: u, cosine: true) + radialV * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)
+            let angularScale = CanonicalSphereAngularPhase.scaleBounds.midpoint
+            let tangentU = (radialU * (-cylinder.radius * CanonicalSphereAngularPhase.candidate(at: u, cosine: false)) +
+                radialV * (cylinder.radius * CanonicalSphereAngularPhase.candidate(at: u, cosine: true))) * angularScale
             let tangentV = cylinder.axis
-            let secondDerivativeUU = radial * -cylinder.radius
+            let secondDerivativeUU = radial * (-cylinder.radius * angularScale * angularScale)
             let normal = try radial.normalized(tolerance: tolerance.distance)
             let minimumCurvature = -1.0 / cylinder.radius
             return DifferentialGeometry(
@@ -361,6 +362,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case plane
@@ -369,7 +371,9 @@ public enum Surface3D: Codable, Sendable, Hashable {
         case bSpline
         case procedural
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case plane
         case cylinder
@@ -377,7 +381,9 @@ public enum Surface3D: Codable, Sendable, Hashable {
         case bSpline
         case procedural
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -401,7 +407,9 @@ public enum Surface3D: Codable, Sendable, Hashable {
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -422,6 +430,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
             try container.encode(surface, forKey: .procedural)
         }
     }
+#endif
 
     private func planeBasis(
         for plane: Plane3D,
@@ -457,7 +466,7 @@ public enum Surface3D: Codable, Sendable, Hashable {
             let offset = point - origin
             let height = offset.dot(axis)
             let radial = offset - axis * height
-            return (normalizedAngle(atan2(radial.dot(basis.v), radial.dot(basis.u))), height)
+            return (CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: normalizedAngle(atan2(radial.dot(basis.v), radial.dot(basis.u)))), height)
         case let .cone(apex, axis, halfAngle):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
             let offset = point - apex
@@ -466,15 +475,15 @@ public enum Surface3D: Codable, Sendable, Hashable {
             let radial = offset - axis * axialDistance
             let direction = signedV >= 0.0 ? radial : -radial
             let u = direction.length > tolerance.distance
-                ? normalizedAngle(atan2(direction.dot(basis.v), direction.dot(basis.u)))
+                ? CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: normalizedAngle(atan2(direction.dot(basis.v), direction.dot(basis.u))))
                 : 0.0
             return (u, signedV)
         case let .sphere(center, _):
             let direction = try (point - center).normalized(tolerance: tolerance.distance)
             let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
             return (
-                normalizedAngle(atan2(direction.dot(basis.v), direction.dot(basis.u))),
-                asin(min(max(direction.dot(.unitZ), -1.0), 1.0))
+                CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: normalizedAngle(atan2(direction.dot(basis.v), direction.dot(basis.u)))),
+                CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: asin(min(max(direction.dot(.unitZ), -1.0), 1.0)))
             )
         case let .torus(center, axis, majorRadius, _):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)
@@ -487,12 +496,12 @@ public enum Surface3D: Codable, Sendable, Hashable {
                 : basis.u
             return (
                 radialLength > tolerance.distance
-                    ? normalizedAngle(atan2(
+                    ? CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: normalizedAngle(atan2(
                         radialDirection.dot(basis.v),
                         radialDirection.dot(basis.u)
-                    ))
+                    )))
                     : 0.0,
-                normalizedAngle(atan2(axialDistance, radialLength - majorRadius))
+                CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: normalizedAngle(atan2(axialDistance, radialLength - majorRadius)))
             )
         }
     }
@@ -514,3 +523,8 @@ public enum Surface3D: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension Surface3D: Codable {}
+extension Surface3D.DifferentialGeometry: Codable {}
+#endif

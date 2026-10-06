@@ -5,7 +5,7 @@
 /// neither the source fingerprint nor the tessellation fidelity can express on
 /// its own: two purposes can legitimately request the same fidelity from the
 /// same source and still must not share one artifact's resource accounting.
-public struct MeshArtifactPurpose: RawRepresentable, Codable, Hashable, Sendable {
+public struct MeshArtifactPurpose: RawRepresentable, Hashable, Sendable {
     public let rawValue: String
 
     public init(rawValue: String) {
@@ -35,3 +35,7 @@ public enum MeshArtifactPurposeError: Error, Equatable, Sendable {
     case emptyPurpose
     case whitespaceInPurpose(String)
 }
+
+#if !hasFeature(Embedded)
+extension MeshArtifactPurpose: Codable {}
+#endif

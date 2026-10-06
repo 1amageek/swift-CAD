@@ -3,8 +3,10 @@ struct GeometryConversionBudget {
     var work: Int
     var boxes: Int
     var visited = 0
+    let admission: GeometryConversionAdmission?
 
-    init(_ requirements: GeometryConversionRequirements) {
+    init(_ requirements: GeometryConversionRequirements, admission: GeometryConversionAdmission? = nil) {
+        self.admission = admission
         scalars = requirements.maximumScalarCount
         work = requirements.maximumWorkUnits
         boxes = requirements.maximumCertificationBoxes
@@ -14,6 +16,7 @@ struct GeometryConversionBudget {
             throw GeometryConversionError.resourceLimitExceeded(
                 "Conversion resource admission rejected \(count) scalar slots with \(scalars) remaining and \(units) work units with \(work) remaining after \(visited) certification boxes.")
         }
+        try admission?.chargeWork(units)
         scalars -= count; work -= units
     }
     mutating func visit() throws {

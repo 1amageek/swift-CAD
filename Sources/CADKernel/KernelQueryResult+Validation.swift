@@ -16,6 +16,8 @@ public extension KernelQueryResult {
             try validateSnap(result)
         case let .measurement(result):
             try validateMeasurement(result)
+        case let .massProperties(result):
+            try result.validate()
         case let .selectionDimensionEvaluation(result):
             try validateSelectionDimensionEvaluation(result)
         case let .projection(result):
@@ -48,20 +50,15 @@ private func validateMeasurement(_ result: MeasurementQueryResult) throws {
     case let .distance(distance):
         try validateMeasurementPoint(distance.first)
         try validateMeasurementPoint(distance.second)
-        let expectedVector = distance.second.point - distance.first.point
-        guard distance.vector == expectedVector,
-              distance.distance == expectedVector.length,
-              distance.distance.isFinite,
-              distance.distance >= 0.0 else {
-            throw invalidResult("Kernel distance result contains inconsistent derived fields.")
-        }
+        try distance.validate()
     case let .angle(angle):
+        try angle.validate()
         try validateMeasurementPoint(angle.first)
         try validateMeasurementPoint(angle.second)
         try angle.firstDirection.validate()
         try angle.secondDirection.validate()
-        guard angle.firstDirection.length > 0.0,
-              angle.secondDirection.length > 0.0,
+        guard hasNonzeroDirection(angle.firstDirection),
+              hasNonzeroDirection(angle.secondDirection),
               angle.angleRadians.isFinite,
               angle.angleRadians >= 0.0,
               angle.angleRadians <= Double.pi else {
@@ -251,7 +248,7 @@ private func validateDirectionalProjection(
     try linePoint.validate()
     try projectedPoint.validate()
     try lineResidual.validate()
-    guard direction.length > 0.0,
+    guard hasNonzeroDirection(direction),
           signedDistance.isFinite,
           linePoint == sourcePoint + direction * signedDistance,
           parameterReferenceMatches,
@@ -284,6 +281,12 @@ private func validateFiniteNonnegative(_ value: Double, field: String) throws {
     guard value.isFinite, value >= 0.0 else {
         throw invalidResult("Kernel query result contains invalid \(field).")
     }
+}
+
+private func hasNonzeroDirection(_ direction: Vector3D) -> Bool {
+    // Finite components are checked by the caller. Squaring a valid component
+    // can underflow or overflow, so a numerical norm is not a zero-source test.
+    direction.x != 0 || direction.y != 0 || direction.z != 0
 }
 
 private func invalidResult(_ message: String) -> KernelError {

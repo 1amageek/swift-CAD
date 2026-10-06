@@ -5,7 +5,8 @@ struct PolynomialSurfaceConversionTarget: GeometrySurfaceConversionSource {
     private let patch: PolynomialConversionTargetPatch
 
     static func accepts(_ surface: BSplineSurface3D) -> Bool {
-        guard (1...3).contains(surface.uDegree), (1...3).contains(surface.vDegree),
+        guard !surface.isUPeriodic, !surface.isVPeriodic,
+              (1...3).contains(surface.uDegree), (1...3).contains(surface.vDegree),
               surface.uControlPointCount == surface.uDegree + 1, surface.vControlPointCount == surface.vDegree + 1,
               surface.uKnots.count == 2 * (surface.uDegree + 1), surface.vKnots.count == 2 * (surface.vDegree + 1),
               surface.weights.count == surface.vControlPointCount,

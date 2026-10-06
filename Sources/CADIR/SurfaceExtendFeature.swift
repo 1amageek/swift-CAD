@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-public struct SurfaceExtendFeature: Codable, Hashable, Sendable {
+public struct SurfaceExtendFeature: Hashable, Sendable {
     public let target: SurfaceOperationTargetReference
     public let uDomain: ParameterDomain
     public let vDomain: ParameterDomain
@@ -30,12 +30,15 @@ public struct SurfaceExtendFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case uDomain
         case vDomain
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -47,7 +50,9 @@ public struct SurfaceExtendFeature: Codable, Hashable, Sendable {
         vDomain = try container.decode(ParameterDomain.self, forKey: .vDomain)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -55,4 +60,9 @@ public struct SurfaceExtendFeature: Codable, Hashable, Sendable {
         try container.encode(uDomain, forKey: .uDomain)
         try container.encode(vDomain, forKey: .vDomain)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceExtendFeature: Codable {}
+#endif

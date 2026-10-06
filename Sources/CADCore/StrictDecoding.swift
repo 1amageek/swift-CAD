@@ -1,3 +1,4 @@
+#if !hasFeature(Embedded)
 private struct StrictAnyCodingKey: CodingKey, Hashable {
     var stringValue: String
     var intValue: Int?
@@ -31,3 +32,4 @@ extension KeyedDecodingContainer where Key: Hashable {
         )
     }
 }
+#endif

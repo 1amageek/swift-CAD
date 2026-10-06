@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceSurfaceCoincidence: Codable, Hashable, Sendable {
+public struct SurfaceSurfaceCoincidence: Hashable, Sendable {
     public let residual: Double
     public let certificationTolerance: ModelingTolerance
 
@@ -21,11 +21,14 @@ public struct SurfaceSurfaceCoincidence: Codable, Hashable, Sendable {
         certificationTolerance = tolerance
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case residual
         case certificationTolerance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -37,7 +40,9 @@ public struct SurfaceSurfaceCoincidence: Codable, Hashable, Sendable {
             tolerance: container.decode(ModelingTolerance.self, forKey: .certificationTolerance)
         )
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         _ = try SurfaceSurfaceCoincidence(
             residual: residual,
@@ -47,4 +52,9 @@ public struct SurfaceSurfaceCoincidence: Codable, Hashable, Sendable {
         try container.encode(residual, forKey: .residual)
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceSurfaceCoincidence: Codable {}
+#endif

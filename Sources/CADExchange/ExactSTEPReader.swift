@@ -4,34 +4,793 @@ import CADGeometry
 import CADIR
 import CADTopology
 
-struct ExactSTEPReader {
+struct ExactSTEPReader: Sendable {
     let entities: [Int: String]
     let lengthUnit: LengthUnit
     let processingBudget: ExchangeProcessingBudget
     let tolerance: ModelingTolerance
+    var representationItems: Set<Int>? = nil
 
-    func read() throws -> BRepModel {
+    static func originalMappingSource(entityID: Int, entities: [Int: String], units: UnitSystem, contextEntityID: Int,
+        processingBudget: ExchangeProcessingBudget, tolerance: ModelingTolerance,
+        usage: inout IndependentShapeExchangeUsage) throws -> OriginalSTEPPlacementSource {
+        let reader = ExactSTEPReader(entities: entities, lengthUnit: units.length,
+            processingBudget: processingBudget, tolerance: tolerance)
+        var producer = IndependentProducer(reader: reader)
+        let lengthSource = try producer.contextLengthSource(entityID: contextEntityID, usage: &usage)
+        return try producer.mappingSource(entityID: entityID, units: units, originalLengthSource: lengthSource, usage: &usage)
+    }
+
+    static func originalMappingTarget(entityID: Int, entities: [Int: String], units: UnitSystem,
+        processingBudget: ExchangeProcessingBudget, tolerance: ModelingTolerance,
+        usage: inout IndependentShapeExchangeUsage) throws -> AffineTransform3D {
+        let reader = ExactSTEPReader(entities: entities, lengthUnit: units.length,
+            processingBudget: processingBudget, tolerance: tolerance)
+        var producer = IndependentProducer(reader: reader)
+        return try producer.mappingTarget(entityID: entityID, units: units, usage: &usage)
+    }
+
+    static func bodyContextUnits(entities: [Int: String], names: [Int: String], processingBudget: ExchangeProcessingBudget,
+                                 tolerance: ModelingTolerance, usage: inout IndependentShapeExchangeUsage) throws -> [Int: UnitSystem] {
+        let reader = ExactSTEPReader(entities: entities, lengthUnit: .meter, processingBudget: processingBudget, tolerance: tolerance)
+        var producer: any IndependentSTEPGeometryReading = IndependentProducer(reader: reader)
+        return try STEPBodyUnitContextResolver.resolve(fields: STEPAssemblySyntax(entities: entities), names: names,
+            producer: &producer, usage: &usage)
+    }
+
+    static func readIndependent(entities: [Int: String], processingBudget: ExchangeProcessingBudget,
+                                tolerance: ModelingTolerance, standaloneItems: [Int], productDefinitions: [Int: AssemblyDefinitionID] = [:],
+                                bodySources: [Int: SubshapeID] = [:], bodySourceGraph: DesignGraph? = nil,
+                                usage: inout IndependentShapeExchangeUsage) throws -> (source: IndependentShapeSource, units: UnitSystem)? {
+        // This private reader seed supplies the parsed table, deadline and tolerance only.
+        // Its ordinary B-rep lengthUnit is never consumed by IndependentProducer: every
+        // primitive Builder receives the actual context units resolved below or by its representation.
+        let reader = ExactSTEPReader(entities: entities, lengthUnit: .meter,
+            processingBudget: processingBudget, tolerance: tolerance)
+        var producer: any IndependentSTEPGeometryReading = IndependentProducer(reader: reader)
+        try usage.charge(entities: entities.count, work: entities.count)
+        let fields = STEPAssemblySyntax(entities: entities)
+        let entityIDs = try independentEntityIDs(fields: fields, bodySources: bodySources, usage: &usage)
+        var hasIndependentGraph = false
+        for id in entityIDs {
+            try usage.charge(work: 1)
+            if ["REPRESENTATION", "SHAPE_REPRESENTATION", "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION", "GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION", "APPLIED_GROUP_ASSIGNMENT", "GROUP"].contains(try fields.name(id)) { hasIndependentGraph = true }
+        }
+        guard hasIndependentGraph || !standaloneItems.isEmpty else { return nil }
+        let originalUnits = try DefaultIndependentSTEPUnitAssociationResolver().resolveOriginal(entityIDs: entityIDs,
+            primitiveRootEntityIDs: standaloneItems, fields: fields, producer: &producer, usage: &usage)
+        guard let source = try DefaultIndependentSTEPGraphReader().read(entityIDs: entityIDs,
+            standaloneItemEntityIDs: standaloneItems, fields: fields, ambientOriginalAngularSource: originalUnits.originalAngularSource, ambientOriginalLengthSource: originalUnits.originalLengthSource, ambientContexts: originalUnits.ambientContexts, productDefinitions: productDefinitions, bodySources: bodySources, bodySourceGraph: bodySourceGraph,
+            standaloneUnits: originalUnits.units, tolerance: tolerance, producer: &producer, usage: &usage) else { return nil }
+        return (source: source, units: originalUnits.units)
+    }
+
+    /// Partitions actual representation ownership before either graph consumes its numeric context.
+    private static func independentEntityIDs(fields: STEPAssemblySyntax, bodySources: [Int: SubshapeID], usage: inout IndependentShapeExchangeUsage) throws -> [Int] {
+        let ids = Array(fields.entities.keys)
+        try usage.charge(entities: ids.count, work: ids.count)
+        var excluded = Set<Int>(), selectedContexts = Set<Int>(), foreignContexts = Set<Int>()
+        let families = Set(["REPRESENTATION", "SHAPE_REPRESENTATION", "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION", "GEOMETRICALLY_BOUNDED_SURFACE_SHAPE_REPRESENTATION"])
+        for id in ids {
+            try usage.charge(work: fields.entities[id]!.utf8.count)
+            let kind = try fields.name(id)
+            if kind == "APPLIED_EXTERNAL_IDENTIFICATION_ASSIGNMENT" {
+                let a = try fields.arguments(id)
+                guard a.count == 4 else { throw ImportError.invalidData("Malformed original representation carrier identity.") }
+                let role = try fields.arguments(fields.reference(a[1])), source = try fields.arguments(fields.reference(a[2]))
+                guard role.count == 2, source.count == 1 else { throw ImportError.invalidData("Malformed original carrier role/source.") }
+                let decodedRole = try fields.decodedString(role[0], limits: STEPStringLimits(maximumInputBytes: usage.limits.maximumBytes,
+                    maximumOutputBytes: usage.limits.maximumBytes, maximumWork: usage.limits.maximumIterations - usage.consumedWork))
+                try usage.charge(work: decodedRole.consumedWork)
+                guard source[0].hasPrefix("IDENTIFIER("), source[0].hasSuffix(")") else { throw ImportError.invalidData("Original carrier namespace must be a typed identifier.") }
+                let decodedSource = try fields.decodedString(String(source[0].dropFirst(11).dropLast()), limits: STEPStringLimits(maximumInputBytes: usage.limits.maximumBytes,
+                    maximumOutputBytes: usage.limits.maximumBytes, maximumWork: usage.limits.maximumIterations - usage.consumedWork))
+                try usage.charge(work: decodedSource.consumedWork)
+                if decodedRole.value == "representationCarrier", decodedSource.value == STEPSourceIdentityRole.namespace {
+                    let targets = try fields.list(a[3])
+                    guard targets.count == 1, let target = targets.first, try fields.name(target) == "SHAPE_REPRESENTATION" else {
+                        throw ImportError.invalidData("Original carrier identity must select its actual representation.")
+                    }
+                    try usage.charge(entities: 1, work: 1); excluded.insert(target)
+                }
+            }
+            if kind == "PROPERTY_DEFINITION_REPRESENTATION" {
+                let a = try fields.arguments(id)
+                guard a.count == 2 else { throw ImportError.invalidData("Malformed metadata representation ownership.") }
+                try usage.charge(entities: 1, work: 1); excluded.insert(try fields.reference(a[1]))
+            }
+        }
+        var ownershipRoots: [Int] = []
+        for id in ids {
+            try usage.charge(work: fields.entities[id]!.utf8.count)
+            let kind = try fields.name(id)
+            if families.contains(kind) || ["ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SURFACE_SHAPE_REPRESENTATION"].contains(kind) {
+                try usage.charge(entities: 1, work: 1); ownershipRoots.append(id)
+            }
+        }
+        let ownership = try STEPRepresentationGeometryOwnership.classify(fields: fields,
+            entityIDs: ownershipRoots, maximumDepth: usage.limits.maximumNesting) { records, work in
+                try usage.charge(entities: records, work: work)
+            }
+        for id in ids {
+            try usage.charge(work: fields.entities[id]!.utf8.count)
+            let kind = try fields.name(id)
+            guard families.contains(kind) || ["ADVANCED_BREP_SHAPE_REPRESENTATION", "MANIFOLD_SURFACE_SHAPE_REPRESENTATION", "DRAUGHTING_MODEL"].contains(kind) else { continue }
+            let a = try fields.arguments(id)
+            guard a.count == 3 else { throw ImportError.invalidData("Malformed representation ownership.") }
+            let context = try fields.reference(a[2]), members = try fields.list(a[1])
+            try usage.charge(entities: members.count + 1, work: members.count + 1)
+            let body = ownership[id]?.contains(.body) == true
+            let independent = ownership[id]?.contains(.independent) == true
+            if body && independent && families.contains(kind) && !excluded.contains(id) {
+                guard !bodySources.isEmpty else { throw IndependentShapeExchangeError.invalidAssociation("Mixed representation requires the actual original Body selector correspondence.") }
+                selectedContexts.insert(context)
+            } else if !families.contains(kind) || excluded.contains(id) || body {
+                excluded.insert(id); foreignContexts.insert(context)
+            } else { selectedContexts.insert(context) }
+        }
+        for context in foreignContexts where !selectedContexts.contains(context) { try usage.charge(entities: 1, work: 1); excluded.insert(context) }
+        var result: [Int] = []
+        for id in ids { try usage.charge(work: 1); if !excluded.contains(id) { result.append(id) } }
+        return result
+    }
+
+    func readIndependentGeometry(usage: inout IndependentShapeExchangeUsage) throws -> IndependentSTEPGeometry {
+        var builder = Builder(entities: entities, lengthUnit: lengthUnit,
+            processingBudget: processingBudget, tolerance: tolerance, representationItems: nil)
+        return try builder.buildIndependentGeometry(usage: &usage)
+    }
+
+    func read() throws -> BRepModel { try readWithTransfer().model }
+
+    func readWithTransfer() throws -> ExactSTEPReadTransfer {
         try processingBudget.check(format: .step)
         var builder = Builder(
             entities: entities,
             lengthUnit: lengthUnit,
             processingBudget: processingBudget,
-                tolerance: tolerance
+            tolerance: tolerance,
+            representationItems: representationItems
         )
         let model = try builder.build()
         try processingBudget.check(format: .step)
         try model.validate(level: .exact, tolerance: tolerance)
-        return model
+        return ExactSTEPReadTransfer(model: model, bodies: builder.bodyEntityTransfer, faces: builder.faceEntityTransfer)
     }
 }
 
 private extension ExactSTEPReader {
-    struct Builder {
+    struct IndependentProducer: IndependentSTEPGeometryReading {
+        let reader: ExactSTEPReader
+        var builders: [UnitSystem: Builder] = [:]
+        var paidEntities = Set<Int>()
+        var originalAngularUnits: [Int: IndependentShapeAngularSource] = [:]
+        var originalAngularContexts: [Int: IndependentShapeAngularSource] = [:]
+        var activeAngularUnits = Set<Int>()
+        var originalLengthUnits: [Int: OriginalSTEPLengthSource] = [:]
+        var originalLengthContexts: [Int: OriginalSTEPLengthSource] = [:]
+        var activeLengthUnits = Set<Int>()
+
+        mutating func pay(_ id: Int, usage: inout IndependentShapeExchangeUsage) throws {
+            guard let entity = reader.entities[id] else { throw ImportError.missingRequiredEntity("STEP primitive #\(id)") }
+            if !paidEntities.contains(id) {
+                try usage.charge(entities: 1, work: entity.utf8.count + 1)
+                paidEntities.insert(id)
+            } else { try usage.charge(work: 1) }
+        }
+        func builder(_ units: UnitSystem) -> Builder {
+            Builder(entities: reader.entities, lengthUnit: units.length, processingBudget: reader.processingBudget,
+                tolerance: reader.tolerance, representationItems: nil)
+        }
+        mutating func curve(entityID: Int, units: UnitSystem, originalAngularSource: IndependentShapeAngularSource? = nil, originalLengthSource: OriginalSTEPLengthSource? = nil, tolerance: ModelingTolerance,
+                            usage: inout IndependentShapeExchangeUsage) throws -> IndependentExchangeReadCurve {
+            try pay(entityID, usage: &usage)
+            let fields = STEPAssemblySyntax(entities: reader.entities), kind = try fields.name(entityID)
+            if kind == "TRIMMED_CURVE" {
+                let a = try fields.arguments(entityID)
+                guard a.count == 6, [".PARAMETER.", ".CARTESIAN.", ".UNSPECIFIED."].contains(a[5]), a[4] == ".T." || a[4] == ".F." else {
+                    throw ImportError.invalidData("Invalid independent trimmed-curve selectors or sense.")
+                }
+                let basis = try fields.reference(a[1])
+                guard try fields.name(basis) != "TRIMMED_CURVE" else { throw ImportError.invalidData("A trimmed curve cannot be another trimmed curve's basis.") }
+                let original = try curve(entityID: basis, units: units, originalAngularSource: originalAngularSource, originalLengthSource: originalLengthSource, tolerance: tolerance, usage: &usage)
+                let foreign: Curve3D
+                if try IndependentSTEPAngularLaw.usesAngularCoordinates(curve: original.curve, usage: &usage) {
+                    let law = try IndependentSTEPAngularLaw.coordinateLaw(source: originalAngularSource, units: units, usage: &usage)
+                    foreign = try IndependentShapeAngularCurveSelection.foreignCurve(basis: original.curve, law: law,
+                        tolerance: tolerance, maximumSourceDepth: usage.limits.maximumNesting,
+                        maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
+                        maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+                } else { foreign = original.curve }
+                let firstSelection = try trimSelector(a[2], preference: a[5], original: foreign, units: units, tolerance: tolerance, usage: &usage)
+                let lastSelection = try trimSelector(a[3], preference: a[5], original: foreign, units: units, tolerance: tolerance, usage: &usage)
+                let first = firstSelection.parameter
+                let last = lastSelection.parameter
+                let increasing = a[4] == ".T."
+                guard first.isFinite, last.isFinite else { throw ImportError.invalidData("Trim selectors must be finite original parameters.") }
+                let selection: (trim: CurveTrim, traversalSource: Curve3D?)
+                if try IndependentSTEPAngularLaw.usesAngularCoordinates(curve: original.curve, usage: &usage),
+                   case .physicalRadians(let gain) = try IndependentSTEPAngularLaw.coordinateLaw(source: originalAngularSource, units: units, usage: &usage) {
+                    let traversal = try IndependentShapeAngularCurveSelection.physicalArc(basis: original.curve, gain: gain,
+                        first: first, last: last, increasing: increasing, tolerance: tolerance,
+                        maximumSourceDepth: usage.limits.maximumNesting, maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
+                        maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+                    selection = (.init(startParameter: 0, endParameter: 1), traversal)
+                } else {
+                    selection = try IndependentCurvePeriodicTrimResolver().selection(first: first, last: last,
+                        increasing: increasing, on: foreign, tolerance: tolerance, usage: &usage)
+                }
+                let trim = selection.trim
+                return .init(id: original.id, curve: original.curve, trim: trim,
+                    basisEntityID: original.basisEntityID, basisName: original.basisName,
+                    positionEntityID: original.positionEntityID, parameterLengthUnit: original.parameterLengthUnit,
+                    trimmingSource: IndependentShapeTrimmingSource(first: firstSelection.selectors, second: lastSelection.selectors,
+                        agreesWithBasis: increasing, preference: a[5] == ".PARAMETER." ? .parameter : (a[5] == ".CARTESIAN." ? .cartesian : .unspecified)), traversalSource: selection.traversalSource ?? (foreign == original.curve ? nil : foreign), linearSource: original.linearSource, splineSource: original.splineSource)
+            }
+            var b = builders.removeValue(forKey: units) ?? builder(units)
+            defer { builders[units] = b }
+            let id: CurveID = b.taggedID(namespace: 0x535445505F435256, entityID: entityID)
+            let a = try fields.arguments(entityID, component: kind.isEmpty ? "REPRESENTATION_ITEM" : nil)
+            guard let label = a.first else { throw ImportError.invalidData("STEP curve name is absent.") }
+            let name = try fields.string(label)
+            let splineSource: OriginalSTEPSplineCurveSource?
+            if kind.isEmpty || kind == "B_SPLINE_CURVE_WITH_KNOTS" {
+                splineSource = try originalSplineCurve(entityID: entityID, usage: &usage)
+            } else { splineSource = nil }
+            let linearSource: OriginalSTEPLineSource?
+            if kind == "LINE" {
+                guard a.count == 3 else { throw ImportError.invalidData("Malformed original LINE.") }
+                let vectorID = try fields.reference(a[2]); try pay(vectorID, usage: &usage)
+                let vector = try fields.arguments(vectorID)
+                guard try fields.name(vectorID) == "VECTOR", vector.count == 3 else { throw ImportError.invalidData("Malformed original LINE VECTOR.") }
+                let label = try fields.decodedString(vector[0], limits: .init(maximumInputBytes: usage.limits.maximumBytes,
+                    maximumOutputBytes: usage.limits.maximumBytes - usage.consumedBytes,
+                    maximumWork: usage.limits.maximumIterations - usage.consumedWork))
+                try usage.charge(work: label.consumedWork, bytes: label.outputBytes)
+                linearSource = try .init(location: originalElement(a[1], expected: "CARTESIAN_POINT", usage: &usage),
+                    direction: originalElement(vector[1], expected: "DIRECTION", usage: &usage),
+                    vectorID: .init(highBits: 0x535445504C564543, lowBits: UInt64(vectorID)), vectorName: label.value,
+                    magnitude: b.number(vector[2], label: "original vector magnitude"), lengthUnit: units.length,
+                    originalLengthSource: originalLengthSource)
+            } else { linearSource = nil }
+            let curve: Curve3D
+            if let cached = b.geometry.curves[id] { curve = cached }
+            else if kind == "LINE" {
+                guard let linearSource else { throw ImportError.invalidData("Original LINE source is absent.") }
+                let word = try linearSource.originalOperationWord(tolerance: tolerance,
+                    maximumDepth: usage.limits.maximumAlgebraicDepth, maximumSourceDepth: usage.limits.maximumNesting, usage: &usage)
+                curve = .originalAffineWord(try OriginalAffineWordCurve3D(source: .line(Line3D(origin: .origin, direction: .unitX)),
+                    operationWord: word, tolerance: tolerance, remainingSourceDepth: usage.limits.maximumNesting,
+                    maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage))
+                b.geometry.curves[id] = curve
+            } else if kind == "CIRCLE" || kind == "ELLIPSE" || kind == "HYPERBOLA" || kind == "PARABOLA" {
+                guard a.count == (kind == "ELLIPSE" || kind == "HYPERBOLA" ? 4 : 3) else { throw ImportError.invalidData("Malformed independent STEP conic.") }
+                let local: Curve3D
+                switch kind {
+                case "CIRCLE": local = .circle(Circle3D(center: .origin, normal: .unitZ, radius: try b.number(a[2], label: "circle radius")))
+                case "ELLIPSE": local = .analytic(.ellipse(center: .origin, normal: .unitZ, majorAxis: .unitX,
+                    majorRadius: try b.number(a[2], label: "ellipse major radius"), minorRadius: try b.number(a[3], label: "ellipse minor radius")))
+                case "HYPERBOLA": local = .analytic(.hyperbola(Hyperbola3D(center: .origin, normal: .unitZ, transverseAxis: .unitX,
+                    transverseRadius: try b.number(a[2], label: "hyperbola radius"), conjugateRadius: try b.number(a[3], label: "hyperbola radius"))))
+                default: local = .analytic(.parabola(Parabola3D(vertex: .origin, normal: .unitZ, axis: .unitX,
+                    focalLength: try b.number(a[2], label: "parabola focal length"))))
+                }
+                let position = try mappingSource(entityID: fields.reference(a[1]), units: units,
+                    originalLengthSource: originalLengthSource, usage: &usage)
+                let law = try position.originalNormalizedAffineSource(usage: &usage, maximumSourceDepth: usage.limits.maximumNesting, localCoordinatesInModelUnits: true)
+                let word = try OriginalAffineOperationWord(operation: .normalizedForward(law), tolerance: tolerance,
+                    maximumDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+                curve = .originalAffineWord(try OriginalAffineWordCurve3D(source: local, operationWord: word,
+                    tolerance: tolerance, remainingSourceDepth: usage.limits.maximumNesting,
+                    maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage))
+                b.geometry.curves[id] = curve
+            } else {
+                try preflightSpline(entityID, surface: false, usage: &usage)
+                var originalBuilder = builder(.init(length: .meter, angle: .radian))
+                let original = Curve3D.bSpline(try originalBuilder.buildBSplineCurve(fields.entity(entityID), entityID: entityID, retainingLogicalAssertions: true))
+                let word = try IndependentSTEPLengthLaw.coordinateWord(source: originalLengthSource, units: units,
+                    tolerance: tolerance, usage: &usage)
+                curve = .originalAffineWord(try OriginalAffineWordCurve3D(source: original, operationWord: word,
+                    tolerance: tolerance, remainingSourceDepth: usage.limits.maximumNesting,
+                    maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage))
+                b.geometry.curves[id] = curve
+            }
+            let originalCurve = curve
+            let trim: CurveTrim?
+            if case .closed(let lower, let upper) = originalCurve.parameterDomain { trim = .init(startParameter:lower,endParameter:upper) }
+            else { trim = nil }
+            let positioned = ["CIRCLE", "ELLIPSE", "HYPERBOLA", "PARABOLA"].contains(kind)
+            return .init(id:id,curve:originalCurve,trim:trim,basisEntityID:entityID,basisName:name,
+                positionEntityID: positioned ? try fields.reference(a[1]) : nil,
+                parameterLengthUnit: kind == "PARABOLA" ? units.length : nil, linearSource: linearSource, splineSource: splineSource)
+        }
+        mutating func trimSelector(_ selector: String, preference: String, original: Curve3D, units: UnitSystem,
+                                   tolerance: ModelingTolerance, usage: inout IndependentShapeExchangeUsage) throws -> (parameter: Double, selectors: [IndependentShapeTrimmingSource.Selector]) {
+            let fields = STEPAssemblySyntax(entities: reader.entities)
+            guard selector.first == "(", selector.last == ")" else { throw ImportError.invalidData("Malformed trimming SET.") }
+            let values = try fields.split(String(selector.dropFirst().dropLast()))
+            guard values.count == 1 || values.count == 2 else { throw ImportError.invalidData("A trim needs one point, one parameter, or both.") }
+            var numerical: Double?, cartesian: Point3D?
+            var selectors: [IndependentShapeTrimmingSource.Selector] = []
+            for value in values {
+                try usage.charge(work: value.utf8.count + 1)
+                if value.hasPrefix("PARAMETER_VALUE("), value.last == ")" {
+                    guard numerical == nil else { throw ImportError.invalidData("Repeated parameter trimming selector.") }
+                    let parameter = try builder(units).number(String(value.dropFirst(16).dropLast()), label: "original trim parameter")
+                    numerical = parameter; selectors.append(.parameter(parameter))
+                } else {
+                    guard cartesian == nil else { throw ImportError.invalidData("Repeated Cartesian trimming selector.") }
+                    let point = try fields.reference(value); try pay(point, usage: &usage)
+                    var b = builder(units); let value = try b.buildPoint(point); cartesian = value; selectors.append(.point(value))
+                }
+            }
+            if let numerical, let cartesian {
+                try usage.charge(work: 16)
+                let point = try original.point(at: numerical, tolerance: tolerance)
+                guard (point - cartesian).length <= tolerance.distance else { throw ImportError.invalidData("Mixed trim selectors identify different original points.") }
+            }
+            if preference != ".CARTESIAN.", let numerical { return (numerical, selectors) }
+            if cartesian == nil, let numerical { return (numerical, selectors) }
+            guard let cartesian else { throw ImportError.invalidData("Empty trim selectors.") }
+            return (try IndependentCurveTrimResolver().parameter(of: cartesian, on: original, tolerance: tolerance, usage: &usage), selectors)
+        }
+        mutating func surface(entityID:Int, units:UnitSystem, originalAngularSource: IndependentShapeAngularSource? = nil, originalLengthSource: OriginalSTEPLengthSource? = nil, tolerance:ModelingTolerance,
+                              usage:inout IndependentShapeExchangeUsage) throws -> IndependentExchangeReadSurface {
+            try pay(entityID,usage:&usage)
+            let fields = STEPAssemblySyntax(entities:reader.entities), kind = try fields.name(entityID)
+            let isSpline: Bool
+            if kind.isEmpty { isSpline = try fields.hasComponent(entityID, named: "B_SPLINE_SURFACE") }
+            else { isSpline = kind == "B_SPLINE_SURFACE_WITH_KNOTS" }
+            var b = builders.removeValue(forKey:units) ?? builder(units)
+            defer { builders[units] = b }
+            if kind.isEmpty { try preflightSpline(entityID,surface:true,usage:&usage) }
+            if ["PLANE", "CYLINDRICAL_SURFACE", "CONICAL_SURFACE", "SPHERICAL_SURFACE", "TOROIDAL_SURFACE"].contains(kind) {
+                let a = try fields.arguments(entityID)
+                let expected = kind == "PLANE" ? 2 : (kind == "CONICAL_SURFACE" || kind == "TOROIDAL_SURFACE" ? 4 : 3)
+                guard a.count == expected else { throw ImportError.invalidData("Malformed original positioned surface.") }
+                let local: Surface3D
+                switch kind {
+                case "PLANE": local = .plane(Plane3D(origin: .origin, normal: .unitZ, uDirection: .unitX))
+                case "CYLINDRICAL_SURFACE": local = .cylinder(Cylinder3D(origin: .origin, axis: .unitZ,
+                    radius: try b.number(a[2], label: "original cylinder radius")))
+                case "CONICAL_SURFACE":
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Original STEP radius/semi-angle axial-height cone law needs its retained Geometry producer.
+                    // This public independent reader must not promote rounded apex and slant-parameter conversion into the original surface authority.
+                    throw IndependentShapeExchangeError.unsupportedSemantics("Original STEP axial-height cone producer is not implemented.")
+                default:
+                    let native: Surface3D
+                    if kind == "SPHERICAL_SURFACE" {
+                        native = .analytic(.sphere(center: .origin, radius: try b.number(a[2], label: "original sphere radius")))
+                    } else {
+                        native = .analytic(.torus(center: .origin, axis: .unitZ,
+                            majorRadius: try b.number(a[2], label: "original torus major radius"),
+                            minorRadius: try b.number(a[3], label: "original torus minor radius")))
+                    }
+                    let rotation = try AffineTransform3D(basisX: -.unitY, basisY: .unitX, basisZ: .unitZ, translation: .zero)
+                    local = .affineImage(try OriginalImageSurface3D(source: native, transform: rotation, tolerance: tolerance))
+                }
+                let position = try mappingSource(entityID: fields.reference(a[1]), units: units,
+                    originalLengthSource: originalLengthSource, usage: &usage)
+                let law = try position.originalNormalizedAffineSource(usage: &usage, maximumSourceDepth: usage.limits.maximumNesting, localCoordinatesInModelUnits: true)
+                let word = try OriginalAffineOperationWord(operation: .normalizedForward(law), tolerance: tolerance,
+                    maximumDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+                let angularLaw: IndependentShapeAngularSource.CoordinateLaw?
+                if kind == "PLANE" { angularLaw = nil }
+                else { angularLaw = try IndependentSTEPAngularLaw.coordinateLaw(source: originalAngularSource, units: units, usage: &usage) }
+                let selectedLocal: Surface3D
+                if case .some(.physicalRadians(let gain)) = angularLaw {
+                    selectedLocal = try IndependentShapeAngularSurfaceSelection.physical(local: local, gain: gain,
+                        tolerance: tolerance, usage: &usage)
+                } else { selectedLocal = local }
+                let positioned = Surface3D.procedural(.originalAffineWord(try OriginalAffineWordSurface3D(source: selectedLocal,
+                    operationWord: word, tolerance: tolerance, remainingSourceDepth: usage.limits.maximumNesting,
+                    maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)))
+                let surface: Surface3D
+                if case .some(.canonicalGain(let gain)) = angularLaw {
+                    let identity = try AffineTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: .zero)
+                    surface = .parameterImage(try OriginalImageSurface3D(source: positioned,
+                        uParameterGain: gain, vParameterGain: kind == "CYLINDRICAL_SURFACE" ? .binary(1) : gain,
+                        transform: identity, tolerance: tolerance))
+                } else { surface = positioned }
+                let id: SurfaceID = b.taggedID(namespace: 0x535445505F535246, entityID: entityID)
+                b.geometry.surfaces[id] = surface
+                return .init(id: id, surface: surface, basisName: try fields.string(a[0]), positionEntityID: try fields.reference(a[1]))
+            }
+            if isSpline {
+                if !kind.isEmpty { try preflightSpline(entityID, surface: true, usage: &usage) }
+                var originalBuilder = builder(.init(length: .meter, angle: .radian))
+                let metadata = try originalSplineSurface(entityID: entityID, usage: &usage)
+                let original = Surface3D.bSpline(try originalBuilder.buildBSplineSurface(fields.entity(entityID), entityID: entityID, retainingLogicalAssertions: true))
+                let word = try IndependentSTEPLengthLaw.coordinateWord(source: originalLengthSource, units: units,
+                    tolerance: tolerance, usage: &usage)
+                let surface = Surface3D.procedural(.originalAffineWord(try OriginalAffineWordSurface3D(source: original,
+                    operationWord: word, tolerance: tolerance, remainingSourceDepth: usage.limits.maximumNesting,
+                    maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)))
+                let id: SurfaceID = b.taggedID(namespace: 0x535445505F535246, entityID: entityID)
+                b.geometry.surfaces[id] = surface
+                let a = try fields.arguments(entityID, component: kind.isEmpty ? "REPRESENTATION_ITEM" : nil)
+                guard let label = a.first else { throw ImportError.invalidData("STEP spline surface name is absent.") }
+                return .init(id: id, surface: surface, basisName: try fields.string(label), splineSource: metadata)
+            }
+            let id = try b.buildSurface(entityID)
+            guard let surface = b.geometry.surfaces[id] else { throw ImportError.missingRequiredEntity("STEP surface law.") }
+            let a = try fields.arguments(entityID,component:kind.isEmpty ? "REPRESENTATION_ITEM" : nil)
+            guard let label = a.first else { throw ImportError.invalidData("STEP surface name is absent.") }
+            return .init(id:id,surface:surface,basisName:try fields.string(label))
+        }
+        mutating func originalSplineCurve(entityID: Int, usage: inout IndependentShapeExchangeUsage) throws -> OriginalSTEPSplineCurveSource {
+            let fields = STEPAssemblySyntax(entities: reader.entities)
+            let original = try IndependentSTEPSplineFields(fields: fields, entityID: entityID, surface: false)
+            guard original.basis.count == 5, original.knots.count == 3 else { throw ImportError.invalidData("Malformed original spline curve metadata.") }
+            let ids = try fields.list(original.basis[1])
+            try usage.charge(entities: ids.count, work: ids.count)
+            let storage = ids.count.multipliedReportingOverflow(by: MemoryLayout<OriginalSTEPPlacementElement>.stride)
+            guard !storage.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("Original spline point storage overflow.") }
+            try usage.charge(bytes: storage.partialValue)
+            var points: [OriginalSTEPPlacementElement] = []; points.reserveCapacity(ids.count)
+            for id in ids { points.append(try originalElement("#\(id)", expected: "CARTESIAN_POINT", usage: &usage)) }
+            return try .init(controlPoints: points,
+                curveForm: originalSplineToken(original.basis[2], as: OriginalSTEPSplineCurveForm.self),
+                closed: originalSplineToken(original.basis[3], as: OriginalSTEPLogical.self),
+                selfIntersect: originalSplineToken(original.basis[4], as: OriginalSTEPLogical.self),
+                knotSpecification: originalSplineToken(original.knots[2], as: OriginalSTEPSplineKnotSpecification.self), isRational: original.rational != nil)
+        }
+        mutating func originalSplineSurface(entityID: Int, usage: inout IndependentShapeExchangeUsage) throws -> OriginalSTEPSplineSurfaceSource {
+            let fields = STEPAssemblySyntax(entities: reader.entities)
+            let original = try IndependentSTEPSplineFields(fields: fields, entityID: entityID, surface: true)
+            guard original.basis.count == 7, original.knots.count == 5 else { throw ImportError.invalidData("Malformed original spline surface metadata.") }
+            let rows = try fields.split(String(original.basis[2].dropFirst().dropLast()))
+            try usage.charge(entities: rows.count, work: rows.count)
+            let wireRowStorage = rows.count.multipliedReportingOverflow(by: MemoryLayout<[OriginalSTEPPlacementElement]>.stride)
+            guard !wireRowStorage.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("Original surface row storage overflow.") }
+            try usage.charge(bytes: wireRowStorage.partialValue)
+            var wirePoints: [[OriginalSTEPPlacementElement]] = []
+            for row in rows {
+                let ids = try fields.list(row)
+                try usage.charge(entities: ids.count, work: ids.count)
+                let storage = ids.count.multipliedReportingOverflow(by: MemoryLayout<OriginalSTEPPlacementElement>.stride)
+                guard !storage.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("Original surface point storage overflow.") }
+                try usage.charge(bytes: storage.partialValue)
+                var points: [OriginalSTEPPlacementElement] = []; points.reserveCapacity(ids.count)
+                for id in ids { points.append(try originalElement("#\(id)", expected: "CARTESIAN_POINT", usage: &usage)) }
+                wirePoints.append(points)
+            }
+            guard let first = wirePoints.first, first.count >= 2, wirePoints.count >= 2 else { throw ImportError.invalidData("Original spline surface needs two controls per axis.") }
+            let nativeRowStorage = first.count.multipliedReportingOverflow(by: MemoryLayout<[OriginalSTEPPlacementElement]>.stride)
+            guard !nativeRowStorage.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("Original native surface row storage overflow.") }
+            try usage.charge(bytes: nativeRowStorage.partialValue)
+            var nativePoints: [[OriginalSTEPPlacementElement]] = []
+            for v in first.indices {
+                try usage.charge(entities: wirePoints.count, work: wirePoints.count)
+                let storage = wirePoints.count.multipliedReportingOverflow(by: MemoryLayout<OriginalSTEPPlacementElement>.stride)
+                guard !storage.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("Original native surface point storage overflow.") }
+                try usage.charge(bytes: storage.partialValue)
+                var points: [OriginalSTEPPlacementElement] = []; points.reserveCapacity(wirePoints.count)
+                for u in wirePoints.indices {
+                    guard wirePoints[u].count == first.count else { throw ImportError.invalidData("Nonrectangular original surface control records.") }
+                    points.append(wirePoints[u][v])
+                }
+                nativePoints.append(points)
+            }
+            return try .init(controlPointRows: nativePoints,
+                surfaceForm: originalSplineToken(original.basis[3], as: OriginalSTEPSplineSurfaceForm.self),
+                uClosed: originalSplineToken(original.basis[4], as: OriginalSTEPLogical.self),
+                vClosed: originalSplineToken(original.basis[5], as: OriginalSTEPLogical.self),
+                selfIntersect: originalSplineToken(original.basis[6], as: OriginalSTEPLogical.self),
+                knotSpecification: originalSplineToken(original.knots[4], as: OriginalSTEPSplineKnotSpecification.self), isRational: original.rational != nil)
+        }
+        func originalSplineToken<Value: RawRepresentable>(_ token: String, as type: Value.Type) throws -> Value where Value.RawValue == String {
+            guard token.first == ".", token.last == ".", let value = Value(rawValue: String(token.dropFirst().dropLast())) else {
+                throw ImportError.invalidData("Unknown original spline enumeration or logical token.")
+            }
+            return value
+        }
+        mutating func preflightSpline(_ id:Int, surface:Bool, usage:inout IndependentShapeExchangeUsage) throws {
+            let fields = STEPAssemblySyntax(entities:reader.entities)
+            let original = try IndependentSTEPSplineFields(fields: fields, entityID: id, surface: surface)
+            let a = original.basis, k = original.knots
+            let axisCount = surface ? 2 : 1
+            guard a.count == (surface ? 7 : 5), k.count == (surface ? 5 : 3) else { throw ImportError.invalidData("Malformed STEP spline data.") }
+            let rows = surface ? try fields.split(String(a[2].dropFirst().dropLast())) : [a[1]]
+            var firstCount:Int?
+            for row in rows {
+                let points = try fields.list(row)
+                try usage.charge(entities:points.count,work:points.count*4)
+                guard !points.isEmpty, firstCount == nil || firstCount == points.count else { throw ImportError.invalidData("Nonrectangular STEP spline net.") }
+                firstCount = points.count
+                for point in points { try pay(point,usage:&usage) }
+            }
+            for axis in 0..<axisCount {
+                guard let degree = Int(a[axis]), let count = surface ? (axis == 0 ? rows.count : firstCount) : firstCount,
+                      degree > 0, degree < count else { throw ImportError.invalidData("Invalid STEP spline degree/control count.") }
+                let raw = try fields.split(String(k[axis].dropFirst().dropLast()))
+                var sum = 0
+                for value in raw {
+                    guard let m = Int(value), m > 0 else { throw ImportError.invalidData("Invalid STEP knot multiplicity.") }
+                    let next = sum.addingReportingOverflow(m)
+                    guard !next.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("STEP knot expansion count overflow.") }
+                    sum = next.partialValue
+                }
+                guard sum == count+degree+1 else { throw ImportError.invalidData("STEP knot multiplicities do not match original degree/control count.") }
+                try usage.charge(entities:sum,work:sum)
+            }
+        }
+        mutating func contextUnits(entityID:Int,usage:inout IndependentShapeExchangeUsage) throws -> UnitSystem {
+            try pay(entityID,usage:&usage)
+            let fields = STEPAssemblySyntax(entities:reader.entities), a = try fields.arguments(entityID,component:"GLOBAL_UNIT_ASSIGNED_CONTEXT")
+            guard a.count == 1 else { throw ImportError.invalidData("Malformed STEP unit context.") }
+            var length:LengthUnit?, angle:AngleUnit?
+            for id in try fields.list(a[0]) {
+                try pay(id,usage:&usage)
+                if try fields.hasComponent(id, named: "LENGTH_UNIT") {
+                    guard length == nil else { throw ImportError.invalidData("Competing STEP length units.") }
+                    let source = try lengthSource(id, fields: fields, depth: 0, usage: &usage)
+                    let gain = try source.exactGain(maximumDepth: usage.limits.maximumNesting, usage: &usage)
+                    // Presentation is selected by exact normative measure, never by a conversion-unit name.
+                    // A different foreign law remains authoritative in the retained descriptor and uses canonical metre presentation.
+                    try usage.charge(entities: 7, work: 7)
+                    let menu: [(LengthUnit, String)] = [(.micrometer, "0.000001"), (.meter, "1"),
+                        (.millimeter, "0.001"), (.centimeter, "0.01"), (.kilometer, "1000"), (.inch, "0.0254"), (.foot, "0.3048")]
+                    var presentation = LengthUnit.meter
+                    for (unit, literal) in menu {
+                        let coefficient = try OriginalSTEPDecimal.coefficient(literal, usage: &usage)
+                        if try gain.subtracting(coefficient, usage: &usage).isZero { presentation = unit; break }
+                    }
+                    length = presentation
+                }
+                if try fields.hasComponent(id,named:"PLANE_ANGLE_UNIT") {
+                    guard angle == nil else { throw ImportError.invalidData("Competing STEP angle units.") }
+                    angle = try planeAngleUnit(id, fields: fields, usage: &usage)
+                }
+            }
+            guard let length, let angle else { throw ImportError.invalidData("STEP context is missing original length/angle units.") }
+            return .init(length:length,angle:angle)
+        }
+        mutating func contextLengthSource(entityID: Int, usage: inout IndependentShapeExchangeUsage) throws -> OriginalSTEPLengthSource {
+            if let source = originalLengthContexts[entityID] { try usage.charge(work: 1); return source }
+            try pay(entityID, usage: &usage)
+            let fields = STEPAssemblySyntax(entities: reader.entities)
+            let a = try fields.arguments(entityID, component: "GLOBAL_UNIT_ASSIGNED_CONTEXT")
+            guard a.count == 1 else { throw ImportError.invalidData("Malformed original length context.") }
+            var selected: OriginalSTEPLengthSource?
+            for id in try fields.list(a[0]) {
+                try pay(id, usage: &usage)
+                if try fields.hasComponent(id, named: "LENGTH_UNIT") {
+                    guard selected == nil else { throw ImportError.invalidData("Competing original length units.") }
+                    selected = try lengthSource(id, fields: fields, depth: 0, usage: &usage)
+                }
+            }
+            guard let selected else { throw ImportError.invalidData("Original length unit is missing.") }
+            _ = try selected.exactGain(maximumDepth: usage.limits.maximumNesting, usage: &usage)
+            try usage.charge(entities: 1, work: 1); originalLengthContexts[entityID] = selected
+            return selected
+        }
+        private mutating func lengthSource(_ id: Int, fields: any STEPFieldReading,
+            depth: Int, usage: inout IndependentShapeExchangeUsage) throws -> OriginalSTEPLengthSource {
+            guard depth <= usage.limits.maximumNesting else { throw IndependentShapeExchangeError.resourceLimitExceeded("Original length chain depth.") }
+            try usage.charge(work: 1)
+            if let source = originalLengthUnits[id] { return source }
+            guard activeLengthUnits.insert(id).inserted else { throw ImportError.invalidData("Cyclic original length conversion.") }
+            defer { activeLengthUnits.remove(id) }
+            try pay(id, usage: &usage)
+            guard try fields.hasComponent(id, named: "LENGTH_UNIT") else { throw ImportError.invalidData("Original conversion base is not a length unit.") }
+            let identity = PortableIdentity128(highBits: 0x535445504C454E55, lowBits: UInt64(id))
+            let source: OriginalSTEPLengthSource
+            if try fields.hasComponent(id, named: "SI_UNIT") {
+                let a = try fields.arguments(id, component: "SI_UNIT")
+                guard a.count == 2, a[1] == ".METRE.", try fields.arguments(id, component: "NAMED_UNIT") == ["*"],
+                    !(try fields.hasComponent(id, named: "CONVERSION_BASED_UNIT")) else { throw ImportError.invalidData("Malformed original SI length unit.") }
+                let prefix: IndependentShapeSIPrefix?
+                if a[0] == "$" { prefix = nil }
+                else {
+                    guard a[0].first == ".", a[0].last == ".",
+                        let value = IndependentShapeSIPrefix(rawValue: String(a[0].dropFirst().dropLast())) else { throw ImportError.invalidData("Unknown original length prefix.") }
+                    prefix = value
+                }
+                source = .init(id: identity, law: .metre(prefix: prefix))
+            } else {
+                guard try fields.hasComponent(id, named: "CONVERSION_BASED_UNIT") else { throw IndependentShapeExchangeError.unsupportedSemantics("Original length unit requires an SI or conversion law.") }
+                let named = try fields.arguments(id, component: "NAMED_UNIT")
+                let conversion = try fields.arguments(id, component: "CONVERSION_BASED_UNIT")
+                guard named.count == 1, conversion.count == 2 else { throw ImportError.invalidData("Malformed original length conversion.") }
+                let name = try fields.decodedString(conversion[0], limits: .init(maximumInputBytes: usage.limits.maximumBytes,
+                    maximumOutputBytes: usage.limits.maximumBytes - usage.consumedBytes,
+                    maximumWork: usage.limits.maximumIterations - usage.consumedWork))
+                try usage.charge(work: name.consumedWork, bytes: name.outputBytes)
+                let dimensions = try fields.reference(named[0]); try pay(dimensions, usage: &usage)
+                guard try fields.name(dimensions) == "DIMENSIONAL_EXPONENTS" else { throw ImportError.invalidData("Original length dimensions are missing.") }
+                let exponents = try fields.arguments(dimensions, component: nil)
+                guard exponents.count == 7 else { throw ImportError.invalidData("Original length dimensions require seven exponents.") }
+                try usage.charge(entities: 7, work: 7)
+                let measureID = try fields.reference(conversion[1]); try pay(measureID, usage: &usage)
+                let family = try fields.name(measureID)
+                let kind: OriginalSTEPLengthConversion.MeasureKind
+                let measure: [String]
+                switch family {
+                case "LENGTH_MEASURE_WITH_UNIT": kind = .lengthMeasureWithUnit; measure = try fields.arguments(measureID, component: nil)
+                case "MEASURE_WITH_UNIT": kind = .measureWithUnit; measure = try fields.arguments(measureID, component: nil)
+                default:
+                    guard family.isEmpty, try fields.hasComponent(measureID, named: "MEASURE_WITH_UNIT"),
+                        try fields.hasComponent(measureID, named: "LENGTH_MEASURE_WITH_UNIT") else { throw ImportError.invalidData("Original length factor requires its real measure record.") }
+                    kind = .complexLengthMeasureWithUnit; measure = try fields.arguments(measureID, component: "MEASURE_WITH_UNIT")
+                }
+                guard measure.count == 2, measure[0].hasPrefix("LENGTH_MEASURE("), measure[0].last == ")" else { throw ImportError.invalidData("Original length factor is not a length measure.") }
+                let factor = String(measure[0].dropFirst("LENGTH_MEASURE(".count).dropLast())
+                try usage.charge(work: factor.utf8.count, bytes: factor.utf8.count)
+                let base = try lengthSource(fields.reference(measure[1]), fields: fields, depth: depth + 1, usage: &usage)
+                source = .init(id: identity, law: .conversion(.init(name: name.value,
+                    dimensionsID: .init(highBits: 0x535445504C454E44, lowBits: UInt64(dimensions)), dimensions: exponents,
+                    measureID: .init(highBits: 0x535445504C454E4D, lowBits: UInt64(measureID)), measureKind: kind, factorLiteral: factor, base: base)))
+            }
+            try usage.charge(entities: 1, work: 1); originalLengthUnits[id] = source
+            return source
+        }
+        mutating func contextAngularSource(entityID: Int, usage: inout IndependentShapeExchangeUsage) throws -> IndependentShapeAngularSource {
+            if let source = originalAngularContexts[entityID] { try usage.charge(work: 1); return source }
+            try pay(entityID, usage: &usage)
+            let fields = STEPAssemblySyntax(entities: reader.entities), a = try fields.arguments(entityID, component: "GLOBAL_UNIT_ASSIGNED_CONTEXT")
+            guard a.count == 1 else { throw ImportError.invalidData("Malformed original angular context.") }
+            var source: IndependentShapeAngularSource?
+            for id in try fields.list(a[0]) {
+                try pay(id, usage: &usage)
+                if try fields.hasComponent(id, named: "PLANE_ANGLE_UNIT") {
+                    guard source == nil else { throw ImportError.invalidData("Competing original angular units.") }
+                    source = try angularSource(id, fields: fields, depth: 1, usage: &usage)
+                }
+            }
+            guard let source else { throw ImportError.invalidData("Original angular unit is missing.") }
+            try usage.charge(entities: 1, work: 1); originalAngularContexts[entityID] = source
+            return source
+        }
+        private mutating func angularSource(_ id: Int, fields: any STEPFieldReading, depth: Int, usage: inout IndependentShapeExchangeUsage) throws -> IndependentShapeAngularSource {
+            try usage.charge(work: 1)
+            guard depth <= usage.limits.maximumNesting else { throw IndependentShapeExchangeError.resourceLimitExceeded("Original angular chain depth.") }
+            if let value = originalAngularUnits[id] { return value }
+            guard activeAngularUnits.insert(id).inserted else { throw ImportError.invalidData("Cyclic original angular conversion.") }
+            defer { activeAngularUnits.remove(id) }
+            try pay(id, usage: &usage)
+            guard try fields.hasComponent(id, named: "PLANE_ANGLE_UNIT") else { throw ImportError.invalidData("Angular factor unit is not a plane-angle unit.") }
+            let identity = IndependentShapeAngularUnitID(highBits: 0x53544550414E4755, lowBits: UInt64(id))
+            let value: IndependentShapeAngularSource
+            if try fields.hasComponent(id, named: "SI_UNIT") {
+                let si = try fields.arguments(id, component: "SI_UNIT")
+                guard si.count == 2, si[1] == ".RADIAN.", try fields.arguments(id, component: "NAMED_UNIT") == ["*"],
+                      !(try fields.hasComponent(id, named: "CONVERSION_BASED_UNIT")) else { throw ImportError.invalidData("Malformed original SI radian unit.") }
+                let prefix: IndependentShapeSIPrefix?
+                if si[0] == "$" { prefix = nil }
+                else {
+                    guard si[0].hasPrefix("."), si[0].hasSuffix("."), let original = IndependentShapeSIPrefix(rawValue: String(si[0].dropFirst().dropLast())) else { throw ImportError.invalidData("Unknown original SI angular prefix.") }
+                    prefix = original
+                }
+                value = .init(id: identity, law: .radian(prefix: prefix))
+            } else {
+                guard try fields.hasComponent(id, named: "CONVERSION_BASED_UNIT") else { throw IndependentShapeExchangeError.unsupportedSemantics("Original angular unit requires a conversion or SI law.") }
+                let named = try fields.arguments(id, component: "NAMED_UNIT"), conversion = try fields.arguments(id, component: "CONVERSION_BASED_UNIT")
+                guard named.count == 1, conversion.count == 2 else { throw ImportError.invalidData("Malformed angular conversion fields.") }
+                let name = try fields.decodedString(conversion[0], limits: STEPStringLimits(maximumInputBytes: usage.limits.maximumBytes, maximumOutputBytes: usage.limits.maximumBytes, maximumWork: usage.limits.maximumIterations - usage.consumedWork))
+                try usage.charge(work: name.consumedWork)
+                let dimensionsID = try fields.reference(named[0]); try pay(dimensionsID, usage: &usage)
+                guard try fields.name(dimensionsID) == "DIMENSIONAL_EXPONENTS" else { throw ImportError.invalidData("Original angular dimensions are missing.") }
+                let dimensionFields = try fields.arguments(dimensionsID, component: nil)
+                try usage.charge(entities: dimensionFields.count, work: dimensionFields.count)
+                guard dimensionFields.count == 7 else { throw ImportError.invalidData("Angular dimensions require seven exponents.") }
+                var dimensions: [Double] = []
+                for field in dimensionFields {
+                    try usage.charge(work: field.utf8.count)
+                    guard let exponent = Double(field), exponent.isFinite, exponent == 0 else { throw ImportError.invalidData("Original angular dimensions must all be zero.") }
+                    dimensions.append(exponent)
+                }
+                let measureID = try fields.reference(conversion[1]); try pay(measureID, usage: &usage)
+                let family = try fields.name(measureID), measureKind: IndependentShapeAngularConversion.MeasureKind
+                let measure: [String]
+                if family == "PLANE_ANGLE_MEASURE_WITH_UNIT" { measureKind = .planeAngleMeasureWithUnit; measure = try fields.arguments(measureID, component: nil) }
+                else if family == "MEASURE_WITH_UNIT" { measureKind = .measureWithUnit; measure = try fields.arguments(measureID, component: nil) }
+                else {
+                    guard family.isEmpty, try fields.hasComponent(measureID, named: "MEASURE_WITH_UNIT"),
+                          try fields.hasComponent(measureID, named: "PLANE_ANGLE_MEASURE_WITH_UNIT") else { throw ImportError.invalidData("Original angular factor requires its real angle measure.") }
+                    measureKind = .complexPlaneAngleMeasureWithUnit; measure = try fields.arguments(measureID, component: "MEASURE_WITH_UNIT")
+                }
+                guard measure.count == 2, measure[0].hasPrefix("PLANE_ANGLE_MEASURE("), measure[0].hasSuffix(")"),
+                      let factor = Double(measure[0].dropFirst(20).dropLast()), factor.isFinite, factor > 0 else { throw ImportError.invalidData("Original angular factor must be a positive finite angle measure.") }
+                let base = try angularSource(fields.reference(measure[1]), fields: fields, depth: depth + 1, usage: &usage)
+                let conversionValue = IndependentShapeAngularConversion(name: name.value, factor: factor,
+                    interpretation: factor == AngleUnit.degree.toInternal(1) ? .canonicalDegree : .binary,
+                    dimensionsID: .init(highBits: 0x53544550414E4744, lowBits: UInt64(dimensionsID)), dimensions: dimensions,
+                    measureID: .init(highBits: 0x53544550414E474D, lowBits: UInt64(measureID)), measureKind: measureKind, base: base)
+                value = .init(id: identity, law: .conversion(conversionValue))
+            }
+            try usage.charge(entities: 1, work: 1); originalAngularUnits[id] = value
+            return value
+        }
+        private mutating func planeAngleUnit(_ id: Int, fields: any STEPFieldReading, usage: inout IndependentShapeExchangeUsage) throws -> AngleUnit {
+            let source = try angularSource(id, fields: fields, depth: 1, usage: &usage)
+            if case .conversion(let conversion) = source.law, conversion.interpretation == .canonicalDegree, case .radian(nil) = conversion.base.law { return .degree }
+            return .radian
+        }
+
+        private mutating func originalElement(_ token: String, expected: String,
+            usage: inout IndependentShapeExchangeUsage) throws -> OriginalSTEPPlacementElement {
+            let fields = STEPAssemblySyntax(entities: reader.entities)
+            let id = try fields.reference(token)
+            try pay(id, usage: &usage)
+            guard try fields.name(id) == expected else { throw ImportError.invalidData("Original placement element has the wrong family.") }
+            let values = try fields.arguments(id)
+            guard values.count == 2 else { throw ImportError.invalidData("Malformed original placement element.") }
+            try usage.charge(entities: 1, work: values[1].utf8.count + 1)
+            var separators = 0
+            for byte in values[1].utf8 where byte == 44 {
+                separators += 1
+                guard separators <= 2 else { throw ImportError.invalidData("Original placement requires exactly three coordinates.") }
+            }
+            guard separators == 2 else { throw ImportError.invalidData("Original placement requires exactly three coordinates.") }
+            let coordinates = try fields.numbers(values[1])
+            guard coordinates.count == 3 else { throw ImportError.invalidData("Original placement requires three coordinates.") }
+            let name = try fields.decodedString(values[0], limits: .init(maximumInputBytes: usage.limits.maximumBytes,
+                maximumOutputBytes: usage.limits.maximumBytes - usage.consumedBytes,
+                maximumWork: usage.limits.maximumIterations - usage.consumedWork))
+            try usage.charge(work: name.consumedWork, bytes: name.outputBytes)
+            return .init(id: .init(highBits: 0x53544550504C454D, lowBits: UInt64(id)), name: name.value,
+                coordinates: .init(x: coordinates[0], y: coordinates[1], z: coordinates[2]))
+        }
+
+        mutating func mappingSource(entityID: Int, units: UnitSystem, originalLengthSource: OriginalSTEPLengthSource? = nil,
+                                    usage: inout IndependentShapeExchangeUsage) throws -> OriginalSTEPPlacementSource {
+            try pay(entityID, usage: &usage)
+            let fields = STEPAssemblySyntax(entities: reader.entities)
+            let arguments = try fields.arguments(entityID)
+            func optionalDirection(_ token: String, usage: inout IndependentShapeExchangeUsage) throws -> OriginalSTEPPlacementElement? {
+                token == "$" ? nil : try originalElement(token, expected: "DIRECTION", usage: &usage)
+            }
+            switch try fields.name(entityID) {
+            case "AXIS2_PLACEMENT_3D":
+                guard arguments.count == 4 else { throw ImportError.invalidData("Malformed original axis placement.") }
+                return try .axis2(.init(lengthUnit: units.length,
+                    location: originalElement(arguments[1], expected: "CARTESIAN_POINT", usage: &usage),
+                    axis: optionalDirection(arguments[2], usage: &usage),
+                    referenceDirection: optionalDirection(arguments[3], usage: &usage), originalLengthSource: originalLengthSource))
+            case "CARTESIAN_TRANSFORMATION_OPERATOR_3D":
+                guard arguments.count == 6 || arguments.count == 8 else { throw ImportError.invalidData("Malformed original uniform operator.") }
+                let offset = arguments.count == 8 ? 2 : 0
+                let scale: Double?
+                if arguments[4 + offset] == "$" { scale = nil }
+                else {
+                    guard let value = Double(arguments[4 + offset]), value.isFinite, value > 0 else {
+                        throw ImportError.invalidData("Original uniform scale must be finite and positive.")
+                    }
+                    scale = value
+                }
+                return try .cartesian(.init(lengthUnit: units.length,
+                    location: originalElement(arguments[3 + offset], expected: "CARTESIAN_POINT", usage: &usage),
+                    axis1: optionalDirection(arguments[1 + offset], usage: &usage),
+                    axis2: optionalDirection(arguments[2 + offset], usage: &usage),
+                    axis3: optionalDirection(arguments[5 + offset], usage: &usage), scale: scale, originalLengthSource: originalLengthSource))
+            default: throw ImportError.invalidData("Unknown original standard placement family.")
+            }
+        }
+        mutating func mappingOrigin(entityID: Int, units: UnitSystem, usage: inout IndependentShapeExchangeUsage) throws -> AffineTransform3D {
+            let source = try mappingSource(entityID: entityID, units: units, usage: &usage)
+            return try source.derivedAffineTransform(tolerance: reader.tolerance, maximumDepth: usage.limits.maximumAlgebraicDepth, maximumSourceDepth: usage.limits.maximumNesting, usage: &usage)
+        }
+        mutating func mappingTarget(entityID: Int, units: UnitSystem, usage: inout IndependentShapeExchangeUsage) throws -> AffineTransform3D {
+            let source = try mappingSource(entityID: entityID, units: units, usage: &usage)
+            return try source.derivedAffineTransform(tolerance: reader.tolerance, maximumDepth: usage.limits.maximumAlgebraicDepth, maximumSourceDepth: usage.limits.maximumNesting, usage: &usage)
+        }
+
+    }
+    struct Builder: Sendable {
         let entities: [Int: String]
         let lengthUnit: LengthUnit
         let processingBudget: ExchangeProcessingBudget
         let tolerance: ModelingTolerance
+        let representationItems: Set<Int>?
 
+        var bodyEntityTransfer: [Int: BodyID] = [:]
+        var faceEntityTransfer: [Int: FaceID] = [:]
         var geometry = GeometryStore()
         var bodies: [BodyID: Body] = [:]
         var shells: [ShellID: Shell] = [:]
@@ -60,9 +819,163 @@ private extension ExactSTEPReader {
         var faceOwners: Set<Int> = []
         var loopOwners: Set<Int> = []
 
+        mutating func buildIndependentGeometry(usage: inout IndependentShapeExchangeUsage) throws -> IndependentSTEPGeometry {
+            var curves: [IndependentSTEPCurve] = [], surfaces: [IndependentSTEPSurface] = []
+            var consumedSets: Set<Int> = []
+            var contextIDs: Set<Int> = []
+            var representationCount = 0
+            for entityID in entities.keys.sorted() {
+                try processingBudget.check(format: .step)
+                let entity = try requiredEntity(entityID, label: "independent representation")
+                let name = try entityName(entity)
+                guard name == "SHAPE_REPRESENTATION"
+                    || name == "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION" else { continue }
+                let args = try arguments(of: entity, named: name)
+                guard args.count == 3 else { throw invalid("Standalone STEP representation is malformed.") }
+                let context = try reference(args[2], label: "independent representation context")
+                contextIDs.insert(context)
+                let setIDs = try referenceList(args[1], label: "independent representation items")
+                for setID in setIDs {
+                    try processingBudget.check(format: .step)
+                    guard consumedSets.insert(setID).inserted else {
+                        throw unsupported("Standalone STEP set ownership is shared across representations.")
+                    }
+                    let set = try requiredEntity(setID, label: "independent geometry set")
+                    let kind = try entityName(set)
+                    guard kind == "GEOMETRIC_CURVE_SET" || kind == "GEOMETRIC_SET",
+                        name != "GEOMETRICALLY_BOUNDED_WIREFRAME_SHAPE_REPRESENTATION" || kind == "GEOMETRIC_CURVE_SET" else {
+                        throw unsupported("Standalone STEP representation has an unsupported item.")
+                    }
+                    let setArgs = try arguments(of: set, named: kind)
+                    guard setArgs.count == 2 else { throw invalid("Standalone STEP set is malformed.") }
+                    let itemName = try independentName(setArgs[0], usage: &usage)
+                    let itemIDs = try referenceList(setArgs[1], label: "independent geometry elements")
+                    guard itemIDs.count == 1, let itemID = itemIDs.first else {
+                        throw unsupported("Standalone STEP named sets require exactly one source geometry item.")
+                    }
+                    if kind == "GEOMETRIC_CURVE_SET" {
+                        let (curve, trim) = try independentCurve(itemID)
+                        curves.append(.init(name: itemName, curve: curve, trim: trim))
+                    } else {
+                        let surfaceID = try buildSurface(itemID)
+                        guard let surface = geometry.surfaces[surfaceID] else { throw missing("independent surface") }
+                        try surface.validate(tolerance: tolerance)
+                        surfaces.append(.init(name: itemName, surface: surface))
+                    }
+                }
+                representationCount += 1
+            }
+            guard representationCount > 0, !curves.isEmpty || !surfaces.isEmpty, contextIDs.count == 1,
+                let contextID = contextIDs.first else {
+                throw unsupported("Standalone STEP requires nonempty geometry in one explicit representation context.")
+            }
+            let context = try requiredEntity(contextID, label: "independent context")
+            let geometricContext = try complexArguments(of: context, named: "GEOMETRIC_REPRESENTATION_CONTEXT")
+            guard geometricContext.count == 1, try integer(geometricContext[0], label: "context dimension") == 3 else {
+                throw unsupported("Standalone STEP requires a three-dimensional geometry context.")
+            }
+            let units = try complexArguments(of: context, named: "GLOBAL_UNIT_ASSIGNED_CONTEXT")
+            guard units.count == 1 else { throw invalid("Standalone STEP context units are malformed.") }
+            let unitIDs = try referenceList(units[0], label: "context units")
+            var radians = 0, lengthUnits = 0
+            guard Set(unitIDs).count == unitIDs.count else { throw invalid("Standalone STEP context has duplicate units.") }
+            for unitID in unitIDs {
+                try processingBudget.check(format: .step)
+                let unit = try requiredEntity(unitID, label: "context unit")
+                if unit.contains("LENGTH_UNIT()") { lengthUnits += 1 }
+                if unit.contains("PLANE_ANGLE_UNIT()") {
+                    guard unit.contains("SI_UNIT($,.RADIAN.)") else {
+                        throw unsupported("Standalone STEP requires an explicit radian plane-angle unit.")
+                    }
+                    radians += 1
+                }
+            }
+            guard radians == 1, lengthUnits == 1 else {
+                throw invalid("Standalone STEP context requires exactly one length unit and one radian angle unit.")
+            }
+            for (entityID, entity) in entities {
+                try processingBudget.check(format: .step)
+                let name = try entityName(entity)
+                if name == "GEOMETRIC_CURVE_SET" || name == "GEOMETRIC_SET" {
+                    guard consumedSets.contains(entityID) else { throw unsupported("Standalone STEP contains an unowned geometry set.") }
+                }
+            }
+            try processingBudget.check(format: .step)
+            return .init(curves: curves, surfaces: surfaces, units: .init(length: lengthUnit, angle: .radian))
+        }
+
+        mutating func independentCurve(_ entityID: Int) throws -> (Curve3D, CurveTrim?) {
+            try processingBudget.check(format: .step)
+            let entity = try requiredEntity(entityID, label: "independent curve")
+            if try entityName(entity) == "TRIMMED_CURVE" {
+                let args = try arguments(of: entity, named: "TRIMMED_CURVE")
+                guard args.count == 6, args[5] == ".PARAMETER." else {
+                    throw unsupported("Standalone STEP trims require explicit parameter selectors.")
+                }
+                if args[0] == "'SWIFTCAD_ARC'" {
+                    let curveID = try buildCurve(entityID)
+                    guard let curve = geometry.curves[curveID] else { throw missing("independent arc") }
+                    return (curve, nil)
+                }
+                let basisID = try reference(args[1], label: "independent trim basis")
+                let curveID = try buildCurve(basisID)
+                let curve = try independentStoredCurve(curveID, entityID: basisID)
+                var start = try trimmingParameter(args[2]), end = try trimmingParameter(args[3])
+                let sense = try boolean(args[4])
+                guard start != end, sense == (end > start) else { throw invalid("Standalone STEP trim direction is inconsistent.") }
+                switch curve {
+                case .line, .analytic(.line):
+                    let basis = try requiredEntity(basisID, label: "trimmed line basis")
+                    let line = try arguments(of: basis, named: "LINE")
+                    guard line.count == 3 else { throw invalid("Standalone STEP line is malformed.") }
+                    let vector = try requiredEntity(reference(line[2], label: "line vector"), label: "line vector")
+                    let args = try arguments(of: vector, named: "VECTOR")
+                    guard args.count == 3, try number(args[2], label: "vector magnitude") == 1 else {
+                        throw unsupported("Standalone STEP line parameters require a unit-magnitude vector.")
+                    }
+                    start = lengthUnit.toInternal(start); end = lengthUnit.toInternal(end)
+                default: break
+                }
+                guard start.isFinite, end.isFinite, start != end,
+                    try curve.parameterDomain.containsSpan(from: start, to: end, tolerance: tolerance) else {
+                    throw invalid("Standalone STEP trim is outside its source parameter domain.")
+                }
+                return (curve, .init(startParameter: start, endParameter: end))
+            }
+            let curveID = try buildCurve(entityID)
+            let curve = try independentStoredCurve(curveID, entityID: entityID)
+            switch curve {
+            case .line, .analytic(.line), .analytic(.hyperbola), .analytic(.parabola):
+                throw unsupported("Standalone STEP unbounded curves require finite trims.")
+            default: return (curve, nil)
+            }
+        }
+
+        func independentStoredCurve(_ curveID: CurveID, entityID: Int) throws -> Curve3D {
+            guard let curve = geometry.curves[curveID] else { throw missing("independent curve") }
+            if case .line(let line) = curve {
+                let entity = try requiredEntity(entityID, label: "line source")
+                if try entityName(entity) == "LINE",
+                   try arguments(of: entity, named: "LINE").first == "'SWIFTCAD_ANALYTIC'" {
+                    return .analytic(.line(origin: line.origin, direction: line.direction))
+                }
+            }
+            return curve
+        }
+
+        func independentName(_ token: String, usage: inout IndependentShapeExchangeUsage) throws -> String {
+            try usage.check()
+            let result = try STEPStringCodec().decode(token, limits: STEPStringLimits(
+                maximumInputBytes: usage.limits.maximumBytes,
+                maximumOutputBytes: usage.limits.maximumBytes - usage.consumedBytes,
+                maximumWork: usage.limits.maximumIterations - usage.consumedWork))
+            try usage.charge(work: result.consumedWork, bytes: result.outputBytes)
+            return result.value
+        }
+
         mutating func build() throws -> BRepModel {
             var representationItemCount = 0
-            for entityID in entities.keys.sorted() {
+            for entityID in (representationItems ?? Set(entities.keys)).sorted() {
                 try processingBudget.check(format: .step)
                 guard let entity = entities[entityID] else {
                     continue
@@ -79,6 +992,7 @@ private extension ExactSTEPReader {
                     let shellEntityID = try reference(arguments[1], label: "closed shell")
                     let shellID = try buildShell(shellEntityID, expectedName: "CLOSED_SHELL")
                     let bodyID: BodyID = taggedID(namespace: 0x535445505F424F44, entityID: entityID)
+                    bodyEntityTransfer[entityID] = bodyID
                     bodies[bodyID] = Body(
                         id: bodyID,
                         solidComponents: [SolidShellComponent(outerShellID: shellID)]
@@ -100,6 +1014,7 @@ private extension ExactSTEPReader {
                         shellIDs.append(try buildVoidShell(voidEntityID))
                     }
                     let bodyID: BodyID = taggedID(namespace: 0x535445505F424F44, entityID: entityID)
+                    bodyEntityTransfer[entityID] = bodyID
                     bodies[bodyID] = Body(
                         id: bodyID,
                         solidComponents: [SolidShellComponent(
@@ -123,6 +1038,7 @@ private extension ExactSTEPReader {
                         shellIDs.append(try buildShell(shellEntityID, expectedName: "OPEN_SHELL"))
                     }
                     let bodyID: BodyID = taggedID(namespace: 0x535445505F424F44, entityID: entityID)
+                    bodyEntityTransfer[entityID] = bodyID
                     bodies[bodyID] = Body(id: bodyID, sheetShellIDs: shellIDs)
                     representationItemCount += 1
                 default:
@@ -230,6 +1146,7 @@ private extension ExactSTEPReader {
                 ))
             }
             let faceID: FaceID = taggedID(namespace: 0x535445505F464143, entityID: entityID)
+            faceEntityTransfer[entityID] = faceID
             faces[faceID] = Face(
                 id: faceID,
                 surfaceID: surfaceID,
@@ -552,10 +1469,35 @@ private extension ExactSTEPReader {
                         startParameter: exactTransferTrim.endParameter,
                         endParameter: exactTransferTrim.startParameter
                     )
+            case .parameterImage:
+                // The original image's geometry projection retains its foreign parameter authority.
+                let first = try curve.parameterProjection(of:startPoint,tolerance:tolerance).parameter
+                let last = try curve.parameterProjection(of:endPoint,tolerance:tolerance).parameter
+                guard first.isFinite, last.isFinite, first != last else { throw invalid("Degenerate original parameter-image edge.") }
+                edges[edgeID]?.trim = CurveTrim(startParameter:first,endParameter:last)
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Native retained original-word/chart/connector families require original Body endpoint selection transport.
+            // The neutral Body reader does not produce these families on this branch; never infer original trims from rounded projected vertices.
+            case .originalAffineWord, .originalAngularTransport, .originalEndpointConnector, .originalConstructionChart, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
+                throw invalid("Retained original Body curve requires its original directed endpoint producer.")
             case .rigidImage:
                 throw invalid("STEP curve decoding produced an unsupported rigid-image runtime curve.")
-            case .affineImage:
-                throw invalid("STEP curve decoding produced an unsupported affine-image runtime curve.")
+            case .affineImage(let image):
+                guard case .line(let original) = image.source, let line = curve.exactLinearLocus else {
+                    throw invalid("STEP curve decoding produced an unsupported affine-image runtime curve.")
+                }
+                let signedSpan = (endPoint - startPoint).dot(line.direction)
+                guard abs(signedSpan) > tolerance.distance, (signedSpan > 0) == sameSense else {
+                    throw invalid("STEP affine LINE EDGE_CURVE #\(entityID) has inconsistent orientation.")
+                }
+                let vector = image.transform.applying(to: original.direction)
+                let origin = image.transform.applying(to: original.origin)
+                let startParameter = (startPoint-origin).dot(vector)/vector.dot(vector)
+                let endParameter = (endPoint-origin).dot(vector)/vector.dot(vector)
+                guard try curve.point(at:startParameter,tolerance:tolerance).isApproximatelyEqual(to:startPoint,tolerance:tolerance.distance),
+                      try curve.point(at:endParameter,tolerance:tolerance).isApproximatelyEqual(to:endPoint,tolerance:tolerance.distance) else {
+                    throw invalid("STEP affine LINE EDGE_CURVE #\(entityID) vertices leave its original line.")
+                }
+                edges[edgeID]?.trim = .init(startParameter: startParameter, endParameter: endParameter)
             }
             edgeGeometryEntities[edgeID] = geometryEntityID
             edgeCurveSameSense[edgeID] = sameSense
@@ -937,9 +1879,19 @@ private extension ExactSTEPReader {
                 guard magnitude > 0.0 else {
                     throw invalid("STEP VECTOR #\(vectorEntityID) has a non-positive magnitude.")
                 }
-                let line = Line3D(origin: origin, direction: direction)
-                try line.validate(tolerance: tolerance)
-                geometry.curves[curveID] = .line(line)
+                let internalMagnitude = lengthUnit.toInternal(magnitude)
+                if internalMagnitude == 1 {
+                    let line = Line3D(origin: origin, direction: direction)
+                    try line.validate(tolerance: tolerance)
+                    geometry.curves[curveID] = .line(line)
+                } else {
+                    // STEP LINE's parameter multiplies the complete VECTOR, including model-unit magnitude.
+                    let basis = try ExactAnalyticFrame.directBasis(for: direction, tolerance: tolerance)
+                    let frame = try AffineTransform3D(basisX: direction * internalMagnitude, basisY: basis.u, basisZ: basis.v,
+                        translation: Vector3D(x: origin.x, y: origin.y, z: origin.z))
+                    geometry.curves[curveID] = .affineImage(try AffineImageCurve3D(
+                        source: .line(Line3D(origin: .origin, direction: .unitX)), transform: frame, tolerance: tolerance))
+                }
             } else if concreteName == "CIRCLE" {
                 let parsed = try parseCircle(entity, entityID: curveEntityID)
                 let expectedReference = try parsed.isAnalytic
@@ -1380,15 +2332,14 @@ private extension ExactSTEPReader {
             return surfaceID
         }
 
-        mutating func buildBSplineCurve(_ entity: String, entityID: Int) throws -> BSplineCurve3D {
-            let curveArguments = try complexArguments(of: entity, named: "B_SPLINE_CURVE")
-            let knotArguments = try complexArguments(of: entity, named: "B_SPLINE_CURVE_WITH_KNOTS")
-            let rationalArguments = try complexArguments(of: entity, named: "RATIONAL_B_SPLINE_CURVE")
+        mutating func buildBSplineCurve(_ entity: String, entityID: Int, retainingLogicalAssertions: Bool = false) throws -> BSplineCurve3D {
+            let original = try IndependentSTEPSplineFields(fields: STEPAssemblySyntax(entities: entities), entityID: entityID, surface: false)
+            let curveArguments = original.basis, knotArguments = original.knots
+            let rational = original.rational != nil, rationalArguments = original.rational ?? []
             guard curveArguments.count == 5,
                   knotArguments.count == 3,
-                  rationalArguments.count == 1,
-                  try boolean(curveArguments[3]) == false,
-                  try boolean(curveArguments[4]) == false else {
+                  (!rational || rationalArguments.count == 1),
+                  retainingLogicalAssertions || (try boolean(curveArguments[3]) == false && boolean(curveArguments[4]) == false) else {
                 throw unsupported("STEP B-spline curve #\(entityID) must be open and non-self-intersecting.")
             }
             let degree = try integer(curveArguments[0], label: "B-spline curve degree")
@@ -1399,7 +2350,8 @@ private extension ExactSTEPReader {
             }
             let multiplicities = try integerList(knotArguments[0], label: "B-spline curve knot multiplicities")
             let distinctKnots = try arbitraryNumberList(knotArguments[1], label: "B-spline curve knots")
-            let weights = try arbitraryNumberList(rationalArguments[0], label: "B-spline curve weights")
+            let weights = rational ? try arbitraryNumberList(rationalArguments[0], label: "B-spline curve weights")
+                : Array(repeating:1.0,count:controlPoints.count)
             let curve = BSplineCurve3D(
                 degree: degree,
                 knots: try expandedKnots(
@@ -1414,16 +2366,14 @@ private extension ExactSTEPReader {
             return curve
         }
 
-        mutating func buildBSplineSurface(_ entity: String, entityID: Int) throws -> BSplineSurface3D {
-            let surfaceArguments = try complexArguments(of: entity, named: "B_SPLINE_SURFACE")
-            let knotArguments = try complexArguments(of: entity, named: "B_SPLINE_SURFACE_WITH_KNOTS")
-            let rationalArguments = try complexArguments(of: entity, named: "RATIONAL_B_SPLINE_SURFACE")
+        mutating func buildBSplineSurface(_ entity: String, entityID: Int, retainingLogicalAssertions: Bool = false) throws -> BSplineSurface3D {
+            let original = try IndependentSTEPSplineFields(fields: STEPAssemblySyntax(entities: entities), entityID: entityID, surface: true)
+            let surfaceArguments = original.basis, knotArguments = original.knots
+            let rational = original.rational != nil, rationalArguments = original.rational ?? []
             guard surfaceArguments.count == 7,
                   knotArguments.count == 5,
-                  rationalArguments.count == 1,
-                  try boolean(surfaceArguments[4]) == false,
-                  try boolean(surfaceArguments[5]) == false,
-                  try boolean(surfaceArguments[6]) == false else {
+                  (!rational || rationalArguments.count == 1),
+                  retainingLogicalAssertions || (try boolean(surfaceArguments[4]) == false && boolean(surfaceArguments[5]) == false && boolean(surfaceArguments[6]) == false) else {
                 throw unsupported("STEP B-spline surface #\(entityID) must be open and non-self-intersecting.")
             }
             let uDegree = try integer(surfaceArguments[0], label: "B-spline surface U degree")
@@ -1442,9 +2392,28 @@ private extension ExactSTEPReader {
             let vMultiplicities = try integerList(knotArguments[1], label: "B-spline surface V multiplicities")
             let uValues = try arbitraryNumberList(knotArguments[2], label: "B-spline surface U knots")
             let vValues = try arbitraryNumberList(knotArguments[3], label: "B-spline surface V knots")
-            let weightRows = try tupleRows(rationalArguments[0], label: "B-spline surface weight net")
-            let weights = try weightRows.map {
-                try arbitraryNumberList($0, label: "B-spline surface weight row")
+            let weights: [[Double]]
+            if rational {
+                let weightRows = try tupleRows(rationalArguments[0], label: "B-spline surface weight net")
+                weights = try weightRows.map { try arbitraryNumberList($0, label: "B-spline surface weight row") }
+            } else {
+                weights = controlPoints.map { Array(repeating:1.0,count:$0.count) }
+            }
+            guard let first = controlPoints.first, !first.isEmpty,
+                  controlPoints.allSatisfy({ $0.count == first.count }),
+                  weights.count == controlPoints.count,
+                  weights.allSatisfy({ $0.count == first.count }) else {
+                throw invalid("STEP B-spline surface #\(entityID) has a nonrectangular control/weight net.")
+            }
+            // STEP stores [u][v]; the original native surface stores [v][u].
+            var nativePoints: [[Point3D]] = [], nativeWeights: [[Double]] = []
+            nativePoints.reserveCapacity(first.count); nativeWeights.reserveCapacity(first.count)
+            for v in first.indices {
+                try processingBudget.check(format: .step)
+                var points: [Point3D] = [], rowWeights: [Double] = []
+                points.reserveCapacity(controlPoints.count); rowWeights.reserveCapacity(controlPoints.count)
+                for u in controlPoints.indices { points.append(controlPoints[u][v]); rowWeights.append(weights[u][v]) }
+                nativePoints.append(points); nativeWeights.append(rowWeights)
             }
             let surface = BSplineSurface3D(
                 uDegree: uDegree,
@@ -1459,8 +2428,8 @@ private extension ExactSTEPReader {
                     multiplicities: vMultiplicities,
                     label: "B-spline surface V"
                 ),
-                controlPoints: controlPoints,
-                weights: weights
+                controlPoints: nativePoints,
+                weights: nativeWeights
             )
             try surface.validate(tolerance: tolerance)
             return surface
@@ -1512,14 +2481,17 @@ private extension ExactSTEPReader {
                 throw invalid("STEP AXIS2_PLACEMENT_3D #\(entityID) is malformed.")
             }
             let origin = try buildPoint(reference(placementArguments[1], label: "placement origin"))
-            let axis = try buildDirection(reference(placementArguments[2], label: "placement axis"))
-            let referenceDirection = try buildDirection(
-                reference(placementArguments[3], label: "placement reference direction")
-            )
-            guard abs(axis.dot(referenceDirection)) <= tolerance.angle else {
-                throw invalid("STEP axis placement #\(entityID) has non-orthogonal axes.")
-            }
+            let axis = placementArguments[2] == "$" ? Vector3D.unitZ : try buildDirection(reference(placementArguments[2], label: "placement axis"))
+            let proposed = placementArguments[3] == "$"
+                ? Self.defaultReference(for:axis)
+                : try buildDirection(reference(placementArguments[3], label: "placement reference direction"))
+            // ISO build_axes projects the supplied reference into the normal plane.
+            let referenceDirection = try (proposed-axis*proposed.dot(axis)).normalized(tolerance:tolerance.distance)
             return (origin, axis, referenceDirection)
+        }
+
+        static func defaultReference(for axis:Vector3D) -> Vector3D {
+            axis == .unitX || axis == -Vector3D.unitX ? .unitY : .unitX
         }
 
         func parameterCurve(
@@ -2254,11 +3226,11 @@ private extension ExactSTEPReader {
             var start = text.startIndex
             var cursor = text.startIndex
             while cursor < text.endIndex {
-                let character = text[cursor]
+                let character = text.unicodeScalars[cursor]
                 if character == "'" {
-                    let next = text.index(after: cursor)
-                    if inString, next < text.endIndex, text[next] == "'" {
-                        cursor = text.index(after: next)
+                    let next = text.unicodeScalars.index(after: cursor)
+                    if inString, next < text.endIndex, text.unicodeScalars[next] == "'" {
+                        cursor = text.unicodeScalars.index(after: next)
                         continue
                     }
                     inString.toggle()
@@ -2269,13 +3241,13 @@ private extension ExactSTEPReader {
                         depth -= 1
                     } else if character == ",", depth == 0 {
                         values.append(String(text[start..<cursor]).trimmingCharacters(in: .whitespacesAndNewlines))
-                        start = text.index(after: cursor)
+                        start = text.unicodeScalars.index(after: cursor)
                     }
                     guard depth >= 0 else {
                         throw invalid("STEP tuple syntax is malformed.")
                     }
                 }
-                cursor = text.index(after: cursor)
+                cursor = text.unicodeScalars.index(after: cursor)
             }
             guard !inString, depth == 0 else {
                 throw invalid("STEP tuple syntax is unterminated.")

@@ -49,9 +49,8 @@ struct BRepSheetSidePointClassifier: SolidPointClassificationSessionPreparing {
         let faceBounds = try Dictionary(uniqueKeysWithValues: faceIDs.map {
             ($0, try BRepFaceBoundingBoxBuilder().bounds(for: $0, in: model, tolerance: tolerance))
         })
-        let containmentSession = try (
-            crossings.facePointContainment as? any FacePointContainmentSessionPreparing
-        )?.makeContainmentSession(for: faceIDs, in: model, tolerance: tolerance)
+        let containmentSession = try crossings.facePointContainment.preparedContainmentSession(
+            for: faceIDs, in: model, tolerance: tolerance)
         var directions: [Vector3D] = []
         for faceID in faceIDs {
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID],

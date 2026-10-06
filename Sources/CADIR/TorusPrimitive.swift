@@ -1,6 +1,6 @@
 import CADCore
 
-public struct TorusPrimitive: Codable, Hashable, Sendable {
+public struct TorusPrimitive: Hashable, Sendable {
     public let placement: PrimitivePlacement
     public let majorRadius: CADExpression
     public let minorRadius: CADExpression
@@ -21,12 +21,15 @@ public struct TorusPrimitive: Codable, Hashable, Sendable {
         try minorRadius.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case placement
         case majorRadius
         case minorRadius
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -38,7 +41,9 @@ public struct TorusPrimitive: Codable, Hashable, Sendable {
         minorRadius = try container.decode(CADExpression.self, forKey: .minorRadius)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -46,4 +51,9 @@ public struct TorusPrimitive: Codable, Hashable, Sendable {
         try container.encode(majorRadius, forKey: .majorRadius)
         try container.encode(minorRadius, forKey: .minorRadius)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension TorusPrimitive: Codable {}
+#endif

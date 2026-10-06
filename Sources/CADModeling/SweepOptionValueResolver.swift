@@ -43,13 +43,13 @@ package struct SweepOptionValueResolver: Sendable {
             parameters: parameters
         )
         guard endScale.isFinite,
-              endScale > tolerance.relative else {
+              endScale == 0 || endScale > tolerance.relative else {
             throw KernelError(
                 phase: .validation,
                 code: .sweepScaleCollapse,
                 residual: endScale,
                 tolerance: tolerance,
-                message: "Sweep end-scale collapses the section before valid exact topology can be produced."
+                message: "Sweep scale must be positive above relative tolerance or an authored exact zero endpoint collapse."
             )
         }
 

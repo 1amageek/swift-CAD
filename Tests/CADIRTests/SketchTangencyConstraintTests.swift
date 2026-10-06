@@ -25,8 +25,8 @@ struct SketchTangencyConstraintTests {
 
     @Test(.timeLimit(.minutes(1)))
     func rejectsUnknownTangencyFieldsAndTheRemovedSchema() throws {
-        let first = SketchEntityID().rawValue.uuidString
-        let second = SketchEntityID().rawValue.uuidString
+        let first = SketchEntityID().rawValue.canonicalString
+        let second = SketchEntityID().rawValue.canonicalString
         let unknownField = Data("""
         {
           "kind": "tangent",

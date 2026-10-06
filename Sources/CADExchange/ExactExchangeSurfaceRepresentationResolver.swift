@@ -19,6 +19,12 @@ struct ExactExchangeSurfaceRepresentationResolver: Sendable {
                 .unsupportedCapability, tolerance: tolerance,
                 "General rolling-ball surfaces have no exact exchange representation."
             )
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Exact STEP/IGES publication of original revolutions
+        // still needs a standard generator carrier retaining normalized traversal and finite U-domain.
+        // The explicit certified policy uses the original native source and publishes its guarantee.
+        case .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalAffineWord):
+            throw exchangeError(.unsupportedCapability, tolerance: tolerance,
+                "Original procedural traversal needs chart-preserving standard transport or explicit certified conversion.")
         case let .procedural(.ruled(ruled)):
             let patch = try ExactRectangularBSplineSurfacePatchBuilder().build(
                 surface: .procedural(.ruled(ruled)),
@@ -37,7 +43,7 @@ struct ExactExchangeSurfaceRepresentationResolver: Sendable {
                 )
             }
             return .bSpline(patch.surface)
-        case .procedural(.offset):
+        case .procedural(.offset), .procedural(.originalImage):
             // STEP OFFSET_SURFACE and IGES Type 140 preserve the source UV
             // chart and signed normal distance without materialization.
             return surface

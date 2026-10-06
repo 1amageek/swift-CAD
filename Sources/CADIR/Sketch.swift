@@ -1,6 +1,6 @@
 import CADCore
 
-public struct Sketch: Codable, Sendable, Hashable {
+public struct Sketch: Sendable, Hashable {
     public var id: SketchID
     public var plane: SketchPlane
     public var entities: [SketchEntityID: SketchEntity]
@@ -29,6 +29,7 @@ public struct Sketch: Codable, Sendable, Hashable {
         self.dimensions = dimensions
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id
         case plane
@@ -37,7 +38,9 @@ public struct Sketch: Codable, Sendable, Hashable {
         case constraints
         case dimensions
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         id = try container.decode(SketchID.self, forKey: .id)
@@ -61,6 +64,7 @@ public struct Sketch: Codable, Sendable, Hashable {
             forKey: .dimensions
         )
     }
+#endif
 
     /// Entities in authoring order, followed by any entities missing from
     /// the order list in their stable ID-derived order.
@@ -483,3 +487,7 @@ public struct Sketch: Codable, Sendable, Hashable {
         try spline.validateForm()
     }
 }
+
+#if !hasFeature(Embedded)
+extension Sketch: Codable {}
+#endif

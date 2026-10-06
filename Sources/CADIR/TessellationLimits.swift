@@ -12,7 +12,7 @@ import CADCore
 ///
 /// The values below are derived from the measured Swift-CAD fixtures recorded
 /// in `Sources/CADIR/DESIGN.md`, not from a presentation target.
-public struct TessellationLimits: Codable, Hashable, Sendable {
+public struct TessellationLimits: Hashable, Sendable {
     /// The cumulative number of emitted mesh vertices the invocation may reach.
     public var maximumVertexCount: Int
     /// The cumulative number of emitted triangle indices the invocation may reach.
@@ -124,3 +124,7 @@ public struct TessellationLimits: Codable, Hashable, Sendable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension TessellationLimits: Codable {}
+#endif

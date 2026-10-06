@@ -3,7 +3,7 @@ import CADGeometry
 import CADIR
 import CADTopology
 
-public struct BooleanIntersectionGraph: Codable, Hashable, Sendable {
+public struct BooleanIntersectionGraph: Hashable, Sendable {
     public let facePairs: [BooleanFacePairCandidate]
     public let boundaryContacts: [BooleanBoundaryContact]
     public let faceIntersections: [BooleanFaceSurfaceIntersection]
@@ -18,18 +18,24 @@ public struct BooleanIntersectionGraph: Codable, Hashable, Sendable {
         self.faceIntersections = faceIntersections
     }
 
-    public func validate(in model: BRepModel, tolerance: ModelingTolerance) throws {
+    public func validate(in model: BRepModel, tolerance: ModelingTolerance,
+        consumeWork: (@Sendable (Int) throws -> Void)? = nil) throws {
+        try consumeWork?(0)
         try tolerance.validate()
-        guard Set(facePairs).count == facePairs.count else {
+        var candidates: Set<BooleanFacePairCandidate> = []
+        for pair in facePairs {
+            try consumeWork?(0)
+            guard candidates.insert(pair).inserted else {
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,
                 tolerance: tolerance,
                 message: "Boolean intersection graph contains duplicate face-pair candidates."
             )
+            }
         }
-        let candidates = Set(facePairs)
         for intersection in faceIntersections {
+            try consumeWork?(0)
             guard candidates.contains(intersection.facePair),
                   model.faces[intersection.facePair.targetFaceID] != nil,
                   model.faces[intersection.facePair.toolFaceID] != nil else {
@@ -41,6 +47,7 @@ public struct BooleanIntersectionGraph: Codable, Hashable, Sendable {
                 )
             }
             let residual: Double
+            try consumeWork?(0)
             switch intersection.geometry {
             case let .curve(value):
                 residual = value.maximumResidual
@@ -60,6 +67,7 @@ public struct BooleanIntersectionGraph: Codable, Hashable, Sendable {
             }
         }
         for contact in boundaryContacts {
+            try consumeWork?(0)
             guard model.edges[contact.edgeID] != nil,
                   model.faces[contact.curveFaceID] != nil,
                   model.faces[contact.surfaceFaceID] != nil else {
@@ -90,7 +98,8 @@ public struct BooleanIntersectionGraph: Codable, Hashable, Sendable {
                 contact.curveFaceID,
                 contains: contact.edgeID,
                 in: model,
-                tolerance: tolerance
+                tolerance: tolerance,
+                consumeWork: consumeWork
             ) else {
                 throw KernelError(
                     phase: .geometry,
@@ -100,12 +109,19 @@ public struct BooleanIntersectionGraph: Codable, Hashable, Sendable {
                 )
             }
             if case let .points(intersections) = contact.geometry {
-                guard intersections.isEmpty == false,
-                      intersections.allSatisfy({ $0.residual <= tolerance.distance }) else {
+                var valid = intersections.isEmpty == false
+                var maximumResidual: Double?
+                for intersection in intersections {
+                    try consumeWork?(0)
+                    valid = valid && intersection.residual <= tolerance.distance
+                    maximumResidual = max(maximumResidual ?? intersection.residual,
+                        intersection.residual)
+                }
+                guard valid else {
                     throw KernelError(
                         phase: .geometry,
                         code: .intersectionFailure,
-                        residual: intersections.map(\.residual).max(),
+                        residual: maximumResidual,
                         tolerance: tolerance,
                         message: "Boolean boundary contact failed residual verification."
                     )
@@ -118,10 +134,12 @@ public struct BooleanIntersectionGraph: Codable, Hashable, Sendable {
         _ faceID: FaceID,
         contains edgeID: EdgeID,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        consumeWork: (@Sendable (Int) throws -> Void)?
     ) throws -> Bool {
         guard let face = model.faces[faceID] else { return false }
         for loopID in face.loops {
+            try consumeWork?(0)
             guard let loop = model.loops[loopID] else {
                 throw KernelError(
                     phase: .topology,
@@ -130,10 +148,15 @@ public struct BooleanIntersectionGraph: Codable, Hashable, Sendable {
                     message: "Boolean intersection graph found a missing face loop."
                 )
             }
-            if loop.coedges.contains(where: { $0.edgeID == edgeID }) {
-                return true
+            for coedge in loop.coedges {
+                try consumeWork?(0)
+                if coedge.edgeID == edgeID { return true }
             }
         }
         return false
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanIntersectionGraph: Codable {}
+#endif

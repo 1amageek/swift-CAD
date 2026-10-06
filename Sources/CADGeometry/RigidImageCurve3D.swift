@@ -1,7 +1,7 @@
 import CADCore
 
 /// A parameter-preserving exact image of a curve under a rigid transform.
-public struct RigidImageCurve3D: Codable, Hashable, Sendable {
+public struct RigidImageCurve3D: Hashable, Sendable {
     public let source: Curve3D
     public let transform: RigidTransform3D
 
@@ -13,6 +13,31 @@ public struct RigidImageCurve3D: Codable, Hashable, Sendable {
         self.source = source
         self.transform = transform
         try validate(tolerance: tolerance)
+    }
+
+    /// Constructs the original rigid image under the composing source admission.
+    public init(
+        source: Curve3D,
+        transform: RigidTransform3D,
+        tolerance: ModelingTolerance,
+        remainingSourceDepth: Int,
+        maximumSubdivisionDepth: Int,
+        consumeWork: () throws -> Void,
+        consumeStorage: ((Int) throws -> Void)? = nil,
+        maximumAlgebraicDepth: Int? = nil
+    ) throws {
+        guard remainingSourceDepth > 0, maximumSubdivisionDepth >= 0 else {
+            throw GeometryConversionError.resourceLimitExceeded("Original rigid image construction exhausted source admission.")
+        }
+        try consumeWork()
+        try transform.validate(tolerance: tolerance)
+        try source.validateOriginalSource(tolerance: tolerance,
+            remainingSourceDepth: remainingSourceDepth - 1,
+            maximumSubdivisionDepth: maximumSubdivisionDepth,
+            consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage,
+            maximumAlgebraicDepth: maximumAlgebraicDepth)
+        self.source = source
+        self.transform = transform
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
@@ -73,3 +98,7 @@ public struct RigidImageCurve3D: Codable, Hashable, Sendable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension RigidImageCurve3D: Codable {}
+#endif

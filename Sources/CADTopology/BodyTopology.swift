@@ -5,21 +5,26 @@ import CADCore
 /// A solid stores connected material components and each component owns its
 /// void shells. A sheet stores independent open shells. No semantic meaning is
 /// assigned to the order of a flattened shell list.
-public enum BodyTopology: Codable, Equatable, Sendable {
+public enum BodyTopology: Equatable, Sendable {
     case solid(components: [SolidShellComponent])
     case sheet(shellIDs: [ShellID])
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case components
         case shellIDs
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case solid
         case sheet
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -39,7 +44,9 @@ public enum BodyTopology: Codable, Equatable, Sendable {
             )
         }
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -51,6 +58,7 @@ public enum BodyTopology: Codable, Equatable, Sendable {
             try container.encode(shellIDs, forKey: .shellIDs)
         }
     }
+    #endif
 
     public var kind: BodyKind {
         switch self {
@@ -84,3 +92,7 @@ public enum BodyTopology: Codable, Equatable, Sendable {
         return shellIDs
     }
 }
+
+#if !hasFeature(Embedded)
+extension BodyTopology: Codable {}
+#endif

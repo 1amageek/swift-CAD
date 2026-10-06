@@ -4,7 +4,7 @@ import CADTopology
 /// Copies part of a body as a body of its own, leaving the source as it is: one component of a
 /// body made of several (a slice's pieces), chosen faces as a sheet, or chosen faces that close
 /// as a solid.
-public struct ExtractFeature: Codable, Hashable, Sendable {
+public struct ExtractFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var selection: ExtractSelection
 
@@ -35,10 +35,13 @@ public struct ExtractFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, selection
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .selection], in: decoder)
@@ -46,13 +49,16 @@ public struct ExtractFeature: Codable, Hashable, Sendable {
         selection = try container.decode(ExtractSelection.self, forKey: .selection)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(target, forKey: .target)
         try container.encode(selection, forKey: .selection)
     }
+#endif
 }
 
 /// What an extraction copies.
@@ -88,15 +94,21 @@ public enum ExtractSelection: Hashable, Sendable {
     }
 }
 
+#if !hasFeature(Embedded)
 extension ExtractSelection: Codable {
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind, index, count, faces
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case component, faces, solidFaces
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -111,7 +123,9 @@ extension ExtractSelection: Codable {
             self = .solidFaces(try container.decode([StableSubshapeReference].self, forKey: .faces))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -127,4 +141,12 @@ extension ExtractSelection: Codable {
             try container.encode(faces, forKey: .faces)
         }
     }
+#endif
 }
+#endif
+
+#if !hasFeature(Embedded)
+#if !hasFeature(Embedded)
+extension ExtractFeature: Codable {}
+#endif
+#endif

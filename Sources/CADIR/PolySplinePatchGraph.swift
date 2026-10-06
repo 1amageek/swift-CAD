@@ -1,5 +1,5 @@
-public struct PolySplinePatchGraph: Codable, Sendable, Hashable {
-    public struct VertexPair: Codable, Sendable, Hashable {
+public struct PolySplinePatchGraph: Sendable, Hashable {
+    public struct VertexPair: Sendable, Hashable {
         public var firstVertexIndex: Int
         public var secondVertexIndex: Int
 
@@ -12,7 +12,7 @@ public struct PolySplinePatchGraph: Codable, Sendable, Hashable {
         }
     }
 
-    public struct QuadCandidate: Codable, Sendable, Hashable {
+    public struct QuadCandidate: Sendable, Hashable {
         public var id: Int
         public var triangleIndices: [Int]
         public var boundaryVertexIndices: [Int]
@@ -34,8 +34,8 @@ public struct PolySplinePatchGraph: Codable, Sendable, Hashable {
         }
     }
 
-    public struct Relationship: Codable, Sendable, Hashable {
-        public enum Kind: String, Codable, Sendable, Hashable {
+    public struct Relationship: Sendable, Hashable {
+        public enum Kind: String, Sendable, Hashable {
             case sharesBoundaryEdge
             case competesForTriangle
         }
@@ -61,8 +61,8 @@ public struct PolySplinePatchGraph: Codable, Sendable, Hashable {
         }
     }
 
-    public struct SelectedAdjacency: Codable, Sendable, Hashable {
-        public enum ContinuityLevel: String, Codable, Sendable, Hashable {
+    public struct SelectedAdjacency: Sendable, Hashable {
+        public enum ContinuityLevel: String, Sendable, Hashable {
             case positional
             case tangentPlane
         }
@@ -94,7 +94,7 @@ public struct PolySplinePatchGraph: Codable, Sendable, Hashable {
         }
     }
 
-    public struct Partition: Codable, Sendable, Hashable {
+    public struct Partition: Sendable, Hashable {
         public var selectedCandidateIDs: [Int]
         public var rejectedCandidateIDs: [Int]
         public var coveredTriangleIndices: [Int]
@@ -143,3 +143,14 @@ public struct PolySplinePatchGraph: Codable, Sendable, Hashable {
         self.partition = partition
     }
 }
+
+#if !hasFeature(Embedded)
+extension PolySplinePatchGraph: Codable {}
+extension PolySplinePatchGraph.VertexPair: Codable {}
+extension PolySplinePatchGraph.QuadCandidate: Codable {}
+extension PolySplinePatchGraph.Relationship: Codable {}
+extension PolySplinePatchGraph.Relationship.Kind: Codable {}
+extension PolySplinePatchGraph.SelectedAdjacency: Codable {}
+extension PolySplinePatchGraph.SelectedAdjacency.ContinuityLevel: Codable {}
+extension PolySplinePatchGraph.Partition: Codable {}
+#endif

@@ -537,10 +537,7 @@ extension Surface3D {
         }
         switch self {
         case let .plane(plane):
-            let basis = try circleOrthonormalBasis(
-                plane.normal,
-                tolerance: tolerance
-            )
+            let basis = try plane.parameterBasis(tolerance: tolerance)
             let origin = try SurfaceTaylorVectorJet.constant(plane.origin, order: order)
             let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
             let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)
@@ -632,9 +629,13 @@ private extension AnalyticSurface3D {
             let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
             let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
             let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)
-            let radial = try uDirection * cosineU + vDirection * sineU
+            let sphereCosineU = try CanonicalSphereAngularPhase.candidateTaylor(at: u, alongU: true, cosine: true, order: order)
+            let sphereSineU = try CanonicalSphereAngularPhase.candidateTaylor(at: u, alongU: true, cosine: false, order: order)
+            let sphereCosineV = try CanonicalSphereAngularPhase.candidateTaylor(at: v, alongU: false, cosine: true, order: order)
+            let sphereSineV = try CanonicalSphereAngularPhase.candidateTaylor(at: v, alongU: false, cosine: false, order: order)
+            let radial = try uDirection * sphereCosineU + vDirection * sphereSineU
             let vertical = try SurfaceTaylorVectorJet.constant(.unitZ, order: order)
-            let direction = try radial * cosineV + vertical * sineV
+            let direction = try radial * sphereCosineV + vertical * sphereSineV
             let centerJet = try SurfaceTaylorVectorJet.constant(center, order: order)
             let radiusJet = try SurfaceTaylorScalarJet.constant(radius, order: order)
             return try centerJet + direction * radiusJet
@@ -672,16 +673,8 @@ private extension BSplineSurface3D {
         throughOrder order: Int,
         tolerance: ModelingTolerance
     ) throws -> SurfaceTaylorVectorJet {
-        let clampedU = BSplineBasis.clampedParameter(
-            u,
-            knots: uKnots,
-            degree: uDegree
-        )
-        let clampedV = BSplineBasis.clampedParameter(
-            v,
-            knots: vKnots,
-            degree: vDegree
-        )
+        let clampedU = try basisParameter(u, direction: .u, tolerance: tolerance)
+        let clampedV = try basisParameter(v, direction: .v, tolerance: tolerance)
         let uBasis = (0...order).map { derivativeOrder in
             BSplineBasis.derivativeValues(
                 parameter: clampedU,

@@ -7,7 +7,7 @@ import CADCore
 /// straight along its end tangents), turned by `angle` about the path, twisted by `twist` along it
 /// and scaled to `endScale` at its end, as a new body or combined with `targets`. A pipe has
 /// exactly one of `diameter` and `profile`.
-public struct PipeFeature: Codable, Hashable, Sendable {
+public struct PipeFeature: Hashable, Sendable {
     public var path: SweepPathReference
     /// The circle's or polygon's size; nil for a custom profile.
     public var diameter: CADExpression?
@@ -61,10 +61,13 @@ public struct PipeFeature: Codable, Hashable, Sendable {
         self.approximationTolerance = approximationTolerance
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case path, diameter, profile, thickness, vertexCount, angle, twist, endScale, start, end, booleanOperation, targets, keepTools, approximationTolerance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
@@ -87,7 +90,9 @@ public struct PipeFeature: Codable, Hashable, Sendable {
         approximationTolerance = try container.decode(CADExpression.self, forKey: .approximationTolerance)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -106,6 +111,7 @@ public struct PipeFeature: Codable, Hashable, Sendable {
         if keepTools { try container.encode(keepTools, forKey: .keepTools) }
         try container.encode(approximationTolerance, forKey: .approximationTolerance)
     }
+#endif
 
     public func validate() throws {
         guard vertexCount == 0 || (3...256).contains(vertexCount) else {
@@ -153,3 +159,7 @@ public struct PipeFeature: Codable, Hashable, Sendable {
         [angle, twist, endScale, start, end, approximationTolerance] + [diameter, thickness].compactMap { $0 }
     }
 }
+
+#if !hasFeature(Embedded)
+extension PipeFeature: Codable {}
+#endif

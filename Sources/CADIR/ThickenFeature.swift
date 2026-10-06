@@ -2,7 +2,7 @@ import CADCore
 
 /// Thicken: a sheet grown into a solid, `front` along its normal and `back` against it; either may
 /// be zero, not both.
-public struct ThickenFeature: Codable, Hashable, Sendable {
+public struct ThickenFeature: Hashable, Sendable {
     public let target: ThickenTargetReference
     public let front: CADExpression
     public let back: CADExpression
@@ -23,12 +23,15 @@ public struct ThickenFeature: Codable, Hashable, Sendable {
         try back.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case front
         case back
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .front, .back], in: decoder)
@@ -37,7 +40,9 @@ public struct ThickenFeature: Codable, Hashable, Sendable {
         back = try container.decode(CADExpression.self, forKey: .back)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -45,4 +50,9 @@ public struct ThickenFeature: Codable, Hashable, Sendable {
         try container.encode(front, forKey: .front)
         try container.encode(back, forKey: .back)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension ThickenFeature: Codable {}
+#endif

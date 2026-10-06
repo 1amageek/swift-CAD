@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-public struct EdgeReference: Codable, Hashable, Sendable {
+public struct EdgeReference: Hashable, Sendable {
     public var subshape: StableSubshapeReference
 
     public init(subshape: StableSubshapeReference) {
@@ -13,7 +13,7 @@ public struct EdgeReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct EdgeParameterReference: Codable, Hashable, Sendable {
+public struct EdgeParameterReference: Hashable, Sendable {
     public var edge: EdgeReference
     public var parameter: Double
 
@@ -30,21 +30,26 @@ public struct EdgeParameterReference: Codable, Hashable, Sendable {
     }
 }
 
-public enum EdgeSubobjectReference: Codable, Hashable, Sendable {
+public enum EdgeSubobjectReference: Hashable, Sendable {
     case whole(EdgeReference)
     case parameter(EdgeParameterReference)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case whole
         case parameter
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case whole
         case parameter
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -57,7 +62,9 @@ public enum EdgeSubobjectReference: Codable, Hashable, Sendable {
             self = .parameter(try container.decode(EdgeParameterReference.self, forKey: .parameter))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -69,6 +76,7 @@ public enum EdgeSubobjectReference: Codable, Hashable, Sendable {
             try container.encode(reference, forKey: .parameter)
         }
     }
+#endif
 
     public func validate() throws {
         switch self {
@@ -80,7 +88,7 @@ public enum EdgeSubobjectReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct CurveOutputReference: Codable, Hashable, Sendable {
+public struct CurveOutputReference: Hashable, Sendable {
     public var featureID: FeatureID
     public var curveIndex: Int
 
@@ -95,11 +103,14 @@ public struct CurveOutputReference: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
         case curveIndex
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID, .curveIndex], in: decoder)
@@ -107,16 +118,19 @@ public struct CurveOutputReference: Codable, Hashable, Sendable {
         curveIndex = try container.decode(Int.self, forKey: .curveIndex)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(featureID, forKey: .featureID)
         try container.encode(curveIndex, forKey: .curveIndex)
     }
+#endif
 }
 
-public struct CurveParameterReference: Codable, Hashable, Sendable {
+public struct CurveParameterReference: Hashable, Sendable {
     public var curve: CurveOutputReference
     public var parameter: Double
 
@@ -133,7 +147,7 @@ public struct CurveParameterReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct CurveCenterReference: Codable, Hashable, Sendable {
+public struct CurveCenterReference: Hashable, Sendable {
     public var curve: CurveOutputReference
 
     public init(curve: CurveOutputReference) {
@@ -145,7 +159,7 @@ public struct CurveCenterReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct CurveSpanReference: Codable, Hashable, Sendable {
+public struct CurveSpanReference: Hashable, Sendable {
     public var curve: CurveOutputReference
     public var spanIndex: Int
 
@@ -162,7 +176,7 @@ public struct CurveSpanReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct CurveControlPointReference: Codable, Hashable, Sendable {
+public struct CurveControlPointReference: Hashable, Sendable {
     public var curve: CurveOutputReference
     public var controlPointIndex: Int
 
@@ -178,11 +192,14 @@ public struct CurveControlPointReference: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case curve
         case controlPointIndex
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.curve, .controlPointIndex], in: decoder)
@@ -190,16 +207,19 @@ public struct CurveControlPointReference: Codable, Hashable, Sendable {
         controlPointIndex = try container.decode(Int.self, forKey: .controlPointIndex)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(curve, forKey: .curve)
         try container.encode(controlPointIndex, forKey: .controlPointIndex)
     }
+#endif
 }
 
-public struct CurveKnotReference: Codable, Hashable, Sendable {
+public struct CurveKnotReference: Hashable, Sendable {
     public var curve: CurveOutputReference
     public var knotIndex: Int
 
@@ -215,11 +235,14 @@ public struct CurveKnotReference: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case curve
         case knotIndex
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.curve, .knotIndex], in: decoder)
@@ -227,16 +250,19 @@ public struct CurveKnotReference: Codable, Hashable, Sendable {
         knotIndex = try container.decode(Int.self, forKey: .knotIndex)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(curve, forKey: .curve)
         try container.encode(knotIndex, forKey: .knotIndex)
     }
+#endif
 }
 
-public enum CurveSubobjectReference: Codable, Hashable, Sendable {
+public enum CurveSubobjectReference: Hashable, Sendable {
     case whole(CurveOutputReference)
     case parameter(CurveParameterReference)
     case center(CurveCenterReference)
@@ -244,6 +270,7 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
     case controlPoint(CurveControlPointReference)
     case knot(CurveKnotReference)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case whole
@@ -253,7 +280,9 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
         case controlPoint
         case knot
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case whole
         case parameter
@@ -262,7 +291,9 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
         case controlPoint
         case knot
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -287,7 +318,9 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
             self = .knot(try container.decode(CurveKnotReference.self, forKey: .knot))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -311,6 +344,7 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
             try container.encode(reference, forKey: .knot)
         }
     }
+#endif
 
     public func validate() throws {
         switch self {
@@ -330,7 +364,7 @@ public enum CurveSubobjectReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct SurfaceReference: Codable, Hashable, Sendable {
+public struct SurfaceReference: Hashable, Sendable {
     public var subshape: StableSubshapeReference
 
     public init(subshape: StableSubshapeReference) {
@@ -342,7 +376,7 @@ public struct SurfaceReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct SurfaceParameterReference: Codable, Hashable, Sendable {
+public struct SurfaceParameterReference: Hashable, Sendable {
     public var surface: SurfaceReference
     public var u: Double
     public var v: Double
@@ -364,7 +398,7 @@ public struct SurfaceParameterReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct SurfaceSpanReference: Codable, Hashable, Sendable {
+public struct SurfaceSpanReference: Hashable, Sendable {
     public var surface: SurfaceReference
     public var direction: SurfaceParameterDirection
     public var spanIndex: Int
@@ -387,7 +421,7 @@ public struct SurfaceSpanReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct SurfaceControlPointReference: Codable, Hashable, Sendable {
+public struct SurfaceControlPointReference: Hashable, Sendable {
     public var surface: SurfaceReference
     public var uIndex: Int
     public var vIndex: Int
@@ -409,7 +443,7 @@ public struct SurfaceControlPointReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct SurfaceKnotReference: Codable, Hashable, Sendable {
+public struct SurfaceKnotReference: Hashable, Sendable {
     public var surface: SurfaceReference
     public var direction: SurfaceParameterDirection
     public var knotIndex: Int
@@ -432,7 +466,7 @@ public struct SurfaceKnotReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct SurfaceTrimReference: Codable, Hashable, Sendable {
+public struct SurfaceTrimReference: Hashable, Sendable {
     public var surface: SurfaceReference
     public var loopIndex: Int
     public var edgeIndex: Int
@@ -454,7 +488,7 @@ public struct SurfaceTrimReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct SurfaceTrimSpanReference: Codable, Hashable, Sendable {
+public struct SurfaceTrimSpanReference: Hashable, Sendable {
     public var trim: SurfaceTrimReference
     public var spanIndex: Int
 
@@ -471,7 +505,7 @@ public struct SurfaceTrimSpanReference: Codable, Hashable, Sendable {
     }
 }
 
-public struct SurfaceTrimKnotReference: Codable, Hashable, Sendable {
+public struct SurfaceTrimKnotReference: Hashable, Sendable {
     public var trim: SurfaceTrimReference
     public var knotIndex: Int
 
@@ -488,7 +522,7 @@ public struct SurfaceTrimKnotReference: Codable, Hashable, Sendable {
     }
 }
 
-public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
+public enum SurfaceSubobjectReference: Hashable, Sendable {
     case whole(SurfaceReference)
     case parameter(SurfaceParameterReference)
     case span(SurfaceSpanReference)
@@ -498,6 +532,7 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
     case trimSpan(SurfaceTrimSpanReference)
     case trimKnot(SurfaceTrimKnotReference)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case whole
@@ -509,7 +544,9 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
         case trimSpan
         case trimKnot
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case whole
         case parameter
@@ -520,7 +557,9 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
         case trimSpan
         case trimKnot
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -551,7 +590,9 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
             self = .trimKnot(try container.decode(SurfaceTrimKnotReference.self, forKey: .trimKnot))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -581,6 +622,7 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
             try container.encode(reference, forKey: .trimKnot)
         }
     }
+#endif
 
     public func validate() throws {
         switch self {
@@ -604,13 +646,14 @@ public enum SurfaceSubobjectReference: Codable, Hashable, Sendable {
     }
 }
 
-public enum SelectionReference: Codable, Hashable, Sendable {
+public enum SelectionReference: Hashable, Sendable {
     case subshape(StableSubshapeReference)
     case edge(EdgeSubobjectReference)
     case curve(CurveSubobjectReference)
     case sketchPoint(SketchPointSelectionReference)
     case surface(SurfaceSubobjectReference)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case subshape
@@ -619,7 +662,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case sketchPoint
         case surface
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case subshape
         case edge
@@ -627,7 +672,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         case sketchPoint
         case surface
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -649,7 +696,9 @@ public enum SelectionReference: Codable, Hashable, Sendable {
             self = .surface(try container.decode(SurfaceSubobjectReference.self, forKey: .surface))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -670,6 +719,7 @@ public enum SelectionReference: Codable, Hashable, Sendable {
             try container.encode(reference, forKey: .surface)
         }
     }
+#endif
 
     public func validate() throws {
         switch self {
@@ -686,3 +736,26 @@ public enum SelectionReference: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension EdgeReference: Codable {}
+extension EdgeParameterReference: Codable {}
+extension EdgeSubobjectReference: Codable {}
+extension CurveOutputReference: Codable {}
+extension CurveParameterReference: Codable {}
+extension CurveCenterReference: Codable {}
+extension CurveSpanReference: Codable {}
+extension CurveControlPointReference: Codable {}
+extension CurveKnotReference: Codable {}
+extension CurveSubobjectReference: Codable {}
+extension SurfaceReference: Codable {}
+extension SurfaceParameterReference: Codable {}
+extension SurfaceSpanReference: Codable {}
+extension SurfaceControlPointReference: Codable {}
+extension SurfaceKnotReference: Codable {}
+extension SurfaceTrimReference: Codable {}
+extension SurfaceTrimSpanReference: Codable {}
+extension SurfaceTrimKnotReference: Codable {}
+extension SurfaceSubobjectReference: Codable {}
+extension SelectionReference: Codable {}
+#endif

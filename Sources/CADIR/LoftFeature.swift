@@ -1,6 +1,6 @@
 import CADCore
 
-public struct LoftFeature: Codable, Hashable, Sendable {
+public struct LoftFeature: Hashable, Sendable {
     public var sections: [LoftSectionReference]
     public var guides: [LoftGuideReference]
     public var options: LoftOptions
@@ -19,12 +19,14 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         self.apex = apex
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case sections
         case guides
         case options
         case apex
     }
+#endif
 
     /// The features the loft consumes, each once: its sections' sources, continuity bodies,
     /// guides and the apex's body.
@@ -35,6 +37,7 @@ public struct LoftFeature: Codable, Hashable, Sendable {
             .filter { seen.insert($0).inserted }
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.sections, .guides, .options, .apex], in: decoder)
@@ -43,7 +46,9 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         options = try container.decode(LoftOptions.self, forKey: .options)
         apex = try container.decodeIfPresent(LoftApex.self, forKey: .apex)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(sections, forKey: .sections)
@@ -51,6 +56,7 @@ public struct LoftFeature: Codable, Hashable, Sendable {
         try container.encode(options, forKey: .options)
         try container.encodeIfPresent(apex, forKey: .apex)
     }
+#endif
 
     public func validate() throws {
         if let apex {
@@ -113,27 +119,31 @@ public struct LoftFeature: Codable, Hashable, Sendable {
     }
 }
 
-public struct LoftGuideReference: Codable, Hashable, Sendable {
+public struct LoftGuideReference: Hashable, Sendable {
     public var featureID: FeatureID
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
     }
+#endif
 
     public init(featureID: FeatureID) {
         self.featureID = featureID
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID], in: decoder)
         featureID = try container.decode(FeatureID.self, forKey: .featureID)
     }
+#endif
 
     public func validate() throws {}
 }
 
-public struct LoftSectionReference: Codable, Hashable, Sendable {
+public struct LoftSectionReference: Hashable, Sendable {
     public var section: SectionReference
     public var profileDirection: LoftProfileDirection
     public var startSampleIndex: Int?
@@ -149,6 +159,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
     /// Whether the section carries continuity of either kind.
     public var hasContinuity: Bool { continuity != nil || faceContinuity != nil }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case section
         case profileDirection
@@ -158,6 +169,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         case continuity
         case faceContinuity
     }
+#endif
 
     public init(
         profile: ProfileReference,
@@ -188,6 +200,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         self.faceContinuity = faceContinuity
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
@@ -208,7 +221,9 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         faceContinuity = try container.decodeIfPresent(LoftFaceContinuity.self, forKey: .faceContinuity)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -220,6 +235,7 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
         try container.encodeIfPresent(continuity, forKey: .continuity)
         try container.encodeIfPresent(faceContinuity, forKey: .faceContinuity)
     }
+#endif
 
     public var featureID: FeatureID {
         section.featureID
@@ -264,12 +280,12 @@ public struct LoftSectionReference: Codable, Hashable, Sendable {
     }
 }
 
-public enum LoftSectionSmoothTangentMode: String, Codable, Hashable, Sendable {
+public enum LoftSectionSmoothTangentMode: String, Hashable, Sendable {
     case automatic
     case zero
 }
 
-public struct LoftOptions: Codable, Hashable, Sendable {
+public struct LoftOptions: Hashable, Sendable {
     public var resultKind: LoftResultKind
     public var sectionMatching: LoftSectionMatching
     public var closesSectionLoop: Bool
@@ -286,6 +302,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
     /// is the behaviour inferred from Trim overlap's (decided 2026-10-05).
     public var trimsProfiles: Bool
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case resultKind
         case sectionMatching
@@ -296,6 +313,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         case trimsOverlap
         case trimsProfiles
     }
+#endif
 
     public init(
         resultKind: LoftResultKind = .solid,
@@ -317,6 +335,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         self.trimsProfiles = trimsProfiles
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([
@@ -338,7 +357,9 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         trimsOverlap = try container.decodeIfPresent(Bool.self, forKey: .trimsOverlap) ?? true
         trimsProfiles = try container.decodeIfPresent(Bool.self, forKey: .trimsProfiles) ?? false
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(resultKind, forKey: .resultKind)
@@ -350,6 +371,7 @@ public struct LoftOptions: Codable, Hashable, Sendable {
         if trimsOverlap == false { try container.encode(trimsOverlap, forKey: .trimsOverlap) }
         if trimsProfiles { try container.encode(trimsProfiles, forKey: .trimsProfiles) }
     }
+#endif
 
     public func validate() throws {
         guard smoothTangentScale.isFinite,
@@ -359,22 +381,22 @@ public struct LoftOptions: Codable, Hashable, Sendable {
     }
 }
 
-public enum LoftResultKind: String, Codable, Hashable, Sendable {
+public enum LoftResultKind: String, Hashable, Sendable {
     case solid
     case sheet
 }
 
-public enum LoftSectionMatching: String, Codable, Hashable, Sendable {
+public enum LoftSectionMatching: String, Hashable, Sendable {
     case byBoundaryProgress
 }
 
-public enum LoftSurfaceMode: String, Codable, Hashable, Sendable {
+public enum LoftSurfaceMode: String, Hashable, Sendable {
     case ruled
     case smooth
 }
 
 /// The vertex of a body (or sheet) a Loft ends at.
-public struct LoftApex: Codable, Hashable, Sendable {
+public struct LoftApex: Hashable, Sendable {
     public var source: FeatureID
     public var bodyRole: FeaturePort
     public var vertex: StableSubshapeReference
@@ -385,3 +407,15 @@ public struct LoftApex: Codable, Hashable, Sendable {
         self.vertex = vertex
     }
 }
+
+#if !hasFeature(Embedded)
+extension LoftFeature: Codable {}
+extension LoftGuideReference: Codable {}
+extension LoftSectionReference: Codable {}
+extension LoftSectionSmoothTangentMode: Codable {}
+extension LoftOptions: Codable {}
+extension LoftResultKind: Codable {}
+extension LoftSectionMatching: Codable {}
+extension LoftSurfaceMode: Codable {}
+extension LoftApex: Codable {}
+#endif

@@ -4,8 +4,9 @@ import CADIR
 import CADTopology
 
 // FIXME(INCOMPLETE_IMPLEMENTATION): Native machining tests consume this patch
-// builder, but no feature publishes it yet. Source-face trimming, end closure,
-// volumetric validity and lineage must succeed before fillet integration.
+// builder and ordinary kernel Fillet composition consume it. General source-face
+// trimming, end closure, blend-network validity and lineage must succeed before
+// reporting complete fillet support.
 package struct RollingBallBlendPatchBuilder {
     package enum TerminalBoundary {
         case start(BRepSewingEdge)
@@ -23,6 +24,48 @@ package struct RollingBallBlendPatchBuilder {
         terminal: BRepSewingEdge,
         tolerance: ModelingTolerance
     ) throws -> BRepSewingFacePatch {
+        let classified = try classifiedTerminal(terminal, retainingJunction: junction,
+            tolerance: tolerance)
+        let range: ScalarInterval
+        switch classified {
+        case .start: range = try ScalarInterval(lower: 0, upper: junction)
+        case .end: range = try ScalarInterval(lower: junction, upper: 1)
+        }
+        return try build(blend: blend, stableID: stableID, orientation: orientation,
+            parentSubshapeIDs: parentSubshapeIDs, uRange: range,
+            terminal: classified, tolerance: tolerance)
+    }
+
+    package func build(
+        blend: RollingBallBlendSurface3D,
+        stableID: String,
+        orientation: Orientation,
+        parentSubshapeIDs: [SubshapeID],
+        retainingJunction junction: Double,
+        firstTerminal: BRepSewingEdge,
+        secondTerminal: BRepSewingEdge,
+        tolerance: ModelingTolerance
+    ) throws -> BRepSewingFacePatch {
+        let first = try classifiedTerminal(firstTerminal, retainingJunction: junction,
+            tolerance: tolerance)
+        let second = try classifiedTerminal(secondTerminal, retainingJunction: junction,
+            tolerance: tolerance)
+        switch (first, second) {
+        case (.start, .end), (.end, .start): break
+        default:
+            throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
+                message: "Both terminal boundaries must separate on opposite sides of the retained original section.")
+        }
+        return try build(blend: blend, stableID: stableID, orientation: orientation,
+            parentSubshapeIDs: parentSubshapeIDs, uRange: nil,
+            terminals: [first, second], tolerance: tolerance)
+    }
+
+    private func classifiedTerminal(
+        _ terminal: BRepSewingEdge,
+        retainingJunction junction: Double,
+        tolerance: ModelingTolerance
+    ) throws -> TerminalBoundary {
         try tolerance.validate()
         guard junction.isFinite, junction > 0, junction < 1,
               case .certifiedImplicit(let parameters) = terminal.surfaceParameterCurve else {
@@ -48,10 +91,7 @@ package struct RollingBallBlendPatchBuilder {
         let first = try terminal.surfaceParameterCurve.startParameter(tolerance: tolerance)
         let boundary = abs(first.v - (atStart ? 1 : 0)) <= tolerance.relative
             ? terminal : try BRepSewingPatchOrientationAdapter().reversed(terminal, tolerance: tolerance)
-        return try build(blend: blend, stableID: stableID, orientation: orientation,
-            parentSubshapeIDs: parentSubshapeIDs,
-            uRange: ScalarInterval(lower: atStart ? 0 : junction, upper: atStart ? junction : 1),
-            terminal: atStart ? .start(boundary) : .end(boundary), tolerance: tolerance)
+        return atStart ? .start(boundary) : .end(boundary)
     }
 
     package func junctionParameter(
@@ -81,6 +121,20 @@ package struct RollingBallBlendPatchBuilder {
         parentSubshapeIDs: [SubshapeID],
         uRange: ScalarInterval? = nil,
         terminal: TerminalBoundary? = nil,
+        tolerance: ModelingTolerance
+    ) throws -> BRepSewingFacePatch {
+        try build(blend: blend, stableID: stableID, orientation: orientation,
+            parentSubshapeIDs: parentSubshapeIDs, uRange: uRange,
+            terminals: terminal.map { [$0] } ?? [], tolerance: tolerance)
+    }
+
+    private func build(
+        blend: RollingBallBlendSurface3D,
+        stableID: String,
+        orientation: Orientation,
+        parentSubshapeIDs: [SubshapeID],
+        uRange: ScalarInterval?,
+        terminals: [TerminalBoundary],
         tolerance: ModelingTolerance
     ) throws -> BRepSewingFacePatch {
         try tolerance.validate()
@@ -114,7 +168,7 @@ package struct RollingBallBlendPatchBuilder {
                 endPoint: try curves[index].point(at: end, tolerance: tolerance),
                 surfaceParameterCurve: pcurves[index])
         }
-        if let terminal {
+        for terminal in terminals {
             let boundary: BRepSewingEdge
             let atStart: Bool
             switch terminal {
@@ -152,13 +206,15 @@ package struct RollingBallBlendPatchBuilder {
                     message: "The terminal boundary must stay inside the retained support and separate from its opposite end.")
             }
             for index in [0, 2] {
-                let start = atStart ? (index == 0 ? last.u : upper) : (index == 0 ? lower : last.u)
-                let end = atStart ? (index == 0 ? upper : first.u) : (index == 0 ? first.u : lower)
+                let old = edges[index]
+                let start = atStart ? (index == 0 ? last.u : old.startParameter)
+                    : (index == 0 ? old.startParameter : last.u)
+                let end = atStart ? (index == 0 ? old.endParameter : first.u)
+                    : (index == 0 ? first.u : old.endParameter)
                 guard (index == 0 ? end - start : start - end) > tolerance.relative else {
                     throw KernelError(phase: .topology, code: .invalidInput, tolerance: tolerance,
                         message: "A terminal trim must retain a nondegenerate contact rail.")
                 }
-                let old = edges[index]
                 let startPoint = atStart
                     ? (index == 0 ? boundary.endPoint : old.startPoint)
                     : (index == 0 ? old.startPoint : boundary.endPoint)

@@ -24,7 +24,7 @@ struct USDMeshStageBuilder {
             let indices = try integerIndices(mesh.indices)
             try mesh.validate(tolerance: tolerance)
             let meshPath = try SdfPath(
-                "/SwiftCADScene/Body_\(bodyID.rawValue.uuidString.replacingOccurrences(of: "-", with: "_"))"
+                "/SwiftCADScene/Body_\(bodyID.rawValue.canonicalString.replacingOccurrences(of: "-", with: "_"))"
             )
             let usdMesh = try USDGeomMesh.define(in: &stage, at: meshPath)
             try usdMesh.setTopology(

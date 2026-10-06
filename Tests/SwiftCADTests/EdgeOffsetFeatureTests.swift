@@ -206,6 +206,27 @@ struct EdgeOffsetFeatureTests {
     }
 
     @Test(.timeLimit(.minutes(2)))
+    func naturalWithoutACurvedCrossingRefusesInsteadOfAddingABridge() throws {
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let slab = try arcSlab(&builder)
+        let before = try evaluate(builder)
+        let extent = try bounds(of: slab, in: before)
+        let top = try face(of: slab, facing: extent.maximum.z > 0 ? .unitZ : .unitZ * -1,
+                           in: before, builder: builder)
+        // The offset circle has radius sqrt(0.01^2 + 0.02^2) - 0.007,
+        // smaller than its 0.017 distance to the offset line x = 0.013.
+        // Their continuations cannot meet at the reflex corner.
+        _ = try builder.faceLoopOffset(target: slab, faces: [top], distance: length(0.007), gapFill: .natural)
+        do {
+            _ = try evaluate(builder)
+            Issue.record("Natural must not replace a missing curved crossing with a straight bridge.")
+        } catch let error as KernelError {
+            #expect(error.code == .unsupportedCapability)
+            #expect(error.message.contains("no admitted sampled crossing"))
+        }
+    }
+
+    @Test(.timeLimit(.minutes(2)))
     func gapFillJoinsOffsetsThatPartAtAReflexCorner() throws {
         var counts: [OffsetGapFill: Int] = [:]
         for gapFill in [OffsetGapFill.round, .linear, .natural] {

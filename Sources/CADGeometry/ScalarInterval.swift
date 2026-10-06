@@ -1,6 +1,6 @@
 import CADCore
 
-public struct ScalarInterval: Codable, Equatable, Hashable, Sendable {
+public struct ScalarInterval: Equatable, Hashable, Sendable {
     public let lower: Double
     public let upper: Double
 
@@ -18,7 +18,11 @@ public struct ScalarInterval: Codable, Equatable, Hashable, Sendable {
     }
 
     public var width: Double { upper - lower }
-    public var midpoint: Double { lower + (upper - lower) * 0.5 }
+    /// A finite representative; source proofs retain outward endpoint arithmetic.
+    public var midpoint: Double {
+        if lower < 0, upper > 0 { return lower * 0.5 + upper * 0.5 }
+        return lower + (upper - lower) * 0.5
+    }
 
     public func contains(_ value: Double) -> Bool {
         lower ... upper ~= value
@@ -35,3 +39,7 @@ public struct ScalarInterval: Codable, Equatable, Hashable, Sendable {
         return try ScalarInterval(lower: lower - amount, upper: upper + amount)
     }
 }
+
+#if !hasFeature(Embedded)
+extension ScalarInterval: Codable {}
+#endif

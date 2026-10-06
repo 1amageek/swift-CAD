@@ -1,7 +1,7 @@
 import CADCore
 
 /// A parameter-preserving exact image of a curve under a finite affine map.
-public struct AffineImageCurve3D: Codable, Hashable, Sendable {
+public struct AffineImageCurve3D: Hashable, Sendable {
     public let source: Curve3D
     public let transform: AffineTransform3D
 
@@ -10,14 +10,21 @@ public struct AffineImageCurve3D: Codable, Hashable, Sendable {
         transform: AffineTransform3D,
         tolerance: ModelingTolerance
     ) throws {
-        if case let .affineImage(image) = source {
-            self.source = image.source
-            self.transform = try transform.composed(after: image.transform)
-        } else {
-            self.source = source
-            self.transform = transform
-        }
+        self.source = source
+        self.transform = transform
         try validate(tolerance: tolerance)
+    }
+
+    /// Retains the original affine law while admitting source visits to one caller.
+    public init(source: Curve3D, transform: AffineTransform3D,
+        tolerance: ModelingTolerance, remainingSourceDepth: Int,
+        maximumSubdivisionDepth: Int, consumeWork: () throws -> Void,
+        consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws {
+        self.source = source; self.transform = transform
+        try Curve3D.affineImage(self).validateOriginalSource(tolerance: tolerance,
+            remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
+            consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage,
+            maximumAlgebraicDepth: maximumAlgebraicDepth)
     }
 
     public func validate(tolerance: ModelingTolerance) throws {
@@ -92,3 +99,7 @@ public struct AffineImageCurve3D: Codable, Hashable, Sendable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension AffineImageCurve3D: Codable {}
+#endif

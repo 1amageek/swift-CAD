@@ -7,7 +7,7 @@ import CADCore
 /// knot of multiplicity `degree`, so the curve passes through every `degree`-th control point.
 /// With explicit knots it is a general clamped B-spline. A closed spline's last control point
 /// equals its first.
-public struct SketchSpline: Codable, Sendable, Hashable {
+public struct SketchSpline: Sendable, Hashable {
     /// The highest degree a sketch spline may have: enough for a G3–G3 bridge (degree 7) and
     /// room to raise it further, while Bernstein and de Boor evaluation stay well conditioned.
     public static let maximumDegree = 11
@@ -128,10 +128,13 @@ public struct SketchSpline: Codable, Sendable, Hashable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case controlPoints, isClosed, degree, knots
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         controlPoints = try container.decode([SketchPoint].self, forKey: .controlPoints)
@@ -140,7 +143,9 @@ public struct SketchSpline: Codable, Sendable, Hashable {
         degree = try container.decodeIfPresent(Int.self, forKey: .degree) ?? 3
         knots = try container.decodeIfPresent([Double].self, forKey: .knots)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(controlPoints, forKey: .controlPoints)
@@ -149,4 +154,9 @@ public struct SketchSpline: Codable, Sendable, Hashable {
         if degree != 3 { try container.encode(degree, forKey: .degree) }
         if let knots { try container.encode(knots, forKey: .knots) }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SketchSpline: Codable {}
+#endif

@@ -90,6 +90,15 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             // running into a step's edges) takes bands turning between filling and cutting.
             let turning = TurningCapLoopBlendBuilder(tolerance: context.tolerance)
             if try turning.admits(selections.map(\.1.edgeID), model: context.brep) {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): The public Fillet turning-loop route
+                // has only G1 corner authority. Curvature requests may succeed only after
+                // every required corner boundary has whole-boundary G2 certificates against
+                // the original bands and contact faces, with validated sewing and independent
+                // curvature evidence.
+                guard fillet.shape != .curvature else {
+                    throw failure(.unsupportedCapability, featureID: feature.id, tolerance: context.tolerance,
+                                  "A turning cap loop has no certified G2 corner patches.")
+                }
                 let request = try turning.request(
                     featureID: feature.id, bodyID: bodyID, selected: selections.map { ($0.1.edgeID, $0.0.subshapeID) },
                     section: capSection, splitsCorners: fillet.yBlend, context: context)
@@ -383,7 +392,9 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                     tolerance: context.tolerance
                 )
                 guard clipped.count >= 3 else {
-                    throw failure(.topologyFailure, featureID: featureID, tolerance: context.tolerance, "Fillet radius removes an incident face.")
+                    let code = PlanarFilletFailureClassifier().removedFaceCode(polygon: polygon,
+                        origin: startVertex.point, normal: clippingNormal, offset: radius)
+                    throw failure(code, featureID: featureID, tolerance: context.tolerance, "Fillet radius removes an incident face.")
                 }
                 patches.append(try linePatch(
                     stableID: "source-face:\(faceIndex)",
@@ -575,7 +586,11 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         let previousDirection = rotated[rotated.count - 1] - corner
         guard nextDirection.length > radius + context.tolerance.distance,
               previousDirection.length > radius + context.tolerance.distance else {
-            throw failure(.unsupportedCapability, tolerance: context.tolerance, "Fillet radius must fit both endpoint edges.")
+            let classifier = PlanarFilletFailureClassifier()
+            let exceeds = classifier.exceedsReach(radius: radius, from: corner, to: rotated[1])
+                || classifier.exceedsReach(radius: radius, from: corner, to: rotated[rotated.count - 1])
+            throw failure(exceeds ? .filletThicknessExceeded : .unsupportedCapability,
+                tolerance: context.tolerance, "Fillet radius must fit both endpoint edges.")
         }
         let tangentNext = corner + (try nextDirection.normalized(tolerance: context.tolerance.distance)) * radius
         let tangentPrevious = corner + (try previousDirection.normalized(tolerance: context.tolerance.distance)) * radius
@@ -1955,26 +1970,23 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
             for (vertexID, uses) in meetings.sorted(by: { $0.key < $1.key }) where uses.count > 1 {
                 let corner = try point(vertexID)
                 let faces = Array(Set(uses.flatMap { [links[$0.index].faces.first, links[$0.index].faces.second] })).sorted()
-                let sharp = sourceEdgeIDs.filter { edgeID in
+                let incidentCount = sourceEdgeIDs.filter { edgeID in
                     guard let edge = model.edges[edgeID] else { return false }
                     return edge.startVertexID == vertexID || edge.endVertexID == vertexID
-                }.count == 3
-                guard uses.count == 3, faces.count == 3, sharp else {
+                }.count
+                guard uses.count >= 3, faces.count >= 3, incidentCount == uses.count else {
                     // FIXME(INCOMPLETE_IMPLEMENTATION): four or more rounded edges meeting at one
-                    // corner, or a corner with sharp edges among rounded ones, need a general vertex
-                    // blend, which is not built, so they are refused. Production path:
+                    // corner without a common tangent sphere, or a corner with sharp edges among
+                    // rounded ones, need a general vertex blend. Production path:
                     // blendNetworkRequest for rounds of edges meeting at corners. Complete only when
                     // such corners close, verified by a pyramid's apex edges rounded together.
-                    throw refuse("Rounded edges meet three at a corner of three faces.")
+                    throw refuse("A planar vertex ball requires every original incident edge to be rounded.")
                 }
-                // The centre a radius inside all three faces.
+                // Solve and certify every original support, including overdetermined
+                // fully rounded vertices. A fitting residual is not a sphere certificate.
                 let normals = try faces.map { try orientedPlane($0, model: model, featureID: featureID, tolerance: tolerance).outward }
-                let determinant = normals[0].dot(normals[1].cross(normals[2]))
-                guard abs(determinant) > tolerance.angle else {
-                    throw refuse("A rounded corner's three faces meet at a point.")
-                }
-                let center = corner + (normals[1].cross(normals[2]) + normals[2].cross(normals[0]) + normals[0].cross(normals[1]))
-                    * (-r / determinant)
+                let center = try PlanarRollingBallCornerSolver().center(corner: corner,
+                    outwardNormals: normals, radius: r, tolerance: tolerance)
                 for use in uses {
                     let along = (center - corner).dot(away(use.index, atStart: use.atStart))
                     guard along > tolerance.distance else { throw refuse("A rounded corner's ball lies beyond its edges.") }
@@ -2286,12 +2298,11 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                                  parents: parents, tolerance: tolerance)
     }
 
-    /// The rolling ball's spherical triangle at a corner of three square faces: the sphere of
-    /// `radius` about `center` bounded by the three cylinders' end circles there (`arcs`, each a
-    /// quarter of a great circle), run counterclockwise seen from outside.
+    /// The rolling ball's spherical polygon at a fully rounded planar vertex,
+    /// bounded by every incident cylinder's retained end great-circle arc.
     private func spherePatch(number: Int, _ center: Point3D, radius: Double, _ arcs: [BRepSewingEdge], parents: [SubshapeID],
                              tolerance: ModelingTolerance) throws -> BRepSewingFacePatch {
-        guard arcs.count == 3 else {
+        guard arcs.count >= 3 else {
             throw failure(.topologyFailure, tolerance: tolerance, "A corner's sphere has a blend without an end circle.")
         }
         let stableID = "blend:corner:\(number)"
@@ -2314,12 +2325,13 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
         }) {
             loop.append(try side(remaining.remove(at: next), from: last.endPoint, "\(loop.count)"))
         }
-        guard loop.count == 3, loop[2].endPoint.isApproximatelyEqual(to: loop[0].startPoint, tolerance: tolerance.distance) else {
+        guard loop.count == arcs.count, remaining.isEmpty,
+              loop[loop.count - 1].endPoint.isApproximatelyEqual(to: loop[0].startPoint, tolerance: tolerance.distance) else {
             throw failure(.topologyFailure, tolerance: tolerance, "A corner's end circles do not close around its sphere.")
         }
-        let (a, b, c) = (loop[0].startPoint, loop[1].startPoint, loop[2].startPoint)
-        let centroid = Point3D.origin + ((a - .origin) + (b - .origin) + (c - .origin)) * (1.0 / 3)
-        if (b - a).cross(c - a).dot(centroid - center) < 0 {
+        let centroid = Point3D.origin + loop.reduce(Vector3D.zero) { $0 + ($1.startPoint - .origin) } * (1 / Double(loop.count))
+        let winding = loop.reduce(Vector3D.zero) { $0 + ($1.startPoint - center).cross($1.endPoint - center) }
+        if winding.dot(centroid - center) < 0 {
             loop = try loop.reversed().map { edge in
                 BRepSewingEdge(stableID: edge.stableID, curve: edge.curve, startParameter: edge.endParameter, endParameter: edge.startParameter,
                                startPoint: edge.endPoint, endPoint: edge.startPoint,
@@ -2737,7 +2749,10 @@ package struct EdgeBlendFeatureEvaluator: Sendable {
                 let clipped = simplified(clip(polygon, origin: isLeft ? a1 : a2, normal: isLeft ? layout.intoLeft : layout.intoRight,
                                               offset: isLeft ? setbacks.0 : setbacks.1, tolerance: tolerance), tolerance: tolerance)
                 guard clipped.count >= 3 else {
-                    throw failure(.topologyFailure, featureID: featureID, tolerance: tolerance, "A full fillet removes a side face.")
+                    let code = PlanarFilletFailureClassifier().removedFaceCode(polygon: polygon,
+                        origin: isLeft ? a1 : a2, normal: isLeft ? layout.intoLeft : layout.intoRight,
+                        offset: isLeft ? setbacks.0 : setbacks.1)
+                    throw failure(code, featureID: featureID, tolerance: tolerance, "A full fillet removes a side face.")
                 }
                 patches.append(try linePatch(stableID: stableID, plane: oriented, vertices: clipped, faceParents: parents,
                     edgeID: isLeft ? first.edgeID : second.edgeID, selectedSubshapeID: isLeft ? selected.0 : selected.1,

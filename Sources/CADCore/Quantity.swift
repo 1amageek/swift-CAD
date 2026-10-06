@@ -1,10 +1,10 @@
-public enum QuantityKind: String, Codable, Sendable {
+public enum QuantityKind: String, Sendable {
     case length
     case angle
     case scalar
 }
 
-public struct Quantity: Codable, Hashable, Sendable {
+public struct Quantity: Hashable, Sendable {
     public var value: Double
     public var kind: QuantityKind
 
@@ -31,3 +31,8 @@ public struct Quantity: Codable, Hashable, Sendable {
         Quantity(value: value, kind: .scalar)
     }
 }
+
+#if !hasFeature(Embedded)
+extension QuantityKind: Codable {}
+extension Quantity: Codable {}
+#endif

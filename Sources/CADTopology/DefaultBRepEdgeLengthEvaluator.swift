@@ -16,6 +16,9 @@ public struct DefaultBRepEdgeLengthEvaluator: BRepEdgeLengthEvaluating {
         tolerance: ModelingTolerance
     ) throws -> CurveArcLengthEnclosure {
         try tolerance.validate()
+        if try BRepEdgeGeometryClassifier().kind(of: edge, in: model, tolerance: tolerance) == .singular {
+            return try CurveArcLengthEnclosure(lowerBound: 0, upperBound: 0)
+        }
         guard let curve = model.geometry.curves[edge.curveID] else {
             throw TopologyError.missingReference(
                 "Edge \(edge.id) references missing curve \(edge.curveID)."
@@ -35,7 +38,7 @@ public struct DefaultBRepEdgeLengthEvaluator: BRepEdgeLengthEvaluating {
         )
     }
 
-    private func parameterInterval(
+    package func parameterInterval(
         of edge: Edge,
         curve: Curve3D,
         in model: BRepModel,

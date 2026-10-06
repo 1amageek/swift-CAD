@@ -20,8 +20,19 @@ extension DefaultSurfaceDifferentialEncloser {
     tolerance: ModelingTolerance,
     maximumCellCount: Int
   ) throws -> [SurfaceTessellationDifferentialBounds.OriginalNativePanel] {
-    var proofUsage = try OriginalRectangleTessellationBudget(
+    var proofUsage = try OriginalTessellationProofUsage(
       maximumCellCount: maximumCellCount, tolerance: tolerance)
+    return try originalNativeSpanTessellationBounds(
+      of: surface, over: parameters, tolerance: tolerance, proofUsage: &proofUsage)
+  }
+
+  /// Share actual visited native cells with an invocation's graph/reference proof.
+  package func originalNativeSpanTessellationBounds(
+    of surface: BSplineSurface3D,
+    over parameters: SurfaceParameterBox,
+    tolerance: ModelingTolerance,
+    proofUsage: inout OriginalTessellationProofUsage
+  ) throws -> [SurfaceTessellationDifferentialBounds.OriginalNativePanel] {
     try tolerance.validate()
     guard proofUsage.remainingCellCount > 0 else {
       throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -29,10 +40,12 @@ extension DefaultSurfaceDifferentialEncloser {
     }
     try parameters.validate(for: .bSpline(surface), tolerance: tolerance)
     try Task.checkCancellation()
-    let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance)
+    let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance,
+      consumeWork:{ try proofUsage.consume(depth:0,tolerance:tolerance) })
     try Task.checkCancellation()
-    let spans = try prepared.originalNativeSpans(over: parameters, tolerance: tolerance,
-                                                  maximumSpanCount: proofUsage.remainingCellCount)
+    let spans = try prepared.originalNativeSpans(over:parameters,tolerance:tolerance,
+      maximumSpanCount:proofUsage.remainingCellCount,
+      consumeWork:{ try proofUsage.consume(depth:0,tolerance:tolerance) })
     typealias Span = PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan
     struct Panel {
       let span: Span
@@ -47,6 +60,7 @@ extension DefaultSurfaceDifferentialEncloser {
     let maximumDepth = 32
     var panels: [Panel] = []
     for (index, span) in spans.enumerated() {
+      try proofUsage.consume(depth:0,tolerance:tolerance)
       if index & 0xFF == 0 { try Task.checkCancellation() }
       let uLower = max(parameters.u.lower, span.uBounds.lower)
       let uUpper = min(parameters.u.upper, span.uBounds.upper)
@@ -57,9 +71,9 @@ extension DefaultSurfaceDifferentialEncloser {
         throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
                           message: "Native surface tessellation exhausted its aggregate cell budget.")
       }
-      panels.append(Panel(span: span, parameters: SurfaceParameterBox(
-        u: try ScalarInterval(lower: uLower, upper: uUpper),
-        v: try ScalarInterval(lower: vLower, upper: vUpper))))
+      panels.append(Panel(span: span, parameters: try SurfaceParameterBox(
+        u: ScalarInterval(lower: uLower, upper: uUpper),
+        v: ScalarInterval(lower: vLower, upper: vUpper))))
     }
     var pending = panels.indices.reversed().map {
       Cell(panelIndex: $0, parameters: panels[$0].parameters, depth: 0)
@@ -74,6 +88,11 @@ extension DefaultSurfaceDifferentialEncloser {
         jet = nil
       }
       if let jet, let local = try certifiedTessellationBounds(jet: jet, tolerance: tolerance) {
+        panels[cell.panelIndex].aggregate = panels[cell.panelIndex].aggregate.map { union($0, local) } ?? local
+        continue
+      }
+      if let local = try originalPolePanelBounds(surface: surface, parameters: cell.parameters,
+          span: span, prepared: prepared, tolerance: tolerance, depth:cell.depth, proofUsage:&proofUsage) {
         panels[cell.panelIndex].aggregate = panels[cell.panelIndex].aggregate.map { union($0, local) } ?? local
         continue
       }
@@ -106,6 +125,37 @@ extension DefaultSurfaceDifferentialEncloser {
       return SurfaceTessellationDifferentialBounds.OriginalNativePanel(
         span: panel.span, parameters: panel.parameters, bounds: bounds)
     }
+  }
+
+  private func originalPolePanelBounds(surface: BSplineSurface3D,
+    parameters: SurfaceParameterBox,
+    span: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
+    prepared: PreparedBSplineSurfaceDifferentialEncloser,
+    tolerance: ModelingTolerance, depth:Int, proofUsage:inout OriginalTessellationProofUsage) throws -> SurfaceTessellationDifferentialBounds? {
+    guard case .closed(let u0, let u1) = surface.uDomain,
+          case .closed(let v0, let v1) = surface.vDomain else { return nil }
+    var directions: [OriginalBSplinePoleNormal.Direction] = []
+    if parameters.u.lower == u0 || parameters.u.upper == u1 { directions.append(.constantU) }
+    if parameters.v.lower == v0 || parameters.v.upper == v1 { directions.append(.constantV) }
+    let pole = OriginalBSplinePoleNormal(surface: surface, tolerance: tolerance, prepared: prepared)
+    for direction in directions {
+      do {
+        return try pole.panelBounds(over: parameters, direction: direction, owning: span,
+          consumeWork:{ try proofUsage.consume(depth:depth,tolerance:tolerance) }).differentialBounds
+      } catch let error as KernelError where error.code == .invalidInput || error.code == .singularGeometry {
+        var exactUsage = OriginalPoleExactProofUsage(proofUsage:proofUsage,depth:depth,tolerance:tolerance)
+        defer { proofUsage = exactUsage.proofUsage }
+        do {
+          let exact = try pole.prepareExactPanel(over:parameters,direction:direction,owning:span,usage:&exactUsage)
+          return try exact.panelBounds(over:parameters,tolerance:tolerance,usage:&exactUsage).differentialBounds
+        } catch let exactError as KernelError where exactError.code == .invalidInput || exactError.code == .singularGeometry {
+          // Only a retained exact collapse/factor law may authorize the panel.
+          // A zero remaining hull follows this same original cell subdivision.
+          continue
+        }
+      }
+    }
+    return nil
   }
 
 }

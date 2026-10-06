@@ -10,15 +10,8 @@ extension BSplineSurface3D {
         try options.validate(tolerance: tolerance)
         try validate(tolerance: tolerance)
         try point.validate()
-        guard case let .closed(uLower, uUpper) = uDomain,
-              case let .closed(vLower, vUpper) = vDomain else {
-            throw KernelError(
-                phase: .geometry,
-                code: .invalidInput,
-                tolerance: tolerance,
-                message: "B-spline inverse projection requires finite parameter domains."
-            )
-        }
+        let uLower = uKnots[uDegree], uUpper = uKnots[uControlPointCount]
+        let vLower = vKnots[vDegree], vUpper = vKnots[vControlPointCount]
         if let affine = ExactAffineBSplineSurfacePatch(self) {
             return try affine.parameterProjectionResult(
                 of: point,
@@ -43,7 +36,10 @@ extension BSplineSurface3D {
             point: point,
             tolerance: tolerance
         )
-        var stack = patches.reversed().map { ProjectionCell(patch: $0, depth: 0) }
+        var stack = patches.indices.reversed().map {
+            ProjectionCell(patch: patches[$0], depth: 0, sourcePatchIndex: $0)
+        }
+        var preparedOriginalPatches: [Int: RationalBezierSurfaceJetEncloser.PreparedPatch] = [:]
         var remainingCells = options.maximumSubdivisionCells
         var remainingCandidates = options.maximumCandidateCount
         var candidates: [ProjectionCandidate] = []
@@ -83,7 +79,7 @@ extension BSplineSurface3D {
                 )
             if requiresSubdivision {
                 for child in cell.patch.subdivided().reversed() {
-                    stack.append(ProjectionCell(patch: child, depth: cell.depth + 1))
+                    stack.append(ProjectionCell(patch: child, depth: cell.depth + 1, sourcePatchIndex: cell.sourcePatchIndex))
                 }
                 continue
             }
@@ -115,6 +111,32 @@ extension BSplineSurface3D {
                     bestWitness = canonical
                 }
                 if canonical.residual <= tolerance.distance {
+                    if isUPeriodic || isVPeriodic {
+                        // Rank at a witness does not rule out another root in its leaf.
+                        _ = try normal(u: canonical.u, v: canonical.v, tolerance: tolerance)
+                        let encloser = RationalBezierSurfaceJetEncloser()
+                        let prepared: RationalBezierSurfaceJetEncloser.PreparedPatch
+                        if let cached = preparedOriginalPatches[cell.sourcePatchIndex] {
+                            prepared = cached
+                        } else {
+                            prepared = try encloser.prepare(sourcePatches[cell.sourcePatchIndex], tolerance: tolerance)
+                            preparedOriginalPatches[cell.sourcePatchIndex] = prepared
+                        }
+                        let sourceJet = try encloser.enclosure(of: prepared,
+                            u: ScalarInterval(lower: cell.patch.uLower, upper: cell.patch.uUpper),
+                            v: ScalarInterval(lower: cell.patch.vLower, upper: cell.patch.vUpper),
+                            tolerance: tolerance)
+                        let difference = sourceJet + .constant(.origin - point)
+                        let squaredDistance = difference.dot(difference)
+                        let uu = squaredDistance.secondDerivativeUU
+                        let uv = squaredDistance.secondDerivativeUV
+                        let vv = squaredDistance.secondDerivativeVV
+                        let determinant = uu * vv - uv * uv
+                        guard uu.lower > 0, vv.lower > 0, determinant.lower > 0 else {
+                            throw resourceLimit(residual: canonical.residual, tolerance: tolerance,
+                                message: "Periodic inverse projection could not certify a unique root throughout a remaining Bezier leaf.")
+                        }
+                    }
                     let candidate = ProjectionCandidate(projection: canonical)
                     if let index = duplicateCandidateIndex(
                         candidate,
@@ -155,7 +177,7 @@ extension BSplineSurface3D {
                 message: "B-spline inverse projection could not certify all remaining control-hull candidates."
             )
         }
-        let uniqueCandidates = try deduplicated(
+        let uniqueCandidates = deduplicated(
             candidates,
             sourcePatches: patches,
             tolerance: tolerance
@@ -172,13 +194,15 @@ extension BSplineSurface3D {
                 message: "B-spline inverse projection has multiple distinct parameter solutions."
             )
         }
-        return .projected(try SurfaceParameterProjection(
+        let projection = try SurfaceParameterProjection(
             u: selected.projection.u,
             v: selected.projection.v,
             point: selected.projection.point,
             residual: selected.projection.residual,
             iterations: selected.projection.iterations
-        ))
+        )
+        return .projected(try representativeProjection(projection, target: point,
+            requiringInverseTolerance: true, tolerance: tolerance))
     }
 
     private func initialWitness(
@@ -226,6 +250,14 @@ extension BSplineSurface3D {
         var v = initialV
         var iterations = 0
         var damping = max(tolerance.relative, Double.ulpOfOne.squareRoot())
+        let uResolution = max(
+            (uBounds.upper - uBounds.lower) * tolerance.relative,
+            Double.ulpOfOne * max(1.0, abs(uBounds.lower), abs(uBounds.upper)) * 128.0
+        )
+        let vResolution = max(
+            (vBounds.upper - vBounds.lower) * tolerance.relative,
+            Double.ulpOfOne * max(1.0, abs(vBounds.lower), abs(vBounds.upper)) * 128.0
+        )
         for iteration in 0..<options.maximumIterations {
             iterations = iteration + 1
             let geometry = try surfaceDerivatives(u: u, v: v, tolerance: tolerance)
@@ -241,10 +273,6 @@ extension BSplineSurface3D {
                 tolerance.distance * tolerance.relative * gradientScale,
                 Double.ulpOfOne * gradientScale * 128.0
             )
-            if residualLength <= tolerance.distance,
-               hypot(gradientU, gradientV) <= stationarityTolerance {
-                break
-            }
             let hessianUU = geometry.tangentU.dot(geometry.tangentU)
                 + residual.dot(geometry.secondDerivativeUU)
             let hessianUV = geometry.tangentU.dot(geometry.tangentV)
@@ -255,6 +283,24 @@ extension BSplineSurface3D {
                 1.0,
                 max(abs(hessianUU), max(abs(hessianUV), abs(hessianVV)))
             )
+            // A small spatial gradient alone does not resolve parameters on a small surface.
+            // Use the undamped correction and the same axis resolutions as candidate dedup;
+            // this is numerical stopping, not a root existence or uniqueness certificate.
+            let determinant = hessianUU * hessianVV - hessianUV * hessianUV
+            if residualLength <= tolerance.distance,
+               hypot(gradientU, gradientV) <= stationarityTolerance,
+               hessianUU > 0.0, hessianVV > 0.0,
+               determinant.isFinite, determinant > Double.ulpOfOne * scale * scale {
+                let deltaU = (hessianVV * gradientU - hessianUV * gradientV) / determinant
+                let deltaV = (hessianUU * gradientV - hessianUV * gradientU) / determinant
+                if deltaU.isFinite, deltaV.isFinite {
+                    let nextU = min(max(u - deltaU, uBounds.lower), uBounds.upper)
+                    let nextV = min(max(v - deltaV, vBounds.lower), vBounds.upper)
+                    if abs(nextU - u) <= uResolution, abs(nextV - v) <= vResolution {
+                        break
+                    }
+                }
+            }
             var accepted = false
             var acceptedU = u
             var acceptedV = v
@@ -284,12 +330,10 @@ extension BSplineSurface3D {
                 damping *= 8.0
             }
             guard accepted else { break }
-            let parameterChange = hypot(acceptedU - u, acceptedV - v)
             u = acceptedU
             v = acceptedV
-            if parameterChange <= max(tolerance.relative, Double.ulpOfOne * 64.0) {
-                break
-            }
+            // A heavily damped step may be tiny while the undamped correction is unresolved.
+            // The next existing-budget iteration applies the conditioning-aware stopping test.
         }
         let projectedPoint = try self.point(u: u, v: v, tolerance: tolerance)
         return RefinedProjection(
@@ -305,46 +349,22 @@ extension BSplineSurface3D {
         _ candidates: [ProjectionCandidate],
         sourcePatches: [RationalBezierPointProjectionPatch],
         tolerance: ModelingTolerance
-    ) throws -> [ProjectionCandidate] {
+    ) -> [ProjectionCandidate] {
         guard let uLower = sourcePatches.map(\.uLower).min(),
               let uUpper = sourcePatches.map(\.uUpper).max(),
               let vLower = sourcePatches.map(\.vLower).min(),
               let vUpper = sourcePatches.map(\.vUpper).max() else {
             return []
         }
-        let baseUResolution = max(
-            (uUpper - uLower) * tolerance.relative,
-            Double.ulpOfOne * max(1.0, max(abs(uLower), abs(uUpper))) * 128.0
-        )
-        let baseVResolution = max(
-            (vUpper - vLower) * tolerance.relative,
-            Double.ulpOfOne * max(1.0, max(abs(vLower), abs(vUpper))) * 128.0
-        )
         let ordered = candidates.sorted(by: projectionOrder)
         var result: [ProjectionCandidate] = []
-        // The surface's speeds at each kept candidate: candidates whose parameters differ by less
-        // than moves the surface a thousandth of the distance tolerance are one solution, the
-        // less converged of them stopped short (as Newton steps clamped at a boundary do).
-        var speeds: [(u: Double, v: Double)] = []
         for candidate in ordered {
-            if let index = result.indices.first(where: { index in
-                let existing = result[index]
-                let (du, dv) = (abs(existing.projection.u - candidate.projection.u), abs(existing.projection.v - candidate.projection.v))
-                let parametric = du <= max(
-                    baseUResolution,
-                    Double.ulpOfOne * max(1.0, abs(candidate.projection.u)) * 128.0
-                ) && dv <= max(
-                    baseVResolution,
-                    Double.ulpOfOne * max(1.0, abs(candidate.projection.v)) * 128.0
-                )
-                return parametric || du * speeds[index].u + dv * speeds[index].v <= tolerance.distance * 1e-3
-            }) {
+            if let index = duplicateCandidateIndex(candidate, in: result,
+                uBounds: (uLower, uUpper), vBounds: (vLower, vUpper), tolerance: tolerance) {
                 if candidate.projection.residual < result[index].projection.residual {
                     result[index] = candidate
                 }
             } else {
-                let geometry = try differentialGeometry(u: candidate.projection.u, v: candidate.projection.v, tolerance: tolerance)
-                speeds.append((geometry.tangentU.length, geometry.tangentV.length))
                 result.append(candidate)
             }
         }
@@ -382,9 +402,19 @@ extension BSplineSurface3D {
                 * max(1.0, abs(vBounds.lower), abs(vBounds.upper)) * 128.0
         )
         return candidates.firstIndex { existing in
-            abs(existing.projection.u - candidate.projection.u) <= uResolution
-                && abs(existing.projection.v - candidate.projection.v) <= vResolution
+            parameterDistance(existing.projection.u, candidate.projection.u, direction: .u) <= uResolution
+                && parameterDistance(existing.projection.v, candidate.projection.v, direction: .v) <= vResolution
         }
+    }
+
+    private func parameterDistance(_ a: Double, _ b: Double, direction: SurfaceParameterDirection) -> Double {
+        let distance = abs(a - b)
+        let periodic = direction == .u ? isUPeriodic : isVPeriodic
+        guard periodic else { return distance }
+        let knots = direction == .u ? uKnots : vKnots
+        let degree = direction == .u ? uDegree : vDegree
+        let count = direction == .u ? uControlPointCount : vControlPointCount
+        return min(distance, abs(knots[count] - knots[degree] - distance))
     }
 
     private func boundingBoxDistanceLowerBound(
@@ -456,6 +486,7 @@ extension BSplineSurface3D {
     private struct ProjectionCell: Sendable {
         let patch: RationalBezierPointProjectionPatch
         let depth: Int
+        let sourcePatchIndex: Int
     }
 
     private struct ProjectionCandidate: Sendable {

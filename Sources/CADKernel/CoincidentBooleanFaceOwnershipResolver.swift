@@ -149,8 +149,7 @@ struct CoincidentBooleanFaceOwnershipResolver {
         )
     }
 
-    /// Whether the crossing from `start` to `end` lies along one boundary edge of the face: its
-    /// ends and its middle on the face's surface all on that edge.
+    /// A boundary contact must coincide over the entire original scoped span.
     private func segmentRunsAlongBoundary(
         of faceID: FaceID,
         from start: BooleanUVPoint,
@@ -162,24 +161,38 @@ struct CoincidentBooleanFaceOwnershipResolver {
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
             throw missingReference(tolerance: tolerance)
         }
-        let (u, v) = isTool
-            ? ((start.toolU + end.toolU) / 2, (start.toolV + end.toolV) / 2)
-            : ((start.targetU + end.targetU) / 2, (start.targetV + end.targetV) / 2)
-        let middle = try surface.differentialGeometry(u: u, v: v, tolerance: tolerance).position
-        let points = [start.point, end.point, middle]
+        let offset = end.point - start.point
+        let length = offset.length
+        guard length > tolerance.distance else { return false }
+        let startUV = isTool ? SurfaceParameter(u: start.toolU, v: start.toolV)
+            : SurfaceParameter(u: start.targetU, v: start.targetV)
+        let endUV = isTool ? SurfaceParameter(u: end.toolU, v: end.toolV)
+            : SurfaceParameter(u: end.targetU, v: end.targetV)
+        let contact = BRepSewingEdge(stableID: "coincident-boundary-contact",
+            curve: .line(Line3D(origin: start.point, direction: offset / length)),
+            startParameter: 0, endParameter: length, startPoint: start.point, endPoint: end.point,
+            surfaceParameterCurve: .affine(origin: Point2D(x: startUV.u, y: startUV.v),
+                direction: Point2D(x: (endUV.u - startUV.u) / length, y: (endUV.v - startUV.v) / length),
+                startParameter: 0, endParameter: length), parentSubshapeIDs: [])
+        try contact.validate(on: surface, tolerance: tolerance)
         for loopID in face.loops {
             guard let loop = model.loops[loopID] else { throw missingReference(tolerance: tolerance) }
             for coedge in loop.coedges {
                 guard let edge = model.edges[coedge.edgeID], let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
                     throw missingReference(tolerance: tolerance)
                 }
-                let range = try ScalarInterval(lower: min(trim.startParameter, trim.endParameter), upper: max(trim.startParameter, trim.endParameter))
-                let onEdge = try points.allSatisfy { point in
-                    try curve.closestParameterProjection(
-                        of: point, options: CurveParameterProjectionOptions(parameterRange: range), tolerance: tolerance
-                    ).residual <= tolerance.distance
-                }
-                if onEdge { return true }
+                let range = try ScalarInterval(lower: min(trim.startParameter, trim.endParameter),
+                    upper: max(trim.startParameter, trim.endParameter))
+                let options = CurveParameterProjectionOptions(parameterRange: range)
+                let first = try curve.closestParameterProjection(of: start.point, options: options, tolerance: tolerance)
+                let last = try curve.closestParameterProjection(of: end.point, options: options, tolerance: tolerance)
+                guard first.residual <= tolerance.distance, last.residual <= tolerance.distance,
+                      abs(last.parameter - first.parameter) > tolerance.relative else { continue }
+                let existing = CurveSpanDefinition(curve: curve, startParameter: first.parameter,
+                    endParameter: last.parameter, startPoint: try curve.point(at: first.parameter, tolerance: tolerance),
+                    endPoint: try curve.point(at: last.parameter, tolerance: tolerance))
+                if try CurveSpanCoincidenceMatcher().matches(CurveSpanDefinition(contact), existing,
+                    orientation: .forward, tolerance: tolerance) { return true }
             }
         }
         return false

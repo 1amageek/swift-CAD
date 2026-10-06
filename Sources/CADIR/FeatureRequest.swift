@@ -1,8 +1,7 @@
-import Foundation
 import CADCore
 
 /// A deterministic feature insertion request shared by builders, agents, and UI clients.
-public struct FeatureRequest: Codable, Hashable, Sendable {
+public struct FeatureRequest: Hashable, Sendable {
     public let id: FeatureID
     public let name: String?
     public let operation: FeatureOperation
@@ -17,12 +16,15 @@ public struct FeatureRequest: Codable, Hashable, Sendable {
         self.operation = operation
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id
         case name
         case operation
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.id, .name, .operation], in: decoder)
@@ -30,16 +32,19 @@ public struct FeatureRequest: Codable, Hashable, Sendable {
         name = try container.decodeIfPresent(String.self, forKey: .name)
         operation = try container.decode(FeatureOperation.self, forKey: .operation)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
         try container.encodeIfPresent(name, forKey: .name)
         try container.encode(operation, forKey: .operation)
     }
+#endif
 
     public func validate() throws {
-        if let name, name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+        if let name, name.unicodeScalars.allSatisfy({ $0.properties.isWhitespace }) {
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,
@@ -50,3 +55,7 @@ public struct FeatureRequest: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension FeatureRequest: Codable {}
+#endif

@@ -78,6 +78,7 @@ package struct ExactLinearSectionTransformLaw: Sendable, Hashable {
     package func transform(
         at point: Point3D
     ) -> ExactSectionTransform2D {
+        if point == pathEnd { return endTransform }
         switch interpolation {
         case .identity:
             return .identity
@@ -92,6 +93,9 @@ package struct ExactLinearSectionTransformLaw: Sendable, Hashable {
         featureID: FeatureID,
         tolerance: ModelingTolerance
     ) throws {
+        // The authored zero matrix has determinant (1-s)^2: positive for every
+        // interior station and zero only at the explicitly retained terminal pole.
+        if endTransform.isTerminalCollapse { return }
         let a = endTransform.m11 - 1.0
         let b = endTransform.m12
         let c = endTransform.m21

@@ -8,7 +8,7 @@ import CADGeometry
 /// `inputShapeInfluence` of their own shape. The whole edge is attached to the stretch of the
 /// reference edge from `partialStart` to `partialEnd` (0 and 1: all of it), and the sheet is first refitted to `layout`
 /// when one is given.
-public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
+public struct SurfaceAlignFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var targetEdge: StableSubshapeReference
     public var reference: PatternTargetReference
@@ -77,11 +77,14 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
         try layout?.validate()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, targetEdge, reference, referenceEdge, referencePlacement, continuity, tension, blendRows
         case inputShapeInfluence, partialStart, partialEnd, layout, boundaryFlow, keepsOtherEdges
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -104,7 +107,9 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
         keepsOtherEdges = try container.decodeIfPresent(Bool.self, forKey: .keepsOtherEdges) ?? false
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -123,9 +128,14 @@ public struct SurfaceAlignFeature: Codable, Hashable, Sendable {
         try container.encode(boundaryFlow, forKey: .boundaryFlow)
         if keepsOtherEdges { try container.encode(keepsOtherEdges, forKey: .keepsOtherEdges) }
     }
+#endif
 
     /// The inputs the feature reads: its sheet, consumed, and the reference's body.
     public var inputs: [FeatureInput] {
         [FeatureInput(featureID: target.featureID, role: .target), FeatureInput(featureID: reference.featureID, role: .body)]
     }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceAlignFeature: Codable {}
+#endif

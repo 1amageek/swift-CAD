@@ -1,7 +1,7 @@
 import CADCore
 
 /// An orthonormal surface frame with parameter directions U, V, and surface normal N.
-public struct UVNFrame: Codable, Equatable, Hashable, Sendable {
+public struct UVNFrame: Equatable, Hashable, Sendable {
     public let position: Point3D
     public let u: Vector3D
     public let v: Vector3D
@@ -36,3 +36,7 @@ public struct UVNFrame: Codable, Equatable, Hashable, Sendable {
         self.normal = normal
     }
 }
+
+#if !hasFeature(Embedded)
+extension UVNFrame: Codable {}
+#endif

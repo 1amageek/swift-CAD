@@ -2,7 +2,7 @@ import CADCore
 
 /// A scale about `origin` by one factor along each axis of the frame `xAxis`, `yAxis` and
 /// `xAxis × yAxis`; equal factors scale uniformly.
-public struct DirectScale: Codable, Hashable, Sendable {
+public struct DirectScale: Hashable, Sendable {
     public let origin: Point3D
     public let xAxis: Vector3D
     public let yAxis: Vector3D
@@ -31,13 +31,16 @@ public struct DirectScale: Codable, Hashable, Sendable {
         for factor in factors { try factor.validateLiteralQuantities() }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case origin
         case xAxis
         case yAxis
         case factors
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.origin, .xAxis, .yAxis, .factors], in: decoder)
@@ -47,7 +50,9 @@ public struct DirectScale: Codable, Hashable, Sendable {
         factors = try container.decode([CADExpression].self, forKey: .factors)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -56,4 +61,9 @@ public struct DirectScale: Codable, Hashable, Sendable {
         try container.encode(yAxis, forKey: .yAxis)
         try container.encode(factors, forKey: .factors)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension DirectScale: Codable {}
+#endif

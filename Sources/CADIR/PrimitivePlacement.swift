@@ -1,6 +1,6 @@
 import CADCore
 
-public struct PrimitivePlacement: Codable, Hashable, Sendable {
+public struct PrimitivePlacement: Hashable, Sendable {
     public let origin: Point3D
     public let axis: Vector3D
     public let referenceDirection: Vector3D
@@ -38,12 +38,15 @@ public struct PrimitivePlacement: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case origin
         case axis
         case referenceDirection
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -58,7 +61,9 @@ public struct PrimitivePlacement: Codable, Hashable, Sendable {
         )
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -66,4 +71,9 @@ public struct PrimitivePlacement: Codable, Hashable, Sendable {
         try container.encode(axis, forKey: .axis)
         try container.encode(referenceDirection, forKey: .referenceDirection)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension PrimitivePlacement: Codable {}
+#endif

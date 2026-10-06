@@ -221,8 +221,8 @@ public struct SnapQueryEvaluator: Sendable {
                 curves.indices.map { CurveOutputReference(featureID: featureID, curveIndex: $0) }
             }
             .sorted { lhs, rhs in
-                let leftFeatureID = lhs.featureID.rawValue.uuidString
-                let rightFeatureID = rhs.featureID.rawValue.uuidString
+                let leftFeatureID = lhs.featureID.rawValue.canonicalString
+                let rightFeatureID = rhs.featureID.rawValue.canonicalString
                 if leftFeatureID != rightFeatureID {
                     return leftFeatureID < rightFeatureID
                 }

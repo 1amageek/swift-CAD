@@ -13,10 +13,7 @@ struct OriginalCorrespondenceNativeCurve {
     let upper: Double
 
     init(source: BSplineCurve3D, maximumDegree: Int, budget: inout OriginalCorrespondenceBudget) throws {
-        // Main-native BSplineCurve3D has no cyclic metadata or cyclic evaluator;
-        // exact closed-domain, clamped-knot and multiplicity checks below are the
-        // nonperiodic admission authority for this certificate.
-        guard (1...maximumDegree).contains(source.degree) else { throw budget.unsupported() }
+        guard !source.isPeriodic, (1...maximumDegree).contains(source.degree) else { throw budget.unsupported() }
         try source.validate(tolerance: budget.tolerance)
         guard source.knots.prefix(source.degree + 1).allSatisfy({ $0 == source.knots[source.degree] }),
               source.knots.suffix(source.degree + 1).allSatisfy({ $0 == source.knots[source.controlPointCount] }) else {

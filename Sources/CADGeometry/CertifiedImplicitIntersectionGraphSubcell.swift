@@ -45,109 +45,80 @@ extension CertifiedImplicitIntersectionGraphCell {
     firstSurface: Surface3D,
     secondSurface: Surface3D,
     parentDerivativeBounds: [ScalarInterval],
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws -> CertifiedImplicitIntersectionGraphSubcell {
-    try tolerance.validate()
-    guard lowerFraction.isFinite,
-      upperFraction.isFinite,
-      lowerFraction >= 0.0,
-      upperFraction <= 1.0,
-      upperFraction - lowerFraction > tolerance.relative,
-      parentDerivativeBounds.count
-        == SurfaceIntersectionParameterCoordinate.allCases.count
-    else {
-      throw GeometryError.invalidDistance(upperFraction - lowerFraction)
-    }
-    let midpointFraction =
-      lowerFraction
-      + (upperFraction - lowerFraction) * 0.5
-    let traversalStart = try parameterPair(
-      atNormalizedFraction: lowerFraction,
-      firstSurface: firstSurface,
-      secondSurface: secondSurface,
-      tolerance: tolerance
-    )
-    let traversalMidpoint = try parameterPair(
-      atNormalizedFraction: midpointFraction,
-      firstSurface: firstSurface,
-      secondSurface: secondSurface,
-      tolerance: tolerance
-    )
-    let traversalEnd = try parameterPair(
-      atNormalizedFraction: upperFraction,
-      firstSurface: firstSurface,
-      secondSurface: secondSurface,
-      tolerance: tolerance
-    )
-    let localSpan = upperFraction - lowerFraction
-    let localHalfSpan = localSpan * 0.5
-    var intervals: [ScalarInterval] = []
-    var derivatives: [ScalarInterval] = []
-    intervals.reserveCapacity(4)
-    derivatives.reserveCapacity(4)
-    for coordinate in SurfaceIntersectionParameterCoordinate.allCases {
-      let index = coordinate.rawValue
-      let source = parameterBox.interval(for: coordinate)
-      if coordinate == freeParameter {
-        let endpointValues = [
-          traversalStart.values[index],
-          traversalEnd.values[index],
-        ]
-        intervals.append(
-          try ScalarInterval(
-            lower: endpointValues.min()!,
-            upper: endpointValues.max()!
-          ))
-      } else {
-        let midpointValue = traversalMidpoint.values[index]
-        let parentDerivative = parentDerivativeBounds[index]
-        let radius =
-          max(
-            abs(parentDerivative.lower),
-            abs(parentDerivative.upper)
-          ) * localHalfSpan
-        let anchorValues = [
-          traversalStart.values[index],
-          midpointValue,
-          traversalEnd.values[index],
-        ]
-        var lower = min(
-          anchorValues.min()!,
-          midpointValue - radius
-        ).nextDown
-        var upper = max(
-          anchorValues.max()!,
-          midpointValue + radius
-        ).nextUp
-        lower = max(lower, source.lower)
-        upper = min(upper, source.upper)
-        if upper - lower <= Double.leastNonzeroMagnitude {
-          lower = midpointValue.nextDown
-          upper = midpointValue.nextUp
-        }
-        intervals.append(try ScalarInterval(lower: lower, upper: upper))
-      }
-      let derivative = parentDerivativeBounds[index]
-      let products = [
-        derivative.lower * localSpan,
-        derivative.upper * localSpan,
-      ]
-      derivatives.append(
-        try ScalarInterval(
-          lower: products.min()!.nextDown,
-          upper: products.max()!.nextUp
-        ))
-    }
-    return CertifiedImplicitIntersectionGraphSubcell(
-      parameterBox: SurfaceIntersectionParameterBox(
-        firstU: intervals[0],
-        firstV: intervals[1],
-        secondU: intervals[2],
-        secondV: intervals[3]
-      ),
-      parameterDerivativeBounds: derivatives
-    )
+    let first = try admission.prepare(firstSurface, tolerance: tolerance)
+    let second = try admission.prepare(secondSurface, tolerance: tolerance)
+    return try restrictedBounds(fromNormalizedFraction: lowerFraction,
+      toNormalizedFraction: upperFraction, firstSurface: first,
+      secondSurface: second, parentDerivativeBounds: parentDerivativeBounds,
+      tolerance: tolerance, admission: admission)
   }
+
+  package func restrictedBounds(
+    fromNormalizedFraction lowerFraction: Double,
+    toNormalizedFraction upperFraction: Double,
+    firstSurface: PreparedSurfaceDifferentialEncloser,
+    secondSurface: PreparedSurfaceDifferentialEncloser,
+    parentDerivativeBounds: [ScalarInterval],
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
+  ) throws -> CertifiedImplicitIntersectionGraphSubcell {
+    try tolerance.validate(); try admission.step()
+    guard lowerFraction.isFinite, upperFraction.isFinite,
+      lowerFraction >= 0, upperFraction <= 1, lowerFraction <= upperFraction,
+      parentDerivativeBounds.count == 4 else {
+      throw GeometryConversionError.invalidInput("A graph restriction requires four original derivative bounds and a closed normalized subinterval.")
+    }
+    let requested = OutwardScalarInterval(lower: lowerFraction, upper: upperFraction)
+    let directed = direction == .forward ? requested : .exact(1) - requested
+    let gauge = min(max(directed.midpoint, 0), 1)
+    let traversalGauge = direction == .forward
+      ? OutwardScalarInterval.exact(gauge) : .exact(1) - .exact(gauge)
+    let displacement = requested - traversalGauge
+    let span = OutwardScalarInterval.exact(upperFraction) - .exact(lowerFraction)
+    let prover = try ParametricSurfaceIntersectionGraphProver(firstSurface: firstSurface,
+      secondSurface: secondSurface, parameterBox: parameterBox,
+      tolerance: tolerance, admission: admission)
+    // The retained parent owns existence; contraction only encloses that root.
+    let anchor = try prover.inheritedGaugeParameterBounds(freeParameter: freeParameter,
+      atNormalizedFraction: gauge, tolerance: tolerance)
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    var intervals: [ScalarInterval] = []; intervals.reserveCapacity(4)
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    var derivatives: [ScalarInterval] = []; derivatives.reserveCapacity(4)
+    for index in 0..<4 {
+      try admission.step()
+      guard let coordinate = SurfaceIntersectionParameterCoordinate(rawValue: index) else {
+        throw GeometryConversionError.invalidInput("An original graph coordinate is invalid.")
+      }
+      let source = parameterBox.interval(for: coordinate)
+      let domain = OutwardScalarInterval(lower: source.lower, upper: source.upper)
+      let derivative = OutwardScalarInterval(lower: parentDerivativeBounds[index].lower,
+        upper: parentDerivativeBounds[index].upper)
+      let image: OutwardScalarInterval
+      if coordinate == freeParameter {
+        let width = OutwardScalarInterval.exact(source.upper) - .exact(source.lower)
+        image = .exact(source.lower) + width * directed
+      } else {
+        image = OutwardScalarInterval(lower: anchor[index].lower, upper: anchor[index].upper)
+          + derivative * displacement
+      }
+      guard let contained = image.intersection(with: domain), contained.isFinite else {
+        throw GeometryConversionError.invalidInput("An original restricted graph enclosure lost its retained root.")
+      }
+      let scaled = derivative * span
+      guard scaled.isFinite else {
+        throw GeometryConversionError.resourceLimitExceeded("A restricted graph derivative has no finite original enclosure.")
+      }
+      intervals.append(try .init(lower: contained.lower, upper: contained.upper))
+      derivatives.append(try .init(lower: scaled.lower, upper: scaled.upper))
+    }
+    return .init(parameterBox: .init(firstU: intervals[0], firstV: intervals[1],
+      secondU: intervals[2], secondV: intervals[3]), parameterDerivativeBounds: derivatives)
+  }
+
 }
 
 extension CertifiedImplicitIntersectionGraphCell {

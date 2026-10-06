@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BoundingBox3D: Codable, Equatable, Hashable, Sendable {
+public struct BoundingBox3D: Equatable, Hashable, Sendable {
     public let minimum: Point3D
     public let maximum: Point3D
 
@@ -106,3 +106,7 @@ public struct BoundingBox3D: Codable, Equatable, Hashable, Sendable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension BoundingBox3D: Codable {}
+#endif

@@ -4,11 +4,11 @@ import CADCore
 /// each direction, the Flatness blending its thin plate (1) with membrane tautness, the Weight of
 /// its loose terms (Free sides, boundary flow) against that fairness, and the Boundary flow its
 /// cross derivatives follow along sides without a face.
-public struct SquareFitOptions: Codable, Hashable, Sendable {
+public struct SquareFitOptions: Hashable, Sendable {
     /// The cross flow along a side without a face: none (`natural`), perpendicular to the side
     /// (`normal`), perpendicular within the frame's mean plane (`next`), or blending the
     /// neighbouring sides' derivatives at its corners (`adjacent`).
-    public enum BoundaryFlow: String, Codable, Hashable, Sendable, CaseIterable {
+    public enum BoundaryFlow: String, Hashable, Sendable, CaseIterable {
         case natural
         case normal
         case next
@@ -52,10 +52,13 @@ public struct SquareFitOptions: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case uDegree, vDegree, uSpans, vSpans, flatness, weight, boundaryFlow
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.uDegree, .vDegree, .uSpans, .vSpans, .flatness, .weight, .boundaryFlow], in: decoder)
@@ -68,7 +71,9 @@ public struct SquareFitOptions: Codable, Hashable, Sendable {
         boundaryFlow = try container.decode(BoundaryFlow.self, forKey: .boundaryFlow)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -80,4 +85,10 @@ public struct SquareFitOptions: Codable, Hashable, Sendable {
         try container.encode(weight, forKey: .weight)
         try container.encode(boundaryFlow, forKey: .boundaryFlow)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SquareFitOptions: Codable {}
+extension SquareFitOptions.BoundaryFlow: Codable {}
+#endif

@@ -2,6 +2,7 @@ import CADCore
 import Foundation
 
 public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
+  private let invocation: CurveSurfaceQueryInvocation?
   private let certifiedIntersectionCoincidenceResolver:
     any CertifiedIntersectionCoincidenceResolving
   private let certifiedIntersectionReductionIntersector:
@@ -56,6 +57,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
   }
 
   public init() {
+    invocation = nil
     certifiedIntersectionCoincidenceResolver =
       DefaultCertifiedIntersectionCoincidenceResolver()
     certifiedIntersectionReductionIntersector =
@@ -134,6 +136,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       any CurveSurfaceSearchRangeResolving =
       DefaultCurveSurfaceSearchRangeResolver()
   ) {
+    invocation = nil
     self.certifiedIntersectionCoincidenceResolver =
       certifiedIntersectionCoincidenceResolver
     self.certifiedIntersectionReductionIntersector =
@@ -164,12 +167,78 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     self.searchRangeResolver = searchRangeResolver
   }
 
+  private init(copying source:Self,invocation:CurveSurfaceQueryInvocation) {
+    self.invocation = invocation
+    self.certifiedIntersectionCoincidenceResolver = source.certifiedIntersectionCoincidenceResolver
+    self.certifiedIntersectionReductionIntersector = source.certifiedIntersectionReductionIntersector
+    self.certifiedIntersectionReductionResolver = source.certifiedIntersectionReductionResolver
+    self.certifiedIntersectionSpatialDisjointnessResolver = source.certifiedIntersectionSpatialDisjointnessResolver
+    self.parallelTorusTorusPlaneIntersector = source.parallelTorusTorusPlaneIntersector
+    self.coneCylinderSphereIntersector = source.coneCylinderSphereIntersector
+    self.coneCylinderConeIntersector = source.coneCylinderConeIntersector
+    self.coneHostedQuadricIntersector = source.coneHostedQuadricIntersector
+    self.cylinderCylinderReductionEligibility = source.cylinderCylinderReductionEligibility
+    self.tangentIntersectionResolver = source.tangentIntersectionResolver
+    self.surfaceNormalResolver = source.surfaceNormalResolver
+    self.implicitDifferentialEvaluator = source.implicitDifferentialEvaluator
+    self.planarSurfaceResolver = source.planarSurfaceResolver
+    self.parametricRootCertifier = source.parametricRootCertifier
+    self.proceduralSourceCoincidenceResolver = source.proceduralSourceCoincidenceResolver
+    self.implicitCurveAnalyticSurfaceIntersector = source.implicitCurveAnalyticSurfaceIntersector
+    self.searchRangeResolver = source.searchRangeResolver
+  }
+
+  public func intersections(curve:Curve3D,surface:Surface3D,options:CurveSurfaceIntersectionOptions,
+    tolerance:ModelingTolerance,maximumSubdivisionDepth:Int,
+    consumeWork:@escaping @Sendable (Int)throws->Void) throws -> [CurveSurfaceIntersection] {
+    let context = try CurveSurfaceQueryInvocation(maximumSubdivisionDepth:maximumSubdivisionDepth,
+      maximumSpanCount:options.maximumSubdivisionCells,remainingSourceDepth:maximumSubdivisionDepth,consumeWork:consumeWork)
+    var bounded = options
+    bounded.maximumSubdivisionDepth = min(options.maximumSubdivisionDepth,maximumSubdivisionDepth)
+    return try Self(copying:self,invocation:context).intersections(curve:curve,surface:surface,options:bounded,tolerance:tolerance)
+  }
+
+  public func intersections(curve: Curve3D, surface: Surface3D,
+    options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int,
+    remainingSourceDepth: Int, consumeWork: @escaping @Sendable (Int) throws -> Void,
+    consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
+    maximumAlgebraicDepth: Int? = nil) throws -> [CurveSurfaceIntersection] {
+    try options.validate(tolerance: tolerance)
+    let context = try CurveSurfaceQueryInvocation(
+      maximumSubdivisionDepth: min(options.maximumSubdivisionDepth, maximumSubdivisionDepth),
+      maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
+      consumeWork: consumeWork, consumeStorage: consumeStorage,
+      maximumAlgebraicDepth: maximumAlgebraicDepth)
+    try curve.validateOriginalSource(tolerance: tolerance,
+      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: context.maximumSubdivisionDepth,
+      consumeWork: { _ in try context.consumeFixedWork() }, consumeStorage: consumeStorage,
+      maximumAlgebraicDepth: maximumAlgebraicDepth)
+    try surface.validateOriginalSource(tolerance: tolerance,
+      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: context.maximumSubdivisionDepth,
+      consumeWork: { _ in try context.consumeFixedWork() }, consumeStorage: consumeStorage,
+      maximumAlgebraicDepth: maximumAlgebraicDepth)
+    var bounded = options
+    bounded.maximumSubdivisionDepth = context.maximumSubdivisionDepth
+    if case .bSpline(let native) = curve, case .plane(let plane) = surface,
+      plane.uDirection != nil {
+      return try selectedNativePlaneIntersections(curve: native, plane: plane,
+        options: bounded, tolerance: tolerance, admission: context)
+    }
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Selected adaptive traversal preserves
+    // original complete cells, but the general critical/coincident atlas and
+    // unbounded original range producer remain required before full family coverage.
+    return try Self(copying: self, invocation: context).adaptiveIntersections(
+      curve: curve, surface: surface, options: bounded, tolerance: tolerance)
+  }
+
   public func intersections(
     curve: Curve3D,
     surface: Surface3D,
     options: CurveSurfaceIntersectionOptions,
     tolerance: ModelingTolerance
   ) throws -> [CurveSurfaceIntersection] {
+    try invocation?.consumeFixedWork()
     try options.validate(tolerance: tolerance)
     try curve.validate(tolerance: tolerance)
     try surface.validate(tolerance: tolerance)
@@ -607,8 +676,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     let phase = atan2(sineCoefficient, cosineCoefficient)
     let normalizedConstant = min(max(-constant / amplitude, -1.0), 1.0)
     let angularOffset = acos(normalizedConstant)
-    let first = normalizedPeriodicParameter(phase - angularOffset)
-    let second = normalizedPeriodicParameter(phase + angularOffset)
+    let first = normalizedPeriodicParameter(CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: phase - angularOffset))
+    let second = normalizedPeriodicParameter(CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: phase + angularOffset))
     let parameters =
       abs(sin(angularOffset)) <= tolerance.angle
       ? [first]
@@ -616,6 +685,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
 
     var intersections: [CurveSurfaceIntersection] = []
     for parameter in parameters {
+      try invocation?.consumeFixedWork()
       guard contains(parameter, range: options.curveRange),
         try curve.parameterDomain.contains(parameter, tolerance: tolerance)
       else {
@@ -706,7 +776,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     )
     var parameters = try solver.realRoots(coefficients: coefficients).compactMap {
       resolvedCurveParameter(
-        normalizedPeriodicParameter(2.0 * atan($0)),
+        normalizedPeriodicParameter(CanonicalSphereAngularPhase.candidateLabel(ofPhysicalAngle: 2.0 * atan($0))),
         domain: curve.parameterDomain,
         range: options.curveRange,
         tolerance: tolerance
@@ -737,6 +807,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
 
     var intersections: [CurveSurfaceIntersection] = []
     for parameter in parameters {
+      try invocation?.consumeFixedWork()
       guard contains(parameter, range: options.curveRange) else {
         continue
       }
@@ -845,7 +916,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       coefficients = polynomial
       parameterForRoot = { root in root.isFinite ? root : nil }
     case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-      .certifiedIntersection, .rigidImage, .affineImage:
+      .certifiedIntersection, .rigidImage, .affineImage, .parameterImage:
       return nil
     }
 
@@ -893,6 +964,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
   ) throws -> [CurveSurfaceIntersection] {
     var result: [CurveSurfaceIntersection] = []
     for parameter in parameters {
+      try invocation?.consumeFixedWork()
       let curveGeometry = try curve.differentialGeometry(
         at: parameter,
         tolerance: tolerance
@@ -1033,7 +1105,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         image.transform.applying(to: source.cosine),
         image.transform.applying(to: source.sine)
       )
-    case .line, .bSpline, .implicit, .surfaceLift, .certifiedIntersection:
+    case .line, .bSpline, .implicit, .surfaceLift, .certifiedIntersection, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
       return nil
     }
   }
@@ -1303,6 +1375,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
 
     var intersections: [CurveSurfaceIntersection] = []
     for point in candidates {
+      try invocation?.consumeFixedWork()
       let curveProjection: CurveParameterProjection
       do {
         curveProjection = try curve.parameterProjection(
@@ -1373,13 +1446,18 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         source.radius
       )
     case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-      .certifiedIntersection, .affineImage:
+      .certifiedIntersection, .affineImage, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
       return nil
     }
   }
 
   private func lineGeometry(_ curve: Curve3D) -> Line3D? {
     switch curve {
+    case .parameterImage(let image):
+      guard let source = lineGeometry(image.source) else { return nil }
+      return Line3D(origin: source.origin + source.direction * image.offset,
+        direction: source.direction * image.gain)
+
     case .line(let line):
       return line
     case .analytic(.line(let origin, let direction)):
@@ -1405,7 +1483,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         direction: direction
       )
     case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-      .certifiedIntersection:
+      .certifiedIntersection, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
       return nil
     }
   }
@@ -1465,7 +1543,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         surface: equivalent,
         tolerance: tolerance
       )
-    case .procedural(.ruled), .procedural(.rollingBall):
+    case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalImage), .procedural(.originalAffineWord), .procedural(.originalAngularTransport), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
       return nil
     }
   }
@@ -1583,6 +1661,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     let roots = try solver.realRoots(coefficients: coefficients)
     var results: [CurveSurfaceIntersection] = []
     for parameter in roots {
+      try invocation?.consumeFixedWork()
       if let range = options.curveRange,
         range.contains(parameter) == false
       {
@@ -1693,6 +1772,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     let partition = [curveRange.lower] + breaks + [curveRange.upper]
     var pending: [ScalarRootCell] = []
     for index in 1..<partition.count {
+      try invocation?.consumeFixedWork()
       let interval = try ScalarInterval(
         lower: partition[index - 1],
         upper: partition[index]
@@ -1765,6 +1845,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     var intersections: [CurveSurfaceIntersection] = []
     var unresolved: [UnresolvedScalarRootCandidate] = []
     while let cell = pending.popLast() {
+      try invocation?.consume(depth: cell.depth)
       guard remainingCells > 0 else {
         throw KernelError(
           phase: .geometry,
@@ -1959,6 +2040,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     )
     var unaccounted: [UnresolvedScalarRootCandidate] = []
     for candidate in unresolved {
+      try invocation?.consumeFixedWork()
       let parameterAccounted = result.contains { intersection in
         intersection.curveParameter
           >= candidate.interval.lower - parameterTolerance
@@ -2111,6 +2193,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     var parameter = interval.midpoint
     var iterations = 0
     for iteration in 0..<maximumIterations {
+      try invocation?.consumeFixedWork()
       iterations = iteration + 1
       let geometry = try curve.differentialGeometry(
         at: parameter,
@@ -2306,6 +2389,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     var parameter = rootInterval.midpoint
     var iterations = 0
     for iteration in 0..<options.maximumIterations {
+      try invocation?.consumeFixedWork()
       iterations = iteration + 1
       let geometry = try curve.differentialGeometry(
         at: parameter,
@@ -2545,12 +2629,14 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     options: CurveSurfaceIntersectionOptions,
     tolerance: ModelingTolerance
   ) throws -> [CurveSurfaceIntersection] {
-    let curveRange = try searchRangeResolver.curveRange(
-      curve: curve,
-      surface: surface,
-      requestedRange: options.curveRange,
-      tolerance: tolerance
-    )
+    let curveRange: ScalarInterval
+    if invocation != nil {
+      curveRange = try resolvedInterval(domain: curve.parameterDomain,
+        explicit: options.curveRange, label: "curve", tolerance: tolerance)
+    } else {
+      curveRange = try searchRangeResolver.curveRange(curve: curve, surface: surface,
+        requestedRange: options.curveRange, tolerance: tolerance)
+    }
     let uRange = try resolvedInterval(
       domain: surface.uDomain,
       explicit: options.surfaceURange,
@@ -2563,7 +2649,12 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       label: "surface V",
       tolerance: tolerance
     )
-    if case .bSpline(let bSplineSurface) = surface {
+    if let invocation {
+      return try selectedAdaptiveIntersections(curve: curve, surface: surface,
+        root: ParameterCell(t: curveRange, u: uRange, v: vRange, depth: 0),
+        options: options, tolerance: tolerance, admission: invocation)
+    }
+    if invocation == nil, case .bSpline(let bSplineSurface) = surface {
       let exactCurve: BSplineCurve3D?
       let requiresSourceParameterRecovery: Bool
       if case .bSpline(let bSplineCurve) = curve {
@@ -2602,7 +2693,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       }
     }
     let bSplineSurfacePatches: [RationalBezierSurfacePatch3D]
-    if case .bSpline(let bSplineSurface) = surface {
+    if invocation == nil, case .bSpline(let bSplineSurface) = surface {
       bSplineSurfacePatches = try BSplineSurfaceBezierDecomposer()
         .surfacePatches(
           surface: bSplineSurface,
@@ -2613,20 +2704,21 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     } else {
       bSplineSurfacePatches = []
     }
-    let preparedCurveBounds = try PreparedCurveDifferentialEncloser(
-      curve: curve,
-      tolerance: tolerance
-    )
-    let preparedSurfaceBounds = try PreparedSurfaceDifferentialEncloser(
-      surface: surface,
-      tolerance: tolerance
-    )
+    let preparedCurveBounds:PreparedCurveDifferentialEncloser
+    let preparedSurfaceBounds:PreparedSurfaceDifferentialEncloser
+    if let invocation {
+      preparedCurveBounds = try .init(curve:curve,tolerance:tolerance,remainingSourceDepth:invocation.remainingSourceDepth,
+        maximumSubdivisionDepth:invocation.maximumSubdivisionDepth,consumeWork:invocation.consumeFixedWork)
+      preparedSurfaceBounds = try .init(surface:surface,tolerance:tolerance,remainingSourceDepth:invocation.remainingSourceDepth,
+        maximumSubdivisionDepth:invocation.maximumSubdivisionDepth,consumeWork:invocation.consumeFixedWork)
+    } else {
+      preparedCurveBounds = try .init(curve:curve,tolerance:tolerance)
+      preparedSurfaceBounds = try .init(surface:surface,tolerance:tolerance)
+    }
     let rootCertification = try parametricRootCertifier.prepare(
-      curve: curve,
-      surface: surface,
       preparedCurve: preparedCurveBounds,
       preparedSurface: preparedSurfaceBounds,
-      tolerance: tolerance
+      tolerance: tolerance, invocation:invocation
     )
     let rootCell = ParameterCell(t: curveRange, u: uRange, v: vRange, depth: 0)
     var pending = [rootCell]
@@ -2641,8 +2733,16 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       }
       pending.removeAll(keepingCapacity: true)
       for index in (1..<partition.count).reversed() {
+        try invocation?.consumeFixedWork()
         let interval = try ScalarInterval(lower: partition[index - 1], upper: partition[index])
-        let jet = try preparedCurveBounds.thirdOrderIntervalJet(over: interval, tolerance: tolerance)
+        let jet: SurfaceIntervalVectorJet
+        if let invocation {
+          let receipt = try preparedCurveBounds.closedNativeJets(over:interval,tolerance:tolerance,
+            maximumSpanCount:invocation.maximumSpanCount,maximumSubdivisionDepth:invocation.maximumSubdivisionDepth,
+            remainingSourceDepth:invocation.remainingSourceDepth,consumeWork:invocation.consumeFixedWork)
+          guard let first = receipt.spans.first else { throw intervalArithmeticFailure() }
+          jet = receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
+        } else { jet = try preparedCurveBounds.thirdOrderIntervalJet(over:interval,tolerance:tolerance) }
         let second = [jet.x.secondDerivativeUU, jet.y.secondDerivativeUU, jet.z.secondDerivativeUU]
           .map { max(abs($0.lower), abs($0.upper)) }
         let bound = ((second[0] + second[1]).nextUp + second[2]).nextUp
@@ -2656,6 +2756,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     var remainingCandidates = options.maximumCandidateCount
     var intersections: [CurveSurfaceIntersection] = []
     while let cell = pending.popLast() {
+      try invocation?.consume(depth: cell.depth)
       guard remainingCells > 0 else {
         throw KernelError(
           phase: .geometry,
@@ -2667,7 +2768,22 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       remainingCells -= 1
       let curveBounds: BoundingBox3D
       let curveDerivative: CurveSpatialDerivativeRange
-      if let bounds = cell.curveBounds, let derivative = cell.curveDerivative {
+      if let invocation {
+        let receipt = try preparedCurveBounds.closedNativeJets(over:cell.t,tolerance:tolerance,
+          maximumSpanCount:invocation.maximumSpanCount,
+          maximumSubdivisionDepth:invocation.maximumSubdivisionDepth-cell.depth,
+          remainingSourceDepth:invocation.remainingSourceDepth-cell.depth,
+          consumeWork:{ try invocation.consume(depth:cell.depth) })
+        guard let first = receipt.spans.first else { throw intervalArithmeticFailure() }
+        let jet = receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
+        curveBounds = try BoundingBox3D(
+          minimum:Point3D(x:jet.x.value.lower,y:jet.y.value.lower,z:jet.z.value.lower),
+          maximum:Point3D(x:jet.x.value.upper,y:jet.y.value.upper,z:jet.z.value.upper))
+        curveDerivative = try .init(
+          x:ScalarInterval(lower:jet.x.derivativeU.lower,upper:jet.x.derivativeU.upper),
+          y:ScalarInterval(lower:jet.y.derivativeU.lower,upper:jet.y.derivativeU.upper),
+          z:ScalarInterval(lower:jet.z.derivativeU.lower,upper:jet.z.derivativeU.upper))
+      } else if let bounds = cell.curveBounds, let derivative = cell.curveDerivative {
         curveBounds = bounds
         curveDerivative = derivative
       } else if let second = cell.secondDerivativeBound {
@@ -2692,12 +2808,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
           z: try ScalarInterval(lower: jet.z.derivativeU.lower, upper: jet.z.derivativeU.upper)
         )
       }
-      let surfaceBounds =
-        try cell.surfaceBounds
-        ?? preparedSurfaceBounds.boundingBox(
-          over: SurfaceParameterBox(u: cell.u, v: cell.v),
-          tolerance: tolerance
-        )
+      let surfaceBounds: BoundingBox3D
+      if let invocation {
+        let q = try preparedSurfaceBounds.positionBounds(over:.init(u:cell.u,v:cell.v),tolerance:tolerance,
+          maximumSpanCount:invocation.maximumSpanCount,
+          maximumSubdivisionDepth:invocation.maximumSubdivisionDepth-cell.depth,
+          remainingSourceDepth:invocation.remainingSourceDepth-cell.depth,
+          consumeWork:{ try invocation.consume(depth:cell.depth) })
+        surfaceBounds = try BoundingBox3D(minimum:.init(x:q.x.lower,y:q.y.lower,z:q.z.lower),
+          maximum:.init(x:q.x.upper,y:q.y.upper,z:q.z.upper))
+      } else {
+        surfaceBounds = try cell.surfaceBounds ?? preparedSurfaceBounds.boundingBox(
+          over:SurfaceParameterBox(u:cell.u,v:cell.v),tolerance:tolerance)
+      }
       guard curveBounds.intersects(surfaceBounds, tolerance: tolerance.distance) else {
         continue
       }
@@ -2707,7 +2830,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
           surfaceU: cell.u,
           surfaceV: cell.v,
           surfacePatches: bSplineSurfacePatches,
-          curveDerivative: curveDerivative
+          curveDerivative: curveDerivative, depth:cell.depth
         ),
         tolerance: tolerance
       )
@@ -2799,6 +2922,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             t: mergedT,
             u: mergedU,
             v: mergedV,
+            depth:max(last.depth,cell.depth),
             curveBounds: try BoundingBox3D(
               minimum: Point3D(
                 x: min(last.curveBounds.minimum.x, curveBounds.minimum.x),
@@ -2837,6 +2961,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             t: cell.t,
             u: cell.u,
             v: cell.v,
+            depth:cell.depth,
             curveBounds: curveBounds,
             surfaceBounds: surfaceBounds
           ))
@@ -2865,6 +2990,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     var resolutions: [CandidateResolution] = []
     var unresolvedResidual: Double?
     for candidate in candidates {
+      try invocation?.consumeFixedWork()
       if let intersection = try refinedIntersection(
         seed: candidate.seed,
         curve: curve,
@@ -2888,7 +3014,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
               curve: witnessCell.t,
               surfaceU: witnessCell.u,
               surfaceV: witnessCell.v,
-              surfacePatches: bSplineSurfacePatches
+              surfacePatches: bSplineSurfacePatches, depth:candidate.depth
             ),
             tolerance: tolerance
           )
@@ -2909,7 +3035,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
               curve: witnessCell.t,
               surfaceU: witnessCell.u,
               surfaceV: witnessCell.v,
-              surfacePatches: bSplineSurfacePatches
+              surfacePatches: bSplineSurfacePatches, depth:candidate.depth
             ),
             witness: intersection,
             tolerance: tolerance
@@ -2970,6 +3096,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         : nil
     }
     for resolution in resolutions where resolution.certifiedUnique == false {
+      try invocation?.consumeFixedWork()
       let bandTolerance = max(
         tolerance.relative,
         Double.ulpOfOne
@@ -3017,6 +3144,483 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       )
     }
     return deduplicated(intersections, tolerance: tolerance)
+  }
+
+  private func selectedAdaptiveIntersections(
+    curve: Curve3D, surface: Surface3D, root: ParameterCell,
+    options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+    admission: CurveSurfaceQueryInvocation
+  ) throws -> [CurveSurfaceIntersection] {
+    let curveSource = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance,
+      remainingSourceDepth: admission.remainingSourceDepth,
+      maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+      consumeWork: admission.consumeFixedWork, consumeStorage: admission.consumeStorage,
+      maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+    let surfaceSource = try PreparedSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
+      remainingSourceDepth: admission.remainingSourceDepth,
+      maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+      consumeWork: admission.consumeFixedWork, consumeStorage: admission.consumeStorage,
+      maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+    let certification = try parametricRootCertifier.prepare(preparedCurve: curveSource,
+      preparedSurface: surfaceSource, domain: ParametricCurveSurfaceRootCell(curve: root.t,
+        surfaceU: root.u, surfaceV: root.v, surfacePatches: [], depth: root.depth),
+      tolerance: tolerance, invocation: admission)
+    let maximumDepth = min(options.maximumSubdivisionDepth, admission.maximumSubdivisionDepth)
+    try admission.reserve(count: maximumDepth + 1, stride: MemoryLayout<ParameterCell>.stride)
+    var pending: [ParameterCell] = []
+    pending.reserveCapacity(maximumDepth + 1)
+    pending.append(root)
+    struct Accepted {
+      var cell: ParameterCell
+      var intersection: CurveSurfaceIntersection
+    }
+    try admission.reserve(count: options.maximumCandidateCount, stride: MemoryLayout<Accepted>.stride)
+    var accepted: [Accepted] = []
+    accepted.reserveCapacity(options.maximumCandidateCount)
+    var remainingCells = options.maximumSubdivisionCells
+    while let cell = pending.popLast() {
+      try admission.consume(depth: cell.depth)
+      guard remainingCells > 0 else { throw selectedCoverageFailure(tolerance) }
+      remainingCells -= 1
+      let curveJet = try selectedCurveJet(curveSource, over: cell.t, depth: cell.depth,
+        tolerance: tolerance, admission: admission)
+      let surfaceJet = try selectedSurfaceJet(surfaceSource,
+        over: SurfaceParameterBox(u: cell.u, v: cell.v), depth: cell.depth,
+        tolerance: tolerance, admission: admission)
+      let curveBounds = try BoundingBox3D(
+        minimum: Point3D(x: curveJet.x.value.lower, y: curveJet.y.value.lower, z: curveJet.z.value.lower),
+        maximum: Point3D(x: curveJet.x.value.upper, y: curveJet.y.value.upper, z: curveJet.z.value.upper))
+      let surfaceBounds = try BoundingBox3D(
+        minimum: Point3D(x: surfaceJet.x.value.lower, y: surfaceJet.y.value.lower, z: surfaceJet.z.value.lower),
+        maximum: Point3D(x: surfaceJet.x.value.upper, y: surfaceJet.y.value.upper, z: surfaceJet.z.value.upper))
+      guard curveBounds.intersects(surfaceBounds, tolerance: tolerance.distance) else { continue }
+      let originalCell = ParametricCurveSurfaceRootCell(curve: cell.t, surfaceU: cell.u,
+        surfaceV: cell.v, surfacePatches: [], depth: cell.depth)
+      let certificate = try certification.certificate(cell: originalCell, tolerance: tolerance)
+      if case .excluded = certificate { continue }
+      var intersection: CurveSurfaceIntersection?
+      if case .unique = certificate {
+        intersection = try selectedRefinedIntersection(curveSource: curveSource,
+          surfaceSource: surfaceSource, cell: cell, maximumIterations: options.maximumIterations,
+          tolerance: tolerance, admission: admission)
+      } else if cell.depth == maximumDepth {
+        if let proposal = try selectedRefinedIntersection(curveSource: curveSource,
+          surfaceSource: surfaceSource, cell: cell, maximumIterations: options.maximumIterations,
+          tolerance: tolerance, admission: admission),
+          case .unique = try certification.boundaryCertificate(cell: originalCell,
+            witness: proposal, tolerance: tolerance) {
+          intersection = proposal
+        }
+      }
+      if let intersection {
+        var merged = false
+        for index in accepted.indices {
+          try admission.consume(depth: cell.depth)
+          let existing = accepted[index]
+          let hull = ParameterCell(
+            t: try ScalarInterval(lower: min(existing.cell.t.lower, cell.t.lower),
+              upper: max(existing.cell.t.upper, cell.t.upper)),
+            u: try ScalarInterval(lower: min(existing.cell.u.lower, cell.u.lower),
+              upper: max(existing.cell.u.upper, cell.u.upper)),
+            v: try ScalarInterval(lower: min(existing.cell.v.lower, cell.v.lower),
+              upper: max(existing.cell.v.upper, cell.v.upper)),
+            depth: min(existing.cell.depth, cell.depth))
+          let enclosing = ParametricCurveSurfaceRootCell(curve: hull.t, surfaceU: hull.u,
+            surfaceV: hull.v, surfacePatches: [], depth: hull.depth)
+          // Only a proof covering both original cells establishes shared root identity.
+          let shared = try certification.certificate(cell: enclosing, tolerance: tolerance)
+          var sameRoot = false
+          if case .unique = shared { sameRoot = true }
+          if !sameRoot, case .unique = try certification.boundaryCertificate(cell: enclosing,
+            witness: intersection, tolerance: tolerance) { sameRoot = true }
+          if sameRoot {
+            accepted[index].cell = hull
+            if intersection.residual < existing.intersection.residual {
+              accepted[index].intersection = intersection
+            }
+            merged = true
+            break
+          }
+        }
+        if !merged {
+          guard accepted.count < options.maximumCandidateCount else {
+            throw selectedCoverageFailure(tolerance)
+          }
+          accepted.append(Accepted(cell: cell, intersection: intersection))
+        }
+        continue
+      }
+      guard cell.depth < maximumDepth else {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The selected original curve-surface
+        // route has no critical/coincident atlas for a cell lacking exclusion or
+        // uniqueness. Such a cell must not be absorbed by numerical root proximity.
+        throw selectedCoverageFailure(tolerance)
+      }
+      let derivative = try CurveSpatialDerivativeRange(
+        x: ScalarInterval(lower: curveJet.x.derivativeU.lower, upper: curveJet.x.derivativeU.upper),
+        y: ScalarInterval(lower: curveJet.y.derivativeU.lower, upper: curveJet.y.derivativeU.upper),
+        z: ScalarInterval(lower: curveJet.z.derivativeU.lower, upper: curveJet.z.derivativeU.upper))
+      try admission.reserve(count: 2, stride: MemoryLayout<ParameterCell>.stride)
+      let children = try subdivided(cell, root: root, curveBounds: curveBounds,
+        curveDerivative: derivative, surfaceBounds: surfaceBounds)
+      for child in children.reversed() {
+        try admission.consume(depth: child.depth)
+        guard child.t.lower < child.t.upper, child.u.lower < child.u.upper,
+          child.v.lower < child.v.upper,
+          child.t != cell.t || child.u != cell.u || child.v != cell.v else {
+          throw selectedCoverageFailure(tolerance)
+        }
+        pending.append(child)
+      }
+    }
+    // Stable insertion order is caller-paid and requires no sorting scratch buffer.
+    for index in accepted.indices.dropFirst() {
+      var position = index
+      while position > 0 {
+        try admission.consumeFixedWork()
+        let left = accepted[position - 1].intersection
+        let right = accepted[position].intersection
+        let ordered = left.curveParameter < right.curveParameter
+          || (left.curveParameter == right.curveParameter && (left.surfaceU < right.surfaceU
+            || (left.surfaceU == right.surfaceU && left.surfaceV <= right.surfaceV)))
+        if ordered { break }
+        accepted.swapAt(position - 1, position)
+        position -= 1
+      }
+    }
+    try admission.reserve(count: accepted.count, stride: MemoryLayout<CurveSurfaceIntersection>.stride)
+    var result: [CurveSurfaceIntersection] = []
+    result.reserveCapacity(accepted.count)
+    for value in accepted {
+      try admission.consumeFixedWork()
+      result.append(value.intersection)
+    }
+    return result
+  }
+
+  private struct NativePlaneUsage: RationalAlgebraAdmitting {
+    let admission: CurveSurfaceQueryInvocation
+    var algebraDepth: Int { admission.maximumAlgebraicDepth ?? 32 }
+    mutating func visitExactCell(depth: Int) throws {
+      guard (0...algebraDepth).contains(depth) else {
+        throw GeometryConversionError.resourceLimitExceeded("Native plane localization exhausted caller algebra depth.")
+      }
+      try admission.consumeFixedWork()
+    }
+    mutating func consumeExactWork(_ count: Int) throws {
+      guard count >= 0 else { throw GeometryConversionError.invalidInput("Native plane work must be nonnegative.") }
+      for _ in 0..<count { try admission.consumeFixedWork() }
+    }
+    mutating func retainExactStorage(_ count: Int) throws {
+      try admission.reserve(count: count, stride: MemoryLayout<UInt32>.stride)
+    }
+  }
+
+  private func selectedNativePlaneIntersections(curve: BSplineCurve3D, plane: Plane3D,
+    options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+    admission: CurveSurfaceQueryInvocation
+  ) throws -> [CurveSurfaceIntersection] {
+    guard curve.degree <= options.maximumPolynomialDegree else {
+      throw selectedCoverageFailure(tolerance)
+    }
+    let interval = try selectedNativePlaneRange(source: curve, options: options, tolerance: tolerance)
+    let contacts = try OriginalNativePlaneContactProducer().contacts(source: curve,
+      over: interval, plane: plane, tolerance: tolerance, invocation: admission)
+    guard contacts.isolated.count <= options.maximumCandidateCount else {
+      throw selectedCoverageFailure(tolerance)
+    }
+    let surface = try PreparedSurfaceDifferentialEncloser(surface: .plane(plane), tolerance: tolerance,
+      remainingSourceDepth: admission.remainingSourceDepth,
+      maximumSubdivisionDepth: admission.maximumSubdivisionDepth,
+      consumeWork: admission.consumeFixedWork, consumeStorage: admission.consumeStorage,
+      maximumAlgebraicDepth: admission.maximumAlgebraicDepth)
+    try admission.reserve(count: options.maximumCandidateCount, stride: MemoryLayout<CurveSurfaceIntersection>.stride)
+    var result: [CurveSurfaceIntersection] = []
+    result.reserveCapacity(options.maximumCandidateCount)
+    try admission.reserve(count: options.maximumCandidateCount,
+      stride: MemoryLayout<OriginalNativePlaneContactProducer.Isolated>.stride)
+    var originalEvents: [OriginalNativePlaneContactProducer.Isolated] = []
+    originalEvents.reserveCapacity(options.maximumCandidateCount)
+    func retain(_ contact: OriginalNativePlaneContactProducer.Isolated) throws {
+      for index in originalEvents.indices {
+        try admission.consumeFixedWork()
+        if let merged = try originalEvents[index].mergingNativeKnotEvent(contact, invocation: admission) {
+          originalEvents[index] = merged
+          return
+        }
+      }
+      guard originalEvents.count < options.maximumCandidateCount else { throw selectedCoverageFailure(tolerance) }
+      originalEvents.append(contact)
+    }
+    func publish(_ contact: OriginalNativePlaneContactProducer.Isolated) throws {
+      guard let event = try publishOriginalNativePlaneContact(contact, preparedPlane: surface,
+        options: options, tolerance: tolerance, invocation: admission) else { return }
+      guard result.count < options.maximumCandidateCount else { throw selectedCoverageFailure(tolerance) }
+      result.append(event)
+    }
+    for overlap in contacts.overlaps {
+      try admission.consumeFixedWork()
+      let clip = try overlap.clipped(uRange: options.surfaceURange,
+        vRange: options.surfaceVRange, invocation: admission)
+      guard !clip.hasPositiveContact else {
+        throw KernelError(phase: .geometry, code: .nonDiscreteIntersection, tolerance: tolerance,
+          message: "The original native curve has a positive interval inside the selected plane domain.")
+      }
+      for contact in clip.isolated { try retain(contact) }
+    }
+    for contact in contacts.isolated { try retain(contact) }
+    for contact in originalEvents { try publish(contact) }
+    for index in result.indices.dropFirst() {
+      var position = index
+      while position > 0 {
+        try admission.consumeFixedWork()
+        if result[position - 1].curveParameter <= result[position].curveParameter { break }
+        result.swapAt(position - 1, position)
+        position -= 1
+      }
+    }
+    // Native owners are part of root identity; identical numerical stations do
+    // not authorize merging a discontinuous join's original sided contacts.
+    return result
+  }
+
+  /// Publishes a representative of the retained original root under the same paid plane preparation.
+  // FIXME(INCOMPLETE_IMPLEMENTATION): Public native-plane and richer overlap
+  // routes retain exact original root events here. Native-knot sided assembly
+  // uses its original scalar/jet issuer before publication. General critical,
+  // periodic and translated-source event authority remains required; numerical
+  // event proximity never substitutes for the original contact proof.
+  package func publishOriginalNativePlaneContact(_ contact: OriginalNativePlaneContactProducer.Isolated,
+    preparedPlane: PreparedSurfaceDifferentialEncloser, options: CurveSurfaceIntersectionOptions,
+    tolerance: ModelingTolerance, invocation admission: CurveSurfaceQueryInvocation
+  ) throws -> CurveSurfaceIntersection? {
+    try options.validate(tolerance: tolerance)
+    try admission.consumeFixedWork()
+    guard case .plane(let plane) = preparedPlane.surface, plane.uDirection != nil else {
+      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+        message: "Original native-plane publication requires its retained authored plane preparation.")
+    }
+    guard let issuedU = contact.originalPlane.uDirection, let suppliedU = plane.uDirection else {
+      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+        message: "Original native-plane publication lost its issuing chart.")
+    }
+    func same(_ first: Double, _ second: Double) throws -> Bool {
+      try admission.consumeFixedWork()
+      return first == second
+    }
+    guard try same(contact.originalPlane.origin.x, plane.origin.x)
+      && same(contact.originalPlane.origin.y, plane.origin.y)
+      && same(contact.originalPlane.origin.z, plane.origin.z)
+      && same(contact.originalPlane.normal.x, plane.normal.x)
+      && same(contact.originalPlane.normal.y, plane.normal.y)
+      && same(contact.originalPlane.normal.z, plane.normal.z)
+      && same(issuedU.x, suppliedU.x) && same(issuedU.y, suppliedU.y) && same(issuedU.z, suppliedU.z) else {
+      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+        message: "Original native-plane publication rejects a foreign issuing plane preparation.")
+    }
+    let interval = try selectedNativePlaneRange(source: contact.boundary.source,
+      options: options, tolerance: tolerance)
+    var usage = NativePlaneUsage(admission: admission)
+    guard try contact.liesIn(uRange: options.surfaceURange, vRange: options.surfaceVRange,
+      maximumAlgebraicDepth: usage.algebraDepth, usage: &usage) else { return nil }
+    // Localization width is a proposal only. Halved endpoint arithmetic avoids
+    // overflow for a finite interval crossing the full binary coordinate range.
+    var width = max(Double.leastNonzeroMagnitude, interval.upper * 0.5 - interval.lower * 0.5)
+    for iteration in 0..<options.maximumIterations {
+      try admission.consumeFixedWork()
+      guard width.isFinite, width > 0 else { throw selectedCoverageFailure(tolerance) }
+      let native = try contact.boundary.parameterBounds(maximumWidth: width,
+        maximumSubdivisionDepth: usage.algebraDepth, usage: &usage)
+      let position = try contact.boundary.positionBounds(maximumParameterWidth: width,
+        maximumSubdivisionDepth: usage.algebraDepth, usage: &usage)
+      let uv = try contact.planeParameterBounds(maximumParameterWidth: width,
+        maximumAlgebraicDepth: usage.algebraDepth, usage: &usage)
+      let uRange = options.surfaceURange ?? uv.u
+      let vRange = options.surfaceVRange ?? uv.v
+      let u = clamped(uv.u.lower * 0.5 + uv.u.upper * 0.5, to: uRange)
+      let v = clamped(uv.v.lower * 0.5 + uv.v.upper * 0.5, to: vRange)
+      let jet = try selectedSurfaceJet(preparedPlane,
+        over: SurfaceParameterBox(u: ScalarInterval(lower: u, upper: u),
+          v: ScalarInterval(lower: v, upper: v)), depth: 0, tolerance: tolerance, admission: admission)
+      let point = Point3D(x: position.x.lower * 0.5 + position.x.upper * 0.5,
+        y: position.y.lower * 0.5 + position.y.upper * 0.5,
+        z: position.z.lower * 0.5 + position.z.upper * 0.5)
+      let radius = IntervalVector3DBounds(x: position.x - .exact(point.x),
+        y: position.y - .exact(point.y), z: position.z - .exact(point.z)).lengthUpperBound
+      let residual = IntervalVector3DBounds(x: position.x - jet.x.value,
+        y: position.y - jet.y.value, z: position.z - jet.z.value).lengthUpperBound
+      if radius <= tolerance.distance, residual <= tolerance.distance {
+        return try CurveSurfaceIntersection(point: point,
+          curveParameter: clamped(native.lower * 0.5 + native.upper * 0.5, to: interval),
+          surfaceU: u, surfaceV: v, kind: contact.kind, residual: residual, iterations: iteration,
+          originalCurveBoundary: contact.boundary)
+      }
+      let smaller = width * 0.5
+      guard smaller > 0, smaller < width else { throw selectedCoverageFailure(tolerance) }
+      width = smaller
+    }
+    throw selectedCoverageFailure(tolerance)
+  }
+
+  private func selectedNativePlaneRange(source: BSplineCurve3D,
+    options: CurveSurfaceIntersectionOptions, tolerance: ModelingTolerance) throws -> ScalarInterval {
+    let range: ScalarInterval
+    if let requested = options.curveRange { range = requested }
+    else {
+      switch source.domain {
+      case .closed(let lower, let upper): range = try ScalarInterval(lower: lower, upper: upper)
+      case .periodic(let period): range = try ScalarInterval(lower: 0, upper: period)
+      case .unbounded:
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+          message: "Original native-plane contacts require a finite authored curve range.")
+      }
+    }
+    guard range.lower.isFinite, range.upper.isFinite, range.lower < range.upper else {
+      throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+        message: "Original native-plane range requires finite ordered positive endpoints.")
+    }
+    return range
+  }
+
+  private func selectedCurveJet(_ source: PreparedCurveDifferentialEncloser,
+    over parameters: ScalarInterval, depth: Int, tolerance: ModelingTolerance,
+    admission: CurveSurfaceQueryInvocation
+  ) throws -> SurfaceIntervalVectorJet {
+    let receipt = try source.closedNativeJets(over: parameters, tolerance: tolerance,
+      maximumSpanCount: admission.maximumSpanCount,
+      maximumSubdivisionDepth: admission.maximumSubdivisionDepth - depth,
+      remainingSourceDepth: admission.remainingSourceDepth,
+      consumeWork: { try admission.consume(depth: depth) }, consumeStorage: admission.consumeStorage)
+    guard let first = receipt.spans.first else { throw intervalArithmeticFailure() }
+    var jet = first.jet
+    for span in receipt.spans.dropFirst() {
+      try admission.consume(depth: depth)
+      jet = jet.union(span.jet)
+    }
+    return jet
+  }
+
+  private func selectedSurfaceJet(_ source: PreparedSurfaceDifferentialEncloser,
+    over parameters: SurfaceParameterBox, depth: Int, tolerance: ModelingTolerance,
+    admission: CurveSurfaceQueryInvocation
+  ) throws -> SurfaceIntervalVectorJet {
+    try source.intervalJet(overClosedBox: parameters, tolerance: tolerance,
+      maximumSpanCount: admission.maximumSpanCount,
+      maximumSubdivisionDepth: admission.maximumSubdivisionDepth - depth,
+      remainingSourceDepth: admission.remainingSourceDepth,
+      consumeWork: { try admission.consume(depth: depth) }, consumeStorage: admission.consumeStorage)
+  }
+
+  private func selectedResidualUpperBound(_ curve: SurfaceIntervalVectorJet,
+    _ surface: SurfaceIntervalVectorJet
+  ) throws -> Double {
+    let x = curve.x.value - surface.x.value
+    let y = curve.y.value - surface.y.value
+    let z = curve.z.value - surface.z.value
+    let bx = OutwardScalarInterval.exact(max(abs(x.lower), abs(x.upper)))
+    let by = OutwardScalarInterval.exact(max(abs(y.lower), abs(y.upper)))
+    let bz = OutwardScalarInterval.exact(max(abs(z.lower), abs(z.upper)))
+    let squared = bx * bx + by * by + bz * bz
+    guard squared.isFinite, squared.upper >= 0 else { throw intervalArithmeticFailure() }
+    let result = sqrt(squared.upper).nextUp
+    guard result.isFinite else { throw intervalArithmeticFailure() }
+    return result
+  }
+
+  private func selectedIntersectionKind(_ curve: SurfaceIntervalVectorJet,
+    _ surface: SurfaceIntervalVectorJet, tolerance: ModelingTolerance
+  ) throws -> CurveSurfaceIntersectionKind {
+    let tx = curve.x.derivativeU, ty = curve.y.derivativeU, tz = curve.z.derivativeU
+    let nx = surface.y.derivativeU * surface.z.derivativeV - surface.z.derivativeU * surface.y.derivativeV
+    let ny = surface.z.derivativeU * surface.x.derivativeV - surface.x.derivativeU * surface.z.derivativeV
+    let nz = surface.x.derivativeU * surface.y.derivativeV - surface.y.derivativeU * surface.x.derivativeV
+    func square(_ value: OutwardScalarInterval) -> OutwardScalarInterval {
+      let minimum = value.excludesZero ? min(abs(value.lower), abs(value.upper)) : 0
+      let maximum = max(abs(value.lower), abs(value.upper))
+      return .init(lower: max(0, (minimum * minimum).nextDown), upper: (maximum * maximum).nextUp)
+    }
+    let tangentSquared = square(tx) + square(ty) + square(tz)
+    let normalSquared = square(nx) + square(ny) + square(nz)
+    guard tangentSquared.isFinite, normalSquared.isFinite,
+      tangentSquared.lower > 0, normalSquared.lower > 0 else { return .mixed }
+    let denominator = OutwardScalarInterval(
+      lower: (sqrt(tangentSquared.lower).nextDown * sqrt(normalSquared.lower).nextDown).nextDown,
+      upper: (sqrt(tangentSquared.upper).nextUp * sqrt(normalSquared.upper).nextUp).nextUp)
+    guard let cosine = (tx * nx + ty * ny + tz * nz).divided(by: denominator), cosine.isFinite else {
+      throw intervalArithmeticFailure()
+    }
+    let upper = max(abs(cosine.lower), abs(cosine.upper))
+    let lower = cosine.excludesZero ? min(abs(cosine.lower), abs(cosine.upper)) : 0
+    if upper <= tolerance.angle { return .tangent }
+    if lower > tolerance.angle { return .transverse }
+    return .mixed
+  }
+
+  private func selectedRefinedIntersection(
+    curveSource: PreparedCurveDifferentialEncloser,
+    surfaceSource: PreparedSurfaceDifferentialEncloser, cell: ParameterCell,
+    maximumIterations: Int, tolerance: ModelingTolerance,
+    admission: CurveSurfaceQueryInvocation
+  ) throws -> CurveSurfaceIntersection? {
+    var current = ParameterSeed(t: cell.t.midpoint, u: cell.u.midpoint, v: cell.v.midpoint)
+    for iteration in 0...maximumIterations {
+      try admission.consume(depth: cell.depth)
+      let curve = try selectedCurveJet(curveSource,
+        over: ScalarInterval(lower: current.t, upper: current.t), depth: cell.depth,
+        tolerance: tolerance, admission: admission)
+      let surface = try selectedSurfaceJet(surfaceSource,
+        over: SurfaceParameterBox(u: ScalarInterval(lower: current.u, upper: current.u),
+          v: ScalarInterval(lower: current.v, upper: current.v)), depth: cell.depth,
+        tolerance: tolerance, admission: admission)
+      let residual = try selectedResidualUpperBound(curve, surface)
+      if residual <= tolerance.distance {
+        return try CurveSurfaceIntersection(
+          point: Point3D(x: curve.x.value.midpoint, y: curve.y.value.midpoint, z: curve.z.value.midpoint),
+          curveParameter: current.t, surfaceU: current.u, surfaceV: current.v,
+          kind: selectedIntersectionKind(curve, surface, tolerance: tolerance),
+          residual: residual, iterations: iteration)
+      }
+      guard iteration < maximumIterations else { return nil }
+      let columnT = Vector3D(x: curve.x.derivativeU.midpoint,
+        y: curve.y.derivativeU.midpoint, z: curve.z.derivativeU.midpoint)
+      let columnU = Vector3D(x: -surface.x.derivativeU.midpoint,
+        y: -surface.y.derivativeU.midpoint, z: -surface.z.derivativeU.midpoint)
+      let columnV = Vector3D(x: -surface.x.derivativeV.midpoint,
+        y: -surface.y.derivativeV.midpoint, z: -surface.z.derivativeV.midpoint)
+      let right = Vector3D(x: surface.x.value.midpoint - curve.x.value.midpoint,
+        y: surface.y.value.midpoint - curve.y.value.midpoint,
+        z: surface.z.value.midpoint - curve.z.value.midpoint)
+      let d = determinant(columnT, columnU, columnV)
+      guard d.isFinite, d != 0 else { return nil }
+      let dt = determinant(right, columnU, columnV) / d
+      let du = determinant(columnT, right, columnV) / d
+      let dv = determinant(columnT, columnU, right) / d
+      guard dt.isFinite, du.isFinite, dv.isFinite else { return nil }
+      var scale = 1.0
+      var next: ParameterSeed?
+      while scale >= 1.0 / 128.0 {
+        try admission.consume(depth: cell.depth)
+        let candidate = ParameterSeed(t: clamped(current.t + dt * scale, to: cell.t),
+          u: clamped(current.u + du * scale, to: cell.u), v: clamped(current.v + dv * scale, to: cell.v))
+        let c = try selectedCurveJet(curveSource,
+          over: ScalarInterval(lower: candidate.t, upper: candidate.t), depth: cell.depth,
+          tolerance: tolerance, admission: admission)
+        let s = try selectedSurfaceJet(surfaceSource,
+          over: SurfaceParameterBox(u: ScalarInterval(lower: candidate.u, upper: candidate.u),
+            v: ScalarInterval(lower: candidate.v, upper: candidate.v)), depth: cell.depth,
+          tolerance: tolerance, admission: admission)
+        if try selectedResidualUpperBound(c, s) < residual { next = candidate; break }
+        scale *= 0.5
+      }
+      guard let next else { return nil }
+      current = next
+    }
+    return nil
+  }
+
+  private func selectedCoverageFailure(_ tolerance: ModelingTolerance) -> KernelError {
+    KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+      message: "Original curve-surface cells require complete exclusion or unique root certification within caller admission.")
   }
 
   private func recenteredCertificationCell(
@@ -3084,6 +3688,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     var result: [CurveSurfaceIntersection] = []
     result.reserveCapacity(intersections.count)
     for intersection in intersections {
+      try invocation?.consumeFixedWork()
       let localRange = try exactSpan(
         containing: intersection.curveParameter,
         curve: exactCurve,
@@ -3162,6 +3767,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     let resolution = curve.domain.parameterResolution(tolerance: tolerance)
     var breaks = [domainLower]
     for knot in curve.knots where knot > domainLower && knot < domainUpper {
+      try invocation?.consumeFixedWork()
       if abs(knot - (breaks.last ?? domainLower)) > resolution {
         breaks.append(knot)
       }
@@ -3247,7 +3853,9 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     }
     var pending: [DifferenceCell] = []
     for curvePatch in curvePatches.reversed() {
+      try invocation?.consumeFixedWork()
       for surfacePatch in surfacePatches.reversed() {
+        try invocation?.consumeFixedWork()
         pending.append(
           DifferenceCell(
             patch: try RationalBezierCurveSurfaceDifferencePatch(
@@ -3264,6 +3872,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     var intersections: [CurveSurfaceIntersection] = []
     var unresolved: [UnresolvedDifferenceCandidate] = []
     while let cell = pending.popLast() {
+      try invocation?.consume(depth: cell.depth)
       guard remainingCells > 0 else {
         throw KernelError(
           phase: .geometry,
@@ -3313,6 +3922,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       if cell.depth < options.maximumSubdivisionDepth {
         let direction = cell.patch.splitDirection(at: cell.depth)
         for child in cell.patch.subdivided(direction: direction).reversed() {
+          try invocation?.consumeFixedWork()
           pending.append(
             DifferenceCell(
               patch: child,
@@ -3456,6 +4066,27 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     label: String,
     tolerance: ModelingTolerance
   ) throws -> ScalarInterval {
+    if invocation != nil {
+      let range: ScalarInterval
+      if let explicit { range = explicit }
+      else {
+        switch domain {
+        case .closed(let lower, let upper): range = try ScalarInterval(lower: lower, upper: upper)
+        case .periodic(let period): range = try ScalarInterval(lower: 0, upper: period)
+        case .unbounded:
+          // FIXME(INCOMPLETE_IMPLEMENTATION): Selected original queries cannot
+          // infer complete unbounded coverage from numerical target projections.
+          // A complete original range issuer is required for implicit ranges.
+          throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+            message: "Selected original intersection requires an explicit finite \(label) range.")
+        }
+      }
+      guard range.lower.isFinite, range.upper.isFinite, range.lower < range.upper else {
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+          message: "Selected intersection ranges require finite ordered positive endpoints.")
+      }
+      return range
+    }
     if let explicit {
       guard explicit.width > max(tolerance.angle, Double.ulpOfOne) else {
         throw KernelError(
@@ -3540,6 +4171,16 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         )
       )
     }
+    if case .originalAffineWord(let image) = curve {
+      let sourceBounds = try bounds(curve: image.source, interval: interval, tolerance: tolerance)
+      let original = IntervalVector3DBounds(x: .init(lower: sourceBounds.minimum.x, upper: sourceBounds.maximum.x),
+        y: .init(lower: sourceBounds.minimum.y, upper: sourceBounds.maximum.y),
+        z: .init(lower: sourceBounds.minimum.z, upper: sourceBounds.maximum.z))
+      let mapped = try OriginalAffineWordJetTransport.position(image.preparedWord, bounds: original,
+        consumeWork: { try Task.checkCancellation() })
+      return try .init(minimum: .init(x: mapped.x.lower, y: mapped.y.lower, z: mapped.z.lower),
+        maximum: .init(x: mapped.x.upper, y: mapped.y.upper, z: mapped.z.upper))
+    }
     if case .affineImage(let image) = curve {
       let sourceBounds = try bounds(
         curve: image.source,
@@ -3600,7 +4241,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
           + tolerance.distance,
         tolerance: tolerance
       )
-    case .bSpline, .implicit, .surfaceLift, .rigidImage, .affineImage:
+    case .bSpline, .implicit, .surfaceLift, .rigidImage, .affineImage, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
       throw KernelError(
         phase: .geometry,
         code: .intersectionFailure,
@@ -3640,6 +4281,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       tolerance: tolerance
     )
     switch parameterCurve {
+    case .originalImage, .originalAffineWord:
+      return try SurfaceLiftCurve3D(surface: lift.surface, parameterCurve: parameterCurve)
+        .boundingBox(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+
     case .certifiedImplicit(let curve):
       return try curve.intersection.boundingBox(
         fromNormalizedFraction: min(curve.startFraction, curve.endFraction),
@@ -3672,6 +4317,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         )
       }
       return try curve.intersection.boundingBox(tolerance: tolerance)
+    case .originalBSplineContinuation:
+      break
     case .projectedAnalytic(let curve):
       return try bounds(
         curve: curve.curve,
@@ -3751,6 +4398,19 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     tolerance: ModelingTolerance
   ) throws -> SurfaceParameterBounds {
     switch curve {
+    case .originalAffineWord(let image):
+      guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else {
+        throw GeometryConversionError.invalidInput("Original word surface parameter bounds lost source derivative authority.")
+      }
+      return SurfaceParameterBounds(u: try ScalarInterval(lower: jet.u.value.lower, upper: jet.u.value.upper),
+        v: try ScalarInterval(lower: jet.v.value.lower, upper: jet.v.value.upper))
+    case .originalImage(let image):
+      guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else {
+        throw GeometryConversionError.invalidInput("Original image surface parameter bounds lost source derivative authority.")
+      }
+      return SurfaceParameterBounds(u: try ScalarInterval(lower: jet.u.value.lower, upper: jet.u.value.upper),
+        v: try ScalarInterval(lower: jet.v.value.lower, upper: jet.v.value.upper))
+
     case .affine, .constantU, .constantV:
       let endpoints = try [0.0, 1.0].map {
         try curve.parameter(
@@ -3784,6 +4444,10 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       )
     case .polyline(let points):
       return try parameterBounds(points: points)
+    case .originalBSplineContinuation(let curve):
+      let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+      return SurfaceParameterBounds(u: try ScalarInterval(lower: jet.u.value.lower, upper: jet.u.value.upper),
+        v: try ScalarInterval(lower: jet.v.value.lower, upper: jet.v.value.upper))
     case .bSpline(let curve):
       return try parameterBounds(
         points: curve.controlPoints.map {
@@ -3879,6 +4543,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     var coordinates: [ScalarInterval] = []
     coordinates.reserveCapacity(3)
     for index in 0..<3 {
+      try invocation?.consumeFixedWork()
       coordinates.append(
         try added(
           constantInterval(component(sphere.center, index: index)),
@@ -3932,6 +4597,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     ]
     let maximumParameter = atan2(sineCoefficient, cosineCoefficient)
     for base in [maximumParameter, maximumParameter + Double.pi] {
+      try invocation?.consumeFixedWork()
       let nearest = base + round((parameter.midpoint - base) / period) * period
       for candidate in [nearest - period, nearest, nearest + period]
       where candidate >= parameter.lower && candidate <= parameter.upper {
@@ -4279,6 +4945,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     var current = seed
     var verifiedIntersection: CurveSurfaceIntersection?
     for iteration in 0...maximumIterations {
+      try invocation?.consumeFixedWork()
       let curveGeometry = try curve.differentialGeometry(at: current.t, tolerance: tolerance)
       let surfaceGeometry = try surface.parameterDerivatives(
         u: current.u,
@@ -4394,6 +5061,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       var stepScale = 1.0
       var accepted: ParameterSeed?
       while stepScale >= 1.0 / 128.0 {
+        try invocation?.consumeFixedWork()
         let candidate = ParameterSeed(
           t: clamped(current.t + delta.t * stepScale, to: curveRange),
           u: clamped(current.u + delta.u * stepScale, to: uRange),
@@ -4484,6 +5152,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     }
     var current = seed
     for iteration in 0..<16 {
+      try invocation?.consumeFixedWork()
       let curveGeometry = try curve.differentialGeometry(
         at: current.t,
         tolerance: tolerance
@@ -4574,6 +5243,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       var stepScale = 1.0
       var accepted: ParameterSeed?
       while stepScale >= 1.0 / 128.0 {
+        try invocation?.consumeFixedWork()
         let scaledStep = parameterStep * stepScale
         let candidate = ParameterSeed(
           t: clamped(current.t + scaledStep, to: curveRange),
@@ -4628,6 +5298,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
   ) throws -> CurveSurfaceIntersection? {
     var parameter = seed.t
     for iteration in 0..<16 {
+      try invocation?.consumeFixedWork()
       let geometry = try curve.differentialGeometry(
         at: parameter,
         tolerance: tolerance
@@ -4681,6 +5352,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       var stepScale = 1.0
       var acceptedParameter: Double?
       while stepScale >= 1.0 / 128.0 {
+        try invocation?.consumeFixedWork()
         let candidateParameter = clamped(
           parameter + parameterStep * stepScale,
           to: curveRange
@@ -4914,6 +5586,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     let t: ScalarInterval
     let u: ScalarInterval
     let v: ScalarInterval
+    let depth:Int
     let curveBounds: BoundingBox3D
     let surfaceBounds: BoundingBox3D
   }

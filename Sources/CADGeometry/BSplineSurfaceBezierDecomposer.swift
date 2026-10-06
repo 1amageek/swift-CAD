@@ -15,14 +15,31 @@ struct BSplineSurfaceBezierDecomposer {
     /// Proof preparation retains intervals of original homogeneous coefficients.
     /// The separate Cartesian Double geometry producer is not used here.
     func originalHomogeneousPatches(surface: BSplineSurface3D,
-                                    tolerance: ModelingTolerance) throws -> [OriginalHomogeneousPatch] {
-        try surface.validate(tolerance: tolerance)
+                                    tolerance: ModelingTolerance,
+                                    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+                                    consumeStorage: ((Int) throws -> Void)? = nil) throws -> [OriginalHomogeneousPatch] {
+        try surface.validate(tolerance: tolerance, consumeWork: consumeWork)
         try Task.checkCancellation()
         // Cyclic surfaces already retain their original repeated tails. The stored
         // count and native basis are identical to canonical evaluation; no trimmed
         // Cartesian net or newly materialized cycle supplies coefficient authority.
-        let us = (surface.uDegree..<surface.uControlPointCount).filter { surface.uKnots[$0] < surface.uKnots[$0 + 1] }
-        let vs = (surface.vDegree..<surface.vControlPointCount).filter { surface.vKnots[$0] < surface.vKnots[$0 + 1] }
+        var us: [Int] = [], vs: [Int] = []
+        try OriginalCoefficientAllocation.reserve(count: surface.uControlPointCount - surface.uDegree, of: Int.self, consumeStorage: consumeStorage)
+        try OriginalCoefficientAllocation.reserve(count: surface.vControlPointCount - surface.vDegree, of: Int.self, consumeStorage: consumeStorage)
+        us.reserveCapacity(surface.uControlPointCount - surface.uDegree)
+        vs.reserveCapacity(surface.vControlPointCount - surface.vDegree)
+        for index in surface.uDegree..<surface.uControlPointCount {
+            try consumeWork()
+            if surface.uKnots[index] < surface.uKnots[index + 1] {
+                us.append(index)
+            }
+        }
+        for index in surface.vDegree..<surface.vControlPointCount {
+            try consumeWork()
+            if surface.vKnots[index] < surface.vKnots[index + 1] {
+                vs.append(index)
+            }
+        }
         let count = us.count.multipliedReportingOverflow(by: vs.count)
         let net = (surface.uDegree + 1).multipliedReportingOverflow(by: surface.vDegree + 1)
         let storage = count.partialValue.multipliedReportingOverflow(by: net.partialValue)
@@ -31,33 +48,45 @@ struct BSplineSurfaceBezierDecomposer {
                 message: "Original homogeneous coefficient storage count overflowed.")
         }
         let origin = surface.controlPoints[0][0], weight = surface.weights[0][0]
-        let commonWeight = surface.weights.allSatisfy { $0.allSatisfy { $0 == weight } } ? weight : nil
+        var identicalWeight = true
+        for row in surface.weights { for value in row {
+            try consumeWork()
+            if value != weight { identicalWeight = false }
+        } }
+        let commonWeight = identicalWeight ? weight : nil
         var result: [OriginalHomogeneousPatch] = []
+        try OriginalCoefficientAllocation.reserve(count: count.partialValue, of: OriginalHomogeneousPatch.self, consumeStorage: consumeStorage)
         result.reserveCapacity(count.partialValue)
         for v in vs {
             for u in us {
-                try Task.checkCancellation()
+                try Task.checkCancellation(); try consumeWork()
                 let ub = try ScalarInterval(lower: surface.uKnots[u], upper: surface.uKnots[u + 1])
                 let vb = try ScalarInterval(lower: surface.vKnots[v], upper: surface.vKnots[v + 1])
                 let uBasis = try BSplineBasis.nonzeroIntervalDerivativeValues(parameter: ub.lower, degree: surface.uDegree,
                     throughDerivativeOrder: surface.uDegree, knots: surface.uKnots, count: surface.uControlPointCount,
-                    owningSpan: u, tolerance: tolerance)
+                    owningSpan: u, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
                 let vBasis = try BSplineBasis.nonzeroIntervalDerivativeValues(parameter: vb.lower, degree: surface.vDegree,
                     throughDerivativeOrder: surface.vDegree, knots: surface.vKnots, count: surface.vControlPointCount,
-                    owningSpan: v, tolerance: tolerance)
+                    owningSpan: v, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
                 typealias Interval = OutwardScalarInterval
                 func add(_ a: IntervalHomogeneousSurfaceControl, _ b: IntervalHomogeneousSurfaceControl) -> IntervalHomogeneousSurfaceControl {
                     IntervalHomogeneousSurfaceControl(x: a.x + b.x, y: a.y + b.y, z: a.z + b.z, weight: a.weight + b.weight)
                 }
+                try OriginalCoefficientAllocation.reserve(count: surface.vDegree + 1, of: [IntervalHomogeneousSurfaceControl].self, consumeStorage: consumeStorage)
+                for _ in 0...surface.vDegree {
+                    try OriginalCoefficientAllocation.reserve(count: surface.uDegree + 1, of: IntervalHomogeneousSurfaceControl.self, consumeStorage: consumeStorage)
+                }
                 var derivatives = Array(repeating: Array(repeating: IntervalHomogeneousSurfaceControl.zero,
                     count: surface.uDegree + 1), count: surface.vDegree + 1)
                 for vOrder in 0...surface.vDegree {
-                    try Task.checkCancellation()
+                    try Task.checkCancellation(); try consumeWork()
                     for uOrder in 0...surface.uDegree {
+                        try consumeWork()
                         var value = IntervalHomogeneousSurfaceControl.zero
                         for j in vBasis[vOrder].values.indices {
                             let row = vBasis[vOrder].startIndex + j
                             for i in uBasis[uOrder].values.indices {
+                                try consumeWork()
                                 let column = uBasis[uOrder].startIndex + i
                                 let point = surface.controlPoints[row][column]
                                 let coefficient = uBasis[uOrder].values[i] * vBasis[vOrder].values[j]
@@ -77,15 +106,21 @@ struct BSplineSurfaceBezierDecomposer {
                 }
                 let uSpan = Interval.exact(ub.upper) - .exact(ub.lower)
                 let vSpan = Interval.exact(vb.upper) - .exact(vb.lower)
+                try OriginalCoefficientAllocation.reserve(count: surface.vDegree + 1, of: [IntervalHomogeneousSurfaceControl].self, consumeStorage: consumeStorage)
+                for _ in 0...surface.vDegree {
+                    try OriginalCoefficientAllocation.reserve(count: surface.uDegree + 1, of: IntervalHomogeneousSurfaceControl.self, consumeStorage: consumeStorage)
+                }
                 var controls = derivatives
                 for j in 0...surface.vDegree {
-                    try Task.checkCancellation()
+                    try Task.checkCancellation(); try consumeWork()
                     for i in 0...surface.uDegree {
+                        try consumeWork()
                         var value = IntervalHomogeneousSurfaceControl.zero
                         for q in 0...j {
-                            let vScale = try originalBernsteinScale(degree: surface.vDegree, index: j, order: q, span: vSpan, tolerance: tolerance)
+                            let vScale = try originalBernsteinScale(degree: surface.vDegree, index: j, order: q, span: vSpan, tolerance: tolerance, consumeWork: consumeWork)
                             for p in 0...i {
-                                let uScale = try originalBernsteinScale(degree: surface.uDegree, index: i, order: p, span: uSpan, tolerance: tolerance)
+                                let uScale = try originalBernsteinScale(degree: surface.uDegree, index: i, order: p, span: uSpan, tolerance: tolerance, consumeWork: consumeWork)
+                                try consumeWork()
                                 value = add(value, derivatives[q][p].scaled(by: uScale * vScale))
                             }
                         }
@@ -105,10 +140,12 @@ struct BSplineSurfaceBezierDecomposer {
     }
 
     private func originalBernsteinScale(degree: Int, index: Int, order: Int,
-        span: OutwardScalarInterval, tolerance: ModelingTolerance) throws -> OutwardScalarInterval {
+        span: OutwardScalarInterval, tolerance: ModelingTolerance,
+        consumeWork: () throws -> Void = { try Task.checkCancellation() }) throws -> OutwardScalarInterval {
         var scale = OutwardScalarInterval.exact(1)
         if order > 0 {
             for p in 0..<order {
+                try consumeWork()
                 guard let next = (scale * .exact(Double(index - p)) * span)
                     .divided(by: .exact(Double(p + 1)) * .exact(Double(degree - p))), next.isFinite else {
                     throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
@@ -119,16 +156,16 @@ struct BSplineSurfaceBezierDecomposer {
         }
         return scale
     }
-
     func surfacePatches(
         surface: BSplineSurface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: NativeSurfaceEmbeddingAdmission = .legacy
     ) throws -> [RationalBezierSurfacePatch3D] {
         try resolvedSurfacePatches(
             surface: surface,
             uInterval: nil,
             vInterval: nil,
-            tolerance: tolerance
+            tolerance: tolerance, admission: admission
         )
     }
 
@@ -136,13 +173,14 @@ struct BSplineSurfaceBezierDecomposer {
         surface: BSplineSurface3D,
         intersectingU uInterval: ScalarInterval,
         v vInterval: ScalarInterval,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: NativeSurfaceEmbeddingAdmission = .legacy
     ) throws -> [RationalBezierSurfacePatch3D] {
         try resolvedSurfacePatches(
             surface: surface,
             uInterval: uInterval,
             vInterval: vInterval,
-            tolerance: tolerance
+            tolerance: tolerance, admission: admission
         )
     }
 
@@ -150,28 +188,47 @@ struct BSplineSurfaceBezierDecomposer {
         surface: BSplineSurface3D,
         uInterval: ScalarInterval?,
         vInterval: ScalarInterval?,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: NativeSurfaceEmbeddingAdmission = .legacy
     ) throws -> [RationalBezierSurfacePatch3D] {
-        try surface.validate(tolerance: tolerance)
+        try surface.validate(tolerance: tolerance, consumeWork: { try admission.work(1) })
+        if surface.isUPeriodic || surface.isVPeriodic {
+            let u = try uInterval ?? ScalarInterval(
+                lower: surface.uKnots[surface.uDegree], upper: surface.uKnots[surface.uControlPointCount])
+            let v = try vInterval ?? ScalarInterval(
+                lower: surface.vKnots[surface.vDegree], upper: surface.vKnots[surface.vControlPointCount])
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy periodic Cartesian
+            // restriction still owns unbounded internal preparation. Native
+            // embedding must use original periodic receipts before this branch
+            // can close its caller-paid source contract.
+            let restriction = try surface.trimmed(uFrom: u.lower, uTo: u.upper,
+                vFrom: v.lower, vTo: v.upper, tolerance: tolerance)
+            return try resolvedSurfacePatches(surface: restriction, uInterval: nil,
+                vInterval: nil, tolerance: tolerance, admission: admission)
+        }
         let uBreaks = try parameterBreaks(
             knots: surface.uKnots,
             domain: surface.uDomain,
-            tolerance: tolerance
+            tolerance: tolerance, admission: admission
         )
         let vBreaks = try parameterBreaks(
             knots: surface.vKnots,
             domain: surface.vDomain,
-            tolerance: tolerance
+            tolerance: tolerance, admission: admission
         )
         var result: [RationalBezierSurfacePatch3D] = []
-        result.reserveCapacity((uBreaks.count - 1) * (vBreaks.count - 1))
+        let capacity = try NativeSurfaceEmbeddingPreparationReservation.product([uBreaks.count - 1, vBreaks.count - 1])
+        try admission.storage(capacity)
+        result.reserveCapacity(capacity)
         for vIndex in 0..<(vBreaks.count - 1) {
+            try admission.work(1)
             if let vInterval,
                vBreaks[vIndex + 1] <= vInterval.lower
                 || vBreaks[vIndex] >= vInterval.upper {
                 continue
             }
             for uIndex in 0..<(uBreaks.count - 1) {
+                try admission.cell(depth: 0)
                 if let uInterval,
                    uBreaks[uIndex + 1] <= uInterval.lower
                     || uBreaks[uIndex] >= uInterval.upper {
@@ -181,12 +238,12 @@ struct BSplineSurfaceBezierDecomposer {
                     surface: surface,
                     uBounds: (uBreaks[uIndex], uBreaks[uIndex + 1]),
                     vBounds: (vBreaks[vIndex], vBreaks[vIndex + 1]),
-                    tolerance: tolerance
+                    tolerance: tolerance, admission: admission
                 )
                 try verify(
                     patch: patch,
                     against: surface,
-                    tolerance: tolerance
+                    tolerance: tolerance, admission: admission
                 )
                 result.append(patch)
             }
@@ -220,7 +277,8 @@ struct BSplineSurfaceBezierDecomposer {
         surface: BSplineSurface3D,
         uBounds: (lower: Double, upper: Double),
         vBounds: (lower: Double, upper: Double),
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: NativeSurfaceEmbeddingAdmission = .legacy
     ) throws -> RationalBezierSurfacePatch3D {
         let uSpan = uBounds.upper - uBounds.lower
         let vSpan = vBounds.upper - vBounds.lower
@@ -233,6 +291,8 @@ struct BSplineSurfaceBezierDecomposer {
                 message: "B-spline Bezier extraction requires positive finite knot spans."
             )
         }
+        let net = try NativeSurfaceEmbeddingPreparationReservation.product([surface.uDegree + 1, surface.vDegree + 1])
+        try admission.work(surface.uKnots.count + surface.vKnots.count)
         if surface.uControlPointCount == surface.uDegree + 1,
            surface.vControlPointCount == surface.vDegree + 1,
            surface.uKnots.prefix(surface.uDegree + 1).allSatisfy({ $0 == uBounds.lower }),
@@ -244,6 +304,7 @@ struct BSplineSurfaceBezierDecomposer {
                 uLower: uBounds.lower, uUpper: uBounds.upper,
                 vLower: vBounds.lower, vUpper: vBounds.upper)
         }
+        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.sum([net, surface.vDegree + 1]))
         var derivatives = Array(
             repeating: Array(
                 repeating: HomogeneousVector.zero,
@@ -252,6 +313,7 @@ struct BSplineSurfaceBezierDecomposer {
             count: surface.vDegree + 1
         )
         for vOrder in 0...surface.vDegree {
+            try NativeSurfaceEmbeddingPreparationReservation.basis(degree: surface.vDegree, order: vOrder, count: surface.vControlPointCount, admission: admission)
             let vBasis = BSplineBasis.derivativeValues(
                 parameter: vBounds.lower,
                 degree: surface.vDegree,
@@ -260,6 +322,7 @@ struct BSplineSurfaceBezierDecomposer {
                 count: surface.vControlPointCount
             )
             for uOrder in 0...surface.uDegree {
+                try NativeSurfaceEmbeddingPreparationReservation.basis(degree: surface.uDegree, order: uOrder, count: surface.uControlPointCount, admission: admission)
                 let uBasis = BSplineBasis.derivativeValues(
                     parameter: uBounds.lower,
                     degree: surface.uDegree,
@@ -267,6 +330,7 @@ struct BSplineSurfaceBezierDecomposer {
                     knots: surface.uKnots,
                     count: surface.uControlPointCount
                 )
+                try admission.work(NativeSurfaceEmbeddingPreparationReservation.product([surface.uControlPointCount, surface.vControlPointCount]))
                 derivatives[vOrder][uOrder] = homogeneousDerivative(
                     surface: surface,
                     uBasis: uBasis,
@@ -275,6 +339,7 @@ struct BSplineSurfaceBezierDecomposer {
             }
         }
 
+        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.sum([net, surface.vDegree + 1]))
         var homogeneousControlNet = Array(
             repeating: Array(
                 repeating: HomogeneousVector.zero,
@@ -286,6 +351,7 @@ struct BSplineSurfaceBezierDecomposer {
             for uControl in 0...surface.uDegree {
                 var value = HomogeneousVector.zero
                 for vOrder in 0...vControl {
+                    try admission.work(2 * vOrder + 1)
                     let vScale = try derivativeToBernsteinScale(
                         degree: surface.vDegree,
                         controlIndex: vControl,
@@ -294,6 +360,7 @@ struct BSplineSurfaceBezierDecomposer {
                         tolerance: tolerance
                     )
                     for uOrder in 0...uControl {
+                        try admission.work(2 * uOrder + 2)
                         let uScale = try derivativeToBernsteinScale(
                             degree: surface.uDegree,
                             controlIndex: uControl,
@@ -308,6 +375,7 @@ struct BSplineSurfaceBezierDecomposer {
             }
         }
 
+        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.product([2, net + surface.vDegree + 1]))
         var points: [[Point3D]] = []
         var weights: [[Double]] = []
         points.reserveCapacity(surface.vDegree + 1)
@@ -318,6 +386,7 @@ struct BSplineSurfaceBezierDecomposer {
             pointRow.reserveCapacity(surface.uDegree + 1)
             weightRow.reserveCapacity(surface.uDegree + 1)
             for value in row {
+                try admission.work(1)
                 guard value.isFinite,
                       value.weight > Double.ulpOfOne else {
                     throw KernelError(
@@ -411,8 +480,10 @@ struct BSplineSurfaceBezierDecomposer {
     private func verify(
         patch: RationalBezierSurfacePatch3D,
         against surface: BSplineSurface3D,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: NativeSurfaceEmbeddingAdmission = .legacy
     ) throws {
+        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.product([4, surface.uDegree + surface.vDegree + 2]))
         let extracted = BSplineSurface3D(
             uDegree: surface.uDegree,
             vDegree: surface.vDegree,
@@ -423,7 +494,7 @@ struct BSplineSurfaceBezierDecomposer {
             controlPoints: patch.controlPoints,
             weights: patch.weights
         )
-        try extracted.validate(tolerance: tolerance)
+        try extracted.validate(tolerance: tolerance, consumeWork: { try admission.work(1) })
         var maximumResidual = 0.0
         let uSampleCount = max(3, surface.uDegree * 2 + 1)
         let vSampleCount = max(3, surface.vDegree * 2 + 1)
@@ -433,11 +504,15 @@ struct BSplineSurfaceBezierDecomposer {
             for uIndex in 0..<uSampleCount {
                 let uFraction = Double(uIndex) / Double(uSampleCount - 1)
                 let u = patch.uLower + (patch.uUpper - patch.uLower) * uFraction
+                try NativeSurfaceEmbeddingPreparationReservation.point(surface, admission: admission)
                 let expected = try surface.point(u: u, v: v, tolerance: tolerance)
+                try NativeSurfaceEmbeddingPreparationReservation.point(extracted, admission: admission)
                 let actual = try extracted.point(u: u, v: v, tolerance: tolerance)
                 maximumResidual = max(maximumResidual, (actual - expected).length.nextUp)
             }
         }
+        let count = try NativeSurfaceEmbeddingPreparationReservation.net(patch.controlPoints, admission: admission)
+        try admission.work(count); try admission.storage(count)
         let modelScale = max(
             1.0,
             patch.controlPoints.flatMap { $0 }.reduce(0.0) { scale, point in
@@ -462,7 +537,8 @@ struct BSplineSurfaceBezierDecomposer {
     private func parameterBreaks(
         knots: [Double],
         domain: ParameterDomain,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        admission: NativeSurfaceEmbeddingAdmission = .legacy
     ) throws -> [Double] {
         guard case let .closed(lower, upper) = domain else {
             throw KernelError(
@@ -472,8 +548,11 @@ struct BSplineSurfaceBezierDecomposer {
                 message: "B-spline Bezier decomposition requires a bounded parameter domain."
             )
         }
+        try admission.storage(NativeSurfaceEmbeddingPreparationReservation.sum([knots.count, 2]))
         var result = [lower]
-        for knot in knots where knot > lower && knot < upper {
+        for knot in knots {
+            try admission.work(1)
+            guard knot > lower && knot < upper else { continue }
             if result.last != knot {
                 result.append(knot)
             }

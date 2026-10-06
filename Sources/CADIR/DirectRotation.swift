@@ -1,7 +1,7 @@
 import CADCore
 
 /// A rotation by `angle` about the axis through `origin` along `axis`, right-handed.
-public struct DirectRotation: Codable, Hashable, Sendable {
+public struct DirectRotation: Hashable, Sendable {
     public let origin: Point3D
     public let axis: Vector3D
     public let angle: CADExpression
@@ -22,12 +22,15 @@ public struct DirectRotation: Codable, Hashable, Sendable {
         try angle.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case origin
         case axis
         case angle
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.origin, .axis, .angle], in: decoder)
@@ -36,7 +39,9 @@ public struct DirectRotation: Codable, Hashable, Sendable {
         angle = try container.decode(CADExpression.self, forKey: .angle)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -44,4 +49,9 @@ public struct DirectRotation: Codable, Hashable, Sendable {
         try container.encode(axis, forKey: .axis)
         try container.encode(angle, forKey: .angle)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension DirectRotation: Codable {}
+#endif

@@ -21,8 +21,9 @@ extension KernelCapabilities {
         "strictCurrentSchemaNativePersistence",
       ],
       fixtures: ["EdgeOffsetFeatureTests"],
-      status: .supported,
+      status: .partial,
       failureCodes: [
+        .unsupportedCapability,
         .invalidInput,
         .missingReference,
         .topologyFailure,
@@ -47,8 +48,9 @@ extension KernelCapabilities {
         "strictCurrentSchemaNativePersistence",
       ],
       fixtures: ["EdgeOffsetFeatureTests"],
-      status: .supported,
+      status: .partial,
       failureCodes: [
+        .unsupportedCapability,
         .invalidInput,
         .missingReference,
         .topologyFailure,
@@ -238,6 +240,9 @@ extension KernelCapabilities {
         .missingReference,
         .unsupportedCapability,
         .topologyFailure,
+        .filletThicknessExceeded,
+        .filletSelfIntersection,
+        .filletFaceDisappeared,
         .nonManifoldResult,
         .ambiguousSelection,
       ],
@@ -883,6 +888,7 @@ extension KernelCapabilities {
         "inputShapeInfluenceZeroToOne",
         "partialStartAndEndFractions",
         "optionalDegreeAndSpanLayout",
+        "optionalLocalizationToKeepOtherEdges",
       ],
       outputs: [
         "validatedExactBRep",
@@ -895,7 +901,7 @@ extension KernelCapabilities {
         "targetRefittedToTheLayoutFirst",
         "strictCurrentSchemaNativePersistence",
       ],
-      fixtures: ["SurfaceAlignTests"],
+      fixtures: ["SurfaceAlignTests", "SurfaceAlignJointTests"],
       status: .partial,
       failureCodes: [
         .invalidInput,
@@ -913,6 +919,7 @@ extension KernelCapabilities {
         "explicitDegreeAndSpanLayoutOrPositiveTolerance",
         "extendFractionsZeroToOneEachWay",
         "shrinkToTheFacesParameterExtent",
+        "oneGivenBSplineSurfaceWithoutExtensionOrShrink",
       ],
       outputs: [
         "validatedExactBRep",
@@ -921,9 +928,12 @@ extension KernelCapabilities {
         "surfacesContinuedPastTheirDomainNaturally",
         "facesWithinAQuarterOfTheDistanceToleranceOfTheirEdgesReplacedInPlace",
         "coarselyRefittedSheetsOfOneFaceSewnAnewOnFittedEdges",
+        "givenSurfaceWithBoundaryReplacementAndValidatedBody",
+        "exactAnalyticRevolutionControlNetOnItsConvertedChart",
+        "sampledSquareBoundaryDeviationDiagnostics",
         "strictCurrentSchemaNativePersistence",
       ],
-      fixtures: ["FaceRebuildTests"],
+      fixtures: ["FaceRebuildTests", "FaceGivenSurfaceTests", "SquareRefitTests"],
       status: .partial,
       failureCodes: [
         .invalidInput,
@@ -931,6 +941,11 @@ extension KernelCapabilities {
         .unsupportedCapability,
         .topologyFailure,
         .resourceLimitExceeded,
+      ],
+      additionalPublicAPIs: [
+        "CADKernel.FaceBSplineSurfaceConverter.surface",
+        "CADKernel.FaceBSplineSurfaceConverter.nominalSurface",
+        "CADKernel.FaceRefitAnalyzer.analyze",
       ]
     ),
     feature(
@@ -1208,13 +1223,14 @@ extension KernelCapabilities {
         "carriedTopologyLineageToSourceSubshapes",
         "strictCurrentSchemaNativePersistence",
       ],
-      fixtures: ["WrapFeatureTests"],
-      status: .supported,
+      fixtures: ["WrapFeatureTests", "WrapReblendRequestAdmissionTests"],
+      status: .partial,
       failureCodes: [
         .invalidInput,
         .missingReference,
         .singularGeometry,
         .resourceLimitExceeded,
+        .unsupportedCapability,
         .topologyFailure,
       ]
     ),

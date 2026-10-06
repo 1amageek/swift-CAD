@@ -1,5 +1,5 @@
 /// Identifies an independently executable B-rep invariant group.
-public enum TopologyValidationScope: String, Codable, Hashable, Sendable, CaseIterable {
+public enum TopologyValidationScope: String, Hashable, Sendable, CaseIterable {
     case references
     case loops
     case pcurves
@@ -8,3 +8,7 @@ public enum TopologyValidationScope: String, Codable, Hashable, Sendable, CaseIt
     case watertight
     case volume
 }
+
+#if !hasFeature(Embedded)
+extension TopologyValidationScope: Codable {}
+#endif

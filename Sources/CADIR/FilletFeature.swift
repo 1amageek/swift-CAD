@@ -8,7 +8,7 @@ import CADCore
 /// handles scaled by the tension; or a `full` round tangent to the three faces across a center face
 /// between the two selected edges, whose radius those faces fix (half the face's width) and the
 /// feature's radius must state.
-public enum FilletShape: String, Codable, Hashable, Sendable {
+public enum FilletShape: String, Hashable, Sendable {
     /// The tension a shape takes when none is given: 0.5 (the round, or the chordal arc) for the
     /// conic shapes, 1 for the rest.
     public var defaultTension: Double { self == .conic || self == .chordal ? 0.5 : 1 }
@@ -20,7 +20,7 @@ public enum FilletShape: String, Codable, Hashable, Sendable {
     case full
 }
 
-public struct FilletFeature: Codable, Hashable, Sendable {
+public struct FilletFeature: Hashable, Sendable {
     public let target: FilletTargetReference
     public let edges: [StableSubshapeReference]
     /// The radius of a round fillet, the distance of the other shapes.
@@ -146,6 +146,7 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case edges
@@ -159,7 +160,9 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         case tangentEdges
         case yBlend
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .edges, .radius, .allEdges, .shape, .tension, .endRadius, .limits, .variablePoints, .tangentEdges, .yBlend], in: decoder)
@@ -176,7 +179,9 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         yBlend = try container.decodeIfPresent(Bool.self, forKey: .yBlend) ?? false
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -194,4 +199,10 @@ public struct FilletFeature: Codable, Hashable, Sendable {
         if tangentEdges == false { try container.encode(false, forKey: .tangentEdges) }
         if yBlend { try container.encode(true, forKey: .yBlend) }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension FilletShape: Codable {}
+extension FilletFeature: Codable {}
+#endif

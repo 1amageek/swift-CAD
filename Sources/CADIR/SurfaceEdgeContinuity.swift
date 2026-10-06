@@ -3,8 +3,8 @@ import CADCore
 /// How a surface (a Loft's end section, a Square's side) meets a body along one of the body's
 /// edges: tangent (G1) or curvature (G2) continuous with the face beside the edge, its
 /// cross-boundary derivative scaled by `tension`.
-public struct SurfaceEdgeContinuity: Codable, Hashable, Sendable {
-    public enum Order: String, Codable, Hashable, Sendable {
+public struct SurfaceEdgeContinuity: Hashable, Sendable {
+    public enum Order: String, Hashable, Sendable {
         case tangent
         case curvature
     }
@@ -34,10 +34,13 @@ public struct SurfaceEdgeContinuity: Codable, Hashable, Sendable {
         self.curvatureAllowance = curvatureAllowance
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source, bodyRole, edge, order, tension, angularAllowance, curvatureAllowance
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.source, .bodyRole, .edge, .order, .tension, .angularAllowance, .curvatureAllowance], in: decoder)
@@ -50,7 +53,9 @@ public struct SurfaceEdgeContinuity: Codable, Hashable, Sendable {
         curvatureAllowance = try container.decodeIfPresent(Double.self, forKey: .curvatureAllowance)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -62,6 +67,7 @@ public struct SurfaceEdgeContinuity: Codable, Hashable, Sendable {
         try container.encodeIfPresent(angularAllowance, forKey: .angularAllowance)
         try container.encodeIfPresent(curvatureAllowance, forKey: .curvatureAllowance)
     }
+#endif
 
     public func validate() throws {
         try edge.validate()
@@ -83,3 +89,8 @@ public struct SurfaceEdgeContinuity: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceEdgeContinuity: Codable {}
+extension SurfaceEdgeContinuity.Order: Codable {}
+#endif

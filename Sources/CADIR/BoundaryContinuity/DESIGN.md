@@ -38,6 +38,14 @@ Tolerances, subdivision limits and depth are caller-owned. The returned certific
 contains interval counts, never a sampled success count. All values are immutable
 and Sendable. Failures and cancellation propagate without publication.
 
+The additive caller-admitted entry forwards one `GeometryConversionAdmission`
+to actual original support/chart preparation and the complete boundary proof.
+Its callback and optional storage policy remain caller owned; semantic angle
+conversion and certificate mapping do not replace or reset that ledger. The
+legacy entry retains its existing standalone behavior when no admission is
+selected. Normal and shape bounds require whole-field cover or independently
+proved higher continuity; position continuity alone grants neither.
+
 ## Verification and Change Impact
 
 `Tests/CADIRTests/SurfaceBoundaryContinuityTests.swift` verifies G0/G1/G2 mapping,

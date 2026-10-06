@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SurfaceIntersectionParameterBox: Codable, Sendable, Hashable {
+public struct SurfaceIntersectionParameterBox: Sendable, Hashable {
   public let firstU: ScalarInterval
   public let firstV: ScalarInterval
   public let secondU: ScalarInterval
@@ -70,7 +70,8 @@ public struct SurfaceIntersectionParameterBox: Codable, Sendable, Hashable {
     in domain: ParameterDomain,
     tolerance: ModelingTolerance
   ) throws {
-    guard interval.width > tolerance.relative,
+    guard interval.lower.isFinite, interval.upper.isFinite,
+      interval.upper > interval.lower,
       try domain.containsSpan(
         from: interval.lower,
         to: interval.upper,
@@ -86,3 +87,7 @@ public struct SurfaceIntersectionParameterBox: Codable, Sendable, Hashable {
     }
   }
 }
+
+#if !hasFeature(Embedded)
+extension SurfaceIntersectionParameterBox: Codable {}
+#endif

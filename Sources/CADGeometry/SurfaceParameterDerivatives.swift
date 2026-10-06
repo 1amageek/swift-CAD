@@ -54,16 +54,9 @@ package extension Surface3D {
         }
         switch self {
         case let .plane(plane):
-            let normal = try plane.normal.normalized(
-                tolerance: tolerance.distance
-            )
-            let helper = abs(normal.z) < 0.9
-                ? Vector3D.unitZ
-                : Vector3D.unitY
-            let tangentU = try helper.cross(normal).normalized(
-                tolerance: tolerance.distance
-            )
-            let tangentV = normal.cross(tangentU)
+            let basis = try plane.parameterBasis(tolerance: tolerance)
+            let tangentU = basis.u
+            let tangentV = basis.v
             return SurfaceParameterDerivatives(
                 position: plane.origin + tangentU * u + tangentV * v,
                 tangentU: tangentU,

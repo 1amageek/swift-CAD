@@ -207,21 +207,31 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
       let ordered = points.sorted {
         vector($0.point).dot(direction) < vector($1.point).dot(direction)
       }
-      guard let first = ordered.first, let last = ordered.last else { continue }
-      if (first.point - last.point).length <= tolerance.distance {
-        splits.append(
-          try split(
-            facePair: pair,
-            geometries: [.tangent(first)],
-            tolerance: tolerance
-          ))
-      } else {
-        splits.append(
-          try split(
-            facePair: pair,
-            geometries: [.transverseSegment(start: first, end: last)],
-            tolerance: tolerance
-          ))
+      var geometries: [BooleanFaceSplitComponentGeometry] = []
+      var incident = Array(repeating: false, count: ordered.count)
+      for index in ordered.indices.dropLast() {
+        let first = ordered[index]
+        let last = ordered[index + 1]
+        guard (first.point - last.point).length > tolerance.distance else { continue }
+        let midpoint = first.point + (last.point - first.point) * 0.5
+        // All original boundary events have been isolated. Material membership
+        // is constant on each open interval, including intervals across holes.
+        if try contains(midpoint, faceID: pair.targetFaceID, surface: targetSurface,
+            model: model, cache: &containmentCache, preparationCache: &containmentPreparationCache,
+            tolerance: tolerance),
+           contains(midpoint, faceID: pair.toolFaceID, surface: toolSurface,
+            model: model, cache: &containmentCache, preparationCache: &containmentPreparationCache,
+            tolerance: tolerance) {
+          geometries.append(.transverseSegment(start: first, end: last))
+          incident[index] = true
+          incident[index + 1] = true
+        }
+      }
+      for index in ordered.indices where !incident[index] {
+        geometries.append(.tangent(ordered[index]))
+      }
+      if !geometries.isEmpty {
+        splits.append(try split(facePair: pair, geometries: geometries, tolerance: tolerance))
       }
     }
     let graph = BooleanUVSplitGraph(splits: splits)
@@ -1603,8 +1613,19 @@ public struct DefaultBooleanUVFaceSplitter: BooleanUVFaceSplitting {
   ) throws -> [BooleanUVPoint] {
     var points: [BooleanUVPoint] = []
     for contact in contacts {
-      guard case .points(let intersections) = contact.geometry else { continue }
-      for intersection in intersections {
+      let candidates: [(point: Point3D, residual: Double)]
+      switch contact.geometry {
+      case .points(let intersections):
+        candidates = intersections.map { ($0.point, $0.residual) }
+      case .coincident:
+        guard let edge = model.edges[contact.edgeID],
+              let curve = model.geometry.curves[edge.curveID], let trim = edge.trim else {
+          throw TopologyError.missingReference("A coincident planar boundary lacks original geometry.")
+        }
+        candidates = [(try curve.point(at: trim.startParameter, tolerance: tolerance), 0),
+                      (try curve.point(at: trim.endParameter, tolerance: tolerance), 0)]
+      }
+      for intersection in candidates {
         guard
           try contains(
             intersection.point,

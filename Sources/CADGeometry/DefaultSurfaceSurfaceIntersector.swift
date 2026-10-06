@@ -3,6 +3,70 @@ import CADCore
 public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
   public init() {}
 
+  // FIXME(INCOMPLETE_IMPLEMENTATION): This caller-admitted production route
+  // currently uses the finite regular original parametric producer. Admitted
+  // specialized unbounded analytic/plane-cone and critical/coincident contacts
+  // still require their complete same-ledger proof before full domain closure.
+  public func intersections(first: Surface3D, second: Surface3D,
+    options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    consumeWork: @escaping @Sendable () throws -> Void,
+    consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int? = nil) throws -> [SurfaceSurfaceIntersection] {
+    try options.validate(tolerance: tolerance)
+    let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+      consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+    return try BoundedParametricSurfaceIntersector().intersections(first: first, second: second,
+      options: options, tolerance: tolerance, admission: admission)
+  }
+
+  // FIXME(INCOMPLETE_IMPLEMENTATION): The bounded domain-pair path uses
+  // original surfaces and their declared UV boxes with the same producer.
+  // Critical/tangent/coincident branches still require complete original proof
+  // and cannot be replaced by rounded restricted support geometry.
+  public func intersections(first: Surface3D, over firstBox: SurfaceParameterBox,
+        second: Surface3D, over secondBox: SurfaceParameterBox,
+        options: SurfaceSurfaceIntersectionOptions, tolerance: ModelingTolerance,
+        maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+        consumeWork: @escaping @Sendable () throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int? = nil) throws -> [SurfaceSurfaceIntersection] {
+    try options.validate(tolerance: tolerance)
+    let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+      consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+    return try BoundedParametricSurfaceIntersector().intersections(first: first, over: firstBox,
+      second: second, over: secondBox, options: options, tolerance: tolerance, admission: admission)
+  }
+
+  // FIXME(INCOMPLETE_IMPLEMENTATION): The retained session reuses actual
+  // original support preparation and caller callbacks. Complete critical and
+  // coincident strata remain required before general self-contact closure.
+  public func prepareOriginalPair(first: Surface3D, second: Surface3D,
+    tolerance: ModelingTolerance, maximumSpanCount: Int,
+    maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    consumeWork: @escaping @Sendable () throws -> Void,
+    consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int? = nil) throws -> any OriginalSurfacePairIntersecting {
+    let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+      consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+    return try PreparedOriginalSurfaceIntersectionPair(first: first, second: second,
+      tolerance: tolerance, admission: admission)
+  }
+
+  // FIXME(INCOMPLETE_IMPLEMENTATION): Self preparation aliases one actual
+  // original support. Critical/coincident coverage still requires its complete
+  // same-ledger producer before the general self-contact gate can close.
+  public func prepareOriginalSelf(surface: Surface3D, tolerance: ModelingTolerance,
+    maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
+    consumeWork: @escaping @Sendable () throws -> Void,
+    consumeStorage: (@Sendable (Int) throws -> Void)?, maximumAlgebraicDepth: Int? = nil) throws -> any OriginalSurfacePairIntersecting {
+    let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
+      maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+      consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+    return try PreparedOriginalSurfaceIntersectionPair(selfSurface: surface,
+      tolerance: tolerance, admission: admission)
+  }
+
   public func intersections(
     first: Surface3D,
     second: Surface3D,

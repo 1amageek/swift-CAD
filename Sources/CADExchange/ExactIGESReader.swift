@@ -4,15 +4,75 @@ import CADGeometry
 import CADIR
 import CADTopology
 
-struct ExactIGESReader {
+struct ExactIGESReader: Sendable {
     let text: String
     let lengthUnit: LengthUnit
     let processingBudget: ExchangeProcessingBudget
     let tolerance: ModelingTolerance
 
-    func read() throws -> BRepModel {
+    func readExchange(resourceLimits: ExchangeResourceLimits, policy: ExchangeImportPolicy,
+                      paidLexicalWork: Int) throws -> ImportedExchangeModel {
+        var parseLimits = resourceLimits
+        guard paidLexicalWork >= 0, paidLexicalWork < parseLimits.maximumIterations else {
+            throw exchangeResourceLimitError(format: .iges, detail: "lexical traversal exhausted caller work")
+        }
+        parseLimits.maximumIterations -= paidLexicalWork
+        let parsed = try EntityParser(text: text, processingBudget: processingBudget).parse(limits: parseLimits)
+        let entities = parsed.entities
+        let plan = try IGESPartialImportPlanner(limits: parsed.remainingLimits, budget: processingBudget).plan(entities: entities, policy: policy)
+        if case .strict = policy { return try readExchange(entities: entities, resourceLimits: plan.remainingLimits) }
+        var retained: [Int: Entity] = [:]
+        for id in entities.keys.sorted() where !plan.discarded.contains(id) {
+            try processingBudget.check(format: .iges); retained[id] = entities[id]
+        }
+        guard !retained.isEmpty else { throw ExchangePreservationError.emptyRetainedSource }
+        var result = try readExchange(entities: retained, resourceLimits: plan.remainingLimits)
+        result.preservationReport = plan.report
+        return result
+    }
+
+    private func readExchange(entities: [Int: Entity], resourceLimits: ExchangeResourceLimits) throws -> ImportedExchangeModel {
+        if entities.values.contains(where: { $0.type == 186 || $0.type == 514 }) {
+            var b = Builder(entities:entities,lengthUnit:lengthUnit,processingBudget:processingBudget,tolerance:tolerance)
+            let model = try b.build(); try model.validate(level:.exact,tolerance:tolerance)
+            for e in entities.values {
+                try processingBudget.check(format:.iges)
+                let primitive = [100,104,110,112,126,128,140,190,192,194,196,198].contains(e.type)
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Public IGES import has not yet composed simultaneous exact body and independent source roots.
+                // Retain every real unconsumed primitive/group/map root before admitting a mixed document instead of returning body-only success.
+                guard !(primitive && !b.consumedGeometryPointers.contains(e.pointer)),
+                      ![308,408,402].contains(e.type) else {
+                    throw IndependentShapeExchangeError.unsupportedSemantics("Mixed IGES body and independent source roots are not implemented.")
+                }
+            }
+            return ImportedExchangeModel(format:.iges,brep:model,units:.init(length:lengthUnit,angle:.radian))
+        }
+        var usage = try IndependentShapeExchangeUsage(limits:resourceLimits,format:.iges,processing:processingBudget,
+            consumedEntities:entities.count,consumedWork:text.unicodeScalars.count,consumedBytes:text.utf8.count)
+        var selected = Set<Int>(), dependent = Set<Int>()
+        for e in entities.values {
+            try usage.charge(entities:1,work:e.parameters.reduce(e.label.utf8.count+1) { $0+$1.utf8.count })
+            if [100,104,110,112,124,126,128,140,190,192,194,196,198].contains(e.type) { selected.insert(e.pointer) }
+            if e.transformationPointer != 0 { try usage.charge(entities:1,work:1); dependent.insert(e.transformationPointer) }
+            if e.type == 140, e.parameters.count == 6, let p = Int(e.parameters[5]) { try usage.charge(entities:1,work:1); dependent.insert(p) }
+        }
+        var producer: any IndependentIGESGeometryReading = IndependentProducer(builder:.init(entities:entities,
+            lengthUnit:lengthUnit,processingBudget:processingBudget,tolerance:tolerance))
+        let fields = IndependentFields(entities:entities)
+        let roots = selected.filter { !dependent.contains($0) }
+        if let source = try DefaultIndependentIGESGraphReader().read(entityPointers:Array(entities.keys),
+            standaloneItemPointers:roots.sorted(),fields:fields,units:.init(length:lengthUnit,angle:.radian),
+            tolerance:tolerance,producer:&producer,usage:&usage) {
+            let units = UnitSystem(length:lengthUnit,angle:.radian), document = CADDocument(units:units,independentShapes:source)
+            try usage.validateDocument(document,tolerance:tolerance)
+            return ImportedExchangeModel(format:.iges,document:document,units:units)
+        }
+        throw ImportError.invalidData("IGES contains no original independent shapes or exact body.")
+    }
+
+    func read(resourceLimits: ExchangeResourceLimits) throws -> BRepModel {
         try processingBudget.check(format: .iges)
-        let entities = try EntityParser(text: text, processingBudget: processingBudget).parse()
+        let entities = try EntityParser(text: text, processingBudget: processingBudget).parse(limits: resourceLimits).entities
         var builder = Builder(
             entities: entities,
             lengthUnit: lengthUnit,
@@ -26,7 +86,197 @@ struct ExactIGESReader {
     }
 }
 
-private extension ExactIGESReader {
+extension ExactIGESReader {
+    struct IndependentFields: IndependentIGESFieldReading {
+        let entities:[Int:Entity]
+        func entity(_ pointer:Int) throws -> IndependentIGESEntity {
+            guard let e = entities[pointer] else { throw ImportError.missingRequiredEntity("IGES #\(pointer)") }
+            return .init(pointer:e.pointer,type:e.type,form:e.form,transformationPointer:e.transformationPointer,label:e.label,parameters:e.parameters,associationPointers:e.associationPointers,propertyPointers:e.propertyPointers)
+        }
+        func string(_ token:String) throws -> String {
+            guard let h = token.firstIndex(of:"H"), let n = Int(token[..<h]) else { throw ImportError.invalidData("Malformed IGES Hollerith string.") }
+            let text = String(token[token.index(after:h)...])
+            guard n >= 0, text.count == n else { throw ImportError.invalidData("IGES Hollerith string length differs.") }
+            return text
+        }
+        func integer(_ token:String) throws -> Int {
+            guard let n = Int(token) else { throw ImportError.invalidData("Malformed IGES integer.") }; return n
+        }
+        func number(_ token:String) throws -> Double {
+            guard let n = Double(token.replacingOccurrences(of:"D",with:"E").replacingOccurrences(of:"d",with:"e")), n.isFinite else { throw ImportError.invalidData("Nonfinite IGES number.") }; return n
+        }
+    }
+    struct IndependentProducer: IndependentIGESGeometryReading {
+        var builder: Builder
+        var paid = Set<Int>()
+        var activeSurfaces = Set<Int>()
+        mutating func pay(_ pointer:Int,usage:inout IndependentShapeExchangeUsage) throws -> Entity {
+            guard let entity = builder.entities[pointer] else { throw ImportError.missingRequiredEntity("IGES #\(pointer)") }
+            if !paid.contains(pointer) {
+                try usage.charge(entities:entity.parameters.count+1,work:entity.parameters.reduce(1) { $0+$1.utf8.count })
+                paid.insert(pointer)
+            } else { try usage.charge(work:1) }
+            return entity
+        }
+        mutating func curve(entityPointer pointer:Int,units:UnitSystem,tolerance:ModelingTolerance,usage:inout IndependentShapeExchangeUsage) throws -> IndependentExchangeReadCurve {
+            let entity = try pay(pointer,usage:&usage)
+            let id:CurveID = builder.taggedID(namespace:0x494745535F435256,pointer:pointer)
+            let curve:Curve3D, trim:CurveTrim?
+            if entity.type == 110 {
+                let line = try builder.line(pointer,parameterSpace:false), direction = line.end-line.start
+                let frame = try AffineTransform3D(basisX:direction,basisY:.unitY,basisZ:.unitZ,
+                    translation:Vector3D(x:line.start.x,y:line.start.y,z:line.start.z))
+                curve = .affineImage(try AffineImageCurve3D(source:.line(Line3D(origin:.origin,direction:.unitX)),transform:frame,tolerance:tolerance))
+                trim = .init(startParameter:0,endParameter:1)
+            } else if entity.type == 100 {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Original Cartesian IGES arc radius/phase law is not retained by this numeric branch.
+                // Public independent ingress currently uses a rounded norm and inverse phase; full X7 source admission requires raw endpoint/unit authority and a genuine directed original chart producer.
+                guard entity.form == 0, entity.parameters.count == 8 else { throw ImportError.invalidData("Malformed independent IGES circular arc.") }
+                let p = entity.parameters
+                let z = units.length.toInternal(try builder.numberAt(p,1,label:"arc Z"))
+                let center = Point3D(x:units.length.toInternal(try builder.numberAt(p,2,label:"arc center X")),
+                    y:units.length.toInternal(try builder.numberAt(p,3,label:"arc center Y")),z:z)
+                let first = Point3D(x:units.length.toInternal(try builder.numberAt(p,4,label:"arc start X")),
+                    y:units.length.toInternal(try builder.numberAt(p,5,label:"arc start Y")),z:z)
+                let last = Point3D(x:units.length.toInternal(try builder.numberAt(p,6,label:"arc end X")),
+                    y:units.length.toInternal(try builder.numberAt(p,7,label:"arc end Y")),z:z)
+                let radius = (first-center).length
+                guard abs((last-center).length-radius) <= tolerance.distance else { throw ImportError.invalidData("Inconsistent IGES arc radii.") }
+                let start = atan2(first.y-center.y,first.x-center.x)
+                var end = atan2(last.y-center.y,last.x-center.x)
+                if end <= start { end += 2*Double.pi }
+                curve = .circle(Circle3D(center:center,normal:.unitZ,radius:radius))
+                try curve.validate(tolerance:tolerance)
+                trim = .init(startParameter:start,endParameter:end)
+            } else {
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Independent transformed conic/procedural IGES ingress still depends on legacy chart-specific helpers.
+                // Decode the original local law before applying a directory matrix exactly once for every remaining family.
+                guard entity.transformationPointer == 0 || entity.type == 126 else {
+                    throw IndependentShapeExchangeError.unsupportedSemantics("Independent transformed IGES curve family is not implemented.")
+                }
+                let read = try builder.buildCurve(pointer)
+                guard let value = builder.geometry.curves[read.id] else { throw ImportError.missingRequiredEntity("Original IGES curve.") }
+                curve = value; trim = read.trim
+            }
+            // The matrix's actual coefficients, not its directory label, own the affine image.
+            let output:Curve3D
+            if entity.transformationPointer != 0 {
+                let source = try originalTransformation(entityPointer: entity.transformationPointer, units: units, usage: &usage)
+                let word = try source.originalOperationWord(tolerance: tolerance,
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+                output = .originalAffineWord(try OriginalAffineWordCurve3D(source: curve, operationWord: word,
+                    tolerance: tolerance, remainingSourceDepth: usage.limits.maximumNesting,
+                    maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage))
+            } else { output = curve }
+            return .init(id:id,curve:output,trim:trim,basisEntityID:pointer,basisName:entity.label)
+        }
+        mutating func surface(entityPointer pointer:Int,units:UnitSystem,tolerance:ModelingTolerance,usage:inout IndependentShapeExchangeUsage) throws -> IndependentExchangeReadSurface {
+            guard activeSurfaces.count < usage.limits.maximumNesting, activeSurfaces.insert(pointer).inserted else {
+                throw IndependentShapeExchangeError.invalidAssociation("Cyclic or over-depth original IGES surface graph.")
+            }
+            defer { activeSurfaces.remove(pointer) }
+            let e = try pay(pointer,usage:&usage)
+            let id:SurfaceID = builder.taggedID(namespace:0x494745535F535246,pointer:pointer)
+            let original: Surface3D
+            if [190,192,194,196,198].contains(e.type) {
+                let expected = e.type == 190 ? 4 : (e.type == 194 || e.type == 198 ? 6 : 5)
+                guard e.form == 1, e.parameters.count == expected else { throw ImportError.invalidData("Malformed original IGES analytic surface.") }
+                let fields = IndependentFields(entities:builder.entities)
+                let point = try fields.integer(e.parameters[1])
+                let axisIndex = e.type == 196 ? 3 : 2
+                let referenceIndex = expected - 1
+                let axisPointer = try fields.integer(e.parameters[axisIndex])
+                let referencePointer = try fields.integer(e.parameters[referenceIndex])
+                _ = try pay(point,usage:&usage); _ = try pay(axisPointer,usage:&usage); _ = try pay(referencePointer,usage:&usage)
+                let origin = try builder.pointEntity(point), z = try builder.directionEntity(axisPointer), x = try builder.directionEntity(referencePointer)
+                guard abs(x.dot(z)) <= tolerance.angle else { throw ImportError.invalidData("Original IGES analytic reference is not perpendicular to its axis.") }
+                if e.type == 190 {
+                    original = .plane(Plane3D(origin:origin,normal:z,uDirection:x))
+                } else {
+                    let local: Surface3D, vGain: Double, vOffset: Double
+                    let length = units.length.toInternal(1)
+                    switch e.type {
+                    case 192:
+                        local = .analytic(.cylinder(origin:.origin,axis:.unitZ,radius:units.length.toInternal(try fields.number(e.parameters[3]))))
+                        vGain = length; vOffset = 0
+                    case 194:
+                        let radius = units.length.toInternal(try fields.number(e.parameters[3]))
+                        let angle = try fields.number(e.parameters[4])
+                        guard radius >= 0, angle > tolerance.angle, angle < Double.pi/2-tolerance.angle else { throw ImportError.invalidData("Invalid original IGES cone radius or semi-angle.") }
+                        local = .analytic(.cone(apex:Point3D(x:0,y:0,z:-radius/tan(angle)),axis:.unitZ,halfAngle:angle))
+                        vGain = length/cos(angle); vOffset = radius/sin(angle)
+                    case 196:
+                        local = .analytic(.sphere(center:.origin,radius:units.length.toInternal(try fields.number(e.parameters[2]))))
+                        vGain = 1; vOffset = 0
+                    default:
+                        local = .analytic(.torus(center:.origin,axis:.unitZ,majorRadius:units.length.toInternal(try fields.number(e.parameters[3])),minorRadius:units.length.toInternal(try fields.number(e.parameters[4]))))
+                        vGain = 1; vOffset = 0
+                    }
+                    let canonical = try ExactAnalyticFrame.analyticBasis(for:.unitZ,tolerance:tolerance)
+                    let y = z.cross(x)
+                    let frame = try AffineTransform3D(basisX:x*canonical.u.x+y*canonical.v.x,
+                        basisY:x*canonical.u.y+y*canonical.v.y,basisZ:z,translation:origin - .origin)
+                    original = .parameterImage(try OriginalImageSurface3D(source:local,uGain:1,vGain:vGain,
+                        vOffset:vOffset,transform:frame,swapAxes:e.type == 198,tolerance:tolerance))
+                }
+            } else if e.type == 140 {
+                guard e.form == 0, e.parameters.count == 6 else { throw ImportError.invalidData("Malformed original IGES offset surface.") }
+                let fields = IndependentFields(entities:builder.entities)
+                let source = try surface(entityPointer:fields.integer(e.parameters[5]),units:units,tolerance:tolerance,usage:&usage).surface
+                let indicator = try Vector3D(x:fields.number(e.parameters[1]),y:fields.number(e.parameters[2]),z:fields.number(e.parameters[3])).normalized(tolerance:tolerance.distance)
+                let u: Double, v: Double
+                if case .closed(let lower, let upper) = source.uDomain { u = lower + (upper-lower)/2 } else { u = 0 }
+                if case .closed(let lower, let upper) = source.vDomain { v = lower + (upper-lower)/2 } else { v = 0 }
+                let normal = try source.normal(u:u,v:v,tolerance:tolerance)
+                let alignment = indicator.dot(normal)
+                guard abs(abs(alignment)-1) <= tolerance.angle else { throw ImportError.invalidData("IGES offset indicator disagrees with the original source normal.") }
+                original = .procedural(.offset(OffsetSurface3D(source:source,distance:units.length.toInternal(try fields.number(e.parameters[4])) * (alignment >= 0 ? 1 : -1))))
+            } else {
+                let built = try builder.buildSurface(pointer)
+                guard let value = builder.geometry.surfaces[built] else { throw ImportError.missingRequiredEntity("Original IGES surface.") }
+                original = value
+            }
+            let surface: Surface3D
+            if e.transformationPointer != 0 {
+                let source = try originalTransformation(entityPointer: e.transformationPointer, units: units, usage: &usage)
+                let word = try source.originalOperationWord(tolerance: tolerance,
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+                surface = .procedural(.originalAffineWord(try OriginalAffineWordSurface3D(source: original,
+                    operationWord: word, tolerance: tolerance, remainingSourceDepth: usage.limits.maximumNesting,
+                    maximumSubdivisionDepth: usage.limits.maximumCurveSubdivisionDepth,
+                    maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)))
+            } else { surface = original }
+            try surface.validate(tolerance:tolerance)
+            builder.geometry.surfaces[id] = surface
+            return .init(id:id,surface:surface,basisName:e.label)
+        }
+        mutating func originalTransformation(entityPointer pointer: Int, units: UnitSystem,
+            usage: inout IndependentShapeExchangeUsage) throws -> OriginalIGESMatrixSource {
+            let entity = try pay(pointer, usage: &usage)
+            guard entity.type == 124, entity.form == 0 || entity.form == 1,
+                entity.transformationPointer == 0, entity.parameters.count == 13 else {
+                throw IndependentShapeExchangeError.invalidAssociation("Original IGES124 requires its legal form and twelve nonnested coefficients.")
+            }
+            try usage.charge(bytes: 12 * MemoryLayout<String>.stride)
+            return .init(coefficients: Array(entity.parameters.dropFirst()), form: entity.form, lengthUnit: units.length)
+        }
+        mutating func transformation(entityPointer pointer:Int,units:UnitSystem,usage:inout IndependentShapeExchangeUsage) throws -> AffineTransform3D {
+            let source = try originalTransformation(entityPointer: pointer, units: units, usage: &usage)
+            return try source.derivedAffineTransform(tolerance: builder.tolerance,
+                maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &usage)
+        }
+        mutating func instancePlacement(entityPointer pointer:Int,units:UnitSystem,usage:inout IndependentShapeExchangeUsage) throws -> AffineTransform3D {
+            let e = try pay(pointer,usage:&usage), f = IndependentFields(entities:builder.entities), p = e.parameters
+            guard e.type == 408, p.count == 6 else { throw ImportError.invalidData("Malformed IGES408.") }
+            let scale = try f.number(p[5])
+            guard scale > 0 else { throw ImportError.invalidData("IGES408 scale must be positive.") }
+            let matrix = e.transformationPointer == 0 ? try AffineTransform3D(basisX:.unitX,basisY:.unitY,basisZ:.unitZ,translation:.zero)
+                : try transformation(entityPointer:e.transformationPointer,units:units,usage:&usage)
+            let translation = try Vector3D(x:units.length.toInternal(f.number(p[2])),y:units.length.toInternal(f.number(p[3])),z:units.length.toInternal(f.number(p[4])))
+            return try .init(basisX:matrix.basisX*scale,basisY:matrix.basisY*scale,basisZ:matrix.basisZ*scale,translation:matrix.translation+translation)
+        }
+    }
     struct Entity: Sendable {
         let pointer: Int
         let type: Int
@@ -34,26 +284,54 @@ private extension ExactIGESReader {
         let transformationPointer: Int
         let label: String
         let parameters: [String]
+        let originalRecord: String
+        let associationPointers: [Int]
+        let propertyPointers: [Int]
+        init(pointer: Int, type: Int, form: Int, transformationPointer: Int, label: String,
+             parameters: [String], originalRecord: String,
+             associationPointers: [Int] = [], propertyPointers: [Int] = []) {
+            self.pointer = pointer; self.type = type; self.form = form
+            self.transformationPointer = transformationPointer; self.label = label
+            self.parameters = parameters; self.originalRecord = originalRecord
+            self.associationPointers = associationPointers; self.propertyPointers = propertyPointers
+        }
     }
 
     struct EntityParser {
         let text: String
         let processingBudget: ExchangeProcessingBudget
 
-        func parse() throws -> [Int: Entity] {
-            let lines = normalizedLines()
-            let directoryLines = lines.filter { Array($0)[72] == "D" }
-            let parameterLines = lines.filter { Array($0)[72] == "P" }
+        struct Result {
+            let entities: [Int: Entity]
+            let remainingLimits: ExchangeResourceLimits
+        }
+        func parse(limits: ExchangeResourceLimits) throws -> Result {
+            var accounting = try ExchangeResourceAccountant(limits: limits, format: .iges)
+            let lines = try normalizedLines(accounting: &accounting)
+            var directoryLines: [Substring] = [], parameterLines: [Substring] = []
+            for line in lines {
+                try processingBudget.check(format: .iges); try accounting.recordIterations(80)
+                let section = line[line.index(line.startIndex, offsetBy: 72)]
+                if section == "D" || section == "P" {
+                    try accounting.recordBytes(MemoryLayout<Substring>.stride)
+                    if section == "D" { directoryLines.append(line) } else { parameterLines.append(line) }
+                }
+            }
             guard directoryLines.count.isMultiple(of: 2) else {
                 throw invalid("IGES directory records are not paired.")
             }
             var parametersBySequence: [Int: String] = [:]
+            var originalParametersBySequence: [Int: Substring] = [:]
             var directoryPointerBySequence: [Int: Int] = [:]
             for line in parameterLines {
                 try processingBudget.check(format: .iges)
+                try accounting.recordEntities(3); try accounting.recordIterations(80)
+                try accounting.recordBytes(80 * MemoryLayout<Character>.stride + 88
+                    + MemoryLayout<(Int, String)>.stride + MemoryLayout<(Int, Substring)>.stride + MemoryLayout<(Int, Int)>.stride)
                 let characters = Array(line)
                 let sequence = try integer(String(characters[73..<80]), label: "parameter sequence")
                 parametersBySequence[sequence] = String(characters[0..<64])
+                originalParametersBySequence[sequence] = line
                 directoryPointerBySequence[sequence] = try integer(
                     String(characters[64..<72]),
                     label: "parameter directory pointer"
@@ -62,6 +340,8 @@ private extension ExactIGESReader {
             var result: [Int: Entity] = [:]
             for index in stride(from: 0, to: directoryLines.count, by: 2) {
                 try processingBudget.check(format: .iges)
+                try accounting.recordEntities(); try accounting.recordIterations(160)
+                try accounting.recordBytes(160 * MemoryLayout<Character>.stride + 225 + MemoryLayout<(Int, Entity)>.stride)
                 let first = Array(directoryLines[index])
                 let second = Array(directoryLines[index + 1])
                 let pointer = try integer(String(first[73..<80]), label: "directory pointer")
@@ -76,38 +356,69 @@ private extension ExactIGESReader {
                       parameterStart > 0, parameterCount > 0 else {
                     throw invalid("IGES directory entry #\(pointer) is malformed.")
                 }
+                let parameterEnd = parameterStart.addingReportingOverflow(parameterCount)
+                guard !parameterEnd.overflow, parameterCount <= parameterLines.count else {
+                    throw invalid("IGES parameter range overflows or exceeds the original records.")
+                }
                 var parameterText = ""
-                for sequence in parameterStart..<(parameterStart + parameterCount) {
+                var originalRecord = String(directoryLines[index]) + "\n" + directoryLines[index + 1] + "\n"
+                for sequence in parameterStart..<parameterEnd.partialValue {
                     try processingBudget.check(format: .iges)
                     guard let content = parametersBySequence[sequence],
                           directoryPointerBySequence[sequence] == pointer else {
                         throw missing("IGES parameter record #\(sequence)")
                     }
+                    try accounting.recordIterations(81)
+                    try accounting.recordBytes(content.utf8.count + 81)
                     parameterText += content
+                    guard let raw = originalParametersBySequence[sequence] else { throw missing("Original IGES parameter record.") }
+                    originalRecord += raw + "\n"
                 }
-                let parameters = try parseParameters(parameterText)
+                let parameters = try parseParameters(parameterText, accounting: &accounting)
                 guard let parameterType = parameters.first.flatMap(Int.init), parameterType == type else {
                     throw invalid("IGES directory and parameter entity types disagree at #\(pointer).")
                 }
                 guard result[pointer] == nil else {
                     throw invalid("IGES directory pointer #\(pointer) is duplicated.")
                 }
+                let split = try IGESAssociationParameterReader().split(type: type, form: form,
+                    parameters: parameters, accounting: &accounting)
                 result[pointer] = Entity(
                     pointer: pointer,
                     type: type,
                     form: form,
                     transformationPointer: transformationPointer,
                     label: label,
-                    parameters: parameters
+                    parameters: split.parameters, originalRecord: originalRecord,
+                    associationPointers: split.associations, propertyPointers: split.properties
                 )
             }
-            return result
+            var remaining = limits
+            remaining.maximumBytes -= accounting.byteCount
+            remaining.maximumEntities -= accounting.entityCount
+            remaining.maximumIterations -= accounting.iterationCount
+            try remaining.validate()
+            return Result(entities: result, remainingLimits: remaining)
         }
 
-        private func normalizedLines() -> [String] {
-            text.split(separator: "\n", omittingEmptySubsequences: true).map { raw in
-                raw.last == "\r" ? String(raw.dropLast()) : String(raw)
+        private func normalizedLines(accounting: inout ExchangeResourceAccountant) throws -> [Substring] {
+            var result: [Substring] = [], start = text.startIndex
+            while start < text.endIndex {
+                try processingBudget.check(format: .iges)
+                var end = start
+                while end < text.endIndex, text[end] != "\n" {
+                    try accounting.recordIterations(); end = text.index(after: end)
+                }
+                let raw = text[start..<end]
+                if !raw.isEmpty {
+                    let line = raw.last == "\r" ? raw.dropLast() : raw[...]
+                    guard line.count == 80 else { throw invalid("Original IGES record width is not 80.") }
+                    try accounting.recordEntities(); try accounting.recordBytes(MemoryLayout<Substring>.stride)
+                    result.append(line)
+                }
+                start = end < text.endIndex ? text.index(after: end) : end
             }
+            return result
         }
 
         private func integerField(_ characters: [Character], index: Int) throws -> Int {
@@ -122,33 +433,40 @@ private extension ExactIGESReader {
             return value
         }
 
-        private func parseParameters(_ text: String) throws -> [String] {
+        private func parseParameters(_ text: String, accounting: inout ExchangeResourceAccountant) throws -> [String] {
+            try accounting.recordBytes(text.utf8.count); try accounting.recordIterations(text.utf8.count)
             let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard let terminator = trimmed.firstIndex(of: ";"),
-                  trimmed[trimmed.index(after: terminator)...].trimmingCharacters(in: .whitespaces).isEmpty else {
-                throw invalid("IGES parameter data is not terminated exactly once.")
+            var cursor = trimmed.startIndex, values:[String] = []
+            while cursor < trimmed.endIndex {
+                try processingBudget.check(format:.iges)
+                while cursor < trimmed.endIndex, trimmed[cursor].isWhitespace { cursor = trimmed.index(after:cursor) }
+                try accounting.recordEntities(); try accounting.recordBytes(MemoryLayout<String>.stride)
+                let value = try readIGESGlobalParameter(in:trimmed,index:&cursor)
+                guard !value.isEmpty else { throw invalid("IGES parameter data contains an empty value.") }
+                values.append(value)
+                while cursor < trimmed.endIndex, trimmed[cursor].isWhitespace { cursor = trimmed.index(after:cursor) }
+                guard cursor < trimmed.endIndex else { throw invalid("IGES parameter data has no terminator.") }
+                let delimiter = trimmed[cursor]; cursor = trimmed.index(after:cursor)
+                if delimiter == ";" {
+                    guard trimmed[cursor...].allSatisfy({ $0.isWhitespace }) else { throw invalid("IGES parameter data is not terminated exactly once.") }
+                    return values
+                }
+                guard delimiter == "," else { throw invalid("Malformed IGES parameter delimiter.") }
             }
-            let content = trimmed[..<terminator]
-            let values = content.split(separator: ",", omittingEmptySubsequences: false).map {
-                $0.trimmingCharacters(in: .whitespacesAndNewlines)
-            }
-            guard !values.isEmpty, values.allSatisfy({ !$0.isEmpty }) else {
-                throw invalid("IGES parameter data contains an empty value.")
-            }
-            return values
+            throw invalid("IGES parameter data is unterminated.")
         }
 
         private func invalid(_ message: String) -> ImportError { .invalidData(message) }
         private func missing(_ message: String) -> ImportError { .missingRequiredEntity(message) }
     }
 
-    struct Builder {
-        struct IndexedPointer: Hashable {
+    struct Builder: Sendable {
+        struct IndexedPointer: Hashable, Sendable {
             let pointer: Int
             let index: Int
         }
 
-        struct CurveSurfaceParameterAssociation: Hashable {
+        struct CurveSurfaceParameterAssociation: Hashable, Sendable {
             let surfacePointer: Int
             let parameterCurvePointer: Int
         }
@@ -181,6 +499,7 @@ private extension ExactIGESReader {
         var shellOwners: Set<Int> = []
         var faceOwners: Set<Int> = []
         var loopOwners: Set<Int> = []
+        var consumedGeometryPointers: Set<Int> = []
 
         func curveTrim(_ pointer: Int) -> CurveTrim? {
             curveTrimCache[pointer]
@@ -865,6 +1184,16 @@ private extension ExactIGESReader {
                         "IGES certified intersection edge vertices disagree with its derived transfer interval."
                     )
                 }
+            case .parameterImage:
+                let first = try curveGeometry.parameterProjection(of:startVertex.point,tolerance:tolerance).parameter
+                let last = try curveGeometry.parameterProjection(of:endVertex.point,tolerance:tolerance).parameter
+                guard first.isFinite, last.isFinite, first != last else { throw invalid("Degenerate original parameter-image edge.") }
+                trim = CurveTrim(startParameter:first,endParameter:last)
+                sameSense = last > first
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Native retained original-word/chart/connector families require original Body endpoint selection transport.
+            // The neutral Body reader does not produce these families on this branch; never infer original trims from rounded projected vertices.
+            case .originalAffineWord, .originalAngularTransport, .originalEndpointConnector, .originalConstructionChart, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
+                throw invalid("Retained original Body curve requires its original directed endpoint producer.")
             case .rigidImage:
                 throw invalid("IGES curve decoding produced an unsupported rigid-image runtime curve.")
             case .affineImage:
@@ -1266,6 +1595,8 @@ private extension ExactIGESReader {
         }
 
         mutating func buildCurve(_ pointer: Int) throws -> (id: CurveID, trim: CurveTrim?) {
+            try processingBudget.check(format:.iges)
+            consumedGeometryPointers.insert(pointer)
             if let cached = curveCache[pointer] {
                 return (cached, curveTrim(pointer))
             }
@@ -1552,6 +1883,8 @@ private extension ExactIGESReader {
         }
 
         mutating func buildSurface(_ pointer: Int) throws -> SurfaceID {
+            try processingBudget.check(format:.iges)
+            consumedGeometryPointers.insert(pointer)
             if let cached = surfaceCache[pointer] { return cached }
             guard surfacesBeingBuilt.insert(pointer).inserted else {
                 throw invalid("IGES surface references contain a cycle at #\(pointer).")
@@ -1885,12 +2218,14 @@ private extension ExactIGESReader {
             return surface
         }
 
-        func parameterCurve(
+        mutating func parameterCurve(
             _ pointer: Int,
             modelStart: Point3D,
             modelEnd: Point3D,
             surface: Surface3D
         ) throws -> SurfaceParameterCurve {
+            try processingBudget.check(format:.iges)
+            consumedGeometryPointers.insert(pointer)
             guard let entity = entities[pointer] else {
                 throw missing("IGES p-curve #\(pointer)")
             }

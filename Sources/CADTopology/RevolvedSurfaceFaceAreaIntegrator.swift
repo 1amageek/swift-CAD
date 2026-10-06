@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// Measures a face on a cone or a torus bounded by pcurves that are straight in the parameter
 /// domain: affine and coordinate segments and polylines, and periodic translations of them.

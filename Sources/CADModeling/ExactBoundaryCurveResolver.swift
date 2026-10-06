@@ -40,17 +40,24 @@ package struct ExactBoundaryCurveResolver: Sendable {
             lower: min(startParameter, endParameter),
             upper: max(startParameter, endParameter)
         )
-        guard var spline = try exactCurveBuilder.boundedCurve(
+        var spline: BSplineCurve3D
+        if let exact = try exactCurveBuilder.boundedCurve(
             curve: curve,
             interval: interval,
             maximumSpanCount: 4_096,
             tolerance: tolerance
-        ) else {
-            throw KernelError.unsupportedEvaluation(
-                featureID: featureID,
-                tolerance: tolerance,
-                message: "The boundary curve kind cannot be converted exactly to a B-spline."
-            )
+        ) {
+            spline = exact
+        } else {
+            let source = try NativeCurveConversionSource(curve, tolerance: tolerance)
+            spline = try CertifiedGeometryConverter().approximateCurve(
+                source: source, over: interval,
+                requirements: GeometryConversionRequirements(
+                    maximumPositionError: tolerance.distance * 0.25,
+                    maximumTangentAngle: tolerance.angle,
+                    maximumCurvatureError: tolerance.distance
+                ), tolerance: tolerance
+            ).curve
         }
         let increasingParameterFollowsStoredDirection = startParameter < endParameter
         if increasingParameterFollowsStoredDirection != followsStoredDirection {

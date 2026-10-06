@@ -98,101 +98,71 @@ package struct CurvedSweepGuideLaw {
         func failure(_ message: String) -> KernelError {
             KernelError(phase: .evaluation, code: .sweepGuideContactUnavailable, featureID: featureID, tolerance: tolerance, message: message)
         }
-        // Where the guide crosses the station's plane, searching on from where it was last met.
-        func across(_ span: Int, _ parameter: Double) throws -> Double {
-            (try Curve3D.bSpline(spans[span]).point(at: parameter, tolerance: tolerance) - point).dot(tangent)
-        }
-        var found: (span: Int, parameter: Double)?
-        search: for span in state.span..<spans.count {
-            guard case let .closed(lower, upper) = spans[span].domain else { continue }
-            let from = span == state.span ? max(lower, state.parameter) : lower
-            var (a, fa) = (from, try across(span, from))
-            if fa == 0 { found = (span, a); break search }
-            for k in 1...64 {
-                let b = from + (upper - from) * Double(k) / 64
-                let fb = try across(span, b)
-                if fa * fb <= 0 {
-                    var (low, high, flow) = (a, b, fa)
-                    for _ in 0..<60 {
-                        let middle = 0.5 * (low + high), fm = try across(span, middle)
-                        if (fm < 0) == (flow < 0) { (low, flow) = (middle, fm) } else { high = middle }
-                    }
-                    found = (span, 0.5 * (low + high))
-                    break search
-                }
-                (a, fa) = (b, fb)
+        let station = Surface3D.plane(Plane3D(origin: point, normal: tangent))
+        var contacts: [(span: Int, parameter: Double)] = []
+        let intersector = DefaultCurveSurfaceIntersector()
+        for span in state.span..<spans.count {
+            try Task.checkCancellation()
+            guard case let .closed(lower, upper) = spans[span].domain else {
+                throw failure("A curved sweep guide lost its retained finite support.")
             }
+            let from = span == state.span ? max(lower, state.parameter) : lower
+            guard from <= upper else { continue }
+            if from == upper {
+                let endpoint = try Curve3D.bSpline(spans[span]).point(at: upper, tolerance: tolerance)
+                if abs((endpoint - point).dot(tangent)) <= tolerance.distance {
+                    contacts.append((span, upper))
+                }
+                continue
+            }
+            let roots = try intersector.intersections(curve: .bSpline(spans[span]), surface: station,
+                options: .init(curveRange: ScalarInterval(lower: from, upper: upper)), tolerance: tolerance)
+            contacts += roots.map { (span, $0.curveParameter) }
         }
-        // The path's last station meets the guide's end, within the modeling distance.
-        if found == nil, let last = spans.indices.last, case let .closed(_, upper) = spans[last].domain,
-           abs(try across(last, upper)) <= tolerance.distance {
-            found = (last, upper)
+        contacts.sort { $0.span == $1.span ? $0.parameter < $1.parameter : $0.span < $1.span }
+        guard let found = contacts.first else {
+            throw failure("A curved sweep's guide does not reach a station of the path.")
         }
-        guard let found else { throw failure("A curved sweep's guide does not reach a station of the path.") }
         let offset = try Curve3D.bSpline(spans[found.span]).point(at: found.parameter, tolerance: tolerance) - point
         let g = (first: offset.dot(axes.first), second: offset.dot(axes.second))
         guard hypot(g.first, g.second) > tolerance.distance else { throw failure("A curved sweep's guide meets the path.") }
         return (g, found)
     }
 
-    /// The section's boundary point as far from the path as `distance`, in the start's lateral
-    /// coordinates, nearest `previous`: sign changes of its lateral distance less `distance`
-    /// between 64 samples per span (each sampled minimum refined first), refined by bisection.
+    /// Finds the complete original section/radius-cylinder contact set before
+    /// choosing a continued contact. A sampled minimum is not a root certificate.
     private func reaching(_ distance: Double, near previous: (first: Double, second: Double)) throws -> (first: Double, second: Double)? {
-        func lateral(_ point: Point3D) -> (Double, Double) {
-            let offset = point - sectionOrigin
-            return (offset.dot(sectionAxes.first), offset.dot(sectionAxes.second))
-        }
-        var best: (first: Double, second: Double)?
-        func consider(_ point: (Double, Double)) {
-            let gap = { (p: (first: Double, second: Double)) in hypot(p.first - previous.first, p.second - previous.second) }
-            if best.map({ gap((point.0, point.1)) < gap($0) }) ?? true { best = (point.0, point.1) }
-        }
+        let axis = try sectionAxes.first.cross(sectionAxes.second).normalized(tolerance: tolerance.distance)
+        let cylinder = Surface3D.cylinder(Cylinder3D(origin: sectionOrigin, axis: axis, radius: distance))
+        let intersector = DefaultCurveSurfaceIntersector()
+        var contacts: [(first: Double, second: Double)] = []
         for span in section {
-            guard case let .closed(lower, upper) = span.domain else { continue }
-            let curve = Curve3D.bSpline(span)
-            func f(_ s: Double) throws -> Double {
-                let p = lateral(try curve.point(at: s, tolerance: tolerance))
-                return hypot(p.0, p.1) - distance
+            try Task.checkCancellation()
+            guard case let .closed(lower, upper) = span.domain else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                    message: "A sliding section contact lost its original finite support.")
             }
-            // Samples, each sampled minimum refined by golden section first, so two roots closing
-            // in on a minimum (where the section's side turns square to the reach) are bracketed.
-            let ratio = (5.0.squareRoot() - 1) / 2
-            let samples = try (0...64).map { k -> (s: Double, f: Double) in
-                let t = lower + (upper - lower) * Double(k) / 64
-                return (t, try f(t))
-            }
-            var refined: [(s: Double, f: Double)] = [samples[0]]
-            for k in 1..<samples.count {
-                if k + 1 < samples.count, samples[k].f <= samples[k - 1].f, samples[k].f <= samples[k + 1].f, samples[k].f > 0 {
-                    var (a, b) = (samples[k - 1].s, samples[k + 1].s)
-                    for _ in 0..<80 {
-                        let (c, d) = (b - ratio * (b - a), a + ratio * (b - a))
-                        if try f(c) < f(d) { b = d } else { a = c }
-                    }
-                    let middle = 0.5 * (a + b), value = try f(middle)
-                    if value < samples[k].f {
-                        refined += middle < samples[k].s ? [(middle, value), samples[k]] : [samples[k], (middle, value)]
-                        continue
-                    }
-                }
-                refined.append(samples[k])
-            }
-            for k in refined.indices {
-                let (a, fa) = refined[k]
-                if fa == 0 { consider(lateral(try curve.point(at: a, tolerance: tolerance))); continue }
-                guard k + 1 < refined.count else { continue }
-                let fb = refined[k + 1].f
-                if fa * fb < 0 {
-                    var (low, high, flow) = (a, refined[k + 1].s, fa)
-                    for _ in 0..<60 {
-                        let middle = 0.5 * (low + high), fm = try f(middle)
-                        if (fm < 0) == (flow < 0) { (low, flow) = (middle, fm) } else { high = middle }
-                    }
-                    consider(lateral(try curve.point(at: 0.5 * (low + high), tolerance: tolerance)))
+            let roots = try intersector.intersections(curve: .bSpline(span), surface: cylinder,
+                options: .init(curveRange: ScalarInterval(lower: lower, upper: upper)), tolerance: tolerance)
+            for root in roots {
+                let offset = root.point - sectionOrigin
+                let contact = (first: offset.dot(sectionAxes.first), second: offset.dot(sectionAxes.second))
+                if !contacts.contains(where: { hypot($0.first - contact.first, $0.second - contact.second) <= tolerance.distance }) {
+                    contacts.append(contact)
                 }
             }
         }
-        return best
+        func gap(_ contact: (first: Double, second: Double)) -> Double {
+            hypot(contact.first - previous.first, contact.second - previous.second)
+        }
+        guard let nearest = contacts.min(by: { gap($0) < gap($1) }) else { return nil }
+        let selected = gap(nearest)
+        guard contacts.allSatisfy({ candidate in
+            candidate == nearest || gap(candidate) > selected + 2 * tolerance.distance
+        }) else {
+            throw KernelError(phase: .geometry, code: .ambiguousSelection, tolerance: tolerance,
+                message: "Sliding section contacts do not resolve one nearest retained branch.")
+        }
+        return nearest
     }
 }

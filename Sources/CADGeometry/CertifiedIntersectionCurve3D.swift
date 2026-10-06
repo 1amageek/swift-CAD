@@ -2,7 +2,7 @@ import CADCore
 
 /// A directly evaluable certified intersection curve whose source surface
 /// parameterizations are not regular across its complete parameter domain.
-public enum CertifiedIntersectionCurve3D: Codable, Hashable, Sendable {
+public enum CertifiedIntersectionCurve3D: Hashable, Sendable {
     case sphereCone(CertifiedSphereConeIntersectionCurve)
     case coneCone(CertifiedConeConeIntersectionCurve)
     case coneCylinder(CertifiedConeCylinderIntersectionCurve)
@@ -177,3 +177,7 @@ public enum CertifiedIntersectionCurve3D: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedIntersectionCurve3D: Codable {}
+#endif

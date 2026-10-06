@@ -30,8 +30,17 @@ public struct DefaultBRepRepairer: BRepRepairing {
         var repaired = model
         var changes: [BRepRepairChange] = []
         var diagnostics: [BRepRepairDiagnostic] = []
+        var collapsedCurves: [BRepRepairCollapsedCurve] = []
         let requestedActions = Set(request.actions)
-        for action in BRepRepairAction.allCases where requestedActions.contains(action) {
+        let orderedActions: [BRepRepairAction] = [.deduplicateOwnershipReferences,
+            .reconstructCurveRepresentations, .sewWireVertices, .removeDuplicateWireUses,
+            .collapseSmallWireEdges, .reorderAndOrientLoopCoedges, .restoreSingularBoundaryUses, .restorePeriodicCharts,
+            .removeDuplicateFaces, .sewShellEdges, .orientShellFaces, .orientSolidComponents, .pruneUnreferencedTopology]
+        for action in orderedActions where requestedActions.contains(action) {
+            try Task.checkCancellation()
+            let previous = repaired
+            let previousCollapsedCurves = collapsedCurves
+            let firstChange = changes.count
             switch action {
             case .deduplicateOwnershipReferences:
                 deduplicateOwnershipReferences(
@@ -45,11 +54,54 @@ public struct DefaultBRepRepairer: BRepRepairing {
                     changes: &changes,
                     diagnostics: &diagnostics
                 )
+            case .reconstructCurveRepresentations:
+                try BoundedBRepRepairEngine().reconstructCurves(model: &repaired, tolerance: tolerance,
+                    changes: &changes, diagnostics: &diagnostics)
+            case .sewWireVertices:
+                try BoundedBRepRepairEngine().sewVertices(model: &repaired, tolerance: tolerance, changes: &changes)
+            case .removeDuplicateWireUses:
+                try BoundedBRepRepairEngine().removeDuplicateUses(model: &repaired, tolerance: tolerance, changes: &changes)
+            case .collapseSmallWireEdges:
+                try BoundedBRepRepairEngine().collapseSmallEdges(model: &repaired, tolerance: tolerance,
+                    changes: &changes, collapsedCurves: &collapsedCurves)
+            case .restoreSingularBoundaryUses:
+                try OriginalCollapsedWireRestorer().restore(model: &repaired, tolerance: tolerance,
+                    changes: &changes, diagnostics: &diagnostics)
+            case .restorePeriodicCharts:
+                try BoundedBRepRepairEngine().restoreCharts(model: &repaired, tolerance: tolerance, changes: &changes)
+            case .removeDuplicateFaces:
+                try OriginalDuplicateFaceRepair().repair(model: &repaired,tolerance:tolerance,changes: &changes)
+            case .sewShellEdges:
+                try BoundedBRepRepairEngine().sewShellEdges(model: &repaired, tolerance: tolerance, changes: &changes)
+            case .orientShellFaces:
+                try BoundedBRepRepairEngine().orientShells(model: &repaired, tolerance: tolerance,
+                    changes: &changes, diagnostics: &diagnostics)
+            case .orientSolidComponents:
+                try BoundedBRepRepairEngine().orientSolidComponents(model: &repaired,tolerance: tolerance,
+                    changes: &changes,diagnostics: &diagnostics)
             case .pruneUnreferencedTopology:
                 pruneUnreferencedTopology(
                     model: &repaired,
                     changes: &changes
                 )
+            }
+            let displacement = try BRepRepairAudit().maximumDisplacement(
+                from: model, to: repaired, collapsedCurves: collapsedCurves, tolerance: tolerance)
+            if displacement > tolerance.distance {
+                repaired = previous
+                collapsedCurves = previousCollapsedCurves
+                changes.removeSubrange(firstChange..<changes.count)
+                diagnostics.append(.init(action: action, code: .topologyFailure,
+                    message: "The candidate action exceeded cumulative displacement from the original source and was rolled back."))
+                continue
+            }
+            if repaired != previous {
+                let delta = BRepRepairAudit().entityDelta(from: previous, to: repaired)
+                changes.append(.init(action: action, scope: .references,
+                    affectedEntityIDs: delta.affected,
+                    message: "Audited accepted source changes against the original cumulative displacement allowance.",
+                    maximumDisplacement: displacement,
+                    generatedEntityIDs: delta.generated, deletedEntityIDs: delta.deleted))
             }
         }
         let after = try validator.report(
@@ -102,6 +154,7 @@ public struct DefaultBRepRepairer: BRepRepairing {
         for scope: TopologyValidationScope,
         actions: [BRepRepairAction]
     ) -> BRepRepairAction? {
+        if let specific = actions.first(where: { $0.requiredValidationScopes.contains(scope) && $0 != .deduplicateOwnershipReferences && $0 != .pruneUnreferencedTopology && $0 != .reorderAndOrientLoopCoedges }) { return specific }
         switch scope {
         case .references:
             if actions.contains(.deduplicateOwnershipReferences) {
@@ -485,7 +538,8 @@ public struct DefaultBRepRepairer: BRepRepairing {
             action: action,
             scope: scope,
             affectedEntityIDs: entityIDs.sorted(),
-            message: message
+            message: message,
+            deletedEntityIDs: action == .pruneUnreferencedTopology ? entityIDs.sorted() : []
         ))
     }
 

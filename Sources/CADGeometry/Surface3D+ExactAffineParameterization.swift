@@ -11,9 +11,11 @@ extension Surface3D {
             return ExactAffineBSplineSurfacePatch(surface) != nil
         case .cylinder, .analytic:
             return false
+        case let .procedural(.originalImage(image)):
+            return image.source.hasExactAffineParameterization
         case let .procedural(.offset(surface)):
             return surface.source.hasExactAffineParameterization
-        case .procedural(.ruled), .procedural(.rollingBall):
+        case .procedural(.originalAffineWord), .procedural(.originalAngularTransport), .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             return false
         }
     }
@@ -27,6 +29,23 @@ extension Surface3D {
         try validate(tolerance: tolerance)
         try point.validate()
         switch self {
+        case let .procedural(.originalImage(image)):
+            guard image.source.hasExactAffineParameterization else { return nil }
+            let base = try image.parameterDerivatives(u: 0, v: 0, tolerance: tolerance)
+            let offset = point - base.position
+            let uu = base.tangentU.dot(base.tangentU), uv = base.tangentU.dot(base.tangentV)
+            let vv = base.tangentV.dot(base.tangentV), determinant = uu * vv - uv * uv
+            guard determinant.isFinite, determinant > 0 else {
+                throw KernelError(phase: .geometry, code: .singularGeometry, tolerance: tolerance,
+                    message: "Original affine image parameter frame is singular.")
+            }
+            let u = (offset.dot(base.tangentU) * vv - offset.dot(base.tangentV) * uv) / determinant
+            let v = (offset.dot(base.tangentV) * uu - offset.dot(base.tangentU) * uv) / determinant
+            let projected = base.position + base.tangentU * u + base.tangentV * v
+            let residual = (point - projected).length
+            return residual <= tolerance.distance ? .projected(try .init(u: u, v: v,
+                point: projected, residual: residual)) : .outsideTolerance(residual: residual)
+
         case .plane, .analytic(.plane):
             return try parameterProjectionResult(
                 of: point,
@@ -48,7 +67,7 @@ extension Surface3D {
                 of: point,
                 tolerance: tolerance
             )
-        case .procedural(.ruled), .procedural(.rollingBall):
+        case .procedural(.originalAffineWord), .procedural(.originalAngularTransport), .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             return nil
         }
     }

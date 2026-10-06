@@ -49,12 +49,17 @@ package struct PolySplineG2CapBuilder {
 
     /// The sectors' nets of degree eight (rows along v, points along u), in order.
     package func caps(apex: Point3D, sectors: [Sector]) throws -> [[[Point3D]]] {
+        try Task.checkCancellation()
         let n = sectors.count
         let m = Self.degree
         guard n >= 3, n != 4,
               sectors.allSatisfy({ $0.acrossU.count == 4 && $0.acrossU.allSatisfy { $0.count == 4 }
                   && $0.acrossV.count == 4 && $0.acrossV.allSatisfy { $0.count == 4 } }) else {
             throw failure(.invalidInput, "A PolySplines G2 cap needs three or more sectors other than four, each beside bicubic patches.")
+        }
+        let sectorControlCount = try checkedProduct(n, (m + 1) * (m + 1), message: "A PolySplines G2 cap exceeded its sector control-point range.")
+        guard sectorControlCount <= Self.maximumMatrixElements else {
+            throw failure(.resourceLimitExceeded, "A PolySplines G2 cap exceeded its sector control-point budget.")
         }
         // The rows fixed by the regular patches: q[k][i][j], i along u, j along v.
         var fixed: [Key: Point3D] = [:]
@@ -69,6 +74,7 @@ package struct PolySplineG2CapBuilder {
             fixed[key] = point
         }
         for (k, sector) in sectors.enumerated() {
+            try Task.checkCancellation()
             // Beyond u = 1: each row j of the cap from the neighbour's curves along v at its first
             // three u columns, raised to degree m, carried back across the side.
             let alongV = (0..<3).map { a in elevated(sector.acrossU.map { $0[a] }, to: m) }
@@ -139,9 +145,16 @@ package struct PolySplineG2CapBuilder {
         }
         let c = cos(2 * Double.pi / Double(n))
         let second = -6 * c * c / (1 + c)
-        var constraints: [(row: [Double], constant: Vector3D)] = []
         let samples = m + 5
+        let constraintCount = try checkedProduct(n, samples * 2, message: "A PolySplines G2 cap exceeded its constraint count range.")
+        guard constraintCount <= Self.maximumMatrixElements else {
+            throw failure(.resourceLimitExceeded, "A PolySplines G2 cap exceeded its constraint storage budget.")
+        }
+        _ = try checkedMatrixElementCountForAdmission(unknowns, constraintCount)
+        var constraints: [(row: [Double], constant: Vector3D)] = []
+        constraints.reserveCapacity(constraintCount)
         for k in 0..<n {
+            try Task.checkCancellation()
             for l in 0..<samples {
                 let u = 0.5 - 0.5 * cos(Double.pi * Double(l) / Double(samples - 1))
                 let fade = (1 - u) * (1 - u) * (1 - u)
@@ -156,8 +169,15 @@ package struct PolySplineG2CapBuilder {
             }
         }
         // Thin-plate energy, by eight-point Gauss–Legendre over each sector.
+        let energyCount = try checkedProduct(n, Self.energyRowsPerSector, message: "A PolySplines G2 cap exceeded its energy row count range.")
+        guard energyCount <= Self.maximumMatrixElements else {
+            throw failure(.resourceLimitExceeded, "A PolySplines G2 cap exceeded its energy storage budget.")
+        }
+        _ = try checkedMatrixElementCountForAdmission(unknowns, energyCount)
         var energy: [(row: [Double], constant: Vector3D)] = []
+        energy.reserveCapacity(energyCount)
         for k in 0..<n {
+            try Task.checkCancellation()
             for (s, ws) in Self.gauss {
                 for (t, wt) in Self.gauss {
                     for (ds, dt, weight) in [(2, 0, 1.0), (1, 1, 2.0), (0, 2, 1.0)] {
@@ -168,6 +188,7 @@ package struct PolySplineG2CapBuilder {
                 }
             }
         }
+        try Task.checkCancellation()
         let solution = try constrainedLeastSquares(constraints: constraints, energy: energy, unknowns: unknowns)
         // Every condition must hold to roundoff of the cap's size.
         let points = Array(fixed.values) + [apex]
@@ -182,7 +203,8 @@ package struct PolySplineG2CapBuilder {
                 throw failure(.singularSystem, "A PolySplines G2 cap cannot meet its continuity conditions.")
             }
         }
-        return (0..<n).map { k in
+        try Task.checkCancellation()
+        let nets = (0..<n).map { k in
             (0...m).map { j in
                 (0...m).map { i in
                     let (index, point) = slot(k, i, j)
@@ -191,6 +213,316 @@ package struct PolySplineG2CapBuilder {
                 }
             }
         }
+        try certifyAdmission(nets: nets, sectors: sectors, apex: apex, c: c, second: second, allowance: allowance)
+        return nets
+    }
+
+    private static let maximumMatrixElements = 1 << 22
+    private static let energyRowsPerSector = 8 * 8 * 3
+
+    private func checkedProduct(_ first: Int, _ second: Int, message: String) throws -> Int {
+        let result = first.multipliedReportingOverflow(by: second)
+        guard result.overflow == false else { throw failure(.resourceLimitExceeded, message) }
+        return result.partialValue
+    }
+
+    /// The matrix element budget used by every allocation in the cap's admission and QR path.
+    /// This is package-visible only so the focused admission tests exercise the production guard.
+    package func checkedMatrixElementCountForAdmission(_ first: Int, _ second: Int) throws -> Int {
+        let result = first.multipliedReportingOverflow(by: second)
+        guard result.overflow == false, result.partialValue <= Self.maximumMatrixElements else {
+            throw failure(.resourceLimitExceeded, "A PolySplines G2 cap exceeded its matrix storage budget.")
+        }
+        return result.partialValue
+    }
+
+    // MARK: - Admission
+
+    private typealias Interval = OutwardScalarInterval
+    private typealias IntervalVector = IntervalVector3DBounds
+
+    private func certifyAdmission(
+        nets: [[[Point3D]]],
+        sectors: [Sector],
+        apex: Point3D,
+        c: Double,
+        second: Double,
+        allowance: Double
+    ) throws {
+        try Task.checkCancellation()
+        let n = nets.count
+        let match = tolerance.distance * 1e-6
+        let fade: [Interval] = [.exact(1), .exact(0), .exact(0), .exact(0)]
+        let b = scale(fade, by: 2 * c)
+        let d = scale(fade, by: second)
+        let e = d
+        for k in 0..<n {
+            try Task.checkCancellation()
+            let next = nets[(k + 1) % n]
+            let current = nets[k]
+            let g1 = add(
+                derivative(next, fixingFirst: false, atUpper: false, firstOrder: 0, secondOrder: 1),
+                derivative(current, fixingFirst: true, atUpper: false, firstOrder: 1, secondOrder: 0)
+            )
+            let g1Residual = subtract(g1, multiply(
+                derivative(current, fixingFirst: true, atUpper: false, firstOrder: 0, secondOrder: 1),
+                b
+            ))
+            try certifyAdmissionResidual(g1Residual, allowance: allowance, message: "A PolySplines G2 cap failed its whole-edge G1 enclosure.")
+
+            var g2 = subtract(
+                derivative(next, fixingFirst: false, atUpper: false, firstOrder: 0, secondOrder: 2),
+                derivative(current, fixingFirst: true, atUpper: false, firstOrder: 2, secondOrder: 0)
+            )
+            g2 = add(g2, multiply(
+                derivative(current, fixingFirst: true, atUpper: false, firstOrder: 1, secondOrder: 1),
+                scale(b, by: 2)
+            ))
+            g2 = subtract(g2, multiply(
+                derivative(current, fixingFirst: true, atUpper: false, firstOrder: 0, secondOrder: 2),
+                multiply(b, b)
+            ))
+            g2 = subtract(g2, multiply(
+                derivative(current, fixingFirst: true, atUpper: false, firstOrder: 0, secondOrder: 1),
+                scale(d, by: 2)
+            ))
+            g2 = subtract(g2, multiply(
+                derivative(current, fixingFirst: true, atUpper: false, firstOrder: 1, secondOrder: 0),
+                scale(e, by: 2)
+            ))
+            try certifyAdmissionResidual(g2, allowance: allowance, message: "A PolySplines G2 cap failed its whole-edge G2 enclosure.")
+
+            try certifyAdmissionRegularity(current, fixingFirst: false, atUpper: false)
+            try certifyAdmissionRegularity(current, fixingFirst: true, atUpper: false)
+            try certifyAdmissionRegularity(current, fixingFirst: false, atUpper: true)
+            try certifyAdmissionRegularity(current, fixingFirst: true, atUpper: true)
+            try certifyTaylorBoundary(cap: current, neighbor: sectors[k].acrossU, fixingFirst: true, match: match)
+            try certifyTaylorBoundary(cap: current, neighbor: sectors[k].acrossV, fixingFirst: false, match: match)
+        }
+        _ = apex
+    }
+
+    package func certifyAdmissionResidual(
+        _ residual: [IntervalVector3DBounds],
+        allowance: Double,
+        message: String = "A PolySplines G2 cap failed its whole-edge residual enclosure."
+    ) throws {
+        let bound = residual.reduce(0.0) { max($0, $1.lengthUpperBound) }
+        guard bound.isFinite else { throw failure(.resourceLimitExceeded, "A PolySplines G2 cap residual exceeded finite arithmetic range.") }
+        guard bound <= allowance else { throw failure(.singularSystem, message) }
+    }
+
+    package func certifyAdmissionRegularity(
+        _ net: [[Point3D]],
+        fixingFirst: Bool,
+        atUpper: Bool
+    ) throws {
+        let tangentU = derivative(net, fixingFirst: fixingFirst, atUpper: atUpper, firstOrder: 1, secondOrder: 0)
+        let tangentV = derivative(net, fixingFirst: fixingFirst, atUpper: atUpper, firstOrder: 0, secondOrder: 1)
+        let cross = crossProduct(tangentU, tangentV)
+        let tangentUBounds = bounds(tangentU)
+        let tangentVBounds = bounds(tangentV)
+        let crossBounds = bounds(cross)
+        let tangentULower = tangentUBounds.lengthLowerBound
+        let tangentVLower = tangentVBounds.lengthLowerBound
+        let tangentUUpper = tangentUBounds.lengthUpperBound
+        let tangentVUpper = tangentVBounds.lengthUpperBound
+        let crossLower = crossBounds.lengthLowerBound
+        guard tangentULower > tolerance.distance,
+              tangentVLower > tolerance.distance,
+              tangentUUpper.isFinite,
+              tangentVUpper.isFinite,
+              crossLower.isFinite else {
+            throw failure(.singularSystem, "A PolySplines G2 cap has an unproved tangent regularity interval.")
+        }
+        let sineTolerance = max(
+            sin(min(tolerance.angle, Double.pi * 0.5)),
+            tolerance.relative,
+            Double.ulpOfOne * 256
+        )
+        guard crossLower > sineTolerance * tangentUUpper * tangentVUpper else {
+            throw failure(.singularSystem, "A PolySplines G2 cap has an unproved surface normal interval.")
+        }
+    }
+
+    private func certifyTaylorBoundary(
+        cap: [[Point3D]],
+        neighbor: [[Point3D]],
+        fixingFirst: Bool,
+        match: Double
+    ) throws {
+        for order in 0...2 {
+            // The Taylor data are normal derivatives: acrossU fixes the first parameter and
+            // acrossV fixes the second. The remaining parameter is the boundary curve.
+            let firstOrder = fixingFirst ? order : 0
+            let secondOrder = fixingFirst ? 0 : order
+            let capBoundary = derivative(cap, fixingFirst: fixingFirst, atUpper: true, firstOrder: firstOrder, secondOrder: secondOrder)
+            let neighborBoundary = derivative(neighbor, fixingFirst: fixingFirst, atUpper: false, firstOrder: firstOrder, secondOrder: secondOrder)
+            let residual = subtract(capBoundary, neighborBoundary)
+            let bound = residual.reduce(0.0) { max($0, $1.lengthUpperBound) }
+            guard bound.isFinite else { throw failure(.resourceLimitExceeded, "A PolySplines G2 cap Taylor boundary exceeded finite arithmetic range.") }
+            guard bound <= match else { throw failure(.invalidInput, "A PolySplines G2 cap Taylor boundary exceeded its neighbor rounding allowance.") }
+        }
+    }
+
+    private func derivative(
+        _ net: [[Point3D]],
+        fixingFirst: Bool,
+        atUpper: Bool,
+        firstOrder: Int,
+        secondOrder: Int
+    ) -> [IntervalVector] {
+        var values = net.map { $0.map(intervalVector) }
+        // Nets are stored as [v][u]. `firstOrder` is the first (u) parameter and
+        // `secondOrder` is the second (v) parameter, matching the solver equations above.
+        for _ in 0..<firstOrder {
+            let degree = values[0].count - 1
+            values = values.map { row in
+                (0..<degree).map { column in
+                    subtract(row[column + 1], row[column], scale: Double(degree))
+                }
+            }
+        }
+        for _ in 0..<secondOrder {
+            let degree = values.count - 1
+            values = (0..<degree).map { row in
+                values[row + 1].indices.map { column in
+                    subtract(values[row + 1][column], values[row][column], scale: Double(degree))
+                }
+            }
+        }
+        if fixingFirst {
+            let column = atUpper ? values[0].count - 1 : 0
+            return values.map { $0[column] }
+        }
+        return values[atUpper ? values.count - 1 : 0]
+    }
+
+    private func intervalVector(_ point: Point3D) -> IntervalVector {
+        IntervalVector(x: .exact(point.x), y: .exact(point.y), z: .exact(point.z))
+    }
+
+    private func bounds(_ values: [IntervalVector]) -> IntervalVector {
+        IntervalVector(
+            x: .enclosing(values.map(\.x)),
+            y: .enclosing(values.map(\.y)),
+            z: .enclosing(values.map(\.z))
+        )
+    }
+
+    private func subtract(_ lhs: IntervalVector, _ rhs: IntervalVector) -> IntervalVector {
+        IntervalVector(x: lhs.x - rhs.x, y: lhs.y - rhs.y, z: lhs.z - rhs.z)
+    }
+
+    private func subtract(_ lhs: IntervalVector, _ rhs: IntervalVector, scale: Double) -> IntervalVector {
+        let factor = Interval(scale)
+        return IntervalVector(x: (lhs.x - rhs.x) * factor, y: (lhs.y - rhs.y) * factor, z: (lhs.z - rhs.z) * factor)
+    }
+
+    private func add(_ lhs: IntervalVector, _ rhs: IntervalVector) -> IntervalVector {
+        IntervalVector(x: lhs.x + rhs.x, y: lhs.y + rhs.y, z: lhs.z + rhs.z)
+    }
+
+    private func scale(_ value: IntervalVector, by factor: Interval) -> IntervalVector {
+        IntervalVector(x: value.x * factor, y: value.y * factor, z: value.z * factor)
+    }
+
+    private func scale(_ values: [IntervalVector], by factor: Double) -> [IntervalVector] {
+        let scalar = Interval(factor)
+        return values.map { scale($0, by: scalar) }
+    }
+
+    private func scale(_ values: [Interval], by factor: Double) -> [Interval] {
+        let scalar = Interval(factor)
+        return values.map { $0 * scalar }
+    }
+
+    private func add(_ lhs: [IntervalVector], _ rhs: [IntervalVector]) -> [IntervalVector] {
+        let degree = max(lhs.count, rhs.count) - 1
+        let first = elevated(lhs, to: degree)
+        let second = elevated(rhs, to: degree)
+        return zip(first, second).map(add)
+    }
+
+    private func subtract(_ lhs: [IntervalVector], _ rhs: [IntervalVector]) -> [IntervalVector] {
+        let degree = max(lhs.count, rhs.count) - 1
+        let first = elevated(lhs, to: degree)
+        let second = elevated(rhs, to: degree)
+        return zip(first, second).map(subtract)
+    }
+
+    private func subtract(_ lhs: [Interval], _ rhs: [Interval]) -> [Interval] {
+        let degree = max(lhs.count, rhs.count) - 1
+        let first = elevated(lhs, to: degree)
+        let second = elevated(rhs, to: degree)
+        return zip(first, second).map { $0.0 - $0.1 }
+    }
+
+    private func multiply(_ values: [IntervalVector], _ scalars: [Interval]) -> [IntervalVector] {
+        let degree = values.count + scalars.count - 2
+        var result = Array(repeating: IntervalVector(x: .exact(0), y: .exact(0), z: .exact(0)), count: degree + 1)
+        for i in values.indices {
+            for j in scalars.indices {
+                let coefficient = productCoefficient(values.count - 1, i, scalars.count - 1, j)
+                result[i + j] = add(result[i + j], scale(values[i], by: coefficient * scalars[j]))
+            }
+        }
+        return result
+    }
+
+    private func multiply(_ lhs: [Interval], _ rhs: [Interval]) -> [Interval] {
+        let degree = lhs.count + rhs.count - 2
+        var result = Array(repeating: Interval.exact(0), count: degree + 1)
+        for i in lhs.indices {
+            for j in rhs.indices {
+                result[i + j] = result[i + j] + lhs[i] * rhs[j] * productCoefficient(lhs.count - 1, i, rhs.count - 1, j)
+            }
+        }
+        return result
+    }
+
+    private func crossProduct(_ lhs: [IntervalVector], _ rhs: [IntervalVector]) -> [IntervalVector] {
+        let x = subtract(multiply(lhs.map(\.y), rhs.map(\.z)), multiply(lhs.map(\.z), rhs.map(\.y)))
+        let y = subtract(multiply(lhs.map(\.z), rhs.map(\.x)), multiply(lhs.map(\.x), rhs.map(\.z)))
+        let z = subtract(multiply(lhs.map(\.x), rhs.map(\.y)), multiply(lhs.map(\.y), rhs.map(\.x)))
+        return zip(zip(x, y), z).map { xy, zValue in IntervalVector(x: xy.0, y: xy.1, z: zValue) }
+    }
+
+    private func elevated(_ values: [IntervalVector], to degree: Int) -> [IntervalVector] {
+        var result = values
+        while result.count - 1 < degree {
+            let currentDegree = result.count - 1
+            var next = [result[0]]
+            for index in 1..<result.count {
+                let alpha = Interval(Double(index) / Double(currentDegree + 1))
+                next.append(add(scale(result[index - 1], by: alpha), scale(result[index], by: Interval(1) - alpha)))
+            }
+            next.append(result[result.count - 1])
+            result = next
+        }
+        return result
+    }
+
+    private func elevated(_ values: [Interval], to degree: Int) -> [Interval] {
+        var result = values
+        while result.count - 1 < degree {
+            let currentDegree = result.count - 1
+            var next = [result[0]]
+            for index in 1..<result.count {
+                let alpha = Interval(Double(index) / Double(currentDegree + 1))
+                next.append(result[index - 1] * alpha + result[index] * (Interval(1) - alpha))
+            }
+            next.append(result[result.count - 1])
+            result = next
+        }
+        return result
+    }
+
+    private func productCoefficient(_ firstDegree: Int, _ firstIndex: Int, _ secondDegree: Int, _ secondIndex: Int) -> Interval {
+        Interval(
+            binomial(firstDegree, firstIndex) * binomial(secondDegree, secondIndex)
+                / binomial(firstDegree + secondDegree, firstIndex + secondIndex)
+        )
     }
 
     // MARK: - Linear algebra
@@ -201,7 +533,8 @@ package struct PolySplineG2CapBuilder {
     private func constrainedLeastSquares(constraints: [(row: [Double], constant: Vector3D)],
                                          energy: [(row: [Double], constant: Vector3D)], unknowns: Int) throws -> [Vector3D] {
         let count = constraints.count
-        var transpose = Array(repeating: 0.0, count: unknowns * count)
+        let transposeCount = try checkedMatrixElementCountForAdmission(unknowns, count)
+        var transpose = Array(repeating: 0.0, count: transposeCount)
         for (r, constraint) in constraints.enumerated() {
             for u in 0..<unknowns { transpose[u * count + r] = constraint.row[u] }
         }
@@ -230,7 +563,8 @@ package struct PolySplineG2CapBuilder {
             nullSpace.append(try qr.applyingQ(to: unit))
         }
         // The energy over x = particular + Z w.
-        var reduced = Array(repeating: 0.0, count: energy.count * freedom)
+        let reducedCount = try checkedMatrixElementCountForAdmission(energy.count, freedom)
+        var reduced = Array(repeating: 0.0, count: reducedCount)
         var rightHandSide = Array(repeating: Vector3D.zero, count: energy.count)
         for (r, row) in energy.enumerated() {
             var offset = row.constant

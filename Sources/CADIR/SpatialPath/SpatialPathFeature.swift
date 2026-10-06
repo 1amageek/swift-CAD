@@ -1,10 +1,9 @@
-import Foundation
 import CADCore
 import CADGeometry
 
-public struct SpatialPathFeature: Codable, Hashable, Sendable {
-    public enum Kind: String, Codable, Sendable { case polyline, bezier }
-    public enum Handle: String, Codable, Sendable { case position, incoming, outgoing }
+public struct SpatialPathFeature: Hashable, Sendable {
+    public enum Kind: String, Sendable { case polyline, bezier }
+    public enum Handle: String, Sendable { case position, incoming, outgoing }
 
     public var kind: Kind
     public var knots: [SpatialPathKnot]
@@ -60,7 +59,7 @@ public struct SpatialPathFeature: Codable, Hashable, Sendable {
     }
 
     public mutating func move(
-        knotID: UUID, handle: Handle, to point: Point3D, tolerance: ModelingTolerance
+        knotID: SpatialPathKnotID, handle: Handle, to point: Point3D, tolerance: ModelingTolerance
     ) throws {
         try update(tolerance: tolerance) { result in
             let index = try result.index(of: knotID)
@@ -96,7 +95,7 @@ public struct SpatialPathFeature: Codable, Hashable, Sendable {
     }
 
     public mutating func setMode(
-        _ mode: SpatialPathKnot.Mode, knotID: UUID, tolerance: ModelingTolerance
+        _ mode: SpatialPathKnot.Mode, knotID: SpatialPathKnotID, tolerance: ModelingTolerance
     ) throws {
         try update(tolerance: tolerance) { result in
             guard result.kind == .bezier else {
@@ -127,9 +126,9 @@ public struct SpatialPathFeature: Codable, Hashable, Sendable {
 
     @discardableResult
     public mutating func insert(
-        after knotID: UUID, fraction: Double, tolerance: ModelingTolerance
-    ) throws -> UUID {
-        let insertedID = UUID()
+        after knotID: SpatialPathKnotID, fraction: Double, tolerance: ModelingTolerance
+    ) throws -> SpatialPathKnotID {
+        let insertedID = SpatialPathKnotID()
         try update(tolerance: tolerance) { result in
             let index = try result.index(of: knotID)
             guard index < result.segmentCount, fraction.isFinite, fraction > 0, fraction < 1 else {
@@ -163,7 +162,7 @@ public struct SpatialPathFeature: Codable, Hashable, Sendable {
         return insertedID
     }
 
-    public mutating func remove(knotID: UUID, tolerance: ModelingTolerance) throws {
+    public mutating func remove(knotID: SpatialPathKnotID, tolerance: ModelingTolerance) throws {
         try update(tolerance: tolerance) { result in
             result.knots.remove(at: try result.index(of: knotID))
         }
@@ -180,7 +179,7 @@ public struct SpatialPathFeature: Codable, Hashable, Sendable {
         }
     }
 
-    private func index(of id: UUID) throws -> Int {
+    private func index(of id: SpatialPathKnotID) throws -> Int {
         guard let index = knots.firstIndex(where: { $0.id == id }) else {
             throw FeatureEvaluationError.missingInput("Spatial path knot no longer exists.")
         }
@@ -197,8 +196,11 @@ public struct SpatialPathFeature: Codable, Hashable, Sendable {
         self = result
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey { case kind, knots, isClosed }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         try values.validateOnlyExpectedKeys([.kind, .knots, .isClosed], in: decoder)
@@ -209,7 +211,9 @@ public struct SpatialPathFeature: Codable, Hashable, Sendable {
         )
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var values = encoder.container(keyedBy: CodingKeys.self)
@@ -217,4 +221,11 @@ public struct SpatialPathFeature: Codable, Hashable, Sendable {
         try values.encode(knots, forKey: .knots)
         try values.encode(isClosed, forKey: .isClosed)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SpatialPathFeature: Codable {}
+extension SpatialPathFeature.Kind: Codable {}
+extension SpatialPathFeature.Handle: Codable {}
+#endif

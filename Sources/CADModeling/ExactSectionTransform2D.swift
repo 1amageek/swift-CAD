@@ -95,6 +95,10 @@ package struct ExactSectionTransform2D: Sendable, Hashable {
         self.m22 = m22
     }
 
+    package var isTerminalCollapse: Bool {
+        m11 == 0 && m12 == 0 && m21 == 0 && m22 == 0
+    }
+
     package var determinant: Double {
         m11 * m22 - m12 * m21
     }

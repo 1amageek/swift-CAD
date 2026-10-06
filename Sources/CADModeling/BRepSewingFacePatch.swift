@@ -25,6 +25,22 @@ public struct BRepSewingFacePatch: Sendable {
         self.parentSubshapeIDs = Array(Set(parentSubshapeIDs)).sorted()
     }
 
+    package init(
+        stableID: String, surface: Surface3D, orientation: Orientation,
+        loops: [BRepSewingLoop], parentSubshapeIDs: [SubshapeID] = [],
+        consumeWork: @Sendable (Int) throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)?
+    ) throws {
+        try Task.checkCancellation()
+        try consumeWork(0)
+        self.stableID = stableID
+        self.surface = surface
+        self.orientation = orientation
+        self.loops = loops
+        self.parentSubshapeIDs = try AdmittedSewingProvenance.canonical(parentSubshapeIDs,
+            consumeWork: consumeWork, consumeStorage: consumeStorage)
+    }
+
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
         do {
@@ -69,5 +85,16 @@ public struct BRepSewingFacePatch: Sendable {
                 )
             }
         }
+    }
+
+    /// Admits the original patch value invariants with the composing caller's allowance.
+    public func validate(tolerance: ModelingTolerance, maximumSpanCount: Int,
+        maximumSubdivisionDepth: Int, remainingSourceDepth: Int, maximumAlgebraicDepth: Int = 32,
+        consumeWork: @escaping @Sendable (Int) throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)? = nil) throws {
+        try OriginalSewingPatchValidator(maximumSpanCount: maximumSpanCount,
+            maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
+            maximumAlgebraicDepth: maximumAlgebraicDepth, consumeWork: consumeWork,
+            consumeStorage: consumeStorage).validate(self, tolerance: tolerance)
     }
 }

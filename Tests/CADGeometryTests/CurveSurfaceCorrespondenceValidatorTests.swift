@@ -5,6 +5,98 @@ import Foundation
 
 @Suite("Certified curve-surface correspondence")
 struct CurveSurfaceCorrespondenceValidatorTests {
+    private func flatC0Fixture(height: Double) -> (curve: Curve3D, surface: Surface3D) {
+        let parameters = [0.0, 1.0 / 32, 1.0 / 16, 1.0]
+        let curve = BSplineCurve3D(degree: 1,
+            knots: [0, 0, 1.0 / 32, 1.0 / 16, 1, 1],
+            controlPoints: parameters.enumerated().map { index, parameter in
+                Point3D(x: parameter, y: 0.5, z: index == 1 ? height : 0)
+            })
+        let surface = BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
+            controlPoints: [0.0, 1.0].map { v in
+                [0.0, 1.0].map { Point3D(x: $0, y: v, z: 0) }
+            })
+        return (.bSpline(curve), .bSpline(surface))
+    }
+
+    private func flatC0Pcurve(from start: Double, to end: Double) -> SurfaceParameterCurve {
+        // A single polyline span selects the public adaptive correspondence
+        // proof, rather than a structural affine or isoparametric comparison.
+        .polyline([SurfaceParameter(u: start, v: 0.5), SurfaceParameter(u: end, v: 0.5)])
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func spatialC0BulgeCannotUsePerSpanZeroCurvature(_ reversed: Bool) throws {
+        let tolerance = ModelingTolerance.standard
+        let height = tolerance.distance * 8
+        let fixture = flatC0Fixture(height: height)
+        let peak = try fixture.curve.point(at: 1.0 / 32, tolerance: tolerance)
+        let flat = try fixture.surface.point(u: 1.0 / 32, v: 0.5, tolerance: tolerance)
+        #expect(abs((peak - flat).length - height) <= Double.ulpOfOne * height * 8)
+        #expect((peak - flat).length > tolerance.distance)
+        let start = reversed ? 1.0 : 0, end = reversed ? 0.0 : 1
+        #expect(throws: KernelError.self) {
+            try DefaultCurveSurfaceCorrespondenceValidator().validate(
+                curve: fixture.curve, from: start, to: end, surface: fixture.surface,
+                parameterCurve: flatC0Pcurve(from: start, to: end),
+                options: CurveSurfaceCorrespondenceValidationOptions(
+                    maximumSubdivisionDepth: 32, maximumCellCount: 65_536,
+                    maximumDeviation: tolerance.distance), tolerance: tolerance)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
+    func continuousC0BulgeWithinAllowanceRetainsItsNativeBoundary(_ reversed: Bool) throws {
+        let tolerance = ModelingTolerance.standard
+        let fixture = flatC0Fixture(height: tolerance.distance * 0.25)
+        let validator = DefaultCurveSurfaceCorrespondenceValidator()
+        let start = reversed ? 1.0 : 0, end = reversed ? 0.0 : 1
+        try validator.validate(curve: fixture.curve, from: start, to: end, surface: fixture.surface,
+            parameterCurve: flatC0Pcurve(from: start, to: end), options: options, tolerance: tolerance)
+        // A query wholly in one original span may retain its one-sided second
+        // derivative even when its closed endpoints are native C0 knots.
+        let lower = reversed ? 1.0 / 16 : 1.0 / 32
+        let upper = reversed ? 1.0 / 32 : 1.0 / 16
+        try validator.validate(curve: fixture.curve, from: lower, to: upper, surface: fixture.surface,
+            parameterCurve: flatC0Pcurve(from: lower, to: upper),
+            options: CurveSurfaceCorrespondenceValidationOptions(
+                maximumSubdivisionDepth: 1, maximumCellCount: 1,
+                maximumDeviation: tolerance.distance), tolerance: tolerance)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func c0CorrespondenceProofCannotBypassCellOrDepthLimits() throws {
+        let tolerance = ModelingTolerance.standard
+        let fixture = flatC0Fixture(height: tolerance.distance * 0.25)
+        for limits in [CurveSurfaceCorrespondenceValidationOptions(maximumSubdivisionDepth: 32, maximumCellCount: 1),
+                       CurveSurfaceCorrespondenceValidationOptions(maximumSubdivisionDepth: 1, maximumCellCount: 65_536)] {
+            do {
+                try DefaultCurveSurfaceCorrespondenceValidator().validate(
+                    curve: fixture.curve, from: 0, to: 1, surface: fixture.surface,
+                    parameterCurve: flatC0Pcurve(from: 0, to: 1), options: limits, tolerance: tolerance)
+                Issue.record("An unresolved spatial C0 crossing bypassed its correspondence proof limit.")
+            } catch let error as KernelError {
+                #expect(error.code == .resourceLimitExceeded)
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func internalPositionJumpIsRejectedBeforeCorrespondenceCertification() throws {
+        let tolerance = ModelingTolerance.standard
+        let fixture = flatC0Fixture(height: 0)
+        let curve = BSplineCurve3D(degree: 1, knots: [0, 0, 0.5, 0.5, 1, 1],
+            controlPoints: [Point3D(x: 0, y: 0.5, z: 0), Point3D(x: 0.5, y: 0.5, z: 0),
+                            Point3D(x: 0.5, y: 0.5, z: tolerance.distance * 8), Point3D(x: 1, y: 0.5, z: 0)])
+        #expect(throws: GeometryError.self) { try curve.validate(tolerance: tolerance) }
+        #expect(throws: GeometryError.self) {
+            try DefaultCurveSurfaceCorrespondenceValidator().validate(
+                curve: .bSpline(curve), from: 0, to: 1, surface: fixture.surface,
+                parameterCurve: flatC0Pcurve(from: 0, to: 1), options: options, tolerance: tolerance)
+        }
+    }
+
     @Test(.timeLimit(.minutes(1)))
     func implicitSplineTransferRefinesWithinSpanBudget() throws {
         let tolerance = ModelingTolerance.standard

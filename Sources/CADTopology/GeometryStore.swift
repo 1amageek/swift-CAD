@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-public struct GeometryStore: Codable, Equatable, Sendable {
+public struct GeometryStore: Equatable, Sendable {
     public var curves: PersistentMap<CurveID, Curve3D>
     public var surfaces: PersistentMap<SurfaceID, Surface3D>
 
@@ -10,11 +10,14 @@ public struct GeometryStore: Codable, Equatable, Sendable {
         self.surfaces = PersistentMap(surfaces)
     }
 
+    #if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case curves
         case surfaces
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.curves, .surfaces], in: decoder)
@@ -27,12 +30,15 @@ public struct GeometryStore: Codable, Equatable, Sendable {
             forKey: .surfaces
         )
     }
+    #endif
 
+    #if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(curves, forKey: .curves)
         try container.encode(surfaces, forKey: .surfaces)
     }
+    #endif
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -43,4 +49,27 @@ public struct GeometryStore: Codable, Equatable, Sendable {
             try surface.validate(tolerance: tolerance)
         }
     }
+    public func validate(tolerance: ModelingTolerance, remainingSourceDepth: Int,
+        maximumSubdivisionDepth: Int, consumeWork: @Sendable (Int) throws -> Void,
+        consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
+        maximumAlgebraicDepth: Int? = nil) throws {
+        try tolerance.validate()
+        for curve in curves.values {
+            try Task.checkCancellation(); try consumeWork(0)
+            try curve.validate(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
+                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+        }
+        for surface in surfaces.values {
+            try Task.checkCancellation(); try consumeWork(0)
+            try surface.validate(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
+                maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
+                consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+        }
+    }
+
 }
+
+#if !hasFeature(Embedded)
+extension GeometryStore: Codable {}
+#endif

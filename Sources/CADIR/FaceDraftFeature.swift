@@ -6,7 +6,7 @@ import CADTopology
 /// the pull direction, the neutral face's outward normal. A positive angle leans each face out
 /// as it runs away from the neutral plane. Planar faces stay planar; a cylinder along the pull
 /// direction becomes the cone through its circle on the neutral plane.
-public struct FaceDraftFeature: Codable, Hashable, Sendable {
+public struct FaceDraftFeature: Hashable, Sendable {
     public var target: FaceDraftTargetReference
     public var faces: [StableSubshapeReference]
     public var neutralFace: StableSubshapeReference
@@ -57,6 +57,7 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         try method.validate()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case faces
@@ -66,7 +67,9 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         case grow
         case method
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -82,7 +85,9 @@ public struct FaceDraftFeature: Codable, Hashable, Sendable {
         method = try container.decodeIfPresent(FaceDraftMethod.self, forKey: .method) ?? .isocline
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -131,9 +136,10 @@ public enum FaceDraftMethod: Codable, Hashable, Sendable {
             try reference.validate()
         }
     }
+#endif
 }
 
-public struct FaceDraftTargetReference: Codable, Hashable, Sendable {
+public struct FaceDraftTargetReference: Hashable, Sendable {
     public var featureID: FeatureID
 
     public init(featureID: FeatureID) {
@@ -142,20 +148,31 @@ public struct FaceDraftTargetReference: Codable, Hashable, Sendable {
 
     public func validate() throws {}
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID], in: decoder)
         featureID = try container.decode(FeatureID.self, forKey: .featureID)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(featureID, forKey: .featureID)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension FaceDraftFeature: Codable {}
+extension FaceDraftTargetReference: Codable {}
+#endif

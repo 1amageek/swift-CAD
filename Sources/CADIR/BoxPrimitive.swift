@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BoxPrimitive: Codable, Hashable, Sendable {
+public struct BoxPrimitive: Hashable, Sendable {
     public let placement: PrimitivePlacement
     public let width: CADExpression
     public let depth: CADExpression
@@ -25,13 +25,16 @@ public struct BoxPrimitive: Codable, Hashable, Sendable {
         try height.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case placement
         case width
         case depth
         case height
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -44,7 +47,9 @@ public struct BoxPrimitive: Codable, Hashable, Sendable {
         height = try container.decode(CADExpression.self, forKey: .height)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -53,4 +58,9 @@ public struct BoxPrimitive: Codable, Hashable, Sendable {
         try container.encode(depth, forKey: .depth)
         try container.encode(height, forKey: .height)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension BoxPrimitive: Codable {}
+#endif

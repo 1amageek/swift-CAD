@@ -48,6 +48,12 @@ corners: joint (tangent, same rise) │ mitre (sharp, same rise, lines) │ turn
   face is a plane square to the cap, or an arc whose other face is its coaxial cylinder; the wall's
   side of the cap read beside the edge's middle (a wall may cross the cap's plane elsewhere); at
   least one edge rising and one falling.
+- The public Fillet dispatcher admits this route only after the preceding `CapLoopBlendBuilder`
+  route declines the loop. A `.curvature` section requests G2 continuity, while this route's
+  turning-corner supports and certificates establish only G1. After turning-loop admission and
+  before building its sewing request, the evaluator refuses `.curvature`; round, conic and
+  chordal dispatch retain their existing contracts. This refusal does not apply to the preceding
+  cap-loop route or to other producers with their own curvature authority.
 - Bands are exact for a round: a line's rows translate (cylinder), an arc's rows turn (torus); at a
   mitre the row is the section carried along the edge onto the bisecting plane, which is the other
   edge's carried there too (checked).
@@ -59,8 +65,14 @@ corners: joint (tangent, same rise) │ mitre (sharp, same rise, lines) │ turn
   to both bands within `TurningCapLoopCornerPatchBuilder.angularAllowance` (the bands ask opposite
   twists at `P`, so the stray concentrates in the first spans from `P`) and meets the rising wall
   along the descent at the angle the walls meet along the edge.
-- The patch's sides are cubic splines through the exact curves' points and tangents within an
-  eighth of the distance tolerance; the sewn edges keep the exact curves.
+- The patch's sides are cubic splines through the exact curves' points and tangents. The side
+  owner certifies the complete original positive-weight, single-clamped-span curve against the
+  actual stored Hermite spline: outward homogeneous de Casteljau restricts each original span,
+  and Bernstein product coefficients enclose `X - W H` over its whole range. A positive
+  denominator hull turns this into an Euclidean upper bound of one eighth of the distance
+  tolerance. Both preliminary span selection and the final common-span splines require this
+  certificate; the sewn edges retain their exact original curves. Unsupported degree or span
+  families receive typed refusal, and failure to certify within 64 spans is explicit.
 - With Fillet's Attempt to create Y-Blend (`FilletFeature.yBlend`, `splitsCorners`) each corner
   patch is three faces of the same surface meeting at its middle: its isocurves u = ½ (from the
   rising section's middle to the falling wall contact's middle) and v = ½ (from the falling
@@ -78,6 +90,12 @@ Unsupported shapes throw `unsupportedCapability` before any patch is built; geom
 is a value type without shared state. A corner patch is a bicubic of at least 16 spans per
 direction; evaluation of the whole feature takes about two minutes in debug builds.
 
+The admitted turning-loop `.curvature` request throws `KernelError` with code `.unsupportedCapability` in
+the evaluation phase, retaining the requesting feature ID and modeling tolerance. This branch
+remains incomplete until every corner boundary that requires curvature continuity has a
+whole-boundary G2 certificate against the original bands and contact faces, followed by
+validated sewing and independent curvature evidence. A G2 section alone is not that certificate.
+
 ## Verification and Change Impact
 
 `StepBossFilletTests.aStepsTopLoopRoundsIntoTheBossRisingFromIt` rounds the step's top loop (two
@@ -86,3 +104,14 @@ bands' exact sections (the corner patches within their cells), every band at the
 axis, and the cut upright edges and seam; with Y-Blend the same volume, four more faces and the
 six trivalent vertices of the two Ys. Changes to `ExactHermiteCoonsSurfaceBuilder` (corner jets,
 curved-support rows) or to `CapLoopBlendBuilder.Section` re-run this test and `SquareSurfaceTests`.
+
+`StepBossFilletTests.aStepsTurningTopLoopRefusesUncertifiedCurvatureCorners` selects the same
+independent two-arc, three-line public loop and requests `.curvature`. It requires the exact
+turning-route refusal, including the feature ID, evaluation phase and tolerance. Together with
+the retained round fixture, it detects both false G2 success and an overbroad refusal of G1.
+
+`TurningCapLoopSideApproximationTests` checks an independent quartic whose interior exceeds
+the old sixth-station bound, together with line, polynomial and original rational descent
+cases. The certificate consumes the produced spline controls rather than an ideal regenerated
+curve. Changes to side subdivision, outward arithmetic or stored Hermite handles must repeat
+these whole-range fixtures and the public retained round fixture.

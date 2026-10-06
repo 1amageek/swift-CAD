@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// The area of one face and the centroid of that area.
 public struct FaceAreaMeasurement: Sendable, Equatable {
@@ -20,13 +28,16 @@ extension BRepModel {
     /// and cylindrical faces are measured in closed form; conical and toroidal faces bounded by
     /// pcurves straight in the parameter domain by a Gauss–Legendre rule whose remainder lies below
     /// double rounding; spherical faces bounded by great circles and circles of latitude in closed
-    /// form. Other supports, and boundaries these methods do not cover, throw
-    /// `unsupportedCapability`.
+    /// form. Free surfaces use exact pcurve fan integration with outward error bounds.
+    /// Area error is at most distance² + relative·area; centroid distance error is at
+    /// most distance. Unsupported derivative charts and uncertifiable integrals throw.
     public func faceAreaMeasurement(
         of faceID: FaceID,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        integrationOptions: FaceAreaIntegrationOptions = .init()
     ) throws -> FaceAreaMeasurement {
-        try BRepFaceAreaMeasurementEvaluator().measurement(of: faceID, in: self, tolerance: tolerance)
+        try BRepFaceAreaMeasurementEvaluator().measurement(of: faceID, in: self, tolerance: tolerance,
+                                                            integrationOptions: integrationOptions)
     }
 }
 
@@ -48,7 +59,8 @@ struct BRepFaceAreaMeasurementEvaluator {
     func measurement(
         of faceID: FaceID,
         in model: BRepModel,
-        tolerance: ModelingTolerance
+        tolerance: ModelingTolerance,
+        integrationOptions: FaceAreaIntegrationOptions = .init()
     ) throws -> FaceAreaMeasurement {
         try tolerance.validate()
         guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else {
@@ -66,13 +78,9 @@ struct BRepFaceAreaMeasurementEvaluator {
             return try SphericalFaceAreaIntegrator().measurement(
                 of: face, center: center, radius: radius, in: model, tolerance: tolerance
             )
-        // FIXME(INCOMPLETE_IMPLEMENTATION): B-spline, offset, ruled and rolling-ball faces are not
-        // measured: their area element |S_u × S_v| has no closed form and needs a certified
-        // enclosure. Production path: every face-area and face-center query on such a face, which
-        // is refused here with unsupportedCapability. Not complete until those supports are
-        // measured with certified bounds and tests that check them against known areas.
         default:
-            throw unsupported("Face area is measured on planes, cylinders, cones, spheres and tori only.", tolerance)
+            return try CertifiedSurfaceFaceAreaIntegrator().measurement(
+                of: face, on: surface, in: model, tolerance: tolerance, options: integrationOptions)
         }
         var totals = [Double](repeating: 0, count: integrands.count)
         for loopID in face.loops {

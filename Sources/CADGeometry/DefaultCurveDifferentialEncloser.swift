@@ -152,7 +152,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         bounds: bounds,
         tolerance: tolerance
       )
-    case .line, .circle, .analytic, .bSpline, .rigidImage, .affineImage:
+    case .line, .circle, .analytic, .bSpline, .rigidImage, .affineImage, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
       throw KernelError(
         phase: .geometry,
         code: .invalidInput,
@@ -294,9 +294,74 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     _ curve: Curve3D,
     parameters: ScalarInterval,
     tolerance: ModelingTolerance,
-    preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil
+    preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil,
+    consumeWork: () throws -> Void = { try Task.checkCancellation() },
+    consumeStorage: ((Int) throws -> Void)? = nil
   ) throws -> SurfaceIntervalVectorJet? {
+    try consumeWork()
     switch curve {
+    case .originalAngularTransport(let image):
+      return try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+        consumeWork: consumeWork, consumeStorage: consumeStorage).intervalJet()
+    case .originalConstructionChart(let image):
+      return try image.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+        maximumSpanCount: image.maximumSpanCount, maximumSubdivisionDepth: image.maximumSubdivisionDepth,
+        remainingSourceDepth: image.remainingSourceDepth == Int.max ? Int.max : image.remainingSourceDepth + 1,
+        consumeWork: { try Task.checkCancellation() }).intervalJet()
+    case .originalGuideTraversalChain(let source):
+      return try source.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+        maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
+        remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork,
+        consumeStorage: consumeStorage).intervalJet()
+    case .originalPolyline(let source):
+      return try source.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+        maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
+        remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork,
+        consumeStorage: consumeStorage).intervalJet()
+    case .originalGuideEndpointConnector(let source):
+      return try source.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+        maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
+        remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork,
+        consumeStorage: consumeStorage).intervalJet()
+    case .originalDrafted(let source):
+      return try source.intervalTaylorJet(over: parameters, throughOrder: 3, tolerance: tolerance,
+        maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
+        remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork,
+        consumeStorage: consumeStorage).intervalJet()
+    case .originalPlaneDerivative(let source):
+      let receipt = try source.closedNativeJets(over: parameters, tolerance: tolerance,
+        maximumSpanCount: source.maximumSpanCount, maximumSubdivisionDepth: source.maximumSubdivisionDepth,
+        remainingSourceDepth: source.remainingSourceDepth, consumeWork: consumeWork, consumeStorage: consumeStorage)
+      guard let first = receipt.spans.first else { throw GeometryConversionError.invalidInput("Original plane curve cover is empty.") }
+      return receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }
+    case .originalEndpointConnector:
+      let receipt = try PreparedCurveDifferentialEncloser(curve: curve, tolerance: tolerance)
+        .closedNativeJets(over: parameters, tolerance: tolerance,
+          consumeWork: { try Task.checkCancellation() })
+      guard let first = receipt.spans.first else {
+        throw GeometryConversionError.invalidInput("Original connector has no admitted owning span.")
+      }
+      var jet = first.jet
+      for owner in receipt.spans.dropFirst() { jet = jet.union(owner.jet) }
+      return jet
+    case .originalAffineWord(let image):
+      if let coefficients = image.circularCoefficients {
+        return try coefficients.intervalTaylorJet(over: parameters, throughOrder: 3,
+          tolerance: tolerance, consumeWork: { try Task.checkCancellation() }).intervalJet()
+      }
+      let original = try PreparedCurveDifferentialEncloser(curve: image.source, tolerance: tolerance)
+        .closedNativeJets(over: parameters, tolerance: tolerance, consumeWork: {})
+      guard let first = original.spans.first else { return nil }
+      var usage = OriginalAffineImageLegacyUsage()
+      return try OriginalAffineWordJetTransport.applying(image.preparedWord,
+        to: original.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) }, usage: &usage)
+    case .parameterImage(let image):
+      let native = try image.originalInterval(parameters)
+      let prepared = try PreparedCurveDifferentialEncloser(curve: image.source, tolerance: tolerance)
+      let receipt = try prepared.closedNativeJets(over: native, tolerance: tolerance, consumeWork: {})
+      guard let first = receipt.spans.first else { return nil }
+      return try image.mappedJet(receipt.spans.dropFirst().reduce(first.jet) { $0.union($1.jet) })
+
     case .line(let line):
       return SurfaceIntervalVectorJet.constant(line.origin)
         + SurfaceIntervalVectorJet.constant(line.direction)
@@ -306,18 +371,18 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         circle.normal,
         tolerance: tolerance
       )
-      return circularJet(
+      return try circularJet(
         center: circle.center,
         basis: basis,
         majorRadius: circle.radius,
         minorRadius: circle.radius,
-        parameters: parameters
+        parameters: parameters, consumeWork: consumeWork
       )
     case .analytic(let analytic):
       return try analyticJet(
         analytic,
         parameters: parameters,
-        tolerance: tolerance
+        tolerance: tolerance, consumeWork: consumeWork
       )
     case .bSpline(let curve):
       // Both entries use original native coefficients; the prepared native
@@ -325,6 +390,12 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
       return try PreparedCurveDifferentialEncloser(curve: .bSpline(curve), tolerance: tolerance)
         .thirdOrderIntervalJet(over: parameters, tolerance: tolerance)
     case .surfaceLift(let lift):
+      if case .originalAffineWord(let image) = lift.parameterCurve {
+        return try image.modelSpaceIntervalJet(over: parameters, tolerance: tolerance, preparedImplicit: preparedImplicit)
+      }
+      if case .originalImage(let image) = lift.parameterCurve {
+        return try image.modelSpaceIntervalJet(over: parameters, tolerance: tolerance, preparedImplicit: preparedImplicit)
+      }
       if case let .procedural(.ruled(ruled)) = lift.surface,
         case let .constantV(v, start, end) = lift.parameterCurve,
         start == 0, end == 1, v == 0 || v == 1 {
@@ -340,6 +411,16 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         of: lift.surface, u: uv.u, v: uv.v, tolerance: tolerance
       ) { return analytic }
       let bounder = SurfaceLiftDifferentialBounder()
+      if case .bSpline(let surface) = lift.surface {
+        let box = try SurfaceParameterBox(
+          u:bounder.closedRange(ScalarInterval(lower:uv.u.value.lower,upper:uv.u.value.upper),
+            domain:surface.uDomain,tolerance:tolerance),
+          v:bounder.closedRange(ScalarInterval(lower:uv.v.value.lower,upper:uv.v.value.upper),
+            domain:surface.vDomain,tolerance:tolerance))
+        let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface:surface,tolerance:tolerance)
+        return try SurfaceParameterThirdOrderChainRule.intervalJet(
+          surface:prepared.intervalJet(overClosedBox:box,tolerance:tolerance),u:uv.u,v:uv.v)
+      }
       let box = try SurfaceParameterBox(
         u: bounder.nondegenerateRange(ScalarInterval(lower: uv.u.value.lower, upper: uv.u.value.upper),
             domain: lift.surface.uDomain, tolerance: tolerance),
@@ -363,6 +444,11 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     preparedImplicit: ImplicitCurveIntervalJetEncloser? = nil
   ) throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet)? {
     switch curve {
+    case .originalAffineWord(let image):
+      return try image.intervalJet(over: parameters, tolerance: tolerance, preparedImplicit: preparedImplicit)
+    case .originalImage(let image):
+      return try image.intervalJet(over: parameters, tolerance: tolerance, preparedImplicit: preparedImplicit)
+
     case let .offsetSurfaceImage(image):
       return try parameterJets(image.source, over: parameters, tolerance: tolerance, preparedImplicit: preparedImplicit)
     case let .periodicTranslation(base, uShift, vShift):
@@ -403,7 +489,8 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
   private func analyticJet(
     _ curve: AnalyticCurve3D,
     parameters: ScalarInterval,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    consumeWork: () throws -> Void = { try Task.checkCancellation() }
   ) throws -> SurfaceIntervalVectorJet? {
     switch curve {
     case .line(let origin, let direction):
@@ -412,7 +499,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         * .parameterU(parameters)
     case .circle(let center, let normal, let radius),
       .arc(let center, let normal, let radius, _, _):
-      return circularJet(
+      return try circularJet(
         center: center,
         basis: try analyticOrthonormalBasis(
           normal,
@@ -420,7 +507,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         ),
         majorRadius: radius,
         minorRadius: radius,
-        parameters: parameters
+        parameters: parameters, consumeWork: consumeWork
       )
     case .ellipse(
       let
@@ -437,12 +524,12 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
       let minorAxis = try normal.cross(majorAxis).normalized(
         tolerance: tolerance.distance
       )
-      return circularJet(
+      return try circularJet(
         center: center,
         basis: (u: majorAxis, v: minorAxis),
         majorRadius: majorRadius,
         minorRadius: minorRadius,
-        parameters: parameters
+        parameters: parameters, consumeWork: consumeWork
       )
     case .hyperbola(let hyperbola):
       let conjugateAxis = try hyperbola.normal
@@ -452,10 +539,10 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
       return SurfaceIntervalVectorJet.constant(hyperbola.center)
         + SurfaceIntervalVectorJet.constant(hyperbola.transverseAxis)
         * (.constant(hyperbola.transverseRadius)
-          * .hyperbolicCosine(of: parameter))
+          * (try .hyperbolicCosine(of: parameter, consumeWork: consumeWork)))
         + SurfaceIntervalVectorJet.constant(conjugateAxis)
         * (.constant(hyperbola.conjugateRadius)
-          * .hyperbolicSine(of: parameter))
+          * (try .hyperbolicSine(of: parameter, consumeWork: consumeWork)))
     case .parabola(let parabola):
       let transverseAxis = try parabola.normal
         .cross(parabola.axis)
@@ -476,14 +563,15 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     basis: (u: Vector3D, v: Vector3D),
     majorRadius: Double,
     minorRadius: Double,
-    parameters: ScalarInterval
-  ) -> SurfaceIntervalVectorJet {
+    parameters: ScalarInterval,
+    consumeWork: () throws -> Void
+  ) rethrows -> SurfaceIntervalVectorJet {
     let parameter = SurfaceIntervalJet.parameterU(parameters)
-    return SurfaceIntervalVectorJet.constant(center)
+    return try SurfaceIntervalVectorJet.constant(center)
       + SurfaceIntervalVectorJet.constant(basis.u)
-      * (.constant(majorRadius) * .cosine(of: parameter))
+      * (.constant(majorRadius) * CanonicalSphereAngularPhase.harmonic(of: parameter, cosine: true, consumeWork: consumeWork))
       + SurfaceIntervalVectorJet.constant(basis.v)
-      * (.constant(minorRadius) * .sine(of: parameter))
+      * (.constant(minorRadius) * CanonicalSphereAngularPhase.harmonic(of: parameter, cosine: false, consumeWork: consumeWork))
   }
 
   private func bSplineJet(
@@ -616,7 +704,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
         magnitudeUpperBound: bounds.second,
         tolerance: tolerance
       )
-    case .line, .circle, .analytic, .bSpline, .rigidImage, .affineImage:
+    case .line, .circle, .analytic, .bSpline, .rigidImage, .affineImage, .parameterImage, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
       throw KernelError(
         phase: .geometry,
         code: .invalidInput,
@@ -664,7 +752,7 @@ public struct DefaultCurveDifferentialEncloser: CurveDifferentialEnclosing, Send
     return CoordinateEnclosure3D(x: range.x, y: range.y, z: range.z)
   }
 
-  private func publicEnclosure(
+  package func publicEnclosure(
     _ jet: SurfaceIntervalVectorJet,
     tolerance: ModelingTolerance
   ) throws -> CurveDifferentialEnclosure {

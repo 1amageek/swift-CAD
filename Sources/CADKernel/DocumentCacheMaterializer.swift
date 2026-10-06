@@ -1,3 +1,4 @@
+import CADCore
 import CADIR
 
 public struct DocumentCacheMaterializer: Sendable {
@@ -6,18 +7,8 @@ public struct DocumentCacheMaterializer: Sendable {
     public func materializedDocument(
         from evaluatedDocument: EvaluatedDocument
     ) throws -> EvaluatedDocument {
-        EvaluatedDocument(
-            document: evaluatedDocument.document,
-            parameters: evaluatedDocument.parameters,
-            brep: evaluatedDocument.brep,
-            meshes: evaluatedDocument.meshes,
-            curves: evaluatedDocument.curves,
-            caches: try caches(for: evaluatedDocument),
-            subshapes: evaluatedDocument.subshapes,
-            lineage: evaluatedDocument.lineage,
-            configuration: evaluatedDocument.configuration,
-            evaluationMetrics: evaluatedDocument.evaluationMetrics
-        )
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return try evaluatedDocument.replacingCaches(caches(for: evaluatedDocument))
     }
 
     public func caches(for evaluatedDocument: EvaluatedDocument) throws -> DocumentCaches {
@@ -35,11 +26,11 @@ public struct DocumentCacheMaterializer: Sendable {
             model: evaluatedDocument.brep,
             subshapes: evaluatedDocument.subshapes
         )
-        let meshCaches = try Dictionary(
-            uniqueKeysWithValues: evaluatedDocument.meshes.map { bodyID, mesh in
-                (
-                    bodyID,
-                    try MeshCache(
+        var meshCaches: [BodyID: MeshCache] = [:]
+        meshCaches.reserveCapacity(evaluatedDocument.meshes.count)
+        for (bodyID, mesh) in evaluatedDocument.meshes {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            meshCaches[bodyID] = try MeshCache(
                         bodyID: bodyID,
                         designRevision: document.designGraph.revision,
                         parameterRevision: document.parameters.revision,
@@ -50,9 +41,8 @@ public struct DocumentCacheMaterializer: Sendable {
                         purpose: configuration.meshArtifactPurpose,
                         mesh: mesh
                     )
-                )
-            }
-        )
+        }
+        try CurrentTaskCancellationChecker().checkCancellation()
         return DocumentCaches(brep: brepCache, meshes: meshCaches)
     }
 }

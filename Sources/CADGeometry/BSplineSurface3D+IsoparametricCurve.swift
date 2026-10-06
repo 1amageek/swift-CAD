@@ -9,7 +9,7 @@ public extension BSplineSurface3D {
         guard try vDomain.contains(v, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(v)
         }
-        let clampedV = BSplineBasis.clampedParameter(v, knots: vKnots, degree: vDegree)
+        let clampedV = try basisParameter(v, direction: .v, tolerance: tolerance)
         let vBasis = BSplineBasis.values(
             parameter: clampedV,
             degree: vDegree,
@@ -29,7 +29,8 @@ public extension BSplineSurface3D {
             degree: uDegree,
             knots: uKnots,
             controlPoints: curveControlPoints,
-            weights: curveWeights
+            weights: curveWeights,
+            isPeriodic: isUPeriodic, periodicOrigin: uPeriodicOrigin
         )
         try curve.validate(tolerance: tolerance)
         return curve
@@ -43,7 +44,7 @@ public extension BSplineSurface3D {
         guard try uDomain.contains(u, tolerance: tolerance) else {
             throw GeometryError.invalidDistance(u)
         }
-        let clampedU = BSplineBasis.clampedParameter(u, knots: uKnots, degree: uDegree)
+        let clampedU = try basisParameter(u, direction: .u, tolerance: tolerance)
         let uBasis = BSplineBasis.values(
             parameter: clampedU,
             degree: uDegree,
@@ -63,7 +64,8 @@ public extension BSplineSurface3D {
             degree: vDegree,
             knots: vKnots,
             controlPoints: curveControlPoints,
-            weights: curveWeights
+            weights: curveWeights,
+            isPeriodic: isVPeriodic, periodicOrigin: vPeriodicOrigin
         )
         try curve.validate(tolerance: tolerance)
         return curve

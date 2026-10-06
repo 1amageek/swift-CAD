@@ -1,7 +1,7 @@
 import CADCore
 import Foundation
 
-public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable, Sendable {
+public struct CertifiedGeneralTorusCylinderIntersectionCurve: Hashable, Sendable {
     public struct DifferentialGeometry: Hashable, Sendable {
         public let position: Point3D
         public let firstDerivative: Vector3D
@@ -227,6 +227,20 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
     public let certificationTolerance: ModelingTolerance
     public let maximumResidualUpperBound: Double
     private let certificate: Certificate
+
+    package func chargeStructuralComparisonWork(
+        using charge: GeometryStructuralComparisonWork.Charge
+    ) throws {
+        // The three derivative bounds are fixed certificate fields. The
+        // trace grid and per-branch heights remain variable equality payload.
+        try charge(5)
+        try charge(certificate.traceParameters.count)
+        try charge(certificate.heightsByBranch.count)
+        for row in certificate.heightsByBranch {
+            try Task.checkCancellation()
+            try charge(row.count)
+        }
+    }
 
     public init(
         torusSurface: Surface3D,
@@ -1555,6 +1569,7 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             || (direction.x == 0.0 && direction.y == 0.0 && direction.z < 0.0)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case torusSurface
         case cylinderSurface
@@ -1565,7 +1580,9 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         case certificationTolerance
         case maximumResidualUpperBound
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -1625,7 +1642,9 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: certificationTolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -1638,4 +1657,9 @@ public struct CertifiedGeneralTorusCylinderIntersectionCurve: Codable, Hashable,
         try container.encode(certificationTolerance, forKey: .certificationTolerance)
         try container.encode(maximumResidualUpperBound, forKey: .maximumResidualUpperBound)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CertifiedGeneralTorusCylinderIntersectionCurve: Codable {}
+#endif

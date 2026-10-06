@@ -2,6 +2,7 @@ import Foundation
 import Testing
 import CADCore
 import CADGeometry
+import CADExchange
 import CADIR
 @testable import CADKernel
 @testable import SwiftCAD
@@ -44,7 +45,16 @@ struct SurfaceAlignJointTests {
             reference: y, referenceEdge: try edge(of: y) { abs($0.y - s) < 1e-12 && abs($1.y - s) < 1e-12 },
             keepsOtherEdges: keepsOtherEdges
         )
-        let evaluated = try evaluate()
+        var evaluated = try evaluate()
+        if keepsOtherEdges && pieceX.uDegree == 1 {
+            let source = try builder.build(name: "joint")
+            let sink = DataByteSink()
+            let store = NativePackageStore(tolerance: .standard)
+            try store.writePackage(for: source, to: sink)
+            let restored = try store.loadDocument(from: BorrowedBytes(sink.bytes))
+            #expect(restored == source)
+            evaluated = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(restored)
+        }
         try evaluated.brep.validate(level: .exact, tolerance: .standard)
         let faces = evaluated.subshapes.entries.compactMap { key, value -> Face? in
             guard key.featureID == second, case let .face(id) = value else { return nil }

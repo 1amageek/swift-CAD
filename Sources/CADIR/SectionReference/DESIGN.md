@@ -55,6 +55,10 @@ ID remapping preserves the interval. Missing intervals mean the whole curve.
 Curve references additionally own `isReversed`. Resolution restricts the original
 parameter domain before reversing traversal; stored bounds always name the original
 source, not the derived reverse parameterization. The boolean is required on decode;
-old curve-reference payloads without explicit direction are rejected.
+old curve-reference payloads without explicit direction are rejected. Both `false` (original forward traversal) and `true` (original reverse traversal)
+are directed source values; an initializer default does not represent an unspecified
+or automatic direction. Loft correspondence preserves both values and may select
+a periodic seam independently. Profile sections retain their separate explicit
+`LoftProfileDirection.automatic` correspondence policy.
 Adding face semantics requires updating those consumers
 before publishing the changed contract; those capabilities are not implied here.

@@ -1,4 +1,4 @@
-public enum KernelPhase: String, Codable, Hashable, Sendable, CaseIterable {
+public enum KernelPhase: String, Hashable, Sendable, CaseIterable {
     case validation
     case geometry
     case topology
@@ -6,3 +6,7 @@ public enum KernelPhase: String, Codable, Hashable, Sendable, CaseIterable {
     case evaluation
     case exchange
 }
+
+#if !hasFeature(Embedded)
+extension KernelPhase: Codable {}
+#endif

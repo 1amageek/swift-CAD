@@ -65,22 +65,15 @@ public enum ExchangeFileFormat: String, CaseIterable, Codable, Sendable, Hashabl
 
     public var supportsImport: Bool {
         switch self {
-        case .swiftCAD, .step, .stl, .threeMF, .obj, .dxf, .svg, .glb, .gltf, .ply, .vrml, .usd, .usda, .usdc, .usdz:
+        case .swiftCAD, .step, .iges, .stl, .threeMF, .obj, .dxf, .svg, .glb, .gltf, .ply, .vrml, .usd, .usda, .usdc, .usdz:
             true
-        case .iges, .pdf:
+        case .pdf:
             false
         }
     }
 
     public var supportsExport: Bool {
-        switch self {
-        case .step:
-            true
-        case .iges:
-            false
-        default:
-            true
-        }
+        true
     }
 
     public static func format(forFileExtension fileExtension: String) -> ExchangeFileFormat? {

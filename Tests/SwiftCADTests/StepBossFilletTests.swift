@@ -14,6 +14,53 @@ import CADTopology
 struct StepBossFilletTests {
     private func length(_ value: Double) -> CADExpression { .constant(.length(value, unit: .meter)) }
 
+    @Test(.timeLimit(.minutes(1)))
+    func aStepsTurningTopLoopRefusesUncertifiedCurvatureCorners() throws {
+        let (rc, h, r) = (0.01, 0.016, 0.002)
+        var builder = DocumentBuilder(units: .meters, tolerance: .standard)
+        let cylinder = try builder.cylinder(radius: length(rc), height: length(0.04))
+        let step = try builder.box(
+            placement: PrimitivePlacement(origin: Point3D(x: 0.003, y: -0.008, z: 0.001),
+                                          axis: .unitZ, referenceDirection: .unitX),
+            width: length(0.02), depth: length(0.016), height: length(0.015))
+        let body = try builder.boolean(targets: [cylinder], tool: step, operation: .union)
+        let before = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred)
+            .evaluate(try builder.build(name: "Turning G2 admission"))
+        // The original top loop has two cylinder-foot arcs and three falling straight edges.
+        let entries = before.subshapes.entries.filter { key, value in
+            guard key.featureID == body, case let .edge(id) = value, let edge = before.brep.edges[id],
+                  let a = before.brep.vertices[edge.startVertexID]?.point,
+                  let b = before.brep.vertices[edge.endVertexID]?.point else { return false }
+            return abs(a.z - h) < 1e-12 && abs(b.z - h) < 1e-12 && max(a.x, b.x) > 0.0055
+        }
+        try #require(entries.count == 5)
+        var arcs = 0
+        var lines = 0
+        for (_, value) in entries {
+            let selectedEdgeID: EdgeID?
+            if case let .edge(id) = value { selectedEdgeID = id } else { selectedEdgeID = nil }
+            let edgeID = try #require(selectedEdgeID)
+            let edge = try #require(before.brep.edges[edgeID])
+            let curve = try #require(before.brep.geometry.curves[edge.curveID])
+            if case .circle = curve { arcs += 1 }
+            if case .line = curve { lines += 1 }
+        }
+        try #require(arcs == 2 && lines == 3)
+        let loop = try entries.map { try builder.stableSubshape($0.key) }
+        let featureID = try builder.fillet(target: body, edges: loop, radius: length(r), shape: .curvature)
+        let document = try builder.build(name: "Turning G2 refusal")
+        do {
+            _ = try DocumentEvaluator(tolerance: .standard, artifactPolicy: .deferred).evaluate(document)
+            Issue.record("A turning loop must not report G2 success without corner curvature authority.")
+        } catch let error as KernelError {
+            #expect(error.phase == .evaluation)
+            #expect(error.code == .unsupportedCapability)
+            #expect(error.featureID == featureID)
+            #expect(error.tolerance == ModelingTolerance.standard)
+            #expect(error.message == "A turning cap loop has no certified G2 corner patches.")
+        }
+    }
+
     @Test(.timeLimit(.minutes(8)))
     func aStepsTopLoopRoundsIntoTheBossRisingFromIt() throws {
         // A cylinder of radius 10 mm and a 20 × 16 mm step 15 mm high, its top at 16 mm, beside it.

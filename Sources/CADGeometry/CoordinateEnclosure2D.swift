@@ -1,10 +1,10 @@
 import CADCore
 
-package struct CoordinateEnclosure2D: Sendable {
-    package let x: ScalarInterval
-    package let y: ScalarInterval
+public struct CoordinateEnclosure2D: Sendable {
+    public let x: ScalarInterval
+    public let y: ScalarInterval
 
-    package init(x: ScalarInterval, y: ScalarInterval) {
+    public init(x: ScalarInterval, y: ScalarInterval) {
         self.x = x
         self.y = y
     }

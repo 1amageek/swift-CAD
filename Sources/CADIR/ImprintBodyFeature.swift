@@ -7,7 +7,7 @@ import CADTopology
 /// they are. Each tool crosses the target where its placement puts it. With `completion` `.edge`, a
 /// crossing that ends inside a face is carried on along its own direction on the face until it
 /// meets an edge or another crossing of the same tool, so one tool's lines cross another's.
-public struct ImprintBodyFeature: Codable, Hashable, Sendable {
+public struct ImprintBodyFeature: Hashable, Sendable {
     public var target: PatternTargetReference
     public var tools: [ImprintBodyTool]
     public var completion: ImprintCompletion
@@ -27,10 +27,13 @@ public struct ImprintBodyFeature: Codable, Hashable, Sendable {
         for tool in tools { try tool.body.validate() }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, tools, completion
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .tools, .completion], in: decoder)
@@ -39,7 +42,9 @@ public struct ImprintBodyFeature: Codable, Hashable, Sendable {
         completion = try container.decode(ImprintCompletion.self, forKey: .completion)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -47,10 +52,11 @@ public struct ImprintBodyFeature: Codable, Hashable, Sendable {
         try container.encode(tools, forKey: .tools)
         try container.encode(completion, forKey: .completion)
     }
+#endif
 }
 
 /// How an imprinted curve that ends inside a face is completed.
-public enum ImprintCompletion: String, Codable, Hashable, Sendable {
+public enum ImprintCompletion: String, Hashable, Sendable {
     /// It is not: every curve must reach an edge, another curve, or close on itself.
     case none
     /// Each end inside a face carries on along the curve's direction on the face until it meets
@@ -60,3 +66,8 @@ public enum ImprintCompletion: String, Codable, Hashable, Sendable {
     /// the face's own boundary, crossing any other imprinted curve on the way.
     case boundary
 }
+
+#if !hasFeature(Embedded)
+extension ImprintBodyFeature: Codable {}
+extension ImprintCompletion: Codable {}
+#endif

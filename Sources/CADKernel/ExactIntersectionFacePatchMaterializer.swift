@@ -98,7 +98,9 @@ struct ExactIntersectionFacePatchMaterializer {
             coincidentFaceActions[faceID] = action
         }
         let hasCoincidentArrangement = coincidentArrangement.boundaries.contains(where: \.isPartitioning)
-        guard hasOpenComponent || hasClosedComponent || hasCoincidentArrangement else {
+        let hasCoincidentFaceSelection = !coincidentFaceActions.isEmpty
+        guard hasOpenComponent || hasClosedComponent || hasCoincidentArrangement
+            || hasCoincidentFaceSelection else {
             return try WholeBodyBooleanFacePatchMaterializer().materialize(
                 operation: operation,
                 targetBodyIDs: targetBodyIDs,
@@ -117,7 +119,7 @@ struct ExactIntersectionFacePatchMaterializer {
         // or coincident partition requires the complete face arrangement,
         // which also consumes closed components when the strategies are mixed.
         if hasOpenComponent || requiresPeriodicArrangement
-            || hasCoincidentArrangement {
+            || hasCoincidentArrangement || hasCoincidentFaceSelection {
             return try OpenIntersectionFacePatchMaterializer().materialize(
                 operation: operation,
                 targetBodyIDs: targetBodyIDs,

@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BooleanUVPoint: Codable, Hashable, Sendable {
+public struct BooleanUVPoint: Hashable, Sendable {
     public let point: Point3D
     public let targetU: Double
     public let targetV: Double
@@ -41,3 +41,7 @@ public struct BooleanUVPoint: Codable, Hashable, Sendable {
         self.residual = residual
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanUVPoint: Codable {}
+#endif

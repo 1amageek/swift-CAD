@@ -1,8 +1,16 @@
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("CADCore numeric algorithms require the target C math module.")
+#endif
 
 /// The persisted form of Extend Curve's Arc, Soft and Reflective shapes: what, besides the
 /// curve's own Bezier control points and the length, fixes the new points' structure.
-public enum BezierExtensionShape: Codable, Sendable, Hashable {
+public enum BezierExtensionShape: Sendable, Hashable {
     /// The end's curvature held over `spanCount` cubic spans raised to the curve's degree.
     case arc(spanCount: Int)
     /// The end's curvature fading to zero over `spanCount` cubic spans raised to the curve's degree.
@@ -12,47 +20,7 @@ public enum BezierExtensionShape: Codable, Sendable, Hashable {
     /// past it mirrors all of it.
     case reflective(degree: Int, coversCurve: Bool)
 
-    private enum CodingKeys: String, CodingKey {
-        case kind, spanCount, degree, coversCurve
-    }
 
-    private enum Kind: String, Codable {
-        case arc, soft, reflective
-    }
-
-    public init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        switch try container.decode(Kind.self, forKey: .kind) {
-        case .arc:
-            try container.validateOnlyExpectedKeys([.kind, .spanCount], in: decoder)
-            self = .arc(spanCount: try container.decode(Int.self, forKey: .spanCount))
-        case .soft:
-            try container.validateOnlyExpectedKeys([.kind, .spanCount], in: decoder)
-            self = .soft(spanCount: try container.decode(Int.self, forKey: .spanCount))
-        case .reflective:
-            try container.validateOnlyExpectedKeys([.kind, .degree, .coversCurve], in: decoder)
-            self = .reflective(
-                degree: try container.decode(Int.self, forKey: .degree),
-                coversCurve: try container.decode(Bool.self, forKey: .coversCurve)
-            )
-        }
-    }
-
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        switch self {
-        case let .arc(spanCount):
-            try container.encode(Kind.arc, forKey: .kind)
-            try container.encode(spanCount, forKey: .spanCount)
-        case let .soft(spanCount):
-            try container.encode(Kind.soft, forKey: .kind)
-            try container.encode(spanCount, forKey: .spanCount)
-        case let .reflective(degree, coversCurve):
-            try container.encode(Kind.reflective, forKey: .kind)
-            try container.encode(degree, forKey: .degree)
-            try container.encode(coversCurve, forKey: .coversCurve)
-        }
-    }
 }
 
 /// Evaluates Extend Curve's Arc, Soft and Reflective shapes from the curve's own Bezier control
@@ -337,3 +305,49 @@ public struct BezierShapedExtension: Sendable {
         KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance, message: message)
     }
 }
+
+#if !hasFeature(Embedded)
+extension BezierExtensionShape: Codable {
+    private enum CodingKeys: String, CodingKey {
+        case kind, spanCount, degree, coversCurve
+    }
+
+    private enum Kind: String, Codable {
+        case arc, soft, reflective
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        switch try container.decode(Kind.self, forKey: .kind) {
+        case .arc:
+            try container.validateOnlyExpectedKeys([.kind, .spanCount], in: decoder)
+            self = .arc(spanCount: try container.decode(Int.self, forKey: .spanCount))
+        case .soft:
+            try container.validateOnlyExpectedKeys([.kind, .spanCount], in: decoder)
+            self = .soft(spanCount: try container.decode(Int.self, forKey: .spanCount))
+        case .reflective:
+            try container.validateOnlyExpectedKeys([.kind, .degree, .coversCurve], in: decoder)
+            self = .reflective(
+                degree: try container.decode(Int.self, forKey: .degree),
+                coversCurve: try container.decode(Bool.self, forKey: .coversCurve)
+            )
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        switch self {
+        case let .arc(spanCount):
+            try container.encode(Kind.arc, forKey: .kind)
+            try container.encode(spanCount, forKey: .spanCount)
+        case let .soft(spanCount):
+            try container.encode(Kind.soft, forKey: .kind)
+            try container.encode(spanCount, forKey: .spanCount)
+        case let .reflective(degree, coversCurve):
+            try container.encode(Kind.reflective, forKey: .kind)
+            try container.encode(degree, forKey: .degree)
+            try container.encode(coversCurve, forKey: .coversCurve)
+        }
+    }
+}
+#endif

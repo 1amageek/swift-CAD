@@ -2,7 +2,7 @@ import CADCore
 import CADGeometry
 import CADTopology
 
-public struct FaceGeometrySignature: Codable, Hashable, Sendable {
+public struct FaceGeometrySignature: Hashable, Sendable {
     public let surface: Surface3D
     public let orientation: Orientation
     public let loops: [LoopGeometrySignature]
@@ -24,12 +24,15 @@ public struct FaceGeometrySignature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case surface
         case orientation
         case loops
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(Set(CodingKeys.allCases), in: decoder)
@@ -38,7 +41,9 @@ public struct FaceGeometrySignature: Codable, Hashable, Sendable {
         loops = try container.decode([LoopGeometrySignature].self, forKey: .loops)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -46,4 +51,9 @@ public struct FaceGeometrySignature: Codable, Hashable, Sendable {
         try container.encode(orientation, forKey: .orientation)
         try container.encode(loops, forKey: .loops)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension FaceGeometrySignature: Codable {}
+#endif

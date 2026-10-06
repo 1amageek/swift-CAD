@@ -198,6 +198,7 @@ public struct DocumentBuilder {
         startDistance: CADExpression? = nil,
         direction: ExtrudeDirection = .normal,
         draftAngle: CADExpression? = nil,
+        draftDirection: Vector3D? = nil,
         thickness: CADExpression? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
@@ -213,6 +214,7 @@ public struct DocumentBuilder {
                     direction: direction,
                     operation: .newBody,
                     draftAngle: draftAngle,
+                    draftDirection: draftDirection,
                     thickness: thickness
                 )
             )
@@ -228,13 +230,14 @@ public struct DocumentBuilder {
         distance: CADExpression,
         direction: ExtrudeDirection = .normal,
         draftAngle: CADExpression? = nil,
+        draftDirection: Vector3D? = nil,
         thickness: CADExpression? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
         let featureID = FeatureID()
         try append(id: featureID, name: name, operation: .extrude(ExtrudeFeature(
             section: .curve(curve), distance: distance, direction: direction,
-            resultKind: thickness == nil ? .sheet : .solid, draftAngle: draftAngle, thickness: thickness
+            resultKind: thickness == nil ? .sheet : .solid, draftAngle: draftAngle, draftDirection: draftDirection, thickness: thickness
         )))
         return featureID
     }
@@ -253,6 +256,7 @@ public struct DocumentBuilder {
         targets: [FeatureID] = [],
         keepTools: Bool = false,
         draftAngle: CADExpression? = nil,
+        draftDirection: Vector3D? = nil,
         thickness: CADExpression? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
@@ -264,7 +268,7 @@ public struct DocumentBuilder {
                 section: .face(FaceSectionReference(featureID: owner, face: face, bodyRole: bodyRole)),
                 distance: distance, startDistance: startDistance, direction: direction, operation: operation,
                 targets: targets.map { BooleanTargetReference(featureID: $0) }, keepTools: keepTools,
-                resultKind: .solid, draftAngle: draftAngle, thickness: thickness
+                resultKind: .solid, draftAngle: draftAngle, draftDirection: draftDirection, thickness: thickness
             ))
         )
         return featureID
@@ -275,9 +279,12 @@ public struct DocumentBuilder {
         _ profile: ProfileReference,
         distance parameterID: ParameterID,
         direction: ExtrudeDirection = .normal,
+        draftAngle: CADExpression? = nil,
+        draftDirection: Vector3D? = nil,
         named name: String? = nil
     ) throws -> FeatureID {
-        try extrude(profile, distance: .reference(parameterID), direction: direction, named: name)
+        try extrude(profile, distance: .reference(parameterID), direction: direction,
+                    draftAngle: draftAngle, draftDirection: draftDirection, named: name)
     }
 
     @discardableResult
@@ -1737,7 +1744,7 @@ public struct DocumentBuilder {
             parameters: parameters,
             designGraph: designGraph,
             selectionDimensions: selectionDimensions,
-            metadata: DocumentMetadata(name: name)
+            metadata: try DocumentMetadata.current(name: name)
         )
         try document.validate(tolerance: tolerance)
         return document

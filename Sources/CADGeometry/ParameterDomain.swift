@@ -1,23 +1,28 @@
 import CADCore
 
-public enum ParameterDomain: Codable, Equatable, Sendable, Hashable {
+public enum ParameterDomain: Equatable, Sendable, Hashable {
     case unbounded
     case closed(Double, Double)
     case periodic(period: Double)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case lowerBound
         case upperBound
         case period
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case unbounded
         case closed
         case periodic
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -36,7 +41,9 @@ public enum ParameterDomain: Codable, Equatable, Sendable, Hashable {
             self = .periodic(period: try container.decode(Double.self, forKey: .period))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -51,6 +58,7 @@ public enum ParameterDomain: Codable, Equatable, Sendable, Hashable {
             try container.encode(period, forKey: .period)
         }
     }
+#endif
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -110,7 +118,7 @@ public enum ParameterDomain: Codable, Equatable, Sendable, Hashable {
         return containsStart && containsEnd
     }
 
-    func parameterResolution(tolerance: ModelingTolerance) -> Double {
+    package func parameterResolution(tolerance: ModelingTolerance) -> Double {
         switch self {
         case .unbounded:
             return tolerance.relative
@@ -142,3 +150,7 @@ public enum ParameterDomain: Codable, Equatable, Sendable, Hashable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension ParameterDomain: Codable {}
+#endif

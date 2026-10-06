@@ -67,9 +67,9 @@ public struct RollingBallSectionEvaluator: RollingBallSectionEvaluating {
     }
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): This constructs an evaluable blend but
-    // no production feature consumes it yet. Full-domain regularity, persistent
-    // Surface3D storage and trimmed-solid reconstruction remain prerequisites
-    // for reporting a completed fillet operation.
+    // the ordinary Fillet kernel composition consumes only its admitted domain.
+    // Full-domain regularity and general trimmed-solid reconstruction remain
+    // prerequisites for reporting the complete fillet operation.
     public func blendSurface(
         fromCurveParameter lower: Double,
         toCurveParameter upper: Double,

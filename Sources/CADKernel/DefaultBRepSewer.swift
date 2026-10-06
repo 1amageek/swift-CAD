@@ -83,7 +83,10 @@ public struct DefaultBRepSewer: BRepSewing {
             }
             let startVertexID = endpointIDs.start
             let endVertexID = endpointIDs.end
-            guard startVertexID != endVertexID else {
+            let geometryKind = try BRepEdgeGeometryClassifier().kind(
+              curve: sewingEdge.curve, from: sewingEdge.startParameter,
+              to: sewingEdge.endParameter, tolerance: tolerance)
+            guard startVertexID != endVertexID || geometryKind != .open else {
               throw KernelError(
                 phase: .topology,
                 code: .topologyFailure,
@@ -247,6 +250,11 @@ public struct DefaultBRepSewer: BRepSewing {
               stableKey: "\(edge.stableID):end"
             ))
           disjointSet.appendPair()
+          let geometryKind = try BRepEdgeGeometryClassifier().kind(
+            curve: edge.curve, from: edge.startParameter, to: edge.endParameter, tolerance: tolerance)
+          if geometryKind != .open {
+            disjointSet.union(start, end)
+          }
           let pair = EndpointSlotPair(start: start, end: end)
           endpointSlots[edge.stableID] = pair
           loopPairs.append(pair)
@@ -267,8 +275,16 @@ public struct DefaultBRepSewer: BRepSewing {
     for firstIndex in pairs.indices {
       try Task.checkCancellation()
       let first = pairs[firstIndex]
+      // Singular parameter boundaries have no physical span to share. Preserve each
+      // face's own original UV law, even when two boundaries map to the same point.
+      if try BRepEdgeGeometryClassifier().kind(curve: uses[firstIndex].edge.curve,
+        from: uses[firstIndex].edge.startParameter, to: uses[firstIndex].edge.endParameter,
+        tolerance: tolerance) == .singular { continue }
       for secondIndex in (firstIndex + 1)..<pairs.count {
         let second = pairs[secondIndex]
+        if try BRepEdgeGeometryClassifier().kind(curve: uses[secondIndex].edge.curve,
+          from: uses[secondIndex].edge.startParameter, to: uses[secondIndex].edge.endParameter,
+          tolerance: tolerance) == .singular { continue }
         let forwardEndpointsAgree = endpointsAgree(
           first,
           second,
@@ -406,29 +422,22 @@ public struct DefaultBRepSewer: BRepSewing {
     topologyIDs: inout FeatureTopologyIDAllocator,
     tolerance: ModelingTolerance
   ) throws -> EdgeUse {
+    let kind = try BRepEdgeGeometryClassifier().kind(curve: sewingEdge.curve,
+      from: sewingEdge.startParameter, to: sewingEdge.endParameter, tolerance: tolerance)
     for index in records.indices {
-      let orientation: Orientation
-      if records[index].startVertexID == startVertexID,
-        records[index].endVertexID == endVertexID
-      {
-        orientation = .forward
-      } else if records[index].startVertexID == endVertexID,
-        records[index].endVertexID == startVertexID
-      {
-        orientation = .reversed
-      } else {
-        continue
+      if kind == .singular { continue }
+      var matchedOrientation: Orientation?
+      for orientation in [Orientation.forward, .reversed] {
+        let endpointsMatch = orientation == .forward
+          ? records[index].startVertexID == startVertexID && records[index].endVertexID == endVertexID
+          : records[index].startVertexID == endVertexID && records[index].endVertexID == startVertexID
+        if endpointsMatch, try isProvablySameCurveSpan(CurveSpanDefinition(sewingEdge),
+          record: records[index].span, orientation: orientation, tolerance: tolerance) {
+          matchedOrientation = orientation
+          break
+        }
       }
-      guard
-        try isProvablySameCurveSpan(
-          CurveSpanDefinition(sewingEdge),
-          record: records[index].span,
-          orientation: orientation,
-          tolerance: tolerance
-        )
-      else {
-        continue
-      }
+      guard let orientation = matchedOrientation else { continue }
       records[index].orientations.append(orientation)
       records[index].parents.formUnion(sewingEdge.parentSubshapeIDs)
       records[index].stableIDs.insert(sewingEdge.stableID)
@@ -559,6 +568,14 @@ public struct DefaultBRepSewer: BRepSewing {
     tolerance: ModelingTolerance
   ) throws {
     for edge in edges {
+      if try BRepEdgeGeometryClassifier().kind(curve: edge.span.curve,
+        from: edge.span.startParameter, to: edge.span.endParameter, tolerance: tolerance) == .singular {
+        guard edge.orientations.count == 1 else {
+          throw KernelError(phase: .topology, code: .nonManifoldResult, tolerance: tolerance,
+            message: "A singular sewing boundary must retain exactly one face-local parameter use.")
+        }
+        continue
+      }
       let forwardCount = edge.orientations.filter { $0 == .forward }.count
       let reversedCount = edge.orientations.filter { $0 == .reversed }.count
       switch bodyKind {

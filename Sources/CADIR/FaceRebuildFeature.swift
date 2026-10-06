@@ -4,7 +4,7 @@ import CADCore
 /// same parameters, over the face's parameter extent when `shrinks` (the surface's own domain
 /// where it has one otherwise), widened past each side by `extendU` and `extendV` of that extent.
 /// The body keeps its topology in its place.
-public struct FaceRebuildFeature: Codable, Hashable, Sendable {
+public struct FaceRebuildFeature: Hashable, Sendable {
     public static let extensions = 0.0...1.0
 
     public var target: PatternTargetReference
@@ -53,10 +53,13 @@ public struct FaceRebuildFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target, faces, method, extendU, extendV, shrinks
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .faces, .method, .extendU, .extendV, .shrinks], in: decoder)
@@ -68,7 +71,9 @@ public struct FaceRebuildFeature: Codable, Hashable, Sendable {
         shrinks = try container.decode(Bool.self, forKey: .shrinks)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -79,6 +84,7 @@ public struct FaceRebuildFeature: Codable, Hashable, Sendable {
         try container.encode(extendV, forKey: .extendV)
         try container.encode(shrinks, forKey: .shrinks)
     }
+#endif
 
     /// The inputs the feature reads: its target, consumed.
     public var inputs: [FeatureInput] {
@@ -90,7 +96,7 @@ public struct FaceRebuildFeature: Codable, Hashable, Sendable {
 /// bicubic spans as keep the surface within a distance of the old one, — Remove Nominal Surface —
 /// the face's own spline surface cut exactly to its trimmed extent, its hidden spans gone, or —
 /// Square's Refit — an untrimmed four-sided sheet on the face's own edges.
-public enum FaceRebuildMethod: Codable, Hashable, Sendable {
+public enum FaceRebuildMethod: Hashable, Sendable {
     case explicit(SurfaceControlLayout)
     case tolerance(CADExpression)
     case nominal
@@ -108,21 +114,23 @@ public enum FaceRebuildMethod: Codable, Hashable, Sendable {
         case .nominal: break
         case let .square(refit): try refit.validate()
         case let .given(surface):
-            guard surface.uDegree >= 1, surface.vDegree >= 1, surface.controlPoints.isEmpty == false,
-                  surface.controlPoints.allSatisfy({ $0.count == surface.controlPoints[0].count }) else {
-                throw FeatureEvaluationError.invalidGraph("A given face surface needs a rectangular net of control points.")
-            }
+            try surface.validate(tolerance: CADIRPersistenceValidation.tolerance)
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind, layout, tolerance, square, surface
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case explicit, tolerance, nominal, square, given
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         switch try container.decode(Kind.self, forKey: .kind) {
@@ -144,7 +152,9 @@ public enum FaceRebuildMethod: Codable, Hashable, Sendable {
         }
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -165,4 +175,10 @@ public enum FaceRebuildMethod: Codable, Hashable, Sendable {
             try container.encode(surface, forKey: .surface)
         }
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension FaceRebuildFeature: Codable {}
+extension FaceRebuildMethod: Codable {}
+#endif

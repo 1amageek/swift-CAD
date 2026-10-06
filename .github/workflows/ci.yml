@@ -119,6 +119,9 @@ jobs:
       - name: Check capability ledger
         run: python3 Scripts/check_capability_ledger.py
 
+      - name: Check source-backed capability domains
+        run: python3 Scripts/generate_capability_domains.py --check
+
       - name: Check public contract inventory
         run: python3 Scripts/check_public_contract_inventory.py
 

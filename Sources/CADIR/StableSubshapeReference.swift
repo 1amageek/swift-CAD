@@ -1,6 +1,6 @@
 import CADCore
 
-public struct StableSubshapeReference: Codable, Hashable, Sendable {
+public struct StableSubshapeReference: Hashable, Sendable {
     public let subshapeID: SubshapeID
     public let geometrySignature: SubshapeGeometrySignature
 
@@ -25,11 +25,14 @@ public struct StableSubshapeReference: Codable, Hashable, Sendable {
         try geometrySignature.validate()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case subshapeID
         case geometrySignature
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.subshapeID, .geometrySignature], in: decoder)
@@ -40,11 +43,18 @@ public struct StableSubshapeReference: Codable, Hashable, Sendable {
         )
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(subshapeID, forKey: .subshapeID)
         try container.encode(geometrySignature, forKey: .geometrySignature)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension StableSubshapeReference: Codable {}
+#endif

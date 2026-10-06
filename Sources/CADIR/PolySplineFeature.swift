@@ -1,6 +1,6 @@
 import CADCore
 
-public struct PolySplineFeature: Codable, Sendable, Hashable {
+public struct PolySplineFeature: Sendable, Hashable {
     public var sourceMesh: Mesh
     public var options: PolySplineOptions
     public var controlPointOverrides: [PolySplineSurfaceControlPointOverride]
@@ -33,7 +33,7 @@ public struct PolySplineFeature: Codable, Sendable, Hashable {
 
 /// PolySplines' options, defaulting as Plasticity's dialog opens: Rounded corners off, Merge
 /// patches on, Interpolate boundary exactly off.
-public struct PolySplineOptions: Codable, Sendable, Hashable {
+public struct PolySplineOptions: Sendable, Hashable {
     public var roundedCorners: Bool
     public var mergePatches: Bool
     public var interpolateBoundaryExactly: Bool
@@ -51,3 +51,8 @@ public struct PolySplineOptions: Codable, Sendable, Hashable {
     public func validate() throws {
     }
 }
+
+#if !hasFeature(Embedded)
+extension PolySplineFeature: Codable {}
+extension PolySplineOptions: Codable {}
+#endif

@@ -22,6 +22,7 @@ validation remain the feature evaluator's work.
 | [CADModeling](../DESIGN.md) | parent | sewing request values | Owns topology construction. | Do not publish partial solids. |
 | [Geometry RollingBall](../../CADGeometry/RollingBall/DESIGN.md) | depends on | immutable blend and contact rails | Supplies the exact represented surface. | Geometry alone does not prove machining feasibility. |
 | [CADKernel](../../CADKernel/DESIGN.md) | used by | existing BRepSewing implementation | Combines source patches with the blend. | Shared contact spans must become one topological edge. |
+| [Kernel RollingBallFillet](../../CADKernel/RollingBallFillet/DESIGN.md) | used by | ordinary fillet composition and publication | Consumes admitted cap rails, blend patches and tangent-chain selection. | Its concrete domain and whole-body publication are owned by the kernel component; general blend networks remain required. |
 
 ## Architecture
 
@@ -34,6 +35,36 @@ Admitted blend + face ancestry + requested orientation
 
 ## Contracts and Invariants
 
+`PlanarRollingBallCornerSolver` solves a sphere touching all original planar
+supports at one vertex. It selects the most separated support triple, encloses
+its Cramer solve with outward arithmetic and verifies every remaining support
+over that center enclosure before returning a center. An equal-radius network
+may consume this sphere at a vertex of any fully rounded valence of at least
+three; all incident selected cylinders must join its closed cyclic boundary.
+Mixed sharp edges, mixed radii and supports without one tangent sphere remain
+required general vertex work and fail explicitly in that construction path.
+
+`RollingBallFilletEvaluating` is the ordinary fillet route's injected kernel
+composition contract. Admission selects a supported original topology domain
+before construction; a selected domain's errors propagate without retrying a
+different fillet implementation. Publication must retain source ancestry,
+replace the target body and produce exact closed-solid validation evidence.
+CADModeling applies the same final feature admission to this result as other
+fillet constructions. CADKernel owns the concrete composition and injection.
+
+`PlanarFilletFailureClassifier` consumes the retained original straight-sided
+face polygon and the actual clipping halfspace. Outward arithmetic proves that
+its complete vertex convex hull lies beyond the rejected side before reporting
+`filletFaceDisappeared`. A computed empty polygon alone remains topology failure
+when that original-law witness is inconclusive. It does not classify arbitrary
+singularities, unsupported geometry or exhausted proof budgets as machining
+failures. General thickness and blend-network self-intersection witnesses remain
+owned by their complete geometry construction.
+For an original straight endpoint cap edge, a radius whose squared lower bound
+exceeds the complete edge-length squared upper bound is
+`filletThicknessExceeded`. Tolerance-near equality preserves the original refusal
+instead of asserting a definite excess.
+
 `RollingBallTangentChainResolver` follows a selected edge along one fixed partner
 face within a supplied shell. It indexes native coedge/vertex incidence once;
 each boundary edge is visited at most once. Continuation requires a whole-seam
@@ -43,6 +74,11 @@ inconclusive certificate throw. The source model must already satisfy exact
 positional correspondence. The result selects geometry only; it is neither a
 closed-solid treatment nor permission to publish a feature. State is request-local,
 and space/time for topology traversal are bounded by supplied shell incidence.
+An isolated single-edge partner loop has two incidences of the same edge at
+one vertex. It is selected only when the original edge geometry classifier
+certifies its complete authored trim as closed and both distinct incident faces
+are retained. A shared vertex identifier alone does not prove curve closure;
+extra incidences or a singular/open source edge remain refusals.
 
 The default loop traverses (0,0), (1,0), (1,1), (0,1). Its first and third
 edges retain the input contact curves with forward and reversed trims. End
@@ -51,8 +87,8 @@ pcurves and vertex ancestry together through the existing adapter. Stable edge
 identities derive from the caller's face identity. No mesh, projection, fitted
 boundary or widened tolerance substitutes for the admitted geometry.
 
-A terminal patch may replace exactly one constant-U end with a caller-owned
-certified implicit edge on the blend. A start boundary runs from V=1 to V=0;
+A terminal patch may replace either or both constant-U ends with caller-owned
+certified implicit edges on the same immutable blend. A start boundary runs from V=1 to V=0;
 an end boundary runs from V=0 to V=1. The native parameter derivative must
 certify strict V monotonicity across the complete trim.
 The whole U enclosure must remain inside the retained range and strictly
@@ -68,7 +104,12 @@ change the retained region; a crossing or touching junction is rejected.
 Canonical terminal vertices, edge identity and ancestry are preserved through
 patch reorientation. Invalid direction, unsupported certificate, degenerate
 remaining rails or inconsistent correspondence fail before emitting a patch.
-This constructs a trimmed patch, not a closed-solid machining result.
+For a two-terminal patch, the whole terminal U enclosures must lie on opposite
+sides of the same retained interior junction. Each terminal is classified from
+its complete original implicit law, independently of input traversal or order.
+Both trims update the same rails without restoring a previously removed end.
+The canonical terminal vertices and both boundary identities survive. This
+constructs a trimmed patch, not a closed-solid machining result.
 
 `junctionParameter` projects an adjacent patch's first contact onto the retained
 first rail, then verifies its second contact at the same normalized U. It

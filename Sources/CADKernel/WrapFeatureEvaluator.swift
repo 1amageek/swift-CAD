@@ -65,6 +65,13 @@ struct WrapFeatureEvaluator: FeatureEvaluating, ValidatedFeatureEvaluating {
         try FeatureEvaluationBoundary.validateRequest(featureID: feature.id, tolerance: context.tolerance) {
             try wrap.validate()
         }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The public Wrap evaluation path has no certified
+        // nonlinear closed-chain Reblend producer. Success requires whole original radius,
+        // support incidence and tangency proofs before any fitted geometry is published.
+        if wrap.options.reblends {
+            throw error(.unsupportedCapability, feature.id, context,
+                        "Wrap Reblend requires certified closed-chain rolling-ball radius, support incidence and tangency.")
+        }
         let tolerance = context.tolerance
         let sourceBodyID = try context.bodyID(generatedBy: wrap.target.featureID)
         guard let body = context.brep.bodies[sourceBodyID] else {

@@ -4,7 +4,7 @@ import CADTopology
 
 /// What a Boolean operand counts as material once its `BooleanMaterial` is applied to what it
 /// is: the region its faces bound on their inner side, or none.
-public enum BooleanOperandSolidity: String, Codable, Hashable, Sendable {
+public enum BooleanOperandSolidity: String, Hashable, Sendable {
     /// A solid's inside.
     case volume
     /// Everything outside a solid.
@@ -98,3 +98,7 @@ public struct BooleanOperandSolidities: Hashable, Sendable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension BooleanOperandSolidity: Codable {}
+#endif

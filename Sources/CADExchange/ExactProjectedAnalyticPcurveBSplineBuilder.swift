@@ -110,7 +110,9 @@ struct ExactProjectedAnalyticPcurveBSplineBuilder {
             return false
         case let .procedural(.offset(offset)):
             return isPlanar(offset.source)
-        case .procedural(.ruled), .procedural(.rollingBall):
+        case .procedural(.originalImage(let image)):
+            return isPlanar(image.source)
+        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalAffineWord):
             return false
         }
     }

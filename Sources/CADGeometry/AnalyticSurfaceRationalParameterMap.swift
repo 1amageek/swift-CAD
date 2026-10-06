@@ -248,10 +248,7 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
     ) throws -> Mapping {
         switch surface {
         case let .plane(plane):
-            let target = try circleOrthonormalBasis(
-                plane.normal,
-                tolerance: tolerance
-            )
+            let target = try plane.parameterBasis(tolerance: tolerance)
             let rational = try analyticOrthonormalBasis(
                 plane.normal,
                 tolerance: tolerance
@@ -297,7 +294,10 @@ package struct AnalyticSurfaceRationalParameterMap: Sendable {
                 periodicSeamOffset: periodicSeamOffset,
                 tolerance: tolerance
             )
-        case .bSpline, .procedural(.ruled), .procedural(.rollingBall):
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Original procedural sources have no
+        // certified analytic-chart reduction in this rational-map entry point.
+        // They must fail until source-preserving chart equivalence is proved.
+        case .bSpline, .procedural:
             throw KernelError(
                 phase: .geometry,
                 code: .invalidInput,

@@ -98,7 +98,7 @@ Specifications: [glTF 2.0](https://registry.khronos.org/glTF/specs/2.0/glTF-2.0.
 [PLY](https://graphics.stanford.edu/data/3Dscanrep/), and
 [VRML97](https://www.web3d.org/documents/specifications/14772/V2.0/part1/nodesRef.html).
 
-The main integration retains the existing `OfficialFormatExchange(glbExporter:)` injection. An explicitly injected legacy exporter owns GLB output; otherwise the injected `StandardMeshExchanging` service owns all four formats. Imports always use the standard mesh service. The existing IGES gates and unrelated capability-domain representation remain unchanged.
+The main integration retains the existing `OfficialFormatExchange(glbExporter:)` injection. An explicitly injected legacy exporter owns GLB output through both ordinary and preservation-policy publication; otherwise the injected `StandardMeshExchanging` service owns all four formats. Imports always use the standard mesh service. IGES source exchange and capability gates remain owned by the parent module and its independent-source component.
 
 UInt32 index ceilings are compared in UInt64 so the same admission remains representable on 32-bit WASI. Combined storage accounting also rejects checked addition overflow. The dedicated face-header and combined-storage regressions exercise typed resource failures without allocating the declared payload.
 

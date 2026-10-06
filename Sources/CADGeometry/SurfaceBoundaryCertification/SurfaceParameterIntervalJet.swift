@@ -4,13 +4,16 @@ import CADCore
 struct SurfaceParameterIntervalJet {
   static func enclose(
     _ curve: SurfaceParameterCurve, over parameters: ScalarInterval,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance, consumeWork: () throws -> Void = { try Task.checkCancellation() }
   ) throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet)? {
+    try consumeWork()
     let fraction = SurfaceIntervalJet.parameterU(parameters)
     func parameter(_ start: Double, _ end: Double) -> SurfaceIntervalJet {
       .constant(start) + (.constant(end) + .constant(-start)) * fraction
     }
     switch curve {
+    case .originalAffineWord(let image): return try image.intervalJet(over: parameters, tolerance: tolerance)
+    case .originalImage(let image): return try image.intervalJet(over: parameters, tolerance: tolerance)
     case let .affine(origin, direction, start, end):
       let t = parameter(start, end)
       return (.constant(origin.x) + .constant(direction.x) * t,
@@ -21,10 +24,12 @@ struct SurfaceParameterIntervalJet {
       return (parameter(start, end), .constant(v))
     case let .harmonic(center, cosine, sine, start, end):
       let t = parameter(start, end)
-      let c = SurfaceIntervalJet.cosine(of: t)
-      let s = SurfaceIntervalJet.sine(of: t)
+      let c = try SurfaceIntervalJet.cosine(of: t, consumeWork: consumeWork)
+      let s = try SurfaceIntervalJet.sine(of: t, consumeWork: consumeWork)
       return (.constant(center.x) + .constant(cosine.x) * c + .constant(sine.x) * s,
               .constant(center.y) + .constant(cosine.y) * c + .constant(sine.y) * s)
+    case let .originalBSplineContinuation(curve):
+      return try curve.intervalJet(over: parameters, tolerance: tolerance)
     case let .bSpline(curve):
       try curve.validate(tolerance: tolerance)
       guard case let .closed(lower, upper) = curve.domain else { return nil }

@@ -1,3 +1,4 @@
+import Foundation
 import CADCore
 import CADIR
 import Testing
@@ -19,8 +20,12 @@ struct KernelCapabilityContractTests {
       "GEO-INTERSECTION-001",
       "GEO-INTERSECTION-002",
       "GEO-PREDICATE-001",
+      "GEO-OVERLAP-001",
+      "GEO-CONVERSION-001",
       "TOPO-LINEAGE-001",
       "TOPO-BREP-001",
+      "TOPO-SHAPE-001",
+      "TOPO-NONMANIFOLD-001",
       "TOPO-SEWING-001",
       "TOPO-REPAIR-001",
       "TOPO-FACEAREA-001",
@@ -96,6 +101,7 @@ struct KernelCapabilityContractTests {
       "MODEL-SURFACEEXTEND-001",
       "MODEL-SURFACEMATCH-001",
       "API-PARITY-001",
+      "API-TRANSACTION-001",
       "API-NATIVEPERSISTENCE-001",
       "EXCHANGE-STEP-001",
       "EXCHANGE-IGES-001",
@@ -146,6 +152,22 @@ struct KernelCapabilityContractTests {
     #expect(capability.id == "MODEL-CONSTRAINEDSURFACE-001")
     #expect(capability.exactOutputs.contains("wholePatchHeightGradientNormalChangeBound"))
     #expect(capability.failureCodes.contains(.conflictingConstraints))
+  }
+
+  @Test(.timeLimit(.minutes(1)))
+  func publicInventoryMatchesCompiledFeatureAdmission() throws {
+    let root = URL(fileURLWithPath: #filePath)
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+      .deletingLastPathComponent()
+    let data = try Data(contentsOf: root.appendingPathComponent("PUBLIC_CONTRACT_INVENTORY.json"))
+    let inventory = try #require(try JSONSerialization.jsonObject(with: data) as? [String: Any])
+    let features = try #require(inventory["featureOperations"] as? [String: String])
+    #expect(Set(features.keys) == Set(FeatureOperationKind.allCases.map(\.rawValue)))
+    for operation in FeatureOperationKind.allCases {
+      let capability = try KernelCapabilities.current.requireExecutable(operation: operation.rawValue)
+      #expect(features[operation.rawValue] == capability.id)
+    }
   }
 
   @Test
@@ -211,24 +233,24 @@ struct KernelCapabilityContractTests {
   }
 
   @Test
-  func extrudeCapabilityIsAvailableAsSupported() throws {
-    let capability = try KernelCapabilities.current.requireSupported(
+  func extrudeCapabilityIsExecutableAsPartial() throws {
+    let capability = try KernelCapabilities.current.requireExecutable(
       operation: "extrude"
     )
 
     #expect(capability.id == "MODEL-EXTRUDE-001")
-    #expect(capability.status == .supported)
+    #expect(capability.status == .partial)
     #expect(capability.exactOutputs.contains("certifiedExactVolume"))
   }
 
   @Test
-  func revolveCapabilityIsAvailableAsSupported() throws {
-    let capability = try KernelCapabilities.current.requireSupported(
+  func revolveCapabilityIsExecutableAsPartial() throws {
+    let capability = try KernelCapabilities.current.requireExecutable(
       operation: "revolve"
     )
 
     #expect(capability.id == "MODEL-REVOLVE-001")
-    #expect(capability.status == .supported)
+    #expect(capability.status == .partial)
     #expect(
       capability.acceptedInputs.contains(
         "planarClosedRationalBSplineProfile"
@@ -933,21 +955,21 @@ struct KernelCapabilityContractTests {
   }
 
   @Test
-  func faceLoopOffsetIsSupportedOnSolidsAndSheets() throws {
-    let capability = try KernelCapabilities.current.requireSupported(operation: "faceLoopOffset")
+  func faceLoopOffsetIsPartialOnSolidsAndSheets() throws {
+    let capability = try KernelCapabilities.current.requireExecutable(operation: "faceLoopOffset")
     #expect(capability.topology == .sheetOrSolidBody)
     #expect(capability.acceptedInputs.contains("positiveDistanceIntoTheFacesOverTheFacesAroundThemOrBoth"))
     #expect(capability.exactOutputs.contains("offsetOverTheSurfaceOnPlanesAndCurvedFaces"))
-    #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
+    #expect(capability.failureCodes.contains(.unsupportedCapability))
   }
 
   @Test
-  func edgeOffsetIsSupportedOnSolidsAndSheets() throws {
-    let capability = try KernelCapabilities.current.requireSupported(operation: "edgeOffset")
+  func edgeOffsetIsPartialOnSolidsAndSheets() throws {
+    let capability = try KernelCapabilities.current.requireExecutable(operation: "edgeOffset")
     #expect(capability.topology == .sheetOrSolidBody)
     #expect(capability.acceptedInputs.contains("symmetricAcrossEachEdgeWithRoundLinearOrNaturalGapFill"))
     #expect(capability.exactOutputs.contains("openChainEndsCarriedToTheFaceBoundary"))
-    #expect(capability.failureCodes.contains(.unsupportedCapability) == false)
+    #expect(capability.failureCodes.contains(.unsupportedCapability))
   }
 
   @Test

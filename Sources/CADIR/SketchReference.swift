@@ -1,6 +1,6 @@
 import CADCore
 
-public enum SketchReference: Codable, Hashable, Sendable {
+public enum SketchReference: Hashable, Sendable {
     case entity(SketchEntityID)
     case lineStart(SketchEntityID)
     case lineEnd(SketchEntityID)
@@ -12,12 +12,15 @@ public enum SketchReference: Codable, Hashable, Sendable {
     case arcRadius(SketchEntityID)
     case splineControlPoint(entity: SketchEntityID, index: Int)
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case entityID
         case controlPointIndex
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case entity
         case lineStart
@@ -30,7 +33,9 @@ public enum SketchReference: Codable, Hashable, Sendable {
         case arcRadius
         case splineControlPoint
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -65,7 +70,9 @@ public enum SketchReference: Codable, Hashable, Sendable {
             )
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         let entityID: SketchEntityID
@@ -106,4 +113,9 @@ public enum SketchReference: Codable, Hashable, Sendable {
         try container.encode(kind, forKey: .kind)
         try container.encode(entityID, forKey: .entityID)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension SketchReference: Codable {}
+#endif

@@ -21,10 +21,13 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     private let tolerance: ModelingTolerance
     /// The largest shift any height asks of a spline, which its offsets' shared basis serves.
     private let splineReach: Double
+    private let admission: GeometryConversionAdmission?
 
-    package init(tolerance: ModelingTolerance, splineReach: Double = 0) {
+    package init(tolerance: ModelingTolerance, splineReach: Double = 0,
+        admission: GeometryConversionAdmission? = nil) {
         self.tolerance = tolerance
         self.splineReach = abs(splineReach)
+        self.admission = admission
     }
 
     private enum Element {
@@ -222,6 +225,10 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
     /// two moved walls cross; without, such a corner is refused, as a drafted section's would sweep
     /// a conic between heights.
     private func offset(_ elements: [Element], normal: Vector3D, shift: Double, crossings: Bool) throws -> [Element] {
+        if shift == 0 { return elements }
+        if crossings, elements.contains(where: isSpline) {
+            return try offsetSplineJoints(elements, normal: normal, shift: shift)
+        }
         var joints: [Point3D] = []
         for index in elements.indices {
             let this = elements[index]
@@ -266,6 +273,54 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
         }
     }
 
+    private func offsetSplineJoints(_ elements: [Element], normal: Vector3D, shift: Double) throws -> [Element] {
+        let curves = try elements.map { element -> BSplineCurve3D in
+            let first = try startPoint(of: element), last = endPoint(of: element)
+            let moved: Element
+            switch element {
+            case let .spline(curve):
+                let approximator = PlanarCurveOffsetApproximator(tolerance: tolerance)
+                return try offset(curve, normal: normal, shift: shift, approximator: approximator)
+            case .line, .arc:
+                moved = try place(element,
+                    from: first + travel(of: element, at: first).cross(normal) * shift,
+                    to: last + travel(of: element, at: last).cross(normal) * shift,
+                    normal: normal, shift: shift)
+            }
+            let spans = try segments([moved], lift: .zero).map { segment -> BSplineCurve3D in
+                switch segment.geometry {
+                case let .bSpline(curve): return curve
+                case .line:
+                    return BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                        controlPoints: [segment.startPoint, segment.endPoint], weights: [1, 1])
+                case .circularArc:
+                    throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
+                        message: "An offset arc did not retain its exact rational spans.")
+                }
+            }
+            return spans.count == 1 ? spans[0]
+                : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance)
+        }
+        let sources = try elements.map { element -> PlanarOffsetCurveSource in
+            let spans = try segments([element], lift: .zero).map { segment -> BSplineCurve3D in
+                switch segment.geometry {
+                case .bSpline(let curve): return curve
+                case .line:
+                    return BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1],
+                        controlPoints: [segment.startPoint, segment.endPoint], weights: [1, 1])
+                case .circularArc:
+                    throw KernelError(phase: .geometry, code: .classificationFailure, tolerance: tolerance,
+                        message: "An original offset arc lost its native rational law.")
+                }
+            }
+            let curve = spans.count == 1 ? spans[0]
+                : try ExactCompositeBSplineCurveBuilder().build(spans: spans, tolerance: tolerance)
+            return try PlanarOffsetCurveSource(curve: curve, normal: normal, shift: shift, tolerance: tolerance)
+        }
+        return try PlanarOffsetJointResolver().trims(curves: curves, originalCorners: elements.map(endPoint),
+            normal: normal, tolerance: tolerance, originalSources: sources).map { .spline($0) }
+    }
+
     /// `element` moved by `shift` along its outward side to run from `start` to `end`.
     private func place(_ element: Element, from start: Point3D, to end: Point3D, normal: Vector3D, shift: Double) throws -> Element {
         switch element {
@@ -277,17 +332,15 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
             return .line(start: start, end: end)
         case let .spline(curve):
             let approximator = PlanarCurveOffsetApproximator(tolerance: tolerance)
-            let knots = try approximator.basis(for: curve, normal: normal, reach: max(splineReach, abs(shift)))
-            let moved = try approximator.offset(curve, normal: normal, shift: shift, knots: knots)
+            let moved = try offset(curve, normal: normal, shift: shift, approximator: approximator)
             guard let first = moved.controlPoints.first, let last = moved.controlPoints.last,
                   (first - start).length <= tolerance.distance, (last - end).length <= tolerance.distance else {
                 throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
                                   message: "An offset spline does not meet its neighbours' joints.")
             }
-            var points = moved.controlPoints
-            points[0] = start
-            points[points.count - 1] = end
-            return .spline(BSplineCurve3D(degree: moved.degree, knots: moved.knots, controlPoints: points, weights: moved.weights))
+            // Retain the whole-original-law certificate. Moving endpoint controls after
+            // certification would change the candidate between the endpoints as well.
+            return .spline(moved)
         case let .arc(arc):
             let radial = try (arc.start - arc.center).normalized(tolerance: tolerance.distance)
             let outward = try travel(of: element, at: arc.start).cross(normal)
@@ -308,6 +361,23 @@ package struct ExactDraftedProfileBoundaryBuilder: Sendable {
                 center: arc.center, normal: arc.normal, radius: radius, start: start, end: end, sweepAngle: sweep
             ))
         }
+    }
+
+    private func offset(_ curve: BSplineCurve3D, normal: Vector3D, shift: Double,
+        approximator: PlanarCurveOffsetApproximator) throws -> BSplineCurve3D {
+        if let admission {
+            guard case let .closed(lower, upper) = curve.domain else {
+                throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
+                    message: "An original drafted spline requires a finite native interval.")
+            }
+            let parameters = try ScalarInterval(lower: lower, upper: upper)
+            let knots = try approximator.basis(for: .bSpline(curve), normal: normal,
+                reach: max(splineReach, abs(shift)), over: parameters, admission: admission)
+            return try approximator.offset(.bSpline(curve), normal: normal, shift: shift,
+                knots: knots, admission: admission)
+        }
+        let knots = try approximator.basis(for: curve, normal: normal, reach: max(splineReach, abs(shift)))
+        return try approximator.offset(curve, normal: normal, shift: shift, knots: knots)
     }
 
     /// Where `before` and `after`, both moved by `shift`, cross nearest their corner: a line's

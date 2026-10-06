@@ -42,6 +42,19 @@ struct SurfaceLiftDifferentialBounder {
         interval: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> Double? {
+        if case .originalAffineWord(let image) = lift.parameterCurve {
+            guard let jet = try image.modelSpaceIntervalJet(over: interval, tolerance: tolerance) else { return nil }
+            return IntervalVector3DBounds(x: jet.x.thirdDerivativeUUU, y: jet.y.thirdDerivativeUUU,
+                z: jet.z.thirdDerivativeUUU).lengthUpperBound
+        }
+        if case .originalImage(let image) = lift.parameterCurve {
+            guard let original = try thirdDerivativeMagnitude(lift: image.source,
+                interval: image.mappedRange(interval), tolerance: tolerance) else { return nil }
+            let gain = (OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)).absoluteUpperBound
+            var scale = image.targetImage.transform.linearMagnitudeUpperBound
+            for _ in 0..<3 { scale = upperProduct(scale, gain) }
+            return upperProduct(original, scale)
+        }
         if let bound = try exactBSplineImageDerivativeBounds(
             lift,
             interval: interval,
@@ -196,6 +209,19 @@ struct SurfaceLiftDifferentialBounder {
         interval: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> Double? {
+        if case .originalAffineWord(let image) = lift.parameterCurve {
+            guard let jet = try image.modelSpaceIntervalJet(over: interval, tolerance: tolerance) else { return nil }
+            return IntervalVector3DBounds(x: jet.x.secondDerivativeUU, y: jet.y.secondDerivativeUU,
+                z: jet.z.secondDerivativeUU).lengthUpperBound
+        }
+        if case .originalImage(let image) = lift.parameterCurve {
+            guard let original = try secondDerivativeMagnitude(lift: image.source,
+                interval: image.mappedRange(interval), tolerance: tolerance) else { return nil }
+            let gain = (OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)).absoluteUpperBound
+            var scale = image.targetImage.transform.linearMagnitudeUpperBound
+            for _ in 0..<2 { scale = upperProduct(scale, gain) }
+            return upperProduct(original, scale)
+        }
         if let bound = try exactBSplineImageDerivativeBounds(
             lift,
             interval: interval,
@@ -323,6 +349,19 @@ struct SurfaceLiftDifferentialBounder {
         interval: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> Double? {
+        if case .originalAffineWord(let image) = lift.parameterCurve {
+            guard let jet = try image.modelSpaceIntervalJet(over: interval, tolerance: tolerance) else { return nil }
+            return IntervalVector3DBounds(x: jet.x.derivativeU, y: jet.y.derivativeU,
+                z: jet.z.derivativeU).lengthUpperBound
+        }
+        if case .originalImage(let image) = lift.parameterCurve {
+            guard let original = try firstDerivativeMagnitude(lift: image.source,
+                interval: image.mappedRange(interval), tolerance: tolerance) else { return nil }
+            let gain = (OutwardScalarInterval.exact(image.endFraction) - .exact(image.startFraction)).absoluteUpperBound
+            var scale = image.targetImage.transform.linearMagnitudeUpperBound
+            for _ in 0..<1 { scale = upperProduct(scale, gain) }
+            return upperProduct(original, scale)
+        }
         if let bound = try exactBSplineImageDerivativeBounds(
             lift,
             interval: interval,
@@ -498,6 +537,13 @@ struct SurfaceLiftDifferentialBounder {
     ) throws -> [Double] {
         let normalizedBreaks: [Double]
         switch lift.parameterCurve {
+        case .originalAffineWord(let image):
+            let original = try breakParameters(lift: image.source, within: image.mappedRange(interval), tolerance: tolerance)
+            normalizedBreaks = original.map { ($0 - image.startFraction) / (image.endFraction - image.startFraction) }
+        case .originalImage(let image):
+            let original = try breakParameters(lift: image.source, within: image.mappedRange(interval), tolerance: tolerance)
+            normalizedBreaks = original.map { ($0 - image.startFraction) / (image.endFraction - image.startFraction) }
+
         case let .polyline(points):
             var lengths: [Double] = []
             var totalLength = 0.0
@@ -517,6 +563,10 @@ struct SurfaceLiftDifferentialBounder {
                 accumulated += length
                 return accumulated / totalLength
             }
+        case let .originalBSplineContinuation(curve):
+            let span = curve.endParameter - curve.startParameter
+            normalizedBreaks = curve.original.knots.map { ($0 - curve.startParameter) / span }
+                .filter { $0 > 0 && $0 < 1 }.sorted()
         case let .bSpline(curve):
             guard case let .closed(lower, upper) = curve.domain else {
                 throw KernelError(
@@ -586,6 +636,15 @@ struct SurfaceLiftDifferentialBounder {
         tolerance: ModelingTolerance
     ) throws -> ParameterBounds? {
         switch curve {
+        case .originalAffineWord(let image):
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            return ParameterBounds(u: try ScalarInterval(lower: jet.u.value.lower, upper: jet.u.value.upper),
+                v: try ScalarInterval(lower: jet.v.value.lower, upper: jet.v.value.upper))
+        case .originalImage(let image):
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            return ParameterBounds(u: try ScalarInterval(lower: jet.u.value.lower, upper: jet.u.value.upper),
+                v: try ScalarInterval(lower: jet.v.value.lower, upper: jet.v.value.upper))
+
         case .affine, .constantU, .constantV:
             let endpoints = try [0.0, 1.0].map {
                 try curve.parameter(
@@ -609,6 +668,10 @@ struct SurfaceLiftDifferentialBounder {
             )
         case let .polyline(points):
             return try bounds(points: points)
+        case let .originalBSplineContinuation(curve):
+            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+            return ParameterBounds(u: try ScalarInterval(lower: jet.u.value.lower, upper: jet.u.value.upper),
+                v: try ScalarInterval(lower: jet.v.value.lower, upper: jet.v.value.upper))
         case let .bSpline(curve):
             return try bounds(points: curve.controlPoints.map {
                 SurfaceParameter(u: $0.x, v: $0.y)
@@ -712,6 +775,19 @@ struct SurfaceLiftDifferentialBounder {
         tolerance: ModelingTolerance
     ) throws -> ParameterDerivativeBounds? {
         switch curve {
+        case .originalAffineWord(let image):
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            return ParameterDerivativeBounds(firstU: jet.u.derivativeU.absoluteUpperBound,
+                firstV: jet.v.derivativeU.absoluteUpperBound, secondU: jet.u.secondDerivativeUU.absoluteUpperBound,
+                secondV: jet.v.secondDerivativeUU.absoluteUpperBound, thirdU: jet.u.thirdDerivativeUUU.absoluteUpperBound,
+                thirdV: jet.v.thirdDerivativeUUU.absoluteUpperBound)
+        case .originalImage(let image):
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else { return nil }
+            return ParameterDerivativeBounds(firstU: jet.u.derivativeU.absoluteUpperBound,
+                firstV: jet.v.derivativeU.absoluteUpperBound, secondU: jet.u.secondDerivativeUU.absoluteUpperBound,
+                secondV: jet.v.secondDerivativeUU.absoluteUpperBound, thirdU: jet.u.thirdDerivativeUUU.absoluteUpperBound,
+                thirdV: jet.v.thirdDerivativeUUU.absoluteUpperBound)
+
         case let .affine(_, direction, start, end):
             let scale = abs(end - start)
             return ParameterDerivativeBounds(
@@ -764,6 +840,12 @@ struct SurfaceLiftDifferentialBounder {
                 thirdU: 0.0,
                 thirdV: 0.0
             )
+        case let .originalBSplineContinuation(curve):
+            let jet = try curve.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+            return ParameterDerivativeBounds(firstU: jet.u.derivativeU.absoluteUpperBound,
+                firstV: jet.v.derivativeU.absoluteUpperBound, secondU: jet.u.secondDerivativeUU.absoluteUpperBound,
+                secondV: jet.v.secondDerivativeUU.absoluteUpperBound, thirdU: jet.u.thirdDerivativeUUU.absoluteUpperBound,
+                thirdV: jet.v.thirdDerivativeUUU.absoluteUpperBound)
         case let .bSpline(curve):
             let patches = try curve.rationalBezierPatches(tolerance: tolerance)
             guard case let .closed(lower, upper) = curve.domain,
@@ -1179,6 +1261,22 @@ struct SurfaceLiftDifferentialBounder {
                 upper: maximumV.nextUp
             )
         )
+    }
+
+    /// Removes only outward arithmetic overhang from a validated native chart.
+    /// Modeling tolerance does not authorize a new source-domain intersection.
+    func closedRange(_ interval: ScalarInterval, domain: ParameterDomain,
+                     tolerance: ModelingTolerance) throws -> ScalarInterval {
+        guard case let .closed(domainLower,domainUpper) = domain else { return interval }
+        let margin = Double.ulpOfOne * max(1,abs(domainLower),abs(domainUpper)) * 64
+        let lower = max(interval.lower,domainLower)
+        let upper = min(interval.upper,domainUpper)
+        guard interval.lower >= domainLower-margin, interval.upper <= domainUpper+margin,
+              lower <= upper else {
+            throw KernelError(phase:.geometry,code:.invalidInput,tolerance:tolerance,
+                message:"A B-spline surface-lift UV enclosure leaves its validated native chart domain.")
+        }
+        return try ScalarInterval(lower:lower,upper:upper)
     }
 
     func nondegenerateRange(

@@ -1,8 +1,8 @@
 import Foundation
 import CADCore
 
-public enum Curve3D: Codable, Sendable, Hashable {
-    public struct DifferentialGeometry: Codable, Sendable, Hashable {
+public enum Curve3D: Sendable, Hashable {
+    public struct DifferentialGeometry: Sendable, Hashable {
         public var position: Point3D
         public var firstDerivative: Vector3D
         public var secondDerivative: Vector3D
@@ -35,7 +35,17 @@ public enum Curve3D: Codable, Sendable, Hashable {
     case surfaceLift(SurfaceLiftCurve3D)
     case certifiedIntersection(CertifiedIntersectionCurve3D)
     indirect case rigidImage(RigidImageCurve3D)
+    indirect case originalConstructionChart(OriginalCurveConstructionChartImage)
+    indirect case originalEndpointConnector(OriginalEndpointConnectorCurve3D)
+    indirect case originalPlaneDerivative(OriginalPlaneDerivativeCurve3D)
+    indirect case originalGuideTraversalChain(OriginalGuideTraversalChain3D)
+    case originalPolyline(OriginalPolylineCurve3D)
+    indirect case originalGuideEndpointConnector(OriginalGuideEndpointConnectorCurve3D)
+    indirect case originalDrafted(OriginalDraftedCurve3D)
+    indirect case originalAngularTransport(OriginalAngularTransportCurve3D)
+    indirect case originalAffineWord(OriginalAffineWordCurve3D)
     indirect case affineImage(AffineImageCurve3D)
+    indirect case parameterImage(ParameterImageCurve3D)
 
     public func validate(tolerance: ModelingTolerance) throws {
         try tolerance.validate()
@@ -59,6 +69,26 @@ public enum Curve3D: Codable, Sendable, Hashable {
             try curve.validate(tolerance: tolerance)
         case let .rigidImage(curve):
             try curve.validate(tolerance: tolerance)
+        case let .parameterImage(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .originalConstructionChart(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .originalEndpointConnector(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .originalPlaneDerivative(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .originalGuideTraversalChain(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .originalPolyline(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .originalGuideEndpointConnector(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .originalDrafted(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .originalAngularTransport(curve):
+            try curve.validate(tolerance: tolerance)
+        case let .originalAffineWord(curve):
+            try curve.validate(tolerance: tolerance)
         case let .affineImage(curve):
             try curve.validate(tolerance: tolerance)
         }
@@ -77,6 +107,13 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case .implicit, .surfaceLift, .certifiedIntersection:
             .closed(0.0, 1.0)
         case let .rigidImage(curve):
+            curve.parameterDomain
+        case let .parameterImage(curve):
+            curve.parameterDomain
+        case .originalEndpointConnector, .originalConstructionChart, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted: .closed(0, 1)
+        case let .originalAngularTransport(curve):
+            curve.parameterDomain
+        case let .originalAffineWord(curve):
             curve.parameterDomain
         case let .affineImage(curve):
             curve.parameterDomain
@@ -100,8 +137,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 tolerance: tolerance
             )
             return circle.center
-                + (u * (circle.radius * cos(parameter)))
-                + (v * (circle.radius * sin(parameter)))
+                + (u * (circle.radius * CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)))
+                + (v * (circle.radius * CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false)))
         case let .analytic(curve):
             return try curve.differentialGeometryAssumingValid(
                 at: parameter,
@@ -132,6 +169,26 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 at: parameter,
                 tolerance: tolerance
             )
+        case let .parameterImage(curve):
+            return try curve.pointAssumingValid(at: parameter, tolerance: tolerance)
+        case let .originalConstructionChart(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
+        case let .originalEndpointConnector(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
+        case let .originalPlaneDerivative(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
+        case let .originalGuideTraversalChain(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
+        case let .originalPolyline(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
+        case let .originalGuideEndpointConnector(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
+        case let .originalDrafted(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
+        case let .originalAngularTransport(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
+        case let .originalAffineWord(curve):
+            return try curve.point(at: parameter, tolerance: tolerance)
         case let .affineImage(curve):
             return try curve.pointAssumingValid(
                 at: parameter,
@@ -169,14 +226,17 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 circle.normal,
                 tolerance: tolerance
             )
-            let firstDerivative = (u * (-circle.radius * sin(parameter))) +
-                (v * (circle.radius * cos(parameter)))
-            let secondDerivative = (u * (-circle.radius * cos(parameter))) +
-                (v * (-circle.radius * sin(parameter)))
+            let sine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false)
+            let cosine = CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)
+            let scale = CanonicalSphereAngularPhase.scaleBounds.midpoint
+            let firstDerivative = ((u * (-circle.radius * sine)) +
+                (v * (circle.radius * cosine))) * scale
+            let secondDerivative = ((u * (-circle.radius * cosine)) +
+                (v * (-circle.radius * sine))) * (scale * scale)
             return try Self.differentialGeometry(
                 position: circle.center
-                    + (u * (circle.radius * cos(parameter)))
-                    + (v * (circle.radius * sin(parameter))),
+                    + (u * (circle.radius * CanonicalSphereAngularPhase.candidate(at: parameter, cosine: true)))
+                    + (v * (circle.radius * CanonicalSphereAngularPhase.candidate(at: parameter, cosine: false))),
                 firstDerivative: firstDerivative,
                 secondDerivative: secondDerivative,
                 tolerance: tolerance
@@ -243,6 +303,74 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 at: parameter,
                 tolerance: tolerance
             )
+        case let .parameterImage(curve):
+            return try curve.differentialGeometryAssumingValid(at: parameter, tolerance: tolerance)
+        case let .originalConstructionChart(curve):
+            let jet = try curve.intervalTaylorJet(over: .init(lower: parameter, upper: parameter), throughOrder: 2,
+                tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth,
+                remainingSourceDepth: curve.remainingSourceDepth == Int.max ? Int.max : curve.remainingSourceDepth + 1,
+                consumeWork: { try Task.checkCancellation() })
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                firstDerivative: .init(x: try jet.x.coefficient(1, 0).midpoint, y: try jet.y.coefficient(1, 0).midpoint, z: try jet.z.coefficient(1, 0).midpoint),
+                secondDerivative: .init(x: try (jet.x.coefficient(2, 0) * .exact(2)).midpoint, y: try (jet.y.coefficient(2, 0) * .exact(2)).midpoint, z: try (jet.z.coefficient(2, 0) * .exact(2)).midpoint),
+                tolerance: tolerance)
+        case let .originalEndpointConnector(curve):
+            let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: 0,
+                consumeWork: { try Task.checkCancellation() })
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
+                secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
+                tolerance: tolerance)
+        case let .originalPlaneDerivative(curve):
+            let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
+                consumeWork: { try Task.checkCancellation() })
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
+                secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
+                tolerance: tolerance)
+        case let .originalGuideTraversalChain(curve):
+            let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
+                consumeWork: { try Task.checkCancellation() })
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
+                secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
+                tolerance: tolerance)
+        case let .originalPolyline(curve):
+            let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
+                consumeWork: { try Task.checkCancellation() })
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
+                secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
+                tolerance: tolerance)
+        case let .originalGuideEndpointConnector(curve):
+            let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 2, tolerance: tolerance, maximumSpanCount: curve.maximumSpanCount,
+                maximumSubdivisionDepth: curve.maximumSubdivisionDepth, remainingSourceDepth: curve.remainingSourceDepth,
+                consumeWork: { try Task.checkCancellation() })
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
+                secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
+                tolerance: tolerance)
+        case let .originalDrafted(curve):
+            let q = try curve.derivatives(over: .init(lower: parameter, upper: parameter),
+                throughOrder: 2, tolerance: tolerance)
+            return try Self.differentialGeometry(position: curve.point(at: parameter, tolerance: tolerance),
+                firstDerivative: .init(x: q.x.derivatives[1].midpoint, y: q.y.derivatives[1].midpoint, z: q.z.derivatives[1].midpoint),
+                secondDerivative: .init(x: q.x.derivatives[2].midpoint, y: q.y.derivatives[2].midpoint, z: q.z.derivatives[2].midpoint),
+                tolerance: tolerance)
+        case let .originalAngularTransport(curve):
+            return try curve.differentialGeometry(at: parameter, tolerance: tolerance)
+        case let .originalAffineWord(curve):
+            return try curve.differentialGeometry(at: parameter, tolerance: tolerance)
         case let .affineImage(curve):
             return try curve.differentialGeometryAssumingValid(
                 at: parameter,
@@ -251,6 +379,7 @@ public enum Curve3D: Codable, Sendable, Hashable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case kind
         case line
@@ -261,9 +390,21 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case surfaceLift
         case certifiedIntersection
         case rigidImage
+        case originalConstructionChart
+        case originalEndpointConnector
+        case originalPlaneDerivative
+        case originalGuideTraversalChain
+        case originalGuideEndpointConnector
+        case originalPolyline
+        case originalDrafted
+        case originalAngularTransport
+        case originalAffineWord
         case affineImage
+        case parameterImage
     }
+#endif
 
+#if !hasFeature(Embedded)
     private enum Kind: String, Codable {
         case line
         case circle
@@ -273,9 +414,21 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case surfaceLift
         case certifiedIntersection
         case rigidImage
+        case originalConstructionChart
+        case originalEndpointConnector
+        case originalPlaneDerivative
+        case originalGuideTraversalChain
+        case originalGuideEndpointConnector
+        case originalPolyline
+        case originalDrafted
+        case originalAngularTransport
+        case originalAffineWord
         case affineImage
+        case parameterImage
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let kind = try container.decode(Kind.self, forKey: .kind)
@@ -317,6 +470,36 @@ public enum Curve3D: Codable, Sendable, Hashable {
                 RigidImageCurve3D.self,
                 forKey: .rigidImage
             ))
+        case .parameterImage:
+            try container.validateOnlyExpectedKeys([.kind, .parameterImage], in: decoder)
+            self = .parameterImage(try container.decode(ParameterImageCurve3D.self, forKey: .parameterImage))
+        case .originalConstructionChart:
+            try container.validateOnlyExpectedKeys([.kind, .originalConstructionChart], in: decoder)
+            self = .originalConstructionChart(try container.decode(OriginalCurveConstructionChartImage.self, forKey: .originalConstructionChart))
+        case .originalEndpointConnector:
+            try container.validateOnlyExpectedKeys([.kind, .originalEndpointConnector], in: decoder)
+            self = .originalEndpointConnector(try container.decode(OriginalEndpointConnectorCurve3D.self, forKey: .originalEndpointConnector))
+        case .originalPlaneDerivative:
+            try container.validateOnlyExpectedKeys([.kind, .originalPlaneDerivative], in: decoder)
+            self = .originalPlaneDerivative(try container.decode(OriginalPlaneDerivativeCurve3D.self, forKey: .originalPlaneDerivative))
+        case .originalGuideTraversalChain:
+            try container.validateOnlyExpectedKeys([.kind, .originalGuideTraversalChain], in: decoder)
+            self = .originalGuideTraversalChain(try container.decode(OriginalGuideTraversalChain3D.self, forKey: .originalGuideTraversalChain))
+        case .originalPolyline:
+            try container.validateOnlyExpectedKeys([.kind, .originalPolyline], in: decoder)
+            self = .originalPolyline(try container.decode(OriginalPolylineCurve3D.self, forKey: .originalPolyline))
+        case .originalGuideEndpointConnector:
+            try container.validateOnlyExpectedKeys([.kind, .originalGuideEndpointConnector], in: decoder)
+            self = .originalGuideEndpointConnector(try container.decode(OriginalGuideEndpointConnectorCurve3D.self, forKey: .originalGuideEndpointConnector))
+        case .originalDrafted:
+            try container.validateOnlyExpectedKeys([.kind, .originalDrafted], in: decoder)
+            self = .originalDrafted(try container.decode(OriginalDraftedCurve3D.self, forKey: .originalDrafted))
+        case .originalAngularTransport:
+            try container.validateOnlyExpectedKeys([.kind, .originalAngularTransport], in: decoder)
+            self = .originalAngularTransport(try container.decode(OriginalAngularTransportCurve3D.self, forKey: .originalAngularTransport))
+        case .originalAffineWord:
+            try container.validateOnlyExpectedKeys([.kind, .originalAffineWord], in: decoder)
+            self = .originalAffineWord(try container.decode(OriginalAffineWordCurve3D.self, forKey: .originalAffineWord))
         case .affineImage:
             try container.validateOnlyExpectedKeys([.kind, .affineImage], in: decoder)
             self = .affineImage(try container.decode(
@@ -325,7 +508,9 @@ public enum Curve3D: Codable, Sendable, Hashable {
             ))
         }
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         switch self {
@@ -353,13 +538,44 @@ public enum Curve3D: Codable, Sendable, Hashable {
         case let .rigidImage(curve):
             try container.encode(Kind.rigidImage, forKey: .kind)
             try container.encode(curve, forKey: .rigidImage)
+        case let .parameterImage(curve):
+            try container.encode(Kind.parameterImage, forKey: .kind)
+            try container.encode(curve, forKey: .parameterImage)
+        case let .originalConstructionChart(curve):
+            try container.encode(Kind.originalConstructionChart, forKey: .kind)
+            try container.encode(curve, forKey: .originalConstructionChart)
+        case let .originalEndpointConnector(curve):
+            try container.encode(Kind.originalEndpointConnector, forKey: .kind)
+            try container.encode(curve, forKey: .originalEndpointConnector)
+        case let .originalPlaneDerivative(curve):
+            try container.encode(Kind.originalPlaneDerivative, forKey: .kind)
+            try container.encode(curve, forKey: .originalPlaneDerivative)
+        case let .originalGuideTraversalChain(curve):
+            try container.encode(Kind.originalGuideTraversalChain, forKey: .kind)
+            try container.encode(curve, forKey: .originalGuideTraversalChain)
+        case let .originalPolyline(curve):
+            try container.encode(Kind.originalPolyline, forKey: .kind)
+            try container.encode(curve, forKey: .originalPolyline)
+        case let .originalGuideEndpointConnector(curve):
+            try container.encode(Kind.originalGuideEndpointConnector, forKey: .kind)
+            try container.encode(curve, forKey: .originalGuideEndpointConnector)
+        case let .originalDrafted(curve):
+            try container.encode(Kind.originalDrafted, forKey: .kind)
+            try container.encode(curve, forKey: .originalDrafted)
+        case let .originalAngularTransport(curve):
+            try container.encode(Kind.originalAngularTransport, forKey: .kind)
+            try container.encode(curve, forKey: .originalAngularTransport)
+        case let .originalAffineWord(curve):
+            try container.encode(Kind.originalAffineWord, forKey: .kind)
+            try container.encode(curve, forKey: .originalAffineWord)
         case let .affineImage(curve):
             try container.encode(Kind.affineImage, forKey: .kind)
             try container.encode(curve, forKey: .affineImage)
         }
     }
+#endif
 
-    private static func differentialGeometry(
+    static func differentialGeometry(
         position: Point3D,
         firstDerivative: Vector3D,
         secondDerivative: Vector3D,
@@ -390,3 +606,8 @@ public enum Curve3D: Codable, Sendable, Hashable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension Curve3D: Codable {}
+extension Curve3D.DifferentialGeometry: Codable {}
+#endif

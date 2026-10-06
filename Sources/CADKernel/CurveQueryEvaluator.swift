@@ -4,7 +4,7 @@ import CADGeometry
 import CADIR
 import CADModeling
 
-public struct CurveQueryPoint: Codable, Sendable, Hashable {
+public struct CurveQueryPoint: Sendable, Hashable {
     public var reference: CurveParameterReference
     public var point: Point3D
     public var tangent: Vector3D?
@@ -26,7 +26,7 @@ public struct CurveQueryPoint: Codable, Sendable, Hashable {
     }
 }
 
-public struct CurveEndpointQueryResult: Codable, Sendable, Hashable {
+public struct CurveEndpointQueryResult: Sendable, Hashable {
     public var curve: CurveOutputReference
     public var start: Point3D
     public var end: Point3D
@@ -38,7 +38,7 @@ public struct CurveEndpointQueryResult: Codable, Sendable, Hashable {
     }
 }
 
-public struct CurveSpanQueryResult: Codable, Sendable, Hashable {
+public struct CurveSpanQueryResult: Sendable, Hashable {
     public var reference: CurveSpanReference
     public var lowerParameter: Double
     public var upperParameter: Double
@@ -52,6 +52,7 @@ public struct CurveSpanQueryResult: Codable, Sendable, Hashable {
 
 public struct CurveQueryEvaluator: Sendable {
     private let tolerance: ModelingTolerance
+    package var queryTolerance: ModelingTolerance { tolerance }
 
     public init(tolerance: ModelingTolerance) {
         self.tolerance = tolerance
@@ -156,7 +157,14 @@ public struct CurveQueryEvaluator: Sendable {
                  .surfaceLift,
                  .certifiedIntersection,
                  .rigidImage,
-                 .affineImage:
+                 .affineImage,
+                 .originalAffineWord,
+                 .parameterImage,
+                 .originalConstructionChart,
+                 .originalEndpointConnector,
+                 .originalPlaneDerivative,
+                 .originalDrafted,
+                 .originalAngularTransport, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
                 candidate = try closestPointOnCurve(
                     point,
                     curve: exactCurve,
@@ -217,7 +225,14 @@ public struct CurveQueryEvaluator: Sendable {
                  .surfaceLift,
                  .certifiedIntersection,
                  .rigidImage,
-                 .affineImage:
+                 .affineImage,
+                 .originalAffineWord,
+                 .parameterImage,
+                 .originalConstructionChart,
+                 .originalEndpointConnector,
+                 .originalPlaneDerivative,
+                 .originalDrafted,
+                 .originalAngularTransport, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
                 candidate = try projectOntoCurve(
                     point,
                     direction: unitDirection,
@@ -253,11 +268,11 @@ public struct CurveQueryEvaluator: Sendable {
         in document: EvaluatedDocument
     ) throws -> Point3D {
         try reference.validate()
-        let curve = try exactBSpline(for: reference.curve, in: document)
-        guard reference.controlPointIndex < curve.controlPoints.count else {
-            throw FeatureEvaluationError.missingInput("Curve control point index could not be resolved.")
+        let evaluated = try resolve(reference.curve, in: document)
+        guard let original = evaluated.exactCurve else {
+            throw FeatureEvaluationError.missingInput("Curve control point query requires original curve geometry.")
         }
-        return curve.controlPoints[reference.controlPointIndex]
+        return try originalControlPoint(reference.controlPointIndex, on: original)
     }
 
     public func center(
@@ -331,6 +346,26 @@ public struct CurveQueryEvaluator: Sendable {
         }
     }
 
+    /// Numerical handle coordinates come from the original image, never a new spline source.
+    private func originalControlPoint(_ index: Int, on curve: Curve3D) throws -> Point3D {
+        switch curve {
+        case .bSpline(let spline):
+            guard index >= 0, index < spline.controlPoints.count else {
+                throw FeatureEvaluationError.missingInput("Curve control point index could not be resolved.")
+            }
+            return spline.controlPoints[index]
+        case .rigidImage(let image):
+            return try image.transform.applying(to: originalControlPoint(index, on: image.source))
+        case .affineImage(let image):
+            return try image.transform.applying(to: originalControlPoint(index, on: image.source))
+        case .originalAffineWord(let image):
+            return try image.applying(to: originalControlPoint(index, on: image.source))
+        default:
+            throw KernelError(phase: .validation, code: .invalidInput, tolerance: tolerance,
+                message: "Curve control point selection requires an original B-spline source.")
+        }
+    }
+
     private func exactBSpline(
         for reference: CurveOutputReference,
         in document: EvaluatedDocument
@@ -361,12 +396,20 @@ public struct CurveQueryEvaluator: Sendable {
                 to: exactBSpline(from: image.source),
                 tolerance: tolerance
             )
+        case .originalAffineWord(let image):
+            return try exactBSpline(from: image.source)
         case .line,
              .circle,
              .analytic,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .parameterImage,
+             .originalConstructionChart,
+             .originalEndpointConnector,
+                 .originalPlaneDerivative,
+                 .originalDrafted,
+                 .originalAngularTransport, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
             throw KernelError(
                 phase: .validation,
                 code: .invalidInput,
@@ -390,6 +433,13 @@ public struct CurveQueryEvaluator: Sendable {
             return try exactCenter(of: image.source).map(image.transform.applying(to:))
         case let .affineImage(image):
             return try exactCenter(of: image.source).map(image.transform.applying(to:))
+        case let .originalAffineWord(image):
+            guard let center = try exactCenter(of: image.source) else { return nil }
+            return try image.applying(to: center)
+        case .parameterImage(let image):
+            return try exactCenter(of: image.source)
+        case .originalConstructionChart(let image):
+            return try exactCenter(of: image.source)
         case .line,
              .analytic(.line),
              .analytic(.parabola),
@@ -397,7 +447,11 @@ public struct CurveQueryEvaluator: Sendable {
              .bSpline,
              .implicit,
              .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection,
+             .originalEndpointConnector,
+                 .originalPlaneDerivative,
+                 .originalDrafted,
+                 .originalAngularTransport, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
             return nil
         }
     }
@@ -913,3 +967,9 @@ private struct CurveDirectionalProjectionCandidate: Sendable, Hashable {
     var iterations: Int
     var converged: Bool
 }
+
+#if !hasFeature(Embedded)
+extension CurveQueryPoint: Codable {}
+extension CurveEndpointQueryResult: Codable {}
+extension CurveSpanQueryResult: Codable {}
+#endif

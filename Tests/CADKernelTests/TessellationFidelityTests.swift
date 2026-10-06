@@ -1,6 +1,7 @@
 import Foundation
 import Testing
 import CADCore
+import CADGeometry
 import CADIR
 import CADModeling
 import CADTopology
@@ -52,6 +53,541 @@ struct TessellationFidelityTests {
         }
         #expect(deviation > 0)
         #expect(deviation <= TessellationOptions.standard.linearTolerance * (1 + 1e-9))
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rectangularParabolaRefinesForPositionNormalAndCurvatureIndependently() throws {
+        let coarse = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.5)
+        let positionFine = TessellationOptions(linearTolerance: 1e-5, angularTolerance: 0.5)
+        let normalFine = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.01)
+        let model = try rectangularBSplineSheet(surface: parabolicTessellationSurface(rise: 0.2))
+        let original = model
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let coarseMesh = try #require(try tessellator.tessellate(model: model, options: coarse).values.first)
+        let positionMesh = try #require(try tessellator.tessellate(model: model, options: positionFine).values.first)
+        let normalMesh = try #require(try tessellator.tessellate(model: model, options: normalFine).values.first)
+        let higherCurvature = try rectangularBSplineSheet(surface: parabolicTessellationSurface(rise: 1))
+        let curvatureMesh = try #require(try tessellator.tessellate(model: higherCurvature, options: coarse).values.first)
+        #expect(positionMesh.indices.count > coarseMesh.indices.count)
+        #expect(normalMesh.indices.count > coarseMesh.indices.count)
+        #expect(curvatureMesh.indices.count > coarseMesh.indices.count)
+        #expect(model == original)
+        for (mesh, options, rise) in [(coarseMesh, coarse, 0.2), (positionMesh, positionFine, 0.2),
+                                     (normalMesh, normalFine, 0.2), (curvatureMesh, coarse, 1.0)] {
+            try verifyLiteralGraph(mesh, options: options, height: { u, _ in rise * u * u },
+                                   normal: { u, _ in Vector3D(x: -2 * rise * u, y: 0, z: 1) })
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rectangularSaddleBoundsTheMixedDerivativeInsideTriangles() throws {
+        let rise = 0.4
+        let surface = BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1], controlPoints: [
+                [.origin, Point3D(x: 1, y: 0, z: 0)],
+                [Point3D(x: 0, y: 1, z: 0), Point3D(x: 1, y: 1, z: rise)]])
+        let model = try rectangularBSplineSheet(surface: surface)
+        let options = TessellationOptions(linearTolerance: 1e-4, angularTolerance: 0.03)
+        let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+        try verifyLiteralGraph(mesh, options: options, height: { rise * $0 * $1 },
+                               normal: { u, v in Vector3D(x: -rise * v, y: -rise * u, z: 1) })
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func rectangularSplineBoundsEveryDiagonalByTheRequestedMaximumEdgeLength() throws {
+        let model = try rectangularBSplineSheet(surface: parabolicTessellationSurface(rise: 0))
+        let options = TessellationOptions(linearTolerance: 0.1, angularTolerance: 0.5, maxEdgeLength: 0.125)
+        let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+        var maximumLength = 0.0
+        for triangle in 0..<(mesh.indices.count / 3) {
+            let corners = (0..<3).map { mesh.positions[Int(mesh.indices[3 * triangle + $0])] }
+            for edge in 0..<3 {
+                maximumLength = max(maximumLength, (corners[(edge + 1) % 3] - corners[edge]).length)
+            }
+        }
+        #expect(maximumLength <= 0.125 * (1 + 1e-12))
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v])
+    func nonclampedCardinalRectanglesRefineOriginalPositionNormalAndCurvature(direction: CADGeometry.SurfaceParameterDirection) throws {
+        let surface = nonclampedTessellationSurface(direction: direction)
+        let model = try rectangularBSplineSheet(surface: surface)
+        let original = model
+        let coarse = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.08, maxEdgeLength: 0.25)
+        let positional = TessellationOptions(linearTolerance: 1e-5, angularTolerance: 0.08, maxEdgeLength: 0.25)
+        let angular = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.005, maxEdgeLength: 0.25)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        var counts: [Int] = []
+        for options in [coarse, positional, angular] {
+            let mesh = try #require(try tessellator.tessellate(model: model, options: options).values.first)
+            try verifyLiteralGraph(mesh, options: options,
+                height: { x, y in let t = direction == .u ? x : y; return 0.2 * t * t },
+                normal: { x, y in direction == .u ? Vector3D(x: -0.4 * x, y: 0, z: 1)
+                    : Vector3D(x: 0, y: -0.4 * y, z: 1) })
+            #expect(mesh.positions.contains { (direction == .u ? $0.x : $0.y) == 0 })
+            #expect(mesh.positions.contains { (direction == .u ? $0.x : $0.y) == 1 })
+            counts.append(mesh.indices.count)
+        }
+        #expect(counts[1] > counts[0])
+        #expect(counts[2] > counts[0])
+        let curved = try rectangularBSplineSheet(surface: nonclampedTessellationSurface(direction: direction, rise: 1.6))
+        let mesh = try #require(try tessellator.tessellate(model: curved, options: coarse).values.first)
+        try verifyLiteralGraph(mesh, options: coarse,
+            height: { x, y in let t = direction == .u ? x : y; return 1.6 * t * t },
+            normal: { x, y in direction == .u ? Vector3D(x: -3.2 * x, y: 0, z: 1)
+                : Vector3D(x: 0, y: -3.2 * y, z: 1) })
+        #expect(mesh.indices.count > counts[0])
+        #expect(model == original)
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v])
+    func nonclampedC0RectanglesKeepOriginalClosedSideNormals(direction: CADGeometry.SurfaceParameterDirection) throws {
+        let model = try rectangularBSplineSheet(surface: nonclampedTessellationSurface(direction: direction, c0: true))
+        let original = model
+        let options = TessellationOptions(linearTolerance: 1e-4, angularTolerance: 0.01, maxEdgeLength: 0.25)
+        let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+        try verifyLiteralC0Mesh(mesh, direction: direction, quadratic: false, corner: false, options: options)
+        #expect(model == original)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func nonclampedCollapsedNativePanelCannotPublishASuccess() throws {
+        var surface = nonclampedTessellationSurface(direction: .u, c0: true)
+        for row in surface.controlPoints.indices { surface.controlPoints[row][2] = surface.controlPoints[row][1] }
+        let model = try rectangularBSplineSheet(surface: surface)
+        let original = model
+        do {
+            _ = try MeshTessellator(tolerance: .standard).tessellate(model: model)
+            Issue.record("A collapsed original nonclamped native panel produced a mesh.")
+        } catch let error as KernelError {
+            #expect(error.code == .singularGeometry)
+        }
+        #expect(model == original)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func bothNonclampedAxesRetainOriginalMixedAndCornerAuthorities() throws {
+        let xs = [-0.5, 0.5, 1.5]
+        let zs = [0.0, 0, 0.4]
+        let surface = BSplineSurface3D(uDegree: 2, vDegree: 2,
+            uKnots: [0, 1, 2, 3, 4, 5], vKnots: [0, 1, 2, 3, 4, 5],
+            controlPoints: xs.indices.map { j in xs.indices.map { i in
+                Point3D(x: xs[i], y: xs[j], z: zs[i] + zs[j])
+            } })
+        let options = TessellationOptions(linearTolerance: 1e-4, angularTolerance: 0.03, maxEdgeLength: 0.125)
+        let model = try rectangularBSplineSheet(surface: surface)
+        let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+        try verifyLiteralGraph(mesh, options: options, height: { x, y in 0.2 * (x * x + y * y) },
+            normal: { x, y in Vector3D(x: -0.4 * x, y: -0.4 * y, z: 1) })
+        var corner = originalC0TessellationSurface(direction: .u, corner: true)
+        corner.uKnots = [-1, 0, 0.5, 1, 2]
+        corner.vKnots = [-1, 0, 0.5, 1, 2]
+        let cornerModel = try rectangularBSplineSheet(surface: corner)
+        let cornerMesh = try #require(try MeshTessellator(tolerance: .standard)
+            .tessellate(model: cornerModel, options: options).values.first)
+        try verifyLiteralC0Mesh(cornerMesh, direction: .u, quadratic: false, corner: true, options: options)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func originalC1KnotAndUnequalPositiveWeightsRetainTheirCertifiedSupports() throws {
+        let refined = try parabolicTessellationSurface(rise: 0.2).insertingKnot(
+            direction: .u, value: 0.5, tolerance: .standard)
+        let options = TessellationOptions(linearTolerance: 1e-5, angularTolerance: 0.03, maxEdgeLength: 0.125)
+        let model = try rectangularBSplineSheet(surface: refined)
+        let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+        try verifyLiteralGraph(mesh, options: options, height: { u, _ in 0.2 * u * u },
+                               normal: { u, _ in Vector3D(x: -0.4 * u, y: 0, z: 1) })
+        let rational = BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1], controlPoints: [
+                [.origin, Point3D(x: 1, y: 0, z: 0)],
+                [Point3D(x: 0, y: 1, z: 0), Point3D(x: 1, y: 1, z: 0)]],
+            weights: [[1, 2], [1, 2]])
+        let rationalModel = try rectangularBSplineSheet(surface: rational)
+        let rationalMesh = try #require(try MeshTessellator(tolerance: .standard)
+            .tessellate(model: rationalModel, options: options).values.first)
+        try verifyLiteralGraph(rationalMesh, options: options, height: { _, _ in 0 }, normal: { _, _ in .unitZ })
+        var maximumEdge = 0.0
+        for triangle in 0..<(rationalMesh.indices.count / 3) {
+            let corners = (0..<3).map { rationalMesh.positions[Int(rationalMesh.indices[3 * triangle + $0])] }
+            for edge in 0..<3 { maximumEdge = max(maximumEdge, (corners[(edge + 1) % 3] - corners[edge]).length) }
+        }
+        #expect(maximumEdge <= 0.125 * (1 + 1e-12))
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v])
+    func originalC0RectanglesRetainOneSidedLinearNormals(direction: CADGeometry.SurfaceParameterDirection) throws {
+        let options = TessellationOptions(linearTolerance: 1e-4, angularTolerance: 0.01, maxEdgeLength: 0.25)
+        for rational in [false, true] {
+            var surface = originalC0TessellationSurface(direction: direction)
+            if rational { surface.weights = direction == .u ? [[1, 2, 1], [1, 2, 1]] : [[1, 1], [2, 2], [1, 1]] }
+            let model = try rectangularBSplineSheet(surface: surface)
+            let original = model
+            let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+            try verifyLiteralC0Mesh(mesh, direction: direction, quadratic: false, corner: false, options: options)
+            #expect(model == original)
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v])
+    func originalC0QuadraticPanelsAdaptWithinTheirOwnNormalLaw(direction: CADGeometry.SurfaceParameterDirection) throws {
+        let model = try rectangularBSplineSheet(surface: originalC0TessellationSurface(direction: direction, quadratic: true))
+        let original = model
+        let coarse = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.08, maxEdgeLength: 0.25)
+        let fine = TessellationOptions(linearTolerance: 1e-5, angularTolerance: 0.08, maxEdgeLength: 0.25)
+        let tessellator = MeshTessellator(tolerance: .standard)
+        let coarseMesh = try #require(try tessellator.tessellate(model: model, options: coarse).values.first)
+        let fineMesh = try #require(try tessellator.tessellate(model: model, options: fine).values.first)
+        try verifyLiteralC0Mesh(coarseMesh, direction: direction, quadratic: true, corner: false, options: coarse)
+        try verifyLiteralC0Mesh(fineMesh, direction: direction, quadratic: true, corner: false, options: fine)
+        #expect(fineMesh.indices.count > coarseMesh.indices.count)
+        #expect(model == original)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func originalC0TensorCornerRetainsFourNativeNormals() throws {
+        let model = try rectangularBSplineSheet(surface: originalC0TessellationSurface(direction: .u, corner: true))
+        let options = TessellationOptions(linearTolerance: 1e-4, angularTolerance: 0.01, maxEdgeLength: 0.25)
+        let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+        try verifyLiteralC0Mesh(mesh, direction: .u, quadratic: false, corner: true, options: options)
+        let corner = mesh.positions.indices.filter { mesh.positions[$0].x == 0.5 && mesh.positions[$0].y == 0.5 }
+        #expect(corner.count == 4)
+        for x in [-0.5, 0.5] {
+            for y in [-0.5, 0.5] {
+                let expected = try Vector3D(x: x, y: y, z: 1).normalized(tolerance: 1e-300)
+                #expect(corner.contains { (mesh.normals[$0] - expected).length <= 1e-11 })
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func originalC0CollapsedPanelCannotPublishAPartialMesh() throws {
+        let model = try rectangularBSplineSheet(surface: originalC0TessellationSurface(direction: .u, collapsed: true))
+        let original = model
+        #expect(throws: KernelError.self) {
+            do {
+                _ = try MeshTessellator(tolerance: .standard).tessellate(model: model)
+            } catch let error as KernelError {
+                #expect(error.code == .singularGeometry)
+                throw error
+            }
+        }
+        #expect(model == original)
+    }
+
+    private func verifyLiteralC0Mesh(
+        _ mesh: Mesh, direction: CADGeometry.SurfaceParameterDirection,
+        quadratic: Bool, corner: Bool, options: TessellationOptions
+    ) throws {
+        func height(_ coordinate: Double) -> Double {
+            quadratic ? pow(min(coordinate, 1 - coordinate), 2) : 0.5 * min(coordinate, 1 - coordinate)
+        }
+        func slope(_ coordinate: Double, left: Bool) -> Double {
+            quadratic ? (left ? 2 * coordinate : -2 * (1 - coordinate)) : (left ? 0.5 : -0.5)
+        }
+        var deviation = 0.0, normalError = 0.0, normalAngle = 0.0, maximumEdge = 0.0
+        var creaseNormals: [Point3D: [Vector3D]] = [:]
+        for index in mesh.positions.indices {
+            let point = mesh.positions[index]
+            if (direction == .u ? point.x : point.y) == 0.5 || (corner && point.y == 0.5) {
+                creaseNormals[point, default: []].append(mesh.normals[index])
+            }
+        }
+        #expect(creaseNormals.isEmpty == false)
+        #expect(creaseNormals.values.allSatisfy { $0.count == 2 || (corner && $0.count == 4) })
+        let barycentrics = [(1.0 / 3, 1.0 / 3, 1.0 / 3), (0.5, 0.5, 0.0), (0.0, 0.5, 0.5), (0.5, 0.0, 0.5)]
+        for triangle in 0..<(mesh.indices.count / 3) {
+            let ids = (0..<3).map { Int(mesh.indices[triangle * 3 + $0]) }
+            let points = ids.map { mesh.positions[$0] }
+            let variables = points.map { direction == .u ? $0.x : $0.y }
+            let minVariable = try #require(variables.min()), maxVariable = try #require(variables.max())
+            #expect(!(minVariable < 0.5 && maxVariable > 0.5))
+            let left = maxVariable <= 0.5
+            let minY = try #require(points.map(\.y).min()), maxY = try #require(points.map(\.y).max())
+            if corner { #expect(!(minY < 0.5 && maxY > 0.5)) }
+            let lower = maxY <= 0.5
+            func literalNormal(_ point: Point3D) throws -> Vector3D {
+                let variable = direction == .u ? point.x : point.y
+                let derivative = slope(variable, left: left)
+                return try Vector3D(x: corner || direction == .u ? -derivative : 0,
+                    y: corner ? -slope(point.y, left: lower) : (direction == .v ? -derivative : 0), z: 1)
+                    .normalized(tolerance: 1e-300)
+            }
+            for id in ids {
+                let point = mesh.positions[id]
+                let expectedHeight = height(direction == .u ? point.x : point.y) + (corner ? height(point.y) : 0)
+                #expect(abs(point.z - expectedHeight) <= 1e-12)
+                normalError = max(normalError, (mesh.normals[id] - (try literalNormal(point))).length)
+            }
+            for edge in 0..<3 { maximumEdge = max(maximumEdge, (points[(edge + 1) % 3] - points[edge]).length) }
+            for (a, b, c) in barycentrics {
+                let point = Point3D(x: a * points[0].x + b * points[1].x + c * points[2].x,
+                    y: a * points[0].y + b * points[1].y + c * points[2].y,
+                    z: a * points[0].z + b * points[1].z + c * points[2].z)
+                deviation = max(deviation, abs(point.z - height(direction == .u ? point.x : point.y) - (corner ? height(point.y) : 0)))
+                let n = try literalNormal(point)
+                for id in ids { normalAngle = max(normalAngle, atan2(n.cross(mesh.normals[id]).length, n.dot(mesh.normals[id]))) }
+            }
+        }
+        #expect(mesh.indices.isEmpty == false)
+        #expect(normalError <= 1e-11)
+        #expect(deviation <= options.linearTolerance * (1 + 1e-10))
+        #expect(normalAngle <= options.angularTolerance * (1 + 1e-10))
+        #expect(maximumEdge <= (options.maxEdgeLength ?? .infinity) * (1 + 1e-10))
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v], [0, 1, 2, 3])
+    func originalMixedPeriodicOpenRectanglesRetainBothNativeAuthorities(direction: CADGeometry.SurfaceParameterDirection, continuity: Int) throws {
+        let periodicC0 = continuity & 1 != 0, openC0 = continuity & 2 != 0
+        let options = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.08, maxEdgeLength: 0.25)
+        for fullPeriod in [false, true] {
+            let model = try mixedPeriodicOpenBSplineSheet(direction: direction, periodicC0: periodicC0, openC0: openC0, fullPeriod: fullPeriod)
+            let original = model
+            let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+            try verifyLiteralMixedPeriodicOpen(mesh, options: options, periodicC0: periodicC0, openC0: openC0)
+            #expect(model == original)
+            #expect(mesh.positions.contains { abs($0.z) <= 1e-12 })
+            #expect(mesh.positions.contains { abs($0.z - 1) <= 1e-12 })
+            if fullPeriod {
+                #expect(mesh.positions.contains { $0.x < -0.5 })
+                #expect(mesh.positions.contains { $0.y < -0.5 })
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: ["periodWidth", "singular"])
+    func mixedNativeRectanglesRefuseUncoveredOrSingularOriginalSources(failure: String) throws {
+        var surface = mixedPeriodicOpenTessellationSurface(direction: .u, periodicC0: true, openC0: true)
+        if failure == "singular" {
+            // The first native open panel is singular while every boundary edge retains nonzero extent.
+            surface.controlPoints[1] = surface.controlPoints[0]
+        }
+        let model = try mixedPeriodicOpenBSplineSheet(direction: .u, periodicC0: true, openC0: true,
+            fullPeriod: false, surface: surface, periodicRange: failure == "periodWidth" ? (-Double(2).nextUp, 2) : nil)
+        let original = model
+        do {
+            _ = try MeshTessellator(tolerance: .standard).tessellate(model: model)
+            Issue.record("An unproved mixed native rectangle published a mesh.")
+        } catch let error as KernelError {
+            #expect(error.code == (failure == "periodWidth" ? .unsupportedCapability : .singularGeometry))
+        }
+        #expect(model == original)
+    }
+
+    private func verifyLiteralMixedPeriodicOpen(_ mesh: Mesh, options: TessellationOptions, periodicC0: Bool, openC0: Bool) throws {
+        let barycentrics = [(1.0 / 3, 1.0 / 3, 1.0 / 3), (0.5, 0.5, 0.0), (0.5, 0.0, 0.5), (0.0, 0.5, 0.5)]
+        var vertexResidual = 0.0, normalError = 0.0, deviation = 0.0, angle = 0.0, edgeLength = 0.0
+        #expect(!mesh.indices.isEmpty)
+        for offset in stride(from: 0, to: mesh.indices.count, by: 3) {
+            let ids = (0..<3).map { Int(mesh.indices[offset + $0]) }, points = ids.map { mesh.positions[$0] }
+            let cx = points.reduce(0.0) { $0 + $1.x }, cy = points.reduce(0.0) { $0 + $1.y }
+            let top = abs(cy) >= abs(cx), sx = cx >= 0 ? 1.0 : -1.0, sy = cy >= 0 ? 1.0 : -1.0
+            let z0 = try #require(points.map(\.z).min()), z1 = try #require(points.map(\.z).max())
+            if openC0 { #expect(!(z0 < 0.5 && z1 > 0.5)) }
+            let left = z1 <= 0.5
+            func literal(_ p: Point3D) -> (residual: Double, normal: Vector3D) {
+                let r = openC0 ? 1 + 0.25 * min(p.z, 1 - p.z) : 1 + 0.25 * p.z * p.z
+                let dr = openC0 ? (left ? 0.25 : -0.25) : 0.5 * p.z
+                if periodicC0 {
+                    return (abs(sx * p.x + sy * p.y - r), Vector3D(x: sx, y: sy, z: -dr))
+                }
+                if top {
+                    let x = p.x / r
+                    return (abs(p.y - sy * r * (0.75 - x * x)), Vector3D(x: 2 * x, y: sy, z: -dr * (0.75 + x * x)))
+                }
+                let y = p.y / r
+                return (abs(p.x - sx * r * (0.75 - y * y)), Vector3D(x: sx, y: 2 * y, z: -dr * (0.75 + y * y)))
+            }
+            for id in ids {
+                let p = mesh.positions[id], expected = literal(p)
+                vertexResidual = max(vertexResidual, expected.residual)
+                normalError = max(normalError, (mesh.normals[id] - (try expected.normal.normalized(tolerance: 1e-300))).length)
+                if periodicC0 { #expect(sx * p.x >= -1e-12 && sy * p.y >= -1e-12) }
+            }
+            for edge in 0..<3 { edgeLength = max(edgeLength, (points[(edge + 1) % 3] - points[edge]).length) }
+            for (a, b, c) in barycentrics {
+                let p = Point3D(x: a * points[0].x + b * points[1].x + c * points[2].x,
+                    y: a * points[0].y + b * points[1].y + c * points[2].y,
+                    z: a * points[0].z + b * points[1].z + c * points[2].z)
+                let expected = literal(p), n = try expected.normal.normalized(tolerance: 1e-300)
+                deviation = max(deviation, expected.residual)
+                for id in ids { angle = max(angle, atan2(n.cross(mesh.normals[id]).length, n.dot(mesh.normals[id]))) }
+            }
+        }
+        #expect(vertexResidual <= 1e-12)
+        #expect(normalError <= 1e-11)
+        #expect(deviation <= options.linearTolerance * (1 + 1e-10))
+        #expect(angle <= options.angularTolerance * (1 + 1e-10))
+        #expect(edgeLength <= (options.maxEdgeLength ?? .infinity) * (1 + 1e-10))
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: [CADGeometry.SurfaceParameterDirection.u, .v])
+    func originalPeriodicC1RectanglesRetainLiteralGeometryAcrossTheSeam(direction: CADGeometry.SurfaceParameterDirection) throws {
+        let options = TessellationOptions(linearTolerance: 1e-3, angularTolerance: 0.08, maxEdgeLength: 0.25)
+        for range in [(0.0, 4.0), (3.5, 4.5)] {
+            let model = try periodicExtrudedBSplineSheet(direction: direction, from: range.0, to: range.1)
+            let original = model
+            let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model, options: options).values.first)
+            try verifyLiteralPeriodicExtrusion(mesh, options: options)
+            #expect(model == original)
+            if range.0 == 0 {
+                // Full native period must cover all four literal curved sides.
+                #expect(mesh.positions.contains { abs($0.x - 0.75) <= 1e-12 })
+                #expect(mesh.positions.contains { abs($0.x + 0.75) <= 1e-12 })
+                #expect(mesh.positions.contains { abs($0.y - 0.75) <= 1e-12 })
+                #expect(mesh.positions.contains { abs($0.y + 0.75) <= 1e-12 })
+            } else {
+                #expect(mesh.positions.allSatisfy { $0.x >= -1e-12 && $0.y >= -1e-12 })
+                #expect(mesh.positions.contains { abs($0.x - 0.75) <= 1e-12 })
+                #expect(mesh.positions.contains { abs($0.y - 0.75) <= 1e-12 })
+            }
+        }
+    }
+
+    @Test(.timeLimit(.minutes(1)), arguments: ["c0", "disconnected", "periodExcess", "roundedPeriodExcess"])
+    func periodicRectanglesRefuseUnprovedOriginalContracts(failure: String) throws {
+        let range: (Double, Double)
+        if failure == "roundedPeriodExcess" {
+            range = (-Double(2).nextUp, 2)
+            #expect(range.1 - range.0 == 4)
+            // The represented lower endpoint is strictly below -2 while the upper is
+            // exactly 2: their real difference exceeds the literal original period 4.
+            #expect(range.0 < -2 && range.1 == 2)
+        } else {
+            range = failure == "periodExcess" ? (3.5, 8.5) : (0.0, 4.0)
+        }
+        let model = try periodicExtrudedBSplineSheet(direction: .u, from: range.0, to: range.1,
+            degree: failure == "c0" ? 1 : 2, disconnectRawChart: failure == "disconnected",
+            splitRims: failure == "roundedPeriodExcess")
+        let original = model
+        if failure == "c0" {
+            let mesh = try #require(try MeshTessellator(tolerance: .standard).tessellate(model: model).values.first)
+            let faceID = try #require(model.faces.keys.first)
+            #expect(mesh.faceRuns == [Mesh.FaceRun(faceID: faceID, triangleCount: mesh.indices.count / 3)])
+            #expect(!mesh.indices.isEmpty)
+            for offset in stride(from: 0, to: mesh.indices.count, by: 3) {
+                let ids = (0..<3).map { Int(mesh.indices[offset + $0]) }
+                let points = ids.map { mesh.positions[$0] }
+                let sx = points.reduce(0.0) { $0 + $1.x } >= 0 ? 1.0 : -1.0
+                let sy = points.reduce(0.0) { $0 + $1.y } >= 0 ? 1.0 : -1.0
+                let normal = Vector3D(x: sx, y: sy, z: 0) / sqrt(2)
+                // Each literal diamond extrusion panel is one affine plane.
+                // These endpoint identities prove zero whole-triangle position
+                // error and a constant normal, including both closed crease sides.
+                for id in ids {
+                    let point = mesh.positions[id]
+                    let planeResidual = abs(sx * point.x + sy * point.y - 1)
+                    #expect(planeResidual <= 1e-12)
+                    #expect(sx * point.x >= -1e-12 && sy * point.y >= -1e-12)
+                    #expect(point.z >= 0 && point.z <= 1)
+                    #expect((mesh.normals[id] - normal).length <= 1e-12)
+                }
+                #expect((points[1] - points[0]).cross(points[2] - points[0]).dot(normal) > 0)
+            }
+            #expect(model == original)
+            return
+        }
+        #expect(throws: KernelError.self) {
+            do {
+                _ = try MeshTessellator(tolerance: .standard).tessellate(model: model)
+            } catch let error as KernelError {
+                #expect(error.code == .unsupportedCapability)
+                throw error
+            }
+        }
+        #expect(model == original)
+    }
+
+    private func verifyLiteralPeriodicExtrusion(_ mesh: Mesh, options: TessellationOptions) throws {
+        func chart(_ point: Point3D) -> (deviation: Double, normal: Vector3D) {
+            if abs(point.y) >= abs(point.x) {
+                let sign = point.y >= 0 ? 1.0 : -1.0
+                return (abs(point.y - sign * (0.75 - point.x * point.x)),
+                        Vector3D(x: 2 * point.x, y: sign, z: 0))
+            }
+            let sign = point.x >= 0 ? 1.0 : -1.0
+            return (abs(point.x - sign * (0.75 - point.y * point.y)),
+                    Vector3D(x: sign, y: 2 * point.y, z: 0))
+        }
+        var vertexDeviation = 0.0, vertexNormalError = 0.0
+        var interiorDeviation = 0.0, angularVariation = 0.0, maximumEdge = 0.0
+        for index in mesh.positions.indices {
+            let literal = chart(mesh.positions[index])
+            vertexDeviation = max(vertexDeviation, literal.deviation)
+            let n = try literal.normal.normalized(tolerance: 1e-300)
+            vertexNormalError = max(vertexNormalError, (n - mesh.normals[index]).length)
+        }
+        let barycentrics = [(1.0 / 3, 1.0 / 3, 1.0 / 3), (0.5, 0.5, 0.0),
+                            (0.5, 0.0, 0.5), (0.0, 0.5, 0.5), (0.5, 0.25, 0.25)]
+        for triangle in 0..<(mesh.indices.count / 3) {
+            let ids = (0..<3).map { Int(mesh.indices[3 * triangle + $0]) }
+            let points = ids.map { mesh.positions[$0] }
+            for edge in 0..<3 { maximumEdge = max(maximumEdge, (points[(edge + 1) % 3] - points[edge]).length) }
+            for (a, b, c) in barycentrics {
+                let point = Point3D(x: a * points[0].x + b * points[1].x + c * points[2].x,
+                                    y: a * points[0].y + b * points[1].y + c * points[2].y,
+                                    z: a * points[0].z + b * points[1].z + c * points[2].z)
+                let literal = chart(point)
+                interiorDeviation = max(interiorDeviation, literal.deviation)
+                let n = try literal.normal.normalized(tolerance: 1e-300)
+                for id in ids {
+                    angularVariation = max(angularVariation,
+                        atan2(n.cross(mesh.normals[id]).length, n.dot(mesh.normals[id])))
+                }
+            }
+        }
+        #expect(mesh.indices.isEmpty == false)
+        #expect(vertexDeviation <= 1e-12)
+        #expect(vertexNormalError <= 1e-11)
+        #expect(interiorDeviation <= options.linearTolerance * (1 + 1e-10))
+        #expect(angularVariation <= options.angularTolerance * (1 + 1e-10))
+        #expect(maximumEdge <= (options.maxEdgeLength ?? .infinity) * (1 + 1e-10))
+    }
+
+    private func verifyLiteralGraph(
+        _ mesh: Mesh, options: TessellationOptions,
+        height: (Double, Double) -> Double, normal: (Double, Double) -> Vector3D
+    ) throws {
+        let barycentrics = [(1.0 / 3, 1.0 / 3, 1.0 / 3), (0.5, 0.5, 0.0),
+                            (0.5, 0.0, 0.5), (0.0, 0.5, 0.5), (0.5, 0.25, 0.25)]
+        #expect(mesh.indices.isEmpty == false)
+        var maximumVertexDeviation = 0.0
+        var maximumVertexNormalError = 0.0
+        var maximumInteriorDeviation = 0.0
+        var maximumNormalAngle = 0.0
+        for index in mesh.positions.indices {
+            let p = mesh.positions[index]
+            maximumVertexDeviation = max(maximumVertexDeviation, abs(p.z - height(p.x, p.y)))
+            let expected = try normal(p.x, p.y).normalized(tolerance: 1e-300)
+            maximumVertexNormalError = max(maximumVertexNormalError, (mesh.normals[index] - expected).length)
+        }
+        for triangle in 0..<(mesh.indices.count / 3) {
+            let ids = (0..<3).map { Int(mesh.indices[3 * triangle + $0]) }
+            let corners = ids.map { mesh.positions[$0] }
+            for (a, b, c) in barycentrics {
+                let point = Point3D(x: a * corners[0].x + b * corners[1].x + c * corners[2].x,
+                                    y: a * corners[0].y + b * corners[1].y + c * corners[2].y,
+                                    z: a * corners[0].z + b * corners[1].z + c * corners[2].z)
+                maximumInteriorDeviation = max(maximumInteriorDeviation, abs(point.z - height(point.x, point.y)))
+                let exactNormal = try normal(point.x, point.y).normalized(tolerance: 1e-300)
+                for id in ids {
+                    let emitted = mesh.normals[id]
+                    let angle = atan2(emitted.cross(exactNormal).length, emitted.dot(exactNormal))
+                    maximumNormalAngle = max(maximumNormalAngle, angle)
+                }
+            }
+        }
+        #expect(maximumVertexDeviation <= 1e-12)
+        #expect(maximumVertexNormalError <= 1e-11)
+        #expect(maximumInteriorDeviation <= options.linearTolerance * (1 + 1e-10))
+        #expect(maximumNormalAngle <= options.angularTolerance * (1 + 1e-10))
+        if let maximumEdge = options.maxEdgeLength {
+            for triangle in 0..<(mesh.indices.count / 3) {
+                let corners = (0..<3).map { mesh.positions[Int(mesh.indices[3 * triangle + $0])] }
+                for edge in 0..<3 {
+                    #expect((corners[(edge + 1) % 3] - corners[edge]).length <= maximumEdge * (1 + 1e-10))
+                }
+            }
+        }
     }
 
     /// The largest distance from an emitted triangle's edge midpoints — including the diagonal
@@ -131,4 +667,286 @@ private func evaluatePrimitive(_ definition: PrimitiveDefinition) throws -> Eval
 
 private func length(_ value: Double) -> CADExpression {
     .constant(.length(value, unit: .meter))
+}
+
+/// The exact polynomial graph S(u,v)=(u,v,rise*u*u), authored as one original Bezier span.
+func parabolicTessellationSurface(rise: Double) -> BSplineSurface3D {
+    BSplineSurface3D(uDegree: 2, vDegree: 1, uKnots: [0, 0, 0, 1, 1, 1], vKnots: [0, 0, 1, 1],
+        controlPoints: [
+            [.origin, Point3D(x: 0.5, y: 0, z: 0), Point3D(x: 1, y: 0, z: rise)],
+            [Point3D(x: 0, y: 1, z: 0), Point3D(x: 0.5, y: 1, z: 0), Point3D(x: 1, y: 1, z: rise)]])
+}
+
+/// Literal native C0 panels; no production evaluator supplies their height or normal oracle.
+func originalC0TessellationSurface(
+    direction: CADGeometry.SurfaceParameterDirection, quadratic: Bool = false,
+    corner: Bool = false, collapsed: Bool = false
+) -> BSplineSurface3D {
+    if corner {
+        let coordinates = [0.0, 0.5, 1.0]
+        return BSplineSurface3D(uDegree: 1, vDegree: 1,
+            uKnots: [0, 0, 0.5, 1, 1], vKnots: [0, 0, 0.5, 1, 1],
+            controlPoints: coordinates.map { y in coordinates.map { x in
+                Point3D(x: x, y: y, z: 0.5 * min(x, 1 - x) + 0.5 * min(y, 1 - y))
+            } })
+    }
+    let xs: [Double] = quadratic ? [0, 0.25, 0.5, 0.75, 1] : [0, 0.5, collapsed ? 0.5 : 1]
+    let zs: [Double] = quadratic ? [0, 0, 0.25, 0, 0] : [0, collapsed ? 0 : 0.25, 0]
+    let knots: [Double] = quadratic ? [0, 0, 0, 0.5, 0.5, 1, 1, 1] : [0, 0, 0.5, 1, 1]
+    let rows = [0.0, 1.0].map { y in xs.indices.map { Point3D(x: xs[$0], y: y, z: zs[$0]) } }
+    if direction == .u {
+        return BSplineSurface3D(uDegree: quadratic ? 2 : 1, vDegree: 1,
+            uKnots: knots, vKnots: [0, 0, 1, 1], controlPoints: rows)
+    }
+    return BSplineSurface3D(uDegree: 1, vDegree: quadratic ? 2 : 1,
+        uKnots: [0, 0, 1, 1], vKnots: knots,
+        controlPoints: xs.indices.map { index in rows.map { Point3D(x: $0[index].y, y: $0[index].x, z: $0[index].z) } })
+}
+
+/// Original nonclamped cardinal and C0 coefficients; literal graph oracles use Cartesian x/y.
+func nonclampedTessellationSurface(
+    direction: CADGeometry.SurfaceParameterDirection, c0: Bool = false, rise: Double = 0.2
+) -> BSplineSurface3D {
+    let xs: [Double] = c0 ? [0, 0.5, 1] : [-0.5, 0.5, 1.5]
+    let zs: [Double] = c0 ? [0, 0.25, 0] : [0, 0, 2 * rise]
+    let knots: [Double] = c0 ? [-1, 0, 0.5, 1, 2] : [0, 1, 2, 3, 4, 5]
+    let rows = [0.0, 1.0].map { y in xs.indices.map { i in Point3D(x: xs[i], y: y, z: zs[i]) } }
+    if direction == .u {
+        return BSplineSurface3D(uDegree: c0 ? 1 : 2, vDegree: 1,
+            uKnots: knots, vKnots: [0, 0, 1, 1], controlPoints: rows)
+    }
+    return BSplineSurface3D(uDegree: 1, vDegree: c0 ? 1 : 2,
+        uKnots: [0, 0, 1, 1], vKnots: knots,
+        controlPoints: xs.indices.map { i in rows.map { Point3D(x: $0[i].y, y: $0[i].x, z: $0[i].z) } })
+}
+
+/// A complete sheet owner graph with four exact original-support surface-lift edges.
+func rectangularBSplineSheet(surface: BSplineSurface3D, copies: Int = 1) throws -> BRepModel {
+    let support = Surface3D.bSpline(surface)
+    guard case let .closed(u0, u1) = surface.uDomain,
+          case let .closed(v0, v1) = surface.vDomain else {
+        throw KernelError(phase: .geometry, code: .invalidInput, tolerance: .standard,
+                          message: "The original rectangular sheet fixture requires closed native domains.")
+    }
+    let pcurves: [SurfaceParameterCurve] = [
+        .constantV(v: v0, uStart: u0, uEnd: u1), .constantU(u: u1, vStart: v0, vEnd: v1),
+        .constantV(v: v1, uStart: u1, uEnd: u0), .constantU(u: u0, vStart: v1, vEnd: v0)]
+    let corners = try [(u0, v0), (u1, v0), (u1, v1), (u0, v1)].map {
+        Vertex(point: try support.point(u: $0.0, v: $0.1, tolerance: .standard))
+    }
+    var model = BRepModel()
+    for _ in 0..<copies {
+        let vertices = corners.map { Vertex(point: $0.point) }
+        var coedges: [Coedge] = []
+        for index in 0..<4 {
+            let curveID = CurveID()
+            model.geometry.curves[curveID] = .surfaceLift(SurfaceLiftCurve3D(surface: support, parameterCurve: pcurves[index]))
+            let edge = Edge(curveID: curveID, startVertexID: vertices[index].id, endVertexID: vertices[(index + 1) % 4].id,
+                            trim: CurveTrim(startParameter: 0, endParameter: 1))
+            model.edges[edge.id] = edge
+            coedges.append(Coedge(edgeID: edge.id, surfaceParameterCurve: pcurves[index]))
+        }
+        for vertex in vertices { model.vertices[vertex.id] = vertex }
+        let surfaceID = SurfaceID()
+        model.geometry.surfaces[surfaceID] = support
+        let loop = Loop(coedges: coedges)
+        let face = Face(surfaceID: surfaceID, loops: [loop.id])
+        let shell = Shell(faceIDs: [face.id])
+        let body = Body(sheetShellIDs: [shell.id])
+        model.loops[loop.id] = loop
+        model.faces[face.id] = face
+        model.shells[shell.id] = shell
+        model.bodies[body.id] = body
+    }
+    return model
+}
+
+/// A literal uniform quadratic periodic extrusion with raw unwrapped constant-coordinate sides.
+/// Full turns split both closed rims so every native edge has distinct endpoints; one seam edge
+/// has two opposite uses. Alternate stored edges are reversed to exercise actual coedge use.
+func periodicExtrudedBSplineSheet(
+    direction: SurfaceParameterDirection, from lower: Double, to upper: Double,
+    degree: Int = 2, disconnectRawChart: Bool = false, splitRims: Bool = false, copies: Int = 1
+) throws -> BRepModel {
+    let controls = [Point3D(x: 1, y: 0, z: 0), Point3D(x: 0, y: 1, z: 0),
+                    Point3D(x: -1, y: 0, z: 0), Point3D(x: 0, y: -1, z: 0)]
+    let periodicU = direction == .u
+    let net = periodicU ? [controls, controls.map { $0 + Vector3D.unitZ }]
+        : controls.map { [$0, $0 + Vector3D.unitZ] }
+    let spline = try BSplineSurface3D.periodic(
+        uDegree: periodicU ? degree : 1, vDegree: periodicU ? 1 : degree,
+        uKnots: periodicU ? [0, 1, 2, 3, 4] : [0, 0, 1, 1],
+        vKnots: periodicU ? [0, 0, 1, 1] : [0, 1, 2, 3, 4],
+        controlPoints: net, isUPeriodic: periodicU, isVPeriodic: !periodicU, tolerance: .standard)
+    let support = Surface3D.bSpline(spline)
+    let fullPeriod = lower == 0 && upper == 4
+    let rawCorners: [(Double, Double)]
+    if fullPeriod || splitRims {
+        let middle = lower + (upper - lower) * 0.5
+        rawCorners = [(lower, 0), (middle, 0), (upper, 0), (upper, 1), (middle, 1), (lower, 1)]
+    } else {
+        rawCorners = [(lower, 0), (upper, 0), (upper, 1), (lower, 1)]
+    }
+    func pcurve(from start: (Double, Double), to end: (Double, Double)) -> SurfaceParameterCurve {
+        if start.0 == end.0 {
+            return periodicU ? .constantU(u: start.0, vStart: start.1, vEnd: end.1)
+                : .constantV(v: start.0, uStart: start.1, uEnd: end.1)
+        }
+        return periodicU ? .constantV(v: start.1, uStart: start.0, uEnd: end.0)
+            : .constantU(u: start.1, vStart: start.0, vEnd: end.0)
+    }
+    func literalPoint(_ parameter: Double, height: Double) -> Point3D {
+        let remainder = parameter.truncatingRemainder(dividingBy: 4)
+        let representative = remainder < 0 ? remainder + 4 : remainder
+        let cell = Int(floor(representative)), t = representative - Double(cell)
+        let first: Point3D
+        if degree == 2 {
+            first = Point3D(x: 0.5 - t, y: 0.5 + t - t * t, z: height)
+        } else {
+            first = Point3D(x: 1 - t, y: t, z: height)
+        }
+        switch cell {
+        case 0: return first
+        case 1: return Point3D(x: -first.y, y: first.x, z: height)
+        case 2: return Point3D(x: -first.x, y: -first.y, z: height)
+        default: return Point3D(x: first.y, y: -first.x, z: height)
+        }
+    }
+    var model = BRepModel()
+    for _ in 0..<copies {
+        var vertices: [SurfaceParameter: Vertex] = [:]
+        func vertex(_ corner: (Double, Double)) -> Vertex {
+            let phase = corner.0.truncatingRemainder(dividingBy: 4)
+            let key = SurfaceParameter(u: phase, v: corner.1)
+            if let existing = vertices[key] { return existing }
+            let created = Vertex(point: literalPoint(corner.0, height: corner.1))
+            vertices[key] = created
+            return created
+        }
+        var coedges: [Coedge] = []
+        var seam: Edge?
+        for index in rawCorners.indices {
+            let start = rawCorners[index], end = rawCorners[(index + 1) % rawCorners.count]
+            let use = pcurve(from: start, to: end)
+            let startVertex = vertex(start), endVertex = vertex(end)
+            if fullPeriod && index == 5, let seam {
+                coedges.append(Coedge(edgeID: seam.id, orientation: .reversed, surfaceParameterCurve: use))
+                continue
+            }
+            let reverseStorage = index % 2 == 1
+            let storedPcurve: SurfaceParameterCurve
+            if fullPeriod && index == 2 {
+                storedPcurve = pcurve(from: (0, 0), to: (0, 1))
+            } else {
+                storedPcurve = reverseStorage ? try use.reversed(tolerance: .standard) : use
+            }
+            let curveID = CurveID()
+            model.geometry.curves[curveID] = .surfaceLift(SurfaceLiftCurve3D(surface: support, parameterCurve: storedPcurve))
+            let edge = Edge(curveID: curveID,
+                startVertexID: reverseStorage ? endVertex.id : startVertex.id,
+                endVertexID: reverseStorage ? startVertex.id : endVertex.id,
+                trim: CurveTrim(startParameter: 0, endParameter: 1))
+            model.edges[edge.id] = edge
+            let orientedPcurve: SurfaceParameterCurve
+            if fullPeriod && index == 2 {
+                seam = edge
+                orientedPcurve = .periodicTranslation(base: storedPcurve,
+                    uShift: periodicU ? 4 : 0, vShift: periodicU ? 0 : 4)
+            } else if disconnectRawChart && index == 0 {
+                orientedPcurve = .periodicTranslation(base: use,
+                    uShift: periodicU ? 4 : 0, vShift: periodicU ? 0 : 4)
+            } else {
+                orientedPcurve = use
+            }
+            coedges.append(Coedge(edgeID: edge.id, orientation: reverseStorage ? .reversed : .forward,
+                                  surfaceParameterCurve: orientedPcurve))
+        }
+        for vertex in vertices.values { model.vertices[vertex.id] = vertex }
+        let surfaceID = SurfaceID(), loop = Loop(coedges: coedges)
+        let face = Face(surfaceID: surfaceID, loops: [loop.id], orientation: periodicU ? .forward : .reversed)
+        let shell = Shell(faceIDs: [face.id])
+        let body = Body(sheetShellIDs: [shell.id])
+        model.geometry.surfaces[surfaceID] = support
+        model.loops[loop.id] = loop
+        model.faces[face.id] = face
+        model.shells[shell.id] = shell
+        model.bodies[body.id] = body
+    }
+    return model
+}
+
+/// Literal tensor coefficients: a cyclic cardinal/diamond profile and a native nonclamped radius/height law.
+func mixedPeriodicOpenTessellationSurface(direction: CADGeometry.SurfaceParameterDirection, periodicC0: Bool, openC0: Bool) -> BSplineSurface3D {
+    let cycle = Array([(1.0, 0.0), (0.0, 1.0), (-1.0, 0.0), (0.0, -1.0), (1.0, 0.0), (0.0, 1.0)].prefix(periodicC0 ? 5 : 6))
+    let radius = openC0 ? [1.0, 1.125, 1.0] : [1.0, 1.0, 1.5]
+    let height = openC0 ? [0.0, 0.5, 1.0] : [-0.5, 0.5, 1.5]
+    let net = radius.indices.map { j in cycle.map { Point3D(x: radius[j] * $0.0, y: radius[j] * $0.1, z: height[j]) } }
+    let pk: [Double] = periodicC0 ? [-1, 0, 1, 2, 3, 4, 5] : [-2, -1, 0, 1, 2, 3, 4, 5, 6]
+    let ok: [Double] = openC0 ? [-1, 0, 0.5, 1, 2] : [0, 1, 2, 3, 4, 5]
+    return BSplineSurface3D(uDegree: direction == .u ? (periodicC0 ? 1 : 2) : (openC0 ? 1 : 2),
+        vDegree: direction == .u ? (openC0 ? 1 : 2) : (periodicC0 ? 1 : 2),
+        uKnots: direction == .u ? pk : ok, vKnots: direction == .u ? ok : pk,
+        controlPoints: direction == .u ? net : cycle.indices.map { i in net.map { $0[i] } },
+        isUPeriodic: direction == .u, isVPeriodic: direction == .v)
+}
+
+/// Exact directed raw charts retain both seam uses and the open axis's actual native domain.
+func mixedPeriodicOpenBSplineSheet(direction: CADGeometry.SurfaceParameterDirection, periodicC0: Bool, openC0: Bool,
+    fullPeriod: Bool, copies: Int = 1, surface supplied: BSplineSurface3D? = nil, periodicRange: (Double, Double)? = nil) throws -> BRepModel {
+    let surface = supplied ?? mixedPeriodicOpenTessellationSurface(direction: direction, periodicC0: periodicC0, openC0: openC0)
+    let support = Surface3D.bSpline(surface), a = openC0 ? 0.0 : 2.0, b = openC0 ? 1.0 : 3.0
+    let range = periodicRange ?? (fullPeriod ? (0, 4) : (3.5, 4.5))
+    let middle = (range.0 + range.1) / 2
+    let corners: [(Double, Double)] = fullPeriod || periodicRange != nil
+        ? [(range.0, a), (middle, a), (range.1, a), (range.1, b), (middle, b), (range.0, b)]
+        : [(range.0, a), (range.1, a), (range.1, b), (range.0, b)]
+    func pc(_ start: (Double, Double), _ end: (Double, Double)) -> SurfaceParameterCurve {
+        if start.0 == end.0 {
+            return direction == .u ? .constantU(u: start.0, vStart: start.1, vEnd: end.1)
+                : .constantV(v: start.0, uStart: start.1, uEnd: end.1)
+        }
+        return direction == .u ? .constantV(v: start.1, uStart: start.0, uEnd: end.0)
+            : .constantU(u: start.1, vStart: start.0, vEnd: end.0)
+    }
+    var model = BRepModel()
+    for _ in 0..<copies {
+        var vertices: [SurfaceParameter: Vertex] = [:], seam: Edge?
+        func vertex(_ corner: (Double, Double)) throws -> Vertex {
+            var phase = corner.0.truncatingRemainder(dividingBy: 4)
+            if phase < 0 { phase += 4 }
+            let key = SurfaceParameter(u: phase, v: corner.1)
+            if let old = vertices[key] { return old }
+            let point = try support.point(u: direction == .u ? corner.0 : corner.1,
+                v: direction == .u ? corner.1 : corner.0, tolerance: .standard)
+            let created = Vertex(point: point); vertices[key] = created; return created
+        }
+        var coedges: [Coedge] = []
+        for i in corners.indices {
+            let start = corners[i], end = corners[(i + 1) % corners.count], use = pc(start, end)
+            let first = try vertex(start), last = try vertex(end)
+            if fullPeriod && i == 5, let seam {
+                coedges.append(Coedge(edgeID: seam.id, orientation: .reversed, surfaceParameterCurve: use)); continue
+            }
+            let reverse = i % 2 == 1
+            let stored = fullPeriod && i == 2 ? pc((0, a), (0, b)) : (reverse ? try use.reversed(tolerance: .standard) : use)
+            let curveID = CurveID()
+            model.geometry.curves[curveID] = .surfaceLift(SurfaceLiftCurve3D(surface: support, parameterCurve: stored))
+            let edge = Edge(curveID: curveID, startVertexID: reverse ? last.id : first.id,
+                endVertexID: reverse ? first.id : last.id, trim: CurveTrim(startParameter: 0, endParameter: 1))
+            model.edges[edge.id] = edge
+            let chart: SurfaceParameterCurve
+            if fullPeriod && i == 2 {
+                seam = edge
+                chart = .periodicTranslation(base: stored, uShift: direction == .u ? 4 : 0, vShift: direction == .v ? 4 : 0)
+            } else { chart = use }
+            coedges.append(Coedge(edgeID: edge.id, orientation: reverse ? .reversed : .forward, surfaceParameterCurve: chart))
+        }
+        for vertex in vertices.values { model.vertices[vertex.id] = vertex }
+        let surfaceID = SurfaceID(), loop = Loop(coedges: coedges)
+        let face = Face(surfaceID: surfaceID, loops: [loop.id], orientation: direction == .u ? .forward : .reversed)
+        let shell = Shell(faceIDs: [face.id]), body = Body(sheetShellIDs: [shell.id])
+        model.geometry.surfaces[surfaceID] = support; model.loops[loop.id] = loop
+        model.faces[face.id] = face; model.shells[shell.id] = shell; model.bodies[body.id] = body
+    }
+    return model
 }

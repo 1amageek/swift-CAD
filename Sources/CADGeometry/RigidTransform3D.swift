@@ -2,7 +2,7 @@ import CADCore
 import Foundation
 
 /// An exact Euclidean isometry represented by an orthonormal basis and a translation.
-public struct RigidTransform3D: Codable, Hashable, Sendable {
+public struct RigidTransform3D: Hashable, Sendable {
     public let basisX: Vector3D
     public let basisY: Vector3D
     public let basisZ: Vector3D
@@ -221,7 +221,18 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
             return try applying(to: analytic, source: curve, tolerance: tolerance)
         case let .bSpline(spline):
             return .bSpline(try applying(to: spline, tolerance: tolerance))
-        case .implicit, .surfaceLift, .certifiedIntersection, .rigidImage:
+        case .parameterImage(let image):
+            return .parameterImage(ParameterImageCurve3D(
+                validatedSource: try applying(to: image.source, tolerance: tolerance),
+                parameterGain: image.parameterGain, offset: image.offset))
+        case .originalAffineWord(let image):
+            let affine = try AffineTransform3D(basisX: basisX, basisY: basisY,
+                basisZ: basisZ, translation: translation)
+            var usage = OriginalAffineImageLegacyUsage()
+            let word = try image.operationWord.appending(.forward(affine), tolerance: tolerance, usage: &usage)
+            return .originalAffineWord(try OriginalAffineWordCurve3D(source: image.source,
+                operationWord: word, tolerance: tolerance))
+        case .implicit, .surfaceLift, .certifiedIntersection, .rigidImage, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
             return try rigidImage(of: curve, tolerance: tolerance)
         case .affineImage:
             let affineTransform = try AffineTransform3D(
@@ -260,9 +271,12 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
         let transformed: Surface3D
         switch surface {
         case let .plane(plane):
+            let determinantSign = plane.uDirection == nil ? 1.0
+                : (basisX.dot(basisY.cross(basisZ)) < 0 ? -1.0 : 1.0)
             transformed = .plane(Plane3D(
                 origin: applying(to: plane.origin),
-                normal: applying(to: plane.normal)
+                normal: applying(to: plane.normal) * determinantSign,
+                uDirection: plane.uDirection.map { applying(to: $0) }
             ))
         case let .cylinder(cylinder):
             transformed = .cylinder(Cylinder3D(
@@ -306,6 +320,20 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
             transformed = .bSpline(try applying(to: spline, tolerance: tolerance))
         case let .procedural(procedural):
             switch procedural {
+            case .originalAffineWord(let image):
+                let affine = try AffineTransform3D(basisX: basisX, basisY: basisY,
+                    basisZ: basisZ, translation: translation)
+                var usage = OriginalAffineImageLegacyUsage()
+                let word = try image.operationWord.appending(.forward(affine), tolerance: tolerance, usage: &usage)
+                transformed = .procedural(.originalAffineWord(try OriginalAffineWordSurface3D(
+                    source: image.source, operationWord: word, tolerance: tolerance)))
+            case .originalImage, .originalRevolution, .originalCoons, .originalBoundaryCorrected, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted:
+                let affine = try AffineTransform3D(basisX: basisX, basisY: basisY,
+                    basisZ: basisZ, translation: translation)
+                transformed = .affineImage(try OriginalImageSurface3D(source: surface,
+                    uParameterGain: .binary(1), vParameterGain: .binary(1),
+                    transform: affine, tolerance: tolerance))
+
             case let .rollingBall(blend):
                 transformed = .procedural(.rollingBall(RollingBallBlendSurface3D(
                     centerSpine: try applying(to: blend.centerSpine, tolerance: tolerance),
@@ -347,7 +375,9 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
             degree: curve.degree,
             knots: curve.knots,
             controlPoints: curve.controlPoints.map(applying(to:)),
-            weights: curve.weights
+            weights: curve.weights,
+            isPeriodic: curve.isPeriodic,
+            periodicOrigin: curve.periodicOrigin
         )
         try transformed.validate(tolerance: tolerance)
         return transformed
@@ -365,7 +395,9 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
             controlPoints: surface.controlPoints.map { row in
                 row.map(applying(to:))
             },
-            weights: surface.weights
+            weights: surface.weights,
+            isUPeriodic: surface.isUPeriodic, isVPeriodic: surface.isVPeriodic,
+            uPeriodicOrigin: surface.uPeriodicOrigin, vPeriodicOrigin: surface.vPeriodicOrigin
         )
         try transformed.validate(tolerance: tolerance)
         return transformed
@@ -495,3 +527,7 @@ public struct RigidTransform3D: Codable, Hashable, Sendable {
             + translation
     }
 }
+
+#if !hasFeature(Embedded)
+extension RigidTransform3D: Codable {}
+#endif

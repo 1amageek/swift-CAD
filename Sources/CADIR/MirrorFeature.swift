@@ -6,8 +6,8 @@ import CADCore
 /// cut at the plane and only its material on the other side (where `(p − planeOrigin) · planeNormal`
 /// is not positive) is kept and reflected. `output` chooses what replaces the target body: the kept
 /// material joined with its reflection, the reflection alone, or the kept material alone.
-public struct MirrorFeature: Codable, Hashable, Sendable {
-    public enum Output: String, Codable, Hashable, Sendable, CaseIterable {
+public struct MirrorFeature: Hashable, Sendable {
+    public enum Output: String, Hashable, Sendable, CaseIterable {
         /// The kept material and its reflection, joined into one body.
         case combined
         /// Only the reflection of the kept material.
@@ -49,6 +49,7 @@ public struct MirrorFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case planeOrigin
@@ -56,7 +57,9 @@ public struct MirrorFeature: Codable, Hashable, Sendable {
         case output
         case cutsAtPlane
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -71,7 +74,9 @@ public struct MirrorFeature: Codable, Hashable, Sendable {
         cutsAtPlane = try container.decodeIfPresent(Bool.self, forKey: .cutsAtPlane) ?? false
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -81,4 +86,10 @@ public struct MirrorFeature: Codable, Hashable, Sendable {
         try container.encode(output, forKey: .output)
         try container.encode(cutsAtPlane, forKey: .cutsAtPlane)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension MirrorFeature: Codable {}
+extension MirrorFeature.Output: Codable {}
+#endif

@@ -4,18 +4,333 @@ import CADIR
 import CADTopology
 import Foundation
 
-struct ExactIGESWriter {
+struct ExactIGESWriter: Sendable {
   let resourceLimits: ExchangeResourceLimits
   let tolerance: ModelingTolerance
+  let surfaceOverrides: [Surface3D: BSplineSurface3D]
+  let curveConversions: ExchangeCurveConversionPlan
+  let processingBudget: ExchangeProcessingBudget
+  let allowsReportedPlacementProjection: Bool
+  let allowsReportedGroupProjection: Bool
+  init(resourceLimits: ExchangeResourceLimits, tolerance: ModelingTolerance, surfaceOverrides: [Surface3D: BSplineSurface3D] = [:], curveConversions: ExchangeCurveConversionPlan = .init(), processingBudget: ExchangeProcessingBudget? = nil, allowsReportedPlacementProjection: Bool = false, allowsReportedGroupProjection: Bool = false) {
+    self.resourceLimits = resourceLimits; self.tolerance = tolerance; self.surfaceOverrides = surfaceOverrides; self.curveConversions = curveConversions
+    self.allowsReportedPlacementProjection = allowsReportedPlacementProjection; self.allowsReportedGroupProjection = allowsReportedGroupProjection
+    self.processingBudget = processingBudget ?? ExchangeProcessingBudget(maximumDuration: resourceLimits.maximumProcessingDuration)
+  }
+
+  private func requireCertifiedBodySurfaceIncidence(_ brep: BRepModel) throws {
+    guard !curveConversions.edges.isEmpty || !surfaceOverrides.isEmpty else { return }
+    for (faceID, face) in brep.faces {
+      try processingBudget.check(format: .iges)
+      guard let original = brep.geometry.surfaces[face.surfaceID] else {
+        throw IndependentShapeExchangeError.invalidAssociation("Body face surface is absent.")
+      }
+      let convertedSurface = surfaceOverrides[original]
+      let hostedSurface = convertedSurface.map(Surface3D.bSpline) ?? original
+      for loopID in face.loops {
+        guard let loop = brep.loops[loopID] else { throw IndependentShapeExchangeError.invalidAssociation("Converted Body loop is absent.") }
+        for (ordinal, coedge) in loop.coedges.enumerated() {
+          let convertedEdge = curveConversions.edges[coedge.edgeID]
+          guard convertedSurface != nil || convertedEdge != nil else { continue }
+          guard convertedEdge != nil, let pcurve = coedge.surfaceParameterCurve,
+            let receipts = curveConversions.hostedBoundaries[coedge.edgeID],
+            receipts.contains(where: {
+              $0.faceID == faceID && $0.loopID == loopID && $0.coedgeOrdinal == ordinal
+                && $0.hostedSurface == hostedSurface && $0.parameterCurve == pcurve
+            }) else {
+            throw IndependentShapeExchangeError.invalidAssociation("Converted Body boundary lacks its final emitted face/curve joint certificate.")
+          }
+        }
+      }
+    }
+  }
+
+  func writeIndependent(_ source:IndependentShapeSource,units:UnitSystem,to sink:any ByteSink) throws {
+    var usage = try IndependentShapeExchangeUsage(limits:resourceLimits,format:.iges,processing:processingBudget,consumedEntities:0,consumedWork:0,consumedBytes:0)
+    try writeIndependent(source,units:units,to:sink,usage:&usage)
+  }
+  func writeIndependent(_ source:IndependentShapeSource,units:UnitSystem,to sink:any ByteSink,
+                        usage:inout IndependentShapeExchangeUsage) throws {
+    var producer:any IndependentIGESGeometryWriting = IndependentProducer(writer:self)
+    let data = try DefaultIndependentIGESGraphWriter(allowsReportedPlacementProjection: allowsReportedPlacementProjection, allowsReportedGroupProjection: allowsReportedGroupProjection).write(source,units:units,tolerance:tolerance,producer:&producer,usage:&usage)
+    try usage.check(); try data.withUnsafeBytes { try sink.write($0) }
+  }
+  private struct IndependentProducer: IndependentIGESGeometryWriting {
+    let writer:ExactIGESWriter
+    var table:EntityTable
+    var curves:[IndependentShapeItemID:Int] = [:]
+    var surfaces:[SurfaceID:Int] = [:]
+    var originalFrames: [IndependentShapeFrameID: Int] = [:]
+    var originalFrameNames: [IndependentShapeFrameID: String] = [:]
+    init(writer:ExactIGESWriter) {
+      self.writer = writer; table = .init(maximumEntities:writer.resourceLimits.maximumEntities,tolerance:writer.tolerance,maximumWork:writer.resourceLimits.maximumIterations,processingBudget:writer.processingBudget)
+    }
+    mutating func curve(_ item:IndependentShapeItem,source:IndependentShapeSource,units:UnitSystem,usage:inout IndependentShapeExchangeUsage) throws -> Int {
+      table.independentUsage = usage; defer { usage = table.independentUsage! }
+      let selection = try item.resolvedCurve(in: source.geometry)
+      var curve = selection.curve
+      let trim = selection.trim
+      let transformation: Int
+      if case .curve(let curveID, _) = item.geometry, let association = source.curvePositionFrames[curveID] {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): A converted world-space curve does not retain its original directory-matrix source association.
+        // Public conversion must certify an original local candidate or report that specific source loss before publication.
+        guard writer.curveConversions.items[item.id] == nil else { throw IndependentShapeExchangeError.metadataLoss("Converted IGES curve requires original local directory-matrix transport.") }
+        guard case .originalAffineWord(let image) = curve else { throw IndependentShapeExchangeError.invalidAssociation("Original IGES curve pose has no retained word image.") }
+        var poseUsage = table.independentUsage!
+        transformation = try originalPose(association, word: image.operationWord, unit: units.length, usage: &poseUsage)
+        table.independentUsage = poseUsage
+        curve = image.source
+      } else { transformation = 0 }
+      if let cached = curves[item.id] { return cached }
+      if let converted = writer.curveConversions.items[item.id] {
+        let start: Double, end: Double
+        if let trim { start = trim.startParameter; end = trim.endParameter }
+        else if case .closed(let a, let b) = curve.domain { start = a; end = b }
+        else { throw IndependentShapeExchangeError.invalidAssociation("Converted independent selection lost its finite original domain.") }
+        let entity = try table.add(type: 126, form: 0, label: item.name,
+          parameters: writer.bSplineCurveParameters(converted, startParameter: start, endParameter: end, unit: units.length))
+        try table.independentUsage!.charge(entities: 1, work: 1)
+        curves[item.id] = entity
+        return entity
+      }
+      try GeometryStructuralComparisonWork.charge(curve:curve) { try table.independentUsage!.charge(work:$0) }
+      let entity:Int
+      if case .bSpline(let spline) = curve {
+        guard let trim else { throw IndependentShapeExchangeError.invalidAssociation("An IGES126 selection needs its finite original trim.") }
+        entity = try table.add(type:126,form:0,label:item.name,transformationPointer:transformation,parameters:writer.bSplineCurveParameters(spline,
+            startParameter:trim.startParameter,endParameter:trim.endParameter,unit:units.length))
+      } else if curve.exactLinearLocus != nil {
+        // Type110 has the original endpoint-affine parameter law [0,1], not a free parameter remapping.
+        guard let trim, trim.startParameter == 0, trim.endParameter == 1 else {
+          throw IndependentShapeExchangeError.metadataLoss("IGES110 cannot retain this original line parameter chart/trim.")
+        }
+        let a = try curve.point(at:0,tolerance:writer.tolerance), b = try curve.point(at:1,tolerance:writer.tolerance)
+        entity = try table.add(type:110,form:0,label:item.name,transformationPointer:transformation,parameters:writer.lineParameters(start:a,end:b,unit:units.length))
+      } else {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Independent IGES egress has not composed every original conic/procedural parameter producer.
+        // Retain original chart, labels and shared law identities before these public curve families may count toward full X7.
+        throw IndependentShapeExchangeError.unsupportedSemantics("Independent IGES curve family is not implemented.")
+      }
+      try table.independentUsage!.charge(entities:1,work:1); curves[item.id] = entity
+      return entity
+    }
+    mutating func surface(_ item:IndependentShapeItem,source:IndependentShapeSource,units:UnitSystem,usage:inout IndependentShapeExchangeUsage) throws -> Int {
+      table.independentUsage = usage; defer { usage = table.independentUsage! }
+      guard case .surface(let id) = item.geometry, let originalSurface = source.geometry.surfaces[id] else { throw IndependentShapeExchangeError.invalidAssociation("Missing original IGES surface.") }
+      if let cached = surfaces[id] { return cached }
+      var surface = originalSurface
+      let transformation: Int
+      if let association = source.surfacePositionFrames[id] {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): A world-space surface candidate cannot silently discard the original directory transform.
+        // Certify its local chart or explicitly report this source association loss before converted publication.
+        guard writer.surfaceOverrides[originalSurface] == nil else { throw IndependentShapeExchangeError.metadataLoss("Converted IGES surface requires its original local matrix transport.") }
+        guard case .procedural(.originalAffineWord(let image)) = originalSurface else { throw IndependentShapeExchangeError.invalidAssociation("Original IGES surface pose has no retained word image.") }
+        var poseUsage = table.independentUsage!
+        transformation = try originalPose(association, word: image.operationWord, unit: units.length, usage: &poseUsage)
+        table.independentUsage = poseUsage
+        surface = image.source
+      } else { transformation = 0 }
+      try GeometryStructuralComparisonWork.charge(surface:surface) { try table.independentUsage!.charge(work:$0) }
+      let entity:Int
+      if let spline = writer.surfaceOverrides[surface] {
+        entity = try table.add(type:128,form:0,label:item.name,transformationPointer:transformation,parameters:writer.bSplineSurfaceParameters(spline,unit:units.length))
+      } else if case .bSpline(let spline) = surface {
+        entity = try table.add(type:128,form:0,label:item.name,transformationPointer:transformation,parameters:writer.bSplineSurfaceParameters(spline,unit:units.length))
+      } else if case .plane(let plane) = surface {
+        let point = try table.add(type:116,form:0,label:"",parameters:writer.pointParameters(plane.origin,unit:units.length))
+        let normal = try table.add(type:123,form:0,label:"",parameters:writer.directionParameters(plane.normal))
+        let chart = try surface.differentialGeometry(u:0,v:0,tolerance:writer.tolerance)
+        let reference = try table.add(type:123,form:0,label:"",parameters:writer.directionParameters(chart.tangentU))
+        entity = try table.add(type:190,form:1,label:item.name,transformationPointer:transformation,parameters:"190,\(point),\(normal),\(reference);")
+      } else {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Analytic local IGES surfaces may already own an inner chart transform.
+        // Emit an exact ordered composition with the directory pose before that nested case can succeed.
+        guard transformation == 0 else { throw IndependentShapeExchangeError.unsupportedSemantics("Nested original IGES analytic directory pose composition is incomplete.") }
+        entity = try originalSurfaceEntity(surface,label:item.name,units:units)
+      }
+      try table.independentUsage!.charge(entities:1,work:1); surfaces[id] = entity
+      return entity
+    }
+    mutating func originalSurfaceEntity(_ surface:Surface3D,label:String,units:UnitSystem) throws -> Int {
+      try table.chargeGeometryWork(1)
+      if let spline = writer.surfaceOverrides[surface] {
+        return try table.add(type:128,form:0,label:label,parameters:writer.bSplineSurfaceParameters(spline,unit:units.length))
+      }
+      if case .bSpline(let spline) = surface {
+        return try table.add(type:128,form:0,label:label,parameters:writer.bSplineSurfaceParameters(spline,unit:units.length))
+      }
+      if case .plane(let plane) = surface {
+        let origin = try table.add(type:116,form:0,label:"",parameters:writer.pointParameters(plane.origin,unit:units.length))
+        let normal = try table.add(type:123,form:0,label:"",parameters:writer.directionParameters(plane.normal))
+        let chart = try surface.differentialGeometry(u:0,v:0,tolerance:writer.tolerance)
+        let reference = try table.add(type:123,form:0,label:"",parameters:writer.directionParameters(chart.tangentU))
+        return try table.add(type:190,form:1,label:label,parameters:"190,\(origin),\(normal),\(reference);")
+      }
+      if case .procedural(.offset(let offset)) = surface {
+        let basis = try originalSurfaceEntity(offset.source,label:"",units:units)
+        let indicator = try writer.offsetIndicator(for:offset.source,tolerance:writer.tolerance)
+        return try table.add(type:140,form:0,label:label,parameters:["140",writer.number(indicator.x),writer.number(indicator.y),writer.number(indicator.z),writer.number(units.length.fromInternal(offset.distance)),String(basis)].joined(separator:",")+";")
+      }
+      guard case .procedural(.originalImage(let image)) = surface else {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Original IGES source chart transport currently requires its retained parameter-image owner for nonspline analytic values.
+        // Public independent export must preserve the complete chart distinction before unwrapped native values can succeed under arbitrary output units.
+        throw IndependentShapeExchangeError.unsupportedSemantics("Original IGES analytic chart requires its persistent parameter image.")
+      }
+      guard image.uGain == 1, image.uOffset == 0 else { throw IndependentShapeExchangeError.metadataLoss("IGES angular chart conflicts with the original parameter image.") }
+      let original: AnalyticSurface3D
+      if case .analytic(let value) = image.source { original = value }
+      else {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): General original-image basis egress requires the corresponding parameter-preserving standard producer.
+        // Public independent IGES export must emit that original basis rather than flatten or sample its chart.
+        throw IndependentShapeExchangeError.unsupportedSemantics("Original IGES image basis has no analytic family producer.")
+      }
+      let point:Point3D, axis:Vector3D, type:Int, measures:[String]
+      switch original {
+      case .cylinder(let origin,let normal,let radius):
+        guard !image.swapAxes, image.vGain == units.length.toInternal(1), image.vOffset == 0 else { throw IndependentShapeExchangeError.metadataLoss("IGES cylinder axial chart differs from the retained original.") }
+        point=origin; axis=normal; type=192; measures=[writer.number(units.length.fromInternal(radius))]
+      case .cone(let apex,let normal,let angle):
+        guard !image.swapAxes, image.vGain == units.length.toInternal(1)/cos(angle) else { throw IndependentShapeExchangeError.metadataLoss("IGES cone axial chart differs from the retained original.") }
+        let radius=image.vOffset*sin(angle)
+        guard radius >= 0 else { throw IndependentShapeExchangeError.metadataLoss("IGES cone reference radius is negative.") }
+        point=apex+normal*(image.vOffset*cos(angle)); axis=normal; type=194
+        measures=[writer.number(units.length.fromInternal(radius)),writer.number(angle)]
+      case .sphere(let center,let radius):
+        guard !image.swapAxes, image.vGain == 1, image.vOffset == 0 else { throw IndependentShapeExchangeError.metadataLoss("IGES sphere latitude chart differs from the retained original.") }
+        point=center; axis = .unitZ; type=196; measures=[writer.number(units.length.fromInternal(radius))]
+      case .torus(let center,let normal,let major,let minor):
+        guard image.swapAxes, image.vGain == 1, image.vOffset == 0 else { throw IndependentShapeExchangeError.metadataLoss("IGES torus requires its original meridian-longitude chart order.") }
+        point=center; axis=normal; type=198; measures=[writer.number(units.length.fromInternal(major)),writer.number(units.length.fromInternal(minor))]
+      case .plane: throw IndependentShapeExchangeError.unsupportedSemantics("Original image plane requires its retained affine chart producer.")
+      }
+      let basis = try ExactAnalyticFrame.analyticBasis(for:axis,tolerance:writer.tolerance)
+      let origin=try table.add(type:116,form:0,label:"",parameters:writer.pointParameters(point,unit:units.length))
+      let normal=try table.add(type:123,form:0,label:"",parameters:writer.directionParameters(axis))
+      let reference=try table.add(type:123,form:0,label:"",parameters:writer.directionParameters(basis.u))
+      let f=image.transform
+      let identity=f.basisX == .unitX && f.basisY == .unitY && f.basisZ == .unitZ && f.translation == .zero
+      let transform = identity ? 0 : try addFrame(f,label:"",units:units)
+      let parameters:[String]
+      if type == 196 { parameters=[String(type),String(origin)]+measures+[String(normal),String(reference)] }
+      else { parameters=[String(type),String(origin),String(normal)]+measures+[String(reference)] }
+      return try table.add(type:type,form:1,label:label,transformationPointer:transform,parameters:parameters.joined(separator:",")+";")
+    }
+    mutating func originalPose(_ association: IndependentShapePositionFrame, word: OriginalAffineOperationWord, unit: LengthUnit,
+        usage: inout IndependentShapeExchangeUsage) throws -> Int {
+      try usage.charge(work: 1)
+      guard let pointer = originalFrames[association.frameID], let name = originalFrameNames[association.frameID] else { throw IndependentShapeExchangeError.invalidAssociation("Original IGES pose frame was not emitted.") }
+      if association.originalIGESAdjustments.isEmpty { return pointer }
+      guard writer.allowsReportedPlacementProjection else { throw IndependentShapeExchangeError.metadataLoss("Original IGES primitive-pose adjustment order/shared frame requires an admitted placement projection.") }
+      let values = try word.prepared(usage: &usage).exactRationalCoefficients(usage: &usage)
+      let gain = try OriginalIGESScalarSource.lengthGain(unit, usage: &usage)
+      try usage.charge(bytes: 13 * MemoryLayout<String>.stride)
+      var parameters = ["124"]; parameters.reserveCapacity(13)
+      for index in values.indices {
+        let value = index % 4 == 3 ? try values[index].divided(by: gain, usage: &usage) : values[index]
+        parameters.append(try OriginalIGESDecimalWriting.literal(value, usage: &usage))
+      }
+      table.independentUsage = usage
+      defer { usage = table.independentUsage! }
+      return try table.add(type:124,form:word.orientationSign > 0 ? 0 : 1,label:name,parameters:parameters.joined(separator:",")+";")
+    }
+    mutating func frame(_ frame:IndependentShapeFrame,units:UnitSystem,usage:inout IndependentShapeExchangeUsage) throws -> Int {
+      table.independentUsage = usage; defer { usage = table.independentUsage! }
+      if let original = frame.originalIGES {
+        guard original.lengthUnit == units.length else { throw IndependentShapeExchangeError.metadataLoss("Original IGES matrix unit differs from the actual global unit.") }
+        var originalUsage = usage
+        var coefficients = original.coefficients
+        if !original.adjustments.isEmpty {
+          guard writer.allowsReportedPlacementProjection else { throw IndependentShapeExchangeError.metadataLoss("Original IGES matrix adjustment order requires an admitted placement projection.") }
+          let word = try original.originalOperationWord(tolerance: writer.tolerance,
+              maximumAlgebraicDepth: usage.limits.maximumAlgebraicDepth, usage: &originalUsage)
+          let values = try word.prepared(usage: &originalUsage).exactRationalCoefficients(usage: &originalUsage)
+          let gain = try OriginalIGESScalarSource.lengthGain(units.length, usage: &originalUsage)
+          try originalUsage.charge(bytes: 12 * MemoryLayout<String>.stride)
+          coefficients = []
+          for index in values.indices {
+            let value = index % 4 == 3 ? try values[index].divided(by: gain, usage: &originalUsage) : values[index]
+            coefficients.append(try OriginalIGESDecimalWriting.literal(value, usage: &originalUsage))
+          }
+        }
+        table.independentUsage = originalUsage
+        let entity = try table.add(type:124,form:original.form,label:frame.name,parameters:(["124"] + coefficients).joined(separator:",")+";")
+        try table.independentUsage!.charge(entities: 2, work: 2,
+            bytes: MemoryLayout<(IndependentShapeFrameID, Int)>.stride + MemoryLayout<(IndependentShapeFrameID, String)>.stride)
+        originalFrames[frame.id] = entity; originalFrameNames[frame.id] = frame.name
+        return entity
+      }
+      let entity = try addFrame(frame.placement,label:frame.name,units:units)
+      try table.independentUsage!.charge(entities: 2, work: 2,
+          bytes: MemoryLayout<(IndependentShapeFrameID, Int)>.stride + MemoryLayout<(IndependentShapeFrameID, String)>.stride)
+      originalFrames[frame.id] = entity; originalFrameNames[frame.id] = frame.name
+      return entity
+    }
+    mutating func addFrame(_ f:AffineTransform3D,label:String,units:UnitSystem) throws -> Int {
+      guard var usage = table.independentUsage else {
+        throw IndependentShapeExchangeError.invalidAssociation("Original IGES frame requires its operation allowance.")
+      }
+      _ = try OriginalOrthogonalAffineRepresentability.scale(of: f, requiresUnitScale: true, format: .iges, usage: &usage)
+      table.independentUsage = usage
+      let sign = f.basisX.cross(f.basisY).dot(f.basisZ)
+      let p = ["124",writer.number(f.basisX.x),writer.number(f.basisY.x),writer.number(f.basisZ.x),writer.number(units.length.fromInternal(f.translation.x)),
+          writer.number(f.basisX.y),writer.number(f.basisY.y),writer.number(f.basisZ.y),writer.number(units.length.fromInternal(f.translation.y)),
+          writer.number(f.basisX.z),writer.number(f.basisY.z),writer.number(f.basisZ.z),writer.number(units.length.fromInternal(f.translation.z))]
+      return try table.add(type:124,form:sign > 0 ? 0 : 1,label:label,parameters:p.joined(separator:",")+";")
+    }
+    mutating func instancePlacement(_ instance:IndependentShapeInstance,definitionPointer:Int,units:UnitSystem,usage:inout IndependentShapeExchangeUsage) throws -> Int {
+      table.independentUsage = usage; defer { usage = table.independentUsage! }
+      let f = instance.placement
+      guard var originalUsage = table.independentUsage else {
+        throw IndependentShapeExchangeError.invalidAssociation("Original IGES instance requires its operation allowance.")
+      }
+      let scale = try OriginalOrthogonalAffineRepresentability.scale(of: f, requiresUnitScale: false,
+          format: .iges, usage: &originalUsage)
+      let matrix = try OriginalOrthogonalAffineRepresentability.normalizedFrame(f, scale: scale, usage: &originalUsage)
+      table.independentUsage = originalUsage
+      let identity = matrix.basisX == .unitX && matrix.basisY == .unitY && matrix.basisZ == .unitZ
+      let transform = identity && instance.placementName.isEmpty ? 0 : try addFrame(matrix,label:instance.placementName,units:units)
+      let p = ["408",String(definitionPointer),writer.number(units.length.fromInternal(f.translation.x)),
+          writer.number(units.length.fromInternal(f.translation.y)),writer.number(units.length.fromInternal(f.translation.z)),writer.number(scale)]
+      return try table.add(type:408,form:0,label:instance.name,transformationPointer:transform,parameters:p.joined(separator:",")+";")
+    }
+    mutating func appendEntity(type:Int,form:Int,label:String,transformationPointer:Int,parameters:[String],usage:inout IndependentShapeExchangeUsage) throws -> Int {
+      table.independentUsage = usage; defer { usage = table.independentUsage! }
+      return try table.add(type:type,form:form,label:label,transformationPointer:transformationPointer,parameters:parameters.joined(separator:",")+";")
+    }
+    mutating func appendGroupBackPointer(groupPointer:Int,memberPointer:Int,usage:inout IndependentShapeExchangeUsage) throws {
+      table.independentUsage = usage; defer { usage = table.independentUsage! }
+      try table.appendGroupBackPointer(groupPointer:groupPointer,memberPointer:memberPointer)
+    }
+    mutating func string(_ value:String,usage:inout IndependentShapeExchangeUsage) throws -> String {
+      try usage.charge(work:value.utf8.count+1)
+      guard value.utf8.allSatisfy({ $0 < 128 }) else {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Public independent IGES text output has no original character-set property transport yet.
+        // Preserve the actual string bytes through a legal IGES encoding before non-ASCII labels/names succeed.
+        throw IndependentShapeExchangeError.metadataLoss("IGES text encoding cannot retain this original string.")
+      }
+      return "\(value.utf8.count)H\(value)"
+    }
+    mutating func finish(units:UnitSystem,usage:inout IndependentShapeExchangeUsage) throws -> Data {
+      table.independentUsage = usage
+      do { try table.retainAssociationParameterTails(); usage = table.independentUsage! }
+      catch { usage = table.independentUsage!; throw error }
+      let header = table.serializedFramingByteCount(unit:units.length)
+      try usage.charge(work:usage.consumedBytes+header,bytes:header)
+      let output = try table.serialize(unit:units.length,maximumBytes:writer.resourceLimits.maximumBytes)
+      try usage.check(); return output
+    }
+  }
 
   func write(
     brep: BRepModel,
     units: UnitSystem,
     to sink: any ByteSink
   ) throws {
+    try requireCertifiedBodySurfaceIncidence(brep)
     var table = EntityTable(
       maximumEntities: resourceLimits.maximumEntities,
-      tolerance: tolerance
+      tolerance: tolerance,
+      maximumWork: resourceLimits.maximumIterations, processingBudget: processingBudget
     )
     var curvePointers: [EdgeID: Int] = [:]
     var edgeSameSense: [EdgeID: Bool] = [:]
@@ -27,6 +342,14 @@ struct ExactIGESWriter {
         let curve = brep.geometry.curves[edge.curveID]
       else {
         throw exchangeError(.missingReference, "IGES edge geometry is incomplete.")
+      }
+      if let converted = curveConversions.edges[edgeID] {
+        guard let trim = curveConversions.selections[edgeID] else { throw exchangeError(.topologyFailure, "Converted edge lost its original directed selection.") }
+        curvePointers[edgeID] = try table.add(type: 126, form: 0, label: "CERTCRV",
+          parameters: bSplineCurveParameters(converted, startParameter: trim.startParameter,
+            endParameter: trim.endParameter, unit: units.length))
+        edgeSameSense[edgeID] = true
+        continue
       }
       switch curve {
       case .line(let line):
@@ -359,6 +682,14 @@ struct ExactIGESWriter {
           )
         }
         edgeSameSense[edgeID] = trim.endParameter > trim.startParameter
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Body IGES parameter-image curves still require a certified original-parameter transport.
+      // The public Body writer must preserve the foreign curve law and directed trim, rather than changing only endpoints or labels.
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Original flat word and endpoint-connector laws lack their bounded standard Body transport producer.
+      // IGES publication must preserve the whole source law or publish an explicitly accepted certified conversion with its guarantee.
+      case .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
+        throw exchangeError(.unsupportedCapability, "IGES original word/endpoint connector Body transport requires its original producer.")
+      case .parameterImage:
+        throw exchangeError(.unsupportedCapability,"IGES original parameter-image Body curve transport is not implemented.")
       case .affineImage:
         if let line = curve.exactLinearLocus {
           let signedSpan = (end - start).dot(line.direction)
@@ -510,6 +841,7 @@ struct ExactIGESWriter {
       else {
         throw exchangeError(.missingReference, "IGES face surface is missing.")
       }
+      let emittedSurface = surfaceOverrides[surface].map(Surface3D.bSpline) ?? surface
       for loopID in face.loops {
         guard let loop = brep.loops[loopID] else {
           throw exchangeError(.missingReference, "IGES loop is missing.")
@@ -534,12 +866,12 @@ struct ExactIGESWriter {
             : try parameterCurve.reversed(tolerance: tolerance)
           let startUV = try directedCurve.startParameter(tolerance: tolerance)
           let endUV = try directedCurve.endParameter(tolerance: tolerance)
-          let reconstructedStart = try surface.point(
+          let reconstructedStart = try emittedSurface.point(
             u: startUV.u,
             v: startUV.v,
             tolerance: tolerance
           )
-          let reconstructedEnd = try surface.point(
+          let reconstructedEnd = try emittedSurface.point(
             u: endUV.u,
             v: endUV.v,
             tolerance: tolerance
@@ -562,7 +894,7 @@ struct ExactIGESWriter {
           if surfaceLiftEdges.contains(coedge.edgeID)
             || usesModelCurveOnly(
               directedCurve,
-              on: surface
+              on: emittedSurface
             )
           {
             parameters.append(contentsOf: [
@@ -576,7 +908,7 @@ struct ExactIGESWriter {
           }
           let pcurvePointer = try parameterCurveEntity(
             directedCurve,
-            surface: surface,
+            surface: emittedSurface,
             unit: units.length,
             table: &table
           )
@@ -725,9 +1057,9 @@ struct ExactIGESWriter {
       points.count == 2
     case .bSpline(let curve):
       curve.degree == 1 && curve.controlPointCount == 2
-    case .harmonic, .sphericalGreatCircle, .certifiedImplicit,
+    case .originalBSplineContinuation, .originalAffineWord, .harmonic, .sphericalGreatCircle, .certifiedImplicit,
       .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-      .projectedAnalytic, .rigidImage:
+      .projectedAnalytic, .rigidImage, .originalImage:
       false
     case .periodicTranslation(let base, _, _):
       isLinear(base)
@@ -757,9 +1089,15 @@ struct ExactIGESWriter {
       return surface == source
     case .certifiedAnalyticImplicit(let certified):
       return certified.intersection.analyticSurface == surface
+    case .originalImage(let image):
+      return surface == .parameterImage(image.targetImage)
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Hosted original-word pcurve IGES support transport needs its actual original-law producer.
+    // Body export must not omit the retained support operation word while publishing model geometry as faithful success.
+    case .originalAffineWord:
+      return false
     case .rigidImage(let image):
       return image.targetSurface == surface
-    case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline:
+    case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline, .originalBSplineContinuation:
       return false
     case .periodicTranslation(let base, _, _):
       return usesModelCurveOnly(base, on: surface)
@@ -822,6 +1160,14 @@ struct ExactIGESWriter {
       )
     }
     switch curve {
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Exact hosted original-word pcurve publication needs a standard original-law carrier.
+    // The Body writer must preserve the complete native directed chart and original support rather than publish a sampled substitute.
+    case .originalAffineWord:
+      throw exchangeError(.unsupportedCapability, "Hosted original-word pcurve requires faithful standard transport.")
+    case .originalBSplineContinuation:
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Public IGES p-curve extension still requires the original endpoint-span law producer in neutral representation.
+      // Transfer must retain or certify the full directed continuation, rather than trimming the original spline inside its previous domain.
+      throw exchangeError(.unsupportedCapability, "Original p-curve continuation requires a complete neutral curve-law transfer.")
     case .bSpline(let bSpline):
       return try parameterBSplineEntity(
         bSpline,
@@ -892,6 +1238,10 @@ struct ExactIGESWriter {
         .unsupportedCapability,
         "IGES pcurve export requires an exact transferable line, polyline, ellipse, or rational B-spline."
       )
+    case .originalImage(let image):
+      try image.validate(on: surface, tolerance: tolerance)
+      throw exchangeError(.topologyFailure,
+        "IGES original-image p-curves must use their original model-curve surface association.")
     case .rigidImage:
       throw exchangeError(
         .topologyFailure,
@@ -1509,6 +1859,12 @@ struct ExactIGESWriter {
     unit: LengthUnit,
     table: inout EntityTable
   ) throws -> Int {
+    if !surfaceOverrides.isEmpty {
+      try GeometryStructuralComparisonWork.charge(surface: surface) { try table.chargeGeometryWork($0) }
+      if let converted = surfaceOverrides[surface] {
+        return try table.add(type: 128, form: 0, label: "SURFACE", parameters: bSplineSurfaceParameters(converted, unit: unit))
+      }
+    }
     switch surface {
     case .plane(let plane):
       let point = try table.add(
@@ -1580,6 +1936,13 @@ struct ExactIGESWriter {
       )
     case .analytic(let analytic):
       return try analyticSurfaceEntity(analytic, unit: unit, table: &table)
+    case .procedural(.originalImage):
+      var producer = IndependentProducer(writer:self)
+      producer.table = table
+      // The original primitive producer emits its actual chart and spatial defining matrix.
+      let entity = try producer.originalSurfaceEntity(surface,label:"",units:UnitSystem(length:unit,angle:.radian))
+      table = producer.table
+      return entity
     case .procedural(.offset(let offset)):
       if abs(offset.distance) <= tolerance.distance {
         return try exactSurfaceEntity(
@@ -1610,7 +1973,7 @@ struct ExactIGESWriter {
           "\(basis)",
         ].joined(separator: ",") + ";"
       )
-    case .procedural(.ruled), .procedural(.rollingBall):
+    case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalAffineWord), .procedural(.originalAngularTransport), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
       let representation = try ExactExchangeSurfaceRepresentationResolver()
         .resolve(surface, tolerance: tolerance)
       guard representation != surface else {
@@ -1810,20 +2173,34 @@ struct ExactIGESWriter {
 }
 
 extension ExactIGESWriter {
-  fileprivate struct EntityTable {
-    struct Entity {
+  fileprivate struct EntityTable: Sendable {
+    struct Entity: Sendable {
       let type: Int
       let form: Int
       let label: String
       let transformationPointer: Int
       let statusNumber: Int
       let parameters: String
+      var associationPointers: [Int] = []
     }
 
     let maximumEntities: Int
     let tolerance: ModelingTolerance
     var entities: [Entity] = []
+    var independentUsage:IndependentShapeExchangeUsage?
 
+    var maximumWork: Int = 10_000_000
+    private var geometryWork = 0
+    private let processingBudget: ExchangeProcessingBudget?
+    init(maximumEntities: Int, tolerance: ModelingTolerance, maximumWork: Int = 10_000_000, processingBudget: ExchangeProcessingBudget? = nil) {
+      self.maximumEntities = maximumEntities; self.tolerance = tolerance; self.maximumWork = maximumWork
+      self.processingBudget = processingBudget
+    }
+    mutating func chargeGeometryWork(_ work: Int) throws {
+      try processingBudget?.check(format: .iges)
+      guard work >= 0, work <= maximumWork - geometryWork else { throw IndependentShapeExchangeError.resourceLimitExceeded("Converted IGES geometry lookup work.") }
+      geometryWork += work; try independentUsage?.charge(work: work)
+    }
     mutating func add(
       type: Int,
       form: Int,
@@ -1832,6 +2209,16 @@ extension ExactIGESWriter {
       statusNumber: Int = 0,
       parameters: String
     ) throws -> Int {
+      try processingBudget?.check(format: .iges)
+      if independentUsage != nil {
+        guard label.utf8.count <= 8, label.utf8.allSatisfy({ $0 < 128 }) else {
+          // FIXME(INCOMPLETE_IMPLEMENTATION): Independent IGES long/encoded directory labels need actual standard name-property transport.
+          // Retain the full original label instead of truncating it before this public egress family succeeds.
+          throw IndependentShapeExchangeError.metadataLoss("IGES directory label exceeds the retained ASCII eight-byte field.")
+        }
+        let records = 2+(parameters.utf8.count+63)/64
+        try independentUsage?.charge(entities:1,work:parameters.utf8.count+label.utf8.count+1,bytes:records*81)
+      }
       guard entities.count < maximumEntities else {
         throw KernelError(
           phase: .exchange,
@@ -1852,6 +2239,54 @@ extension ExactIGESWriter {
       return entities.count * 2 - 1
     }
 
+    mutating func appendGroupBackPointer(groupPointer:Int,memberPointer:Int) throws {
+      guard groupPointer > 0, memberPointer > 0, groupPointer % 2 == 1, memberPointer % 2 == 1,
+            groupPointer / 2 < entities.count, memberPointer / 2 < entities.count,
+            entities[groupPointer / 2].type == 402,
+            [1,7,14,15].contains(entities[groupPointer / 2].form) else {
+        throw IndependentShapeExchangeError.invalidAssociation("IGES inverse pointer requires actual emitted member and group entities.")
+      }
+      let index = memberPointer / 2
+      let nextCount = entities[index].associationPointers.count.addingReportingOverflow(1)
+      guard !nextCount.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("IGES inverse pointer count overflows.") }
+      try independentUsage?.charge(work: nextCount.partialValue)
+      guard !entities[index].associationPointers.contains(groupPointer) else {
+        throw IndependentShapeExchangeError.invalidAssociation("Duplicate emitted IGES inverse pointer.")
+      }
+      let size = nextCount.partialValue.multipliedReportingOverflow(by:MemoryLayout<Int>.stride)
+      guard !size.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("IGES inverse pointer storage overflow.") }
+      try independentUsage?.charge(entities:1,bytes:size.partialValue)
+      entities[index].associationPointers.append(groupPointer)
+    }
+
+    mutating func retainAssociationParameterTails() throws {
+      for index in entities.indices where !entities[index].associationPointers.isEmpty {
+        let original = entities[index]
+        let addition = original.associationPointers.count.multipliedReportingOverflow(by:21)
+        let framing = original.parameters.utf8.count.addingReportingOverflow(24)
+        let capacity = addition.partialValue.addingReportingOverflow(framing.partialValue)
+        guard !addition.overflow, !framing.overflow, !capacity.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("IGES inverse parameter extent overflow.") }
+        let rounded = capacity.partialValue.addingReportingOverflow(63)
+        guard !rounded.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("IGES tail record extent overflow.") }
+        let records = (rounded.partialValue/64).multipliedReportingOverflow(by:81)
+        let bytes = records.partialValue.addingReportingOverflow(capacity.partialValue)
+        guard !records.overflow, !bytes.overflow else { throw IndependentShapeExchangeError.resourceLimitExceeded("IGES tail record storage overflow.") }
+        try independentUsage?.charge(work:capacity.partialValue,bytes:bytes.partialValue)
+        guard original.parameters.last == ";" else { throw IndependentShapeExchangeError.invalidAssociation("IGES base parameter delimiter is absent.") }
+        var parameters = String(original.parameters.dropLast())
+        parameters += ",\(original.associationPointers.count)"
+        for pointer in original.associationPointers { parameters += ",\(pointer)" }
+        parameters += ",0;"
+        entities[index] = .init(type:original.type,form:original.form,label:original.label,
+          transformationPointer:original.transformationPointer,statusNumber:original.statusNumber,parameters:parameters)
+      }
+    }
+
+    func serializedFramingByteCount(unit:LengthUnit) -> Int {
+      let globalRecords = (globalParameters(unit:unit).utf8.count+71)/72
+      return (globalRecords+2)*81-1
+    }
+
     func serialize(unit: LengthUnit, maximumBytes: Int) throws -> Data {
       let startRecords = sectionRecords("SwiftCAD exact B-rep", section: "S")
       let globalRecords = sectionRecords(globalParameters(unit: unit), section: "G")
@@ -1859,6 +2294,7 @@ extension ExactIGESWriter {
       var parameterRecords: [String] = []
       var parameterSequence = 1
       for (offset, entity) in entities.enumerated() {
+        try processingBudget?.check(format: .iges)
         let entityIndex = offset + 1
         let directoryPointer = entityIndex * 2 - 1
         let records = parameterSectionRecords(

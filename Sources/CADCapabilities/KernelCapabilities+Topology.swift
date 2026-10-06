@@ -3,6 +3,30 @@ import CADCore
 extension KernelCapabilities {
   static let topologyCapabilities: [KernelCapability] = [
     KernelCapability(
+      id: "TOPO-NONMANIFOLD-001",
+      operation: "nonManifoldTopology",
+      status: .supported,
+      topology: .subshapeGraph,
+      acceptedInputs: ["atomicRawShapeSnapshot", "malformedStoredReferences", "nonManifoldEdgeAndVertexIncidence", "explicitPositiveRecordWorkAndDiagnosticLimits"],
+      exactOutputs: ["immutableCompleteRawRetention", "boundedStructuralDiagnostics", "typedAdmissionRejectionWithReport", "existingExactShapeAndBRepValidationAfterCleanDiagnosis"],
+      failureCodes: [.invalidInput, .missingReference, .topologyFailure, .resourceLimitExceeded, .cancelled],
+      tolerance: .standard,
+      publicAPIs: ["CADTopology.NonManifoldTopologyHandling", "CADTopology.DefaultNonManifoldTopologyHandler", "CADTopology.RetainedTopologyShape", "CADTopology.TopologyRetentionLimits", "CADTopology.NonManifoldTopologyReport", "CADTopology.TopologyRetentionIssue", "CADTopology.TopologyEntityReference", "CADTopology.TopologyRetentionError"],
+      testFixtures: ["NonManifoldTopologyTests"]
+    ),
+    KernelCapability(
+      id: "TOPO-SHAPE-001",
+      operation: "genericShape",
+      status: .supported,
+      topology: .subshapeGraph,
+      acceptedInputs: ["standaloneVertexEdgeWireFaceShellSolid", "heterogeneousCompound", "explicitFaceConnectedSolidComplex", "finiteValidatedSelectedClosure"],
+      exactOutputs: ["immutableSelectedSnapshot", "rootSpecificValidation", "dimensionOrderedDistinctTraversal", "exactRigidImageAndFaceChartTransport", "canonicalOppositeInterfaceProof", "retainedCellMaterialCavitiesAndOwnership"],
+      failureCodes: [.invalidInput, .missingReference, .topologyFailure, .resourceLimitExceeded, .cancelled],
+      tolerance: .standard,
+      publicAPIs: ["CADTopology.ShapeRepresenting", "CADTopology.ShapeOperating", "CADTopology.Shape", "CADTopology.ShapeReference", "CADTopology.ShapeWire", "CADTopology.DefaultShapeOperator", "CADTopology.SolidComplexValidating", "CADTopology.DefaultSolidComplexValidator", "CADTopology.SolidComplexTopology", "CADTopology.SolidInterface"],
+      testFixtures: ["GenericShapeTests", "SolidComplexTests"]
+    ),
+    KernelCapability(
       id: "TOPO-LINEAGE-001",
       operation: "topologyLineage",
       status: .supported,
@@ -397,22 +421,39 @@ extension KernelCapabilities {
         "conicalOrRingToroidalFaceWithAffineCoordinateOrPolylinePcurves",
         "sphericalFaceWithGreatCircleMeridianOrLatitudePcurvesNotWindingTheAxis",
         "periodicallyTranslatedSupportedPcurves",
+        "regularBSplineOffsetRuledRollingBallSupportsWithCertifiedDerivativeCharts",
+        "piecewiseC0PositiveWeightBSplineNativeSpanAndValueOnlyFanEnclosures",
+        "numericExactTrimsIncludingHolesAndReversedLoops",
+        "exactOffsetAndAffineRigidImageNumericTrimsWithOriginalFractionsAndReversal",
+        "exactOpenConnectedAffineImplicitChainsWithOriginalNativeUVAndPieceFractions",
+        "exactOpenSinglePolynomialGraphCellImplicitTrimsWithCallerOwnedClosedEndpointJets",
+        "explicitFiniteCellDepthBoundaryAndControlLimits",
       ],
       exactOutputs: [
         "closedFormGreenIntegralFaceArea",
         "closedFormGreenIntegralFaceAreaCentroid",
         "gaussLegendreGreenIntegralBelowRoundingOnConesAndTori",
         "gaussBonnetAndVectorAreaClosedFormOnSpheres",
-        "typedRefusalOfOtherSupportsAndPcurves",
+        "outwardCertifiedAreaAndCenteredMomentsWithoutMesh",
+        "distanceSquaredPlusRelativeAreaErrorAndDistanceCentroidError",
+        "exactTranslationReductionWithOriginalChartDomain",
+        "oneSidedNativeSpanProofWithWholeQueryErrorAndWorkBudgets",
+        "valueOnlyImplicitJoinFanEnclosuresWithoutHigherDerivativeAuthority",
+        "ownedTargetMatchedThirdOrderNumericChartEnclosures",
+        "originalImplicitRootAndTrimFractionJetsWithWholeQueryEndpointAndIntegrationWork",
+        "outwardEntireEndpointDifferenceConnectionAtUnchanged64ULPPrecision",
+        "typedRefusalOfUncertifiableChartsAndResourceExhaustion",
       ],
-      failureCodes: [.missingReference, .topologyFailure, .unsupportedCapability],
+      failureCodes: [.invalidInput, .missingReference, .topologyFailure, .unsupportedCapability, .classificationFailure, .singularSystem, .singularGeometry, .resourceLimitExceeded, .cancelled],
       tolerance: .standard,
       publicAPIs: [
         "CADTopology.BRepModel.faceAreaMeasurement",
         "CADTopology.FaceAreaMeasurement",
+        "CADTopology.FaceAreaIntegrationOptions",
       ],
       testFixtures: [
         "FaceAreaMeasurementTests",
+        "SurfaceAreaIntegrationTests",
       ]
     ),
   ]

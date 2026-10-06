@@ -1,4 +1,4 @@
-public struct Matrix4x4: Codable, Hashable, Sendable {
+public struct Matrix4x4: Hashable, Sendable {
     public var values: [Double]
 
     public init(values: [Double]) throws {
@@ -23,6 +23,16 @@ public struct Matrix4x4: Codable, Hashable, Sendable {
         self.values = values
     }
 
+    public static let identity = Matrix4x4(uncheckedValues: [
+        1.0, 0.0, 0.0, 0.0,
+        0.0, 1.0, 0.0, 0.0,
+        0.0, 0.0, 1.0, 0.0,
+        0.0, 0.0, 0.0, 1.0
+    ])
+}
+
+#if !hasFeature(Embedded)
+extension Matrix4x4: Codable {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let values = try container.decode([Double].self)
@@ -33,11 +43,5 @@ public struct Matrix4x4: Codable, Hashable, Sendable {
         var container = encoder.singleValueContainer()
         try container.encode(values)
     }
-
-    public static let identity = Matrix4x4(uncheckedValues: [
-        1.0, 0.0, 0.0, 0.0,
-        0.0, 1.0, 0.0, 0.0,
-        0.0, 0.0, 1.0, 0.0,
-        0.0, 0.0, 0.0, 1.0
-    ])
 }
+#endif

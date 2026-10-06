@@ -16,6 +16,12 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     case unresolved
   }
 
+  private enum GaugeResolution {
+    case uniqueRoot(localParameters: [Double], bounds: [OutwardScalarInterval])
+    case empty
+    case unresolved
+  }
+
   enum ParameterizedGraphCertificate: Sendable {
     case fullGraph(localParameterBounds: [(lower: Double, upper: Double)])
     case contracted(localParameterBounds: [(lower: Double, upper: Double)])
@@ -92,19 +98,27 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     }
 
     func range(lower: Double, upper: Double) -> OutwardScalarInterval {
+      range(lower: .exact(lower), upper: .exact(upper))
+    }
+
+    func range(lower: OutwardScalarInterval, upper: OutwardScalarInterval) -> OutwardScalarInterval {
       let lowerValue = value(at: lower)
       let upperValue = value(at: upper)
-      let midpoint = lower + (upper - lower) * 0.5
-      let midpointValue = value(at: midpoint)
-      let middle =
-        midpointValue * OutwardScalarInterval.exact(2.0)
-        - (lowerValue + upperValue) * OutwardScalarInterval.exact(0.5)
-      return .enclosing([lowerValue, middle, upperValue])
+      let width = upper - lower
+      let lowerDerivative = linear
+        + quadratic * .exact(2) * lower
+      let middle = lowerValue + width * .exact(0.5) * lowerDerivative
+      return OutwardScalarInterval(
+        lower: min(lowerValue.lower, middle.lower, upperValue.lower),
+        upper: max(lowerValue.upper, middle.upper, upperValue.upper))
     }
 
     private func value(at parameter: Double) -> OutwardScalarInterval {
-      let value = OutwardScalarInterval.exact(parameter)
-      return constant + linear * value + quadratic * value * value
+      value(at: .exact(parameter))
+    }
+
+    private func value(at parameter: OutwardScalarInterval) -> OutwardScalarInterval {
+      constant + linear * parameter + quadratic * parameter * parameter
     }
   }
 
@@ -114,12 +128,14 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     let box: [OutwardScalarInterval]
 
     func box(
-      overFreeParameterBounds bounds: (lower: Double, upper: Double)
-    ) -> [OutwardScalarInterval] {
-      zip(predictors, remainders).map { predictor, remainder in
+      overFreeParameterBounds bounds: (lower: Double, upper: Double),
+      admission: SurfaceSurfaceQueryAdmission
+    ) throws -> [OutwardScalarInterval] {
+      try admission.reserve(count: predictors.count, stride: MemoryLayout<OutwardScalarInterval>.stride)
+      return zip(predictors, remainders).map { predictor, remainder in
         predictor.range(
-          lower: bounds.lower - 0.5,
-          upper: bounds.upper - 0.5
+          lower: OutwardScalarInterval.exact(bounds.lower) - .exact(0.5),
+          upper: OutwardScalarInterval.exact(bounds.upper) - .exact(0.5)
         ) + remainder
       }
     }
@@ -140,24 +156,22 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
   private let parameterBox: SurfaceIntersectionParameterBox
   private let firstJet: SurfaceIntervalVectorJet
   private let secondJet: SurfaceIntervalVectorJet
+  private let admission: SurfaceSurfaceQueryAdmission
+  private let preparedFirstSurface: PreparedSurfaceDifferentialEncloser?
+  private let preparedSecondSurface: PreparedSurfaceDifferentialEncloser?
 
   init(
     firstSurface: Surface3D,
     secondSurface: Surface3D,
     parameterBox: SurfaceIntersectionParameterBox,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws {
     try self.init(
-      firstSurface: try PreparedSurfaceDifferentialEncloser(
-        surface: firstSurface,
-        tolerance: tolerance
-      ),
-      secondSurface: try PreparedSurfaceDifferentialEncloser(
-        surface: secondSurface,
-        tolerance: tolerance
-      ),
+      firstSurface: try admission.prepare(firstSurface, tolerance: tolerance),
+      secondSurface: try admission.prepare(secondSurface, tolerance: tolerance),
       parameterBox: parameterBox,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission
     )
   }
 
@@ -165,7 +179,8 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     firstSurface preparedFirstSurface: PreparedSurfaceDifferentialEncloser,
     secondSurface preparedSecondSurface: PreparedSurfaceDifferentialEncloser,
     parameterBox: SurfaceIntersectionParameterBox,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    admission: SurfaceSurfaceQueryAdmission = .legacy
   ) throws {
     try tolerance.validate()
     let firstSurface = preparedFirstSurface.surface
@@ -178,14 +193,17 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     self.firstSurface = firstSurface
     self.secondSurface = secondSurface
     self.parameterBox = parameterBox
-    firstJet = try preparedFirstSurface.intervalJet(
+    self.admission = admission
+    self.preparedFirstSurface = preparedFirstSurface
+    self.preparedSecondSurface = preparedSecondSurface
+    firstJet = try admission.intervalJet(preparedFirstSurface,
       over: SurfaceParameterBox(
         u: parameterBox.firstU,
         v: parameterBox.firstV
       ),
       tolerance: tolerance
     )
-    secondJet = try preparedSecondSurface.intervalJet(
+    secondJet = try admission.intervalJet(preparedSecondSurface,
       over: SurfaceParameterBox(
         u: parameterBox.secondU,
         v: parameterBox.secondV
@@ -200,11 +218,17 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     secondSurface: Surface3D,
     parameterBox: SurfaceIntersectionParameterBox,
     firstJet: SurfaceIntervalVectorJet,
-    secondJet: SurfaceIntervalVectorJet
+    secondJet: SurfaceIntervalVectorJet,
+    admission: SurfaceSurfaceQueryAdmission = .legacy,
+    preparedFirstSurface: PreparedSurfaceDifferentialEncloser? = nil,
+    preparedSecondSurface: PreparedSurfaceDifferentialEncloser? = nil
   ) {
     self.firstSurface = firstSurface
     self.secondSurface = secondSurface
     self.parameterBox = parameterBox
+    self.admission = admission
+    self.preparedFirstSurface = preparedFirstSurface
+    self.preparedSecondSurface = preparedSecondSurface
     self.firstJet = firstJet
     self.secondJet = secondJet
   }
@@ -213,23 +237,42 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     let residual =
       intervalVector(firstJet, at: \SurfaceIntervalJet.value)
       - intervalVector(secondJet, at: \SurfaceIntervalJet.value)
-    return residual.components.contains { $0.excludesZero }
+    return residual.x.excludesZero || residual.y.excludesZero || residual.z.excludesZero
   }
 
-  func rankCertifiedFreeParameters() -> [SurfaceIntersectionParameterCoordinate] {
-    let columns = normalizedDerivativeColumns()
-    guard columns.allSatisfy(\.isFinite) else { return [] }
-    return SurfaceIntersectionParameterCoordinate.allCases.filter { coordinate in
-      let dependentColumns = columns.indices
-        .filter { $0 != coordinate.rawValue }
-        .map { columns[$0] }
-      let minor = determinant(
-        dependentColumns[0],
-        dependentColumns[1],
-        dependentColumns[2]
-      )
-      return minor.isFinite && minor.excludesZero
+  func rankCertifiedFreeParameters() throws -> [SurfaceIntersectionParameterCoordinate] {
+    if case .plane(let first) = firstSurface, first.uDirection != nil,
+      case .plane(let second) = secondSurface, second.uDirection != nil {
+      try admission.reserve(count: 4, stride: MemoryLayout<SurfaceIntersectionParameterCoordinate>.stride)
+      var result: [SurfaceIntersectionParameterCoordinate] = []; result.reserveCapacity(4)
+      for index in 0..<4 {
+        try admission.step()
+        guard let coordinate = SurfaceIntersectionParameterCoordinate(rawValue: index) else {
+          throw GeometryConversionError.invalidInput("An original affine graph coordinate is invalid.")
+        }
+        if try OriginalAuthoredPlaneIntersectionGraph.prepare(first: firstSurface,
+          second: secondSurface, parameterBox: parameterBox, freeParameter: coordinate,
+          admission: admission) != nil { result.append(coordinate) }
+      }
+      return result
     }
+    let columns = try normalizedDerivativeColumns()
+    guard columns.allSatisfy(\.isFinite) else { return [] }
+    try admission.reserve(count: 4, stride: MemoryLayout<SurfaceIntersectionParameterCoordinate>.stride)
+    let coordinates = SurfaceIntersectionParameterCoordinate.allCases
+    var result: [SurfaceIntersectionParameterCoordinate] = []
+    for coordinate in coordinates {
+      try admission.step()
+      try admission.reserve(count: 3, stride: MemoryLayout<IntervalVector>.stride)
+      try admission.reserve(count: 3, stride: MemoryLayout<Int>.stride)
+      let dependentColumns = columns.indices.filter { $0 != coordinate.rawValue }.map { columns[$0] }
+      let minor = determinant(dependentColumns[0], dependentColumns[1], dependentColumns[2])
+      if minor.isFinite && minor.excludesZero {
+        try admission.reserve(count: 1, stride: MemoryLayout<SurfaceIntersectionParameterCoordinate>.stride)
+        result.append(coordinate)
+      }
+    }
+    return result
   }
 
   func gaugeCertificate(
@@ -237,17 +280,153 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance
   ) throws -> GaugeCertificate {
+    switch try resolveGauge(freeParameter: freeParameter,
+      atNormalizedFraction: fraction, tolerance: tolerance) {
+    case .uniqueRoot(let parameters, _): return .uniqueRoot(localParameters: parameters)
+    case .empty: return .empty
+    case .unresolved: return .unresolved
+    }
+  }
+
+  func gaugeParameterBounds(freeParameter: SurfaceIntersectionParameterCoordinate,
+    atNormalizedFraction fraction: Double, tolerance: ModelingTolerance) throws -> [ScalarInterval]? {
+    if let exact = try OriginalAuthoredPlaneIntersectionGraph.prepare(
+      first: firstSurface, second: secondSurface, parameterBox: parameterBox,
+      freeParameter: freeParameter, admission: admission) {
+      guard let bounds = try exact.bounds(at: fraction, admission: admission) else { return nil }
+      return try nativeGaugeBounds(bounds)
+    }
+    guard case .uniqueRoot(_, let initialBounds) = try resolveGauge(freeParameter: freeParameter,
+      atNormalizedFraction: fraction, tolerance: tolerance) else { return nil }
+    let bounds = try refineGaugeBounds(initialBounds, freeParameter: freeParameter,
+      tolerance: tolerance)
+    return try nativeGaugeBounds(bounds)
+  }
+
+  /// Only a retained full-graph owner may inherit existence for this enclosure.
+  func inheritedGaugeParameterBounds(freeParameter: SurfaceIntersectionParameterCoordinate,
+    atNormalizedFraction fraction: Double, tolerance: ModelingTolerance) throws -> [ScalarInterval] {
+    guard fraction.isFinite, fraction >= 0, fraction <= 1 else {
+      throw GeometryConversionError.invalidInput("A retained graph gauge must lie in its original closed domain.")
+    }
+    if let exact = try OriginalAuthoredPlaneIntersectionGraph.prepare(
+      first: firstSurface, second: secondSurface, parameterBox: parameterBox,
+      freeParameter: freeParameter, admission: admission) {
+      guard let bounds = try exact.bounds(at: fraction, admission: admission) else {
+        throw GeometryConversionError.invalidInput("An original affine gauge contradicts its retained full graph.")
+      }
+      return try nativeGaugeBounds(bounds)
+    }
+    try admission.reserve(count: 4, stride: MemoryLayout<OutwardScalarInterval>.stride)
+    var initial = Array(repeating: OutwardScalarInterval(lower: 0, upper: 1), count: 4)
+    initial[freeParameter.rawValue] = .exact(fraction)
+    let bounds = try refineGaugeBounds(initial, freeParameter: freeParameter, tolerance: tolerance)
+    return try nativeGaugeBounds(bounds)
+  }
+
+  private func nativeGaugeBounds(_ bounds: [OutwardScalarInterval]) throws -> [ScalarInterval] {
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    let intervals = parameterBox.intervals
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    var result: [ScalarInterval] = []
+    result.reserveCapacity(4)
+    for index in 0..<4 {
+      try admission.step()
+      let interval = intervals[index]
+      let image = OutwardScalarInterval.exact(interval.lower) + originalWidth(interval) * bounds[index]
+      guard let contained = image.intersection(with: .init(lower: interval.lower, upper: interval.upper)),
+        contained.isFinite else {
+        throw GeometryConversionError.resourceLimitExceeded("Original SSI endpoint root has no finite source enclosure.")
+      }
+      result.append(try .init(lower: contained.lower, upper: contained.upper))
+    }
+    return result
+  }
+
+  private func refineGaugeBounds(_ initial: [OutwardScalarInterval],
+    freeParameter: SurfaceIntersectionParameterCoordinate,
+    tolerance: ModelingTolerance) throws -> [OutwardScalarInterval] {
+    let free = freeParameter.rawValue
+    try admission.reserve(count: 3, stride: MemoryLayout<Int>.stride)
+    let dependent = (0..<4).filter { $0 != free }
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    let intervals = parameterBox.intervals
+    try admission.reserve(count: 4, stride: MemoryLayout<OutwardScalarInterval>.stride)
+    var bounds = initial
+    let preparedFirst = try preparedFirstSurface ?? admission.prepare(firstSurface, tolerance: tolerance)
+    let preparedSecond = try preparedSecondSurface ?? admission.prepare(secondSurface, tolerance: tolerance)
+    for _ in 0..<32 {
+      try admission.step()
+      try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+      let actual: [ScalarInterval] = try (0..<4).map { index in
+        let domain = intervals[index]
+        let image = OutwardScalarInterval.exact(domain.lower) + originalWidth(domain) * bounds[index]
+        guard let contained = image.intersection(with: .init(lower: domain.lower, upper: domain.upper)),
+          contained.isFinite else {
+          throw GeometryConversionError.resourceLimitExceeded("Original gauge refinement has no finite native enclosure.")
+        }
+        return .init(lower: contained.lower, upper: contained.upper)
+      }
+      let a = try admission.intervalJet(preparedFirst, over: .init(u: actual[0], v: actual[1]), tolerance: tolerance)
+      let b = try admission.intervalJet(preparedSecond, over: .init(u: actual[2], v: actual[3]), tolerance: tolerance)
+      let restricted = ParametricSurfaceIntersectionGraphProver(firstSurface: firstSurface,
+        secondSurface: secondSurface, parameterBox: parameterBox, firstJet: a, secondJet: b,
+        admission: admission, preparedFirstSurface: preparedFirst, preparedSecondSurface: preparedSecond)
+      let columns = try restricted.normalizedDerivativeColumns()
+      try admission.reserve(count: 3, stride: MemoryLayout<IntervalVector>.stride)
+      let dependentColumns = dependent.map { columns[$0] }
+      guard let inverse = try inverseRows(columns: dependentColumns) else { break }
+      try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+      let center = bounds.map(\.midpoint)
+      let ca = try normalizedPointJet(first: true, u: center[0], v: center[1], tolerance: tolerance)
+      let cb = try normalizedPointJet(first: false, u: center[2], v: center[3], tolerance: tolerance)
+      let residual = intervalVector(ca, at: \SurfaceIntervalJet.value)
+        - intervalVector(cb, at: \SurfaceIntervalJet.value)
+      try admission.reserve(count: 6, stride: MemoryLayout<OutwardScalarInterval>.stride)
+      let contracted = try affinePredictorKrawczykBox(inverse: inverse,
+        jacobian: jacobianRows(dependentColumns), functionValue: residual,
+        centerBounds: dependent.map { .exact(center[$0]) },
+        domainBounds: dependent.map { bounds[$0] })
+      var changed = false
+      for index in dependent.indices {
+        try admission.step()
+        let coordinate = dependent[index]
+        guard let retained = bounds[coordinate].intersection(with: contracted[index]), retained.isFinite else {
+          throw GeometryConversionError.invalidInput("Original unique gauge root was lost during closed contraction.")
+        }
+        changed = changed || retained.lower != bounds[coordinate].lower || retained.upper != bounds[coordinate].upper
+        bounds[coordinate] = retained
+      }
+      if !changed { break }
+    }
+    return bounds
+  }
+
+  private func resolveGauge(
+    freeParameter: SurfaceIntersectionParameterCoordinate,
+    atNormalizedFraction fraction: Double,
+    tolerance: ModelingTolerance
+  ) throws -> GaugeResolution {
     guard fraction.isFinite, fraction >= 0.0, fraction <= 1.0 else {
       return .unresolved
     }
-    let columns = normalizedDerivativeColumns()
+    if let exact = try OriginalAuthoredPlaneIntersectionGraph.prepare(
+      first: firstSurface, second: secondSurface, parameterBox: parameterBox,
+      freeParameter: freeParameter, admission: admission) {
+      guard let bounds = try exact.bounds(at: fraction, admission: admission) else { return .empty }
+      try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+      return .uniqueRoot(localParameters: bounds.map(\.midpoint), bounds: bounds)
+    }
+    let columns = try normalizedDerivativeColumns()
     let freeIndex = freeParameter.rawValue
     guard columns.indices.contains(freeIndex),
       columns.allSatisfy(\.isFinite)
     else {
       return .unresolved
     }
+    try admission.reserve(count: 3, stride: MemoryLayout<Int>.stride)
     let dependentIndexes = columns.indices.filter { $0 != freeIndex }
+    try admission.reserve(count: 3, stride: MemoryLayout<IntervalVector>.stride)
     let dependentColumns = dependentIndexes.map { columns[$0] }
     let minor = determinant(
       dependentColumns[0],
@@ -255,11 +434,12 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       dependentColumns[2]
     )
     guard minor.isFinite, minor.excludesZero,
-      let inverse = inverseRows(columns: dependentColumns.map(\.midpoint))
+      let inverse = try inverseRows(columns: dependentColumns)
     else {
       return .unresolved
     }
 
+    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
     var localParameters = Array(repeating: 0.5, count: 4)
     localParameters[freeIndex] = fraction
     if let numericalCenter = try numericalGaugeCenter(
@@ -269,30 +449,19 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     ) {
       localParameters = numericalCenter
     }
-    let actualParameters = zip(localParameters, parameterBox.intervals).map {
-      local, interval in interval.lower + interval.width * local
-    }
-    let firstPoint = try firstSurface.point(
-      u: actualParameters[0],
-      v: actualParameters[1],
-      tolerance: tolerance
-    )
-    let secondPoint = try secondSurface.point(
-      u: actualParameters[2],
-      v: actualParameters[3],
-      tolerance: tolerance
-    )
-    let residual = firstPoint - secondPoint
-    let functionValue = IntervalVector(
-      x: OutwardScalarInterval(residual.x),
-      y: OutwardScalarInterval(residual.y),
-      z: OutwardScalarInterval(residual.z)
-    )
+    localParameters[freeIndex] = fraction
+    let firstValue = try normalizedPointJet(first: true,
+      u: localParameters[0], v: localParameters[1], tolerance: tolerance)
+    let secondValue = try normalizedPointJet(first: false,
+      u: localParameters[2], v: localParameters[3], tolerance: tolerance)
+    let functionValue = intervalVector(firstValue, at: \SurfaceIntervalJet.value)
+      - intervalVector(secondValue, at: \SurfaceIntervalJet.value)
+    try admission.reserve(count: dependentIndexes.count, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let centers = dependentIndexes.map {
       OutwardScalarInterval.exact(localParameters[$0])
     }
-    let jacobian = jacobianRows(dependentColumns)
-    let box = affinePredictorKrawczykBox(
+    let jacobian = try jacobianRows(dependentColumns)
+    let box = try affinePredictorKrawczykBox(
       inverse: inverse,
       jacobian: jacobian,
       functionValue: functionValue,
@@ -303,7 +472,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     }
     let certifiesUniqueRoot =
       isStrictlyInsideUnitCube(box)
-      || (isInsideUnitCubeWithinRounding(box)
+      || (isInsideClosedUnitCube(box)
         && krawczykMapIsStrictContraction(
           inverse: inverse,
           jacobian: jacobian
@@ -315,7 +484,16 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
         1.0
       )
     }
-    return .uniqueRoot(localParameters: localParameters)
+    try admission.reserve(count: 4, stride: MemoryLayout<OutwardScalarInterval>.stride)
+    var rootBounds = Array(repeating: OutwardScalarInterval.exact(fraction), count: 4)
+    for index in dependentIndexes.indices {
+      try admission.step()
+      guard let contained = box[index].intersection(with: .init(lower: 0, upper: 1)) else {
+        return .unresolved
+      }
+      rootBounds[dependentIndexes[index]] = contained
+    }
+    return .uniqueRoot(localParameters: localParameters, bounds: rootBounds)
   }
 
   private func numericalGaugeCenter(
@@ -326,19 +504,25 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     let domains = try BoundedSurfaceParameterDomainMap(
       first: firstSurface,
       second: secondSurface,
-      tolerance: tolerance
+      tolerance: tolerance, admission: admission,
+      preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
     )
-    let actualLower = parameterBox.intervals.map(\.lower)
-    let actualUpper = parameterBox.intervals.map(\.upper)
-    let constraints = zip(
-      domains.normalized(actualLower),
-      domains.normalized(actualUpper)
-    ).map { (lower: $0.0, upper: $0.1) }
-    var actualSeed = parameterBox.intervals.map(\.midpoint)
-    actualSeed[freeParameterIndex] =
-      parameterBox
-      .intervals[freeParameterIndex].lower
-      + parameterBox.intervals[freeParameterIndex].width * fraction
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    let intervals = parameterBox.intervals
+    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+    let actualLower = intervals.map(\.lower)
+    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+    let actualUpper = intervals.map(\.upper)
+    try admission.reserve(count: 8, stride: MemoryLayout<Double>.stride)
+    let normalizedLower = domains.normalized(actualLower)
+    let normalizedUpper = domains.normalized(actualUpper)
+    try admission.reserve(count: 4, stride: MemoryLayout<(Double, Double)>.stride)
+    let constraints = zip(normalizedLower, normalizedUpper).map { (lower: $0.0, upper: $0.1) }
+    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+    var actualSeed = intervals.map(\.midpoint)
+    actualSeed[freeParameterIndex] = intervals[freeParameterIndex].lower
+      + intervals[freeParameterIndex].width * fraction
+    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
     let normalizedSeed = domains.normalized(actualSeed)
     guard
       let root = try ParametricSurfaceIntersectionRootRefiner(
@@ -346,7 +530,8 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
         second: secondSurface,
         domains: domains,
         maximumIterations: 32,
-        tolerance: tolerance
+        tolerance: tolerance, admission: admission,
+        preparedFirstSurface: preparedFirstSurface, preparedSecondSurface: preparedSecondSurface
       ).gaugeRoot(
         seed: normalizedSeed,
         fixedParameterIndex: freeParameterIndex,
@@ -355,7 +540,8 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     else {
       return nil
     }
-    return zip(root.actual, parameterBox.intervals).map { value, interval in
+    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+    return zip(root.actual, intervals).map { value, interval in
       min(max((value - interval.lower) / interval.width, 0.0), 1.0)
     }
   }
@@ -368,6 +554,13 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     freeParameter: SurfaceIntersectionParameterCoordinate,
     tolerance: ModelingTolerance
   ) throws -> ParameterizedGraphCertificate {
+    if let exact = try OriginalAuthoredPlaneIntersectionGraph.prepare(
+      first: firstSurface, second: secondSurface, parameterBox: parameterBox,
+      freeParameter: freeParameter, admission: admission),
+      let bounds = try exact.fullGraphBounds(admission: admission) {
+      try admission.reserve(count: 4, stride: MemoryLayout<(Double, Double)>.stride)
+      return .fullGraph(localParameterBounds: bounds.map { (lower: $0.lower, upper: $0.upper) })
+    }
     guard
       let analysis = try parameterizedGraphAnalysis(
         freeParameter: freeParameter,
@@ -378,6 +571,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     }
     if analysis.provesEmpty { return .empty }
     let unit = OutwardScalarInterval(lower: 0.0, upper: 1.0)
+    try admission.reserve(count: 4, stride: MemoryLayout<(Double, Double)>.stride)
     var localBounds = Array(
       repeating: (lower: 0.0, upper: 1.0),
       count: 4
@@ -426,14 +620,20 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     upperAnchor: SurfaceIntersectionParameterPair,
     tolerance: ModelingTolerance
   ) throws -> Certificate {
-    let columns = normalizedDerivativeColumns()
+    if let exact = try OriginalAuthoredPlaneIntersectionGraph.prepare(
+      first: firstSurface, second: secondSurface, parameterBox: parameterBox,
+      freeParameter: freeParameter, admission: admission),
+      try exact.fullGraphBounds(admission: admission) != nil { return .fullGraph }
+    let columns = try normalizedDerivativeColumns()
     let freeIndex = freeParameter.rawValue
     guard columns.indices.contains(freeIndex),
       columns.allSatisfy(\.isFinite)
     else {
       return .rankUnresolved
     }
+    try admission.reserve(count: 3, stride: MemoryLayout<Int>.stride)
     let dependentIndexes = columns.indices.filter { $0 != freeIndex }
+    try admission.reserve(count: 3, stride: MemoryLayout<IntervalVector>.stride)
     let dependentColumns = dependentIndexes.map { columns[$0] }
     let minor = determinant(
       dependentColumns[0],
@@ -443,15 +643,15 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     guard minor.isFinite, minor.excludesZero else {
       return .rankUnresolved
     }
-    guard let inverse = inverseRows(columns: dependentColumns.map(\.midpoint)) else {
+    guard let inverse = try inverseRows(columns: dependentColumns) else {
       return .unresolved
     }
-    let normalizedLower = normalized(anchor: lowerAnchor)
-    let normalizedUpper = normalized(anchor: upperAnchor)
+    let normalizedLower = try normalized(anchor: lowerAnchor)
+    let normalizedUpper = try normalized(anchor: upperAnchor)
     guard normalizedLower.count == columns.count,
       normalizedUpper.count == columns.count,
-      normalizedLower.allSatisfy({ $0.isFinite && $0 >= 0.0 && $0 <= 1.0 }),
-      normalizedUpper.allSatisfy({ $0.isFinite && $0 >= 0.0 && $0 <= 1.0 })
+      normalizedLower.allSatisfy({ $0.isFinite && $0.lower >= 0.0 && $0.upper <= 1.0 }),
+      normalizedUpper.allSatisfy({ $0.isFinite && $0.lower >= 0.0 && $0.upper <= 1.0 })
     else {
       return .unresolved
     }
@@ -460,14 +660,13 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       upperAnchor: upperAnchor,
       tolerance: tolerance
     )
-    let jacobian = jacobianRows(dependentColumns)
+    let jacobian = try jacobianRows(dependentColumns)
+    try admission.reserve(count: dependentIndexes.count, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let centerBounds = dependentIndexes.map { index in
-      OutwardScalarInterval.enclosing([
-        normalizedLower[index],
-        normalizedUpper[index],
-      ])
+      OutwardScalarInterval(lower: min(normalizedLower[index].lower, normalizedUpper[index].lower),
+        upper: max(normalizedLower[index].upper, normalizedUpper[index].upper))
     }
-    if affinePredictorProvesFullGraph(
+    if try affinePredictorProvesFullGraph(
       inverse: inverse,
       jacobian: jacobian,
       functionValue: functionValue,
@@ -475,7 +674,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     ) {
       return .fullGraph
     }
-    let box = affinePredictorKrawczykBox(
+    let box = try affinePredictorKrawczykBox(
       inverse: inverse,
       jacobian: jacobian,
       functionValue: functionValue,
@@ -484,7 +683,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     if isStrictlyInsideUnitCube(box) {
       return .fullGraph
     }
-    if isInsideUnitCubeWithinRounding(box),
+    if isInsideClosedUnitCube(box),
       krawczykMapIsStrictContraction(inverse: inverse, jacobian: jacobian)
     {
       return .fullGraph
@@ -495,14 +694,21 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
   func normalizedGraphParameterDerivativeBounds(
     freeParameter: SurfaceIntersectionParameterCoordinate
   ) throws -> [ScalarInterval]? {
-    let columns = normalizedDerivativeColumns()
+    if let exact = try OriginalAuthoredPlaneIntersectionGraph.prepare(
+      first: firstSurface, second: secondSurface, parameterBox: parameterBox,
+      freeParameter: freeParameter, admission: admission) {
+      return try exact.derivativeBounds(admission: admission)
+    }
+    let columns = try normalizedDerivativeColumns()
     let freeIndex = freeParameter.rawValue
     guard columns.indices.contains(freeIndex),
       columns.allSatisfy(\.isFinite)
     else {
       return nil
     }
+    try admission.reserve(count: 3, stride: MemoryLayout<Int>.stride)
     let dependentIndexes = columns.indices.filter { $0 != freeIndex }
+    try admission.reserve(count: 3, stride: MemoryLayout<IntervalVector>.stride)
     let dependentColumns = dependentIndexes.map { columns[$0] }
     let denominator = determinant(
       dependentColumns[0],
@@ -513,12 +719,14 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       return nil
     }
     let rightHandSide = -columns[freeIndex]
+    try admission.reserve(count: columns.count, stride: MemoryLayout<ScalarInterval>.stride)
     var result = Array(
       repeating: try ScalarInterval(lower: 0.0, upper: 0.0),
       count: columns.count
     )
     result[freeIndex] = try ScalarInterval(lower: 1.0, upper: 1.0)
     for dependentIndex in dependentColumns.indices {
+      try admission.reserve(count: dependentColumns.count, stride: MemoryLayout<IntervalVector>.stride)
       var numeratorColumns = dependentColumns
       numeratorColumns[dependentIndex] = rightHandSide
       let numerator = determinant(
@@ -546,19 +754,21 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     upperAnchor: SurfaceIntersectionParameterPair,
     tolerance: ModelingTolerance
   ) throws -> String {
-    let columns = normalizedDerivativeColumns()
+    let columns = try normalizedDerivativeColumns()
     let freeIndex = freeParameter.rawValue
     guard columns.indices.contains(freeIndex) else {
       return "invalid free parameter"
     }
+    try admission.reserve(count: 3, stride: MemoryLayout<Int>.stride)
     let dependentIndexes = columns.indices.filter { $0 != freeIndex }
+    try admission.reserve(count: 3, stride: MemoryLayout<IntervalVector>.stride)
     let dependentColumns = dependentIndexes.map { columns[$0] }
     let minor = determinant(
       dependentColumns[0],
       dependentColumns[1],
       dependentColumns[2]
     )
-    guard let inverse = inverseRows(columns: dependentColumns.map(\.midpoint)) else {
+    guard let inverse = try inverseRows(columns: dependentColumns) else {
       return "dependent minor=[\(minor.lower), \(minor.upper)]; midpoint inverse unavailable"
     }
     let functionValue = try affinePredictorResidualBounds(
@@ -566,17 +776,16 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       upperAnchor: upperAnchor,
       tolerance: tolerance
     )
-    let normalizedLower = normalized(anchor: lowerAnchor)
-    let normalizedUpper = normalized(anchor: upperAnchor)
+    let normalizedLower = try normalized(anchor: lowerAnchor)
+    let normalizedUpper = try normalized(anchor: upperAnchor)
+    try admission.reserve(count: dependentIndexes.count, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let centerBounds = dependentIndexes.map { index in
-      OutwardScalarInterval.enclosing([
-        normalizedLower[index],
-        normalizedUpper[index],
-      ])
+      OutwardScalarInterval(lower: min(normalizedLower[index].lower, normalizedUpper[index].lower),
+        upper: max(normalizedLower[index].upper, normalizedUpper[index].upper))
     }
-    let box = affinePredictorKrawczykBox(
+    let box = try affinePredictorKrawczykBox(
       inverse: inverse,
-      jacobian: jacobianRows(dependentColumns),
+      jacobian: try jacobianRows(dependentColumns),
       functionValue: functionValue,
       centerBounds: centerBounds
     )
@@ -584,16 +793,17 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       "dependent minor=[\(minor.lower), \(minor.upper)], predictor residual=\(functionValue.components.map { [$0.lower, $0.upper] }), Krawczyk box=\(box.map { [$0.lower, $0.upper] })"
   }
 
-  private func normalizedDerivativeColumns() -> [IntervalVector] {
-    [
+  private func normalizedDerivativeColumns() throws -> [IntervalVector] {
+    try admission.reserve(count: 4, stride: MemoryLayout<IntervalVector>.stride)
+    return [
       intervalVector(firstJet, at: \SurfaceIntervalJet.derivativeU)
-        .scaled(by: OutwardScalarInterval(parameterBox.firstU.width)),
+        .scaled(by: originalWidth(parameterBox.firstU)),
       intervalVector(firstJet, at: \SurfaceIntervalJet.derivativeV)
-        .scaled(by: OutwardScalarInterval(parameterBox.firstV.width)),
+        .scaled(by: originalWidth(parameterBox.firstV)),
       -intervalVector(secondJet, at: \SurfaceIntervalJet.derivativeU)
-        .scaled(by: OutwardScalarInterval(parameterBox.secondU.width)),
+        .scaled(by: originalWidth(parameterBox.secondU)),
       -intervalVector(secondJet, at: \SurfaceIntervalJet.derivativeV)
-        .scaled(by: OutwardScalarInterval(parameterBox.secondV.width)),
+        .scaled(by: originalWidth(parameterBox.secondV)),
     ]
   }
 
@@ -601,14 +811,16 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     freeParameter: SurfaceIntersectionParameterCoordinate,
     tolerance: ModelingTolerance
   ) throws -> ParameterizedGraphAnalysis? {
-    let columns = normalizedDerivativeColumns()
+    let columns = try normalizedDerivativeColumns()
     let freeIndex = freeParameter.rawValue
     guard columns.indices.contains(freeIndex),
       columns.allSatisfy(\.isFinite)
     else {
       return nil
     }
+    try admission.reserve(count: 3, stride: MemoryLayout<Int>.stride)
     let dependentIndexes = columns.indices.filter { $0 != freeIndex }
+    try admission.reserve(count: 3, stride: MemoryLayout<IntervalVector>.stride)
     let dependentColumns = dependentIndexes.map { columns[$0] }
     let minor = determinant(
       dependentColumns[0],
@@ -617,34 +829,33 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     )
     guard minor.isFinite,
       minor.excludesZero,
-      let inverse = inverseRows(columns: dependentColumns.map(\.midpoint))
+      let inverse = try inverseRows(columns: dependentColumns)
     else {
       return nil
     }
-    let actualCenter = parameterBox.intervals.map(\.midpoint)
     let functionModel = try parameterizedCenterTaylorModel(
       freeIndex: freeIndex,
-      actualCenter: actualCenter,
       tolerance: tolerance
     )
+    try admission.reserve(count: functionModel.count, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let functionRanges = functionModel.map(\.range)
     let functionValue = IntervalVector(
       x: functionRanges[0],
       y: functionRanges[1],
       z: functionRanges[2]
     )
-    let jacobian = jacobianRows(dependentColumns)
-    let krawczykModel = parameterizedKrawczykModel(
+    let jacobian = try jacobianRows(dependentColumns)
+    let krawczykModel = try parameterizedKrawczykModel(
       inverse: inverse,
       jacobian: jacobian,
       functionModel: functionModel
     )
     let krawczykBox = krawczykModel.box
-    let freeParameterBounds = feasibleFreeParameterBounds(
+    let freeParameterBounds = try feasibleFreeParameterBounds(
       model: krawczykModel,
-      maximumDepth: 8
+      maximumDepth: min(8, admission.maximumSubdivisionDepth)
     )
-    let gaussSeidelBox = hansenSenguptaBox(
+    let gaussSeidelBox = try hansenSenguptaBox(
       inverse: inverse,
       jacobian: jacobian,
       functionValue: functionValue
@@ -654,6 +865,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       || freeParameterBounds == nil
     let box: [OutwardScalarInterval]
     if let gaussSeidelBox, gaussSeidelBox.isEmpty == false {
+      try admission.reserve(count: 3, stride: MemoryLayout<OutwardScalarInterval>.stride)
       var combined: [OutwardScalarInterval] = []
       combined.reserveCapacity(3)
       var intersectionIsEmpty = false
@@ -687,7 +899,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       ),
       provesEmpty: provesEmpty,
       certifiesFullGraph: isStrictlyInsideUnitCube(krawczykBox)
-        || (isInsideUnitCubeWithinRounding(krawczykBox)
+        || (isInsideClosedUnitCube(krawczykBox)
           && krawczykMapIsStrictContraction(
             inverse: inverse,
             jacobian: jacobian
@@ -700,18 +912,20 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
   private func feasibleFreeParameterBounds(
     model: ParameterizedKrawczykModel,
     maximumDepth: Int
-  ) -> (lower: Double, upper: Double)? {
+  ) throws -> (lower: Double, upper: Double)? {
     let unit = OutwardScalarInterval(lower: 0.0, upper: 1.0)
+    try admission.reserve(count: 1, stride: MemoryLayout<(Double, Double, Int)>.stride)
     var pending: [(lower: Double, upper: Double, depth: Int)] = [
       (lower: 0.0, upper: 1.0, depth: 0)
     ]
     var retained: [(lower: Double, upper: Double)] = []
     while let candidate = pending.popLast() {
-      let boxes = model.box(
+      try admission.step()
+      let boxes = try model.box(
         overFreeParameterBounds: (
           lower: candidate.lower,
           upper: candidate.upper
-        ))
+        ), admission: admission)
       if boxes.contains(where: { $0.intersects(unit) == false }) {
         continue
       }
@@ -719,6 +933,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
         $0.lower >= 0.0 && $0.upper <= 1.0
       }
       if isEntirelyFeasible || candidate.depth >= maximumDepth {
+        try admission.reserve(count: 1, stride: MemoryLayout<(Double, Double)>.stride)
         retained.append(
           (
             lower: candidate.lower,
@@ -730,6 +945,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
         candidate.lower
         + (candidate.upper - candidate.lower) * 0.5
       guard middle > candidate.lower, middle < candidate.upper else {
+        try admission.reserve(count: 1, stride: MemoryLayout<(Double, Double)>.stride)
         retained.append(
           (
             lower: candidate.lower,
@@ -737,12 +953,14 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
           ))
         continue
       }
+      try admission.reserve(count: 1, stride: MemoryLayout<(Double, Double, Int)>.stride)
       pending.append(
         (
           lower: middle,
           upper: candidate.upper,
           depth: candidate.depth + 1
         ))
+      try admission.reserve(count: 1, stride: MemoryLayout<(Double, Double, Int)>.stride)
       pending.append(
         (
           lower: candidate.lower,
@@ -750,10 +968,11 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
           depth: candidate.depth + 1
         ))
     }
-    guard let lower = retained.map(\.lower).min(),
-      let upper = retained.map(\.upper).max()
-    else {
-      return nil
+    guard let first = retained.first else { return nil }
+    var lower = first.lower, upper = first.upper
+    for interval in retained.dropFirst() {
+      try admission.step()
+      lower = min(lower, interval.lower); upper = max(upper, interval.upper)
     }
     return (
       lower: max(0.0, lower.nextDown),
@@ -765,7 +984,9 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     inverse: [Vector3D],
     jacobian: [[OutwardScalarInterval]],
     functionValue: IntervalVector
-  ) -> [OutwardScalarInterval]? {
+  ) throws -> [OutwardScalarInterval]? {
+    try admission.reserve(count: 15, stride: MemoryLayout<OutwardScalarInterval>.stride)
+    try admission.reserve(count: 3, stride: MemoryLayout<Array<OutwardScalarInterval>>.stride)
     let functionComponents = functionValue.components
     var preconditionedFunction = Array(
       repeating: OutwardScalarInterval.exact(0.0),
@@ -793,11 +1014,13 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
         }
       }
     }
+    try admission.reserve(count: 3, stride: MemoryLayout<OutwardScalarInterval>.stride)
     var offsets = Array(
       repeating: OutwardScalarInterval(lower: -0.5, upper: 0.5),
       count: 3
     )
     for _ in 0..<8 {
+      try admission.step()
       var changed = false
       for row in 0..<3 {
         var numerator = -preconditionedFunction[row]
@@ -824,65 +1047,61 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       if changed == false { break }
     }
     let center = OutwardScalarInterval.exact(0.5)
+    try admission.reserve(count: offsets.count, stride: MemoryLayout<OutwardScalarInterval>.stride)
     return offsets.map { center + $0 }
   }
 
   private func parameterizedCenterTaylorModel(
     freeIndex: Int,
-    actualCenter: [Double],
     tolerance: ModelingTolerance
   ) throws -> [IntervalQuadraticPolynomial] {
-    let firstDerivatives = try firstSurface.parameterDerivatives(
-      u: actualCenter[0],
-      v: actualCenter[1],
-      tolerance: tolerance
-    )
-    let secondDerivatives = try secondSurface.parameterDerivatives(
-      u: actualCenter[2],
-      v: actualCenter[3],
-      tolerance: tolerance
-    )
-    let centerResidual =
-      firstDerivatives.position
-      - secondDerivatives.position
-    let parameterWidth = parameterBox.intervals[freeIndex].width
-    let firstDerivative: Vector3D
+    let firstCenter = try normalizedPointJet(first: true, u: 0.5, v: 0.5, tolerance: tolerance)
+    let secondCenter = try normalizedPointJet(first: false, u: 0.5, v: 0.5, tolerance: tolerance)
+    let centerResidual = intervalVector(firstCenter, at: \SurfaceIntervalJet.value)
+      - intervalVector(secondCenter, at: \SurfaceIntervalJet.value)
+    guard let coordinate = SurfaceIntersectionParameterCoordinate(rawValue: freeIndex) else {
+      throw GeometryConversionError.invalidInput("Original graph Taylor coordinate must identify a source parameter.")
+    }
+    let parameterWidth = originalWidth(parameterBox.interval(for: coordinate))
+    let firstDerivative: IntervalVector
     let secondDerivative: IntervalVector
     switch freeIndex {
     case 0:
-      firstDerivative = firstDerivatives.tangentU * parameterWidth
+      firstDerivative = intervalVector(firstCenter, at: \SurfaceIntervalJet.derivativeU).scaled(by: parameterWidth)
       secondDerivative = intervalVector(
         firstJet,
         at: \SurfaceIntervalJet.secondDerivativeUU
-      ).scaled(by: OutwardScalarInterval(parameterWidth * parameterWidth))
+      ).scaled(by: parameterWidth * parameterWidth)
     case 1:
-      firstDerivative = firstDerivatives.tangentV * parameterWidth
+      firstDerivative = intervalVector(firstCenter, at: \SurfaceIntervalJet.derivativeV).scaled(by: parameterWidth)
       secondDerivative = intervalVector(
         firstJet,
         at: \SurfaceIntervalJet.secondDerivativeVV
-      ).scaled(by: OutwardScalarInterval(parameterWidth * parameterWidth))
+      ).scaled(by: parameterWidth * parameterWidth)
     case 2:
-      firstDerivative = secondDerivatives.tangentU * -parameterWidth
+      firstDerivative = intervalVector(secondCenter, at: \SurfaceIntervalJet.derivativeU).scaled(by: -parameterWidth)
       secondDerivative = -intervalVector(
         secondJet,
         at: \SurfaceIntervalJet.secondDerivativeUU
-      ).scaled(by: OutwardScalarInterval(parameterWidth * parameterWidth))
+      ).scaled(by: parameterWidth * parameterWidth)
     default:
-      firstDerivative = secondDerivatives.tangentV * -parameterWidth
+      firstDerivative = intervalVector(secondCenter, at: \SurfaceIntervalJet.derivativeV).scaled(by: -parameterWidth)
       secondDerivative = -intervalVector(
         secondJet,
         at: \SurfaceIntervalJet.secondDerivativeVV
-      ).scaled(by: OutwardScalarInterval(parameterWidth * parameterWidth))
+      ).scaled(by: parameterWidth * parameterWidth)
     }
+    try admission.reserve(count: 12, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let constants = [centerResidual.x, centerResidual.y, centerResidual.z]
     let linears = [firstDerivative.x, firstDerivative.y, firstDerivative.z]
     let quadratics = secondDerivative.components.map {
       $0 * OutwardScalarInterval.exact(0.5)
     }
+    try admission.reserve(count: 3, stride: MemoryLayout<IntervalQuadraticPolynomial>.stride)
     return (0..<3).map { index in
       IntervalQuadraticPolynomial(
-        constant: OutwardScalarInterval(constants[index]),
-        linear: OutwardScalarInterval(linears[index]),
+        constant: constants[index],
+        linear: linears[index],
         quadratic: quadratics[index]
       )
     }
@@ -895,8 +1114,10 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
   ) throws -> IntervalVector {
     let lowerResidual = try residual(at: lowerAnchor, tolerance: tolerance)
     let upperResidual = try residual(at: upperAnchor, tolerance: tolerance)
+    try admission.reserve(count: 8, stride: MemoryLayout<Double>.stride)
+    try admission.reserve(count: 4, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let delta = zip(upperAnchor.values, lowerAnchor.values).map {
-      upper, lower in upper - lower
+      upper, lower in OutwardScalarInterval.exact(upper) - .exact(lower)
     }
     let firstSecond = secondDirectionalDerivative(
       jet: firstJet,
@@ -932,35 +1153,57 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     at parameters: SurfaceIntersectionParameterPair,
     tolerance: ModelingTolerance
   ) throws -> IntervalVector {
-    let first = try firstSurface.point(
-      u: parameters.first.u,
-      v: parameters.first.v,
-      tolerance: tolerance
-    )
-    let second = try secondSurface.point(
-      u: parameters.second.u,
-      v: parameters.second.v,
-      tolerance: tolerance
-    )
-    let difference = first - second
-    return IntervalVector(
-      x: OutwardScalarInterval(difference.x),
-      y: OutwardScalarInterval(difference.y),
-      z: OutwardScalarInterval(difference.z)
-    )
+    let first = try pointJet(first: true, u: parameters.first.u, v: parameters.first.v, tolerance: tolerance)
+    let second = try pointJet(first: false, u: parameters.second.u, v: parameters.second.v, tolerance: tolerance)
+    return intervalVector(first, at: \SurfaceIntervalJet.value) - intervalVector(second, at: \SurfaceIntervalJet.value)
+  }
+
+  private func pointJet(first: Bool, u: Double, v: Double,
+    tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    let prepared = try (first ? preparedFirstSurface : preparedSecondSurface)
+      ?? admission.prepare(first ? firstSurface : secondSurface, tolerance: tolerance)
+    return try admission.intervalJet(prepared,
+      over: .init(u: .init(lower: u, upper: u), v: .init(lower: v, upper: v)), tolerance: tolerance)
+  }
+
+  private func normalizedPointJet(first: Bool, u: Double, v: Double,
+    tolerance: ModelingTolerance) throws -> SurfaceIntervalVectorJet {
+    func originalStation(_ interval: ScalarInterval, _ fraction: Double) throws -> ScalarInterval {
+      try admission.step()
+      guard fraction.isFinite, fraction >= 0, fraction <= 1 else {
+        throw GeometryConversionError.invalidInput("Original graph center lies outside the normalized proof cell.")
+      }
+      let image = OutwardScalarInterval.exact(interval.lower)
+        + originalWidth(interval) * .exact(fraction)
+      guard let contained = image.intersection(with: .init(lower: interval.lower, upper: interval.upper)),
+        contained.isFinite else {
+        throw GeometryConversionError.resourceLimitExceeded("Original graph center has no finite native enclosure.")
+      }
+      return .init(lower: contained.lower, upper: contained.upper)
+    }
+    let prepared = try (first ? preparedFirstSurface : preparedSecondSurface)
+      ?? admission.prepare(first ? firstSurface : secondSurface, tolerance: tolerance)
+    return try admission.intervalJet(prepared,
+      over: .init(u: originalStation(first ? parameterBox.firstU : parameterBox.secondU, u),
+        v: originalStation(first ? parameterBox.firstV : parameterBox.secondV, v)),
+      tolerance: tolerance)
   }
 
   private func secondDirectionalDerivative(
     jet: SurfaceIntervalVectorJet,
-    deltaU: Double,
-    deltaV: Double
+    deltaU: OutwardScalarInterval,
+    deltaV: OutwardScalarInterval
   ) -> IntervalVector {
     let uu = intervalVector(jet, at: \SurfaceIntervalJet.secondDerivativeUU)
     let uv = intervalVector(jet, at: \SurfaceIntervalJet.secondDerivativeUV)
     let vv = intervalVector(jet, at: \SurfaceIntervalJet.secondDerivativeVV)
-    return uu.scaled(by: OutwardScalarInterval(deltaU * deltaU))
-      + uv.scaled(by: OutwardScalarInterval(2.0 * deltaU * deltaV))
-      + vv.scaled(by: OutwardScalarInterval(deltaV * deltaV))
+    return uu.scaled(by: deltaU * deltaU)
+      + uv.scaled(by: .exact(2.0) * deltaU * deltaV)
+      + vv.scaled(by: deltaV * deltaV)
+  }
+
+  private func originalWidth(_ interval: ScalarInterval) -> OutwardScalarInterval {
+    .exact(interval.upper) - .exact(interval.lower)
   }
 
   private func interpolationErrorBound(
@@ -968,15 +1211,31 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     upper: OutwardScalarInterval,
     secondDerivative: OutwardScalarInterval
   ) -> OutwardScalarInterval {
-    let linearRange = OutwardScalarInterval.enclosing([lower, upper])
+    let linearRange = OutwardScalarInterval(lower: min(lower.lower, upper.lower),
+      upper: max(lower.upper, upper.upper))
     let error = (secondDerivative.absoluteUpperBound / 8.0).nextUp
     return linearRange + OutwardScalarInterval(lower: -error, upper: error)
   }
 
-  private func normalized(anchor: SurfaceIntersectionParameterPair) -> [Double] {
-    zip(anchor.values, parameterBox.intervals).map { value, interval in
-      (value - interval.lower) / interval.width
+  private func normalized(anchor: SurfaceIntersectionParameterPair) throws -> [OutwardScalarInterval] {
+    try admission.reserve(count: 4, stride: MemoryLayout<Double>.stride)
+    try admission.reserve(count: 4, stride: MemoryLayout<ScalarInterval>.stride)
+    try admission.reserve(count: 4, stride: MemoryLayout<OutwardScalarInterval>.stride)
+    let values = anchor.values, intervals = parameterBox.intervals
+    var result: [OutwardScalarInterval] = []
+    result.reserveCapacity(4)
+    for index in 0..<4 {
+      try admission.step()
+      let value = values[index], interval = intervals[index]
+      guard value.isFinite, value >= interval.lower, value <= interval.upper,
+        let quotient = (OutwardScalarInterval.exact(value) - .exact(interval.lower))
+          .divided(by: originalWidth(interval)), quotient.isFinite,
+        let contained = quotient.intersection(with: .init(lower: 0, upper: 1)) else {
+        throw GeometryConversionError.invalidInput("Original SSI predictor anchor lies outside its proof chart.")
+      }
+      result.append(contained)
     }
+    return result
   }
 
   private func intervalVector(
@@ -990,16 +1249,20 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     )
   }
 
-  private func jacobianRows(_ columns: [IntervalVector]) -> [[OutwardScalarInterval]] {
-    [columns.map(\.x), columns.map(\.y), columns.map(\.z)]
+  private func jacobianRows(_ columns: [IntervalVector]) throws -> [[OutwardScalarInterval]] {
+    try admission.reserve(count: 3, stride: MemoryLayout<Array<OutwardScalarInterval>>.stride)
+    try admission.reserve(count: columns.count * 3, stride: MemoryLayout<OutwardScalarInterval>.stride)
+    return [columns.map(\.x), columns.map(\.y), columns.map(\.z)]
   }
 
   private func affinePredictorKrawczykBox(
     inverse: [Vector3D],
     jacobian: [[OutwardScalarInterval]],
     functionValue: IntervalVector,
-    centerBounds: [OutwardScalarInterval]
-  ) -> [OutwardScalarInterval] {
+    centerBounds: [OutwardScalarInterval],
+    domainBounds: [OutwardScalarInterval]? = nil
+  ) throws -> [OutwardScalarInterval] {
+    try admission.reserve(count: 6, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let functionComponents = functionValue.components
     let unit = OutwardScalarInterval(lower: 0.0, upper: 1.0)
     return (0..<3).map { row in
@@ -1021,7 +1284,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
         let identity = OutwardScalarInterval.exact(row == column ? 1.0 : 0.0)
         component =
           component
-          + (identity - preconditioned) * (unit - centerBounds[column])
+          + (identity - preconditioned) * ((domainBounds?[column] ?? unit) - centerBounds[column])
       }
       return component
     }
@@ -1031,7 +1294,9 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     inverse: [Vector3D],
     jacobian: [[OutwardScalarInterval]],
     functionModel: [IntervalQuadraticPolynomial]
-  ) -> ParameterizedKrawczykModel {
+  ) throws -> ParameterizedKrawczykModel {
+    try admission.reserve(count: 3, stride: MemoryLayout<IntervalQuadraticPolynomial>.stride)
+    try admission.reserve(count: 3, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let radius = OutwardScalarInterval(lower: -0.5, upper: 0.5)
     var predictors: [IntervalQuadraticPolynomial] = []
     var remainders: [OutwardScalarInterval] = []
@@ -1072,6 +1337,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       predictors.append(predictor)
       remainders.append(remainder)
     }
+    try admission.reserve(count: predictors.count, stride: MemoryLayout<OutwardScalarInterval>.stride)
     let box = zip(predictors, remainders).map { predictor, remainder in
       predictor.range + remainder
     }
@@ -1087,7 +1353,10 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     jacobian: [[OutwardScalarInterval]],
     functionValue: IntervalVector,
     centerBounds: [OutwardScalarInterval]
-  ) -> Bool {
+  ) throws -> Bool {
+    try admission.reserve(count: 3, stride: MemoryLayout<OutwardScalarInterval>.stride)
+    try admission.reserve(count: 12, stride: MemoryLayout<Double>.stride)
+    try admission.reserve(count: 3, stride: MemoryLayout<Array<Double>>.stride)
     let functionComponents = functionValue.components
     var corrections = Array(repeating: 0.0, count: 3)
     var contraction = Array(
@@ -1117,22 +1386,26 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
           .absoluteUpperBound
       }
     }
+    try admission.reserve(count: centerBounds.count, stride: MemoryLayout<Double>.stride)
     let availableRadii = centerBounds.map {
-      min($0.lower, 1.0 - $0.upper)
+      min($0.lower, (OutwardScalarInterval.exact(1) - .exact($0.upper)).lower)
     }
     guard corrections.allSatisfy({ $0.isFinite && $0 >= 0.0 }),
-      contraction.flatMap({ $0 }).allSatisfy({ $0.isFinite && $0 >= 0.0 }),
+      contraction.allSatisfy({ row in row.allSatisfy({ $0.isFinite && $0 >= 0.0 }) }),
       availableRadii.allSatisfy({ $0.isFinite && $0 > 0.0 })
     else {
       return false
     }
+    try admission.reserve(count: corrections.count, stride: MemoryLayout<Double>.stride)
     var radii = corrections.map { max($0, Double.leastNonzeroMagnitude) }
     for _ in 0..<128 {
+      try admission.step()
+      try admission.reserve(count: 3, stride: MemoryLayout<Double>.stride)
       let mapped = (0..<3).map { row in
-        contraction[row].indices.reduce(corrections[row]) {
+        contraction[row].indices.reduce(OutwardScalarInterval.exact(corrections[row])) {
           partial, column in
-          (partial + contraction[row][column] * radii[column]).nextUp
-        }
+          partial + .exact(contraction[row][column]) * .exact(radii[column])
+        }.upper
       }
       guard
         zip(mapped, availableRadii).allSatisfy({ value, available in
@@ -1141,15 +1414,17 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
       else {
         return false
       }
+      try admission.reserve(count: mapped.count, stride: MemoryLayout<Double>.stride)
       let trial = mapped.map {
         ($0 * (1.0 + 1.0e-10)).nextUp
           + Double.ulpOfOne * 1_024.0
       }
+      try admission.reserve(count: 3, stride: MemoryLayout<Double>.stride)
       let remapped = (0..<3).map { row in
-        contraction[row].indices.reduce(corrections[row]) {
+        contraction[row].indices.reduce(OutwardScalarInterval.exact(corrections[row])) {
           partial, column in
-          (partial + contraction[row][column] * trial[column]).nextUp
-        }
+          partial + .exact(contraction[row][column]) * .exact(trial[column])
+        }.upper
       }
       if zip(remapped, trial).allSatisfy({ $0 < $1 }),
         zip(trial, availableRadii).allSatisfy({ $0 < $1 })
@@ -1187,20 +1462,23 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     box.allSatisfy { $0.lower > 0.0 && $0.upper < 1.0 }
   }
 
-  private func isInsideUnitCubeWithinRounding(
+  private func isInsideClosedUnitCube(
     _ box: [OutwardScalarInterval]
   ) -> Bool {
-    let slack = Double.ulpOfOne * 4_096.0
-    return box.allSatisfy {
-      $0.lower >= -slack && $0.upper <= 1.0 + slack
-    }
+    // FIXME(INCOMPLETE_IMPLEMENTATION): Closed boundary roots whose outward
+    // image crosses an exact authored boundary still require an original
+    // boundary-incidence proof on production SSI gauge/full-graph paths.
+    // Rounding slack must never authorize existence or clip an external root.
+    return box.allSatisfy { $0.lower >= 0.0 && $0.upper <= 1.0 }
   }
 
-  private func inverseRows(columns: [Vector3D]) -> [Vector3D]? {
-    guard columns.count == 3 else { return nil }
+  private func inverseRows(columns originalColumns: [IntervalVector]) throws -> [Vector3D]? {
+    guard originalColumns.count == 3 else { return nil }
+    try admission.reserve(count: 3, stride: MemoryLayout<Vector3D>.stride)
+    let columns = originalColumns.map(\.midpoint)
     let firstCross = columns[1].cross(columns[2])
     let determinant = columns[0].dot(firstCross)
-    let scale = columns.map(\.length).max() ?? .infinity
+    let scale = max(columns[0].length, columns[1].length, columns[2].length)
     let floor = max(
       scale * scale * scale * Double.ulpOfOne * 1_024.0,
       Double.leastNonzeroMagnitude
@@ -1211,6 +1489,7 @@ struct ParametricSurfaceIntersectionGraphProver: Sendable {
     else {
       return nil
     }
+    try admission.reserve(count: 3, stride: MemoryLayout<Vector3D>.stride)
     return [
       firstCross / determinant,
       columns[2].cross(columns[0]) / determinant,

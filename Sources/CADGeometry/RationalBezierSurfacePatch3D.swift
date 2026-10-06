@@ -34,6 +34,23 @@ struct RationalBezierSurfacePatch3D: Sendable {
     let vLower: Double
     let vUpper: Double
 
+    func boundingBox(admission: NativeSurfaceEmbeddingAdmission) throws -> BoundingBox3D {
+        let count = try NativeSurfaceEmbeddingPreparationReservation.net(controlPoints, admission: admission)
+        try admission.work(count); try admission.storage(count)
+        return try boundingBox()
+    }
+    func subdivided(admission: NativeSurfaceEmbeddingAdmission) throws -> [Self] {
+        try NativeSurfaceEmbeddingPreparationReservation.split(rows: controlPoints.count,
+            columns: controlPoints[0].count, axisSplits: 2, admission: admission)
+        return try subdivided()
+    }
+    func trimmed(uFrom: Double, uTo: Double, vFrom: Double, vTo: Double,
+        tolerance: ModelingTolerance, admission: NativeSurfaceEmbeddingAdmission) throws -> Self {
+        try NativeSurfaceEmbeddingPreparationReservation.split(rows: controlPoints.count,
+            columns: controlPoints[0].count, axisSplits: 2, admission: admission)
+        return try trimmed(uFrom: uFrom, uTo: uTo, vFrom: vFrom, vTo: vTo, tolerance: tolerance)
+    }
+
     func boundingBox() throws -> BoundingBox3D {
         try BoundingBox3D(points: controlPoints.flatMap { $0 })
     }

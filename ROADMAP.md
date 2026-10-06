@@ -115,20 +115,20 @@ final same-revision gate completion.
 
 | Measure | Current | Required |
 |---|---:|---:|
-| Catalog capabilities | 67 registered | Inventory-derived and complete |
-| General `supported` capabilities | 39 of 67 | All inventory-derived capabilities |
-| `partial` capabilities | 28 | 0 |
+| Catalog capabilities | 103 registered | Inventory-derived and complete |
+| General `supported` capabilities | 44 of 103 | All inventory-derived capabilities |
+| `partial` capabilities | 59 | 0 |
 | Required-but-unregistered contracts | 0 in the mechanically enumerated mutation, query, persistence, and exchange routes | 0 |
 | Development-only input envelopes | 115 | 0 completion exemptions |
-| Capability-to-fixture bindings | 556 | Complete adversarial and oracle coverage |
+| Capability-to-fixture bindings | 665 | Complete adversarial and oracle coverage |
 | Final gate evidence manifests | 0 | 8 on one source revision |
 | Completion gates | 0/8 | 8/8 |
 
-The 28 `partial` entries expose executable, tested envelopes but still declare
+The 59 `partial` entries expose executable, tested envelopes but still declare
 `unsupportedCapability` for at least one structurally valid public input. They
 cannot be promoted until those envelope rejections are implemented or shown to
 be mathematical singularity, ambiguity, non-discreteness, or an explicit
-resource-limit failure under the completion rule. The 39 `supported` entries
+resource-limit failure under the completion rule. The 44 `supported` entries
 also remain subject to the required G0-G7 same-revision evidence.
 
 The current provisional catalog breaks down as follows. A `partial` entry earns
@@ -136,11 +136,11 @@ no completion credit even when it contains substantial working envelopes.
 
 | Domain | Registered | `supported` | `partial` | Final status |
 |---|---:|---:|---:|---|
-| Geometry | 7 | 7 | 0 | OPEN |
-| Topology | 4 | 4 | 0 | OPEN |
-| Modeling and constraints | 44 | 19 | 25 | OPEN |
-| Shared command/query and native API | 2 | 2 | 0 | OPEN |
-| Exact and USD exchange | 10 | 7 | 3 | OPEN |
+| Geometry | 9 | 6 | 3 | OPEN |
+| Topology | 7 | 6 | 1 | OPEN |
+| Modeling and constraints | 71 | 23 | 48 | OPEN |
+| Shared command/query and native API | 3 | 3 | 0 | OPEN |
+| Exact and USD exchange | 13 | 6 | 7 | OPEN |
 
 `PUBLIC_CONTRACT_INVENTORY.json` now enumerates every current
 `FeatureOperationKind`, `CADCommand`, `KernelQuery`, `NativePackageStore`

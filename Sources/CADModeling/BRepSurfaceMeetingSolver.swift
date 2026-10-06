@@ -137,8 +137,12 @@ package struct BRepSurfaceMeetingSolver: Sendable {
             let range = try ScalarInterval(lower: -width, upper: width)
             let projection = try curve.closestParameterProjection(of: point, options: CurveParameterProjectionOptions(parameterRange: range),
                                                                   tolerance: tolerance)
-            if abs(abs(projection.parameter) - width) > 1e-9 * width || width >= 1e6 {
+            if abs(abs(projection.parameter) - width) > 1e-9 * width {
                 return (projection.parameter, projection.point)
+            }
+            guard width < 1e6 else {
+                throw KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                                  message: "Unbounded nearest-point search exhausted its envelope at a window boundary.")
             }
             width *= 8
         }

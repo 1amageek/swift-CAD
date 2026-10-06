@@ -1,6 +1,14 @@
 import CADCore
 import CADGeometry
-import Foundation
+#if canImport(Darwin)
+import Darwin
+#elseif canImport(Glibc)
+import Glibc
+#elseif canImport(WASILibc)
+import WASILibc
+#else
+#error("A C math implementation is required.")
+#endif
 
 /// Certifies the Green boundary integral `integral Q(u, v) dv` for explicit
 /// pcurves on analytic surfaces. Adaptive subdivision is bounded and returns a
@@ -31,6 +39,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   }
 
   private let maximumWorkItems: Int
+  private let consumeWork: (@Sendable (Int) throws -> Void)?
   private let maximumDepth: Int
   private let evaluationCache: EvaluationCache
 
@@ -93,10 +102,12 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   init(
     maximumWorkItems: Int = 65_536,
     maximumDepth: Int = 48,
-    evaluationCache: EvaluationCache = EvaluationCache()
+    evaluationCache: EvaluationCache = EvaluationCache(),
+    consumeWork: (@Sendable (Int) throws -> Void)? = nil
   ) {
     self.maximumWorkItems = maximumWorkItems
     self.maximumDepth = maximumDepth
+    self.consumeWork = consumeWork
     self.evaluationCache = evaluationCache
   }
 
@@ -107,6 +118,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     maximumWidth: Double,
     tolerance: ModelingTolerance
   ) throws -> [SurfaceParameterCurveEnclosure] {
+    try consumeWork?(0)
     try tolerance.validate()
     guard lowerFraction.isFinite,
       upperFraction.isFinite,
@@ -253,7 +265,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       )
     case .affine, .constantU, .constantV, .harmonic, .polyline, .bSpline,
       .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-      .rigidImage:
+      .rigidImage, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       throw KernelError(
         phase: .topology,
         code: .invalidInput,
@@ -1078,6 +1090,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       let enclosures = try CertifiedSurfaceParameterCurveEncloser()
         .enclosures(
           for: .rigidImage(localImage),
+          on: localImage.targetSurface,
           maximumWidth: 0.25,
           tolerance: tolerance
         )
@@ -1600,7 +1613,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       .certifiedAnalyticImplicit,
       .certifiedAnalyticPair,
       .projectedAnalytic,
-      .rigidImage:
+      .rigidImage, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return nil
     case .offsetSurfaceImage(let image):
       return try polynomialBounds(
@@ -1628,14 +1641,106 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
   }
 
+  func piecewisePolynomialBounds(
+    for curve: SurfaceParameterCurve,
+    primitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive,
+    requestedWidth: Double,
+    tolerance: ModelingTolerance
+  ) throws -> Interval {
+    guard let result = try rationalSurfaceBounds(for: curve, field: primitive.field,
+      uBase: primitive.uBase, requestedWidth: requestedWidth, tolerance: tolerance,
+      polynomialPrimitive: primitive) else {
+      throw KernelError(phase: .topology, code: .unsupportedCapability, tolerance: tolerance,
+        message: "The original pcurve has no supported piecewise polynomial flux composition.")
+    }
+    return result
+  }
+
+  private func polynomialSurfaceExplicitBounds(
+    primitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive,
+    requestedWidth: Double,
+    curveBreaks: [Double],
+    parameterEvaluator: (Jet) throws -> (u: Jet, v: Jet),
+    tolerance: ModelingTolerance
+  ) throws -> Interval {
+    struct Cell { let lower: Double; let upper: Double; let depth: Int; let width: Double }
+    let breaks = sortedUniqueFractions(curveBreaks + [0, 1])
+    let intervals = (1..<breaks.count).filter { breaks[$0] > breaks[$0 - 1] }
+    guard maximumWorkItems > 0, !intervals.isEmpty else {
+      throw resourceFailure(residual: nil, tolerance: tolerance, message: "Polynomial Green integration requires a positive work allowance and partition.")
+    }
+    let initialWidth = requestedWidth * 0.5 / Double(intervals.count)
+    let roundoffWidth = requestedWidth * 0.5 / Double(maximumWorkItems)
+    var pending = intervals.map { Cell(lower: breaks[$0 - 1], upper: breaks[$0], depth: 0, width: initialWidth) }
+    var work = 0
+    var result = Interval.exact(0)
+    while let cell = pending.popLast() {
+      try Task.checkCancellation()
+      work += 1
+      guard work <= maximumWorkItems else {
+        throw resourceFailure(residual: Double(work), tolerance: tolerance, message: "Polynomial Green integration exhausted its existing cell allowance.")
+      }
+      let curve = try parameterEvaluator(.variable(Interval(lower: cell.lower, upper: cell.upper)))
+      let u = curve.u.coefficients[0], v = curve.v.coefficients[0]
+      let enclosure: Interval
+      if let uSpan = primitive.uSpans.first(where: { u.lower >= $0.lower && u.upper <= $0.upper }),
+         let vSpan = primitive.vSpans.first(where: { v.lower >= $0.lower && v.upper <= $0.upper }) {
+        guard let gauss = try gaussEnclosure(lower: cell.lower, upper: cell.upper, evaluator: { fraction in
+          let parameters = try parameterEvaluator(fraction)
+          let green = try primitive.directionalJet(
+            u: .series(parameters.u.coefficients), v: .series(parameters.v.coefficients),
+            uSpan: uSpan, vSpan: vSpan)
+          return Jet(coefficients: green.coefficients) * parameters.v.derivative()
+        }, tolerance: tolerance) else {
+          throw resourceFailure(residual: nil, tolerance: tolerance, message: "An owning polynomial Green cell lost its original jet proof.")
+        }
+        enclosure = gauss
+      } else {
+        // Retain the existing seam-domain enclosure law; no band measure is discarded.
+        let uLower = primitive.uSpans[0].lower, uUpper = primitive.uSpans[primitive.uSpans.count - 1].upper
+        let vLower = primitive.vSpans[0].lower, vUpper = primitive.vSpans[primitive.vSpans.count - 1].upper
+        let uSlack = Double.ulpOfOne * max(1, abs(uLower), abs(uUpper)) * 4_096
+        let vSlack = Double.ulpOfOne * max(1, abs(vLower), abs(vUpper)) * 4_096
+        guard u.lower >= uLower - uSlack, u.upper <= uUpper + uSlack,
+              v.lower >= vLower - vSlack, v.upper <= vUpper + vSlack else {
+          throw KernelError(phase: .topology, code: .topologyFailure, tolerance: tolerance,
+            message: "Polynomial Green seam band left the original surface domain.")
+        }
+        let green = try primitive.range(overClosedUV: Interval(lower: max(uLower, u.lower), upper: min(uUpper, u.upper)),
+          v: Interval(lower: max(vLower, v.lower), upper: min(vUpper, v.upper)))
+        enclosure = green * curve.v.derivative().coefficients[0] * .floating(cell.upper - cell.lower)
+      }
+      guard enclosure.lower.isFinite, enclosure.upper.isFinite else {
+        throw resourceFailure(residual: enclosure.width, tolerance: tolerance, message: "Polynomial Green integration exceeded finite arithmetic.")
+      }
+      if enclosure.width <= (cell.width + roundoffWidth).nextUp {
+        result = result + enclosure
+        continue
+      }
+      let middle = cell.lower + (cell.upper - cell.lower) * 0.5
+      guard cell.depth < maximumDepth, middle > cell.lower, middle < cell.upper else {
+        throw resourceFailure(residual: enclosure.width, tolerance: tolerance, message: "Polynomial Green integration exhausted its existing proof depth.")
+      }
+      pending.append(Cell(lower: middle, upper: cell.upper, depth: cell.depth + 1, width: cell.width * 0.5))
+      pending.append(Cell(lower: cell.lower, upper: middle, depth: cell.depth + 1, width: cell.width * 0.5))
+    }
+    try Task.checkCancellation()
+    guard result.width <= requestedWidth else {
+      throw resourceFailure(residual: result.width, tolerance: tolerance, message: "Polynomial Green accumulated enclosure exceeds the requested width.")
+    }
+    return result
+  }
+
   func rationalSurfaceBounds(
     for curve: SurfaceParameterCurve,
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
     uBase: Double,
     requestedWidth: Double,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    polynomialPrimitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive? = nil
   ) throws -> Interval? {
     try tolerance.validate()
+    try Task.checkCancellation()
     guard uBase.isFinite,
       requestedWidth.isFinite,
       requestedWidth > 0.0
@@ -1652,6 +1757,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     switch curve {
     case .constantU(let u, let vStart, let vEnd):
       return try rationalSurfaceExplicitBounds(
+        polynomialPrimitive: polynomialPrimitive,
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
@@ -1678,6 +1784,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       let vStart = origin.y + direction.y * startParameter
       let vEnd = origin.y + direction.y * endParameter
       return try rationalSurfaceExplicitBounds(
+        polynomialPrimitive: polynomialPrimitive,
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
@@ -1701,6 +1808,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       }
     case .harmonic(let center, let cosine, let sine, let startParameter, let endParameter):
       return try rationalSurfaceExplicitBounds(
+        polynomialPrimitive: polynomialPrimitive,
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
@@ -1747,6 +1855,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         result =
           result
           + (try rationalSurfaceExplicitBounds(
+            polynomialPrimitive: polynomialPrimitive,
             field: field,
             uBase: uBase,
             requestedWidth: segmentWidth,
@@ -1783,6 +1892,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         result =
           result
           + (try rationalSurfaceExplicitBounds(
+            polynomialPrimitive: polynomialPrimitive,
             field: field,
             uBase: uBase,
             requestedWidth: patchWidth,
@@ -1790,7 +1900,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
             curveBreaks: try rationalPcurveSurfaceSpanBreaks(
               patch: patch,
               field: field,
-              tolerance: tolerance
+              tolerance: tolerance,
+              includeUSurfaceSeams: polynomialPrimitive == nil
             )
           ) { fraction in
             try rationalPcurveJets(
@@ -1812,7 +1923,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     case .sphericalGreatCircle,
       .certifiedAnalyticImplicit,
       .certifiedAnalyticPair,
-      .projectedAnalytic:
+      .projectedAnalytic, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return nil
     case .rigidImage(let image):
       guard
@@ -1826,7 +1937,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
-        tolerance: tolerance
+        tolerance: tolerance,
+        polynomialPrimitive: polynomialPrimitive
       )
     case .offsetSurfaceImage(let image):
       return try rationalSurfaceBounds(
@@ -1834,7 +1946,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
-        tolerance: tolerance
+        tolerance: tolerance,
+        polynomialPrimitive: polynomialPrimitive
       )
     case .periodicTranslation(let base, let uShift, let vShift):
       guard uShift == 0.0, vShift == 0.0 else {
@@ -1851,7 +1964,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         field: field,
         uBase: uBase,
         requestedWidth: requestedWidth,
-        tolerance: tolerance
+        tolerance: tolerance,
+        polynomialPrimitive: polynomialPrimitive
       )
     }
   }
@@ -2096,16 +2210,19 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         requestedWidth: requestedWidth,
         tolerance: tolerance
       )
-    // FIXME(INCOMPLETE_IMPLEMENTATION): a procedural face trimmed by certified implicit pcurves
-    // (a rolling-ball blend meeting its neighbours) has no flux integration; the face's volume
-    // refuses with "no certified surface-flux strategy". Production path: solid volume of any
-    // body holding such a face (`TrimmedParametricSurfaceVolumeEvaluator`). Complete only when
-    // the cell integrator converges on the implicit pcurve's interval jets and
-    // `RollingBallFilletRequestBuilderTests.curvedSourceRetainsCompleteSolidAndRejectsInvalidSelection`
-    // passes without its known issue.
+    // FIXME(INCOMPLETE_IMPLEMENTATION): This procedural flux strategy still
+    // returns no enclosure for the retained implicit/image/continuation trims
+    // below. Original shell-volume validation reaches this branch through
+    // TrimmedParametricSurfaceVolumeEvaluator, including rolling-ball blend
+    // neighbour trims, and refuses with "no certified surface-flux strategy".
+    // Complete whole original pcurve flux and convergence under unchanged
+    // caller error/work/depth are required before full curved solid volume
+    // support may be claimed; nil is not a successful integral. The curved
+    // source solid path in RollingBallFilletRequestBuilderTests must pass
+    // without its known issue before this missing strategy is complete.
     case .sphericalGreatCircle, .certifiedImplicit,
       .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-      .projectedAnalytic:
+      .projectedAnalytic, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return nil
     }
   }
@@ -2255,7 +2372,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       .certifiedImplicit,
       .certifiedAnalyticImplicit,
       .certifiedAnalyticPair,
-      .projectedAnalytic:
+      .projectedAnalytic, .originalImage, .originalAffineWord, .originalBSplineContinuation:
       return nil
     case .rigidImage(let image):
       guard
@@ -2878,6 +2995,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   }
 
   private func rationalSurfaceExplicitBounds(
+    polynomialPrimitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive? = nil,
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
     uBase: Double,
     requestedWidth: Double,
@@ -2885,6 +3003,11 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     curveBreaks: [Double] = [0.0, 1.0],
     parameterEvaluator: (Jet) throws -> (u: Jet, v: Jet)
   ) throws -> Interval {
+    if let primitive = polynomialPrimitive {
+      return try polynomialSurfaceExplicitBounds(primitive: primitive,
+        requestedWidth: requestedWidth, curveBreaks: curveBreaks,
+        parameterEvaluator: parameterEvaluator, tolerance: tolerance)
+    }
     struct WorkItem {
       let lambdaLower: Double
       let lambdaUpper: Double
@@ -2946,6 +3069,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     var result = Interval.exact(0.0)
     var workItemCount = 0
     while let item = pending.popLast() {
+      try Task.checkCancellation()
       workItemCount += 1
       guard workItemCount <= maximumWorkItems else {
         throw resourceFailure(
@@ -3066,6 +3190,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           ))
       }
     }
+    try Task.checkCancellation()
     return result
   }
 
@@ -3228,7 +3353,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   private func rationalPcurveSurfaceSpanBreaks(
     patch: HomogeneousPatch,
     field: CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField,
-    tolerance: ModelingTolerance
+    tolerance: ModelingTolerance,
+    includeUSurfaceSeams: Bool = true
   ) throws -> [Double] {
     guard patch.degree >= 1,
       patch.controls.allSatisfy(\.isFiniteAndPositiveWeight)
@@ -3242,15 +3368,21 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
     var breaks = [0.0, 1.0]
     var workItemCount = 0
-    for seam in interiorSeams(field.uSpans) {
-      try appendRationalBezierSeamBreaks(
-        coordinateControls: patch.controls.map(\.x),
-        weightControls: patch.controls.map(\.weight),
-        seam: seam,
-        to: &breaks,
-        workItemCount: &workItemCount,
-        tolerance: tolerance
-      )
+    // The original polynomial Green prefix is continuous across U knots. Its
+    // adaptive owner retains every unknown closed U band with all incident
+    // primitive ranges and the full original pcurve measure. V partitions and
+    // the generic rational path retain their existing root-isolation authority.
+    if includeUSurfaceSeams {
+      for seam in interiorSeams(field.uSpans) {
+        try appendRationalBezierSeamBreaks(
+          coordinateControls: patch.controls.map(\.x),
+          weightControls: patch.controls.map(\.weight),
+          seam: seam,
+          to: &breaks,
+          workItemCount: &workItemCount,
+          tolerance: tolerance
+        )
+      }
     }
     for seam in interiorSeams(field.vSpans) {
       try appendRationalBezierSeamBreaks(
@@ -3305,6 +3437,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       )
     ]
     while let cell = pending.popLast() {
+      try Task.checkCancellation()
       workItemCount += 1
       guard workItemCount <= maximumWorkItems else {
         throw resourceFailure(
@@ -3345,12 +3478,14 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         if cell.upper < 1.0 { breaks.append(cell.upper) }
         continue
       }
-      guard cell.depth < maximumDepth else {
-        throw resourceFailure(
-          residual: residual,
-          tolerance: tolerance,
-          message: "Certified rational pcurve seam isolation exceeded its Bernstein proof depth."
-        )
+      if cell.depth >= maximumDepth {
+        // These boundaries preserve the entire unresolved closed band as a partition
+        // interval. They certify neither a root nor endpoint equality. Original jets
+        // and all owning surface spans must still enclose its complete flux measure
+        // under rationalSurfaceExplicitBounds's unchanged requested-width acceptance.
+        if cell.lower > 0.0 { breaks.append(cell.lower) }
+        if cell.upper < 1.0 { breaks.append(cell.upper) }
+        continue
       }
       let differenceChildren = subdividedBernsteinControls(cell.differences)
       let weightChildren = subdividedBernsteinControls(cell.weights)
@@ -4624,6 +4759,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     var result: [SurfaceParameterCurveEnclosure] = []
     var workItemCount = 0
     while let item = pending.popLast() {
+      try consumeWork?(item.depth)
       workItemCount += 1
       guard workItemCount <= maximumWorkItems else {
         throw resourceFailure(
@@ -5705,17 +5841,20 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     parameter: Interval,
     tolerance: ModelingTolerance
   ) throws -> (u: Jet, v: Jet) {
-    let x = bezierVariableJet(
+    let x = try bezierVariableJet(
       derivativeControls: patch.xDerivativeControls,
-      parameter: parameter
+      parameter: parameter,
+      tolerance: tolerance
     )
-    let y = bezierVariableJet(
+    let y = try bezierVariableJet(
       derivativeControls: patch.yDerivativeControls,
-      parameter: parameter
+      parameter: parameter,
+      tolerance: tolerance
     )
-    let weight = bezierVariableJet(
+    let weight = try bezierVariableJet(
       derivativeControls: patch.weightDerivativeControls,
-      parameter: parameter
+      parameter: parameter,
+      tolerance: tolerance
     )
     var u = try x.divided(by: weight)
     var v = try y.divided(by: weight)
@@ -5780,8 +5919,9 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   /// range of the corresponding derivative divided by its factorial.
   private func bezierVariableJet(
     derivativeControls: [[Interval]],
-    parameter: Interval
-  ) -> Jet {
+    parameter: Interval,
+    tolerance: ModelingTolerance
+  ) throws -> Jet {
     var coefficients = Array(
       repeating: Interval.exact(0.0),
       count: Jet.order + 1
@@ -5797,9 +5937,10 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
         factorial *= Double(derivativeOrder)
       }
       coefficients[derivativeOrder] =
-        bezierRange(
+        try bezierRange(
           controls: derivativeControls[derivativeOrder],
-          parameter: parameter
+          parameter: parameter,
+          tolerance: tolerance
         ) / .exact(factorial)
     }
     return Jet(coefficients: coefficients)
@@ -5807,8 +5948,9 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
 
   private func bezierRange(
     controls: [Interval],
-    parameter: Interval
-  ) -> Interval {
+    parameter: Interval,
+    tolerance: ModelingTolerance
+  ) throws -> Interval {
     var level = controls
     let complement = Interval.exact(1.0) - parameter
     while level.count > 1 {
@@ -5819,7 +5961,37 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       }
       level.removeLast()
     }
-    return level[0]
+    let evaluated = level[0]
+    guard parameter.lower.isFinite,
+      parameter.upper.isFinite,
+      parameter.lower >= 0.0,
+      parameter.lower <= parameter.upper,
+      parameter.upper <= 1.0
+    else {
+      return evaluated
+    }
+    // Every normalized Bernstein basis is nonnegative and sums to one.
+    // Intersect the outward evaluation with the complete original same-net
+    // coefficient hull, including differentiated nets and their stored scales.
+    // This removes interval dependency without asserting any coefficient equality.
+    let hullLower = controls.reduce(Double.infinity) { min($0, $1.lower) }
+    let hullUpper = controls.reduce(-Double.infinity) { max($0, $1.upper) }
+    let lower = max(evaluated.lower, hullLower)
+    let upper = min(evaluated.upper, hullUpper)
+    guard evaluated.lower.isFinite,
+      evaluated.upper.isFinite,
+      hullLower.isFinite,
+      hullUpper.isFinite,
+      lower <= upper
+    else {
+      throw KernelError(
+        phase: .topology,
+        code: .resourceLimitExceeded,
+        tolerance: tolerance,
+        message: "Certified rational pcurve Bernstein evaluation could not intersect its finite original coefficient hull."
+      )
+    }
+    return Interval(lower: lower, upper: upper)
   }
 
   private func polynomialFluxJet(

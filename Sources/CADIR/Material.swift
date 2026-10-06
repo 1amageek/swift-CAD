@@ -6,7 +6,7 @@ import CADCore
 ///
 /// Every layer defaults to having no effect (the values of a plain metallic–roughness material), so
 /// a material written before the layers existed decodes to the appearance it always had.
-public struct Material: Codable, Sendable, Hashable {
+public struct Material: Sendable, Hashable {
     public var id: MaterialID
     public var name: String
     public var baseColor: ColorRGBA
@@ -102,12 +102,15 @@ public struct Material: Codable, Sendable, Hashable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case id, name, baseColor, metallic, roughness, opacity
         case ior, clearcoat, clearcoatRoughness, sheen, sheenColor, sheenRoughness
         case specularColor, specularIntensity, iridescence, iridescenceIOR, thickness, transmission, density
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         let plain = Material(
@@ -134,7 +137,9 @@ public struct Material: Codable, Sendable, Hashable {
         transmission = try container.decodeIfPresent(Double.self, forKey: .transmission) ?? plain.transmission
         density = try container.decodeIfPresent(Double.self, forKey: .density)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(id, forKey: .id)
@@ -157,9 +162,10 @@ public struct Material: Codable, Sendable, Hashable {
         try container.encode(transmission, forKey: .transmission)
         try container.encodeIfPresent(density, forKey: .density)
     }
+#endif
 }
 
-public struct ColorRGBA: Codable, Hashable, Sendable {
+public struct ColorRGBA: Hashable, Sendable {
     public var r: Double
     public var g: Double
     public var b: Double
@@ -191,3 +197,8 @@ private func validateUnitInterval(_ value: Double, field: String) throws {
         throw MaterialError.valueOutOfRange(field: field, value: value)
     }
 }
+
+#if !hasFeature(Embedded)
+extension Material: Codable {}
+extension ColorRGBA: Codable {}
+#endif

@@ -11,13 +11,14 @@ struct RawDeflateDecoder {
     static func decode(
         _ bytes: UnsafeRawBufferPointer,
         expectedByteCount: Int,
-        maximumByteCount: Int
+        maximumByteCount: Int,
+        consumeWork: (@Sendable (Int) throws -> Void)? = nil
     ) throws -> Data {
         guard expectedByteCount >= 0,
               expectedByteCount <= maximumByteCount else {
             throw RawDeflateError.outputLimitExceeded
         }
-        var reader = DeflateBitReader(bytes: bytes)
+        var reader = DeflateBitReader(bytes: bytes, consumeWork: consumeWork)
         var output = Data()
         output.reserveCapacity(expectedByteCount)
 
@@ -35,8 +36,8 @@ struct RawDeflateDecoder {
             case 1:
                 try decodeCompressedBlock(
                     reader: &reader,
-                    literalLengthTable: try fixedLiteralLengthTable(),
-                    distanceTable: try fixedDistanceTable(),
+                    literalLengthTable: try fixedLiteralLengthTable(consumeWork: consumeWork),
+                    distanceTable: try fixedDistanceTable(consumeWork: consumeWork),
                     output: &output,
                     maximumByteCount: maximumByteCount
                 )
@@ -113,6 +114,7 @@ struct RawDeflateDecoder {
                 }
                 try validateAppendCount(length, outputCount: output.count, maximumByteCount: maximumByteCount)
                 for _ in 0..<length {
+                    try reader.consumeWork?(1)
                     output.append(output[output.count - distance])
                 }
             default:
@@ -135,7 +137,7 @@ struct RawDeflateDecoder {
         for index in 0..<codeLengthCount {
             codeLengths[deflateCodeLengthOrder[index]] = try reader.readBits(3)
         }
-        let codeLengthTable = try DeflateHuffmanTable(codeLengths: codeLengths)
+        let codeLengthTable = try DeflateHuffmanTable(codeLengths: codeLengths, consumeWork: reader.consumeWork)
         let totalCount = literalLengthCount + distanceCount
         var lengths: [Int] = []
         lengths.reserveCapacity(totalCount)
@@ -149,28 +151,31 @@ struct RawDeflateDecoder {
                     throw RawDeflateError.invalidStream
                 }
                 let repeatCount = 3 + (try reader.readBits(2))
-                try appendRepeated(previous, count: repeatCount, totalCount: totalCount, to: &lengths)
+                try appendRepeated(previous, count: repeatCount, totalCount: totalCount, to: &lengths, consumeWork: reader.consumeWork)
             case 17:
                 let repeatCount = 3 + (try reader.readBits(3))
-                try appendRepeated(0, count: repeatCount, totalCount: totalCount, to: &lengths)
+                try appendRepeated(0, count: repeatCount, totalCount: totalCount, to: &lengths, consumeWork: reader.consumeWork)
             case 18:
                 let repeatCount = 11 + (try reader.readBits(7))
-                try appendRepeated(0, count: repeatCount, totalCount: totalCount, to: &lengths)
+                try appendRepeated(0, count: repeatCount, totalCount: totalCount, to: &lengths, consumeWork: reader.consumeWork)
             default:
                 throw RawDeflateError.invalidStream
             }
         }
 
+        try reader.consumeWork?(lengths.count)
         let literalLengths = Array(lengths[..<literalLengthCount])
         guard literalLengths[256] != 0 else {
             throw RawDeflateError.invalidStream
         }
         let distanceLengths = Array(lengths[literalLengthCount...])
-        let distanceTable = distanceLengths.allSatisfy { $0 == 0 }
+        var noDistances = true
+        for length in distanceLengths { try reader.consumeWork?(1); if length != 0 { noDistances = false } }
+        let distanceTable = noDistances
             ? nil
-            : try DeflateHuffmanTable(codeLengths: distanceLengths)
+            : try DeflateHuffmanTable(codeLengths: distanceLengths, consumeWork: reader.consumeWork)
         return (
-            literalLength: try DeflateHuffmanTable(codeLengths: literalLengths),
+            literalLength: try DeflateHuffmanTable(codeLengths: literalLengths, consumeWork: reader.consumeWork),
             distance: distanceTable
         )
     }
@@ -179,25 +184,29 @@ struct RawDeflateDecoder {
         _ value: Int,
         count: Int,
         totalCount: Int,
-        to lengths: inout [Int]
+        to lengths: inout [Int],
+        consumeWork: (@Sendable (Int) throws -> Void)?
     ) throws {
         guard count >= 0, lengths.count <= totalCount - count else {
             throw RawDeflateError.invalidStream
         }
+        try consumeWork?(count)
         lengths.append(contentsOf: repeatElement(value, count: count))
     }
 
-    private static func fixedLiteralLengthTable() throws -> DeflateHuffmanTable {
+    private static func fixedLiteralLengthTable(consumeWork: (@Sendable (Int) throws -> Void)?) throws -> DeflateHuffmanTable {
+        try consumeWork?(288)
         var lengths = Array(repeating: 0, count: 288)
         for symbol in 0...143 { lengths[symbol] = 8 }
         for symbol in 144...255 { lengths[symbol] = 9 }
         for symbol in 256...279 { lengths[symbol] = 7 }
         for symbol in 280...287 { lengths[symbol] = 8 }
-        return try DeflateHuffmanTable(codeLengths: lengths)
+        return try DeflateHuffmanTable(codeLengths: lengths, consumeWork: consumeWork)
     }
 
-    private static func fixedDistanceTable() throws -> DeflateHuffmanTable {
-        try DeflateHuffmanTable(codeLengths: Array(repeating: 5, count: 32))
+    private static func fixedDistanceTable(consumeWork: (@Sendable (Int) throws -> Void)?) throws -> DeflateHuffmanTable {
+        try consumeWork?(32)
+        return try DeflateHuffmanTable(codeLengths: Array(repeating: 5, count: 32), consumeWork: consumeWork)
     }
 
     private static func validateAppendCount(
@@ -214,6 +223,7 @@ struct RawDeflateDecoder {
 
 private struct DeflateBitReader {
     let bytes: UnsafeRawBufferPointer
+    let consumeWork: (@Sendable (Int) throws -> Void)?
     private(set) var bitOffset = 0
 
     var consumedByteCount: Int {
@@ -224,6 +234,7 @@ private struct DeflateBitReader {
         guard count >= 0, count <= 16 else {
             throw RawDeflateError.invalidStream
         }
+        try consumeWork?(count)
         var value = 0
         for bitIndex in 0..<count {
             let byteIndex = bitOffset / 8
@@ -246,13 +257,15 @@ private struct DeflateHuffmanTable {
     private let symbolsByLengthAndCode: [[Int: Int]]
     private let maximumCodeLength: Int
 
-    init(codeLengths: [Int]) throws {
+    init(codeLengths: [Int], consumeWork: (@Sendable (Int) throws -> Void)? = nil) throws {
+        try consumeWork?(codeLengths.count)
         let maximumCodeLength = codeLengths.max() ?? 0
         guard maximumCodeLength > 0, maximumCodeLength <= 15 else {
             throw RawDeflateError.invalidStream
         }
         var counts = Array(repeating: 0, count: maximumCodeLength + 1)
         for length in codeLengths {
+            try consumeWork?(1)
             guard length >= 0, length <= maximumCodeLength else {
                 throw RawDeflateError.invalidStream
             }
@@ -262,6 +275,7 @@ private struct DeflateHuffmanTable {
         }
         var remainingCodeSpace = 1
         for length in 1...maximumCodeLength {
+            try consumeWork?(1)
             remainingCodeSpace = remainingCodeSpace * 2 - counts[length]
             guard remainingCodeSpace >= 0 else {
                 throw RawDeflateError.invalidStream
@@ -272,6 +286,7 @@ private struct DeflateHuffmanTable {
         var code = 0
         if maximumCodeLength > 1 {
             for length in 1...maximumCodeLength {
+                try consumeWork?(1)
                 code = (code + counts[length - 1]) << 1
                 nextCode[length] = code
             }
@@ -279,7 +294,10 @@ private struct DeflateHuffmanTable {
             nextCode[1] = 0
         }
         var mappings = Array(repeating: [Int: Int](), count: maximumCodeLength + 1)
-        for (symbol, length) in codeLengths.enumerated() where length > 0 {
+        for (symbol, length) in codeLengths.enumerated() {
+            try consumeWork?(1)
+            guard length > 0 else { continue }
+            try consumeWork?(length)
             let canonicalCode = nextCode[length]
             nextCode[length] += 1
             let transmittedCode = reverseBits(canonicalCode, count: length)

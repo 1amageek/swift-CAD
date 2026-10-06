@@ -4,7 +4,7 @@ import CADCore
 /// re-solved to meet them. With an adjacent angle, each planar face beside a pushed planar face
 /// also tilts about the edge they shared by that angle, a positive angle leaning it out from the
 /// pushed face.
-public struct FaceOffsetFeature: Codable, Hashable, Sendable {
+public struct FaceOffsetFeature: Hashable, Sendable {
     public let target: FaceOffsetTargetReference
     public let faces: [StableSubshapeReference]
     public let distance: CADExpression
@@ -41,6 +41,7 @@ public struct FaceOffsetFeature: Codable, Hashable, Sendable {
         try adjacentAngle?.validateLiteralQuantities()
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case target
         case faces
@@ -48,7 +49,9 @@ public struct FaceOffsetFeature: Codable, Hashable, Sendable {
         case adjacentAngle
         case grow
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.target, .faces, .distance, .adjacentAngle, .grow], in: decoder)
@@ -59,7 +62,9 @@ public struct FaceOffsetFeature: Codable, Hashable, Sendable {
         grow = try container.decode(FaceEditGrow.self, forKey: .grow)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -69,4 +74,9 @@ public struct FaceOffsetFeature: Codable, Hashable, Sendable {
         try container.encodeIfPresent(adjacentAngle, forKey: .adjacentAngle)
         try container.encode(grow, forKey: .grow)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension FaceOffsetFeature: Codable {}
+#endif

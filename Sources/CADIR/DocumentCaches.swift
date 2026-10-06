@@ -1,7 +1,7 @@
 import CADCore
 import CADTopology
 
-public struct DocumentCaches: Codable, Sendable {
+public struct DocumentCaches: Sendable {
     public var brep: BRepCache?
     public var meshes: [BodyID: MeshCache]
 
@@ -58,7 +58,7 @@ public struct DocumentCaches: Codable, Sendable {
     }
 }
 
-public struct BRepCache: Codable, Sendable {
+public struct BRepCache: Sendable {
     public var designRevision: DocumentRevision
     public var parameterRevision: DocumentRevision
     private var sourceFingerprintRecord: CacheSourceFingerprint
@@ -78,10 +78,13 @@ public struct BRepCache: Codable, Sendable {
         sourceFingerprintRecord = .value(fingerprint)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case designRevision, parameterRevision, sourceFingerprint, kernelVersion, tolerance, model, subshapes
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         designRevision = try container.decode(DocumentRevision.self, forKey: .designRevision)
@@ -92,7 +95,9 @@ public struct BRepCache: Codable, Sendable {
         model = try container.decode(BRepModel.self, forKey: .model)
         subshapes = try container.decode(SubshapeIndex.self, forKey: .subshapes)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(designRevision, forKey: .designRevision)
@@ -103,6 +108,7 @@ public struct BRepCache: Codable, Sendable {
         try container.encode(model, forKey: .model)
         try container.encode(subshapes, forKey: .subshapes)
     }
+#endif
 
     public init(
         designRevision: DocumentRevision,
@@ -156,7 +162,7 @@ public struct BRepCache: Codable, Sendable {
         )
     }
 
-    func validateMetadataFreshness(
+    package func validateMetadataFreshness(
         for document: CADDocument,
         sourceFingerprint expectedSourceFingerprint: CADDocumentSourceFingerprint,
         tolerance expectedTolerance: ModelingTolerance,
@@ -184,7 +190,7 @@ public struct BRepCache: Codable, Sendable {
     }
 }
 
-public struct MeshCache: Codable, Sendable {
+public struct MeshCache: Sendable {
     public var bodyID: BodyID
     public var designRevision: DocumentRevision
     public var parameterRevision: DocumentRevision
@@ -213,11 +219,14 @@ public struct MeshCache: Codable, Sendable {
         sourceFingerprintRecord = .value(fingerprint)
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case bodyID, designRevision, parameterRevision, sourceFingerprint, kernelVersion, tolerance
         case tessellationOptions, purpose, recordedUsage, mesh
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         bodyID = try container.decode(BodyID.self, forKey: .bodyID)
@@ -231,7 +240,9 @@ public struct MeshCache: Codable, Sendable {
         recordedUsage = try container.decode(TessellationUsage.self, forKey: .recordedUsage)
         mesh = try container.decode(Mesh.self, forKey: .mesh)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(bodyID, forKey: .bodyID)
@@ -245,6 +256,7 @@ public struct MeshCache: Codable, Sendable {
         try container.encode(recordedUsage, forKey: .recordedUsage)
         try container.encode(mesh, forKey: .mesh)
     }
+#endif
 
     public init(
         bodyID: BodyID,
@@ -345,7 +357,7 @@ public struct MeshCache: Codable, Sendable {
         )
     }
 
-    func validateMetadataFreshness(
+    package func validateMetadataFreshness(
         for document: CADDocument,
         sourceFingerprint expectedSourceFingerprint: CADDocumentSourceFingerprint,
         brep: BRepCache,
@@ -436,3 +448,9 @@ public struct MeshCache: Codable, Sendable {
         try mesh.validate(tolerance: expectedTolerance)
     }
 }
+
+#if !hasFeature(Embedded)
+extension DocumentCaches: Codable {}
+extension BRepCache: Codable {}
+extension MeshCache: Codable {}
+#endif

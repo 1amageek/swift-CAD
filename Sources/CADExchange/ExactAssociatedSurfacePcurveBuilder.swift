@@ -101,7 +101,13 @@ struct ExactAssociatedSurfacePcurveBuilder {
              .surfaceLift,
              .certifiedIntersection,
              .rigidImage,
-             .affineImage:
+             .affineImage,
+             .parameterImage,
+             .originalAffineWord,
+             .originalEndpointConnector,
+             .originalConstructionChart,
+             .originalAngularTransport,
+             .originalPlaneDerivative, .originalDrafted, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline:
             return nil
         }
     }

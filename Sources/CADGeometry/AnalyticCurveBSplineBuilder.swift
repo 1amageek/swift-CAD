@@ -118,6 +118,10 @@ package struct AnalyticCurveBSplineBuilder {
                 maximumSpanCount: maximumSpanCount,
                 tolerance: tolerance
             )
+        case .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
+            // A rounded control image is only a candidate and has no retained
+            // original angular/ordered-field parameter correspondence here.
+            return nil
         case let .rigidImage(image):
             guard let source = try boundedCurve(
                 curve: image.source,
@@ -144,6 +148,20 @@ package struct AnalyticCurveBSplineBuilder {
                 to: source,
                 tolerance: tolerance
             )
+        case let .parameterImage(image):
+            guard let native = try boundedCurve(curve: image.source,
+                interval: image.originalInterval(interval), maximumSpanCount: maximumSpanCount,
+                tolerance: tolerance) else { return nil }
+            let positive = image.gain > 0
+            let knots = native.knots.map { ($0 - image.offset) / image.gain }
+            let candidate = BSplineCurve3D(degree: native.degree,
+                knots: positive ? knots : Array(knots.reversed()),
+                controlPoints: positive ? native.controlPoints : Array(native.controlPoints.reversed()),
+                weights: positive ? native.weights : Array(native.weights.reversed()),
+                isPeriodic: native.isPeriodic,
+                periodicOrigin: native.periodicOrigin.map { ($0 - image.offset) / image.gain })
+            try candidate.validate(tolerance: tolerance)
+            return candidate
         case let .bSpline(spline):
             return try spline.trimmed(
                 from: interval.lower,
@@ -362,9 +380,9 @@ package struct AnalyticCurveBSplineBuilder {
             return (u, 0.0, vStart, vEnd - vStart)
         case let .constantV(v, uStart, uEnd):
             return (uStart, uEnd - uStart, v, 0.0)
-        case .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
+        case .harmonic, .sphericalGreatCircle, .polyline, .bSpline, .originalBSplineContinuation,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
-             .projectedAnalytic, .rigidImage:
+             .projectedAnalytic, .originalAffineWord, .originalImage, .rigidImage:
             return nil
         case let .offsetSurfaceImage(image):
             return linearParameterLaw(image.source)

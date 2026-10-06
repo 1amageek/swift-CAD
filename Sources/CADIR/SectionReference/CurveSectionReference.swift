@@ -1,15 +1,17 @@
 import CADCore
 
-public struct CurveSectionReference: Codable, Hashable, Sendable {
+public struct CurveSectionReference: Hashable, Sendable {
     public var featureID: FeatureID
     public var parameterDomain: ParameterDomain?
     public var isReversed: Bool
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case featureID
         case parameterDomain
         case isReversed
     }
+#endif
 
     public init(featureID: FeatureID, parameterDomain: ParameterDomain? = nil, isReversed: Bool = false) {
         self.featureID = featureID
@@ -17,6 +19,7 @@ public struct CurveSectionReference: Codable, Hashable, Sendable {
         self.isReversed = isReversed
     }
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.featureID, .parameterDomain, .isReversed], in: decoder)
@@ -25,7 +28,9 @@ public struct CurveSectionReference: Codable, Hashable, Sendable {
         isReversed = try container.decode(Bool.self, forKey: .isReversed)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -33,6 +38,7 @@ public struct CurveSectionReference: Codable, Hashable, Sendable {
         try container.encodeIfPresent(parameterDomain, forKey: .parameterDomain)
         try container.encode(isReversed, forKey: .isReversed)
     }
+#endif
 
     public func validate() throws {
         if let parameterDomain {
@@ -43,3 +49,7 @@ public struct CurveSectionReference: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveSectionReference: Codable {}
+#endif

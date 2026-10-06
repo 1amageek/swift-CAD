@@ -1,6 +1,6 @@
 import CADCore
 
-public struct CurveTrimFeature: Codable, Hashable, Sendable {
+public struct CurveTrimFeature: Hashable, Sendable {
     public var source: CurveOutputReference
     public var domain: ParameterDomain
 
@@ -21,11 +21,14 @@ public struct CurveTrimFeature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case source
         case domain
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.source, .domain], in: decoder)
@@ -33,11 +36,18 @@ public struct CurveTrimFeature: Codable, Hashable, Sendable {
         domain = try container.decode(ParameterDomain.self, forKey: .domain)
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(source, forKey: .source)
         try container.encode(domain, forKey: .domain)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension CurveTrimFeature: Codable {}
+#endif

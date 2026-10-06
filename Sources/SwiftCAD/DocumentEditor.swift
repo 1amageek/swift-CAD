@@ -130,6 +130,12 @@ public struct DocumentEditor: DocumentEditing {
       feature.isSuppressed = suppressed
       updatedDocument.designGraph.nodes[featureID] = feature
       updatedDocument.designGraph.revision = updatedDocument.designGraph.revision.advanced()
+    case .setDocumentAttribute(let attribute):
+      do { updatedDocument.documentFoundation = try updatedDocument.documentFoundation.setting(attribute) }
+      catch let error as DocumentFoundationError { throw foundationFailure(error, tolerance: tolerance) }
+    case .removeDocumentAttribute(let id):
+      do { updatedDocument.documentFoundation = try updatedDocument.documentFoundation.removing(id) }
+      catch let error as DocumentFoundationError { throw foundationFailure(error, tolerance: tolerance) }
     case .removeFeature(let featureID):
       try remove(featureID, from: &updatedDocument, tolerance: tolerance)
     }
@@ -141,9 +147,16 @@ public struct DocumentEditor: DocumentEditing {
   private func validate(_ document: CADDocument, tolerance: ModelingTolerance) throws {
     do {
       try document.validate(tolerance: tolerance)
+    } catch let error as DocumentFoundationError {
+      throw foundationFailure(error, tolerance: tolerance)
     } catch {
       throw KernelError.wrapping(error, phase: .validation, tolerance: tolerance)
     }
+  }
+
+  private func foundationFailure(_ error: DocumentFoundationError, tolerance: ModelingTolerance) -> KernelError {
+    KernelError(phase: .validation, code: error.kernelCode, tolerance: tolerance,
+                message: String(describing: error))
   }
 
   private func append(_ feature: FeatureNode, to document: inout CADDocument) {

@@ -51,6 +51,37 @@ public enum RobustPredicates {
         return exactSign
     }
 
+    /// Exact original sign with caller-owned work and optional byte admission.
+    package static func orientation2D(_ a: Point2D, _ b: Point2D, relativeTo c: Point2D,
+        determinantTolerance: Double, consumeWork: () throws -> Void,
+        consumeStorage: ((Int) throws -> Void)? = nil) throws -> RobustSign {
+        try consumeWork()
+        guard determinantTolerance.isFinite, determinantTolerance >= 0,
+            a.x.isFinite, a.y.isFinite, b.x.isFinite, b.y.isFinite,
+            c.x.isFinite, c.y.isFinite else {
+            throw GeometryError.invalidDistance(determinantTolerance)
+        }
+        return try withoutActuallyEscaping(consumeWork) { work in
+            var usage = OriginalGeometryValidationAdmission(consumeWork: { _ in try work() },
+                consumeStorage: consumeStorage)
+            let ax = try ExactRationalCoefficient.originalDouble(a.x, usage: &usage)
+                .subtracting(.originalDouble(c.x, usage: &usage), usage: &usage)
+            let ay = try ExactRationalCoefficient.originalDouble(a.y, usage: &usage)
+                .subtracting(.originalDouble(c.y, usage: &usage), usage: &usage)
+            let bx = try ExactRationalCoefficient.originalDouble(b.x, usage: &usage)
+                .subtracting(.originalDouble(c.x, usage: &usage), usage: &usage)
+            let by = try ExactRationalCoefficient.originalDouble(b.y, usage: &usage)
+                .subtracting(.originalDouble(c.y, usage: &usage), usage: &usage)
+            let determinant = try ax.multiplied(by: by, usage: &usage)
+                .subtracting(ay.multiplied(by: bx, usage: &usage), usage: &usage)
+            if determinant.isZero { return .zero }
+            let magnitude = determinant.isNegative ? determinant.negated : determinant
+            let threshold = try ExactRationalCoefficient.originalDouble(determinantTolerance, usage: &usage)
+            guard try magnitude.subtracting(threshold, usage: &usage).isPositive else { return .indeterminate }
+            return determinant.isNegative ? .negative : .positive
+        }
+    }
+
     public static func orientation3D(
         _ a: Point3D,
         _ b: Point3D,

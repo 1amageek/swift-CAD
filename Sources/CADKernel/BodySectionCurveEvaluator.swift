@@ -21,6 +21,15 @@ public struct BodySectionCurveEvaluator: Sendable {
         self.tolerance = tolerance
     }
 
+    /// Complete dimensional sections, including point contacts and coincident regions.
+    /// Each component retains both finite source faces and its original UV geometry.
+    public func components(between first: BodyID, and second: BodyID,
+                           in model: BRepModel) throws -> [BooleanSectionComponent] {
+        let prepared = try BooleanPipeline(evaluator: ExactBRepBooleanEvaluator()).prepare(
+            targetBodyIDs: [first], toolBodyID: second, model: model, tolerance: tolerance)
+        return prepared.sections
+    }
+
     /// The pieces, in the graph's face-pair order; empty when the bodies do not meet. A tangent
     /// contact (a point) or coincident faces (an area) give no piece.
     public func sections(between first: BodyID, and second: BodyID, in model: BRepModel) throws -> [Section] {
@@ -31,7 +40,7 @@ public struct BodySectionCurveEvaluator: Sendable {
         let pipeline = BooleanPipeline(evaluator: ExactBRepBooleanEvaluator())
         // Union's intersection graph: disjoint bodies are a valid union with no face pair,
         // where an intersection would refuse them.
-        let intersections = try pipeline.intersectionGraph(
+        let intersections = try pipeline.completeIntersectionGraph(
             targetBodyIDs: [first], toolBodyID: second, operation: .union, model: model, tolerance: tolerance
         )
         let split = try pipeline.uvSplitGraph(intersectionGraph: intersections, model: model, tolerance: tolerance)

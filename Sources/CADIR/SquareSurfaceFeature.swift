@@ -6,7 +6,7 @@ import CADCore
 /// between. Each given side matches its curve (G0), along an edge of a body is tangent or
 /// curvature continuous with the face beside it, or is Free (followed loosely); the sheet is
 /// fitted to its frame by `options`.
-public struct SquareSurfaceFeature: Codable, Hashable, Sendable {
+public struct SquareSurfaceFeature: Hashable, Sendable {
     public var sides: [SquareSide]
     public var options: SquareFitOptions
 
@@ -15,10 +15,13 @@ public struct SquareSurfaceFeature: Codable, Hashable, Sendable {
         self.options = options
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case sides, options
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.sides, .options], in: decoder)
@@ -26,13 +29,16 @@ public struct SquareSurfaceFeature: Codable, Hashable, Sendable {
         options = try container.decode(SquareFitOptions.self, forKey: .options)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(sides, forKey: .sides)
         try container.encode(options, forKey: .options)
     }
+#endif
 
     public func validate() throws {
         guard (2...4).contains(sides.count) else {
@@ -58,7 +64,7 @@ public struct SquareSurfaceFeature: Codable, Hashable, Sendable {
 
 /// One side of a Square: its curve and, when it runs along an edge of a body, how the Square meets
 /// the face beside that edge; a Free side is followed loosely, by the Square's weight.
-public struct SquareSide: Codable, Hashable, Sendable {
+public struct SquareSide: Hashable, Sendable {
     public var curve: CurveSectionReference
     public var continuity: SurfaceEdgeContinuity?
     public var isFree: Bool
@@ -69,10 +75,13 @@ public struct SquareSide: Codable, Hashable, Sendable {
         self.isFree = isFree
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case curve, continuity, isFree
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys([.curve, .continuity, .isFree], in: decoder)
@@ -81,7 +90,9 @@ public struct SquareSide: Codable, Hashable, Sendable {
         isFree = try container.decodeIfPresent(Bool.self, forKey: .isFree) ?? false
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -89,6 +100,7 @@ public struct SquareSide: Codable, Hashable, Sendable {
         try container.encodeIfPresent(continuity, forKey: .continuity)
         if isFree { try container.encode(true, forKey: .isFree) }
     }
+#endif
 
     public func validate() throws {
         try curve.validate()
@@ -98,3 +110,8 @@ public struct SquareSide: Codable, Hashable, Sendable {
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension SquareSurfaceFeature: Codable {}
+extension SquareSide: Codable {}
+#endif

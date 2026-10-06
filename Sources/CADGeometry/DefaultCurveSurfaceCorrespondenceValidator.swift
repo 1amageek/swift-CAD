@@ -140,6 +140,24 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         try curve.validate(tolerance: tolerance)
         try surface.validate(tolerance: tolerance)
         try parameterCurve.validate(on: surface, tolerance: tolerance)
+        if case .originalAffineWord = curve {
+            _ = try OriginalBoundedCurveSurfaceCorrespondence.deviationBound(curve: curve,
+                from: startCurveParameter, to: endCurveParameter, surface: surface,
+                parameterCurve: parameterCurve, options: options, tolerance: tolerance,
+                maximumSpanCount: Int.max, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
+                remainingSourceDepth: Int.max, consumeWork: { try Task.checkCancellation() },
+                consumeStorage: { _ in try Task.checkCancellation() })
+            return
+        }
+        if case .originalAffineWord = parameterCurve {
+            _ = try OriginalBoundedCurveSurfaceCorrespondence.deviationBound(curve: curve,
+                from: startCurveParameter, to: endCurveParameter, surface: surface,
+                parameterCurve: parameterCurve, options: options, tolerance: tolerance,
+                maximumSpanCount: Int.max, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
+                remainingSourceDepth: Int.max, consumeWork: { try Task.checkCancellation() },
+                consumeStorage: { _ in try Task.checkCancellation() })
+            return
+        }
         if case let .periodicTranslation(base, _, _) = parameterCurve {
             try validate(
                 curve: curve,
@@ -211,6 +229,11 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         } else {
             curveDerivativeBoundsAreIntervalInvariant = false
         }
+        let curveFirstDerivativeBoundsAreIntervalInvariant =
+            firstDerivativeBoundsAreIntervalInvariant(
+                for: curve,
+                parameterRange: parameterRange
+            )
         let parameterLift = SurfaceLiftCurve3D(
             surface: surface,
             parameterCurve: parameterCurve
@@ -271,16 +294,23 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         for index in 1..<nodes.count {
             stack.append(Cell(lower: nodes[index - 1], upper: nodes[index], depth: 0))
         }
-        // The pcurve basis already partitions the validation domain into
-        // smooth spans. Cache exact bounds for the adaptive cells instead
+        // The pcurve basis partitions the lifted curve, but need not partition
+        // spatial native derivative jumps. Cache bounds for their owning cells instead
         // of evaluating an unrelated fixed grid across the entire curve.
         // This preserves the proof while making work proportional to cells
         // that the correspondence actually needs to certify.
-        var localSecondDerivativeBounds: [CurveParameterInterval: Double] = [:]
+        var localSecondDerivativeBounds: [CurveParameterInterval: Double?] = [:]
+        var invocationNativeSecondDerivativeBound: Double?
+        var computedInvocationNativeSecondDerivativeBound = false
         func curveBasisInterval(
             containingLower lower: Double,
             upper: Double
         ) -> CurveParameterInterval {
+            if curveSecondDerivative == nil {
+                // Pcurve spans do not partition the original spatial curve's
+                // derivative jumps. Each adaptive spatial interval owns its bound.
+                return CurveParameterInterval(lower: lower, upper: upper)
+            }
             for index in 1..<nodes.count {
                 let spanLower = min(
                     nodes[index - 1].curveParameter,
@@ -303,7 +333,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         func localCurveSecondDerivativeBound(
             _ lower: Double,
             _ upper: Double
-        ) throws -> Double {
+        ) throws -> Double? {
             if curveDerivativeBoundsAreIntervalInvariant {
                 return curveSecondDerivative
             }
@@ -311,20 +341,44 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 containingLower: lower,
                 upper: upper
             )
+            let childParameterRange = try ScalarInterval(
+                lower: key.lower,
+                upper: key.upper
+            )
+            let canReuseNativeBound = secondDerivativeBoundCanReuse(
+                for: curve,
+                parameterRange: childParameterRange
+            )
             if let cached = localSecondDerivativeBounds[key] {
                 return cached
             }
-            let bound = try self.curveSecondDerivativeUpperBound(
-                curve,
-                parameterRange: try ScalarInterval(
-                    lower: key.lower,
-                    upper: key.upper
-                ),
-                tolerance: tolerance,
-                preparedCurve: preparedCurve
-            )
-            let result = min(bound, curveSecondDerivative)
-            localSecondDerivativeBounds[key] = result
+            let bound: Double?
+            if canReuseNativeBound {
+                if computedInvocationNativeSecondDerivativeBound {
+                    bound = invocationNativeSecondDerivativeBound
+                } else {
+                    let computed = try self.curveSecondDerivativeUpperBound(
+                        curve,
+                        parameterRange: childParameterRange,
+                        tolerance: tolerance,
+                        preparedCurve: preparedCurve
+                    )
+                    invocationNativeSecondDerivativeBound = computed
+                    computedInvocationNativeSecondDerivativeBound = true
+                    bound = computed
+                }
+            } else {
+                bound = try self.curveSecondDerivativeUpperBound(
+                    curve,
+                    parameterRange: childParameterRange,
+                    tolerance: tolerance,
+                    preparedCurve: preparedCurve
+                )
+            }
+            let result = bound.map { local in
+                curveSecondDerivative.map { min(local, $0) } ?? local
+            }
+            localSecondDerivativeBounds[key] = .some(result)
             return result
         }
         var localFirstDerivativeBounds: [CurveParameterInterval: Double?] = [:]
@@ -334,7 +388,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             _ lower: Double,
             _ upper: Double
         ) throws -> Double? {
-            if curveDerivativeBoundsAreIntervalInvariant {
+            if curveFirstDerivativeBoundsAreIntervalInvariant {
                 if computedIntervalInvariantFirstDerivativeBound {
                     return intervalInvariantFirstDerivativeBound
                 }
@@ -483,7 +537,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
                 throw resourceFailure(
                     tolerance: tolerance,
-                    message: "Curve-surface correspondence validation exceeded its cell budget. Last cell fractions [\(cell.lower.fraction), \(cell.upper.fraction)] depth \(cell.depth) curve parameters [\(cell.lower.curveParameter), \(cell.upper.curveParameter)] midpoint deviation \((liftedPosition - curvePosition).length); curve second-derivative bound \(curveSecondDerivative), cell-local bound \(localBound), cell-local first-derivative bound \(String(describing: localFirst)), lift first derivative at midpoint \(liftedFirstMagnitude), lift second-derivative bound \(String(describing: liftSecondDerivative)), parameter breaks \(parameterBounds.breaks.count)."
+                    message: "Curve-surface correspondence validation exceeded its cell budget. Last cell fractions [\(cell.lower.fraction), \(cell.upper.fraction)] depth \(cell.depth) curve parameters [\(cell.lower.curveParameter), \(cell.upper.curveParameter)] midpoint deviation \((liftedPosition - curvePosition).length); curve second-derivative bound \(String(describing: curveSecondDerivative)), cell-local bound \(String(describing: localBound)), cell-local first-derivative bound \(String(describing: localFirst)), lift first derivative at midpoint \(liftedFirstMagnitude), lift second-derivative bound \(String(describing: liftSecondDerivative)), parameter breaks \(parameterBounds.breaks.count)."
                 )
             }
             remainingCells -= 1
@@ -654,6 +708,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             }
         }
         switch parameterCurve {
+        case .originalImage, .originalAffineWord: return false
+
         case let .certifiedImplicit(certified):
             guard curve == .implicit(certified.intersection),
                   abs(startCurveParameter - certified.startFraction) <= tolerance.relative,
@@ -737,7 +793,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             return true
         case .offsetSurfaceImage:
             break
-        case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle, .polyline, .bSpline:
+        case .affine, .constantU, .constantV, .harmonic, .sphericalGreatCircle, .polyline, .bSpline, .originalBSplineContinuation:
             break
         case .periodicTranslation:
             return false
@@ -822,6 +878,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
     ) throws -> Bool {
         guard case let .cylinder(cylinder) = surface else { return false }
         switch parameterCurve {
+        case .originalImage, .originalAffineWord: return false
+
         case let .constantU(u, vStart, vEnd):
             guard lineDefinition(curve) != nil else { return false }
             let startSurfacePoint = try surface.point(
@@ -927,7 +985,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             }
             return true
-        case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
+        case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline, .originalBSplineContinuation,
              .certifiedImplicit, .certifiedAnalyticImplicit,
              .certifiedAnalyticPair, .projectedAnalytic, .rigidImage,
              .offsetSurfaceImage:
@@ -1013,10 +1071,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
               ) = parameterCurve else {
             return false
         }
-        let basis = try circleOrthonormalBasis(
-            plane.normal,
-            tolerance: tolerance
-        )
+        let basis = try plane.parameterBasis(tolerance: tolerance)
         let liftedCenter = plane.origin
             + basis.u * center.x
             + basis.v * center.y
@@ -1094,6 +1149,10 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         _ curve: Curve3D
     ) -> (origin: Point3D, direction: Vector3D)? {
         switch curve {
+        case let .parameterImage(image):
+            guard let source = lineDefinition(image.source) else { return nil }
+            return (source.origin + source.direction * image.offset, source.direction * image.gain)
+
         case let .line(line):
             return (line.origin, line.direction)
         case let .analytic(.line(origin, direction)):
@@ -1119,7 +1178,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 direction
             )
         case .circle, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection:
+             .certifiedIntersection, .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
             return nil
         }
     }
@@ -1143,7 +1202,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 source.radius
             )
         case .line, .analytic, .bSpline, .implicit, .surfaceLift,
-             .certifiedIntersection, .affineImage:
+             .certifiedIntersection, .affineImage, .parameterImage:
             return nil
         }
     }
@@ -1511,6 +1570,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         let parameterStart: Double
         let parameterEnd: Double
         switch parameterCurve {
+        case .originalImage, .originalAffineWord: return false
+
         case let .constantU(u, vStart, vEnd):
             boundary = try surfaceValue.vIsoparametricCurve(
                 atU: u,
@@ -1525,7 +1586,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             )
             parameterStart = uStart
             parameterEnd = uEnd
-        case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline,
+        case .affine, .harmonic, .sphericalGreatCircle, .polyline, .bSpline, .originalBSplineContinuation,
              .certifiedImplicit, .certifiedAnalyticImplicit, .certifiedAnalyticPair,
              .projectedAnalytic, .rigidImage, .offsetSurfaceImage:
             return false
@@ -1922,8 +1983,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         curve: Curve3D,
         surface: Surface3D,
         parameterCurve: SurfaceParameterCurve,
-        curveSecondDerivativeUpperBound: Double,
-        localCurveSecondDerivativeBound: (Double, Double) throws -> Double,
+        curveSecondDerivativeUpperBound: Double?,
+        localCurveSecondDerivativeBound: (Double, Double) throws -> Double?,
         localCurveFirstDerivativeBound: (Double, Double) throws -> Double?,
         liftSecondDerivativeUpperBound: Double?,
         localLiftSecondDerivativeBound: (Double, Double) throws -> Double?,
@@ -1991,7 +2052,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
             )
             return localUpperBound <= acceptanceDeviation
         }
-        if let liftSecondDerivativeUpperBound,
+        if let curveSecondDerivativeUpperBound, let liftSecondDerivativeUpperBound,
            certifies(curveBound: curveSecondDerivativeUpperBound,
                      liftBound: liftSecondDerivativeUpperBound) {
             return CellCertification(isCertified: true, curvePoint: curveGeometry.position)
@@ -2008,7 +2069,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         ) else {
             return CellCertification(isCertified: false, curvePoint: curveGeometry.position)
         }
-        if certifies(
+        if let cellCurveBound, certifies(
                curveBound: cellCurveBound,
                liftBound: cellLiftBound
            ) {
@@ -2194,6 +2255,25 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         tolerance: ModelingTolerance
     ) throws -> ParameterDerivativeBounds {
         switch curve {
+        case .originalAffineWord(let image):
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else {
+                throw correspondenceFailure(tolerance: tolerance, message: "Original word chart lost complete derivative authority.")
+            }
+            return ParameterDerivativeBounds(firstU: jet.u.derivativeU.absoluteUpperBound,
+                firstV: jet.v.derivativeU.absoluteUpperBound, secondU: jet.u.secondDerivativeUU.absoluteUpperBound,
+                secondV: jet.v.secondDerivativeUU.absoluteUpperBound, vAbsolute: jet.v.value.absoluteUpperBound,
+                breaks: try SurfaceLiftDifferentialBounder().breakParameters(lift: SurfaceLiftCurve3D(
+                    surface: surface, parameterCurve: curve), within: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance))
+        case .originalImage(let image):
+            guard let jet = try image.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance) else {
+                throw correspondenceFailure(tolerance: tolerance, message: "Original image chart lost complete derivative authority.")
+            }
+            return ParameterDerivativeBounds(firstU: jet.u.derivativeU.absoluteUpperBound,
+                firstV: jet.v.derivativeU.absoluteUpperBound, secondU: jet.u.secondDerivativeUU.absoluteUpperBound,
+                secondV: jet.v.secondDerivativeUU.absoluteUpperBound, vAbsolute: jet.v.value.absoluteUpperBound,
+                breaks: try SurfaceLiftDifferentialBounder().breakParameters(lift: SurfaceLiftCurve3D(
+                    surface: surface, parameterCurve: curve), within: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance))
+
         case let .affine(_, direction, start, end):
             let scale = abs(end - start)
             return ParameterDerivativeBounds(
@@ -2268,6 +2348,15 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 tolerance: tolerance,
                 message: "A spherical great-circle pcurve failed its structural circular-edge proof."
             )
+        case let .originalBSplineContinuation(value):
+            let jet = try value.intervalJet(over: ScalarInterval(lower: 0, upper: 1), tolerance: tolerance)
+            let span = value.endParameter - value.startParameter
+            let breaks = value.original.knots.map { ($0 - value.startParameter) / span }
+                .filter { $0 > 0 && $0 < 1 }.sorted()
+            return ParameterDerivativeBounds(firstU: jet.u.derivativeU.absoluteUpperBound,
+                firstV: jet.v.derivativeU.absoluteUpperBound, secondU: jet.u.secondDerivativeUU.absoluteUpperBound,
+                secondV: jet.v.secondDerivativeUU.absoluteUpperBound, vAbsolute: jet.v.value.absoluteUpperBound,
+                breaks: breaks)
         case let .bSpline(curve):
             let patches = try curve.rationalBezierPatches(
                 tolerance: tolerance
@@ -2413,6 +2502,23 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         let uSecond = parameterBounds.secondU
         let vSecond = parameterBounds.secondV
         switch surface {
+        case .procedural(.originalAffineWord):
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy scalar lift tightening
+            // does not own a flat-word source jet. Word coedges use the original
+            // bounded correspondence producer before this specialization.
+            throw resourceFailure(tolerance: tolerance,
+                message: "Original word support requires its prepared whole-jet correspondence route.")
+        case let .procedural(.originalImage(image)):
+            let native = ParameterDerivativeBounds(
+                firstU: abs(image.uGain) * parameterBounds.firstU,
+                firstV: abs(image.vGain) * parameterBounds.firstV,
+                secondU: abs(image.uGain) * parameterBounds.secondU,
+                secondV: abs(image.vGain) * parameterBounds.secondV,
+                vAbsolute: abs(image.vOffset) + abs(image.vGain) * parameterBounds.vAbsolute,
+                breaks: parameterBounds.breaks)
+            return try liftSecondDerivativeUpperBound(surface: image.source,
+                parameterBounds: native, tolerance: tolerance) * image.transform.linearMagnitudeUpperBound
+
         case .plane, .analytic(.plane):
             return hypot(uSecond, vSecond).nextUp
         case let .cylinder(cylinder):
@@ -2536,7 +2642,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 tolerance: tolerance,
                 message: "General procedural surface-lift correspondence requires local parameter-cell differential bounds."
             )
-        case .procedural(.ruled), .procedural(.rollingBall):
+        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
             throw resourceFailure(
                 tolerance: tolerance,
                 message: "General procedural surface-lift correspondence requires local parameter-cell differential bounds."
@@ -2564,8 +2670,13 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         parameterRange: ScalarInterval,
         tolerance: ModelingTolerance,
         preparedCurve: PreparedCurveDifferentialEncloser? = nil
-    ) throws -> Double {
+    ) throws -> Double? {
         switch curve {
+        case let .parameterImage(image):
+            guard let original = try curveSecondDerivativeUpperBound(image.source,
+                parameterRange: image.originalInterval(parameterRange), tolerance: tolerance) else { return nil }
+            return (original * image.gain * image.gain).nextUp
+
         case .line, .analytic(.line):
             return 0.0
         case let .circle(circle):
@@ -2596,6 +2707,10 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         case let .analytic(.parabola(curve)):
             return (1.0 / (2.0 * curve.focalLength)).nextUp
         case let .bSpline(curve):
+            guard spatialBSplineIntervalHasNativeAuthority(curve, parameterRange: parameterRange),
+                  !spatialBSplineHasInteriorDerivativeJump(curve, parameterRange: parameterRange) else {
+                return nil
+            }
             let patches = try BSplineCurveBezierDecomposer().curvePatches(
                 curve: curve,
                 tolerance: tolerance
@@ -2647,11 +2762,11 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 tolerance: tolerance
             )
         case let .affineImage(image):
-            let sourceBound = try curveSecondDerivativeUpperBound(
+            guard let sourceBound = try curveSecondDerivativeUpperBound(
                 image.source,
                 parameterRange: parameterRange,
                 tolerance: tolerance
-            )
+            ) else { return nil }
             let transformedBound = (
                 sourceBound * image.transform.linearMagnitudeUpperBound
             ).nextUp
@@ -2662,6 +2777,8 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 )
             }
             return transformedBound
+        case .originalAffineWord, .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport, .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted:
+            return nil
         case .implicit:
             let prepared = try preparedCurve ?? PreparedCurveDifferentialEncloser(
                 curve: curve, tolerance: tolerance)
@@ -2682,20 +2799,130 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         }
     }
 
-    // A first-derivative (Lipschitz) bound certifies cells whose
-    // second-derivative certificate saturates; only surface-lift curves
-    // need it, other curve kinds certify through the Taylor remainder.
+    // Piecewise continuous B-splines retain a first-derivative supremum
+    // across C0 knots even though their second-order Taylor proof is unavailable.
     private func curveFirstDerivativeUpperBound(
         _ curve: Curve3D,
         parameterRange: ScalarInterval,
         tolerance: ModelingTolerance
     ) throws -> Double? {
-        guard case let .surfaceLift(lift) = curve else { return nil }
-        return try SurfaceLiftDifferentialBounder().firstDerivativeMagnitude(
-            lift: lift,
-            interval: parameterRange,
-            tolerance: tolerance
-        )
+        switch curve {
+        case let .surfaceLift(lift):
+            return try SurfaceLiftDifferentialBounder().firstDerivativeMagnitude(
+                lift: lift, interval: parameterRange, tolerance: tolerance)
+        case let .bSpline(curve):
+            guard spatialBSplineIntervalHasNativeAuthority(curve, parameterRange: parameterRange) else { return nil }
+            // Source validation rejects internal multiplicity greater than degree,
+            // so these positive-weight pieces form a continuous native curve.
+            let patches = try BSplineCurveBezierDecomposer().curvePatches(curve: curve, tolerance: tolerance)
+            guard !patches.isEmpty else {
+                throw correspondenceFailure(tolerance: tolerance,
+                    message: "B-spline correspondence requires a non-empty first-derivative cover.")
+            }
+            var maximum = 0.0
+            for patch in patches {
+                let bound = try RationalBezierCurveDerivativeBound(
+                    coordinates: [patch.controlPoints.map(\.x), patch.controlPoints.map(\.y), patch.controlPoints.map(\.z)],
+                    weights: patch.weights, parameterWidth: patch.upper - patch.lower, tolerance: tolerance)
+                maximum = max(maximum, hypot(hypot(bound.first[0], bound.first[1]), bound.first[2]).nextUp)
+            }
+            return maximum
+        case let .rigidImage(image):
+            return try curveFirstDerivativeUpperBound(image.source, parameterRange: parameterRange, tolerance: tolerance)
+        case let .affineImage(image):
+            guard let source = try curveFirstDerivativeUpperBound(image.source,
+                parameterRange: parameterRange, tolerance: tolerance) else { return nil }
+            let bound = (source * image.transform.linearMagnitudeUpperBound).nextUp
+            guard bound.isFinite else {
+                throw resourceFailure(tolerance: tolerance,
+                    message: "Affine-image correspondence first-derivative bound exceeded finite arithmetic.")
+            }
+            return bound
+        default: return nil
+        }
+    }
+
+    private func spatialBSplineIntervalHasNativeAuthority(_ curve: BSplineCurve3D,
+        parameterRange: ScalarInterval) -> Bool {
+        // Validation precedes this call. Stored native knots, rather than a
+        // selectable periodic representative origin, own this derivative cover.
+        let lower = curve.knots[curve.degree]
+        let upper = curve.knots[curve.controlPointCount]
+        guard parameterRange.lower >= lower, parameterRange.upper <= upper else { return false }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Correspondence's scalar native derivative
+        // bounds do not own periodic seam or translated-cycle coverage. This production
+        // validator may use them only after whole requested wrap intervals have proof.
+        if curve.isPeriodic, parameterRange.lower <= lower || parameterRange.upper >= upper { return false }
+        return true
+    }
+
+    private func firstDerivativeBoundsAreIntervalInvariant(
+        for curve: Curve3D,
+        parameterRange: ScalarInterval
+    ) -> Bool {
+        switch curve {
+        case let .surfaceLift(lift):
+            return SurfaceLiftDifferentialBounder()
+                .derivativeMagnitudeBoundsAreIntervalInvariant(lift: lift)
+        case let .bSpline(curve):
+            return spatialBSplineIntervalHasNativeAuthority(
+                curve,
+                parameterRange: parameterRange
+            )
+        case let .rigidImage(image):
+            return firstDerivativeBoundsAreIntervalInvariant(
+                for: image.source,
+                parameterRange: parameterRange
+            )
+        case let .affineImage(image):
+            return firstDerivativeBoundsAreIntervalInvariant(
+                for: image.source,
+                parameterRange: parameterRange
+            )
+        default:
+            return false
+        }
+    }
+
+    private func secondDerivativeBoundCanReuse(
+        for curve: Curve3D,
+        parameterRange: ScalarInterval
+    ) -> Bool {
+        switch curve {
+        case let .bSpline(curve):
+            return spatialBSplineIntervalHasNativeAuthority(
+                curve,
+                parameterRange: parameterRange
+            ) && !spatialBSplineHasInteriorDerivativeJump(
+                curve,
+                parameterRange: parameterRange
+            )
+        case let .rigidImage(image):
+            return secondDerivativeBoundCanReuse(
+                for: image.source,
+                parameterRange: parameterRange
+            )
+        case let .affineImage(image):
+            return secondDerivativeBoundCanReuse(
+                for: image.source,
+                parameterRange: parameterRange
+            )
+        default:
+            return false
+        }
+    }
+
+    private func spatialBSplineHasInteriorDerivativeJump(_ curve: BSplineCurve3D,
+        parameterRange: ScalarInterval) -> Bool {
+        var start = 0
+        while start < curve.knots.count {
+            var end = start + 1
+            while end < curve.knots.count, curve.knots[end] == curve.knots[start] { end += 1 }
+            if curve.knots[start] > parameterRange.lower, curve.knots[start] < parameterRange.upper,
+               end - start >= curve.degree { return true }
+            start = end
+        }
+        return false
     }
 
     private func isPlane(_ surface: Surface3D) -> Bool {

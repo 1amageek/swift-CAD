@@ -241,7 +241,7 @@ struct FaceAreaMeasurementTests {
     }
 
     @Test(.timeLimit(.minutes(1)))
-    func aBSplineFaceIsRefused() throws {
+    func aBSplineFaceMeasuresItsExactPlanarArea() throws {
         var builder = DocumentBuilder(units: .meters, tolerance: .standard)
         _ = try builder.bSplineSurface(BSplineSurface3D(
             uDegree: 1, vDegree: 1, uKnots: [0, 0, 1, 1], vKnots: [0, 0, 1, 1],
@@ -249,8 +249,8 @@ struct FaceAreaMeasurementTests {
         ))
         let model = try evaluate(builder)
         let faceID = try #require(model.faces.keys.first)
-        #expect(throws: KernelError.self) {
-            _ = try model.faceAreaMeasurement(of: faceID, tolerance: .standard)
-        }
+        let result = try model.faceAreaMeasurement(of: faceID, tolerance: .standard)
+        #expect(abs(result.area - 0.0008) < 1e-12)
+        #expect((result.centroid - Point3D(x: 0.02, y: 0.01, z: 0)).length < 1e-6)
     }
 }

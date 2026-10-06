@@ -1,7 +1,7 @@
 import CADCore
 import CADGeometry
 
-public struct CurveSpanGeometrySignature: Codable, Hashable, Sendable {
+public struct CurveSpanGeometrySignature: Hashable, Sendable {
     public let curve: Curve3D
     public let startParameter: Double?
     public let endParameter: Double?
@@ -39,6 +39,7 @@ public struct CurveSpanGeometrySignature: Codable, Hashable, Sendable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey, CaseIterable {
         case curve
         case startParameter
@@ -46,7 +47,9 @@ public struct CurveSpanGeometrySignature: Codable, Hashable, Sendable {
         case startPoint
         case endPoint
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(Set(CodingKeys.allCases), in: decoder)
@@ -57,7 +60,9 @@ public struct CurveSpanGeometrySignature: Codable, Hashable, Sendable {
         endPoint = try container.decode(Point3D.self, forKey: .endPoint)
         try validate()
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate()
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -67,6 +72,7 @@ public struct CurveSpanGeometrySignature: Codable, Hashable, Sendable {
         try container.encode(startPoint, forKey: .startPoint)
         try container.encode(endPoint, forKey: .endPoint)
     }
+#endif
 
     private func invalidSignature(_ message: String) -> KernelError {
         KernelError(
@@ -77,3 +83,7 @@ public struct CurveSpanGeometrySignature: Codable, Hashable, Sendable {
         )
     }
 }
+
+#if !hasFeature(Embedded)
+extension CurveSpanGeometrySignature: Codable {}
+#endif

@@ -73,6 +73,11 @@ public struct ValidatedCADDocument: Sendable {
                 tolerance: tolerance
             )
         }
+        try updatedDocument.validateAssembly(tolerance: tolerance)
+        try updatedDocument.independentShapes?.validateBodySourceAssociations(
+            in: updatedDocument.designGraph,
+            check: { try CurrentTaskCancellationChecker().checkCancellation() })
+        try updatedDocument.validateProductAttributes()
         return ValidatedCADDocument(
             validatedDocument: updatedDocument,
             tolerance: tolerance,
@@ -140,6 +145,11 @@ public struct ValidatedCADDocument: Sendable {
             }
         }
 
+        try updatedDocument.validateAssembly(tolerance: tolerance)
+        try updatedDocument.independentShapes?.validateBodySourceAssociations(
+            in: updatedDocument.designGraph,
+            check: { try CurrentTaskCancellationChecker().checkCancellation() })
+        try updatedDocument.validateProductAttributes()
         return ValidatedCADDocument(
             validatedDocument: updatedDocument,
             tolerance: tolerance,

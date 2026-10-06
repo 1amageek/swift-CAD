@@ -68,6 +68,113 @@ public struct DefaultBooleanRegionClassifier: BooleanRegionClassifying {
         return graph
     }
 
+    /// Classifies only cutting-tool face sectors against their original target solid.
+    /// The invocation retains one prepared target session set and the existing clearance budget.
+    func planeSideClassification(
+        uvSplitGraph: BooleanUVSplitGraph,
+        targetBodyIDs: [BodyID],
+        toolBodyID: BodyID,
+        model: BRepModel,
+        pointClassifier: any SolidPointClassifying,
+        tolerance: ModelingTolerance
+    ) throws -> BooleanClassificationGraph {
+        try CurrentTaskCancellationChecker().checkCancellation()
+        try tolerance.validate()
+        guard !targetBodyIDs.isEmpty, Set(targetBodyIDs).count == targetBodyIDs.count,
+              !targetBodyIDs.contains(toolBodyID), model.bodies[toolBodyID] != nil else {
+            throw KernelError(phase: .classification, code: .invalidInput, tolerance: tolerance,
+                message: "Plane-side classification requires distinct original target and cutting-tool bodies.")
+        }
+        let sessions = try SolidPointClassificationSessionSet(bodyIDs: targetBodyIDs,
+            pointClassifier: pointClassifier, model: model, tolerance: tolerance)
+        var resultSamples: [BooleanClassificationGraph.Sample] = []
+        for split in uvSplitGraph.splits {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            let targetBodyID = try bodyID(containing: split.facePair.targetFaceID,
+                candidates: targetBodyIDs, model: model, tolerance: tolerance)
+            _ = try bodyID(containing: split.facePair.toolFaceID, candidates: [toolBodyID],
+                model: model, tolerance: tolerance)
+            for component in split.components {
+                guard let sample = try intersectionSample(component: component, tolerance: tolerance) else { continue }
+                resultSamples.append(contentsOf: try classificationSamples(facePair: split.facePair,
+                    componentID: component.id, sourceFaceID: split.facePair.toolFaceID,
+                    oppositeBodyID: targetBodyID, midpoint: sample.point,
+                    intersectionDirection: sample.direction, surfaceParameter: sample.toolParameter,
+                    model: model, classificationSessions: sessions, tolerance: tolerance))
+            }
+        }
+        let graph = BooleanClassificationGraph(samples: resultSamples)
+        try graph.validate(uvSplitGraph: uvSplitGraph, model: model, tolerance: tolerance)
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return graph
+    }
+
+    /// Classifies explicit original coplanar boundaries under one invocation-owned session set.
+    func planeEdgeSideClassification(
+        boundaries: [PlaneEdgeClassificationBoundary],
+        model: BRepModel,
+        pointClassifier: any SolidPointClassifying,
+        tolerance: ModelingTolerance
+    ) throws -> BooleanClassificationGraph {
+        try CurrentTaskCancellationChecker().checkCancellation()
+        try tolerance.validate()
+        guard Set(boundaries.map(\.reference)).count == boundaries.count else {
+            throw KernelError(phase: .classification, code: .invalidInput, tolerance: tolerance,
+                message: "Every explicit plane boundary must retain a distinct sector component identity.")
+        }
+        let sessions = try SolidPointClassificationSessionSet(
+            bodyIDs: Array(Set(boundaries.map(\.targetBodyID))).sorted(),
+            pointClassifier: pointClassifier, model: model, tolerance: tolerance)
+        var samples: [BooleanClassificationGraph.Sample] = []
+        for boundary in boundaries {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            guard boundary.cuttingFaceID == boundary.reference.facePair.toolFaceID,
+                  model.faces[boundary.cuttingFaceID] != nil else {
+                throw KernelError(phase: .classification, code: .missingReference, tolerance: tolerance,
+                    message: "An explicit plane boundary has no matching original cutting face.")
+            }
+            _ = try bodyID(containing: boundary.reference.facePair.targetFaceID,
+                candidates: [boundary.targetBodyID], model: model, tolerance: tolerance)
+            guard let cuttingFace = model.faces[boundary.cuttingFaceID],
+                  let cuttingSurface = model.geometry.surfaces[cuttingFace.surfaceID],
+                  let sourceFace = model.faces[boundary.reference.facePair.targetFaceID] else {
+                throw TopologyError.missingReference("An original plane-sector face is missing.")
+            }
+            let ownsOriginalSpan = sourceFace.loops.contains { loopID in
+                model.loops[loopID]?.edges.contains { use in
+                    guard let original = model.edges[use.edgeID], let trim = original.trim,
+                          model.geometry.curves[original.curveID] == boundary.edge.curve else { return false }
+                    return min(trim.startParameter, trim.endParameter) == min(boundary.edge.startParameter, boundary.edge.endParameter)
+                        && max(trim.startParameter, trim.endParameter) == max(boundary.edge.startParameter, boundary.edge.endParameter)
+                } == true
+            }
+            guard ownsOriginalSpan else {
+                throw KernelError(phase: .classification, code: .invalidInput, tolerance: tolerance,
+                    message: "An explicit plane-sector boundary is not an original span owned by its referenced face.")
+            }
+            try boundary.edge.validate(on: cuttingSurface, tolerance: tolerance)
+            let native = try boundary.edge.surfaceParameterCurve.parameter(atNormalizedFraction: 0.5, tolerance: tolerance)
+            let midpoint = try cuttingSurface.point(u: native.u, v: native.v, tolerance: tolerance)
+            let range = try ScalarInterval(lower: min(boundary.edge.startParameter, boundary.edge.endParameter),
+                upper: max(boundary.edge.startParameter, boundary.edge.endParameter))
+            let projection = try boundary.edge.curve.closestParameterProjection(of: midpoint,
+                options: CurveParameterProjectionOptions(parameterRange: range), tolerance: tolerance)
+            guard projection.residual <= tolerance.distance else {
+                throw KernelError(phase: .classification, code: .classificationFailure, residual: projection.residual,
+                    tolerance: tolerance, message: "A plane-sector point does not lie on its original boundary span.")
+            }
+            let geometry = try boundary.edge.curve.differentialGeometry(at: projection.parameter, tolerance: tolerance)
+            let direction = boundary.edge.endParameter > boundary.edge.startParameter ? geometry.tangent : geometry.tangent * -1
+            samples.append(contentsOf: try classificationSamples(facePair: boundary.reference.facePair,
+                componentID: boundary.reference.componentID, sourceFaceID: boundary.cuttingFaceID,
+                oppositeBodyID: boundary.targetBodyID, midpoint: midpoint,
+                intersectionDirection: direction, surfaceParameter: native, model: model,
+                classificationSessions: sessions, tolerance: tolerance))
+        }
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return BooleanClassificationGraph(samples: samples)
+    }
+
     private func intersectionSample(
         component: BooleanFaceSplitComponent,
         tolerance: ModelingTolerance

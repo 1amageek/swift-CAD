@@ -1,6 +1,6 @@
 import CADCore
 
-public struct BridgeCurveEndpointReference: Codable, Sendable, Hashable {
+public struct BridgeCurveEndpointReference: Sendable, Hashable {
     public var curve: CurveOutputReference
     public var end: CurveEndpointEnd
     public var orientation: CurveFrameOrientation
@@ -47,6 +47,7 @@ public struct BridgeCurveEndpointReference: Codable, Sendable, Hashable {
         }
     }
 
+#if !hasFeature(Embedded)
     private enum CodingKeys: String, CodingKey {
         case curve
         case end
@@ -54,7 +55,9 @@ public struct BridgeCurveEndpointReference: Codable, Sendable, Hashable {
         case requiredLevel
         case derivativeMagnitude
     }
+#endif
 
+#if !hasFeature(Embedded)
     public init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         try container.validateOnlyExpectedKeys(
@@ -71,7 +74,9 @@ public struct BridgeCurveEndpointReference: Codable, Sendable, Hashable {
         )
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
     }
+#endif
 
+#if !hasFeature(Embedded)
     public func encode(to encoder: Encoder) throws {
         try validate(tolerance: CADIRPersistenceValidation.tolerance)
         var container = encoder.container(keyedBy: CodingKeys.self)
@@ -81,4 +86,9 @@ public struct BridgeCurveEndpointReference: Codable, Sendable, Hashable {
         try container.encode(requiredLevel, forKey: .requiredLevel)
         try container.encodeIfPresent(derivativeMagnitude, forKey: .derivativeMagnitude)
     }
+#endif
 }
+
+#if !hasFeature(Embedded)
+extension BridgeCurveEndpointReference: Codable {}
+#endif

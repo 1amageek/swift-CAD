@@ -4,8 +4,8 @@ import CADGeometry
 /// Extend Sheet's Limit: the extension runs on toward a body instead of by a distance (decided
 /// 2026-10-02) — `minimal` until the extended edge first meets the body, `inside` until all of it
 /// reaches the body's near side, `outside` until all of it has passed through to the far side.
-public struct SheetExtensionLimit: Codable, Hashable, Sendable {
-    public enum Mode: String, Codable, Hashable, Sendable, CaseIterable {
+public struct SheetExtensionLimit: Hashable, Sendable {
+    public enum Mode: String, Hashable, Sendable, CaseIterable {
         case minimal
         case inside
         case outside
@@ -23,3 +23,8 @@ public struct SheetExtensionLimit: Codable, Hashable, Sendable {
         self.placement = placement
     }
 }
+
+#if !hasFeature(Embedded)
+extension SheetExtensionLimit: Codable {}
+extension SheetExtensionLimit.Mode: Codable {}
+#endif

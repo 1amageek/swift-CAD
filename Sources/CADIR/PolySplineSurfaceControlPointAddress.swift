@@ -1,6 +1,6 @@
 import CADCore
 
-public struct PolySplineSurfaceControlPointAddress: Codable, Sendable, Hashable {
+public struct PolySplineSurfaceControlPointAddress: Sendable, Hashable {
     public var patchID: Int
     public var uIndex: Int
     public var vIndex: Int
@@ -36,3 +36,7 @@ public struct PolySplineSurfaceControlPointAddress: Codable, Sendable, Hashable 
         }
     }
 }
+
+#if !hasFeature(Embedded)
+extension PolySplineSurfaceControlPointAddress: Codable {}
+#endif

@@ -5,7 +5,7 @@ struct PolynomialCurveConversionTarget: GeometryCurveConversionSource {
     private let patches: [PolynomialConversionTargetPatch]
 
     static func accepts(_ curve: BSplineCurve3D) -> Bool {
-        guard (1...3).contains(curve.degree),
+        guard !curve.isPeriodic, (1...3).contains(curve.degree),
               curve.controlPointCount > curve.degree, curve.knots.count == curve.controlPointCount + curve.degree + 1,
               curve.weights.count == curve.controlPointCount,
               let weight = curve.weights.first, weight.isFinite, weight > 0,

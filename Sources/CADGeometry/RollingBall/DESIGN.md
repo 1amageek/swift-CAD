@@ -22,7 +22,7 @@ Local success must not be used as a whole-surface or solid certificate.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | surface evaluation and intersection correspondence | Supplies offset surfaces, normals and rational curves. | Keep geometric truth separate from sampled evidence. |
-| [CADModeling](../../CADModeling/DESIGN.md) | prospective consumer | contact sections | Will compose sections into a fillet. | No production feature integration is claimed yet. |
+| [CADModeling](../../CADModeling/DESIGN.md) | used by | contact sections and blend patches | Ordinary fillet dispatch composes retained topology through the kernel port. | Current selection domain remains limited; full fillet parity is not established. |
 
 ## Architecture
 
@@ -34,6 +34,21 @@ Equal-radius signed offsets + intersection component
 ```
 
 ## Contracts and Invariants
+
+Closed-interval consumers may supply native owning-span center/contact jets to
+`intervalJet(over:centerJet:firstContactJet:secondContactJet:)`. The same radial
+normalization, regular-minor-arc test, positive Bernstein denominator and complete
+third-order algebra as positive-box enclosure remain authoritative. This port
+does not prepare curves or replace native values with a fitted representation;
+the caller owns native jet provenance, interval coverage and resource charging.
+
+`RollingBallBlendSurface3D.centerSpine` and `tolerance` are immutable package
+reads alongside the retained contact rails and radius. Exchange fingerprint
+and native source encoding consumers read the original law and construction
+tolerance; they do not rebuild a spine from surface samples. These reads do
+not expose construction authority, mutable state or a fillet-feasibility
+certificate. Hashing and native Codable preserve the same stored values;
+common Hashable/Sendable storage remains identical on every target.
 
 Repeated blend interval queries retain the prepared center and two contact-rail
 enclosers in the existing PreparedSurfaceDifferentialEncloser. The preparation
@@ -190,3 +205,12 @@ invalid radius, wrong correspondence and degenerate contacts are rejected.
 These checks establish only the local section contract. Integration requires
 curved-edge helical-part machining, complete trimmed B-rep validity, atomic
 failure, Undo/Redo, source round-trip and native presentation.
+
+Caller-admitted closed rail composition accepts the same work and optional byte
+callbacks as the owning rail queries. Composition uses fixed jet fields for
+normalization, circular blending and finite-output checks; it allocates no
+axis, cross-component or derivative-check arrays. Work visits cover each fixed
+composition stage and every output derivative bound. Optional bytes remain
+unchanged at the boundary; no estimated scratch reservation stands in for the
+fixed-field implementation. Source rail continuity and whole-box regularity
+remain separate caller premises.

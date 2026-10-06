@@ -1,6 +1,6 @@
 import CADCore
 
-public struct SnapQueryOptions: Codable, Sendable, Hashable {
+public struct SnapQueryOptions: Sendable, Hashable {
     public var maximumDistance: Double?
     public var maximumCandidateCount: Int
     public var intent: SnapQueryIntent
@@ -48,3 +48,7 @@ public struct SnapQueryOptions: Codable, Sendable, Hashable {
         return intent.priority(for: kind)
     }
 }
+
+#if !hasFeature(Embedded)
+extension SnapQueryOptions: Codable {}
+#endif
