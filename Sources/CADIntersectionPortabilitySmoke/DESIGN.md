@@ -3,7 +3,8 @@
 ## Purpose and Scope
 
 This executable verifies the public original native curve/surface and surface/surface
-isolated-point publication paths. Parent: [Swift-CAD](../../DESIGN.md).
+isolated-point publication paths, including the bounded original Native curve/ruled
+public checkpoint. Parent: [Swift-CAD](../../DESIGN.md).
 Child: [Original Point Relation Proof](OriginalPointRelationProof/DESIGN.md).
 
 ## Responsibilities and Boundaries

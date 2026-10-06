@@ -8,7 +8,7 @@ Smoke](../DESIGN.md). It has no children.
 
 ## Responsibilities and Boundaries
 
-Literal original B-spline fixtures exercise normal and caller-admitted rich and
+Literal original B-spline and original Native curve/ruled fixtures exercise normal and caller-admitted rich and
 discrete curve/surface and surface/surface requirements through existentials.
 The public native receipt must retain exact tuple ownership; arrays alone are
 insufficient. Geometry algorithms remain production-owned.
@@ -19,6 +19,7 @@ insufficient. Geometry algorithms remain production-owned.
 |---|---|---|---|---|
 | [Intersection Portability Smoke](../DESIGN.md) | parent | Fixed-target entry and bounded recipe | Joins cancellation proof | A failed target is not completion |
 | [Native CS Points](../../CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md) | depends on | Original tuple publication | Supplies curve/surface receipts | Positive dimension cannot publish an isolated subset |
+| [Original Polynomial CS Points](../../CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md) | depends on | Complete isolated original tuple receipts and atomic non-discrete refusal | Supplies unchanged ruled source authority | Native-only detailed cases are reused; this executable checks target public capabilities |
 | [Native SSI Points](../../CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md) | depends on | Original tuple publication | Supplies surface/surface receipts | Empty success requires full coverage |
 | [Original Plane Derivatives](../../CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md) | depends on | Immutable generated source and native decoding allowance | Exercises common indirect storage | Copying must preserve source semantics and lifetime |
 
@@ -39,6 +40,13 @@ fixtures must fail atomically through the discrete publication requirement.
 Rich relation publication owns its separate contract and may support such
 coverage without changing the discrete requirement. Independent zero work and zero storage allowances
 must fail before publication. Cancellation inside admitted work must propagate.
+The weighted nonunit-domain Native curve/ruled fixture must pass all four rich/discrete
+ordinary/admitted protocol requirements. Its exact tuple owner survives input mutation
+and release; two UV preimages at one XYZ remain distinct. A finite no-root domain
+retains complete empty coverage, and positive dimension fails atomically. Independent
+work, storage, source-depth, algebra-depth and candidate limits fail explicitly.
+The actual last storage callback of point and domain-excluded empty publication
+cancels a joined Task and must reject success for admitted rich and discrete paths.
 An original plane-derivative value must survive release of its original local
 value, retain equality and hash identity, and evaluate its literal center.
 Its retained RootSpan must also share directed source identity through double
@@ -51,7 +59,11 @@ one-word-short cumulative decoder storage must fail explicitly.
 
 Fixtures and results are local immutable values. A Sendable ledger owns the
 same Mutex state on all targets, debits checked cumulative allowances, and
-invokes no external callback while locked. The async entry owns and joins the
+invokes no external callback while locked. Exact algebra work counts are debited
+without reduction; cell visits and public depth callbacks charge one work unit. Storage callback ordinals are checked
+for overflow and counted under that same Mutex; exact tuple query UInt32-word
+admission is converted to physical bytes by checked multiplication before debit; task cancellation occurs after
+leaving the lock. The async entry owns and joins the
 cancelled task. No target-specific raw state, unchecked Sendable or detached
 resource is used.
 
