@@ -1,6 +1,6 @@
 # CurveSurfaceOverlap
 
-Finite nonperiodic positive-weight source-valid B-spline curve/tensor products across native spans are owned by [Native Point Relations](NativePointRelations/DESIGN.md). Discrete entries retain their complete isolated tuple proof and fail atomically on positive-dimensional coverage. Rich native entries delegate whole finite chart-product composition to [Native Relation](NativeRelation/DESIGN.md).
+Finite selected positive-weight source-valid B-spline curve/tensor products, including exactly represented periodic transports, are owned by [Native Point Relations](NativePointRelations/DESIGN.md). Discrete entries retain their complete isolated tuple proof and fail atomically on positive-dimensional coverage. Rich native entries delegate whole finite chart-product composition to [Native Relation](NativeRelation/DESIGN.md).
 
 ## Purpose and Scope
 
