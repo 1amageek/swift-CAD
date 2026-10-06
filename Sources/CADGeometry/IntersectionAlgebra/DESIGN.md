@@ -120,9 +120,33 @@ admission only. Reuse never resets the original context's inherited coefficient
 depth. Rational constants bypass auxiliary roots. All arithmetic and retained
 storage use the same caller ledger; failure publishes no coefficient receipt.
 
-The ordered relation composer will place fixed coefficient coordinates before
-geometric coordinates, bind each to its issued original polynomial and selected
-real isolation, and retain the source laws and parameter suffix. Those fixed
+`OriginalOrderedIntersectionPolynomial` retains each original ordered coefficient
+with a validated full geometric monomial. Differentiation changes that monomial
+and scales its actual retained field coefficient by the exact integer degree;
+rank/critical witnesses remain original laws supplied explicitly by their owner.
+A nullified fiber remains whole unless such a witness requires its subdivision.
+The relation compiler assigns auxiliary
+coordinates only to nonrational coefficients, before the geometric suffix, and
+retains a mapping from every original term to its coefficient issuer. Each
+auxiliary coordinate is constrained by that issuer's annihilator and exact
+selected isolation, including excluded endpoint facts. Even separate auxiliary
+coordinates for correlated values remain fixed to their actual original values;
+conjugate products are never admitted as alternative input coefficients.
+
+`OriginalRationalIntersectionCells` retains a coefficient-prefix count, independent
+coefficient-depth limit, and both achieved depth domains per cell. Only prefix
+root enumeration/separation spends coefficient admission. Later geometry roots
+spend parameter admission and inherit the source's parameter depth. Lifting may
+not relabel a root after issuance or lose the original source coefficient depth.
+The selected coefficient prefix must consist entirely of zero-dimensional
+sections. The compiler checks its source-bound prefix and projects the immutable
+published sample to the geometric suffix; whole cell conditions still retain
+the original auxiliary authority. A zero coefficient count uses the identical
+rational execution path, without an invented coefficient-cell visit.
+
+The ordered relation composer places fixed coefficient coordinates before
+geometric coordinates, binds each to its issued original polynomial and selected
+real isolation, and retains the source laws and parameter suffix. Those fixed
 coordinates have dimension zero in the selected relation and never become
 geometric parameters. Closure candidates quantify geometric coordinates only;
 the coefficient prefix is shared original authority, not a second independent

@@ -48,6 +48,13 @@ package struct OriginalIntersectionCellClosure: Sendable {
             return Self(source: source, proof: .affineCell(affine), freePartition: partition,
                 includedCells: affine.includedCells, originalPredicates: source.polynomials, predicateIdeal: nil)
         }
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Generic ordered-cell incidence still
+        // reaches this path from OriginalRationalIntersectionIncidence.prepare.
+        // Do not publish closure until fixed coefficients stay unquantified and
+        // their original independent root admission survives free-prefix lifting.
+        guard partition.coefficientVariableCount == 0 else {
+            throw rationalAlgebraFailure("Generic ordered closure requires source-bound fixed coefficient quantification.")
+        }
         var closedSupport: [ExactIntersectionPolynomial] = []
         for (index, polynomial) in source.polynomials.enumerated() {
             try intersectionAlgebraStep(&usage)

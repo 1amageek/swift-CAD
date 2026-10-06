@@ -11,6 +11,7 @@ package struct OriginalRationalIntersectionCells: Sendable {
         package let kind: Kind
         package let dimension: Int
         package let admissionDepth: Int
+        package let coefficientAdmissionDepth: Int
         package let context: OriginalSingularFieldContext
         package let coordinates: [OriginalSingularFieldElement]
         package let signs: [ExactAlgebraicRealRoot.Sign]
@@ -39,17 +40,22 @@ package struct OriginalRationalIntersectionCells: Sendable {
     package let cells: [Cell]
     package let solutionCells: [Int]
     package let selectionProgram: ExactIntersectionBooleanProgram?
+    package let coefficientVariableCount: Int
+    package let maximumCoefficientDepth: Int
 
     private init(equations: [ExactIntersectionPolynomial], domains: [OriginalRationalParameterDomain],
         nonzeroPolynomials: [ExactIntersectionPolynomial], nonzeroSignOffset: Int,
         partitionPolynomials: [ExactIntersectionPolynomial], partitionSignOffset: Int,
         tower: ExactIntersectionProjectionTower, stacks: [Stack], cells: [Cell], solutionCells: [Int], excludedPrefixes: [ExcludedPrefix],
-        selectionProgram: ExactIntersectionBooleanProgram? = nil) {
+        selectionProgram: ExactIntersectionBooleanProgram? = nil,
+        coefficientVariableCount: Int = 0, maximumCoefficientDepth: Int = 0) {
         self.equations = equations; self.domains = domains; self.tower = tower
         self.nonzeroPolynomials = nonzeroPolynomials; self.nonzeroSignOffset = nonzeroSignOffset
         self.partitionPolynomials = partitionPolynomials; self.partitionSignOffset = partitionSignOffset
         self.stacks = stacks; self.cells = cells; self.solutionCells = solutionCells; self.excludedPrefixes = excludedPrefixes
         self.selectionProgram = selectionProgram
+        self.coefficientVariableCount = coefficientVariableCount
+        self.maximumCoefficientDepth = maximumCoefficientDepth
     }
 
     /// The original partition witnesses make predicate truth constant on whole cells.
@@ -84,7 +90,8 @@ package struct OriginalRationalIntersectionCells: Sendable {
         return Self(equations: equations, domains: domains, nonzeroPolynomials: nonzeroPolynomials,
             nonzeroSignOffset: nonzeroSignOffset, partitionPolynomials: partitionPolynomials,
             partitionSignOffset: partitionSignOffset, tower: tower, stacks: stacks, cells: cells,
-            solutionCells: selected, excludedPrefixes: excludedPrefixes, selectionProgram: program)
+            solutionCells: selected, excludedPrefixes: excludedPrefixes, selectionProgram: program,
+            coefficientVariableCount: coefficientVariableCount, maximumCoefficientDepth: maximumCoefficientDepth)
     }
     private struct Admission<B: RationalAlgebraAdmitting>: RationalAlgebraAdmitting {
         var base: B
@@ -105,32 +112,49 @@ package struct OriginalRationalIntersectionCells: Sendable {
     package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
         variableCount: Int, domains: [ScalarInterval?],
         partitionPolynomials: [ExactIntersectionPolynomial] = [], nonzeroPolynomials: [ExactIntersectionPolynomial] = [],
-        thomEncoding: Bool = false, pruneExcludedPrefixes: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
+        thomEncoding: Bool = false, pruneExcludedPrefixes: Bool = false,
+        coefficientVariableCount: Int = 0, maximumCoefficientDepth: Int = 0,
+        inheritedParameterDepth: Int = 0, inheritedCoefficientDepth: Int = 0,
+        maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         try RationalAlgebraStorage.retain(domains.count, of: OriginalRationalParameterDomain.self, usage: &usage)
         var exact: [OriginalRationalParameterDomain] = []; exact.reserveCapacity(domains.count)
         for domain in domains { exact.append(try .init(domain, usage: &usage)) }
         return try prepare(equations: equations, variableCount: variableCount, exactDomains: exact,
             partitionPolynomials: partitionPolynomials, nonzeroPolynomials: nonzeroPolynomials,
-            thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &usage)
+            thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes,
+            coefficientVariableCount: coefficientVariableCount, maximumCoefficientDepth: maximumCoefficientDepth,
+            inheritedParameterDepth: inheritedParameterDepth, inheritedCoefficientDepth: inheritedCoefficientDepth,
+            maximumDepth: maximumDepth, usage: &usage)
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
         variableCount: Int, exactDomains: [OriginalRationalParameterDomain],
         partitionPolynomials: [ExactIntersectionPolynomial] = [], nonzeroPolynomials: [ExactIntersectionPolynomial] = [],
-        thomEncoding: Bool = false, pruneExcludedPrefixes: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
+        thomEncoding: Bool = false, pruneExcludedPrefixes: Bool = false,
+        coefficientVariableCount: Int = 0, maximumCoefficientDepth: Int = 0,
+        inheritedParameterDepth: Int = 0, inheritedCoefficientDepth: Int = 0,
+        maximumDepth: Int, usage: inout B) throws -> Self {
         var admission = Admission(base: usage)
         defer { usage = admission.base }
         return try prepareAdmitted(equations: equations, variableCount: variableCount,
             domains: exactDomains, partitionPolynomials: partitionPolynomials, nonzeroPolynomials: nonzeroPolynomials,
-            thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &admission)
+            thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes,
+            coefficientVariableCount: coefficientVariableCount, maximumCoefficientDepth: maximumCoefficientDepth,
+            inheritedParameterDepth: inheritedParameterDepth, inheritedCoefficientDepth: inheritedCoefficientDepth,
+            maximumDepth: maximumDepth, usage: &admission)
     }
 
     private static func prepareAdmitted<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
         variableCount: Int, domains: [OriginalRationalParameterDomain], partitionPolynomials: [ExactIntersectionPolynomial], nonzeroPolynomials: [ExactIntersectionPolynomial], thomEncoding: Bool, pruneExcludedPrefixes: Bool,
+        coefficientVariableCount: Int, maximumCoefficientDepth: Int,
+        inheritedParameterDepth: Int, inheritedCoefficientDepth: Int,
         maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
-        guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount), domains.count == variableCount, maximumDepth >= 0 else {
+        guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount), domains.count == variableCount,
+            maximumDepth >= 0, coefficientVariableCount >= 0, coefficientVariableCount <= variableCount,
+            (0...32).contains(maximumCoefficientDepth), inheritedParameterDepth >= 0, inheritedParameterDepth <= maximumDepth,
+            inheritedCoefficientDepth >= 0, inheritedCoefficientDepth <= maximumCoefficientDepth else {
             throw rationalAlgebraFailure("Real-cell lifting requires bound original coordinates, domains and admission depth.")
         }
         let boundaryCount = try rationalAlgebraCount(variableCount, 2, multiply: true)
@@ -173,7 +197,11 @@ package struct OriginalRationalIntersectionCells: Sendable {
                 let context = parent.map { cells[$0].context } ?? rational
                 let coordinates = parent.map { cells[$0].coordinates } ?? []
                 let dimension = parent.map { cells[$0].dimension } ?? 0
-                let inheritedDepth = parent.map { cells[$0].admissionDepth } ?? 0
+                let inheritedDepth = parent.map { cells[$0].admissionDepth } ?? inheritedParameterDepth
+                let inheritedCoefficient = parent.map { cells[$0].coefficientAdmissionDepth } ?? inheritedCoefficientDepth
+                let coefficientAxis = axis < coefficientVariableCount
+                let rootDomain: OriginalSingularFieldRoot.AdmissionDomain = coefficientAxis
+                    ? .coefficient(maximumDepth: maximumCoefficientDepth) : .parameter
                 if pruneExcludedPrefixes {
                     var rejected = false
                     for (index, equation) in equations.enumerated() {
@@ -203,22 +231,26 @@ package struct OriginalRationalIntersectionCells: Sendable {
                     specialized.append(polynomial); degrees.append(polynomial.degree)
                 }
                 var roots = try completeRootUnion(sources: specialized,
-                    inheritedDepth: max(inheritedDepth, context.depth), maximumDepth: maximumDepth, usage: &usage)
+                    inheritedDepth: coefficientAxis ? max(inheritedCoefficient, context.coefficientDepth) : max(inheritedDepth, context.depth),
+                    maximumDepth: maximumDepth, admissionDomain: rootDomain, usage: &usage)
                 try separate(&roots, maximumDepth: maximumDepth, usage: &usage)
                 let stackIndex = stacks.count
                 var children: [Int] = []
                 for position in 0...roots.count {
                     try intersectionAlgebraStep(&usage)
                     let sample = try sectorSample(roots: roots, position: position, usage: &usage)
-                    var sectorDepth = inheritedDepth
+                    var sectorDepth = coefficientAxis ? inheritedCoefficient : inheritedDepth
                     if position > 0 { sectorDepth = max(sectorDepth, roots[position - 1].isolation.depth) }
                     if position < roots.count { sectorDepth = max(sectorDepth, roots[position].isolation.depth) }
                     let value = try OriginalSingularFieldElement.constant(sample, in: context,
                         maximumDepth: maximumDepth, usage: &usage)
                     try append(value: value, kind: .sector(lowerOrdinal: position > 0 ? position - 1 : nil,
                         upperOrdinal: position < roots.count ? position : nil), dimension: dimension + 1,
-                        admissionDepth: sectorDepth, stackIndex: stackIndex, coordinates: coordinates, specialized: specialized,
-                        maximumDepth: maximumDepth, children: &children, cells: &cells, next: &next, usage: &usage)
+                        admissionDepth: coefficientAxis ? inheritedDepth : sectorDepth,
+                        coefficientAdmissionDepth: coefficientAxis ? sectorDepth : inheritedCoefficient,
+                        coefficientAxis: coefficientAxis, stackIndex: stackIndex, coordinates: coordinates, specialized: specialized,
+                        maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth,
+                        children: &children, cells: &cells, next: &next, usage: &usage)
                     if position < roots.count {
                         let root = try minimalSectionRoot(roots[position], sources: specialized,
                             maximumDepth: maximumDepth, usage: &usage)
@@ -228,9 +260,12 @@ package struct OriginalRationalIntersectionCells: Sendable {
                                 .divided(by: root.polynomial.coefficients[1], maximumDepth: maximumDepth, usage: &usage)
                         } else { value = try root.value(maximumDepth: maximumDepth, usage: &usage) }
                         try append(value: value, kind: .section(rootOrdinal: position), dimension: dimension,
-                            admissionDepth: max(inheritedDepth, root.isolation.depth),
+                            admissionDepth: coefficientAxis ? inheritedDepth : max(inheritedDepth, root.isolation.depth),
+                            coefficientAdmissionDepth: coefficientAxis ? max(inheritedCoefficient, root.isolation.depth) : inheritedCoefficient,
+                            coefficientAxis: coefficientAxis,
                             stackIndex: stackIndex, coordinates: coordinates, specialized: specialized,
-                            maximumDepth: maximumDepth, children: &children, cells: &cells, next: &next, usage: &usage)
+                            maximumDepth: maximumDepth, maximumCoefficientDepth: maximumCoefficientDepth,
+                            children: &children, cells: &cells, next: &next, usage: &usage)
                     }
                 }
                 try RationalAlgebraStorage.retain(1, of: Stack.self, usage: &usage)
@@ -279,13 +314,15 @@ package struct OriginalRationalIntersectionCells: Sendable {
         return Self(equations: equations, domains: domains,
             nonzeroPolynomials: nonzeroPolynomials, nonzeroSignOffset: nonzeroSignOffset,
             partitionPolynomials: partitionPolynomials, partitionSignOffset: partitionSignOffset,
-            tower: tower, stacks: stacks, cells: cells, solutionCells: selected, excludedPrefixes: excluded)
+            tower: tower, stacks: stacks, cells: cells, solutionCells: selected, excludedPrefixes: excluded,
+            coefficientVariableCount: coefficientVariableCount, maximumCoefficientDepth: maximumCoefficientDepth)
     }
 
     package static func completeRootUnion<B: RationalAlgebraAdmitting>(
         sources: [OriginalSingularFieldPolynomial], inheritedDepth: Int,
-        maximumDepth: Int, usage: inout B) throws -> [OriginalSingularFieldRoot] {
-        guard inheritedDepth <= maximumDepth else {
+        maximumDepth: Int, admissionDomain: OriginalSingularFieldRoot.AdmissionDomain = .parameter,
+        usage: inout B) throws -> [OriginalSingularFieldRoot] {
+        guard inheritedDepth >= 0, inheritedDepth <= admissionDomain.limit(maximumDepth) else {
             throw rationalAlgebraFailure("Original root unions cannot reset inherited admission depth.")
         }
         var result: [OriginalSingularFieldRoot] = []
@@ -296,14 +333,14 @@ package struct OriginalRationalIntersectionCells: Sendable {
                let rational = try source.coefficients[0].negated(maximumDepth: maximumDepth, usage: &usage)
                 .divided(by: source.coefficients[1], maximumDepth: maximumDepth, usage: &usage)
                 .rationalValue(usage: &usage) {
-                try usage.visitExactCell(depth: inheritedDepth)
+                try admissionDomain.visit(inheritedDepth, usage: &usage)
                 try RationalAlgebraStorage.retain(1, of: OriginalSingularFieldRoot.self, usage: &usage)
                 issued = [OriginalSingularFieldRoot(polynomial: source,
                     isolation: .init(lower: rational, upper: rational, excludesLower: false,
-                        excludesUpper: false, depth: inheritedDepth))]
+                        excludesUpper: false, depth: inheritedDepth), admissionDomain: admissionDomain)]
             } else {
                 issued = try OriginalSingularFieldRoot.allRealRoots(source, inheritedDepth: inheritedDepth,
-                    maximumDepth: maximumDepth, usage: &usage)
+                    maximumDepth: maximumDepth, admissionDomain: admissionDomain, usage: &usage)
             }
             for original in issued {
                 var root = original, position = 0, duplicate = false
@@ -397,15 +434,18 @@ package struct OriginalRationalIntersectionCells: Sendable {
     }
 
     private static func append<B: RationalAlgebraAdmitting>(value: OriginalSingularFieldElement, kind: Kind,
-        dimension: Int, admissionDepth: Int, stackIndex: Int, coordinates: [OriginalSingularFieldElement],
-        specialized: [OriginalSingularFieldPolynomial], maximumDepth: Int, children: inout [Int],
+        dimension: Int, admissionDepth: Int, coefficientAdmissionDepth: Int, coefficientAxis: Bool,
+        stackIndex: Int, coordinates: [OriginalSingularFieldElement],
+        specialized: [OriginalSingularFieldPolynomial], maximumDepth: Int, maximumCoefficientDepth: Int, children: inout [Int],
         cells: inout [Cell], next: inout [Int?], usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         let retainedDepth = max(admissionDepth, value.context.depth)
-        guard retainedDepth <= maximumDepth else {
+        let retainedCoefficientDepth = max(coefficientAdmissionDepth, value.context.coefficientDepth)
+        guard retainedDepth <= maximumDepth, retainedCoefficientDepth <= maximumCoefficientDepth else {
             throw rationalAlgebraFailure("A real cell cannot lose or exceed its inherited root admission depth.")
         }
-        try usage.visitExactCell(depth: retainedDepth)
+        if coefficientAxis { try usage.visitCoefficientCell(depth: retainedCoefficientDepth) }
+        else { try usage.visitExactCell(depth: retainedDepth) }
         let count = try rationalAlgebraCount(coordinates.count, 1)
         try RationalAlgebraStorage.retain(count, of: OriginalSingularFieldElement.self, usage: &usage)
         var values: [OriginalSingularFieldElement] = []; values.reserveCapacity(count)
@@ -425,7 +465,8 @@ package struct OriginalRationalIntersectionCells: Sendable {
         try RationalAlgebraStorage.retain(1, of: Int?.self, usage: &usage)
         let index = cells.count
         cells.append(Cell(stackIndex: stackIndex, kind: kind, dimension: dimension,
-            admissionDepth: retainedDepth, context: value.context, coordinates: values, signs: signs))
+            admissionDepth: retainedDepth, coefficientAdmissionDepth: retainedCoefficientDepth,
+            context: value.context, coordinates: values, signs: signs))
         children.append(index); next.append(index)
     }
 }
