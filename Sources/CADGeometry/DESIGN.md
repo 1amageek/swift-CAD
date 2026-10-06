@@ -1,6 +1,6 @@
 # CADGeometry
 
-Finite nonperiodic positive-weight source-valid B-spline isolated curve/tensor queries across native spans are owned by [Native Point Relations](CurveSurfaceOverlap/NativePointRelations/DESIGN.md), a child of CurveSurfaceOverlap. Single-chart continuous and mixed native relations are owned by [Native Curve Surface Relation](CurveSurfaceOverlap/NativeRelation/DESIGN.md). Their child contracts determine complete original coverage and exact parameter identity.
+Finite nonperiodic positive-weight source-valid B-spline isolated curve/tensor queries across native spans are owned by [Native Point Relations](CurveSurfaceOverlap/NativePointRelations/DESIGN.md), a child of CurveSurfaceOverlap. Finite nonperiodic single- and multi-chart continuous and mixed native relations are owned by [Native Curve Surface Relation](CurveSurfaceOverlap/NativeRelation/DESIGN.md). Their child contracts determine complete original coverage and exact parameter identity.
 
 Single-span Native SSI isolated tuples are owned by [Native Surface Surface Point Relations](NativeSurfaceSurfacePointRelations/DESIGN.md). Rich normal, caller-admitted, domain-pair and retained-session requirements expose complete original tuple coverage, including empty results. Existing array entries use the same producer; positive-dimensional selected Native products fail atomically until their relation publisher is complete.
 
