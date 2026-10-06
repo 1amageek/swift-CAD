@@ -38,24 +38,34 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
     package let freeCells: [Truth]
     package let decisions: [Decision]
     package let closedTruth: Bool?
+    package let coefficientVariableCount: Int
+    package let maximumCoefficientDepth: Int
 
     private init(tower: ExactIntersectionProjectionTower, program: ExactIntersectionBooleanProgram,
         quantifiers: [Quantifier], freeDomainEquations: [ExactIntersectionPolynomial], freeVariableCount: Int, freePartition: OriginalRationalIntersectionCells?,
-        freeCells: [Truth], decisions: [Decision], closedTruth: Bool?) {
+        freeCells: [Truth], decisions: [Decision], closedTruth: Bool?,
+        coefficientVariableCount: Int, maximumCoefficientDepth: Int) {
         self.tower = tower; self.program = program; self.quantifiers = quantifiers; self.freeDomainEquations = freeDomainEquations
         self.freeVariableCount = freeVariableCount; self.freePartition = freePartition
         self.freeCells = freeCells; self.decisions = decisions; self.closedTruth = closedTruth
+        self.coefficientVariableCount = coefficientVariableCount; self.maximumCoefficientDepth = maximumCoefficientDepth
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(polynomials: [ExactIntersectionPolynomial],
         program: ExactIntersectionBooleanProgram, variableCount: Int, freeVariableCount: Int,
-        quantifiers: [Quantifier], freeDomainEquations: [ExactIntersectionPolynomial] = [], maximumDepth: Int, usage: inout B) throws -> Self {
+        quantifiers: [Quantifier], freeDomainEquations: [ExactIntersectionPolynomial] = [],
+        coefficientVariableCount: Int = 0, maximumCoefficientDepth: Int = 0,
+        inheritedParameterDepth: Int = 0, inheritedCoefficientDepth: Int = 0,
+        maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount),
             freeVariableCount >= 0, freeVariableCount <= variableCount, maximumDepth >= 0,
             quantifiers.count == variableCount - freeVariableCount,
             program.polynomialCount == polynomials.count,
-            freeVariableCount > 0 || freeDomainEquations.isEmpty else {
+            freeVariableCount > 0 || freeDomainEquations.isEmpty,
+            coefficientVariableCount >= 0, coefficientVariableCount <= freeVariableCount,
+            (0...32).contains(maximumCoefficientDepth), inheritedParameterDepth >= 0, inheritedParameterDepth <= maximumDepth,
+            inheritedCoefficientDepth >= 0, inheritedCoefficientDepth <= maximumCoefficientDepth else {
             throw rationalAlgebraFailure("Quantified truth requires one bound free prefix and quantified suffix.")
         }
         for equation in freeDomainEquations {
@@ -75,7 +85,7 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
         let closed: Bool?
         if freeVariableCount == 0 {
             let context = try OriginalSingularFieldContext(usage: &usage)
-            let proof = try decide(axis: 0, context: context, coordinates: [], inheritedDepth: 0,
+            let proof = try decide(axis: 0, context: context, coordinates: [], inheritedDepth: inheritedParameterDepth,
                 tower: tower, program: program, inheritedSigns: nil, freeVariableCount: 0, quantifiers: quantifiers,
                 maximumDepth: maximumDepth, scratch: &scratch, partialScratch: &partialScratch, decisions: &decisions, usage: &usage)
             closed = decisions[proof].value; prefix = nil
@@ -87,6 +97,8 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
             try RationalAlgebraStorage.retain(freeVariableCount, of: ScalarInterval?.self, usage: &usage)
             let partition = try OriginalRationalIntersectionCells.prepare(equations: freeDomainEquations, variableCount: freeVariableCount,
                 domains: Array(repeating: nil, count: freeVariableCount), partitionPolynomials: projected, pruneExcludedPrefixes: !freeDomainEquations.isEmpty,
+                coefficientVariableCount: coefficientVariableCount, maximumCoefficientDepth: maximumCoefficientDepth,
+                inheritedParameterDepth: inheritedParameterDepth, inheritedCoefficientDepth: inheritedCoefficientDepth,
                 maximumDepth: maximumDepth, usage: &usage)
             for index in partition.solutionCells {
                 try intersectionAlgebraStep(&usage)
@@ -119,7 +131,8 @@ package struct ExactIntersectionQuantifiedCells: Sendable {
         try RationalAlgebraStorage.retain(freeDomainEquations.count, of: ExactIntersectionPolynomial.self, usage: &usage)
         return Self(tower: tower, program: program, quantifiers: quantifiers, freeDomainEquations: freeDomainEquations,
             freeVariableCount: freeVariableCount, freePartition: prefix, freeCells: free,
-            decisions: decisions, closedTruth: closed)
+            decisions: decisions, closedTruth: closed, coefficientVariableCount: coefficientVariableCount,
+            maximumCoefficientDepth: maximumCoefficientDepth)
     }
 
     private static func decide<B: RationalAlgebraAdmitting>(axis: Int,

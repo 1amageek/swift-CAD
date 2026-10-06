@@ -4,6 +4,8 @@ package struct OriginalIntersectionCellCondition: Sendable {
     package let cellIndex: Int
     package let polynomials: [ExactIntersectionPolynomial]
     package let signs: [ExactAlgebraicRealRoot.Sign]
+    package let coefficientVariableCount: Int
+    package let fixedCoefficientCellIndex: Int?
 
     package init<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
         cellIndex: Int, usage: inout B) throws {
@@ -26,6 +28,11 @@ package struct OriginalIntersectionCellCondition: Sendable {
         guard path.count == partition.tower.variableCount else {
             throw rationalAlgebraFailure("Original cell identity omitted a native coordinate.")
         }
+        coefficientVariableCount = partition.coefficientVariableCount
+        if coefficientVariableCount > 0 {
+            let prefix = path[partition.tower.variableCount - coefficientVariableCount]
+            fixedCoefficientCellIndex = partition.cells[prefix].dimension == 0 ? prefix : nil
+        } else { fixedCoefficientCellIndex = nil }
         var polynomials: [ExactIntersectionPolynomial] = [], signs: [ExactAlgebraicRealRoot.Sign] = []
         for (axis, index) in path.reversed().enumerated() {
             try intersectionAlgebraStep(&usage)

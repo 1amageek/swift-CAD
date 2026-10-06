@@ -21,7 +21,8 @@ package struct OriginalRationalIntersectionIncidence: Sendable {
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
-        allowAffineClosureProofs: Bool = true, maximumDepth: Int, usage: inout B) throws -> Self {
+        allowAffineClosureProofs: Bool = true, allowFiniteBranchClosureProofs: Bool = true,
+        maximumDepth: Int, usage: inout B) throws -> Self {
         try intersectionAlgebraStep(&usage)
         guard partition.tower.hasThomEncoding else {
             throw rationalAlgebraFailure("Incidence requires derivative-closed original cell identity.")
@@ -36,7 +37,8 @@ package struct OriginalRationalIntersectionIncidence: Sendable {
         for source in partition.solutionCells {
             try intersectionAlgebraStep(&usage)
             let closure = try OriginalIntersectionCellClosure.prepare(partition: partition, cellIndex: source,
-                allowAffineProofs: allowAffineClosureProofs, maximumDepth: maximumDepth, usage: &usage)
+                allowAffineProofs: allowAffineClosureProofs, allowFiniteBranchProofs: allowFiniteBranchClosureProofs,
+                maximumDepth: maximumDepth, usage: &usage)
             let closureIndex = closures.count
             let freePartition = closure.freePartition
             for index in closure.includedCells {

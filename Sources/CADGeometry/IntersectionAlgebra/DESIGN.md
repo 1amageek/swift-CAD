@@ -160,6 +160,42 @@ independent work/storage/parameter/coefficient depth failures. Actual input
 producers, rather than rounded values reconstructed in fixtures, must reach the
 issuer.
 
+### Closure Over Fixed Original Coefficients
+
+The derivative-closed cell condition retains the issued coefficient-prefix cell
+index. An ordered source cell requires a zero-dimensional coefficient prefix;
+a free coefficient sector cannot be treated as fixed original authority.
+Affineness for a fixed fiber counts degree only in geometric coordinates.
+Coefficient-only laws keep their original strict signs, and candidate cells
+must have exactly the same issued prefix. Convex interpolation in the geometric
+suffix then proves weak affine signs sufficient for closure, while fixed
+coefficient laws remain unchanged. A polynomial affine in the full ring is the
+zero-prefix instance of the same theorem.
+
+For c fixed coefficients and g geometric coordinates, the general closure
+formula uses c+2*g+1 coordinates: the original coefficient prefix, a free
+geometric tuple, one positive radius and one candidate geometric tuple. The
+candidate remapping shares each coefficient coordinate with the free point;
+only geometric differences enter the neighborhood box. Because the source
+coefficient prefix is one closed point, this is exactly the original ambient
+closure rather than a relaxed coefficient-dependent solution set.
+Every original candidate sign remains an explicit guard. Source zero conditions
+still form the free closed-support equations, and original free partition laws
+make incidence membership constant on each whole refined cell.
+
+Quantified free-prefix lifting retains the coefficient count, unchanged
+coefficient limit and both achieved source depths. Radius/candidate roots spend
+parameter admission only, while original coefficient signs retain their own
+issued domain. Fixed coefficients are never duplicated into independently
+selected conjugates or relabeled as geometric roots. Callers may disable affine
+and finite-branch theorems before execution to verify the actual general formula;
+exhaustion does not select an alternative theorem afterward.
+
+The actual generic ordered path is verified through closure incidence for a
+half-line endpoint and a two-dimensional fixed-coefficient region, with complete
+refined-cell truth, conjugate exclusion, nonfixed-prefix rejection and independent
+failure behavior. Public ordered publication remains a separate unfinished port.
+
 ### Public Original Rational Relation Selection
 
 `OriginalPolynomialRelationResolving` is the public witness-table boundary for

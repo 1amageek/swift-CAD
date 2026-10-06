@@ -24,7 +24,8 @@ package struct OriginalIntersectionCellClosure: Sendable {
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(partition: OriginalRationalIntersectionCells,
-        cellIndex: Int, allowAffineProofs: Bool = true, maximumDepth: Int, usage: inout B) throws -> Self {
+        cellIndex: Int, allowAffineProofs: Bool = true, allowFiniteBranchProofs: Bool = true,
+        maximumDepth: Int, usage: inout B) throws -> Self {
         let source = try OriginalIntersectionCellCondition(partition: partition, cellIndex: cellIndex, usage: &usage)
         let count = source.variableCount
         guard count > 0 else {
@@ -33,12 +34,17 @@ package struct OriginalIntersectionCellClosure: Sendable {
         guard maximumDepth >= 0, partition.cells[cellIndex].admissionDepth <= maximumDepth else {
             throw rationalAlgebraFailure("Original closure cannot reset its issued source-cell depth.")
         }
+        let coefficientCount = source.coefficientVariableCount
+        guard coefficientCount == 0 || source.fixedCoefficientCellIndex != nil else {
+            throw rationalAlgebraFailure("Ordered closure requires one issued fixed coefficient-prefix point.")
+        }
+        let geometryCount = count - coefficientCount
         if partition.cells[cellIndex].dimension == 0 {
             try RationalAlgebraStorage.retain(1, of: Int.self, usage: &usage)
             return Self(source: source, proof: .point, freePartition: partition, includedCells: [cellIndex],
                 originalPredicates: source.polynomials, predicateIdeal: nil)
         }
-        if let monic = try OriginalFiniteBranchClosure.prepare(partition: partition,
+        if allowFiniteBranchProofs, let monic = try OriginalFiniteBranchClosure.prepare(partition: partition,
             cellIndex: cellIndex, maximumDepth: maximumDepth, usage: &usage) {
             return Self(source: source, proof: .finiteBranch(monic), freePartition: partition, includedCells: monic.includedCells,
                 originalPredicates: source.polynomials, predicateIdeal: nil)
@@ -48,13 +54,6 @@ package struct OriginalIntersectionCellClosure: Sendable {
             return Self(source: source, proof: .affineCell(affine), freePartition: partition,
                 includedCells: affine.includedCells, originalPredicates: source.polynomials, predicateIdeal: nil)
         }
-        // FIXME(INCOMPLETE_IMPLEMENTATION): Generic ordered-cell incidence still
-        // reaches this path from OriginalRationalIntersectionIncidence.prepare.
-        // Do not publish closure until fixed coefficients stay unquantified and
-        // their original independent root admission survives free-prefix lifting.
-        guard partition.coefficientVariableCount == 0 else {
-            throw rationalAlgebraFailure("Generic ordered closure requires source-bound fixed coefficient quantification.")
-        }
         var closedSupport: [ExactIntersectionPolynomial] = []
         for (index, polynomial) in source.polynomials.enumerated() {
             try intersectionAlgebraStep(&usage)
@@ -63,9 +62,13 @@ package struct OriginalIntersectionCellClosure: Sendable {
                 closedSupport.append(polynomial)
             }
         }
-        let variables = try rationalAlgebraCount(rationalAlgebraCount(count, 2, multiply: true), 1)
+        let variables = try rationalAlgebraCount(rationalAlgebraCount(count, geometryCount), 1)
         try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
-        let candidates = Array((count + 1)..<variables)
+        var candidates: [Int] = []; candidates.reserveCapacity(count)
+        for axis in 0..<count {
+            try intersectionAlgebraStep(&usage)
+            candidates.append(axis < coefficientCount ? axis : count + 1 + (axis - coefficientCount))
+        }
         try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
         let free = Array(0..<count)
         var polynomials: [ExactIntersectionPolynomial] = []
@@ -79,10 +82,11 @@ package struct OriginalIntersectionCellClosure: Sendable {
         try RationalAlgebraStorage.retain(1, of: ExactIntersectionPolynomial.self, usage: &usage)
         polynomials.append(radius)
         let boxIndex = polynomials.count
-        for axis in 0..<count {
+        for axis in coefficientCount..<count {
             try intersectionAlgebraStep(&usage)
             let p = try ExactIntersectionPolynomial.coordinate(variableCount: variables, at: axis, usage: &usage)
-            let q = try ExactIntersectionPolynomial.coordinate(variableCount: variables, at: count + 1 + axis, usage: &usage)
+            let q = try ExactIntersectionPolynomial.coordinate(variableCount: variables,
+                at: count + 1 + (axis - coefficientCount), usage: &usage)
             let difference = try p.subtracting(q, usage: &usage)
             try RationalAlgebraStorage.retain(2, of: ExactIntersectionPolynomial.self, usage: &usage)
             polynomials.append(try radius.subtracting(difference, usage: &usage))
@@ -148,7 +152,7 @@ package struct OriginalIntersectionCellClosure: Sendable {
                 closedGuards.append((index, source.signs[ordinal]))
             }
         }
-        let neighborhoodInstructions = try rationalAlgebraCount(rationalAlgebraCount(count, 4, multiply: true), 4)
+        let neighborhoodInstructions = try rationalAlgebraCount(rationalAlgebraCount(geometryCount, 4, multiply: true), 4)
         let instructionCount = try rationalAlgebraCount(rationalAlgebraCount(source.signs.count, 2, multiply: true), rationalAlgebraCount(neighborhoodInstructions, rationalAlgebraCount(closedGuards.count, 4, multiply: true)))
         try RationalAlgebraStorage.retain(instructionCount, of: ExactIntersectionBooleanProgram.Instruction.self, usage: &usage)
         var instructions: [ExactIntersectionBooleanProgram.Instruction] = [.atom(radiusIndex, .positive), .not, .literal(true)]
@@ -157,7 +161,8 @@ package struct OriginalIntersectionCellClosure: Sendable {
             try intersectionAlgebraStep(&usage)
             instructions.append(.atom(index, sign)); instructions.append(.and)
         }
-        for index in boxIndex..<(boxIndex + count * 2) {
+        let boxEnd = try rationalAlgebraCount(boxIndex, rationalAlgebraCount(geometryCount, 2, multiply: true))
+        for index in boxIndex..<boxEnd {
             try intersectionAlgebraStep(&usage)
             instructions.append(.atom(index, .positive)); instructions.append(.and)
         }
@@ -171,13 +176,18 @@ package struct OriginalIntersectionCellClosure: Sendable {
             instructions.append(.and)
         }
         let program = try ExactIntersectionBooleanProgram(polynomialCount: polynomials.count, instructions: instructions, usage: &usage)
-        try RationalAlgebraStorage.retain(count + 1, of: ExactIntersectionQuantifiedCells.Quantifier.self, usage: &usage)
+        let quantifierCount = try rationalAlgebraCount(geometryCount, 1)
+        try RationalAlgebraStorage.retain(quantifierCount, of: ExactIntersectionQuantifiedCells.Quantifier.self, usage: &usage)
         var quantifiers: [ExactIntersectionQuantifiedCells.Quantifier] = [.forall]
-        quantifiers.reserveCapacity(count + 1)
-        for _ in 0..<count { quantifiers.append(.exists) }
+        quantifiers.reserveCapacity(quantifierCount)
+        for _ in 0..<geometryCount { quantifiers.append(.exists) }
         let truth = try ExactIntersectionQuantifiedCells.prepare(polynomials: polynomials, program: program,
             variableCount: variables, freeVariableCount: count, quantifiers: quantifiers,
-            freeDomainEquations: closedSupport, maximumDepth: maximumDepth, usage: &usage)
+            freeDomainEquations: closedSupport, coefficientVariableCount: coefficientCount,
+            maximumCoefficientDepth: partition.maximumCoefficientDepth,
+            inheritedParameterDepth: partition.cells[cellIndex].admissionDepth,
+            inheritedCoefficientDepth: partition.cells[cellIndex].coefficientAdmissionDepth,
+            maximumDepth: maximumDepth, usage: &usage)
         guard let freePartition = truth.freePartition else { throw rationalAlgebraFailure("An original closure lost its whole free-coordinate cover.") }
         var included: [Int] = []
         for cell in truth.freeCells where cell.value {
