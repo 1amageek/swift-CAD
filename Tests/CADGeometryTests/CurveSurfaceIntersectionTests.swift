@@ -1310,8 +1310,9 @@ struct CurveSurfaceIntersectionTests {
         } catch let error as KernelError {
             #expect(error.phase == .geometry)
             #expect(error.code == .resourceLimitExceeded)
-            #expect(error.residual.map { $0 > tolerance.distance } == true)
-            #expect(error.tolerance == tolerance)
+            // Native algebra admission fails before geometric residual evaluation.
+            #expect(error.residual == nil)
+            #expect(error.tolerance == nil)
         }
     }
 
