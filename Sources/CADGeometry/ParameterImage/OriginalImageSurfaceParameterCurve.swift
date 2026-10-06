@@ -65,7 +65,7 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
             secondDerivative: targetImage.transform.applying(to: original.secondDerivative) * (scale * scale))
     }
 
-    package func modelSpaceThirdOrder(atNormalizedFraction fraction: Double,
+    func modelSpaceThirdOrder(atNormalizedFraction fraction: Double,
         tolerance: ModelingTolerance) throws -> CurveParameterThirdOrderDerivatives {
         let original = try Curve3D.surfaceLift(source).parameterDerivativesThroughThirdOrder(
             at: mappedFraction(fraction), tolerance: tolerance)
@@ -208,7 +208,7 @@ public struct OriginalImageSurfaceParameterCurve: Hashable, Sendable {
         throws -> (u: SurfaceIntervalJet, v: SurfaceIntervalJet) {
         let scale = OutwardScalarInterval.exact(endFraction) - .exact(startFraction)
         func inverse(_ field: SurfaceIntervalJet, gain: OriginalParameterGain, offset: Double) throws -> SurfaceIntervalJet {
-            guard let reciprocal = OutwardScalarInterval.exact(1).divided(by: gain.interval()) else {
+            guard let reciprocal = OutwardScalarInterval.exact(1).divided(by: try gain.interval()) else {
                 throw GeometryConversionError.invalidInput("Original image pcurve inverse gain has no nonzero interval.")
             }
             let zero = OutwardScalarInterval.exact(0)

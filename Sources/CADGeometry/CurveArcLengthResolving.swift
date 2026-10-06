@@ -14,7 +14,7 @@ public protocol CurveArcLengthParameterization: Sendable {
     func hasSmoothNativeInterval(over interval: ScalarInterval) throws -> Bool
 
     /// Localizes original inverse arc stations without replacing their source law.
-    func parameterBounds(atFraction fraction: OutwardScalarInterval,
+    func parameterBounds(atFraction fraction: ScalarInterval,
         maximumParameterWidth: Double) throws -> ScalarInterval
 
     func parameterEnclosure(
@@ -206,12 +206,12 @@ public extension CurveArcLengthResolving {
 }
 
 public extension CurveArcLengthParameterization {
-    func parameterBounds(atFraction fraction: OutwardScalarInterval,
+    func parameterBounds(atFraction fraction: ScalarInterval,
         maximumParameterWidth: Double) throws -> ScalarInterval {
         // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy receipts do not retain the
         // original paid partition and invocation needed by curved sweep endpoint
         // laws. A numeric inverse station cannot authorize source localization.
-        throw KernelError(phase: .geometry, code: .unsupportedCapability,
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: nil,
             message: "This arc-length receipt lacks original inverse interval authority.")
     }
 
@@ -219,7 +219,7 @@ public extension CurveArcLengthParameterization {
         // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy receipts lack source-owning native
         // smoothness authority for the sweep remainder law. Original family and
         // positive-width owning chart admission must precede a smoothness result.
-        throw KernelError(phase: .geometry, code: .unsupportedCapability,
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: nil,
             message: "This arc-length receipt has no original native smoothness authority.")
     }
 
@@ -227,7 +227,7 @@ public extension CurveArcLengthParameterization {
         // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy arc-length receipts do not retain
         // caller-paid original native jets for the production sweep remainder law.
         // Actual original preparation and owning-span hulls must precede publication.
-        throw KernelError(phase: .geometry, code: .unsupportedCapability,
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: nil,
             message: "This arc-length receipt cannot expose original differential bounds.")
     }
 
@@ -235,7 +235,7 @@ public extension CurveArcLengthParameterization {
         // FIXME(INCOMPLETE_IMPLEMENTATION): A legacy parameterization lacks native
         // subinterval proof reuse. Production bounded sweep station law must consume an
         // original prepared partition under its caller allowance, never a numeric inverse.
-        throw KernelError(phase: .geometry, code: .unsupportedCapability,
+        throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: nil,
             message: "This arc-length parameterization cannot prove native subinterval lengths.")
     }
 }

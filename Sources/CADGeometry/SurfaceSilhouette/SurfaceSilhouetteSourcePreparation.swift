@@ -43,7 +43,7 @@ struct SurfaceSilhouetteSourcePreparation: Sendable {
                 try usage.consumeSourceVisit(depth: depth)
                 localTolerance = try image.sourceCalculationTolerance(tolerance: localTolerance,
                     consumeWork: { try usage.consumeWork() },
-                    consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+                    consumeStorage: usage.preparationStorageCallback)
                 try RationalAlgebraStorage.retain(1, of: OriginalAffineWordSurface3D.self, usage: &usage)
                 images.append(image); nativeCandidate = image.source
             }

@@ -31,7 +31,7 @@ extension OriginalDraftedRuledSurface3D {
             thirdDerivativeUUV: vector { $0.thirdDerivativeUUV }, thirdDerivativeUVV: vector { $0.thirdDerivativeUVV },
             thirdDerivativeVVV: vector { $0.thirdDerivativeVVV })
     }
-    package func taylorJet(u: Double, v: Double, throughOrder order: Int,
+    func taylorJet(u: Double, v: Double, throughOrder order: Int,
         tolerance: ModelingTolerance) throws -> SurfaceTaylorVectorJet {
         guard (0...16).contains(order) else {
             throw GeometryConversionError.invalidInput("Original draft numeric facade retains Taylor order zero through sixteen.")

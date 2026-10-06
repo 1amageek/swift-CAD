@@ -63,6 +63,7 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         numerator: ExactNaturalMagnitude, denominator: ExactNaturalMagnitude, usage: inout B) throws -> Self {
         guard !denominator.isZero else { throw rationalAlgebraFailure("Exact rational division by zero.") }
         if numerator.isZero { return .zero }
+        if denominator == .one { return Self(sign: sign, numerator: numerator, denominator: .one) }
         let gcd = try ExactNaturalMagnitude.gcd(numerator, denominator, usage: &usage)
         let n = try numerator.quotientAndRemainder(dividingBy: gcd, usage: &usage)
         let d = try denominator.quotientAndRemainder(dividingBy: gcd, usage: &usage)
@@ -70,10 +71,12 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         return Self(sign: sign, numerator: n.0, denominator: d.0)
     }
     public func adding<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
+        try Task.checkCancellation(); try usage.consumeExactWork(1)
         if isZero { return other }; if other.isZero { return self }
-        let lhs = try numerator.multiplied(by: other.denominator, usage: &usage)
-        let rhs = try other.numerator.multiplied(by: denominator, usage: &usage)
-        let denominator = try self.denominator.multiplied(by: other.denominator, usage: &usage)
+        let lhs = try other.denominator == .one ? numerator : numerator.multiplied(by: other.denominator, usage: &usage)
+        let rhs = try denominator == .one ? other.numerator : other.numerator.multiplied(by: denominator, usage: &usage)
+        let denominator = try self.denominator == .one ? other.denominator
+            : other.denominator == .one ? self.denominator : self.denominator.multiplied(by: other.denominator, usage: &usage)
         let magnitude: ExactNaturalMagnitude, sign: Int
         if self.sign == other.sign { magnitude = try lhs.adding(rhs, usage: &usage); sign = self.sign }
         else if lhs.compared(to: rhs) >= 0 { magnitude = try lhs.subtracting(rhs, usage: &usage); sign = self.sign }
@@ -84,12 +87,19 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         try adding(other.negated, usage: &usage)
     }
     public func multiplied<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
-        try Self.reduced(sign: sign * other.sign,
+        try Task.checkCancellation(); try usage.consumeExactWork(1)
+        if isZero || other.isZero { return .zero }
+        if numerator == .one && denominator == .one { return sign > 0 ? other : other.negated }
+        if other.numerator == .one && other.denominator == .one { return other.sign > 0 ? self : negated }
+        return try Self.reduced(sign: sign * other.sign,
             numerator: numerator.multiplied(by: other.numerator, usage: &usage),
             denominator: denominator.multiplied(by: other.denominator, usage: &usage), usage: &usage)
     }
     public func divided<B: RationalAlgebraAdmitting>(by other: Self, usage: inout B) throws -> Self {
+        try Task.checkCancellation(); try usage.consumeExactWork(1)
         guard !other.isZero else { throw rationalAlgebraFailure("Exact rational division by zero.") }
+        if isZero { return .zero }
+        if other.numerator == .one && other.denominator == .one { return other.sign > 0 ? self : negated }
         return try Self.reduced(sign: sign * other.sign,
             numerator: numerator.multiplied(by: other.denominator, usage: &usage),
             denominator: denominator.multiplied(by: other.numerator, usage: &usage), usage: &usage)

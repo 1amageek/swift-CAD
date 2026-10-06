@@ -64,7 +64,7 @@ package struct OriginalCurveTraversalContinuityAdmission {
             throw GeometryConversionError.resourceLimitExceeded("Original continuity descent exceeded its retained source-depth capability.")
         }
         switch curve {
-        case .line, .circle, .analytic: return true
+        case .line, .circle, .analytic, .originalPolyline: return true
         case .originalGuideEndpointConnector(let connector):
             // Original endpoint expressions are parameter-independent constants;
             // polynomial correction preserves the retained guide's C0 law.
@@ -75,8 +75,8 @@ package struct OriginalCurveTraversalContinuityAdmission {
         case .originalGuideTraversalChain(let chain):
             guard depth < capability.remainingSourceDepth,
                 try !first.isNegative, !last.isNegative,
-                !ExactRationalCoefficient.one.subtracting(first, usage: &usage).isNegative,
-                !ExactRationalCoefficient.one.subtracting(last, usage: &usage).isNegative else { return false }
+                try !ExactRationalCoefficient.one.subtracting(first, usage: &usage).isNegative,
+                try !ExactRationalCoefficient.one.subtracting(last, usage: &usage).isNegative else { return false }
             for span in chain.traversals {
                 try usage.consumeExactWork(1)
                 if case .bSpline = span.source, span.nativeSpanIndex != nil { continue }
@@ -182,7 +182,7 @@ package struct OriginalCurveTraversalContinuityAdmission {
             let domainLower = try ExactRationalCoefficient.originalDouble(source.knots[source.degree], usage: &usage)
             let domainUpper = try ExactRationalCoefficient.originalDouble(source.knots[source.controlPoints.count], usage: &usage)
             guard try !lower.subtracting(domainLower, usage: &usage).isNegative,
-                  !domainUpper.subtracting(upper, usage: &usage).isNegative else { return false }
+                  try !domainUpper.subtracting(upper, usage: &usage).isNegative else { return false }
             var previous: Int?
             for owner in source.degree..<source.controlPoints.count {
                 try usage.consumeExactWork(1)
@@ -193,7 +193,7 @@ package struct OriginalCurveTraversalContinuityAdmission {
                 // right owner. Include that endpoint-only owner so a left-limit
                 // discontinuity cannot become a continuous closed traversal.
                 guard try hi.subtracting(lower, usage: &usage).isPositive,
-                      !upper.subtracting(lo, usage: &usage).isNegative else { continue }
+                      try !upper.subtracting(lo, usage: &usage).isNegative else { continue }
                 if let previous {
                     let join = source.knots[owner]
                     var multiplicity = 0

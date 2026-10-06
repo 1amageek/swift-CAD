@@ -378,7 +378,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
             guard !periodic, let firstPoint, let secondPoint else { return false }
             guard try firstPoint.coordinateIs(secondPoint.freeEndpoint,
                 alongU: secondPoint.freeAlongU, maximumDepth: usage.maximumDepth, usage: &usage),
-                secondPoint.coordinateIs(firstPoint.freeEndpoint,
+                try secondPoint.coordinateIs(firstPoint.freeEndpoint,
                 alongU: firstPoint.freeAlongU, maximumDepth: usage.maximumDepth, usage: &usage) else { return false }
             try certifyContinuity(with: other, point: firstPoint, otherPoint: secondPoint, wholeEdge: nil, usage: &usage)
             return true
@@ -406,7 +406,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
                 let key = try boundaryKey(atUpperEnd: atUpperEnd, usage: &usage)
                 guard let station = key.station,
                     try field.firstOrderContinuous(across: freeCoordinate, at: station, usage: &usage),
-                    other.field.firstOrderContinuous(across: freeCoordinate, at: station, usage: &usage) else {
+                    try other.field.firstOrderContinuous(across: freeCoordinate, at: station, usage: &usage) else {
                     // FIXME(INCOMPLETE_IMPLEMENTATION): General procedural
                     // endpoint continuity requires its original normal-field
                     // proof before the drawing path can publish a joined curve.
@@ -626,7 +626,7 @@ public struct OriginalSurfaceSilhouetteCurve: Sendable, Hashable {
                 && point.coordinateIs(v, alongU: false, maximumDepth: usage.maximumDepth, usage: &usage)
         }
         guard try isCenter(self, upper: atUpperEnd, point: firstPoint, usage: &usage),
-            isCenter(other, upper: otherAtUpperEnd, point: secondPoint, usage: &usage) else { return nil }
+            try isCenter(other, upper: otherAtUpperEnd, point: secondPoint, usage: &usage) else { return nil }
         let m = branches.reducedUDegree
         let n = branches.reducedVDegree
         let product = m.multipliedReportingOverflow(by: n)

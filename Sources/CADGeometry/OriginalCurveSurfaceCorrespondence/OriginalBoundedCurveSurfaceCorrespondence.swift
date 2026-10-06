@@ -157,7 +157,7 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
             guard let contained = image.intersection(with: .init(lower: min(start, end), upper: max(start, end))) else {
                 throw GeometryConversionError.invalidInput("Original directed correspondence interval is empty.")
             }
-            return .init(lower: contained.lower, upper: contained.upper)
+            return try .init(lower: contained.lower, upper: contained.upper)
         }
         func positions(_ prepared: PreparedCurveDifferentialEncloser, _ range: ScalarInterval,
             _ depth: Int) throws -> IntervalVector3DBounds {
@@ -198,12 +198,12 @@ struct OriginalBoundedCurveSurfaceCorrespondence {
                 throw GeometryConversionError.resourceLimitExceeded("Original correspondence exhausted the requested cell count.")
             }
             visited += 1
-            let range = ScalarInterval(lower: cell.lower, upper: cell.upper)
+            let range = try ScalarInterval(lower: cell.lower, upper: cell.upper)
             let residual = try positions(source, native(range), cell.depth) - positions(lift, range, cell.depth)
             var upper = residual.lengthUpperBound
             let midpoint = cell.lower + (cell.upper - cell.lower) * 0.5
             if smooth, midpoint > cell.lower, midpoint < cell.upper {
-                let station = ScalarInterval(lower: midpoint, upper: midpoint)
+                let station = try ScalarInterval(lower: midpoint, upper: midpoint)
                 let center = try positions(source, native(station), cell.depth) - positions(lift, station, cell.depth)
                 let first = try derivative(source, native(range), cell.depth) * slope
                     - derivative(lift, range, cell.depth)

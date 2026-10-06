@@ -45,7 +45,11 @@ public extension Curve3D {
                 0
             )
         case .analytic(.planeTorus), .surfaceLift, .certifiedIntersection,
-             .rigidImage, .affineImage, .originalAffineWord:
+             .rigidImage, .affineImage, .originalAffineWord,
+             .originalConstructionChart, .originalEndpointConnector,
+             .originalPlaneDerivative, .originalGuideTraversalChain,
+             .originalPolyline, .originalGuideEndpointConnector,
+             .originalDrafted, .originalAngularTransport:
             candidate = try iterativeParameter(
                 point,
                 options: options,

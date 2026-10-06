@@ -30,10 +30,20 @@ struct OriginalSingularFieldSturm: Sendable {
     }
     func variations<B: RationalAlgebraAdmitting>(at station: ExactRationalCoefficient,
         maximumDepth: Int, usage: inout B) throws -> Int {
+        let value = try OriginalSingularFieldElement.constant(station, in: source.context,
+            maximumDepth: maximumDepth, usage: &usage)
+        return try variations(at: value, maximumDepth: maximumDepth, usage: &usage)
+    }
+    func variations<B: RationalAlgebraAdmitting>(at station: OriginalSingularFieldElement,
+        maximumDepth: Int, usage: inout B) throws -> Int {
+        guard station.context === source.context else {
+            throw rationalAlgebraFailure("Original Sturm station has a foreign ordered-field owner.")
+        }
         var previous = 0, changes = 0
         for polynomial in chain {
             let direction: Int
-            switch try sign(polynomial, at: station, maximumDepth: maximumDepth, usage: &usage) {
+            switch try polynomial.evaluated(at: station, maximumDepth: maximumDepth, usage: &usage)
+                .sign(maximumDepth: maximumDepth, usage: &usage) {
             case .zero: continue
             case .negative: direction = -1
             case .positive: direction = 1

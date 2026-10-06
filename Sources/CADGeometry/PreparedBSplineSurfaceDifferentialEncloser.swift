@@ -20,8 +20,8 @@ package struct PreparedBSplineSurfaceDifferentialEncloser: Sendable {
 
   package init(surface: BSplineSurface3D, tolerance: ModelingTolerance,
     consumeWork: () throws -> Void, consumeStorage: (Int) throws -> Void) throws {
-    try withoutActuallyEscaping(consumeStorage) { storage in
-      try self.init(surface: surface, tolerance: tolerance, chargePreparation: true,
+    self = try withoutActuallyEscaping(consumeStorage) { storage in
+      try Self(surface: surface, tolerance: tolerance, chargePreparation: true,
         consumeWork: consumeWork, consumeStorage: storage)
     }
   }

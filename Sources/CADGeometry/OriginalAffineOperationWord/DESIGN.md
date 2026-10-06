@@ -40,6 +40,10 @@ original flat operation factors
 
 ## Contracts and Invariants
 
+Both rational and normalized preparation delegate to complete immutable
+initializers after their original action and determinant proofs succeed. No
+branch publishes partially initialized caches or weakens stored ownership.
+
 - Source factors are nonempty, finite and nonsingular. Application order is
   explicit; callers retaining parent-to-child source order reverse it once.
 - Matrix cache composition uses exact reduced rational arithmetic. No floating

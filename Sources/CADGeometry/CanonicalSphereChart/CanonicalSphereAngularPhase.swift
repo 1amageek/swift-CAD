@@ -141,13 +141,13 @@ package enum CanonicalSphereAngularPhase {
         return angle / scaleBounds.midpoint
     }
 
-    package static func physicalAngleBounds(of labels: ScalarInterval) -> ScalarInterval {
+    package static func physicalAngleBounds(of labels: ScalarInterval) throws -> ScalarInterval {
         let q = OutwardScalarInterval(lower: labels.lower, upper: labels.upper) * scaleBounds
-        return .init(lower: q.lower, upper: q.upper)
+        return try .init(lower: q.lower, upper: q.upper)
     }
 
-    package static func originalLabelBounds(of angles: OutwardScalarInterval) -> ScalarInterval? {
+    package static func originalLabelBounds(of angles: OutwardScalarInterval) throws -> ScalarInterval? {
         guard let q = angles.divided(by: scaleBounds) else { return nil }
-        return .init(lower: q.lower, upper: q.upper)
+        return try .init(lower: q.lower, upper: q.upper)
     }
 }

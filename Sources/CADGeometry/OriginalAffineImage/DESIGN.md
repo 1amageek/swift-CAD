@@ -34,6 +34,12 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Directed pcurve derivatives scale componentwise by the first, second and third
+powers of the original fraction gain. Third-order helpers remain module-internal;
+no package API exposes an internal derivative carrier. Taylor vector assembly
+propagates its throwing validation. Optional physical metric admission keeps
+short-circuit evaluation and propagates the original metric proof failure.
+
 Curve native parameters and surface native UV remain unchanged. One image adds
 one original source descendant; its operation factors do not add source depth.
 The immutable source and operation word define value identity. Prepared caches

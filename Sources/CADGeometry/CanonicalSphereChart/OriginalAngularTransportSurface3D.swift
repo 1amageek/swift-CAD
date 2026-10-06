@@ -100,7 +100,7 @@ public struct OriginalAngularTransportSurface3D: Hashable, Sendable {
         try y.setCoefficient(jet.y.coefficient(a,b).midpoint, uOrder: a, vOrder: b)
         try z.setCoefficient(jet.z.coefficient(a,b).midpoint, uOrder: a, vOrder: b)
       } }
-      return .init(x: x, y: y, z: z)
+      return try .init(x: x, y: y, z: z)
     }
   }
 }

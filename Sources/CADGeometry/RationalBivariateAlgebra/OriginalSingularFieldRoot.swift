@@ -61,6 +61,12 @@ package struct OriginalSingularFieldRoot: Sendable {
         try admissionDomain.visit(isolation.depth, usage: &usage)
         guard polynomial.context === expression.context else { throw rationalAlgebraFailure("Original tangent root sign has an unrelated parent field.") }
         if expression.isZero { return .zero }
+        if expression.degree == 0 {
+            return try expression.coefficients[0].sign(maximumDepth: maximumDepth, usage: &usage)
+        }
+        if expression.degree == 1 {
+            return try linearSign(expression, maximumDepth: maximumDepth, usage: &usage)
+        }
         let common = try OriginalSingularFieldPolynomial.gcd(polynomial, expression, maximumDepth: maximumDepth, usage: &usage)
         if common.degree > 0 {
             let sequence = try OriginalSingularFieldSturm(common, maximumDepth: maximumDepth, usage: &usage)
@@ -83,6 +89,41 @@ package struct OriginalSingularFieldRoot: Sendable {
             }
             retained = try retained.refinedOnce(maximumDepth: maximumDepth, usage: &usage)
         }
+    }
+
+    private func linearSign<B: RationalAlgebraAdmitting>(_ expression: OriginalSingularFieldPolynomial,
+        maximumDepth: Int, usage: inout B) throws -> ExactAlgebraicRealRoot.Sign {
+        let leading = expression.coefficients[1]
+        let orientation = try leading.sign(maximumDepth: maximumDepth, usage: &usage)
+        guard orientation != .zero else {
+            throw rationalAlgebraFailure("A retained linear root expression cannot have a zero leading coefficient.")
+        }
+        let zero = try expression.coefficients[0].negated(maximumDepth: maximumDepth, usage: &usage)
+            .divided(by: leading, maximumDepth: maximumDepth, usage: &usage)
+        let reversed: ExactAlgebraicRealRoot.Sign = orientation == .positive ? .negative : .positive
+        let lower = try OriginalSingularFieldElement.constant(isolation.lower,
+            in: polynomial.context, maximumDepth: maximumDepth, usage: &usage)
+        let upper = try OriginalSingularFieldElement.constant(isolation.upper,
+            in: polynomial.context, maximumDepth: maximumDepth, usage: &usage)
+        let below = try zero.subtracting(lower, maximumDepth: maximumDepth, usage: &usage)
+            .sign(maximumDepth: maximumDepth, usage: &usage)
+        let above = try zero.subtracting(upper, maximumDepth: maximumDepth, usage: &usage)
+            .sign(maximumDepth: maximumDepth, usage: &usage)
+        if below == .negative || below == .zero && isolation.excludesLower { return orientation }
+        if above == .positive || above == .zero && isolation.excludesUpper { return reversed }
+        if try polynomial.evaluated(at: zero, maximumDepth: maximumDepth, usage: &usage)
+            .sign(maximumDepth: maximumDepth, usage: &usage) == .zero { return .zero }
+        let sequence = try OriginalSingularFieldSturm(polynomial, maximumDepth: maximumDepth, usage: &usage)
+        var left = try sequence.variations(at: isolation.lower, maximumDepth: maximumDepth, usage: &usage)
+            - sequence.variations(at: zero, maximumDepth: maximumDepth, usage: &usage)
+        if !isolation.excludesLower,
+            try sequence.sign(sequence.source, at: isolation.lower, maximumDepth: maximumDepth, usage: &usage) == .zero {
+            left += 1
+        }
+        guard left == 0 || left == 1 else {
+            throw rationalAlgebraFailure("Original linear sign contradicts its unique real-root count.")
+        }
+        return left == 0 ? orientation : reversed
     }
 
     package func refinedOnce<B: RationalAlgebraAdmitting>(maximumDepth: Int, usage: inout B) throws -> Self {

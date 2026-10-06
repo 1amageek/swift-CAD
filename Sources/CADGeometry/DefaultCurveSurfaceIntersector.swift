@@ -915,7 +915,7 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       }
       coefficients = polynomial
       parameterForRoot = { root in root.isFinite ? root : nil }
-    case .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
+    case .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted, .originalAngularTransport, .originalAffineWord, .line, .circle, .analytic, .bSpline, .implicit, .surfaceLift,
       .certifiedIntersection, .rigidImage, .affineImage, .parameterImage:
       return nil
     }

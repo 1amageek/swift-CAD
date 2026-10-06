@@ -63,24 +63,24 @@ struct OriginalNativePoleOffsetTaylor {
         try usage.retainExactStorage(4)
         var values: [SurfaceParameterBoundary] = []
         if case .closed(let lower, let upper) = source.uDomain {
-            if box.u.lower == lower { values.append(.uMinimum) }
-            if box.u.upper == upper { values.append(.uMaximum) }
+            if box.u.lower == lower { values.append(.uLower) }
+            if box.u.upper == upper { values.append(.uUpper) }
         }
         if case .closed(let lower, let upper) = source.vDomain {
-            if box.v.lower == lower { values.append(.vMinimum) }
-            if box.v.upper == upper { values.append(.vMaximum) }
+            if box.v.lower == lower { values.append(.vLower) }
+            if box.v.upper == upper { values.append(.vUpper) }
         }
         return values
     }
 
     private static func isCollapsed<B: RationalAlgebraAdmitting>(_ boundary: SurfaceParameterBoundary,
         source: BSplineSurface3D, pole: OriginalBSplinePoleNormal, usage: inout B) throws -> Bool {
-        let alongU = boundary == .uMinimum || boundary == .uMaximum
+        let alongU = boundary == .uLower || boundary == .uUpper
         let fixed = alongU ? source.uDomain : source.vDomain
         let free = alongU ? source.vFundamentalDomain : source.uFundamentalDomain
         guard case .closed(let lower, let upper) = fixed,
               case .closed(let freeLower, let freeUpper) = free else { return false }
-        let station = boundary == .uMinimum || boundary == .vMinimum ? lower : upper
+        let station = boundary == .uLower || boundary == .vLower ? lower : upper
         let transverse = freeLower + (freeUpper - freeLower) * 0.5
         try usage.consumeExactWork(1)
         guard transverse.isFinite else {

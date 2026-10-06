@@ -1201,7 +1201,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
                 image.transform.applying(to: source.normal),
                 source.radius
             )
-        case .line, .analytic, .bSpline, .implicit, .surfaceLift,
+        case .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted, .originalAngularTransport, .originalAffineWord, .line, .analytic, .bSpline, .implicit, .surfaceLift,
              .certifiedIntersection, .affineImage, .parameterImage:
             return nil
         }
@@ -2502,7 +2502,7 @@ public struct DefaultCurveSurfaceCorrespondenceValidator: CurveSurfaceCorrespond
         let uSecond = parameterBounds.secondU
         let vSecond = parameterBounds.secondV
         switch surface {
-        case .procedural(.originalAffineWord):
+        case .procedural(.originalAffineWord), .procedural(.originalAngularTransport):
             // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy scalar lift tightening
             // does not own a flat-word source jet. Word coedges use the original
             // bounded correspondence producer before this specialization.

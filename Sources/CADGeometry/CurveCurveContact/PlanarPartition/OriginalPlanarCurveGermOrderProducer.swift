@@ -311,12 +311,12 @@ struct OriginalPlanarCurveGermOrderProducer {
             for partition in partitions {
                 try budget.work(1)
                 guard partition.tolerance == budget.tolerance, partition.plane == plane else { continue }
-                if try same(a.source, partition.first, budget: &budget), same(b.source, partition.second, budget: &budget),
-                    within(a, trim: partition.firstParameters, budget: &budget), within(b, trim: partition.secondParameters, budget: &budget) {
+                if try same(a.source, partition.first, budget: &budget), try same(b.source, partition.second, budget: &budget),
+                    try within(a, trim: partition.firstParameters, budget: &budget), try within(b, trim: partition.secondParameters, budget: &budget) {
                     retained = (partition, false); break
                 }
-                if try same(a.source, partition.second, budget: &budget), same(b.source, partition.first, budget: &budget),
-                    within(a, trim: partition.secondParameters, budget: &budget), within(b, trim: partition.firstParameters, budget: &budget) {
+                if try same(a.source, partition.second, budget: &budget), try same(b.source, partition.first, budget: &budget),
+                    try within(a, trim: partition.secondParameters, budget: &budget), try within(b, trim: partition.firstParameters, budget: &budget) {
                     retained = (partition, true); break
                 }
             }
@@ -326,7 +326,7 @@ struct OriginalPlanarCurveGermOrderProducer {
             for event in partition.events {
                 let firstEndpoint = reversed ? event.secondEndpoint : event.firstEndpoint
                 let secondEndpoint = reversed ? event.firstEndpoint : event.secondEndpoint
-                if try inside(firstEndpoint, source: a, budget: &budget), inside(secondEndpoint, source: b, budget: &budget) {
+                if try inside(firstEndpoint, source: a, budget: &budget), try inside(secondEndpoint, source: b, budget: &budget) {
                     throw GeometryConversionError.invalidInput("Outgoing native segments were not split at every original contact/component event.")
                 }
             }

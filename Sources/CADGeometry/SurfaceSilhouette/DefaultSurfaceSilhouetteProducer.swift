@@ -77,7 +77,7 @@ public struct DefaultSurfaceSilhouetteProducer: SurfaceSilhouetteProducing, Send
         if let source = sourceAuthority.nativeSource {
             let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: source,
                 tolerance: sourceAuthority.nativeTolerance, consumeWork: { try usage.consumeWork() },
-                consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+                consumeStorage: usage.preparationStorageCallback)
             let polePreparation = OriginalBSplinePoleNormal(surface: source, tolerance: sourceAuthority.nativeTolerance, prepared: prepared)
             guard usage.cells < usage.maximumCells else {
                 throw failure(.resourceLimitExceeded, tolerance, "Silhouette native cover exhausted caller cells.")
@@ -85,7 +85,7 @@ public struct DefaultSurfaceSilhouetteProducer: SurfaceSilhouetteProducing, Send
             let spans = try prepared.originalNativeSpans(over: domain, tolerance: sourceAuthority.nativeTolerance,
                 maximumSpanCount: min(262_144, usage.maximumCells - usage.cells),
                 consumeWork: { try usage.consumeWork() },
-                consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
+                consumeStorage: usage.preparationStorageCallback)
             let poleAuthorities = sourceAuthority.offsetDistances.isEmpty ? []
                 : try OriginalNativePoleOffsetTaylor.prepare(source: source, prepared: prepared,
                     over: domain, maximumSpanCount: min(262_144, usage.maximumCells - usage.cells),

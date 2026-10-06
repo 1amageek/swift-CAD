@@ -65,13 +65,16 @@ public struct OriginalAffineWordSurfaceParameterCurve: Hashable, Sendable {
   public func differential(atNormalizedFraction fraction: Double, tolerance: ModelingTolerance) throws -> SurfaceParameterCurveDifferential {
     let q = try source.parameterCurve.differentialGeometry(atNormalizedFraction: mappedFraction(fraction), tolerance: tolerance)
     let scale = endFraction - startFraction
-    return .init(parameter: q.parameter, firstDerivative: q.firstDerivative * scale,
-      secondDerivative: q.secondDerivative * (scale * scale))
+    return .init(parameter: q.parameter,
+      firstDerivative: .init(x: q.firstDerivative.x * scale, y: q.firstDerivative.y * scale),
+      secondDerivative: .init(x: q.secondDerivative.x * scale * scale,
+        y: q.secondDerivative.y * scale * scale))
   }
   func thirdDerivative(atNormalizedFraction fraction: Double, tolerance: ModelingTolerance) throws -> Point2D {
     let q = try source.parameterCurve.thirdOrderDifferential(atNormalizedFraction: mappedFraction(fraction), on: source.surface, tolerance: tolerance)
     let s = endFraction - startFraction
-    return q.thirdDerivative * (s * s * s)
+    return .init(x: q.thirdDerivative.x * s * s * s,
+      y: q.thirdDerivative.y * s * s * s)
   }
   package func parameterBounds(over range: ScalarInterval, tolerance: ModelingTolerance,
     maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int,
@@ -92,7 +95,7 @@ public struct OriginalAffineWordSurfaceParameterCurve: Hashable, Sendable {
     let s = endFraction - startFraction
     return .init(position: p, firstDerivative: a * s, secondDerivative: b * (s * s))
   }
-  package func modelSpaceThirdOrder(atNormalizedFraction fraction: Double,
+  func modelSpaceThirdOrder(atNormalizedFraction fraction: Double,
     tolerance: ModelingTolerance) throws -> CurveParameterThirdOrderDerivatives {
     var usage = OriginalAffineImageLegacyUsage()
     let q = try Curve3D.surfaceLift(source).parameterDerivativesThroughThirdOrder(at: mappedFraction(fraction), tolerance: tolerance)

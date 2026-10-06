@@ -51,7 +51,7 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
         if let consumeStorage {
             owners = try prepared.originalNativeSpans(over:domain,tolerance:tolerance,maximumSpanCount:262_144,
                 consumeWork:consumeWork,consumeStorage:consumeStorage)
-        } else { owners = try prepared.originalNativeSpans(over:domain,tolerance:tolerance,consumeWork:consumeWork) }
+        } else { owners = try prepared.originalNativeSpans(over:domain,tolerance:tolerance,maximumSpanCount:262_144,consumeWork:consumeWork) }
         let order = distances.count.addingReportingOverflow(3)
         guard !order.overflow else { throw Self.failure(.resourceLimitExceeded,tolerance,"Nested offset source order overflows.") }
         try OriginalCoefficientAllocation.reserve(count:owners.count,of:SurfaceAreaHigherCoefficientTaylorEncloser.self,consumeStorage:consumeStorage)
@@ -171,7 +171,7 @@ struct SurfaceAreaNativeOffsetTaylorPartition: Sendable {
         }
         let owners: [PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan]
         if let consumeStorage { owners = try prepared.originalNativeSpans(over:box,tolerance:caller,maximumSpanCount:262_144,consumeWork:consumeWork,consumeStorage:consumeStorage) }
-        else { owners = try prepared.originalNativeSpans(over:box,tolerance:caller,consumeWork:consumeWork) }
+        else { owners = try prepared.originalNativeSpans(over:box,tolerance:caller,maximumSpanCount:262_144,consumeWork:consumeWork) }
         var found = false
         for owner in owners {
             let selected = try index(of:owner,consumeWork:consumeWork)

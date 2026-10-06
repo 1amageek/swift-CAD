@@ -19,6 +19,7 @@ can replace the original value.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [Intersection Algebra](../../IntersectionAlgebra/DESIGN.md) | used by | Rational norm of X minus an original field value | Binds original ordered coefficients | Norms preserve selected embeddings; coefficient isolation is separately owned |
 | [Parent](../DESIGN.md) | parent | Original field polynomials, exact resultants and Sturm count | Descends original source relations | Norm zeros alone do not identify the selected real value |
 | [OriginalRootSpan](../../OriginalRootSpan/DESIGN.md) | used by | Original scalar endpoint binding | Supplies exact native source constraints | An annihilator is not a physical curve contact proof |
 | [CurveCurveContact](../../CurveCurveContact/DESIGN.md) | used by | Retained projected scalar source value | Publishes exact guide cuts | Work/storage and independent geometric/coefficient caps stay cumulative |

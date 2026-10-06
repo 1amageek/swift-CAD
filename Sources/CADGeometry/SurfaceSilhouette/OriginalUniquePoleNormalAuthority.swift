@@ -30,12 +30,12 @@ public struct OriginalUniquePoleNormalAuthority: Sendable {
         guard maximumSpanCount > 0, maximumSubdivisionDepth >= 0 else {
             throw GeometryConversionError.invalidInput("Whole original pole normal needs the caller's native cover and depth allowance.")
         }
-        let alongU = boundary == .uMinimum || boundary == .uMaximum
+        let alongU = boundary == .uLower || boundary == .uUpper
         let collapsedDomain = alongU ? source.uDomain : source.vDomain
         let freeDomain = alongU ? source.vFundamentalDomain : source.uFundamentalDomain
         guard case .closed(let minimum, let maximum) = collapsedDomain,
             case .closed(let freeMinimum, let freeMaximum) = freeDomain else { return nil }
-        let station = boundary == .uMinimum || boundary == .vMinimum ? minimum : maximum
+        let station = boundary == .uLower || boundary == .vLower ? minimum : maximum
         let fixed = try ScalarInterval(lower: station, upper: station)
         let free = try ScalarInterval(lower: freeMinimum, upper: freeMaximum)
         let whole = SurfaceParameterBox(u: alongU ? fixed : free, v: alongU ? free : fixed)

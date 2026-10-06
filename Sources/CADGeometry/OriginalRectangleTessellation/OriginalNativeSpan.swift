@@ -67,6 +67,14 @@ extension PreparedBSplineSurfaceDifferentialEncloser {
       }
     }
 
+    package func validate(on source: BSplineSurface3D, over box: SurfaceParameterBox,
+        tolerance: ModelingTolerance, consumeWork: () throws -> Void) throws {
+      try withoutActuallyEscaping(consumeWork) { borrowed in
+        try validate(on: source, over: box, tolerance: tolerance,
+          consumeWork: Optional(borrowed))
+      }
+    }
+
     /// Retains the original homogeneous value net after this token admits the
     /// original closed query and its exact periodic one-sided lift.
     package func originalCoefficientReceipt(overClosedBox box: SurfaceParameterBox,

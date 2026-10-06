@@ -40,6 +40,12 @@ package struct ExactRectangularBSplineSurfacePatchBuilder: Sendable {
 
         let result: ExactRectangularBSplineSurfacePatch
         switch surface {
+        case .procedural(.originalAngularTransport), .procedural(.originalAffineWord):
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy exact patch conversion
+            // does not own original angular/flat-word source station transport.
+            // Required conversion must retain that transport before success.
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Original transported surfaces require source-preserving patch conversion.")
         case .plane, .analytic(.plane):
             result = try planarPatch(
                 surface: surface,
@@ -541,7 +547,7 @@ package struct ExactRectangularBSplineSurfacePatchBuilder: Sendable {
                 lower: lower,
                 upper: upper
             )
-        case .parameterImage, .originalAffineWord, .analytic(.planeTorus), .implicit, .surfaceLift,
+        case .originalConstructionChart, .originalEndpointConnector, .originalPlaneDerivative, .originalGuideTraversalChain, .originalPolyline, .originalGuideEndpointConnector, .originalDrafted, .originalAngularTransport, .parameterImage, .originalAffineWord, .analytic(.planeTorus), .implicit, .surfaceLift,
              .certifiedIntersection:
             return nil
         }

@@ -227,18 +227,18 @@ public enum ProceduralSurface3D: Hashable, Sendable {
             return candidate.residual <= tolerance.distance ? .projected(candidate)
                 : .outsideTolerance(residual: candidate.residual)
         case let .rollingBall(surface):
-            try ProceduralSurfaceParameterProjector().parameterProjectionResult(
+            return try ProceduralSurfaceParameterProjector().parameterProjectionResult(
                 of: point, on: surface, options: options, tolerance: tolerance
             )
         case let .offset(surface):
-            try ProceduralSurfaceParameterProjector().parameterProjectionResult(
+            return try ProceduralSurfaceParameterProjector().parameterProjectionResult(
                 of: point,
                 on: surface,
                 options: options,
                 tolerance: tolerance
             )
         case let .ruled(surface):
-            try ProceduralSurfaceParameterProjector().parameterProjectionResult(
+            return try ProceduralSurfaceParameterProjector().parameterProjectionResult(
                 of: point,
                 on: surface,
                 options: options,

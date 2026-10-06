@@ -229,7 +229,10 @@ public struct OriginalPlaneDerivativeCurve3D: Hashable, Sendable {
                     tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
                 try q.set(axis.derivativeU, 1, 0)
                 try q.set(axis.secondDerivativeUU * .exact(0.5), 2, 0)
-                try q.set(axis.thirdDerivativeUUU / .exact(6), 3, 0)
+                guard let third = axis.thirdDerivativeUUU.divided(by: .exact(6)) else {
+                    throw GeometryConversionError.resourceLimitExceeded("Original plane derivative third Taylor coefficient is not enclosed.")
+                }
+                try q.set(third, 3, 0)
                 return q
             }
             let q = try SurfaceAreaIntervalTaylorVectorJet(x: scalar(owner.jet.x), y: scalar(owner.jet.y), z: scalar(owner.jet.z))

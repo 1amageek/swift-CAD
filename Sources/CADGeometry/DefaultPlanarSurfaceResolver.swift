@@ -38,7 +38,7 @@ package struct DefaultPlanarSurfaceResolver: PlanarSurfaceResolving {
                 * (image.swapAxes ? -1.0 : 1.0)
             return ResolvedPlaneGeometry(origin: image.transform.applying(to: original.origin),
                 normal: vector * (orientation / length))
-        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted):
+        case .procedural(.ruled), .procedural(.rollingBall), .procedural(.originalRevolution), .procedural(.originalCoons), .procedural(.originalBoundaryCorrected), .procedural(.originalPlaneDerivative), .procedural(.originalDrafted), .procedural(.originalAngularTransport), .procedural(.originalAffineWord):
             return nil
         }
     }

@@ -182,7 +182,7 @@ package struct PreparedOriginalNativeAxisInverse: Sendable {
             originalRoot: root, firstNativeSpanIndex: firstSpan,
             adjacentNativeSpanIndex: adjacentSpan, nativeLower: nativeLower, nativeWidth: nativeWidth,
             normalizedLower: a, normalizedUpper: b,
-            normalizedEnclosure: ScalarInterval(lower: low.lower, upper: high.upper),
+            normalizedEnclosure: try ScalarInterval(lower: low.lower, upper: high.upper),
             orientation: orientation, fixedCoordinate: fixedCoordinate)
     }
 
