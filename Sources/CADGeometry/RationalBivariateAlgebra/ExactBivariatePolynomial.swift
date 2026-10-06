@@ -20,6 +20,13 @@ public struct ExactBivariatePolynomial: Equatable, Sendable {
     var leading: (key: Power, value: ExactRationalCoefficient)? {
         coefficients.max { a, b in a.key.v == b.key.v ? a.key.u < b.key.u : a.key.v < b.key.v }
     }
+    /// Returns an original constant law without materializing or evaluating a term list.
+    package func originalConstantCoefficient<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactRationalCoefficient? {
+        try usage.consumeExactWork(1); try Task.checkCancellation()
+        if coefficients.isEmpty { return .zero }
+        guard coefficients.count == 1 else { return nil }
+        return coefficients[try Power(u: 0, v: 0)]
+    }
     public static func constant<B: RationalAlgebraAdmitting>(_ value: ExactRationalCoefficient,
                                                              usage: inout B) throws -> Self {
         if value.isZero { return .zero }; try RationalAlgebraStorage.retain(1, of: (Power, ExactRationalCoefficient).self, usage: &usage)

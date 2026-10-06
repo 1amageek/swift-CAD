@@ -3,18 +3,19 @@ import CADCore
 /// Retains all full projection levels without issuing a real-cell certificate.
 package struct ExactIntersectionProjectionTower: Sendable {
     package let variableCount: Int
+    package let hasThomEncoding: Bool
     /// Descending axes: the original equations are retained by the first level.
     package let levels: [ExactIntersectionProjection]
 
-    private init(variableCount: Int, levels: [ExactIntersectionProjection]) {
-        self.variableCount = variableCount; self.levels = levels
+    private init(variableCount: Int, levels: [ExactIntersectionProjection], hasThomEncoding: Bool) {
+        self.variableCount = variableCount; self.levels = levels; self.hasThomEncoding = hasThomEncoding
     }
 
     package static func prepare<B: RationalAlgebraAdmitting>(
-        sources: [ExactIntersectionPolynomial], variableCount: Int,
+        sources: [ExactIntersectionPolynomial], variableCount: Int, thomEncoding: Bool = false,
         usage: inout B) throws -> Self {
-        guard (1...5).contains(variableCount) else {
-            throw rationalAlgebraFailure("Projection tower requires one through five original coordinates.")
+        guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount) else {
+            throw rationalAlgebraFailure("Projection tower requires one through nine predicate coordinates.")
         }
         try intersectionAlgebraStep(&usage)
         try RationalAlgebraStorage.retain(variableCount, of: ExactIntersectionProjection.self, usage: &usage)
@@ -22,11 +23,34 @@ package struct ExactIntersectionProjectionTower: Sendable {
         var pending = sources
         for axis in stride(from: variableCount - 1, through: 0, by: -1) {
             try intersectionAlgebraStep(&usage)
+            if thomEncoding { pending = try derivativeClosure(pending, at: axis, usage: &usage) }
             let level = try ExactIntersectionProjection.prepare(sources: pending,
                 variableCount: variableCount, axis: axis, usage: &usage)
             levels.append(level)
             pending = level.polynomials
         }
-        return Self(variableCount: variableCount, levels: levels)
+        return Self(variableCount: variableCount, levels: levels, hasThomEncoding: thomEncoding)
     }
+    private static func derivativeClosure<B: RationalAlgebraAdmitting>(_ sources: [ExactIntersectionPolynomial],
+        at axis: Int, usage: inout B) throws -> [ExactIntersectionPolynomial] {
+        try RationalAlgebraStorage.retain(sources.count, of: ExactIntersectionPolynomial.self, usage: &usage)
+        var result = sources
+        for source in sources {
+            var derivative = try source.differentiated(at: axis, usage: &usage)
+            while !derivative.isZero {
+                try intersectionAlgebraStep(&usage)
+                var duplicate = false
+                for existing in result {
+                    if try existing.matches(derivative, usage: &usage) { duplicate = true; break }
+                }
+                if !duplicate {
+                    try RationalAlgebraStorage.retain(1, of: ExactIntersectionPolynomial.self, usage: &usage)
+                    result.append(derivative)
+                }
+                derivative = try derivative.differentiated(at: axis, usage: &usage)
+            }
+        }
+        return result
+    }
+
 }

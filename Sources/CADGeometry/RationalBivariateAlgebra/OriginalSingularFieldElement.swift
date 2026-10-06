@@ -28,9 +28,12 @@ package struct OriginalSingularFieldElement: Sendable {
     package func rationalValue<B: RationalAlgebraAdmitting>(usage: inout B) throws -> ExactRationalCoefficient? {
         switch storage {
         case .original(let n, let d):
-            if n.uDegree > 0 || n.vDegree > 0 || d.uDegree > 0 || d.vDegree > 0 { return nil }
-            return try n.evaluated(atU: .zero, v: .zero, usage: &usage)
-                .divided(by: d.evaluated(atU: .zero, v: .zero, usage: &usage), usage: &usage)
+            guard let a = try n.originalConstantCoefficient(usage: &usage),
+                let b = try d.originalConstantCoefficient(usage: &usage) else { return nil }
+            guard !b.isZero else { throw rationalAlgebraFailure("Original singular field denominator vanishes.") }
+            try usage.consumeExactWork(1)
+            if b == .one { return a }
+            return try a.divided(by: b, usage: &usage)
         case .extended(let n, let d):
             if n.degree > 0 || d.degree > 0 { return nil }
             if n.isZero { return .zero }
@@ -48,6 +51,13 @@ package struct OriginalSingularFieldElement: Sendable {
                 throw rationalAlgebraFailure("Original field constant has an unrelated parent field.")
             }
         default: throw rationalAlgebraFailure("Original field value contradicts its retained context.")
+        }
+        if case .original(let n, let d) = storage,
+            let a = try n.originalConstantCoefficient(usage: &usage),
+            let b = try d.originalConstantCoefficient(usage: &usage) {
+            guard !b.isZero else { throw rationalAlgebraFailure("Original singular field denominator vanishes.") }
+            if a.isZero { return .zero }
+            return a.isPositive == b.isPositive ? .positive : .negative
         }
         if let value = try rationalValue(usage: &usage) {
             return value.isPositive ? .positive : value.isNegative ? .negative : .zero
@@ -92,6 +102,9 @@ package struct OriginalSingularFieldElement: Sendable {
 
     package func adding<B: RationalAlgebraAdmitting>(_ other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
         let b = try other.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
+        if let (a, c) = try originalConstants(with: b, usage: &usage) {
+            return try .constant(a.adding(c, usage: &usage), in: context, maximumDepth: maximumDepth, usage: &usage)
+        }
         switch (storage, b.storage) {
         case (.original(let a, let d), .original(let c, let e)):
             return try Self(context: context, storage: .original(a.multiplied(by: e, usage: &usage)
@@ -116,6 +129,9 @@ package struct OriginalSingularFieldElement: Sendable {
     }
     package func multiplied<B: RationalAlgebraAdmitting>(by other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
         let b = try other.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
+        if let (a, c) = try originalConstants(with: b, usage: &usage) {
+            return try .constant(a.multiplied(by: c, usage: &usage), in: context, maximumDepth: maximumDepth, usage: &usage)
+        }
         switch (storage, b.storage) {
         case (.original(let a, let d), .original(let c, let e)):
             return try Self(context: context, storage: .original(a.multiplied(by: c, usage: &usage), d.multiplied(by: e, usage: &usage)))
@@ -130,6 +146,9 @@ package struct OriginalSingularFieldElement: Sendable {
     package func divided<B: RationalAlgebraAdmitting>(by other: Self, maximumDepth: Int, usage: inout B) throws -> Self {
         let b = try other.embedded(in: context, maximumDepth: maximumDepth, usage: &usage)
         if case .zero = try b.sign(maximumDepth: maximumDepth, usage: &usage) { throw rationalAlgebraFailure("Original field division by zero.") }
+        if let (a, c) = try originalConstants(with: b, usage: &usage) {
+            return try .constant(a.divided(by: c, usage: &usage), in: context, maximumDepth: maximumDepth, usage: &usage)
+        }
         switch (storage, b.storage) {
         case (.original(let a, let d), .original(let c, let e)):
             return try Self(context: context, storage: .original(a.multiplied(by: e, usage: &usage), d.multiplied(by: c, usage: &usage)))
@@ -140,6 +159,21 @@ package struct OriginalSingularFieldElement: Sendable {
                 maximumDepth: maximumDepth, usage: &usage)
         default: throw rationalAlgebraFailure("Original field quotient has incompatible value storage.")
         }
+    }
+
+    /// Original constant laws remain exact and retain their immutable field owner.
+    private func originalConstants<B: RationalAlgebraAdmitting>(with other: Self,
+        usage: inout B) throws -> (ExactRationalCoefficient, ExactRationalCoefficient)? {
+        try usage.consumeExactWork(1)
+        try Task.checkCancellation()
+        guard case .original = storage, case .original = other.storage else { return nil }
+        switch context.source {
+        case .rational, .original: break
+        case .extended: throw rationalAlgebraFailure("Original constant storage contradicts its retained field context.")
+        }
+        guard other.context === context else { throw rationalAlgebraFailure("Original constants require the identical field owner.") }
+        guard let a = try rationalValue(usage: &usage), let b = try other.rationalValue(usage: &usage) else { return nil }
+        return (a, b)
     }
 
     /// Bounds symbolic degree without changing the selected original root.

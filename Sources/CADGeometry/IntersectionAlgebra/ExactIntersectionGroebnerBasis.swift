@@ -89,14 +89,14 @@ enum ExactIntersectionGroebnerBasis {
                 guard let d = try divisor.leading(usage: &usage), d.power.divides(lead.power) else { continue }
                 let power = try lead.power.quotient(by: d.power, variableCount: source.variableCount)
                 let factor = try ExactIntersectionPolynomial.monomial(variableCount: source.variableCount,
-                    powers: (power.a, power.b, power.c, power.d, power.e),
+                    powers: power.values,
                     coefficient: lead.coefficient.divided(by: d.coefficient, usage: &usage), usage: &usage)
                 pending = try pending.subtracting(divisor.multiplied(by: factor, usage: &usage), usage: &usage)
                 canceled = true; break
             }
             if !canceled {
                 let term = try ExactIntersectionPolynomial.monomial(variableCount: source.variableCount,
-                    powers: (lead.power.a, lead.power.b, lead.power.c, lead.power.d, lead.power.e),
+                    powers: lead.power.values,
                     coefficient: lead.coefficient, usage: &usage)
                 remainder = try remainder.adding(term, usage: &usage)
                 pending = try pending.subtracting(term, usage: &usage)
@@ -117,10 +117,10 @@ enum ExactIntersectionGroebnerBasis {
         let ap = try lcm.quotient(by: a.power, variableCount: first.variableCount)
         let bp = try lcm.quotient(by: b.power, variableCount: first.variableCount)
         let af = try ExactIntersectionPolynomial.monomial(variableCount: first.variableCount,
-            powers: (ap.a, ap.b, ap.c, ap.d, ap.e),
+            powers: ap.values,
             coefficient: .one.divided(by: a.coefficient, usage: &usage), usage: &usage)
         let bf = try ExactIntersectionPolynomial.monomial(variableCount: first.variableCount,
-            powers: (bp.a, bp.b, bp.c, bp.d, bp.e),
+            powers: bp.values,
             coefficient: .one.divided(by: b.coefficient, usage: &usage), usage: &usage)
         return try first.multiplied(by: af, usage: &usage)
             .subtracting(second.multiplied(by: bf, usage: &usage), usage: &usage)

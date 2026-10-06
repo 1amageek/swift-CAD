@@ -21,7 +21,7 @@ package struct ExactIntersectionJacobian: Sendable {
 
     package static func prepare<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
         variableCount: Int, usage: inout B) throws -> Self {
-        guard (1...5).contains(variableCount) else {
+        guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount) else {
             throw rationalAlgebraFailure("Original Jacobian requires a bound coordinate ring.")
         }
         try intersectionAlgebraStep(&usage)

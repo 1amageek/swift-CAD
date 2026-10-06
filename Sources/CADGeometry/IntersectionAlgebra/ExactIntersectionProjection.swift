@@ -14,7 +14,7 @@ package struct ExactIntersectionProjection: Sendable {
     package static func prepare<B: RationalAlgebraAdmitting>(
         sources: [ExactIntersectionPolynomial], variableCount: Int, axis: Int,
         usage: inout B) throws -> Self {
-        guard (1...5).contains(variableCount), axis >= 0, axis < variableCount else {
+        guard (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount), axis >= 0, axis < variableCount else {
             throw rationalAlgebraFailure("Projection requires a bound axis and one original polynomial ring.")
         }
         for source in sources {
@@ -23,11 +23,15 @@ package struct ExactIntersectionProjection: Sendable {
                 throw rationalAlgebraFailure("Projection sources do not share one original polynomial ring.")
             }
         }
-        try RationalAlgebraStorage.retain(sources.count, of: [Polynomial].self, usage: &usage)
+        // Projection is a set operation; retain original truth sources separately.
+        var active: [Polynomial] = []
+        for source in sources { try insert(source, into: &active, usage: &usage) }
+        try splitCommonFactors(&active, usage: &usage)
+        try RationalAlgebraStorage.retain(active.count, of: [Polynomial].self, usage: &usage)
         var families: [[Polynomial]] = []
         var projected: [Polynomial] = []
         let coordinate = try Polynomial.coordinate(variableCount: variableCount, at: axis, usage: &usage)
-        for source in sources {
+        for source in active {
             try intersectionAlgebraStep(&usage)
             let coefficients = try source.axisCoefficients(at: axis, usage: &usage)
             var reducta: [Polynomial] = []
@@ -77,15 +81,35 @@ package struct ExactIntersectionProjection: Sendable {
         into result: inout [Polynomial], usage: inout B) throws {
         try intersectionAlgebraStep(&usage)
         if polynomial.isZero || polynomial.isConstant { return }
-        let normalized = try polynomial.monic(usage: &usage)
+        let normalized = try ExactIntersectionPolynomialGCD.squareFree(polynomial, usage: &usage)
         for existing in result {
-            // Equality traverses sparse payloads; admit both tables before comparing.
-            let first = try existing.orderedTerms(usage: &usage)
-            let second = try normalized.orderedTerms(usage: &usage)
-            try usage.consumeExactWork(rationalAlgebraCount(first.count, second.count))
-            if existing == normalized { return }
+            if try existing.matches(normalized, usage: &usage) { return }
         }
         try RationalAlgebraStorage.retain(1, of: Polynomial.self, usage: &usage)
         result.append(normalized)
+    }
+
+    private static func splitCommonFactors<B: RationalAlgebraAdmitting>(_ basis: inout [Polynomial],
+        usage: inout B) throws {
+        var changed = true
+        while changed {
+            changed = false
+            outer: for first in basis.indices {
+                for second in (first + 1)..<basis.count {
+                    try intersectionAlgebraStep(&usage)
+                    let common = try ExactIntersectionPolynomialGCD.gcd(basis[first], basis[second], usage: &usage)
+                    if common.isConstant { continue }
+                    let a = try basis[first].dividedExactly(by: common, usage: &usage)
+                    let b = try basis[second].dividedExactly(by: common, usage: &usage)
+                    basis[first] = common
+                    try usage.consumeExactWork(basis.count - second)
+                    basis.remove(at: second)
+                    try insert(a, into: &basis, usage: &usage)
+                    try insert(b, into: &basis, usage: &usage)
+                    changed = true
+                    break outer
+                }
+            }
+        }
     }
 }

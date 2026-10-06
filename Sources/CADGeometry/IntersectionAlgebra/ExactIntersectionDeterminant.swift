@@ -5,7 +5,7 @@ package enum ExactIntersectionDeterminant {
     private typealias Polynomial = ExactIntersectionPolynomial
     package static func evaluate<B: RationalAlgebraAdmitting>(_ matrix: inout [ExactIntersectionPolynomial],
         size: Int, variableCount: Int, usage: inout B) throws -> ExactIntersectionPolynomial {
-        guard size >= 0, (1...5).contains(variableCount),
+        guard size >= 0, (1...ExactIntersectionPolynomial.maximumVariableCount).contains(variableCount),
               matrix.count == (try rationalAlgebraCount(size, size, multiply: true)) else {
             throw rationalAlgebraFailure("Exact determinant requires a bound square original polynomial matrix.")
         }

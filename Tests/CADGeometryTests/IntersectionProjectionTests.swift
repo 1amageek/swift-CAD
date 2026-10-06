@@ -130,8 +130,9 @@ struct IntersectionProjectionTests {
         #expect(tower.levels.map(\.axis) == [2, 1, 0])
         #expect(tower.levels[0].sources == [source])
         #expect(tower.levels[0].polynomials.contains(xy))
-        #expect(tower.levels[1].polynomials.contains(try x.multiplied(by: x, usage: &usage)))
-        #expect(tower.levels[2].sources.contains(try x.multiplied(by: x, usage: &usage)))
+        // The computational support removes repeated factors; the original law remains above.
+        #expect(tower.levels[1].polynomials.contains(x))
+        #expect(tower.levels[2].sources.contains(x))
         #expect(tower.levels[2].polynomials.isEmpty)
         // This retains the real isolated origin's critical loci; it does not call the complex surface a real surface.
         for level in tower.levels {

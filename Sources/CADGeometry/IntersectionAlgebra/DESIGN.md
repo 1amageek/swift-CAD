@@ -198,14 +198,17 @@ The last level has no nonconstant projection output; its univariate sources
 remain available for complete root lifting. No level publishes representative
 samples as a whole-cell proof.
 
-For each input polynomial, retain every nonzero reductum obtained by removing
+For each member of the exact square-free computational support basis, retain
+every nonzero reductum obtained by removing
 its current highest-axis coefficient. Project each reductum's leading coefficient
 and all principal subresultant coefficients with its derivative. For each pair
 of input polynomials, project principal subresultants of every pair of their
 reducta. Axis-independent input polynomials pass to the lower level unchanged.
-Only identically zero or nonzero rational constant outputs are omitted. Nonzero
-outputs are normalized by a rational scalar, never by a parameter-dependent
-coefficient. Duplicate suppression checks exact polynomial equality.
+Only identically zero or nonzero rational constant supports are omitted. Nonzero
+outputs retain their exact square-free supports, normalized by a rational scalar;
+no parameter-dependent content or distinct factor is lost from the arrangement.
+Original input laws and multiplicities remain in the retained source list.
+Duplicate suppression checks exact polynomial equality.
 
 For degrees m and n, principal index j uses the first n-j shifted rows of the
 first polynomial and the first m-j shifted rows of the second, restricted to
@@ -348,3 +351,265 @@ contracts remain with their composing owners. All stages are immutable outputs
 and invocation-local scratch, using the same cumulative admission and atomic
 failure publication. Tests must verify higher-order indexed minors, crossings,
 repeated original equations, zero equations and independent work/storage failures.
+
+### Original Cell Identity and Quantified Incidence
+
+The full projection operator acts on a polynomial set. Before computing reducta
+or pair principal subresultants, form that set by exact rational monic
+normalization and duplicate removal. Keep the original source list and order in
+the issued level: truth atoms and original multiplicity/rank still refer to those
+unchanged laws. A global nonzero rational multiplier changes no root, degree
+drop, nullification or delineability locus; its sign is already fixed. Constant
+and zero sources have no projection cuts. Removing equivalent computational set
+members therefore preserves full projection without constructing redundant
+Sylvester matrices. All normalization, comparisons and set storage use the same
+caller ledger; this is chosen before projection, never after exhaustion.
+Set equality compares the immutable sparse coefficient tables directly after
+admitting their traversal, without allocating sorted copies solely to compare.
+Ring identities for zero, unit scale, constant products and constant exact
+division return the immutable operand or exact scalar image. Ring validation,
+zero-divisor checks and caller work/cancellation remain mandatory. These laws
+avoid reconstruction in the fraction-free determinant; they do not replace
+nonconstant exact division, derivative or original equation multiplicity.
+
+Projection preparation uses a square-free, pairwise coprime computational basis,
+as in [the original CAD construction](https://docs.lib.purdue.edu/cstech/352/).
+Exact multivariate GCD uses primitive pseudo-remainders: recursively remove
+coefficient content in a lower coordinate ring, require decreasing main degree,
+and restore the common content (Gauss's lemma). In characteristic zero the GCD
+of a polynomial and all of its coordinate derivatives is precisely its repeated
+factor. Exact division gives its square-free support. Splitting two basis members
+by their common factor preserves their union of zeros and strictly decreases
+the sum of their total degrees after duplicate suppression. The computational
+basis therefore terminates with the same original zero arrangement. Its full
+reducta/PSC projection proves factor signs, and hence the unchanged original
+product signs; original source equations, Jacobian multiplicities and zero-sign
+guards are still retained. Content factors are never divided away from support.
+Every recursive coefficient, remainder, exact quotient, comparison and retained
+factor shares the original caller ledger and cancellation checks.
+Disjoint coordinate support proves a rational unit GCD. A rational univariate
+linear factor is irreducible; exact Horner substitution at its original rational
+root decides whether it divides the other polynomial. These proofs are selected
+from the actual laws before recursive PRS, avoiding unnecessary pseudo-remainders.
+After exact recursive content removal, a degree-preserving rational specialization
+with unit univariate GCD certifies that the primitive parts are coprime: a
+positive-main-degree common factor would retain that degree because both leading
+coefficients remain nonzero, contradicting the specialized unit GCD. No failed
+degree check or nonunit specialization is accepted as a certificate. Uniform
+one and zero assignments are finite proof proposals; if neither proves a unit,
+the original primitive PRS remains the exact decision path, under the same ledger.
+
+This is the implementation contract for IF.2.B.C.K/IF.2.B.C.I. Public SSI and CS
+completion remains required; none of the objects below is itself a published
+geometric intersection curve or coincidence region.
+
+The mandatory input set is every branch of the retained source enums, not a
+rational-only whitelist. Native rational and ordered-field sources, analytic
+lines/conics and plane/cylinder/cone/sphere/torus supports, implicit/certified
+curves, surface lifts, procedural normal/ruled/rolling-ball/revolution/Coons/
+boundary-corrected/derivative/drafted/transport laws, connectors/guide chains and
+retained spatial/parameter images must compose through genuine original-law
+producers. The source owner must establish each actual law and all parameter
+preimages before admitting that family. A typed unsupported path records a gap;
+it cannot complete a mandatory family. Existing richer CS publication is owned
+by [Curve Surface Overlap](../CurveSurfaceOverlap/DESIGN.md); its result carrier
+must be reused rather than replaced by a second point/overlap facade.
+
+| Change owner | Exclusive files or responsibility | Composing guarantee |
+|---|---|---|
+| Contract/integration | Shared source enums, protocol requirements and design masters | One source/domain/failure authority; frozen ports before parallel providers |
+| Exact algebra | This directory and needed RationalBivariateAlgebra deltas | Complete real cells, exact cell identity and quantified closure under one ledger |
+| Source preparation | Assigned per-family original producer files | Original law, field, guards, domain, native joins and complete pullback |
+| Domain authority | Assigned original boundary/period/pole/end identity files | No tolerance identity; image dimension separate from parameter fibers |
+| SSI | DefaultSurfaceSurfaceIntersector and surface-pair admission/result files | Complete original common image with both UV relations |
+| CS | DefaultCurveSurfaceIntersector, CurveSurfaceQueryAdmission and CurveSurfaceOverlap | Complete isolated/continuous mixed result and original t-to-UV relations |
+
+Only the integration owner changes a shared file. Source assignments and latest
+main deltas are checked before each owned edit. No upper feature repair is part
+of the algebra or intersection contract.
+
+A sign-invariant CAD alone does not give an unambiguous cell formula: distinct
+cells may have equal signs for the original polynomial. Identity preparation
+therefore closes each projection level under derivatives in that level's main
+variable, before projecting downward. Every issued cell retains its complete
+level sign condition and original parent path. By
+[Thom's lemma and derivative-closed sign determination](https://mate.dm.uba.ar/~perrucci/Variant_QE.pdf),
+a realized univariate derivative sign condition describes one point or interval.
+Induction over the retained cylindrical parent path gives an exact formula for
+that cell. Ordinary projection/root clients keep their existing source order;
+identity preparation is selected explicitly and retains the original prefix.
+The new formula issuer rejects partitions lacking this preparation.
+
+Repeated identical source conditions along a parent path are represented once;
+exact polynomial equality and equal issued signs certify this conjunction reduction.
+Contradictory duplicate signs are rejected. Original projection source lists and
+multiplicities are unchanged.
+
+Quantified incidence uses the exact closure definition, not representative
+limits. For a source cell C in n original coordinates and a free point p,
+
+```text
+p in closure(C) iff
+  for every epsilon > 0, there exists q:
+    q in C and, for every coordinate i, -epsilon < p_i-q_i < epsilon.
+```
+
+The open-box neighborhood basis is exactly equivalent to Euclidean closure:
+an epsilon Euclidean ball is contained in the epsilon box, while an epsilon/n
+box is contained in that Euclidean ball for n >= 1. The universal positive-radius
+quantifier supplies both implications without rounded norms or a tolerance.
+Using this equivalent linear predicate avoids introducing quadratic norm roots
+that are unrelated to original topology.
+
+The polynomial ring requires `2*n+1` coordinates: the free original point, one
+radius and one original candidate tuple. CS/SSI use at most four original
+parameter coordinates, hence nine predicate coordinates suffice. Original
+intersection equations still have three/four coordinates, or one extra for
+saturation. This additional predicate capacity is not extra geometric,
+source-recursion, coefficient-root or algebraic depth and creates no work or
+storage allowance. Inline exponent payload growth is charged by its actual
+storage type. Remapping must be injective and retain every original monomial.
+
+An immutable postfix Boolean program binds atom indexes to original polynomial
+signs. Full projection and complete ordered root stacks cover unbounded sectors,
+nullified fibers and closed sections. A quantified traversal may stop only at
+a whole-parent existential witness or universal counterexample. Otherwise it
+must prove every child; samples cannot supply universal truth or existential
+absence. Each decision retains its original roots, visited children and child
+proofs. A postfix three-valued evaluation may also prove the whole remaining
+Boolean suffix constant from exact prefix signs. Evaluate that consequence after
+each newly known atom, and stop evaluating irrelevant atoms as soon as the whole
+formula is decided. The retained partial sign vector is its proof; omitted atoms
+remain unknown rather than being assigned a sample sign. Unknown atoms stay unknown;
+An exact prefix sign remains valid in every descendant coordinate extension.
+Carry those signs to child decisions and retain them with each prefix proof;
+only unknown atoms require fresh field substitution. At a leaf, reuse an issued
+prefix sign rather than evaluating that same original constant again. All child
+tuple owners and original atom indexes stay bound to the retained projection.
+When exact partial Boolean evaluation proves that either nonzero sign of an
+active univariate atom makes an existential formula false, retain that atom as
+a necessary zero guard. Its complete real root union supplies every possible
+witness. The complement of those roots is excluded by the retained Boolean
+consequence, independently of every later coordinate; no complement sample is
+needed. Each root section still needs its actual child proof. Existential absence
+requires all root sections plus that complement certificate. Root ordinals refer
+to this guard stack, whose full projection remains retained. A hypothetical
+nonzero sign is used only to establish the implication, never as a source sign.
+Universal quantifiers retain their complete stack. Exhaustion still aborts.
+Only a logical consequence permits this decision, and its known sign witnesses
+are retained. By continuity, zero source conditions remain zero on the closure;
+positive conditions become nonnegative and negative conditions become nonpositive.
+Retain every original weak-sign condition as a necessary free-coordinate guard.
+These guards exclude exterior free cells before candidate search, without claiming
+that weak signs alone suffice for a general nonlinear closure. The quantified
+condition still proves sufficiency on every surviving free cell. The quantified result
+records its explicit free-domain equations. For a closure these are exactly the
+original zero conditions: every point outside them is excluded by the same
+continuity theorem. Prefix lifting may omit descendants only when an original
+equation is proved constant nonzero on the entire retained prefix cell. Each
+excluded cylinder retains its parent, equation index and nonzero sign. Ordinary
+real-space partition callers keep this option disabled. All selected-domain
+cells remain covered; a finite witness search is never an exclusion proof. Free cells retain truth, projection authority and their complete prefix
+partition. This partial-CAD reduction avoids evaluating irrelevant descendants
+without weakening whole-cell truth or creating a helper-local allowance. Unbound atom indexes,
+invalid programs, missing children, foreign rings and failure of complete
+lifting are explicit failures, never false/empty results.
+
+An issued zero-dimensional cell is one exact algebraic point, hence closed.
+Its original cell index therefore issues closure without a radius quantifier.
+
+For a one-dimensional cell with one free sector and only trailing root sections,
+`OriginalMonicBranchClosure` may issue an exact finite-boundary certificate. Each
+trailing section must have a retained zero-sign polynomial with a nonzero
+constant leading coefficient in that section coordinate. Cauchy's root bound
+then proves local boundedness recursively as the free coordinate approaches
+either finite sector endpoint. The earlier zero-dimensional prefix is fixed.
+Every limit satisfies the original weak sign conditions by continuity. Enumerate
+all full cells over the same open sector and its adjacent endpoint sections;
+the original tower proves weak signs constant on each. Require only the original
+source cell over the open sector, and exactly one zero-dimensional weak candidate
+at each finite endpoint. Boundedness gives a convergent subsequence; the unique
+weak candidate is necessarily its limit. All cluster points equal that candidate,
+so it is the one-sided limit of the whole branch. The closure is exactly the
+original branch plus these original endpoint cells. Unbounded sector ends add no
+finite point in the original parameter space. This proves both inclusion and
+absence, including cusp/repeated section roots, without distance or root rank.
+
+The issued closure owns one common free partition and its whole included cells,
+with an explicit point, monic-branch or quantified proof. No monic certificate
+is issued when sections lack the bounding law, candidates are absent/multiple,
+or the parent partition omitted cylinders. In those cases select the general
+quantified definition before solving. These theorem paths are selected before
+proof and are never fallbacks after exhaustion or unresolved generic results.
+All used cell depths remain within the caller's unchanged maximum; reuse of an
+issued sign witness never resets its inherited depth.
+
+A closure calculation may subdivide an original target cell. Its result retains
+that complete subdivision instead of inferring that closure contains the whole
+target from a representative. Branch/region assemblers must compose those
+source-bound pieces; original Jacobian rank neither proves this incidence nor
+classifies geometric image dimension. An excluded denominator locus can occur
+in a mathematical closure, but cannot join selected source components unless
+that locus belongs to the original selected solution set.
+
+Before projecting a closure formula, prepare the original ideal generated by
+its free closed-support equalities and its candidate cell's zero-sign laws.
+Keep every candidate zero-sign atom unchanged as an explicit guard. Replace
+only the other candidate sign predicates and box predicates by their exact
+Groebner normal forms. The original predicates and verified ideal remain
+retained. On the free domain, the inactive-radius disjunct is unaffected. For a
+positive radius, a false candidate guard makes either formula false; when all
+guards hold, every original predicate equals its normal form exactly. Thus the
+compiled formula is equivalent on the entire admitted free domain, not just its
+sample or regular locus. Original guard multiplicities and exceptional/nullified
+fibers remain in the full projection. This reduction is selected before work,
+uses the same caller ledger and never erases the guard equations themselves.
+
+All Boolean, derivative, remapping, projection, lifting, reduction and retained
+payload work uses the unchanged composing RationalAlgebraAdmitting invocation.
+Cancellation is checked through the same admission adapter. Failure discards
+the whole publication. There are no mutable globals, new target isolation
+branches, numerical-distance joins or tolerance-based root identities.
+
+Verification must refute equal original-sign identities (the two roots of
+x^2-1), wrong quantifier order, samples used as universal proof, strict versus
+closed boundaries, nullified and unbounded fibers, different original cells
+merged by enclosure overlap, omitted higher predicate coordinates and separate
+work/storage/depth/cancellation failures. Native and portable public-path
+verification remain separately required after composition into SSI and CS.
+
+### Original Nonzero Selection Guards
+
+`OriginalRationalIntersectionCells` retains optional original nonzero polynomials
+alongside its equations and closed domains. Append these guards before partition-only
+witnesses, retain their sign offset, and include a full cell only when every guard
+has nonzero issued sign. The full partition still covers guard-zero cells; closure
+may approach them, but selected incidence cannot attach to an excluded cell. This
+models denominator exclusions without an auxiliary reciprocal coordinate or tolerance.
+Defaults preserve existing callers and indexed rank witnesses. Foreign rings fail
+in projection before publication; nullified guards exclude their whole full cell.
+
+### Parameter Connected Components
+
+`OriginalRationalParameterComponents` owns connected components of the selected
+original parameter set. It consumes only the complete issued cell partition and
+whole-cell closure attachments through a privately issued complete incidence
+receipt, never a caller-assembled attachment array. CAD cells are connected; a selected target cell
+meeting a source closure connects their union. A contact exclusively at an
+excluded point grants no connection. For a finite cell cover, the components of
+this attachment graph are exactly the connected components of the selected set.
+
+An invocation-local union forest uses selected-cell ordinals, union by size and
+path compression. All inspected links, maps, arrays and member/witness buffers
+are admitted to the same caller; cancellation or failure publishes no receipt.
+Validate every attachment endpoint against the selected cell set. Issued immutable
+components retain their original cell indexes and attachment indexes, ordered by
+the first selected cell occurrence. Empty components require a complete empty
+selected partition. Parameter connectedness establishes neither geometric-image
+identity nor image dimension; those belong to domain/image composition.
+
+Verification uses crossing branches joined through their exact station, two
+disconnected sheets, repeated equations, exact close distinct roots, omitted
+selection points, and independent work/storage/cancellation failure. Each
+component member is present exactly once and every retained graph witness stays
+inside its component.

@@ -827,3 +827,46 @@ remainder contains no monomial divisible by the source divisor's leading monomia
 original = quotient * divisor + remainder exactly. Exact division delegates to
 this producer and rejects any nonzero remainder. All coefficient actions and
 temporary records share the caller's admission.
+
+### Original Constant Coefficient Access
+
+An exact sparse polynomial may issue its existing constant coefficient only when
+its table is empty or consists solely of the zero-power entry. The lookup admits
+work and cancellation, allocates no term array and retains the immutable original
+coefficient owner. A nonconstant table returns nil rather than a sample value.
+Original ordered-field rational values use this contract for constant numerator
+and denominator laws. A denominator equal to one preserves the numerator value;
+constant-fraction signs use the two exact coefficient signs without constructing
+and reducing an unnecessary quotient. A zero denominator still fails, including
+when the numerator is zero. For two original constant fractions, field sum,
+product and quotient operate directly on their exact rational coefficients and
+reissue the result in the same retained field context. Operand embedding happens
+first; division still rejects zero and no unrelated field is identified. This
+avoids term arrays, sparse polynomial products and unreduced constant fractions.
+Nonconstant and extended algebraic field paths keep their original reduction.
+Native, WASM and Embedded share the same immutable source/field implementation.
+This closes the actual quantified-incidence constant-field allocation bottleneck;
+it is not a new allowance or a numerical coefficient approximation.
+
+Exact rational scalar arithmetic admits its operation and cancellation before
+using zero or signed-unit identities. A canonical integer denominator of one
+requires no integer GCD or quotient construction; the existing immutable
+numerator can be retained directly. Addition multiplies a numerator by the other
+denominator only when that denominator differs from one. General nonunit
+fractions still use exact magnitude arithmetic and reduction. Zero divisors are
+rejected before any quotient identity. These paths preserve canonical signed
+source words and use the same arithmetic/ownership contract on every target.
+
+### Original Rational Prefix Substitution
+
+`OriginalIntersectionFieldEvaluation` consumes the immutable ordered-field contract.
+When its retained context is rational, validate every coordinate against that exact
+owner and obtain its original rational value. Evaluate coefficient sums/products
+directly in Q, then issue one field element per final coefficient (or scalar).
+This avoids materializing a field quotient for each intermediate rational term;
+all new rational arithmetic, arrays and final field storage remain charged to the
+caller. A nonrational coordinate in a rational owner is an explicit failure.
+Original and extended algebraic contexts retain their full original field path.
+Native, WASM and Embedded use the same immutable owner and implementation.
+Identity powers may reuse their original coefficient without allocating new
+polynomial storage; cancellation and inspected work are still admitted.
