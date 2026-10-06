@@ -53,8 +53,8 @@ struct NativeIntersectionDecompositionTests {
         #expect(throws: KernelError.self) { try Domain(lower: .one, upper: .zero, usage: &usage) }
     }
 
-    @Test(.timeLimit(.minutes(1)), arguments: [false, true])
-    func nativeCurveContactsRetainOriginalWeightedOrRepeatedParameters(tangent: Bool) throws {
+    @Test(.timeLimit(.minutes(1)), arguments: [false, true], [false, true])
+    func nativeCurveContactsRetainOriginalWeightedOrRepeatedParameters(tangent: Bool, preferIsolated: Bool) throws {
         var usage = Admission()
         let surface = try law(plane(), usage: &usage)
         let curve = tangent
@@ -65,7 +65,8 @@ struct NativeIntersectionDecompositionTests {
         let source = try OriginalRationalCurvePolynomial(source: curve, spanIndex: curve.degree,
             tolerance: .standard, usage: &usage)
         let system = try OriginalRationalIntersectionSystem(curve: source, surface: surface, usage: &usage)
-        let result = try OriginalRationalIntersectionDecomposition.prepare(system: system, maximumDepth: 24, usage: &usage)
+        let result = try OriginalRationalIntersectionDecomposition.prepare(system: system,
+            normalizeDenominatorFactors: preferIsolated, preferIsolatedCells: preferIsolated, maximumDepth: 24, usage: &usage)
         let (strata, incidence, components) = try coverage(result)
         #expect(components.components.count == 1 && strata.partition.solutionCells.count == 1)
         let point = strata.partition.cells[try #require(strata.partition.solutionCells.first)]
@@ -141,8 +142,8 @@ struct NativeIntersectionDecompositionTests {
         try verifyOriginalSources(result, strata: strata, usage: &usage)
     }
 
-    @Test(.timeLimit(.minutes(1)), arguments: [0,1,2])
-    func nativeSurfaceProductsDistinguishCrossingCoincidenceAndNearAbsence(kind: Int) throws {
+    @Test(.timeLimit(.minutes(1)), arguments: [0,1,2], [false, true])
+    func nativeSurfaceProductsDistinguishCrossingCoincidenceAndNearAbsence(kind: Int, preferIsolated: Bool) throws {
         var usage = Admission()
         let first = try law(plane(), usage: &usage)
         let source = kind == 0
@@ -152,7 +153,8 @@ struct NativeIntersectionDecompositionTests {
             : plane(height: kind == 1 ? 0 : 5e-7)
         let second = try law(source, usage: &usage)
         let system = try OriginalRationalIntersectionSystem(first: first, second: second, usage: &usage)
-        let result = try OriginalRationalIntersectionDecomposition.prepare(system: system, maximumDepth: 24, usage: &usage)
+        let result = try OriginalRationalIntersectionDecomposition.prepare(system: system,
+            normalizeDenominatorFactors: preferIsolated, preferIsolatedCells: preferIsolated, maximumDepth: 24, usage: &usage)
         let (strata, _, components) = try coverage(result)
         #expect(components.components.count == (kind == 2 ? 0 : 1))
         if kind == 2 { #expect(strata.partition.solutionCells.isEmpty) }
@@ -228,6 +230,56 @@ struct NativeIntersectionDecompositionTests {
         }
     }
 
+    @Test(.timeLimit(.minutes(1)))
+    func preferredIsolatedExecutionRetainsMixedOriginalPointAndCurveComponents() throws {
+        var usage = Admission()
+        let source = BSplineSurface3D(uDegree: 1, vDegree: 2,
+            uKnots: [0,0,1,1], vKnots: [0,0,0,1,1,1], controlPoints: [
+                [.init(x: 0,y: 0,z: 0), .init(x: 1,y: 0,z: -1)],
+                [.init(x: 0,y: -0.5,z: 0), .init(x: 1,y: -0.5,z: -0.5)],
+                [.init(x: 0,y: 0,z: 0), .init(x: 1,y: 0,z: 0)]])
+        let surface = try law(source, usage: &usage)
+        let curve = BSplineCurve3D(degree: 1, knots: [0,0,1,1], controlPoints: [
+            .init(x: 0,y: 0,z: 0), .init(x: 1,y: 0,z: 0)])
+        let original = try OriginalRationalCurvePolynomial(source: curve, spanIndex: 1,
+            tolerance: .standard, usage: &usage)
+        let system = try OriginalRationalIntersectionSystem(curve: original, surface: surface, usage: &usage)
+        let result = try OriginalRationalIntersectionDecomposition.prepare(system: system,
+            normalizeDenominatorFactors: true, preferIsolatedCells: true, maximumDepth: 24, usage: &usage)
+        let (strata, _, components) = try coverage(result)
+        #expect(strata.equationIdeal?.classification == .positiveDimensional)
+        #expect(components.components.count == 2)
+        #expect(components.components.contains { component in
+            component.cellIndexes.allSatisfy { strata.partition.cells[$0].dimension == 0 }
+        })
+        #expect(components.components.contains { component in
+            component.cellIndexes.contains { strata.partition.cells[$0].dimension == 1 }
+        })
+        try verifyOriginalSources(result, strata: strata, usage: &usage)
+    }
+
+    @Test(.timeLimit(.minutes(1)))
+    func preferredIsolatedExecutionUsesActualClosedDomainDimension() throws {
+        var usage = Admission()
+        let surface = try law(plane(), usage: &usage)
+        let curve = BSplineCurve3D(degree: 1, knots: [0,0,1,1], controlPoints: [
+            .init(x: 0,y: 0,z: 0), .init(x: 1,y: 1,z: 0)])
+        let original = try OriginalRationalCurvePolynomial(source: curve, spanIndex: 1,
+            tolerance: .standard, usage: &usage)
+        let system = try OriginalRationalIntersectionSystem(curve: original, surface: surface, usage: &usage)
+        let zero = try Domain(lower: .zero, upper: .zero, usage: &usage)
+        let full = try Domain(lower: .zero, upper: .one, usage: &usage)
+        let result = try OriginalRationalIntersectionDecomposition.prepare(system: system,
+            requestedDomains: [zero, full, full], normalizeDenominatorFactors: true,
+            preferIsolatedCells: true, maximumDepth: 24, usage: &usage)
+        let (strata, _, components) = try coverage(result)
+        #expect(strata.equationIdeal?.classification == .positiveDimensional)
+        #expect(components.components.count == 1 && strata.partition.solutionCells.count == 1)
+        #expect(strata.strata.allSatisfy { $0.isolatedRankSigns != nil && $0.originalJacobianRank == 2 })
+        #expect(strata.partition.solutionCells.allSatisfy { strata.partition.cells[$0].dimension == 0 })
+        try verifyOriginalSources(result, strata: strata, usage: &usage)
+    }
+
     private func coverage(_ result: OriginalRationalIntersectionDecomposition) throws -> (
         OriginalRationalIntersectionStrata, OriginalRationalIntersectionIncidence, OriginalRationalParameterComponents) {
         guard case .parameterCells(let strata, let incidence, let components) = result.coverage else {
@@ -238,7 +290,7 @@ struct NativeIntersectionDecompositionTests {
 
     private func verifyOriginalSources(_ result: OriginalRationalIntersectionDecomposition,
         strata: OriginalRationalIntersectionStrata, usage: inout Admission) throws {
-        #expect(strata.equationIdeal?.originalEquations == result.system.equations)
+        #expect(strata.equationIdeal?.originalEquations == (result.guardedEquations?.normalizedEquations ?? result.system.equations))
         #expect(strata.partition.nonzeroPolynomials == result.system.denominatorGuards)
         for index in strata.partition.solutionCells {
             let cell = strata.partition.cells[index]

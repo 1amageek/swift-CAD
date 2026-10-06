@@ -48,23 +48,42 @@ package struct OriginalRationalIntersectionStrata: Sendable {
     package static func prepare<B: RationalAlgebraAdmitting>(ideal: ExactIntersectionIdeal,
         exactDomains: [OriginalRationalParameterDomain], nonzeroPolynomials: [ExactIntersectionPolynomial],
         thomEncoding: Bool = false, originalRankEquations: [ExactIntersectionPolynomial]? = nil,
-        isolatedOnly: Bool = false,
+        isolatedOnly: Bool = false, preferIsolatedCells: Bool = false,
         pruneExcludedPrefixes: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
         try prepareOriginal(equations: originalRankEquations ?? ideal.originalEquations, ideal: ideal, variableCount: ideal.variableCount,
             exactDomains: exactDomains, nonzeroPolynomials: nonzeroPolynomials,
             thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes,
-            isolatedOnly: isolatedOnly, maximumDepth: maximumDepth, usage: &usage)
+            isolatedOnly: isolatedOnly, preferIsolatedCells: preferIsolatedCells, maximumDepth: maximumDepth, usage: &usage)
     }
 
     private static func prepareOriginal<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
         ideal: ExactIntersectionIdeal?, variableCount: Int, exactDomains: [OriginalRationalParameterDomain],
         nonzeroPolynomials: [ExactIntersectionPolynomial], thomEncoding: Bool, pruneExcludedPrefixes: Bool,
-        isolatedOnly: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
-        if isolatedOnly {
-            return try prepareIsolated(equations: equations, ideal: ideal, variableCount: variableCount,
-                exactDomains: exactDomains, nonzeroPolynomials: nonzeroPolynomials,
+        isolatedOnly: Bool = false, preferIsolatedCells: Bool = false, maximumDepth: Int, usage: inout B) throws -> Self {
+        if isolatedOnly || preferIsolatedCells {
+            for domain in exactDomains {
+                try intersectionAlgebraStep(&usage)
+                guard domain.lower != nil, domain.upper != nil else {
+                    throw rationalAlgebraFailure("Isolated native rank evaluation requires finite closed original domains.")
+                }
+            }
+            let initial = try OriginalRationalIntersectionCells.prepare(equations: ideal?.reducedBasis ?? equations,
+                variableCount: variableCount, exactDomains: exactDomains, nonzeroPolynomials: nonzeroPolynomials,
                 thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes,
                 maximumDepth: maximumDepth, usage: &usage)
+            var hasPositiveCell = false
+            for index in initial.solutionCells {
+                try intersectionAlgebraStep(&usage)
+                if initial.cells[index].dimension > 0 { hasPositiveCell = true; break }
+            }
+            if !hasPositiveCell {
+                return try prepareIsolated(equations: equations, ideal: ideal, variableCount: variableCount,
+                    partition: initial, maximumDepth: maximumDepth, usage: &usage)
+            }
+            if isolatedOnly {
+                throw KernelError(phase: .geometry, code: .nonDiscreteIntersection, tolerance: nil,
+                    message: "The original requested native product contains a positive-dimensional intersection.")
+            }
         }
         let jacobian = try ExactIntersectionJacobian.prepare(equations: equations, variableCount: variableCount, usage: &usage)
         try RationalAlgebraStorage.retain(jacobian.minors.count, of: ExactIntersectionPolynomial.self, usage: &usage)
@@ -75,7 +94,7 @@ package struct OriginalRationalIntersectionStrata: Sendable {
                 by: $0.reducedBasis, usage: &usage) } ?? minor.polynomial)
         }
         let partition = try OriginalRationalIntersectionCells.prepare(equations: ideal?.reducedBasis ?? equations, variableCount: variableCount,
-            exactDomains: exactDomains, partitionPolynomials: witnesses, nonzeroPolynomials: nonzeroPolynomials, thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &usage)
+            exactDomains: exactDomains, partitionPolynomials: witnesses, nonzeroPolynomials: nonzeroPolynomials, thomEncoding: thomEncoding, pruneExcludedPrefixes: preferIsolatedCells ? false : pruneExcludedPrefixes, maximumDepth: maximumDepth, usage: &usage)
         try RationalAlgebraStorage.retain(partition.solutionCells.count, of: Stratum.self, usage: &usage)
         var strata: [Stratum] = []; strata.reserveCapacity(partition.solutionCells.count)
         for index in partition.solutionCells {
@@ -95,26 +114,8 @@ package struct OriginalRationalIntersectionStrata: Sendable {
     }
 
     private static func prepareIsolated<B: RationalAlgebraAdmitting>(equations: [ExactIntersectionPolynomial],
-        ideal: ExactIntersectionIdeal?, variableCount: Int, exactDomains: [OriginalRationalParameterDomain],
-        nonzeroPolynomials: [ExactIntersectionPolynomial], thomEncoding: Bool, pruneExcludedPrefixes: Bool,
+        ideal: ExactIntersectionIdeal?, variableCount: Int, partition: OriginalRationalIntersectionCells,
         maximumDepth: Int, usage: inout B) throws -> Self {
-        for domain in exactDomains {
-            try intersectionAlgebraStep(&usage)
-            guard domain.lower != nil, domain.upper != nil else {
-                throw rationalAlgebraFailure("Isolated native rank evaluation requires finite closed original domains.")
-            }
-        }
-        let partition = try OriginalRationalIntersectionCells.prepare(equations: ideal?.reducedBasis ?? equations,
-            variableCount: variableCount, exactDomains: exactDomains, nonzeroPolynomials: nonzeroPolynomials,
-            thomEncoding: thomEncoding, pruneExcludedPrefixes: pruneExcludedPrefixes,
-            maximumDepth: maximumDepth, usage: &usage)
-        for index in partition.solutionCells {
-            try intersectionAlgebraStep(&usage)
-            guard partition.cells[index].dimension == 0 else {
-                throw KernelError(phase: .geometry, code: .nonDiscreteIntersection, tolerance: nil,
-                    message: "The original requested native product contains a positive-dimensional intersection.")
-            }
-        }
         let jacobian = try ExactIntersectionJacobian.prepare(equations: equations, variableCount: variableCount, usage: &usage)
         try RationalAlgebraStorage.retain(jacobian.minors.count, of: ExactIntersectionPolynomial.self, usage: &usage)
         var witnesses: [ExactIntersectionPolynomial] = []; witnesses.reserveCapacity(jacobian.minors.count)

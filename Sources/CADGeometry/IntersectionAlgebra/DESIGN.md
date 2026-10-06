@@ -1055,3 +1055,24 @@ domain, tolerance, shared mutable state or caller budget is introduced.
 conditions, independent admission/cancellation, original rank/source retention;
 NativeSurfaceSurfacePointTests owns the weighted bowl and close-root public
 success/failure under the unchanged finite caller budget.
+
+
+### Complete Native Rank Strategy
+
+`OriginalRationalIntersectionDecomposition.prepare(preferIsolatedCells: true)`
+selects a rank-evaluation method using actual selected real cells. An initial
+original equation/domain partition is retained for isolated rank evaluation if
+all selected cells have dimension zero, including a complete empty partition.
+Complex ideal dimension never supplies real-result dimension or connectivity.
+If positive-dimensional cells exist, the same original ideal, domains, raw rank
+laws and caller admission produce the full rank-sign partition. This preferred
+positive path retains its complete unpruned partition so existing whole-cell
+closure theorems keep their original assumptions. Strict `isolatedOnly` still
+rejects any positive-dimensional selected cell atomically; default callers keep
+their existing rank-partition and prefix-pruning behavior.
+
+[NativeIntersectionDecompositionTests](../../../Tests/CADGeometryTests/NativeIntersectionDecompositionTests.swift)
+checks original domain-isolated tuples despite a positive-dimensional complex
+ideal, mixed point/curve coverage, raw Jacobian ranks, complete exclusion,
+independent admission and strict non-discrete failure. Native CS/SSI public
+composition owns publication and its additional source/lifetime evidence.
