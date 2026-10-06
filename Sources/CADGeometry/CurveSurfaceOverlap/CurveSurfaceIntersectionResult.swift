@@ -15,6 +15,9 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete original affine-image tuples and exact closed-domain coverage.
     public let originalAffinePoints: OriginalAffineCurveSurfacePoints?
 
+    /// Complete original Coons tuples and exact closed-domain coverage.
+    public let originalCoonsPoints: OriginalCoonsCurveSurfacePoints?
+
     public var hasPositiveDimensionalSolutions: Bool {
         !overlaps.isEmpty || originalNativeRelations?.hasPositiveDimensionalSolutions == true
     }
@@ -23,12 +26,14 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalNativePoints: OriginalNativeCurveSurfacePoints? = nil,
         originalNativeRelations: OriginalNativeCurveSurfaceRelation? = nil,
         originalPolynomialPoints: OriginalPolynomialCurveSurfacePoints? = nil,
-        originalAffinePoints: OriginalAffineCurveSurfacePoints? = nil) {
+        originalAffinePoints: OriginalAffineCurveSurfacePoints? = nil,
+        originalCoonsPoints: OriginalCoonsCurveSurfacePoints? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
         self.originalNativeRelations = originalNativeRelations
         self.originalPolynomialPoints = originalPolynomialPoints
         self.originalAffinePoints = originalAffinePoints
+        self.originalCoonsPoints = originalCoonsPoints
     }
 }

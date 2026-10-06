@@ -226,6 +226,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       options: options, tolerance: tolerance, invocation: context) { return original.points }
     if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
       options: options, tolerance: tolerance, invocation: context) { return affine.points }
+    if let coons = try OriginalCoonsCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+      options: options, tolerance: tolerance, invocation: context) { return coons.points }
     try curve.validateOriginalSource(tolerance: tolerance,
       remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: context.maximumSubdivisionDepth,
       consumeWork: { _ in try context.consumeFixedWork() }, consumeStorage: consumeStorage,
@@ -260,6 +262,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
       options: options, tolerance: tolerance, invocation: invocation) { return original.points }
     if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
       options: options, tolerance: tolerance, invocation: invocation) { return affine.points }
+    if let coons = try OriginalCoonsCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+      options: options, tolerance: tolerance, invocation: invocation) { return coons.points }
     try invocation?.consumeFixedWork()
     try options.validate(tolerance: tolerance)
     try curve.validate(tolerance: tolerance)
