@@ -3,7 +3,7 @@ import CADGeometry
 
 /// Outward Rodrigues evaluation encloses normalization and all coefficient math.
 package struct CertifiedTwistCoordinates {
-    typealias I = OutwardScalarInterval
+    package typealias I = OutwardScalarInterval
     let start: [I]
     let advance: [I]
     let anchor: [I]

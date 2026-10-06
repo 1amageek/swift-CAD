@@ -126,7 +126,7 @@ package struct FaceSectionProfileResolver: Sendable {
         }
         let profile = Profile(
             sourceFeatureID: reference.featureID,
-            plane: .plane(Plane3D(origin: plane.origin, normal: normal, uDirection: plane.uDirection)),
+            plane: .plane(Plane3D(origin: plane.origin, normal: normal)),
             outerLoop: outer,
             innerLoops: inner
         )

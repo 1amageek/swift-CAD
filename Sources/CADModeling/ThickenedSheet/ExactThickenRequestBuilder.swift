@@ -1272,6 +1272,7 @@ package struct ExactThickenRequestBuilder: Sendable {
         case .rigidImage, .affineImage, .parameterImage:
             return edge.curve.hasExactLinearParameterization
         case .circle, .analytic, .implicit, .certifiedIntersection,
+             .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted, .originalAngularTransport,
              .originalAffineWord, .originalEndpointConnector, .originalConstructionChart:
             return false
         }

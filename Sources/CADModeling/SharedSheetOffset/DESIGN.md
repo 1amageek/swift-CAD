@@ -22,6 +22,9 @@ Source shell -> all offset supports + boundary transports + shared vertex seeds
 ```
 
 ## Contracts and Invariants
+
+Joint endpoint projection results supply their original u/v coordinates to boundary continuation. The projection result is not a parameter value; final lifted endpoint residual checks remain required.
+
 Raw `Plane3D` offset retains its authored `uDirection` together with its original normal. Translation along the face normal changes only the origin; rebuilding a default plane basis would change the native UV law and invalidate retained coedge correspondence.
 Every shared edge has one spatial curve and one canonical vertex pair, with independent pcurves on incident supports. Agreeing transported vertex images become exact known constraints; disagreeing images require the joint solver. Free curved boundaries keep their exact transported law. A failed joint solution is an explicit geometric/topology failure and never publishes individually detached faces.
 

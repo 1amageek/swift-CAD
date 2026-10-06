@@ -1,3 +1,4 @@
+import CADCore
 import CADTopology
 
 /// Original loop order and topology role after whole-law orientation admission.

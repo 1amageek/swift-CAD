@@ -563,6 +563,7 @@ package struct ExactFacePcurveBuilder {
              .implicit,
              .surfaceLift,
              .certifiedIntersection,
+             .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted,
              .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport,
              .parameterImage:
             return nil
@@ -741,6 +742,7 @@ package struct ExactFacePcurveBuilder {
              .certifiedIntersection,
              .affineImage,
              .originalAffineWord,
+             .originalPlaneDerivative, .originalGuideTraversalChain, .originalGuideEndpointConnector, .originalPolyline, .originalDrafted,
              .originalEndpointConnector, .originalConstructionChart, .originalAngularTransport,
              .parameterImage:
             return false

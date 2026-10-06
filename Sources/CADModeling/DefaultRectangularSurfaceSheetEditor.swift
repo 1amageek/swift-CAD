@@ -303,7 +303,8 @@ package struct DefaultRectangularSurfaceSheetEditor: RectangularSurfaceSheetEdit
             points = curve.controlPoints.map {
                 SurfaceParameter(u: $0.x, v: $0.y)
             }
-        case .harmonic,
+        case .originalAffineWord,
+             .harmonic,
              .originalBSplineContinuation,
              .originalImage,
              .sphericalGreatCircle,

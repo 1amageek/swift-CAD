@@ -48,6 +48,9 @@ path spans + original chart ─► retained original owning traversal jets (orde
 
 ## Contracts and Invariants
 
+Closed seam section actions use the original piece laws evaluated at both start and end. OriginalSweepPathPiece.Place is the retained endpoint/whole-domain selector; candidate rows do not define these laws.
+
+
 Original cumulative arc preparation forwards the invocation's independent source
 and algebra capabilities together with geometric subdivision and work/BYTES.
 Subdivision cannot reset or enlarge original source or algebra depth.

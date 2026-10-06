@@ -47,6 +47,12 @@ flowchart LR
 
 ## Contracts and Invariants
 
+`SurfaceParameterAreaBounds.zero`, `minimumAbsoluteValue` and `adding` are package-readable
+for the thickened-sheet consumer. The existing signed area enclosure remains
+authoritative: an interval containing zero has no strictly positive absolute
+area bound. Visibility does not change its numerical law or admit a face.
+
+
 ### Original Vertex Position Authority
 
 `Vertex.originalPoint` optionally retains the original authored binary point

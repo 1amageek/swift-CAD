@@ -268,7 +268,12 @@ public struct BSplineSurfaceFeatureEvaluator: FeatureEvaluating, ValidatedFeatur
                 curve: .bSpline(curve),
                 trim: CurveTrim(startParameter: uStart, endParameter: uEnd)
             )
-        case .affine,
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Original wrapper charts are not
+        // implemented by this specialized path. Production feature evaluation
+        // must retain the original law and refuse this arm until its complete
+        // native-parameter and whole-domain construction proof is available.
+        case .originalBSplineContinuation, .originalAffineWord, .originalImage,
+             .affine,
              .harmonic,
              .polyline,
              .bSpline,

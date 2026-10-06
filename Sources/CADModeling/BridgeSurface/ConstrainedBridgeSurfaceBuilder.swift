@@ -201,8 +201,8 @@ package struct ConstrainedBridgeSurfaceBuilder: Sendable {
                     case 0: point = first.controlPoints[index]
                     case 1: point = first.controlPoints[index] + d0[index] * 0.2
                     case 2: point = first.controlPoints[index] + d0[index] * 0.4 + a0[index] * 0.05
-                    case 3: point = last.controlPoints[index] - d1[index] * 0.4 + a1[index] * 0.05
-                    case 4: point = last.controlPoints[index] - d1[index] * 0.2
+                    case 3: point = last.controlPoints[index] + d1[index] * -0.4 + a1[index] * 0.05
+                    case 4: point = last.controlPoints[index] + d1[index] * -0.2
                     default: point = last.controlPoints[index]
                     }
                     rowPoints.append(point)

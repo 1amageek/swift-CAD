@@ -1,3 +1,4 @@
+import CADCore
 import CADGeometry
 
 /// The immutable selected traversal and point correspondence of each original section.

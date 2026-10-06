@@ -10,7 +10,7 @@ package enum AdmittedSewingProvenance {
         guard !input.isEmpty else { return [] }
         let bytes = input.count.multipliedReportingOverflow(by: MemoryLayout<SubshapeID>.stride)
         guard !bytes.overflow else {
-            throw KernelError(phase: .topology, code: .resourceLimitExceeded,
+            throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: nil,
                 message: "Sewing ancestry byte admission overflowed its original ID buffer.")
         }
         try consumeStorage?(bytes.partialValue)

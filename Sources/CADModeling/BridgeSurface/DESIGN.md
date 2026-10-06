@@ -39,6 +39,9 @@ two stable source edge references
 
 ## Contracts and Invariants
 
+Hermite control rows translate points by signed derivative vectors. The final row formula preserves the original derivative coefficients and positional/tangent/curvature proof.
+
+
 - Both stable references name distinct edges and resolve to open boundary edges
   of their respective current source bodies. Each persisted source-to-output
   affine map converts its exact boundary into the output frame. Coincident

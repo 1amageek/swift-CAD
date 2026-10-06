@@ -48,6 +48,9 @@ flowchart LR
 
 ## Contracts and Invariants
 
+Original native generator domain admission reads BSplineCurve3D.domain. Endpoint-pole admission remains short-circuited when an authored radial direction is present; throwing pole proofs propagate failures.
+
+
 An original axis endpoint remains fixed under rotation. Its tensor row is
 identical at all angular coefficients, and the corresponding constant-V UV
 use remains in the rectangular face loop. The component may skip an axis

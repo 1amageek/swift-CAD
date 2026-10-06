@@ -118,7 +118,17 @@ public struct ProjectCurveFeatureEvaluator: FeatureEvaluating, ValidatedFeatureE
                 projection: projection,
                 tolerance: tolerance
             )
-        case .analytic, .implicit, .surfaceLift, .certifiedIntersection,
+        case .parameterImage,
+             .originalAffineWord,
+             .originalConstructionChart,
+             .originalEndpointConnector,
+             .originalPlaneDerivative,
+             .originalGuideTraversalChain,
+             .originalGuideEndpointConnector,
+             .originalPolyline,
+             .originalDrafted,
+             .originalAngularTransport,
+             .analytic, .implicit, .surfaceLift, .certifiedIntersection,
              .rigidImage, .affineImage:
             return try projectAffineImage(
                 featureID: featureID,

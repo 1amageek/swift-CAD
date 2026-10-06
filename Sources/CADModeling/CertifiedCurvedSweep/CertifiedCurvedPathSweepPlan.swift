@@ -419,7 +419,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             return path + frame.tangent.scaled(by: .constant(point.along, order: order)) + first.scaled(by: x) + second.scaled(by: y)
         }
         /// The linear map's entries over a piece (or at an end), linear in its parameter.
-        func mapJets(_ start: LinearMap, _ end: LinearMap, at place: HomogeneousBezier.Place, order: Int)
+        func mapJets(_ start: LinearMap, _ end: LinearMap, at place: OriginalSweepPathPiece.Place, order: Int)
             -> (a: IntervalDerivativeJet, b: IntervalDerivativeJet, c: IntervalDerivativeJet, d: IntervalDerivativeJet) {
             func jet(_ s: Double, _ e: Double) -> IntervalDerivativeJet {
                 let value: Interval
@@ -644,7 +644,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             let pieceLaws = try laws(startLaw, endLaw, at: .whole, order: 4)
             /// A section point placed over the piece or at one of its ends.
             func placed(_ point: SectionCoordinates, path: IntervalVectorDerivativeJet, frame: RotationJet,
-                        at place: HomogeneousBezier.Place, order: Int) throws -> IntervalVectorDerivativeJet {
+                        at place: OriginalSweepPathPiece.Place, order: Int) throws -> IntervalVectorDerivativeJet {
                 if let mapEnd { return movedLinear(point, path: path, frame: frame, map: mapJets(mapStart, mapEnd, at: place, order: order)) }
                 let placeLaws = place == .whole && order == 4 ? pieceLaws : try laws(startLaw, endLaw, at: place, order: order)
                 return moved(point, path: path, frame: frame, cosine: placeLaws.cosine, sine: placeLaws.sine, scale: placeLaws.scale)
@@ -674,6 +674,7 @@ package struct CertifiedCurvedPathSweepPlan: Sendable {
             var pieceRows: [[Point3D]] = Array(repeating: [], count: 4)
             var numeric = 0.0
             var nextStation: [[Interval]] = []
+            let startLaws = try laws(startLaw, endLaw, at: .start, order: 1)
             let endLaws = try laws(startLaw, endLaw, at: .end, order: 1)
             if pathIsClosed, closesSeam {
                 func sectionAction(path: IntervalVectorDerivativeJet, frame: RotationJet,

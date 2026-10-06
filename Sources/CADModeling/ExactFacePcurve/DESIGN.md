@@ -21,6 +21,9 @@ original edge + oriented native trim + original surface
 ```
 
 ## Contracts and Invariants
+
+Harmonic and exact analytic projection predicates do not unwrap original corrected, drafted, polyline or guide-chain sources into a circular native chart. They decline applicability until the corresponding source law is available.
+
 A structurally identical spatial transform or exact affine operation word on an edge and surface permits source chart construction under their retained original laws. Identical operation words retain the original source pcurve and unchanged UV through OriginalAffineWordSurfaceParameterCurve; they never reconstruct a representative matrix. All signed gains, rational gain coefficients and axis exchanges retain the source lift through OriginalImageSurfaceParameterCurve; its original spatial shortcut supplies pole/apex authority instead of inverse-UV roundtrips. A foreign curve parameter image maps oriented endpoints as candidate arithmetic, retains the original spatial curve in topology, and validates the entire resulting correspondence against that original parameter image before publication. Different transforms and nonlinear inverse correspondences require their original Geometry producer; sampled inversion is insufficient.
 
 ## Failure, Concurrency, and Constraints

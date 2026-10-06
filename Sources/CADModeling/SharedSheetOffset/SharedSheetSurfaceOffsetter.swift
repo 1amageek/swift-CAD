@@ -40,7 +40,7 @@ package struct SharedSheetSurfaceOffsetter {
                         }
                         let point = try target.point(u: uv.u, v: uv.v, tolerance: tolerance)
                         transportedVertices[vertexID, default: []].append(point)
-                        displacement += point - old
+                        displacement = displacement + (point - old)
                         vertexCount += 1
                     }
                 }
