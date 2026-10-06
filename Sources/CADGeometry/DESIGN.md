@@ -1377,6 +1377,7 @@ The legacy convenience initializer retains its established operation ownership.
 
 - [Curve Curve Contact](CurveCurveContact/DESIGN.md): original native curve pair contact and continuous ambiguity evidence.
 - [Rational Bivariate Algebra](RationalBivariateAlgebra/DESIGN.md): exact original dyadic/rational coefficient equality and polynomial algebra.
+- [Intersection Algebra](IntersectionAlgebra/DESIGN.md): original three/four-variable rational intersection equations and exact ideal preparation; real component coverage remains a separate required obligation.
 
 - [Original Line Incidence](OriginalLineIncidence/DESIGN.md): exact original point/parametric-axis incidence.
 
