@@ -23,7 +23,7 @@ public extension CADDocument {
                 let factors: [AssemblyPlacementFactor]
                 switch original {
                 case .word(let word): factors = word.factors
-                case .rigid, .affine: factors = [.forward(original)]
+                case .rigid, .affine, .step: factors = [.forward(original)]
                 }
                 assembly.roots[index].placement = .word(try AssemblyPlacementWord(
                     factors: [.forward(.translated(by: vector))] + factors

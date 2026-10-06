@@ -32,15 +32,25 @@ extension OriginalSTEPLengthConversion: Codable {
         try usage.visitExactCell(depth: 0)
         let c = try decoder.container(keyedBy: Keys.self)
         try c.validateOnlyExpectedKeys([.name, .dimensionsID, .dimensions, .measureID, .measureKind, .factorLiteral, .base], in: decoder)
-        name = try c.decode(String.self, forKey: .name); dimensionsID = try c.decode(PortableIdentity128.self, forKey: .dimensionsID)
+        name = try c.decode(String.self, forKey: .name); dimensionsID = try OriginalSTEPIdentityCoding.decode(from: c.superDecoder(forKey: .dimensionsID))
         var source = try c.nestedUnkeyedContainer(forKey: .dimensions)
         guard source.count == 7 else { throw IndependentShapeSourceError.invalidSource("Original length dimensions require seven exponents.") }
         try usage.consumeExactWork(7); try usage.retainExactStorage(7 * MemoryLayout<String>.stride / MemoryLayout<UInt32>.stride)
         var values: [String] = []; values.reserveCapacity(7)
         while !source.isAtEnd { values.append(try source.decode(String.self)) }
-        dimensions = values; measureID = try c.decode(PortableIdentity128.self, forKey: .measureID)
+        dimensions = values; measureID = try OriginalSTEPIdentityCoding.decode(from: c.superDecoder(forKey: .measureID))
         measureKind = try c.decode(MeasureKind.self, forKey: .measureKind); factorLiteral = try c.decode(String.self, forKey: .factorLiteral)
         base = try c.decode(OriginalSTEPLengthSource.self, forKey: .base)
+    }
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: Keys.self)
+        try c.encode(name, forKey: .name)
+        try c.encode(dimensionsID.canonicalString, forKey: .dimensionsID)
+        try c.encode(dimensions, forKey: .dimensions)
+        try c.encode(measureID.canonicalString, forKey: .measureID)
+        try c.encode(measureKind, forKey: .measureKind)
+        try c.encode(factorLiteral, forKey: .factorLiteral)
+        try c.encode(base, forKey: .base)
     }
 }
 extension OriginalSTEPLengthConversion.MeasureKind: Codable {}

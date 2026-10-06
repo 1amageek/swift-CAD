@@ -47,3 +47,37 @@ criterion. Owners comparing the old numeric binding may do so separately; only
 the actual original field producer proves the normalized law.
 
 Foreign unit authority is owned by [Length Source](LengthSource/DESIGN.md). A required-nullable descriptor distinguishes original standard gain from the Native LengthUnit binary convention.
+
+## Native Identity Adapter
+
+`OriginalSTEPIdentityCoding` belongs to this Native adapter boundary and consumes
+[Portable Identity](../../../CADCore/PortableIdentity/DESIGN.md) canonical text
+without adding Codable to the common Core value. Every original element, LINE
+vector, length unit, dimensions and measure identity uses the same uppercase
+8-4-4-4-12 string schema as the existing Native TaggedID adapter. Decoding accepts
+case-insensitive valid text, preserves all 128 bits, and reports malformed text
+as `DecodingError.dataCorrupted`. The surrounding record performs the existing
+caller allowance and source-nesting admission before reading identity fields.
+
+`OriginalSTEPIdentityCodecTests` owns raw identity text/bit preservation, nested
+conversion round trips, malformed/unknown-key refusal, missing allowance and
+work/storage refusal. Immutable source values have no mutable shared state; the
+Native-only codec does not change common Native/WASM/Embedded value ownership.
+
+Identity decoding borrows that same Native allowance. Before the Core parser
+materializes its UTF-8 array and 16-byte octet buffer, it admits their fixed
+36 + 16 byte capacities using checked arithmetic and UInt32 word rounding
+(13 words). A prepaid 37-byte prefix scan rejects every non-36-byte string
+without allocating a parser buffer or scanning an unbounded input. Valid-length
+input admits the bounded parser work (36 byte copies, at most 36 parsing visits,
+and 16 word-fold visits), then checks cancellation again before publication.
+Foundation's input/String decoding allocation remains at the decoder boundary;
+this adapter admission covers only the new Core parser buffers and work.
+The focused identity tests distinguish exact 13-word success, one-word-short
+failure before parsing, oversized malformed refusal and final callback cancel.
+
+`NativeIRPlacementTranslationTests` owns the public copied document translation
+behavior for direct STEP placement roots: the translation word prepends the
+world displacement and retains the complete original STEP factor and local
+definitions without flattening the original law. This focused fixture does not
+claim the unrelated legacy assembly test suite is current or green.

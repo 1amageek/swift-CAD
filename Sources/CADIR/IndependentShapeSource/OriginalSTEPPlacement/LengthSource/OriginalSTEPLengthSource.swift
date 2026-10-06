@@ -41,7 +41,12 @@ extension OriginalSTEPLengthSource: Codable {
         try usage.visitExactCell(depth: 0)
         let c = try decoder.container(keyedBy: Keys.self)
         try c.validateOnlyExpectedKeys([.id, .law], in: decoder)
-        id = try c.decode(PortableIdentity128.self, forKey: .id); law = try c.decode(Law.self, forKey: .law)
+        id = try OriginalSTEPIdentityCoding.decode(from: c.superDecoder(forKey: .id)); law = try c.decode(Law.self, forKey: .law)
+    }
+    public func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: Keys.self)
+        try c.encode(id.canonicalString, forKey: .id)
+        try c.encode(law, forKey: .law)
     }
 }
 extension OriginalSTEPLengthSource.Law: Codable {

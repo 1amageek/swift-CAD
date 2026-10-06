@@ -1,3 +1,5 @@
+import CADCore
+
 /// Invocation-local cumulative accounting. Every derived collection is charged before growth.
 public struct ProductAttributeBudget: Sendable {
     public let limits: ProductAttributeLimits

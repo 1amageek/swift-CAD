@@ -60,7 +60,7 @@ extension OriginalSTEPLineSource: Codable {
         try c.validateOnlyExpectedKeys([.location, .direction, .vectorID, .vectorName, .magnitude, .lengthUnit, .originalLengthSource, .adjustments], in: decoder)
         location = try c.decode(OriginalSTEPPlacementElement.self, forKey: .location)
         direction = try c.decode(OriginalSTEPPlacementElement.self, forKey: .direction)
-        vectorID = try c.decode(PortableIdentity128.self, forKey: .vectorID); vectorName = try c.decode(String.self, forKey: .vectorName)
+        vectorID = try OriginalSTEPIdentityCoding.decode(from: c.superDecoder(forKey: .vectorID)); vectorName = try c.decode(String.self, forKey: .vectorName)
         magnitude = try c.decode(Double.self, forKey: .magnitude); lengthUnit = try c.decode(LengthUnit.self, forKey: .lengthUnit)
         originalLengthSource = try c.decode(OriginalSTEPLengthSource?.self, forKey: .originalLengthSource)
         adjustments = try OriginalSTEPPlacementDecoding.adjustments(from: c.superDecoder(forKey: .adjustments))
@@ -68,7 +68,7 @@ extension OriginalSTEPLineSource: Codable {
     public func encode(to encoder: Encoder) throws {
         var c = encoder.container(keyedBy: Keys.self)
         try c.encode(location, forKey: .location); try c.encode(direction, forKey: .direction)
-        try c.encode(vectorID, forKey: .vectorID); try c.encode(vectorName, forKey: .vectorName)
+        try c.encode(vectorID.canonicalString, forKey: .vectorID); try c.encode(vectorName, forKey: .vectorName)
         try c.encode(magnitude, forKey: .magnitude); try c.encode(lengthUnit, forKey: .lengthUnit)
         try c.encode(originalLengthSource, forKey: .originalLengthSource); try c.encode(adjustments, forKey: .adjustments)
     }
