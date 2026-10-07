@@ -13,3 +13,11 @@
 
 - [x] L2.D Fixed the L2 design for complete univariate real roots, retained original multiplicity/identity, exact queries and runtime selected-root coefficient towers. Dependencies: public L0/L1 and Swift only. One stable design review and targeted API-name correction; design commit: Specify isolated L2 real-root and algebraic extension contracts. Production implementation, package changes and builds remain outside this design task. `depends:L1.V` `parallel:none`
 - [x] L2.D.V Verified all nine required design sections, 14 existing relative links, parent index, public lower API traceability and preservation of all production/test/package sources; included in the design commit. L2 implementation/runtime evidence and main integration remain pending. `depends:ES.C1,ES.C2,ES.C3,ES.V,L01.RD,L0.I,L0.V,L1.1,L1.2,L1.V,L2.D` `parallel:none`
+
+- [x] L2.I1 Implement source/domain ownership, fixed admission forwarding and complete rational root counts/isolation through public L0/L1 ports; preserve original multiplicities and all-domain evidence. `depends:L2.D.V` `parallel:none`
+  - [x] L2.I1.C Update the implementation authority and fix owned files, invariants and isolated verification graph. `depends:L2.D.V` `parallel:none`
+  - [x] L2.I1.A Implement immutable receipts, endpoint/infinity semantics, Sturm counts, exact isolation and independent resource failures. `depends:L2.I1.C` `parallel:none`
+  - [x] L2.I1.V Verify stable public root paths in isolated Native tests, review and commit. `depends:L2.I1.A` `parallel:none`
+- [ ] L2.I2 Implement exact root comparison, refinement and polynomial signs, including retained original identity and inherited depths; verify and commit. `depends:L2.I1` `parallel:none`
+- [ ] L2.I3 Implement same-static-type runtime selected-root fields, fractions, ancestor embeddings, independent extension-level limits; verify and commit. `depends:L2.I2` `parallel:none`
+- [ ] L2.V Verify the complete actual L2 snapshot on Native/ASAN/ordinary WASM/Embedded WASM with source inventories, failure/ownership paths and one stable cumulative review; commit evidence. No upper target build or main integration. `depends:ES.C1,ES.C2,ES.C3,ES.V,L01.RD,L0.I,L0.V,L1.1,L1.2,L1.V,L2.D,L2.D.V,L2.I1,L2.I2,L2.I3` `parallel:none`

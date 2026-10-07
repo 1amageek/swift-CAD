@@ -5,7 +5,8 @@
 Parent: [RationalBivariateAlgebra](../DESIGN.md). This document owns the proposed
 L2 contract. L2 supplies complete real roots of a univariate polynomial and
 retained selected-root coefficients. Its dependencies are L0, L1 and the Swift
-standard library. All names introduced below are proposed, not implemented APIs.
+standard library. This contract is the implementation authority. Implementation and target evidence
+are tracked in the task PROGRESS.md; names below define the required public ports.
 
 The supported mathematical input is an effective ordered subfield of the real
 algebraic numbers, of characteristic zero. Scalar arithmetic and order must obey
@@ -394,3 +395,20 @@ A lower contract change requires rechecking L2's actual consumed guarantees.
 L2 implementation changes require its component tests; upper public CAD paths
 require separate integration evidence when consumers adopt L2. No seven-requirement
 completion or main integration is inferred from this document.
+
+### Implementation Ownership
+
+The L2 implementer owns this directory, the direct parent index, the isolated
+Tests/L2RealRootVerification package and task PROGRESS.md. L0/L1 production files
+and the production package graph are preserved. The three implementation units
+and final cumulative verification in PROGRESS.md close only this design's gaps.
+Root result and extension limits require explicit caller arguments until measured
+portable defaults can be justified; no implicit guessed ceiling is issued.
+
+The forwarding implementation uses a non-generic class with four scoped closures.
+This preserves macOS 14: erasing a class parameterized by noncopyable admission
+would otherwise require macOS 15 runtime support. Closure storage uses ordinary
+throwing functions internally; requirements map the preserved scalar failure to
+their typed signature. Class payload, header and the four captured pointer
+contexts are admitted before construction. Pointer lifetime and fixed kernel
+specialization are unchanged.
