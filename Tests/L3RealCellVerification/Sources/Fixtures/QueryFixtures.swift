@@ -32,6 +32,11 @@ public enum QueryFixtures {
    ids.append(id)
   }
   try CellFixtures.require(ids[0] == ids[1] && ids[2] == ids[3] && ids[0] != ids[2])
+  let origin=part.cells.first!.parent!
+  try CellFixtures.require(try d.sample(of:origin,in:part,using:&a).coordinates.isEmpty)
+  let prefix=try d.condition(of:origin,in:part,using:&a)
+  let arbitrary=try d.point(field:f,coordinates:[f.integer(11,using:&a)],using:&a)
+  try CellFixtures.require(prefix.branches.isEmpty && (try d.contains(arbitrary,in:prefix,limits:.init(maximumRoots:30),using:&a)))
   let second=try d.decompose(source,limits:.init(maximumStoredCells:100,maximumRootsPerStack:30),using:&a)
   do { _ = try d.sample(of:part.cells.first!,in:second,using:&a); throw ExactRealCellFailure.invalidCoverage } catch ExactRealCellFailure.invalidCell { }
   let newSource=try d.bind(polynomials:[law,law],domains:[all],using:&a)

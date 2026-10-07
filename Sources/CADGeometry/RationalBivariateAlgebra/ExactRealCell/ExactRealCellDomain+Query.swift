@@ -7,8 +7,7 @@ import L2
 extension ExactRealCellDomain: ExactRealCellQuerying {
  func validate(_ cell: ExactRealCellID<Base>, partition: ExactRealCellPartition<Base>, _ a: inout ExactCellBorrowedAdmission) throws {
   try require(partition.source,&a); try ExactCellAccess.admit(partition.depth,&a)
-  guard cell.owner === partition.owner,cell.index >= 0,cell.index < partition.owner.records.count,
-   partition.owner.records[cell.index].sample.coordinates.count == partition.source.variableCount else { throw ExactRealCellFailure.invalidCell }
+  guard cell.owner === partition.owner,cell.index >= 0,cell.index < partition.owner.records.count else { throw ExactRealCellFailure.invalidCell }
  }
  public func sample<A: ExactScalarAdmission & ~Copyable>(of cell: ExactRealCellID<Base>, in partition: borrowing ExactRealCellPartition<Base>,
   using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellSample<Base> {
@@ -23,8 +22,9 @@ extension ExactRealCellDomain: ExactRealCellQuerying {
   let partition=copy partition
   return try ExactCellAccess.run(&admission,inherited:partition.depth) { a in
    try validate(cell,partition:partition,&a)
-   try ExactCellAccess.storage(partition.source.variableCount,Int.self,&a)
-   var branches=Array(repeating:0,count:partition.source.variableCount),index=cell.index
+   let count=partition.owner.records[cell.index].sample.coordinates.count
+   try ExactCellAccess.storage(count,Int.self,&a)
+   var branches=Array(repeating:0,count:count),index=cell.index
    for axis in branches.indices.reversed() {
     try a.consumeWork(1); branches[axis]=partition.owner.records[index].branch; index=partition.owner.records[index].parent
    }
@@ -97,7 +97,14 @@ extension ExactRealCellDomain: ExactRealCellQuerying {
   limits: ExactRealRootLimits, using admission: inout A) throws(ExactRealCellFailure) -> Bool {
   let point=copy point,condition=copy condition
   return try ExactCellAccess.run(&admission,inherited:condition.depth) { a in
-   return try located(point,partition:.init(owner:condition.cell.owner),limits:limits,&a) == condition.cell
+   guard let full=try located(point,partition:.init(owner:condition.cell.owner),limits:limits,&a) else { return false }
+   let owner=condition.cell.owner, targetCount=owner.records[condition.cell.index].sample.coordinates.count
+   var index=full.index
+   while owner.records[index].sample.coordinates.count > targetCount {
+    try a.consumeWork(1); index=owner.records[index].parent
+    guard index >= 0 else { throw ExactRealCellFailure.invalidCoverage }
+   }
+   return index == condition.cell.index
   }
  }
 }

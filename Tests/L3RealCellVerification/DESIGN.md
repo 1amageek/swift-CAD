@@ -30,5 +30,5 @@ Each fixture owns its ledger. Concurrent readers use separate ledgers and immuta
 External timeout bounds every run. Ordinary and Embedded SDKs are separate verification scopes.
 
 ## Verification and Change Impact
-`Tests/CellTests.swift` owns projection and source tests. Public fixtures will own lifting/query regressions.
+`Tests/CellTests.swift` owns projection and source tests. Public fixtures own lifting/query, ownership and resource regressions; [VERIFICATION.md](VERIFICATION.md) records actual target evidence.
 Unchanged lower evidence is reused; lower sources are not modified.

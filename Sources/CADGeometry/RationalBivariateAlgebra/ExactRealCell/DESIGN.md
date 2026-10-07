@@ -537,3 +537,12 @@ validation and before forming projection boundary laws.
 The isolated package exercises all four ports through generic protocol requirements.
 [Verification package](../../../../Tests/L3RealCellVerification/DESIGN.md) owns
 Native/sanitizer/portable evidence. Higher CAD consumers remain outside this task.
+
+### Issued Prefix Handles
+
+The public parent handle is an issued cell ID in the retained graph. Sample and
+condition queries accept these prefix IDs as well as full cells. A prefix sample
+has one coordinate per attained axis; location still requires a full source point.
+A prefix condition tests the corresponding ancestral region intersected with the
+complete requested box. Source-sign selection remains restricted to full cells.
+The generic cell-query contract never turns a valid parent handle into invalidCell.

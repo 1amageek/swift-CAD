@@ -24,6 +24,11 @@ import L2
   let withLinear=try p.adding(p.multiplying(y,y,using:&usage),y,using:&usage)
   let nonzeroHigher=try d.principal(law,withLinear,axis:1,index:1,&usage)
   #expect(try p.equals(nonzeroHigher,p.constant(f.integer(1,using:&usage),using:&usage),using:&usage))
+  let factor=try p.subtracting(y,x,using:&usage)
+  let squared=try p.multiplying(factor,factor,using:&usage)
+  let sharedPSC=try d.principal(squared,factor,axis:1,index:0,&usage)
+  #expect(try p.isZero(sharedPSC,using:&usage))
+  #expect(try p.degree(of:p.greatestCommonDivisor(squared,factor,using:&usage),in:1,using:&usage) == 1)
   let levels = try d.projection(s,&usage)
   #expect(levels.count == 2)
   #expect(!levels[0].laws.isEmpty)
@@ -36,6 +41,9 @@ import L2
  let d = try ExactRealCellDomain(field:f,variableCount:0,using:&a)
  let s = try d.bind(polynomials:[d.polynomials.zero(using:&a)],domains:[],using:&a)
  do { _ = try d.predicate(instructions:[.and],for:s,using:&a); Issue.record("Accepted invalid program") } catch ExactRealCellFailure.invalidPredicate { }
+ for instructions: [ExactRealCellInstruction] in [[],[.literal(true),.literal(false)],[.sign(polynomial: -1,relation:.equal)],[.sign(polynomial:1,relation:.equal)]] {
+  do { _ = try d.predicate(instructions:instructions,for:s,using:&a); Issue.record("Accepted invalid postfix/index") } catch ExactRealCellFailure.invalidPredicate { }
+ }
  let other = try ExactRealCellDomain(field:f,variableCount:0,using:&a)
  do { _ = try other.predicate(instructions:[.literal(true)],for:s,using:&a); Issue.record("Accepted foreign source") } catch ExactRealCellFailure.incompatibleDomain { }
  let retained = try ExactRealCellDomain(retaining:s,using:&a)

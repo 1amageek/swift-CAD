@@ -76,9 +76,20 @@ public enum CellFixtures {
   let es=try d.bind(polynomials:[],domains:[empty],using:&a)
   let er=try d.decompose(es,limits:.init(maximumStoredCells:0,maximumRootsPerStack:0),using:&a)
   try require(er.cells.isEmpty && er.storedCellCount == 0)
-  let (_,d0,_)=try setup(0,&a)
-  let z=try d0.bind(polynomials:[d0.polynomials.zero(using:&a)],domains:[],using:&a)
+  let (f0,d0,_)=try setup(0,&a)
+  let z=try d0.bind(polynomials:[d0.polynomials.zero(using:&a),d0.polynomials.constant(f0.integer(2,using:&a),using:&a)],domains:[],using:&a)
   let zr=try d0.decompose(z,limits:.init(maximumStoredCells:1,maximumRootsPerStack:0),using:&a)
-  try require(zr.cells.count == 1 && zr.cells.first!.signs == [.zero])
+  try require(zr.cells.count == 1 && zr.cells.first!.signs == [.zero,.positive])
+  let truePredicate=try d0.predicate(instructions:[.sign(polynomial:0,relation:.equal),.sign(polynomial:1,relation:.greater),.and],for:z,using:&a)
+  let falsePredicate=try d0.predicate(instructions:[.sign(polynomial:1,relation:.equal)],for:z,using:&a)
+  try require(try d0.select(zr,matching:truePredicate,using:&a).cells.count == 1)
+  try require(try d0.select(zr,matching:falsePredicate,using:&a).cells.isEmpty)
+  let point=try d0.point(field:f0,coordinates:[],using:&a)
+  try require(try d0.locate(point,in:zr,limits:.init(maximumRoots:0),using:&a) == zr.cells.first)
+  let condition=try d0.condition(of:zr.cells.first!,in:zr,using:&a)
+  try require(try d0.contains(point,in:condition,limits:.init(maximumRoots:0),using:&a))
+  let foreign=try Field.base(field:Base(),maximumExtensionLevel:1,using:&a)
+  do { _ = try d0.point(field:foreign,coordinates:[],using:&a); throw ExactRealCellFailure.invalidCoverage } catch ExactRealCellFailure.scalar(.incompatibleDomain) { }
+  do { _ = try d0.bind(polynomials:[],domains:[r.domain(lower:.negativeInfinity,upper:.positiveInfinity,using:&a)],using:&a); throw ExactRealCellFailure.invalidCoverage } catch ExactRealCellFailure.invalidDomain { }
  }
 }
