@@ -2,7 +2,8 @@
 
 ## Scope and snapshot
 
-Verified on 2026-10-07 in the independent worktree on
+Original implementation: `49eff264`, verified on 2026-10-07. Its user-requested
+work-accounting repair is verified on 2026-10-08 in the same independent worktree,
 `codex/exact-real-cell-l3`. L3 inspection prerequisite: `2bd81a77`.
 The source and fixture SHA-256 inventory is [Evidence/sources.json](Evidence/sources.json).
 Build input inventories, artifact hashes and log hashes are in
@@ -40,19 +41,35 @@ Both portable builds emit only an unused `-rdynamic` warning, with no function-s
 
 | Executed evidence | Result |
 |---|---|
-| Stable Native full suite | 15 tests passed, 31.172 seconds |
-| Stable ASAN full suite | 15 tests passed, 70.180 seconds |
-| Added independent value-depth regression | Focused Native and ASAN retained-field test passed, 0.357 / 0.820 seconds |
+| Repair regressions before modification | Two tests failed against 49eff264; exact budget and cancellation counterexamples reproduced |
+| Focused repair regressions | Two tests passed, 0.004 seconds |
+| Stable repaired Native full suite | 17 tests passed, 31.746 seconds |
+| Stable repaired ASAN full suite | 17 tests passed, 70.094 seconds |
 | Ordinary WASM proof, current fixtures | All 12 synchronous fixture routines passed |
 | Embedded WASM proof, current fixtures | All 12 synchronous fixture routines passed |
 
-The production snapshot is identical across these runs. After full-suite execution,
-the retained-field fixture was extended to reject zero value depth independently
-of coefficient depth. Its focused Native/ASAN rechecks and both complete portable
-proofs cover that addition. The fold test's Swift Testing annotation was changed
-from one to two minutes for ASAN; the external guard remains 120 seconds.
-Native's prior full-suite behavior is reused for unchanged code. No solver limit
-was relaxed for this annotation change.
+All positive repair runs compile the same production snapshot. The focused green
+checks exact work and cancellation boundaries; a universal-barrier regression was
+then added to the same test and verified by both full 17-test suites. The retained
+field test includes independent value/coefficient depth rejection. Historical
+15-test and depth-recheck logs remain retained; their original inventory is in
+49eff264. The fold test retains its two-minute Swift Testing annotation and the
+external 120-second guard. No solver limit was relaxed.
+
+## Work-accounting repair
+
+| Finding | Before | Repair and new evidence |
+|---|---|---|
+| Unadmitted repeated quantifier suffix scans | 64 existential slots inspect 2,080 suffix entries at only 128 work | One admitted backward pass per matrix finds the final existential block. The no-equality fixture consumes exactly 192 work, rejects 191, and cancels before its first quantifier read |
+| Unadmitted absent boundary visits | An issued R^16 cell inspects 48 absent candidates at preparation-only 24 work | Every section/lower/upper candidate consumes work before access. This fixture consumes exactly 72, rejects 71, and cancels on the first candidate after preparation |
+
+WorkAdmissionTests covers empty, all-universal, mixed and 64-existential blocks,
+plus R^0/R^1/R^4/R^16 definitions issued by L3. The mixed relation
+`exists x0: forall x1: exists x2: x0-x1=0 AND x2=0` permits eliminating only x2;
+the universal barrier and original variable mapping remain intact.
+WorkCancellationAdmission is a query-local noncopyable test admission, not shared
+state. Both Native and ASAN run these regressions. Portable proofs exercise the
+changed operations through the existing public success/failure paths.
 
 ## Public behavioral coverage
 
@@ -68,12 +85,12 @@ was relaxed for this annotation change.
 | Exact identity | Distinct points separated by 1/1,000,000 remain two components without attachments | closeDistinctPoints |
 | Whole folded relation | Both sheets and meeting set retained; 45 selected cells, 108 attachment pieces, one component | folded |
 | Owner retention | Query closures after source/provider lifetime ends; algebraic coefficient field retains level/cap 1; value and coefficient depths rejected independently | LifecycleFixtures.retained |
-| Independent limits | Exact work/storage boundary succeeds and one-less fails; root/generated-cell/closure/piece/component limits reject; checked count overflow rejects | zeroAndFailures, resourcesAndCancellation, checkedCountOverflow |
+| Independent limits | Exact work/storage boundary succeeds and one-less fails; quantifier and absent-boundary visits have separate exact/cancel boundaries; root/generated-cell/closure/piece/component limits reject; checked count overflow rejects | zeroAndFailures, resourcesAndCancellation, WorkAdmissionTests, checkedCountOverflow |
 | Atomic cancellation | First, middle and final checkpoint rejection publishes no incidence; fresh valid calls succeed after failures; empty incidence/components succeed | resourcesAndCancellation |
 | Concurrent readers | Eight immutable Native readers each use their own noncopyable admission and return true | concurrentRetainedReaders |
 
 WASM proofs exercise public synchronous calls, including both depth failures.
-Generic differential, concurrency and internal checked-overflow tests are Native/ASAN
+Generic differential, concurrency, internal admission repair and checked-overflow tests are Native/ASAN
 only; portable multithreading or shutdown races are not claimed. Applicable proof
 selection and refusal use exact certificates. Started-processing failures propagate
 through the same typed public boundary rather than retrying another solver.
@@ -89,7 +106,7 @@ Admitted storage is cumulative typed payload accounting, not resident memory.
 | Complete original partition | 525 cells; 6,190,310 work; 141,394,189 bytes | Same counters |
 | Selected original cells | 45 | 45 |
 | Individual closure queries | All 45 prove point or affine closure and include their original samples; fresh explicit callers | Same public checks |
-| Cumulative source → incidence → components | 15,504,165 work; 573,605,781 bytes | 15,327,127 work; 288,429,097 bytes |
+| Cumulative source → incidence → components | 15,504,705 work; 573,605,781 bytes | 15,327,667 work; 288,429,097 bytes |
 | Final topology | 108 pieces; all 45 members; one component | Same result |
 
 Architecture-dependent payload layouts and lower accounting produce different
@@ -109,10 +126,14 @@ The pre-existing two-level L3 `[1,2]^2` probe remains outside this repair.
 | Count state and admission | Per-call inout, noncopyable caller admission | Same | Same | One cumulative admission across nested operations; final checkpoint before publication |
 | Retained lower proof storage | Immutable owner contract from verified L0-L3 | Same | Same | No new synchronization or unsafe boundary |
 
-The one cumulative scoped review found work omissions in filtered traversal loops.
-Those visits now consume work before filtering. The final full Native/ASAN and both
-portable proofs include the correction. The two depth fixtures close the explicit
-independent resource-axis evidence gap without changing production code.
+The initial cumulative review closed filtered-traversal omissions. The later
+user-requested review found the two additional concrete counterexamples above.
+One targeted repair review confirmed admission-before-read, equivalence of the
+final-block boundary and preservation of quantifier scope after substitution.
+The failing-before regressions, focused green and final Native/ASAN suites plus
+both public WASI proofs close those findings. The folded query admits 540 more
+work on each target (45 closures, 12 boundary visits each); storage and all caps
+remain unchanged. Lower sources are byte-identical and their evidence is reused.
 The source scan contains only isolated verification import conditions, local
 mutable temporaries and computed counts: no Embedded raw-state branch, unsafe
 pointer, unchecked Sendable, try?, shared mutable cache or incomplete marker was

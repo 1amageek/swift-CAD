@@ -11,11 +11,15 @@ extension ExactRealTopologyDomain {
   while let end = result.conjunctionEnd {
    let n = result.polynomials.variableCount, p = result.polynomials, f = result.field
    var selected: (Int,Int,Field.Value)? = nil
-   for variable in (result.freeCount..<n).reversed() {
+   // Admit one backward pass before searching the final existential block.
+   var blockStart = n
+   for index in result.quantifiers.indices.reversed() {
     try a.consumeWork(1)
-    if !result.quantifiers[variable-result.freeCount] { continue }
-    // Only the final existential block may be eliminated.
-    if result.quantifiers[(variable-result.freeCount)...].contains(false) { continue }
+    if !result.quantifiers[index] { break }
+    blockStart = result.freeCount + index
+   }
+   for variable in (blockStart..<n).reversed() {
+    try a.consumeWork(1)
     for instruction in result.instructions.prefix(end) {
      try a.consumeWork(1)
      guard case .sign(let index,.equal) = instruction else { continue }

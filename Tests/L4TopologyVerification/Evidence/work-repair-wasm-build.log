@@ -1,0 +1,7 @@
+Building for debugging...
+[Planning deferred tasks]
+[2 / 6] L4
+[6 / 9] L4
+/private/tmp/cad-exact-polynomial-l1-20261007/Tests/L4TopologyVerification/Package.swift: L4Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[10 / 10] L4Proof-product
+Build complete! (1.30秒)

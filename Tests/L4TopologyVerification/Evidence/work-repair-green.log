@@ -1,0 +1,15 @@
+Building for debugging...
+[1 / 3] L4
+[2 / 4] L4
+[7 / 9] L4
+[10 / 10] L4Proof-product
+[11 / 11] L4Tests-product
+Build complete! (0.89秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test factorAdmissionRepair() started.
+􀟈  Test eliminationAdmissionRepair() started.
+􁁛  Test eliminationAdmissionRepair() passed after 0.001 seconds.
+􁁛  Test factorAdmissionRepair() passed after 0.004 seconds.
+􁁛  Test run with 2 tests in 0 suites passed after 0.004 seconds.

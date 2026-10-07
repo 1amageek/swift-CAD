@@ -13,6 +13,7 @@ extension ExactRealTopologyDomain {
   let helper = try formula(field:f,free:n,quantifiers:[],&a)
   for step in definition.steps {
    for position in 0..<3 {
+    try a.consumeWork(1)
     let root = position == 0 ? step.section : position == 1 ? step.lower:step.upper
     guard let root, try helper.affineLeading(root,&a) == nil else { continue }
     var found = false

@@ -111,9 +111,9 @@
   "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopology.swift": "00a43470518955c2cfa7c7018ba6a438358e74ac76f0bbd67ee1fa727d4cf279",
   "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift": "812df87b0aa63780c9d8d7d0b79c6e6a2e58c993803311a13aa6e877fc79786f",
   "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Components.swift": "f3f5d197a427b046224c36c4957a1cdb03b9a83de2e4bbc9c5bc58c896d6b9a3",
-  "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift": "0ab40aaf2347b1ee5b221c59862c53203ddf1f5da7c66148f2593853d7a62157",
+  "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift": "44272efdf686d360d7affed927971c147c3b6da591e0eba1f666f19eeeba1197",
   "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift": "917fe6a827664672d0413c73ef2fb02ba4cdda5a8aff4bc8546ac531f87f0573",
-  "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Factors.swift": "e13e4aa1f49f593dd3078c8c62d1cb6cd74b0521e24cee349782604f6701a375",
+  "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Factors.swift": "093dbd5314599c6947cd5d58baf2d8e6b8b7d7f2183f2be464de9a2695542fc2",
   "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Formula.swift": "536ee3d5c6c4f7ec255df416144a7eb466f6df5584bc6f90d315251d93cd0fa3",
   "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift": "c351195b446f3c870eb002ac8d25eca85ded73a54acc715caa711065402d734d",
   "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+PolynomialGraph.swift": "de792c6ca8ad2c6f5ee5bacbd461a5c6035e121251380096161a80bee4b28d99",
@@ -190,5 +190,7 @@
   "Tests/L4TopologyVerification/Sources/Fixtures/TopologyFixtures.swift": "88f2aea65bdc40a22a656d8ab1ddb0181ee791a1c77bf362d5c67735bd8203ab",
   "Tests/L4TopologyVerification/Sources/Proof/Proof.swift": "37529f4587c57e47f7e824934c976757e1ede90e06c4e77d96e9a9ce6615d57e",
   "Tests/L4TopologyVerification/Tests/TopologyTests.swift": "00ce968ba75d99dce1cc91c749f3248b05087e1b01822079c6e251e886ab0ca2",
+  "Tests/L4TopologyVerification/Tests/WorkAdmissionTests.swift": "d01efd08a86752b2462918a36aef4b5f1700392d4f96c7f95be23cc2ec2fea12",
+  "Tests/L4TopologyVerification/Tests/WorkCancellationAdmission.swift": "14100385b8c4f7d99ca755b3a8b821ef790b575609256477213ae718a4b25947",
   "scripts/swift-test-timeout.sh": "b75109a63054e4d5679cbd2aa6563d18c7411da7d438e4a0902f5eda196d9fcf"
 }

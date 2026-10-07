@@ -1,14 +1,14 @@
 {
   "artifacts": {
     "embedded": {
-      "bytes": 5406013,
+      "bytes": 5403499,
       "path": ".build/l4-embedded/out/Products/Debug-webassembly-wasm32/L4Proof.wasm",
-      "sha256": "42449b65ea3677a36141e86c4f74067957d4dec82fc8bc6f6314e6976f327aeb"
+      "sha256": "1f55a03708fd958d8541b326bd27b2b3caa02cff682059cae212c44676ea3fd6"
     },
     "wasm": {
-      "bytes": 12525446,
+      "bytes": 12525755,
       "path": ".build/l4-wasm/out/Products/Debug-webassembly-wasm32/L4Proof.wasm",
-      "sha256": "b584e3688690e7d19205faf3b01412bbcb7de36c1af4daf2b15792b070230865"
+      "sha256": "c79acb1a62a77a0261d5af66a8c8333c18183fe11cecf3016cfb41578341bab5"
     }
   },
   "branch": "codex/exact-real-cell-l3",
@@ -28,24 +28,6 @@
       "2",
       "--sanitize",
       "address"
-    ],
-    "asan-depth-recheck": [
-      "bash",
-      "scripts/swift-test-timeout.sh",
-      "120",
-      "--",
-      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
-      "test",
-      "--package-path",
-      "Tests/L4TopologyVerification",
-      "--build-path",
-      ".build/l4-asan",
-      "-j",
-      "2",
-      "--sanitize",
-      "address",
-      "--filter",
-      "retainedAlgebraicField"
     ],
     "embedded": [
       "bash",
@@ -90,10 +72,10 @@
       "-j",
       "2"
     ],
-    "native-depth-recheck": [
+    "repair-green": [
       "bash",
       "scripts/swift-test-timeout.sh",
-      "120",
+      "30",
       "--",
       "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
       "test",
@@ -104,7 +86,23 @@
       "-j",
       "2",
       "--filter",
-      "retainedAlgebraicField"
+      "AdmissionRepair"
+    ],
+    "repair-red": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "30",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "test",
+      "--package-path",
+      "Tests/L4TopologyVerification",
+      "--build-path",
+      ".build/l4-native",
+      "-j",
+      "2",
+      "--filter",
+      "AdmissionRepair"
     ],
     "wasm": [
       "bash",
@@ -245,20 +243,21 @@
       }
     }
   },
-  "date": "2026-10-07",
+  "date": "2026-10-08",
   "logs": {
-    "asan-final.log": "3135455e9dccc4f05abfe619e3a89f4e96ead3190d73b1aa3c4e2e0f5e8b4c97",
-    "depth-asan-recheck.log": "3ee5c5ae4b15e4cc7275eb25edc5f1dfd3793195d8cd0355dbb1efd8dc0e630d",
-    "depth-native-recheck.log": "3cc690eb4838d2f2e5db7c70e3bdf73ce247c2b158f9402fc4c8bac73aead349",
-    "embedded-build.log": "e97affb9b2dc1ae6d5b652176703af3eb3818f2f1b0dc28594f80a7b61d362ce",
-    "embedded-runtime.log": "3e54de8e718ad61421acb9af613d43e3aadaf53f0a679aebc56549209219b6bf",
-    "native-final.log": "38c313073144cf90b85cb2a1e0f0d3e316f17e72085961e7ba537301e98c7ca5",
-    "ownership-scan.log": "cc79504516b93f2424f32d630bdccd1d89f881851dddd66a7ea907033a0fdf23",
-    "wasm-build.log": "c229ad058706bcf2b5c388c31c27eb422da1afcc0bd4cc43faad9595b8a46fd6",
-    "wasm-runtime.log": "85f8f9dd77e85eedff4e913d7a7f79f02f70ff8eb683eec81369c9395263366e"
+    "work-repair-asan.log": "d8d6aadf53bf58f558ac10a6a05475df67afd8c7a006ea22805d7719b19a076c",
+    "work-repair-embedded-build.log": "d2b85eead2f67ece21de42321bd2f3ab4b7692048c176ef9da76eb63f8e10b32",
+    "work-repair-embedded-runtime.log": "2ee9842d865230294e9b6212daa19c21aec96d5c73e8144306db916c1a5bed4b",
+    "work-repair-green.log": "ac9a780fd02ee20c7a4750d91b54a80f55cf4a48db211ba985a65ec373a4601b",
+    "work-repair-native.log": "e303ebb29d1ad0c7f8ef750ee941fb4b1c18478ba8f06eeb146139c5e8f262d6",
+    "work-repair-ownership-scan.log": "0d23594e8aa44b12f1e7827eed175d0c1e1a791aa9f4b45dc59d52688c3acc19",
+    "work-repair-red.log": "2c09c772c0398dbbe4ca681e91caffdfbfa3fb0ad23ac2a7a6ebec26c0ae42e2",
+    "work-repair-wasm-build.log": "d476485a23d0f0c6e2dcc221f74d6530b196bdd6068abb79b3f37908485e3157",
+    "work-repair-wasm-runtime.log": "4bc408bd60c4e6c91012164fa8a5ada61497c8dbf3cdfff11d03f25449b81140"
   },
   "node": "v24.19.0",
   "prerequisite": "2bd81a77",
+  "repairBase": "49eff264",
   "sourceCounts": {
     "L0": 49,
     "L1": 29,

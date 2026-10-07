@@ -220,6 +220,12 @@ is capture-free, exact and recorded with the original matrix, replacement and
 variable map. The independent epsilon guard contains no eliminated slot, so
 exists x: guard OR (a*x+b=0 AND rest) is exactly guard OR rest[-b/a].
 Existential suffix slots may be reordered within the same quantifier block.
+For each current matrix, find the final existential block with one backward
+quantifier pass, charging each visit before reading it. Candidate equality
+searches consume work only within that block; no repeated unadmitted suffix
+scan is permitted. Factor preparation likewise charges each section/lower/upper
+candidate visit before reading it, including absent boundaries. These visits
+use the same admission and cancellation contract as subsequent arithmetic.
 Within a mandatory conjunction, an explicitly proved nonzero signed coordinate
 factor may be removed from another atom with its parity/sign retained. Original
 matrices and the derived atoms remain in reduction evidence. This normalization
