@@ -41,5 +41,7 @@
       "bytes": 21076601,
       "runtimeExit": 0
     }
-  }
+  },
+  "implementationCommit": "6c6777258f172b1542ade681af489b32ca0a791d",
+  "integration": "Committed source/fixture hashes match all passing Native/ASAN/ordinary-WASM/Embedded-WASM evidence. Base manifests, source symlink locality, unchanged L0 and concurrent repair files verified."
 }

@@ -240,3 +240,11 @@ unused `-rdynamic` flag. There is no function-signature mismatch warning.
 [Ordinary run](OptimizationEvidence/wasm-run.log),
 [Embedded run](OptimizationEvidence/embedded-run.log), and
 [artifact/log hashes](OptimizationEvidence/run.json) retain the results.
+
+Post-commit integration inspection confirmed implementation `6c677725`
+matches all 229 final source/fixture hashes and all successful log hashes. The
+184 pre-change source hashes match `29702a63`. Production symlinks resolve within
+this isolated worktree; L0 and the concurrent Elimination/Factors repair are
+unchanged. Thus the compiled snapshot evidence remains valid without another
+unchanged build/test cycle. The optimization is committed locally; integration
+into the main working branch is not part of this task.
