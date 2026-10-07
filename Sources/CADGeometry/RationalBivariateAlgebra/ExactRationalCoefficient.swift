@@ -103,12 +103,23 @@ public struct ExactRationalCoefficient: Equatable, Sendable {
         let secondScale = try Self.dividedMagnitude(denominator, by: common, usage: &usage)
         let lhs = try firstScale == .one ? numerator : numerator.multiplied(by: firstScale, usage: &usage)
         let rhs = try secondScale == .one ? other.numerator : other.numerator.multiplied(by: secondScale, usage: &usage)
-        let denominator = try firstScale == .one ? self.denominator : self.denominator.multiplied(by: firstScale, usage: &usage)
         let magnitude: ExactNaturalMagnitude, sign: Int
         if self.sign == other.sign { magnitude = try lhs.adding(rhs, usage: &usage); sign = self.sign }
         else if lhs.compared(to: rhs) >= 0 { magnitude = try lhs.subtracting(rhs, usage: &usage); sign = self.sign }
         else { magnitude = try rhs.subtracting(lhs, usage: &usage); sign = other.sign }
-        return try Self.reduced(sign: sign, numerator: magnitude, denominator: denominator, usage: &usage)
+        if magnitude.isZero {
+            try CurrentTaskCancellationChecker().checkCancellation()
+            return .zero
+        }
+        // Canonical operands make the combined numerator coprime to both
+        // denominator/common scales; only the retained common GCD can cancel.
+        let cancellation = try common == .one ? .one : ExactNaturalMagnitude.gcd(magnitude, common, usage: &usage)
+        let resultNumerator = try Self.dividedMagnitude(magnitude, by: cancellation, usage: &usage)
+        let remainingDenominator = try Self.dividedMagnitude(other.denominator, by: cancellation, usage: &usage)
+        let resultDenominator = try secondScale == .one ? remainingDenominator
+            : secondScale.multiplied(by: remainingDenominator, usage: &usage)
+        try CurrentTaskCancellationChecker().checkCancellation()
+        return Self(sign: sign, numerator: resultNumerator, denominator: resultDenominator)
     }
     public func subtracting<B: RationalAlgebraAdmitting>(_ other: Self, usage: inout B) throws -> Self {
         try adding(other.negated, usage: &usage)

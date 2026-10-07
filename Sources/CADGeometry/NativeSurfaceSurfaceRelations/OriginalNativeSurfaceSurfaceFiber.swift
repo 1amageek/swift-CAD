@@ -28,7 +28,7 @@ extension OriginalNativeSurfaceSurfaceRelations {
         try RationalAlgebraStorage.retain(2, of: OriginalAlgebraicCoordinate.self, usage: &admission)
         let fixed = [u,v]
         for axis in 0..<2 {
-            let coordinate = fixed[axis], domain = decomposition.requestedDomains[surface * 2 + axis]
+            let coordinate = fixed[axis], domain = coverage.requestedDomains[surface * 2 + axis]
             let parameterDepth = max(retainedDepth,coordinate.inheritedDepth)
             guard parameterDepth <= maximumAlgebraicDepth,
                 coordinate.inheritedCoefficientDepth <= maximumCoefficientDepth else {
@@ -57,14 +57,35 @@ extension OriginalNativeSurfaceSurfaceRelations {
             admission = source.base
         }
         let rational = try OriginalSingularFieldContext(usage: &admission)
-        let system = decomposition.system
-        let count = try rationalAlgebraCount(try rationalAlgebraCount(system.equations.count, system.denominatorGuards.count), 2)
+        let sourcePolynomials: [ExactIntersectionPolynomial]?
+        let sourcePredicate: OriginalPolynomialPredicate?
+        let equationCount: Int, guardCount: Int
+        let necessaryStart: Int, necessaryCount: Int
+        switch coverage {
+        case .single(let decomposition):
+            let system = decomposition.system
+            equationCount = system.equations.count; guardCount = system.denominatorGuards.count
+            sourcePolynomials = nil; sourcePredicate = nil; necessaryStart = 0; necessaryCount = 0
+        case .common(let proof):
+            necessaryStart = proof.laws.count; necessaryCount = proof.necessaryIdeal.reducedBasis.count
+            let sourceCapacity = try rationalAlgebraCount(necessaryStart, necessaryCount)
+            try RationalAlgebraStorage.retain(sourceCapacity, of: ExactIntersectionPolynomial.self, usage: &admission)
+            var commonLaws: [ExactIntersectionPolynomial] = []; commonLaws.reserveCapacity(sourceCapacity)
+            try admission.consumeExactWork(sourceCapacity)
+            commonLaws.append(contentsOf: proof.laws); commonLaws.append(contentsOf: proof.necessaryIdeal.reducedBasis)
+            sourcePolynomials = commonLaws; sourcePredicate = proof.predicate; equationCount = 0; guardCount = 0
+        }
+        let sourceCount = try sourcePolynomials?.count ?? rationalAlgebraCount(equationCount, guardCount)
+        let count = try rationalAlgebraCount(sourceCount, 2)
         try RationalAlgebraStorage.retain(count, of: OriginalOrderedIntersectionPolynomial.self, usage: &admission)
         var laws: [OriginalOrderedIntersectionPolynomial] = []; laws.reserveCapacity(count)
-        let sourceCount = try rationalAlgebraCount(system.equations.count, system.denominatorGuards.count)
         for index in 0..<sourceCount {
-            let polynomial = index < system.equations.count ? system.equations[index]
-                : system.denominatorGuards[index - system.equations.count]
+            let polynomial: ExactIntersectionPolynomial
+            if let sourcePolynomials { polynomial = sourcePolynomials[index] }
+            else if case .single(let decomposition) = coverage {
+                polynomial = index < equationCount ? decomposition.system.equations[index]
+                    : decomposition.system.denominatorGuards[index - equationCount]
+            } else { throw rationalAlgebraFailure("SSI ordered fiber lost its original source laws.") }
             let terms = try polynomial.orderedTerms(usage: &admission)
             try RationalAlgebraStorage.retain(terms.count, of: OriginalOrderedIntersectionPolynomial.Term.self, usage: &admission)
             var retained: [OriginalOrderedIntersectionPolynomial.Term] = []; retained.reserveCapacity(terms.count)
@@ -111,24 +132,45 @@ extension OriginalNativeSurfaceSurfaceRelations {
             laws.append(try .init(variableCount: 4, terms: station, maximumDepth: maximumAlgebraicDepth,
                 maximumCoefficientDepth: maximumCoefficientDepth, inheritedParameterDepth: retainedDepth, usage: &admission))
         }
-        let instructionCount = try rationalAlgebraCount(try rationalAlgebraCount(count, 2, multiply: true),
-            try rationalAlgebraCount(system.denominatorGuards.count, decomposition.effectiveDomains == nil ? 3 : 1))
+        let instructionCount = try rationalAlgebraCount(sourcePredicate?.original.instructions.count
+            ?? rationalAlgebraCount(1, rationalAlgebraCount(rationalAlgebraCount(sourceCount, 2, multiply: true), guardCount)),
+            rationalAlgebraCount(coverage.effectiveDomains == nil ? 6 : 4, rationalAlgebraCount(necessaryCount, 2, multiply: true)))
         try RationalAlgebraStorage.retain(instructionCount, of: OriginalPolynomialPredicate.Instruction.self, usage: &admission)
-        var instructions: [OriginalPolynomialPredicate.Instruction] = [.literal(true)]; instructions.reserveCapacity(instructionCount)
-        for ordinal in laws.indices {
-            instructions.append(.sign(polynomial: ordinal,.zero))
-            if ordinal >= system.equations.count && ordinal < system.equations.count + system.denominatorGuards.count {
-                instructions.append(.not)
+        var instructions: [OriginalPolynomialPredicate.Instruction] = []; instructions.reserveCapacity(instructionCount)
+        if let sourcePredicate {
+            for instruction in sourcePredicate.original.instructions {
+                try intersectionAlgebraStep(&admission)
+                switch instruction {
+                case .literal(let value): instructions.append(.literal(value))
+                case .atom(let index, let sign):
+                    let original: OriginalPolynomialPredicate.Sign
+                    switch sign { case .negative: original = .negative; case .zero: original = .zero; case .positive: original = .positive }
+                    instructions.append(.sign(polynomial: index, original))
+                case .not: instructions.append(.not)
+                case .and: instructions.append(.and)
+                case .or: instructions.append(.or)
+                }
             }
-            instructions.append(.and)
+        } else {
+            instructions.append(.literal(true))
+            for ordinal in 0..<sourceCount {
+                instructions.append(.sign(polynomial: ordinal, .zero))
+                if ordinal >= equationCount { instructions.append(.not) }
+                instructions.append(.and)
+            }
         }
-        if decomposition.effectiveDomains == nil { instructions.append(.literal(false)); instructions.append(.and) }
+        for ordinal in necessaryStart..<(necessaryStart + necessaryCount) {
+            try admission.consumeExactWork(2)
+            instructions.append(.sign(polynomial: ordinal, .zero)); instructions.append(.and)
+        }
+        for ordinal in sourceCount..<count { instructions.append(.sign(polynomial: ordinal, .zero)); instructions.append(.and) }
+        if coverage.effectiveDomains == nil { instructions.append(.literal(false)); instructions.append(.and) }
         let predicate = try OriginalPolynomialPredicate(polynomialCount: laws.count,instructions: instructions,usage: &admission)
         try RationalAlgebraStorage.retain(laws.count, of: OriginalOrderedPolynomial.self, usage: &admission)
         var published: [OriginalOrderedPolynomial] = []; published.reserveCapacity(laws.count)
         for law in laws { published.append(.init(original: law)) }
         let original = try OriginalPolynomialRelation(variableCount: 4, orderedPolynomials: published,
-            predicate: predicate, domains: decomposition.effectiveDomains ?? decomposition.nativeDomains, usage: &admission)
+            predicate: predicate, domains: coverage.effectiveDomains ?? coverage.nativeDomains, usage: &admission)
         let ordered = try OriginalOrderedIntersectionCells.prepare(polynomials: laws, predicate: predicate.original,
             variableCount: 4, domains: original.domains, maximumDepth: maximumAlgebraicDepth,
             maximumCoefficientDepth: maximumCoefficientDepth, usage: &admission)

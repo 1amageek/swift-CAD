@@ -1,6 +1,9 @@
+import CADCore
+
 /// Primitive recursive GCD over the original rational multivariate UFD.
 package enum ExactIntersectionPolynomialGCD {
     private typealias Polynomial = ExactIntersectionPolynomial
+    private enum SpecializedGCD { case unit, factor(Polynomial) }
 
     package static func gcd<B: RationalAlgebraAdmitting>(_ first: ExactIntersectionPolynomial,
         _ second: ExactIntersectionPolynomial, usage: inout B) throws -> ExactIntersectionPolynomial {
@@ -28,6 +31,11 @@ package enum ExactIntersectionPolynomialGCD {
         guard axis < first.variableCount else {
             throw rationalAlgebraFailure("Nonconstant GCD lost its original main coordinate.")
         }
+        if try wholeCoprimeSpecialization(first, second, firstMask: firstMask, secondMask: secondMask, usage: &usage) {
+            let unit = try Polynomial.constant(variableCount: first.variableCount, value: .one, usage: &usage)
+            try CurrentTaskCancellationChecker().checkCancellation()
+            return unit
+        }
         let firstContent = try content(first, axis: axis, usage: &usage)
         let secondContent = try content(second, axis: axis, usage: &usage)
         let commonContent = try gcd(firstContent, secondContent, usage: &usage)
@@ -36,10 +44,23 @@ package enum ExactIntersectionPolynomialGCD {
         var aDegree = try a.axisCoefficients(at: axis, usage: &usage).count - 1
         var bDegree = try b.axisCoefficients(at: axis, usage: &usage).count - 1
         if aDegree == 0 || bDegree == 0 { return commonContent }
-        if try coprimeSpecialization(a, b, axis: axis, usage: &usage) { return commonContent }
+        if let certified = try specializedGCD(a, b, axis: axis,
+            singleCoordinate: firstMask.singleAxis == axis && secondMask.singleAxis == axis, usage: &usage) {
+            switch certified {
+            case .unit: return commonContent
+            case .factor(let factor):
+                let result = try factor.multiplied(by: commonContent, usage: &usage).monic(usage: &usage)
+                try CurrentTaskCancellationChecker().checkCancellation()
+                return result
+            }
+        }
         if aDegree < bDegree { swap(&a, &b); swap(&aDegree, &bDegree) }
         while !b.isZero {
             try intersectionAlgebraStep(&usage)
+            if b.isConstant {
+                try CurrentTaskCancellationChecker().checkCancellation()
+                return commonContent
+            }
             let remainder = try pseudoRemainder(a, b, axis: axis, usage: &usage)
             a = b
             if remainder.isZero { b = remainder }
@@ -145,41 +166,87 @@ package enum ExactIntersectionPolynomialGCD {
         return result
     }
 
-    private static func coprimeSpecialization<B: RationalAlgebraAdmitting>(_ first: Polynomial, _ second: Polynomial,
-        axis: Int, usage: inout B) throws -> Bool {
+    private static func wholeCoprimeSpecialization<B: RationalAlgebraAdmitting>(_ first: Polynomial, _ second: Polynomial,
+        firstMask: CoordinateSupport, secondMask: CoordinateSupport, usage: inout B) throws -> Bool {
+        var covered = false
+        for axis in 0..<first.variableCount {
+            try intersectionAlgebraStep(&usage)
+            guard try firstMask.contains(axis, usage: &usage) else { continue }
+            guard try secondMask.contains(axis, usage: &usage) else { continue }
+            covered = true
+            let certificate = try specializedGCD(first, second, axis: axis,
+                singleCoordinate: firstMask.singleAxis == axis && secondMask.singleAxis == axis,
+                reconstructFactor: false, usage: &usage)
+            guard let certificate, case .unit = certificate else { return false }
+        }
+        return covered
+    }
+
+    private static func specializedGCD<B: RationalAlgebraAdmitting>(_ first: Polynomial, _ second: Polynomial,
+        axis: Int, singleCoordinate: Bool, reconstructFactor: Bool = true, usage: inout B) throws -> SpecializedGCD? {
         let a = try first.axisCoefficients(at: axis, usage: &usage)
         let b = try second.axisCoefficients(at: axis, usage: &usage)
-        for station in [ExactRationalCoefficient.one, .zero] {
+        for proposal in 0..<(singleCoordinate ? 2 : 3) {
             try intersectionAlgebraStep(&usage)
             try RationalAlgebraStorage.retain(first.variableCount, of: ExactRationalCoefficient.self, usage: &usage)
-            let coordinates = Array(repeating: station, count: first.variableCount)
+            let coordinates: [ExactRationalCoefficient]
+            if proposal < 2 {
+                coordinates = Array(repeating: proposal == 0 ? .one : .zero, count: first.variableCount)
+            } else {
+                var distinct: [ExactRationalCoefficient] = []; distinct.reserveCapacity(first.variableCount)
+                for coordinate in 0..<first.variableCount {
+                    try intersectionAlgebraStep(&usage)
+                    distinct.append(try .natural(rationalAlgebraCount(coordinate, 2), usage: &usage))
+                }
+                coordinates = distinct
+            }
             try RationalAlgebraStorage.retain(rationalAlgebraCount(a.count, b.count), of: ExactRationalCoefficient.self, usage: &usage)
             var left: [ExactRationalCoefficient] = [], right: [ExactRationalCoefficient] = []
             left.reserveCapacity(a.count); right.reserveCapacity(b.count)
             for value in a { left.append(try value.evaluated(at: coordinates, usage: &usage)) }
             for value in b { right.append(try value.evaluated(at: coordinates, usage: &usage)) }
             guard let aLead = left.last, let bLead = right.last, !aLead.isZero, !bLead.isZero else { continue }
-            while !right.isEmpty {
-                try intersectionAlgebraStep(&usage)
-                try RationalAlgebraStorage.retain(left.count, of: ExactRationalCoefficient.self, usage: &usage)
-                var remainder = left
-                guard let leading = right.last else { throw rationalAlgebraFailure("Specialized GCD lost its nonzero leading coefficient.") }
-                while remainder.count >= right.count, let top = remainder.last {
+            guard let probe = try ExactIntersectionModularCoprimality.prepare(left, right, usage: &usage) else { continue }
+            if probe.degree == 0 { return .unit }
+            if singleCoordinate && reconstructFactor {
+                var bound: UInt64 = 1
+                while bound <= (ExactIntersectionModularCoprimality.prime - 1) / 2 / bound {
                     try intersectionAlgebraStep(&usage)
-                    let shift = remainder.count - right.count
-                    let ratio = try top.divided(by: leading, usage: &usage)
-                    for index in right.indices {
-                        try intersectionAlgebraStep(&usage)
-                        remainder[index + shift] = try remainder[index + shift]
-                            .subtracting(ratio.multiplied(by: right[index], usage: &usage), usage: &usage)
+                    if let receipt = try ExactIntersectionModularCoprimality.factorReceipt(probe,
+                        first: left, second: right, denominatorBound: bound, usage: &usage) {
+                        let factor = try polynomial(receipt.coefficients, axis: axis,
+                            variableCount: first.variableCount, usage: &usage)
+                        let firstQuotient = try polynomial(receipt.firstQuotient, axis: axis,
+                            variableCount: first.variableCount, usage: &usage)
+                        let secondQuotient = try polynomial(receipt.secondQuotient, axis: axis,
+                            variableCount: second.variableCount, usage: &usage)
+                        guard receipt.coefficients.count - 1 == probe.degree,
+                              try factor.multiplied(by: firstQuotient, usage: &usage).matches(first, usage: &usage),
+                              try factor.multiplied(by: secondQuotient, usage: &usage).matches(second, usage: &usage) else {
+                            throw rationalAlgebraFailure("A modular factor receipt lost its original exact reconstruction.")
+                        }
+                        try CurrentTaskCancellationChecker().checkCancellation()
+                        return .factor(factor)
                     }
-                    while let last = remainder.last, last.isZero { remainder.removeLast() }
+                    bound *= 2
                 }
-                left = right; right = remainder
             }
-            if left.count == 1 { return true }
         }
-        return false
+        return nil
+    }
+
+    private static func polynomial<B: RationalAlgebraAdmitting>(_ coefficients: [ExactRationalCoefficient],
+        axis: Int, variableCount: Int, usage: inout B) throws -> Polynomial {
+        var result = try Polynomial.zero(variableCount: variableCount)
+        for (exponent, coefficient) in coefficients.enumerated() {
+            try intersectionAlgebraStep(&usage)
+            if coefficient.isZero { continue }
+            let term = try Polynomial.monomial(variableCount: variableCount,
+                power: .coordinate(at: axis, exponent: exponent, variableCount: variableCount, usage: &usage),
+                coefficient: coefficient, usage: &usage)
+            result = try result.adding(term, usage: &usage)
+        }
+        return result
     }
 
     private static func pseudoRemainder<B: RationalAlgebraAdmitting>(_ source: Polynomial, _ divisor: Polynomial,

@@ -52,6 +52,10 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
             firstBox: firstBox,secondBox: secondBox,options: options,tolerance: tolerance,admission: admission) {
             return native.intersections
         }
+        if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, admission: admission) {
+            return native.intersections
+        }
         let intersections = try BoundedParametricSurfaceIntersector().intersections(first: first,over: firstBox,
             second: second,over: secondBox,options: options,tolerance: tolerance,admission: admission)
         try CurrentTaskCancellationChecker().checkCancellation()
@@ -62,6 +66,11 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
         options: SurfaceSurfaceIntersectionOptions) throws -> SurfaceSurfaceIntersectionResult {
         if let native = try NativeSurfaceSurfacePointProducer().resolve(first: firstSurface, second: secondSurface,
             firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, includeRelations: true, admission: admission) {
+            return native
+        }
+        if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance,
+            includeRelations: true, admission: admission) {
             return native
         }
         let intersections = try BoundedParametricSurfaceIntersector().intersections(first: first, over: firstBox,

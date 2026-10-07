@@ -123,7 +123,28 @@ The exact GCD remains the authority for coprimality; this reuse changes neither
 the canonical value nor cancellation and caller admission. Original intersection
 projection is a composing consumer and must retain its work/storage limits.
 Equal rational denominators retain their original immutable denominator and add
-only signed numerators. A denominator proved to be exactly a power of two uses
+only signed numerators. For unequal canonical denominators d1 and d2, addition
+retains g=gcd(d1,d2), u=d1/g and v=d2/g. Its signed numerator is
+T=sign1*n1*v+sign2*n2*u. Canonical inputs and gcd(u,v)=1 imply
+gcd(T,u)=gcd(T,v)=1, so gcd(abs(T),g*u*v)=gcd(abs(T),g)=h.
+The fully reduced result therefore has numerator abs(T)/h and positive
+denominator u*(d2/h). Both divisions use exact remainder-checked cancellation;
+the unreduced LCM is never materialized. If g=1, the combined numerator is
+already coprime to the denominator. Zero retains sign zero, empty numerator
+and unit denominator. Addition and subtraction use the same signed identity.
+These operations admit every GCD, magnitude operation, division and buffer
+through the original caller's checked work/storage ledger, without cell/depth
+visits or private allowance. Failure and cancellation propagate unchanged;
+task cancellation is checked after the final admission callback before the
+unequal-denominator result is returned. Equal-denominator reduction, multiply
+cross-cancellation, division and canonical source validation are unchanged.
+[IntersectionRationalAdditionTests](../../../Tests/CADGeometryTests/IntersectionRationalAdditionTests.swift)
+checks independently calculated canonical multiword golden values, signed
+addition/subtraction and immutable aliases, independent work/storage refusal,
+final callback cancellation and canonical zero/sign rejection. Intersection
+composition additionally verifies its existing exact-math suite and original
+finite-budget public query; coefficient tests alone do not prove that query.
+A denominator proved to be exactly a power of two uses
 the numerator's exact trailing-zero count to remove their common power by right
 shifts. Odd numerators already prove coprimality. General fractions keep integer
 GCD and exact division. One-limb integer GCD uses scalar Euclidean remainders

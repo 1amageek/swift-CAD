@@ -19,6 +19,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
     public struct Cell: Sendable {
         public let identifier: CellIdentifier
         public let parameterDimension: Int
+        public let sourceChartIndex: Int
         public let originalJacobianRank: Int
         /// Every original tuple sample is a witness, never a completeness approximation.
         public let parameterSample: [OriginalAlgebraicCoordinate]
@@ -29,7 +30,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
         public let parameterDimension: Int
         public let imageDimension: Int
         public let fiberDimension: Int
-        /// Original order is XYZ,u1,v1,u2,v2 on the retained rational graph.
+        /// Original order is XYZ,u1,v1,u2,v2 on the retained exact source image.
         public let sample: [OriginalAlgebraicCoordinate]
     }
     public struct Component: Sendable {
@@ -50,13 +51,17 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
     public let firstSurface: BSplineSurface3D
     public let secondSurface: BSplineSurface3D
     public let certificationTolerance: ModelingTolerance
-    public var nativeDomains: [OriginalRationalParameterDomain] { decomposition.nativeDomains }
-    public var requestedDomains: [OriginalRationalParameterDomain] { decomposition.requestedDomains }
-    public var effectiveDomains: [OriginalRationalParameterDomain]? { decomposition.effectiveDomains }
+    public var sourceChartCount: Int { coverage.sourceChartCount }
+    public func sourceChart(at ordinal: Int) throws -> OriginalNativeSurfaceSurfaceChart { try coverage.sourceChart(at: ordinal) }
+    public var nativeDomains: [OriginalRationalParameterDomain] { coverage.nativeDomains }
+    public var requestedDomains: [OriginalRationalParameterDomain] { coverage.requestedDomains }
+    public var effectiveDomains: [OriginalRationalParameterDomain]? { coverage.effectiveDomains }
     public var hasPositiveDimensionalParameters: Bool { dimensions.contains { $0 > 0 } }
-    package let decomposition: OriginalRationalIntersectionDecomposition
+    package let coverage: NativeSurfaceSurfaceCoverage
     package let graph: OriginalRationalIntersectionCells?
     package let graphIdeal: ExactIntersectionIdeal?
+    private let sourceMapProof: NativeSurfaceSurfaceChartInjectionProof?
+    private let graphGuardedEquations: [OriginalGuardedIntersectionEquations]
     private let inheritedParameterDepth: Int
     private let parentRelation: OriginalNativeSurfaceSurfaceRelations?
     private let conditions: [OriginalIntersectionCellCondition]
@@ -71,24 +76,54 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
     private let attachmentDimensions: [Int]
 
     package init<B: RationalAlgebraAdmitting>(first: BSplineSurface3D, second: BSplineSurface3D,
-        tolerance: ModelingTolerance, decomposition: OriginalRationalIntersectionDecomposition,
-        graph: OriginalRationalIntersectionCells?, graphIdeal: ExactIntersectionIdeal? = nil, conditions: [OriginalIntersectionCellCondition],
+        tolerance: ModelingTolerance, coverage: NativeSurfaceSurfaceCoverage,
+        graph: OriginalRationalIntersectionCells?, graphIdeal: ExactIntersectionIdeal? = nil,
+        graphGuardedEquations: [OriginalGuardedIntersectionEquations] = [], conditions: [OriginalIntersectionCellCondition],
         images: [[ImageStratum]], inheritedParameterDepth: Int = 0,
-        parentRelation: OriginalNativeSurfaceSurfaceRelations? = nil, usage: inout B) throws {
-        guard decomposition.system.variableCount == 4,
-            decomposition.system.firstSurfaceSource.source == first,
-            decomposition.system.secondSurfaceSource?.source == second else {
-            throw rationalAlgebraFailure("Native SSI receipt requires both unchanged original source laws.")
+        parentRelation: OriginalNativeSurfaceSurfaceRelations? = nil,
+        sourceMapProof: NativeSurfaceSurfaceChartInjectionProof? = nil, usage: inout B) throws {
+        if let sourceMapProof {
+            guard graph == nil, case .common(let common) = coverage else {
+                throw rationalAlgebraFailure("Source injection proof cannot replace a single decomposition or coexist with a graph.")
+            }
+            try sourceMapProof.validate(charts: common.charts, usage: &usage)
+        }
+        switch coverage {
+        case .single(let decomposition):
+            guard decomposition.system.variableCount == 4,
+                decomposition.system.firstSurfaceSource.source == first,
+                decomposition.system.secondSurfaceSource?.source == second else {
+                throw rationalAlgebraFailure("Native SSI receipt requires both unchanged original source laws.")
+            }
+        case .common(let common):
+            guard !common.charts.isEmpty, common.partition.tower.variableCount == 4,
+                common.chartOwners.count == common.partition.cells.count,
+                common.ranks.count == common.partition.cells.count,
+                (graph == nil ? graphGuardedEquations.isEmpty : graphGuardedEquations.count == common.charts.count) else {
+                throw rationalAlgebraFailure("Common SSI coverage requires its full original chart owner map.")
+            }
+            for chart in common.charts {
+                try intersectionAlgebraStep(&usage)
+                try GeometryStructuralComparisonWork.charge(surface: .bSpline(chart.first.source), using: { try usage.consumeExactWork($0) })
+                try GeometryStructuralComparisonWork.charge(surface: .bSpline(first), using: { try usage.consumeExactWork($0) })
+                try GeometryStructuralComparisonWork.charge(surface: .bSpline(chart.second.source), using: { try usage.consumeExactWork($0) })
+                try GeometryStructuralComparisonWork.charge(surface: .bSpline(second), using: { try usage.consumeExactWork($0) })
+                guard chart.first.source == first, chart.second.source == second else {
+                    throw rationalAlgebraFailure("Common SSI coverage has a foreign original surface.")
+                }
+            }
         }
         self.firstSurface = first; self.secondSurface = second; certificationTolerance = tolerance
         self.inheritedParameterDepth = inheritedParameterDepth; self.parentRelation = parentRelation
-        self.decomposition = decomposition; self.graph = graph; self.graphIdeal = graphIdeal; self.conditions = conditions; self.images = images
+        self.coverage = coverage; self.graph = graph; self.graphIdeal = graphIdeal; self.graphGuardedEquations = graphGuardedEquations
+        self.sourceMapProof = sourceMapProof
+        self.conditions = conditions; self.images = images
         var indices: [Int] = [], dimensions: [Int] = [], ranks: [Int] = []
         var samples: [[OriginalAlgebraicCoordinate]] = [], componentCells: [[Int]] = []
         var componentAttachments: [[Int]] = [], attachments: [OriginalRationalIntersectionIncidence.Attachment] = []
         var attachmentDimensions: [Int] = []
-        if case .parameterCells(let strata, let incidence, let components) = decomposition.coverage {
-            let count = strata.partition.solutionCells.count
+        if let partition = coverage.partition, let incidence = coverage.incidence, let components = coverage.connected {
+            let count = partition.solutionCells.count
             guard conditions.count == count, images.count == count, (graph == nil) == (graphIdeal == nil) else {
                 throw rationalAlgebraFailure("Native SSI relation publication omitted an original selected cell.")
             }
@@ -97,12 +132,14 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
             indices.reserveCapacity(count); dimensions.reserveCapacity(count); ranks.reserveCapacity(count); samples.reserveCapacity(count)
             for ordinal in 0..<count {
                 try intersectionAlgebraStep(&usage)
-                let index = strata.partition.solutionCells[ordinal], cell = strata.partition.cells[index]
-                guard conditions[ordinal].cellIndex == index, !images[ordinal].isEmpty,
-                    strata.strata[ordinal].cellIndex == index else {
+                let index = partition.solutionCells[ordinal], cell = partition.cells[index]
+                guard conditions[ordinal].cellIndex == index, !images[ordinal].isEmpty else {
                     throw rationalAlgebraFailure("Native SSI image strata lost their original cell binding.")
                 }
-                indices.append(index); dimensions.append(cell.dimension); ranks.append(strata.strata[ordinal].originalJacobianRank)
+                guard graph != nil || sourceMapProof != nil || cell.dimension == 0 else {
+                    throw rationalAlgebraFailure("Positive SSI images require a genuine graph or retained source injection proof.")
+                }
+                indices.append(index); dimensions.append(cell.dimension); ranks.append(try coverage.rank(ordinal: ordinal, cellIndex: index))
                 try RationalAlgebraStorage.retain(4, of: OriginalAlgebraicCoordinate.self, usage: &usage)
                 var sample: [OriginalAlgebraicCoordinate] = []; sample.reserveCapacity(4)
                 for value in cell.coordinates {
@@ -150,7 +187,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
     public func cell(at ordinal: Int) throws -> Cell {
         guard indices.indices.contains(ordinal) else { throw invalid("Native SSI cell is outside its owning receipt.") }
         return .init(identifier: .init(owner: self, ordinal: ordinal), parameterDimension: dimensions[ordinal],
-            originalJacobianRank: ranks[ordinal], parameterSample: samples[ordinal], imageStrata: images[ordinal])
+            sourceChartIndex: coverage.chartIndex(cellIndex: indices[ordinal]), originalJacobianRank: ranks[ordinal], parameterSample: samples[ordinal], imageStrata: images[ordinal])
     }
 
     public func component(at ordinal: Int) throws -> Component {
@@ -231,7 +268,7 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
             return result
         }
         guard try contains(parameters: parameters,inCell: identifier,maximumAlgebraicDepth: maximumAlgebraicDepth,usage: &usage) else { return false }
-        let source = decomposition.system.firstSurfaceSource
+        let source = coverage.firstLaw(cellIndex: indices[ordinal])
         let weight = try source.homogeneous[3].evaluated(atU: parameters[0],v: parameters[1],usage: &usage)
         for axis in 0..<3 {
             let coordinate = try source.homogeneous[axis].evaluated(atU: parameters[0],v: parameters[1],usage: &usage)
@@ -251,12 +288,12 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
         }
         for ordinal in indices.indices { _ = try sourceDepth(at: ordinal, maximumDepth: maximumAlgebraicDepth) }
         try RationalAlgebraStorage.retain(4, of: OriginalRationalParameterDomain.self, usage: &usage)
-        var requested = decomposition.requestedDomains
+        var requested = coverage.requestedDomains
         requested[surface * 2] = try .init(lower: u, upper: u, usage: &usage)
         requested[surface * 2 + 1] = try .init(lower: v, upper: v, usage: &usage)
         // Intersect with the original requested domain before adding the exact station.
         for axis in 0..<4 {
-            if let domain = try requested[axis].intersecting(decomposition.requestedDomains[axis], usage: &usage) {
+            if let domain = try requested[axis].intersecting(coverage.requestedDomains[axis], usage: &usage) {
                 requested[axis] = domain
             } else {
                 throw invalid("Native SSI fiber station is outside the original requested domain.")
@@ -270,21 +307,39 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
             parameterDepth: retainedDepth, coefficientDepth: 0)
         defer { usage = admission.base }
         let availableDepth = maximumAlgebraicDepth - retainedDepth
-        let resolved = try OriginalRationalIntersectionDecomposition.prepare(system: decomposition.system,
-            requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
-            reducePureEvenPowerZeroSets: true, preferIsolatedCells: true,
-            maximumDepth: availableDepth, usage: &admission)
-        return try NativeSurfaceSurfaceRelationPublisher.publish(first: firstSurface, second: secondSurface,
-            tolerance: certificationTolerance, decomposition: resolved, maximumDepth: availableDepth,
-            inheritedParameterDepth: retainedDepth, parentRelation: self, usage: &admission)
+        switch coverage {
+        case .single(let decomposition):
+            let resolved = try OriginalRationalIntersectionDecomposition.prepare(system: decomposition.system,
+                requestedDomains: requested, pruneExcludedPrefixes: true, normalizeDenominatorFactors: true,
+                reducePureEvenPowerZeroSets: true, preferIsolatedCells: true,
+                maximumDepth: availableDepth, usage: &admission)
+            return try NativeSurfaceSurfaceRelationPublisher.publish(first: firstSurface, second: secondSurface,
+                tolerance: certificationTolerance, decomposition: resolved, maximumDepth: availableDepth,
+                inheritedParameterDepth: retainedDepth, parentRelation: self, usage: &admission)
+        case .common(let original):
+            try RationalAlgebraStorage.retain(4, of: OriginalRationalParameterDomain.self, usage: &admission)
+            var effective: [OriginalRationalParameterDomain]? = []; effective?.reserveCapacity(4)
+            for axis in 0..<4 {
+                if let domain = try requested[axis].intersecting(original.nativeDomains[axis], usage: &admission) {
+                    effective?.append(domain)
+                } else { effective = nil }
+            }
+            let resolved = try NativeSurfaceSurfaceCommonCoverage.prepare(charts: original.charts,
+                nativeDomains: original.nativeDomains, requestedDomains: requested, effectiveDomains: effective,
+                maximumComponentCount: original.maximumComponentCount, maximumDepth: availableDepth,
+                tolerance: certificationTolerance, usage: &admission)
+            return try NativeSurfaceSurfaceRelationPublisher.publish(first: firstSurface, second: secondSurface,
+                tolerance: certificationTolerance, coverage: .common(resolved), maximumDepth: availableDepth,
+                inheritedParameterDepth: retainedDepth, parentRelation: self, sourceMapProof: sourceMapProof, usage: &admission)
+        }
     }
 
     package func retainedParameterDepth<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Int {
         var depth = inheritedParameterDepth
-        if case .parameterCells(let strata, _, _) = decomposition.coverage {
-            for index in strata.partition.solutionCells {
+        if let partition = coverage.partition {
+            for index in partition.solutionCells {
                 depth = max(depth, try rationalAlgebraCount(inheritedParameterDepth,
-                    strata.partition.cells[index].admissionDepth))
+                    partition.cells[index].admissionDepth))
             }
         }
         if let graph {
@@ -297,10 +352,10 @@ public final class OriginalNativeSurfaceSurfaceRelations: Sendable {
     }
 
     private func sourceDepth(at ordinal: Int, maximumDepth: Int) throws -> Int {
-        guard case .parameterCells(let strata, _, _) = decomposition.coverage else {
+        guard let partition = coverage.partition else {
             throw invalid("An excluded receipt has no source cell.")
         }
-        let cell = strata.partition.cells[indices[ordinal]]
+        let cell = partition.cells[indices[ordinal]]
         let depth = try rationalAlgebraCount(inheritedParameterDepth, cell.admissionDepth)
         guard depth <= maximumDepth else { throw invalid("Native SSI query cannot reset retained source depth.") }
         return maximumDepth - depth

@@ -18,6 +18,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
     if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
       options: options, tolerance: tolerance, admission: admission) { return native.intersections }
+    if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: first, second: second,
+      options: options, tolerance: tolerance, admission: admission) { return native.intersections }
     return try BoundedParametricSurfaceIntersector().intersections(first: first, second: second,
       options: options, tolerance: tolerance, admission: admission)
   }
@@ -37,6 +39,9 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
       consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
     if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
+      firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance,
+      admission: admission) { return native.intersections }
+    if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: first, second: second,
       firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance,
       admission: admission) { return native.intersections }
     return try BoundedParametricSurfaceIntersector().intersections(first: first, over: firstBox,
@@ -79,6 +84,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
     tolerance: ModelingTolerance
   ) throws -> [SurfaceSurfaceIntersection] {
     if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
+      options: options, tolerance: tolerance) { return native.intersections }
+    if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: first, second: second,
       options: options, tolerance: tolerance) { return native.intersections }
     try options.validate(tolerance: tolerance)
     try first.validate(tolerance: tolerance)

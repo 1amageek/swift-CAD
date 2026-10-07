@@ -90,6 +90,7 @@ package struct ExactIntersectionProjection: Sendable {
                 }
             }
         }
+        try CurrentTaskCancellationChecker().checkCancellation()
         return Self(axis: axis, sources: sources, polynomials: projected)
     }
 
@@ -216,28 +217,25 @@ package struct ExactIntersectionProjection: Sendable {
 
     private static func splitCommonFactors<B: RationalAlgebraAdmitting>(_ basis: inout [Polynomial],
         usage: inout B) throws {
-        var changed = true
-        while changed {
-            changed = false
-            outer: for first in basis.indices {
-                for second in (first + 1)..<basis.count {
-                    try intersectionAlgebraStep(&usage)
-                    let common = try ExactIntersectionPolynomialGCD.gcd(basis[first], basis[second], usage: &usage)
-                    if common.isConstant { continue }
-                    let a = try basis[first].dividedExactly(by: common, usage: &usage)
-                    let b = try basis[second].dividedExactly(by: common, usage: &usage)
-                    basis[first] = common
-                    try usage.consumeExactWork(basis.count - second)
-                    basis.remove(at: second)
-                    // Every basis member was normalized square-free before splitting.
-                    // Its exact divisors, including both quotients and the common
-                    // factor, remain square-free over the original rational UFD.
-                    try insertVerifiedSquareFree(a, into: &basis, usage: &usage)
-                    try insertVerifiedSquareFree(b, into: &basis, usage: &usage)
-                    changed = true
-                    break outer
-                }
+        var first = 0
+        while first < basis.count {
+            var second = first + 1
+            while second < basis.count {
+                try intersectionAlgebraStep(&usage)
+                let common = try ExactIntersectionPolynomialGCD.gcd(basis[first], basis[second], usage: &usage)
+                if common.isConstant { second += 1; continue }
+                let a = try basis[first].dividedExactly(by: common, usage: &usage)
+                let b = try basis[second].dividedExactly(by: common, usage: &usage)
+                basis[first] = common
+                try usage.consumeExactWork(basis.count - second)
+                basis.remove(at: second)
+                // Exact divisors inherit square-freeness and every earlier unit
+                // GCD proof. Keep the next candidate at the removed position;
+                // dynamic later rows also visit newly appended factors.
+                try insertVerifiedSquareFree(a, into: &basis, usage: &usage)
+                try insertVerifiedSquareFree(b, into: &basis, usage: &usage)
             }
+            first += 1
         }
     }
 }

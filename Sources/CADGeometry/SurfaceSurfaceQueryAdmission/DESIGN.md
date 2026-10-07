@@ -111,7 +111,13 @@ those proofs merely because its input boxes are distinct.
 The prepared implementation retains the two admitted immutable original support
 owners, their preparation tolerance and the same caller callbacks. Every box
 query derives its sources from those owners and reuses them; callers cannot
-replace a surface, tolerance or ledger after preparation. Options remain local
+replace a surface, tolerance or ledger after preparation. Single-span Native selection precedes the
+[Native multi-chart producer](../NativeMultiChartSurfaceSurfaceRelations/DESIGN.md).
+An applicability nil selects the next producer; an admitted producer failure
+propagates. Both rich and discrete session queries pass the identical retained
+admission, original supports and closed requested boxes. The rich path retains
+complete point/relation authority; the discrete path rejects any positive
+component atomically. Options remain local
 query limits in addition to the session's cumulative admission. Unsupported
 custom factories fail explicitly rather than allocating a legacy producer.
 

@@ -3,9 +3,13 @@
 ## Purpose and Scope
 Child of [CADGeometry](../DESIGN.md). Owns complete isolated original tuples
 (u1, v1, u2, v2) on finite closed nonperiodic positive-weight single-span
-tensor B-spline products. This contract does not claim full SSI coverage.
+tensor B-spline products, and isolated components of genuine common Native chart coverage. This contract does not claim full SSI coverage.
 
 ## Responsibilities and Boundaries
+The exact point publisher also accepts cells of genuine common SSI coverage, bound
+to their original canonical source laws. Existing public point handles retain either
+the genuine single decomposition or complete common coverage; no synthetic decomposition
+or numerical image deduplication represents multi-chart authority.
 Admit original source laws and consume the existing four-coordinate decomposition.
 Publish complete zero-dimensional coverage through the isolated fast path. Rich
 positive-dimensional publication delegates to [Native SSI Relations](../NativeSurfaceSurfaceRelations/DESIGN.md)
@@ -19,6 +23,10 @@ sources remain with existing dispatch; failures after admission propagate.
 | [Intersection Algebra](../IntersectionAlgebra/DESIGN.md) | depends on | original system, guarded isolated decomposition | Complete four-coordinate closed coverage | No sampled absence |
 | [Native CS Points](../CurveSurfaceOverlap/NativePointRelations/DESIGN.md) | depends on | scalar localization | Retained original affine root transport | No new solver |
 | [Query Admission](../SurfaceSurfaceQueryAdmission/DESIGN.md) | coordinates with | source, span, subdivision, work and bytes | One caller allowance | Exact depth is independent |
+
+The package-internal NativeSurfaceSurfacePointPublisher is the extracted original
+localization/refinement algorithm. Both producers pass each exact cell and its canonical
+original source laws; no cross-chart scalar or XYZ equality deduplicates tuples.
 
 ## Architecture
 ```text

@@ -446,6 +446,10 @@ Cancellation is checked during preparation/reduction. Overflow, invalid binding,
 exhaustion and failed ideal identities propagate typed errors. A partial basis
 is never published after failure. Parameter, geometric and coefficient depth
 remain separate capabilities of composing callers.
+Full rational projection checks task cancellation after its final admission
+callback and before returning the complete prepared set. A callback that cancels
+and returns normally cannot publish a projection; existing work/storage debits
+are unchanged.
 
 ## Verification and Change Impact
 
@@ -762,6 +766,34 @@ product signs; original source equations, Jacobian multiplicities and zero-sign
 guards are still retained. Content factors are never divided away from support.
 Every recursive coefficient, remainder, exact quotient, comparison and retained
 factor shares the original caller ledger and cancellation checks.
+Projection basis refinement traverses dynamic first/second indices monotonically.
+Before row first, every earlier member is coprime to every other retained basis
+member; within that row, entries strictly between first and second are coprime
+to its current member. If
+exact GCD H splits A and B, replacing A by H, removing B and inserting exact
+quotients A/H and B/H preserves these proofs: each replacement is an exact
+divisor of A or B. Square-free inputs make their GCD and quotients square-free,
+and duplicate suppression preserves the union of original zero sets. The next
+candidate stays at the removed second position, while dynamic later rows include
+all appended factors. No completed row restarts. A nonconstant split strictly
+reduces the sum of basis total degrees, and constant GCD advances second, so the
+final basis remains complete, square-free and pairwise coprime. Original truth
+sources retain their original order and multiplicities; projection remains a set
+operation with its full reducta/discriminant/cross-pair operator. All GCDs, exact
+quotients, removals and insertions keep the original work/storage/cancellation
+admission, including admitted removal movement. The traversal adds no proof
+cache, shared mutable state, buffer, root/depth allowance or public API.
+[IntersectionProjectionFactorRefinementTests](../../../Tests/CADGeometryTests/IntersectionProjectionFactorRefinementTests.swift)
+checks overlapping products against independently known full projection laws,
+newly appended factor overlaps, original source/domain and selected-cell coverage,
+duplicate/repeated/scaled/zero sources, and independent caller refusal/cancellation.
+At each primitive PRS iteration, a nonzero constant divisor is a unit of the
+rational coefficient ring. It proves the primitive GCD is one, so the owner
+returns the already retained common content without another pseudo-remainder.
+This check follows the iteration's work/cancellation admission and checks task
+cancellation again before returning, including cancellation requested by a
+successful admission callback. Main-axis degree zero alone does not establish
+this condition: a nonconstant coefficient polynomial still follows exact PRS.
 Disjoint coordinate support proves a rational unit GCD. A rational univariate
 linear factor is irreducible; exact Horner substitution at its original rational
 root decides whether it divides the other polynomial. These proofs are selected
@@ -771,8 +803,115 @@ with unit univariate GCD certifies that the primitive parts are coprime: a
 positive-main-degree common factor would retain that degree because both leading
 coefficients remain nonzero, contradicting the specialized unit GCD. No failed
 degree check or nonunit specialization is accepted as a certificate. Uniform
-one and zero assignments are finite proof proposals; if neither proves a unit,
-the original primitive PRS remains the exact decision path, under the same ledger.
+one and zero assignments, followed by the coordinate-distinct assignment i + 2,
+are finite proof proposals; if none proves a unit, the original primitive PRS
+remains the exact decision path, under the same ledger. The additional proposal
+uses checked coordinate addition and exact rational conversion with prepaid
+coordinate storage and the same work/cancellation owner. It is omitted for
+already proved single-coordinate pairs, where assignments cannot change the
+coefficient buffers. Both original main degrees must survive every proposal;
+only the retained degree-preserving modular certificate can establish a unit.
+
+The already evaluated, degree-preserving rational coefficient buffers may issue
+a finite-field sufficient coprimality
+certificate. The owner uses the fixed prime 65537; exact trial division by every
+possible divisor from 2 through 256 proves its primality. Each canonical rational
+coefficient maps to its signed numerator residue times the inverse denominator
+residue. A denominator divisible by the prime, a zero modular leading coefficient,
+or a nonunit modular GCD refuses the certificate. An uncertified proposal proceeds
+to the next finite station, then the original exact primitive PRS if no
+station certifies a unit. The optional rational Euclidean sufficient-test loop
+is not run. A refusal proves neither a factor nor noncoprimality; the original
+PRS still owns the exact GCD decision under the same caller ledger.
+
+With both degrees retained and every denominator invertible, a unit GCD over the
+finite field makes the reduced Sylvester resultant nonzero. Resultant commutes
+with coefficient reduction, so the rational specialized resultant is nonzero.
+The existing degree-preserving specialization theorem therefore proves the
+primitive multivariate parts coprime. The GCD owner returns the unchanged exact
+commonContent; this unit certificate does not compute or replace any original factor.
+
+Before extracting recursive content, a whole-polynomial unit certificate may
+cover every coordinate in which both original nonzero inputs have positive
+degree. Any nonconstant common divisor H has positive degree in some coordinate
+j. If either input has degree zero there, H must also have degree zero. Otherwise
+degree-preserving specialization at j keeps the specialized degree of H positive:
+the product's leading coefficient is the product of the factors' leading
+coefficients. A unit univariate GCD certificate at j therefore excludes H.
+Every shared positive-degree coordinate must be covered, although different
+coordinates may use different finite stations. One successful coordinate alone
+cannot exclude a common content factor in another coordinate.
+
+The existing prime, rational stations, coefficient buffers and modular degree
+guards supply each coordinate proof. Invertible specialized denominators and
+leading coefficients put the specialized monic inputs in Z_(p)[t]. Clearing
+their denominators uses p-unit integers, and Gauss's lemma supplies primitive
+integer factor laws. Monic divisor integrality keeps a monic rational common
+divisor in that integrally closed ring; its reduction retains positive degree.
+It cannot disappear at a bad prime while both source degree guards hold. The
+same implication follows from the existing resultant reduction identity.
+No factor reconstruction is attempted by this whole-unit gate. Any uncertified
+coordinate returns to the unchanged content/primitive PRS path, retaining all
+original common content. Only complete coverage returns the canonical unit,
+with a task cancellation check after its final allocation/admission callback.
+Disjoint supports and zero/constant inputs keep their existing exact proofs.
+All traversal, specialization, buffers and word operations share the same
+checked caller work/storage/cancellation ledger; no failure is caught as a
+refused proposal, and no budget is reset or enlarged.
+[IntersectionWholePolynomialCoprimalityTests](../../../Tests/CADGeometryTests/IntersectionWholePolynomialCoprimalityTests.swift)
+checks full multiaxis unit identities, nonconstant content despite a one-axis
+unit, cross-axis factors, bad-prime/degree-drop refusal with exact fallback,
+support edge cases and independent admission/final cancellation. GCD and
+projection-refinement suites are reverified when this entry path changes;
+unchanged lower coefficient tests retain their own evidence.
+
+For primitive pairs proved to depend on the same single coordinate, a nonunit
+modular GCD may also propose an exact rational factor. This proposal reuses the
+same degree-preserving modular result. The source polynomials are monic with
+coefficients in the localization of the integers at the prime. Their monic
+rational GCD also lies in that integrally closed ring, so its reduction retains
+degree and divides the modular GCD. The modular degree is therefore an upper
+bound on the exact rational GCD degree.
+
+The owner reconstructs candidates in finite rational boxes with numerator bound
+N and denominator bound D satisfying 2ND < 65537. D runs through powers of two
+with D squared at most (65537 - 1)/2, and N is floor((65537 - 1)/(2D)). Extended
+Euclidean reconstruction is a proposal only: each coefficient must have positive
+denominator, coprime signed numerator, and the exact source residue. A monic
+candidate is accepted only with exact rational quotient receipts for both
+retained coefficient buffers, exact original polynomial reconstruction, and
+candidate degree equal to the modular upper bound. These conditions prove it is
+the original monic GCD. The original commonContent is restored unchanged.
+Unreconstructible coefficients or a nonzero exact remainder are not applicable,
+so the next finite proposal or original primitive PRS decides the pair. Invalid
+rings, admission failures and cancellation propagate; they are never refusals.
+This factor witness is restricted to proven single-coordinate rational pairs.
+
+Modular result records, candidate coefficient buffers, complete rational
+remainder copies, quotient buffers and factor receipts are admitted before
+allocation or publication under the same caller. Every reconstruction and exact
+division iteration has charged strict descent, checked scalar arithmetic and
+cancellation. Final receipt callbacks cannot publish success after cancellation.
+No approximate reconstruction, multivariate factor lifting or new solver is used.
+
+The finite-field helper owns only invocation-local coefficient and remainder
+buffers. Residues lie in 0...65536: their products are at most 2^32, sums at most
+131072, and base-2^32 canonical-word reduction has a partial numerator below
+2^49. All arithmetic fits UInt64 exactly. Fermat inversion uses exponent 65535;
+each exponent bit, canonical numerator/denominator word, modular coefficient
+operation and Euclidean descent shares the composing work/cancellation ledger.
+Every coefficient buffer and whole replacement remainder buffer is admitted
+before allocation or COW mutation. Cancellation is checked after the final
+admission callback before publishing either certificate outcome. The probe
+introduces no root, tolerance, quota, cache, source substitution or public API.
+
+[IntersectionModularCoprimalityTests](../../../Tests/CADGeometryTests/IntersectionModularCoprimalityTests.swift)
+owns unit/common-factor behavior, exact common content, bad-prime and degree-drop
+refusal with exact fallback, accidental modular factors, canonical multiword
+conversion, independent admission, cancellation and original-ring failure.
+The observed four-role PRS fixture additionally checks exact unit termination,
+restoration of shared nonunit content, and refusal or cancellation at its final
+iteration admission under the unchanged caller allowance.
 
 This is the implementation contract for IF.2.B.C.K/IF.2.B.C.I. Public SSI and CS
 completion remains required; none of the objects below is itself a published

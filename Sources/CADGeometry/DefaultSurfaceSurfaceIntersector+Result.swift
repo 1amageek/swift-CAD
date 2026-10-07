@@ -5,6 +5,8 @@ extension DefaultSurfaceSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions = .init(), tolerance: ModelingTolerance) throws -> SurfaceSurfaceIntersectionResult {
         if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
             options: options, tolerance: tolerance, includeRelations: true) { return native }
+        if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: first, second: second,
+            options: options, tolerance: tolerance, includeRelations: true) { return native }
         let intersections = try intersections(first: first, second: second, options: options, tolerance: tolerance)
         try CurrentTaskCancellationChecker().checkCancellation()
         return .init(intersections: intersections)
@@ -21,6 +23,8 @@ extension DefaultSurfaceSurfaceIntersector {
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
             consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
         if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
+            options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return native }
+        if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: first, second: second,
             options: options, tolerance: tolerance, includeRelations: true, admission: admission) { return native }
         let intersections = try intersections(first: first, second: second, options: options, tolerance: tolerance,
             maximumSpanCount: maximumSpanCount, maximumSubdivisionDepth: maximumSubdivisionDepth,
@@ -43,6 +47,9 @@ extension DefaultSurfaceSurfaceIntersector {
             maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
             consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
         if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
+            firstBox: firstBox, secondBox: secondBox, options: options,
+            tolerance: tolerance, includeRelations: true, admission: admission) { return native }
+        if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: first, second: second,
             firstBox: firstBox, secondBox: secondBox, options: options,
             tolerance: tolerance, includeRelations: true, admission: admission) { return native }
         let intersections = try intersections(first: first, over: firstBox, second: second, over: secondBox,

@@ -10,15 +10,28 @@ package struct NativeSurfaceSurfaceRelationPublisher {
         second: BSplineSurface3D, tolerance: ModelingTolerance,
         decomposition: OriginalRationalIntersectionDecomposition, maximumDepth: Int,
         inheritedParameterDepth: Int = 0, parentRelation: OriginalNativeSurfaceSurfaceRelations? = nil, usage: inout B) throws -> OriginalNativeSurfaceSurfaceRelations {
+        try publish(first: first, second: second, tolerance: tolerance, coverage: .single(decomposition),
+            maximumDepth: maximumDepth, inheritedParameterDepth: inheritedParameterDepth,
+            parentRelation: parentRelation, usage: &usage)
+    }
+
+    package static func publish<B: RationalAlgebraAdmitting>(first: BSplineSurface3D,
+        second: BSplineSurface3D, tolerance: ModelingTolerance,
+        coverage: NativeSurfaceSurfaceCoverage, maximumDepth: Int,
+        inheritedParameterDepth: Int = 0, parentRelation: OriginalNativeSurfaceSurfaceRelations? = nil,
+        sourceMapProof: NativeSurfaceSurfaceChartInjectionProof? = nil, usage: inout B) throws -> OriginalNativeSurfaceSurfaceRelations {
         try intersectionAlgebraStep(&usage)
-        guard case .parameterCells(let strata, _, _) = decomposition.coverage else {
+        if let sourceMapProof {
+            guard case .common(let common) = coverage else { throw rationalAlgebraFailure("Source injection evidence requires genuine common coverage.") }
+            try sourceMapProof.validate(charts: common.charts, usage: &usage)
+        }
+        guard let partition = coverage.partition else {
             try retainOwner(usage: &usage)
             try CurrentTaskCancellationChecker().checkCancellation()
             return try .init(first: first, second: second, tolerance: tolerance,
-                decomposition: decomposition, graph: nil, conditions: [], images: [], inheritedParameterDepth: inheritedParameterDepth,
-                parentRelation: parentRelation, usage: &usage)
+                coverage: coverage, graph: nil, conditions: [], images: [], inheritedParameterDepth: inheritedParameterDepth,
+                parentRelation: parentRelation, sourceMapProof: sourceMapProof, usage: &usage)
         }
-        let partition = strata.partition
         try RationalAlgebraStorage.retain(partition.solutionCells.count, of: OriginalIntersectionCellCondition.self, usage: &usage)
         var conditions: [OriginalIntersectionCellCondition] = []; conditions.reserveCapacity(partition.solutionCells.count)
         for index in partition.solutionCells {
@@ -28,10 +41,18 @@ package struct NativeSurfaceSurfaceRelationPublisher {
         var images = Array(repeating: [OriginalNativeSurfaceSurfaceRelations.ImageStratum](), count: conditions.count)
         let graph: OriginalRationalIntersectionCells?
         let graphIdeal: ExactIntersectionIdeal?
-        if partition.solutionCells.contains(where: { partition.cells[$0].dimension > 0 }) {
-            let prepared = try prepareGraph(decomposition: decomposition, conditions: conditions,
-                maximumDepth: maximumDepth, usage: &usage)
-            graph = prepared.partition; graphIdeal = prepared.ideal
+        let graphGuardedEquations: [OriginalGuardedIntersectionEquations]
+        if sourceMapProof == nil && partition.solutionCells.contains(where: { partition.cells[$0].dimension > 0 }) {
+            switch coverage {
+            case .single(let decomposition):
+                let prepared = try prepareGraph(decomposition: decomposition, conditions: conditions,
+                    maximumDepth: maximumDepth, usage: &usage)
+                graph = prepared.partition; graphIdeal = prepared.ideal; graphGuardedEquations = []
+            case .common(let common):
+                let prepared = try NativeSurfaceSurfaceCommonGraph.prepare(coverage: common, conditions: conditions,
+                    maximumDepth: maximumDepth, usage: &usage)
+                graph = prepared.partition; graphIdeal = prepared.ideal; graphGuardedEquations = prepared.guardedEquations
+            }
             guard let graph else { throw rationalAlgebraFailure("Original SSI graph coverage was not retained.") }
             try RationalAlgebraStorage.retain(graph.solutionCells.count, of: Int.self, usage: &usage)
             try RationalAlgebraStorage.retain(conditions.count, of: Int.self, usage: &usage)
@@ -94,12 +115,15 @@ package struct NativeSurfaceSurfaceRelationPublisher {
                     imageDimension: imageDimension, fiberDimension: cell.dimension - imageDimension, sample: sample))
             }
         } else {
-            graph = nil; graphIdeal = nil
+            graph = nil; graphIdeal = nil; graphGuardedEquations = []
             for ordinal in conditions.indices {
                 let cell = partition.cells[conditions[ordinal].cellIndex]
+                if sourceMapProof != nil, cell.dimension > 2 {
+                    throw rationalAlgebraFailure("An injective original surface chart cannot publish an image above dimension two.")
+                }
                 try RationalAlgebraStorage.retain(7, of: OriginalAlgebraicCoordinate.self, usage: &usage)
                 var sample: [OriginalAlgebraicCoordinate] = []; sample.reserveCapacity(7)
-                let source = decomposition.system.firstSurfaceSource
+                let source = coverage.firstLaw(cellIndex: conditions[ordinal].cellIndex)
                 let weight = try value(source.homogeneous[3], cell: cell, maximumDepth: maximumDepth, usage: &usage)
                 for axis in 0..<3 {
                     let position = try value(source.homogeneous[axis], cell: cell, maximumDepth: maximumDepth, usage: &usage)
@@ -113,8 +137,8 @@ package struct NativeSurfaceSurfaceRelationPublisher {
                 }
                 try RationalAlgebraStorage.retain(1, of: OriginalNativeSurfaceSurfaceRelations.ImageStratum.self, usage: &usage)
                 images[ordinal].reserveCapacity(1)
-                images[ordinal].append(.init(ordinal: conditions[ordinal].cellIndex, parameterDimension: 0,
-                    imageDimension: 0, fiberDimension: 0, sample: sample))
+                images[ordinal].append(.init(ordinal: conditions[ordinal].cellIndex, parameterDimension: cell.dimension,
+                    imageDimension: cell.dimension, fiberDimension: 0, sample: sample))
             }
         }
         for ordinal in conditions.indices {
@@ -123,8 +147,8 @@ package struct NativeSurfaceSurfaceRelationPublisher {
         }
         try retainOwner(usage: &usage)
         let result = try OriginalNativeSurfaceSurfaceRelations(first: first, second: second,
-            tolerance: tolerance, decomposition: decomposition, graph: graph, graphIdeal: graphIdeal, conditions: conditions, images: images, inheritedParameterDepth: inheritedParameterDepth,
-            parentRelation: parentRelation, usage: &usage)
+            tolerance: tolerance, coverage: coverage, graph: graph, graphIdeal: graphIdeal, graphGuardedEquations: graphGuardedEquations, conditions: conditions, images: images, inheritedParameterDepth: inheritedParameterDepth,
+            parentRelation: parentRelation, sourceMapProof: sourceMapProof, usage: &usage)
         try CurrentTaskCancellationChecker().checkCancellation()
         return result
     }
@@ -196,9 +220,11 @@ package struct NativeSurfaceSurfaceRelationPublisher {
     private static func retainOwner<B: RationalAlgebraAdmitting>(usage: inout B) throws {
         try RationalAlgebraStorage.retainBytes(MemoryLayout<OriginalNativeSurfaceSurfaceRelations>.stride
             + 2 * MemoryLayout<BSplineSurface3D>.stride + MemoryLayout<ModelingTolerance>.stride
-            + MemoryLayout<OriginalRationalIntersectionDecomposition>.stride
+            + MemoryLayout<NativeSurfaceSurfaceCoverage>.stride
             + MemoryLayout<OriginalRationalIntersectionCells?>.stride + MemoryLayout<ExactIntersectionIdeal?>.stride + 10 * MemoryLayout<[Int]>.stride
+            + MemoryLayout<[OriginalGuardedIntersectionEquations]>.stride
             + 2 * MemoryLayout<UInt>.stride + MemoryLayout<Int>.stride
-            + MemoryLayout<OriginalNativeSurfaceSurfaceRelations?>.stride, usage: &usage)
+            + MemoryLayout<OriginalNativeSurfaceSurfaceRelations?>.stride
+            + MemoryLayout<NativeSurfaceSurfaceChartInjectionProof?>.stride, usage: &usage)
     }
 }

@@ -5,11 +5,13 @@ public final class OriginalNativeSurfaceSurfacePoints: Sendable {
     public let firstSurface: BSplineSurface3D
     public let secondSurface: BSplineSurface3D
     public let certificationTolerance: ModelingTolerance
-    public var nativeDomains: [OriginalRationalParameterDomain] { decomposition.nativeDomains }
-    public var requestedDomains: [OriginalRationalParameterDomain] { decomposition.requestedDomains }
-    public var effectiveDomains: [OriginalRationalParameterDomain]? { decomposition.effectiveDomains }
+    public var sourceChartCount: Int { coverage.sourceChartCount }
+    public func sourceChart(at ordinal: Int) throws -> OriginalNativeSurfaceSurfaceChart { try coverage.sourceChart(at: ordinal) }
+    public var nativeDomains: [OriginalRationalParameterDomain] { coverage.nativeDomains }
+    public var requestedDomains: [OriginalRationalParameterDomain] { coverage.requestedDomains }
+    public var effectiveDomains: [OriginalRationalParameterDomain]? { coverage.effectiveDomains }
     public var count: Int { cellIndices.count }
-    package let decomposition: OriginalRationalIntersectionDecomposition
+    package let coverage: NativeSurfaceSurfaceCoverage
     package let cellIndices: [Int]
     private let parameterIsolations: [OriginalSingularFieldValueIsolation]
     let parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]
@@ -19,9 +21,23 @@ public final class OriginalNativeSurfaceSurfacePoints: Sendable {
         cellIndices: [Int], parameterIsolations: [OriginalSingularFieldValueIsolation],
         parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]) {
         firstSurface = first; secondSurface = second; certificationTolerance = tolerance
-        self.decomposition = decomposition; self.cellIndices = cellIndices
+        self.coverage = .single(decomposition); self.cellIndices = cellIndices
         self.parameterIsolations = parameterIsolations
         self.parameterLocalizations = parameterLocalizations
+    }
+
+    init(first: BSplineSurface3D, second: BSplineSurface3D,
+        tolerance: ModelingTolerance, coverage: NativeSurfaceSurfaceCoverage,
+        cellIndices: [Int], parameterIsolations: [OriginalSingularFieldValueIsolation],
+        parameterLocalizations: [NativeCurveSurfaceScalarLocalization?]) {
+        firstSurface = first; secondSurface = second; certificationTolerance = tolerance
+        self.coverage = coverage; self.cellIndices = cellIndices
+        self.parameterIsolations = parameterIsolations; self.parameterLocalizations = parameterLocalizations
+    }
+
+    public func sourceChartIndex(for point: OriginalNativeSurfaceSurfacePoint) throws -> Int {
+        guard owns(point) else { throw GeometryConversionError.invalidInput("Native chart access requires its owning point receipt.") }
+        return coverage.chartIndex(cellIndex: cellIndices[point.ordinal])
     }
 
     public func point(at index: Int) throws -> OriginalNativeSurfaceSurfacePoint {
@@ -75,9 +91,9 @@ public final class OriginalNativeSurfaceSurfacePoints: Sendable {
     }
 
     package func cell(at index: Int) throws -> OriginalRationalIntersectionCells.Cell {
-        guard cellIndices.indices.contains(index), case .parameterCells(let strata, _, _) = decomposition.coverage else {
+        guard cellIndices.indices.contains(index), let partition = coverage.partition else {
             throw GeometryConversionError.invalidInput("Native point is not owned by this coverage receipt.")
         }
-        return strata.partition.cells[cellIndices[index]]
+        return partition.cells[cellIndices[index]]
     }
 }
