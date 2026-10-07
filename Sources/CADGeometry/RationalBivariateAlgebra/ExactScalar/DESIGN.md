@@ -316,3 +316,38 @@ Current snapshot evidence is recorded once in
 It covers isolated Native tests, Address Sanitizer and the combined L0/L1 proof
 on normal and Embedded WASM. Higher consumers and main integration remain outside
 this task; no production package or target was introduced.
+
+### Typed payload admission repair (R3)
+
+This repair owns typed storage pre-admission in monomial construction, axis
+exchange, restricted polynomial term temporaries, algebraic fiber coefficient
+maps and their division COW, ordered degree buffers, Sturm chains, root/pending
+slots and pair fiber term reconstruction. These are the same payload-byte
+contract, not a new allocation policy. Raw UInt32 limb admissions retain their
+existing meaning and counters. Mathematical algorithms, work policy, original
+input meaning, proof depth and failure semantics remain unchanged.
+
+| Materialized payload | Native size authority |
+|---|---|
+| Bivariate terms | (ExactBivariatePolynomial.Power, ExactRationalCoefficient) |
+| Fiber coefficient map / division COW | (Int, ExactAlgebraicFieldElement) |
+| Ordered degrees | Int |
+| Sturm chain | ExactAlgebraicFiberPolynomial |
+| Fiber roots and pending cells | Root and Pending respectively |
+
+RationalAlgebraStorage.retain applies the shared checked sizing rule before
+materialization or the first mutation requiring COW. Reused division coefficients
+with no degree-reducing mutation do not create a charged copy. Constant Sturm
+chains also admit their one slot. Endpoint iteration uses a two-element range
+instead of an unadmitted temporary array. No new production protocol or state
+owner is required.
+
+The isolated verification targets enable standard compiler testability solely
+to execute internal fiber paths from the same portable fixture. Production
+visibility is unchanged. A rejecting word gate refutes the known public
+monomial undercharge before repair. Direct slot admission tests and exact fiber
+identities cover the changed internal paths; bounded-ledger success/failure
+fixtures preserve operands and spent counters. Normal and Embedded WASM execute
+the same assertions. The completed stable review and scoped cumulative L0/L1 verification are
+recorded in the existing repair verification owner. The R3 obligations above
+are closed for the verified snapshot; upper consumers remain outside scope.

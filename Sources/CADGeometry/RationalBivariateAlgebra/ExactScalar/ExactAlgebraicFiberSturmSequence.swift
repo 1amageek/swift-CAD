@@ -11,14 +11,17 @@ struct ExactAlgebraicFiberSturmSequence: Sendable {
         let division = try polynomial.divided(by: repeated, maximumDepth: maximumDepth, usage: &usage)
         guard division.remainder.isZero else { throw exactScalarBackendFailure("Exact algebraic fiber GCD does not divide its source.") }
         source = division.quotient
-        if source.degree == 0 { chain = [source]; return }
-        try usage.retainExactStorage(2)
+        if source.degree == 0 {
+            try RationalAlgebraStorage.retain(1, of: ExactAlgebraicFiberPolynomial.self, usage: &usage)
+            chain = [source]; return
+        }
+        try RationalAlgebraStorage.retain(2, of: ExactAlgebraicFiberPolynomial.self, usage: &usage)
         var values = [source, try source.differentiated(usage: &usage)]
         while let last = values.last, !last.isZero {
             let remainder = try values[values.count - 2].divided(by: last,
                 maximumDepth: maximumDepth, usage: &usage).remainder
             if remainder.isZero { break }
-            try usage.retainExactStorage(1); values.append(try remainder.negated(usage: &usage))
+            try RationalAlgebraStorage.retain(1, of: ExactAlgebraicFiberPolynomial.self, usage: &usage); values.append(try remainder.negated(usage: &usage))
         }
         chain = values
     }

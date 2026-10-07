@@ -38,13 +38,17 @@ public enum L0PayloadFixtures {
         check(try exactScalarPayloadBytes(count: 1,
             of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self) == stride)
         let required = (stride + MemoryLayout<UInt32>.stride - 1) / MemoryLayout<UInt32>.stride
-        for reverse in [false, true] {
+        for operation in 0..<4 {
             var rejected = WordGate(limit: required - 1)
             do {
-                _ = try (reverse ? one : x).quotientAndRemainder(dividingBy: reverse ? x : one, usage: &rejected)
+                if operation == 0 { _ = try x.quotientAndRemainder(dividingBy: one, usage: &rejected) }
+                else if operation == 1 { _ = try one.quotientAndRemainder(dividingBy: x, usage: &rejected) }
+                else if operation == 2 { _ = try ExactBivariatePolynomial.monomial(u: 1, v: 0, coefficient: .one, usage: &rejected) }
+                else { _ = try x.exchangedAxes(usage: &rejected) }
                 preconditionFailure("Insufficient monomial payload storage published success")
             } catch ExactScalarFailure.resourceLimit(.storage) {
-                precondition(rejected.words == 0 && rejected.work > 0)
+                precondition(rejected.words == 0)
+                if operation != 3 { precondition(rejected.work > 0) }
             }
         }
         let division = try x.quotientAndRemainder(dividingBy: one, usage: &preparation)

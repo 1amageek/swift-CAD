@@ -4,7 +4,8 @@
 
 Verified on 2026-10-07 in `codex/exact-polynomial-l1`, in
 `/private/tmp/cad-exact-polynomial-l1-20261007`, following redesign commit
-`a6880e6d`. This record owns the current R1/R2 repair evidence for both levels.
+`a6880e6d` and the R1/R2 repair `8c3adf0a`. This record owns R1/R2/R3
+repair evidence for both levels. R3 execution supersedes the earlier snapshot.
 The earlier VERIFICATION.md files remain historical evidence in `9c4a203e`.
 Current [L0 hashes](../L0ScalarVerification/SOURCE-SHA256.txt) and
 [L1 hashes](SOURCE-SHA256.txt) identify the executed source snapshot.
@@ -44,9 +45,9 @@ avoids a second temporary; each executed branch creates one admitted monomial.
 
 | Configuration | Actual result |
 |---|---|
-| Native L0 debug | 8 tests passed |
+| Native L0 debug | 9 tests passed |
 | Native L1 debug | 8 tests passed |
-| Native L0 Address Sanitizer | Same 8 tests passed; no sanitizer errors |
+| Native L0 Address Sanitizer | Same 9 tests passed; no sanitizer errors |
 | Native L1 Address Sanitizer | Same 8 tests passed; no sanitizer errors |
 | Normal WASM debug | Combined L0/L1 proof linked and executed, exit 0 |
 | Embedded WASM debug | Same combined proof linked and executed, exit 0 |
@@ -61,17 +62,59 @@ ASAN/cross-build guards. Incremental build paths reused existing caches.
 Embedded uses required WMO and the matching SDK's libswiftUnicodeDataTables.a
 for fixture String comparisons. The standard-library archive is not a new package.
 
-Both WASM executions printed all seven lines:
+Both WASM executions printed all eight lines:
 
 ```text
 PASS: rational source bits and field operations
 PASS: retained algebraic source, order and lifetime
 PASS: independent limits, explicit failures and cancellation
 PASS: typed payload admission and cubic-root sign resource boundaries
+PASS: typed monomial and fiber storage, exact roots and retained identities
 PASS: L1 zero-product owner, depth, resources and cancellation
 PASS: L1 division, multivariate GCD, square-free decomposition and resultant
 PASS: L1 primitives, retained coefficients, lifetime and resource failures
 ```
+
+## Remaining Payload Repair (R3)
+
+The public monomial counterexample was reproduced with four admitted bytes for
+Native's 40-byte term. The focused red then reported two failures: monomial
+published success, and axis exchange admitted one word before later failing.
+The repaired Native test rejects both before term materialization with zero
+storage spent. The same public rejection checks execute on both WASM targets.
+
+| Changed payload | Actual pre-admission and executed evidence |
+|---|---|
+| Monomial, exchanged and restricted terms | Typed key/coefficient tuple; public insufficiency rejection, exact axis/restriction values and cumulative failure |
+| Fiber coefficient maps | Typed Int/field-element tuple; construction, negation and differentiation identities; direct first-slot rejection |
+| Fiber division | Typed retained-input COW map plus generated quotient/new remainder entries; first-COW rejection and quotient identity |
+| Ordered degrees | Typed Int buffer; first-buffer rejection in differentiation |
+| Sturm chains | Typed polynomial slots, including constant chain; exact GCD/count and final constant-slot request |
+| Root and pending cells | Separate typed Root/Pending slots; three roots of v cubed minus v on [-2,2] and [-1,1], unique-root counts, endpoint and subdivision branches |
+| Pair fiber reconstruction | Typed monomial temporary; first-slot rejection, original numerator equality and exact zero sign at the retained pair |
+
+Internal fiber execution uses the certified positive projection root of u squared
+minus two with the rational fiber v cubed minus v. Each affected operation is
+executed with sufficient storage, one word below its observed cumulative storage,
+and again with the original input and exactly the successful admission. Failures
+retain counters and original operands; this is payload admission, not an RSS
+measurement. Existing arithmetic algorithms, work/depth limits and caller
+ownership are unchanged. The finite constant Sturm chain is charged; the endpoint
+loop avoids a temporary two-element Array. Division admits COW only when its
+original degree permits a mutation. Unchanged UInt32 magnitude/rational limb
+calls and ledger forwarding remain raw word admission by design.
+
+The verification-only L0 target enables compiler testability in both manifests
+so the same internal fixture executes on Native and both WASM SDKs without
+publishing internal production types. No production manifest was changed.
+Following the full nine-test Native/ASAN runs, the portable public payload
+assertion was extended to monomial/axis rejection and its affected Native/ASAN
+test alone was rerun successfully; unaffected eight-test evidence was reused.
+L1's eight Native/ASAN tests ran against the repaired L0. One stable source-path
+review checked each typed materialization, conditional COW, failure propagation
+and the inventory of remaining raw word calls. No unresolved R3 finding remains.
+The earlier zero-product timing evidence is retained: its timed multiplication
+path is unchanged, so no duplicate benchmark was performed.
 
 ## Native Scaling Measurement
 
@@ -120,7 +163,7 @@ bash scripts/swift-test-timeout.sh 120 -- "$SWIFT" build --package-path Tests/L1
 bash scripts/swift-test-timeout.sh 60 -- /usr/local/bin/node Tests/L1PolynomialVerification/Scripts/RunWASI.mjs .build/l1-embedded/out/Products/Debug-webassembly-wasm32/L1Proof.wasm
 ```
 
-Raw logs remain in .build/l1-evidence. Their hashes identify the local evidence:
+Earlier R1/R2 raw logs remain in .build/l1-evidence with these historical hashes:
 
 ```text
 5eeca68a2488d1c5e768fd2b948c1f5859c34bae98a0011a2d337e4720e409d3  l0-storage-red.log
@@ -134,4 +177,20 @@ d2a6e7d42118b618a8b5131ffeac007af449653856a673d1dbe0ce72b078edb7  embedded-fixed
 aeea1920bbc54b9b866c9216e05b43517876493b0b75b155302f7d3d8367250d  embedded-fixed-runtime.log
 b8fc89d39298d92a2d190e6fb49acdab99839f2fa12901c6ee313e34a4714f87  redesign-before.log
 5e28f9079d2f74efe707080f5f7815734254ed95335f28b78933caebc652b94a  redesign-after.log
+```
+
+Current R3 execution logs in the same local evidence directory:
+
+```text
+b5bb591e58c0278228310f787703356eb2ec60c3b2ce80205fdc9a8968b7af0a  l0-r3-red.log
+a31113f84ab001877eefe04cda8ef2ec3d5eeab405e3f0980a110c3b49b8e0ac  l0-r3-native.log
+1dce20e6562806ef301b68ceb8e2588b95947cc27a71aa8a6fb697f05608dcd8  l0-r3-payload-native.log
+8761a99921ce599ab4dddd4bf47fe8bc1d1c46ebde1d8e7db3f307e4d18b21c7  l0-r3-asan.log
+a8fd93c9ff471ad7905a0e3073f5da0aaa149bc8362c90b55aa3c399f205fc9e  l0-r3-payload-asan.log
+55893f17a9a900ca701794b93bc9d7db704ceaffd44044b6430381f1f6402fb2  l1-r3-native.log
+813a9ba97debe9253962b61617143286ac3d3de1b613ab6046a844093ff098c9  l1-r3-asan.log
+b5eabd22e1bcc3a24b8b767923aab388c6cfd113fe6c58167d9ea72fdfe9bfb3  wasm-r3-build.log
+8f2d4c67de2599633404e8dd03da0194b0a8a002b6c5a6ab1313bef1beab2a37  wasm-r3-runtime.log
+4fffe7c3dbb48062bcae3c53fdc0be54f111aa3dfbe72252998e01bd594f4b18  embedded-r3-build.log
+2b113df078d8e5405ec5b1f223ffa20d4dab127e33020e801aba5e1b0be941b0  embedded-r3-runtime.log
 ```

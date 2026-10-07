@@ -23,16 +23,17 @@ struct ExactAlgebraicFiberRootIsolator {
         }
         let sturm = try ExactAlgebraicFiberSturmSequence(source, maximumDepth: maximumDepth, usage: &usage)
         var roots: [Root] = []
-        for station in [lower, upper] {
+        for endpoint in 0..<2 {
+            let station = endpoint == 0 ? lower : upper
             if try sturm.count(lower: station, upper: station, excludesLower: false, excludesUpper: false,
                 maximumDepth: maximumDepth, usage: &usage) == 1 {
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: Root.self, usage: &usage)
                 roots.append(Root(lower: station, upper: station, excludesLower: false, excludesUpper: false, isolationDepth: source.root.isolation.isolationDepth))
             }
         }
         let count = try sturm.count(lower: lower, upper: upper, excludesLower: true, excludesUpper: true,
             maximumDepth: maximumDepth, usage: &usage)
-        try usage.retainExactStorage(1)
+        try RationalAlgebraStorage.retain(1, of: Pending.self, usage: &usage)
         var pending = [Pending(lower: lower, upper: upper, excludesLower: true,
             excludesUpper: true, count: count, depth: source.root.isolation.isolationDepth)]
         let two = try ExactRationalCoefficient.natural(2, usage: &usage)
@@ -40,7 +41,7 @@ struct ExactAlgebraicFiberRootIsolator {
             try exactScalarTaskCheckpoint(); try usage.visitExactCell(depth: cell.depth)
             if cell.count == 0 { continue }
             if cell.count == 1 {
-                try usage.retainExactStorage(1)
+                try RationalAlgebraStorage.retain(1, of: Root.self, usage: &usage)
                 roots.append(Root(lower: cell.lower, upper: cell.upper,
                     excludesLower: cell.excludesLower, excludesUpper: cell.excludesUpper, isolationDepth: cell.depth)); continue
             }
@@ -53,7 +54,7 @@ struct ExactAlgebraicFiberRootIsolator {
             let right = try sturm.count(lower: middle, upper: cell.upper, excludesLower: true,
                 excludesUpper: cell.excludesUpper, maximumDepth: maximumDepth, usage: &usage)
             guard left + right == cell.count else { throw exactScalarBackendFailure("Exact fiber subdivision lost root coverage.") }
-            try usage.retainExactStorage(2)
+            try RationalAlgebraStorage.retain(2, of: Pending.self, usage: &usage)
             pending.append(Pending(lower: middle, upper: cell.upper, excludesLower: true,
                 excludesUpper: cell.excludesUpper, count: right, depth: cell.depth + 1))
             pending.append(Pending(lower: cell.lower, upper: middle, excludesLower: cell.excludesLower,

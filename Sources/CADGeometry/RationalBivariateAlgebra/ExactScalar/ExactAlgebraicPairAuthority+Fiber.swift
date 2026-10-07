@@ -6,7 +6,8 @@ extension ExactAlgebraicPairAuthority {
             for (otherDegree, other) in fiber.coefficients where otherDegree != degree {
                 term = try term.multiplied(by: other.denominator, usage: &usage)
             }
-            try usage.retainExactStorage(1)
+            try RationalAlgebraStorage.retain(1,
+                of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
             let power = try ExactBivariatePolynomial([.init(u: 0, v: degree): .one])
             result = try result.adding(term.multiplied(by: power, usage: &usage), usage: &usage)
         }

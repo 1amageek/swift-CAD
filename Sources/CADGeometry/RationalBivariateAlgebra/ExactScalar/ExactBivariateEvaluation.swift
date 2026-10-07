@@ -18,7 +18,10 @@ public extension ExactBivariatePolynomial {
             let scale = try Self.power(station, exponent: alongU ? term.key.u : term.key.v, usage: &usage)
             let value = try term.value.multiplied(by: scale, usage: &usage)
             let power = try Power(u: alongU ? term.key.v : term.key.u, v: 0)
-            if !value.isZero { result = try result.adding(Self([power: value]), usage: &usage) }
+            if !value.isZero {
+                try RationalAlgebraStorage.retain(1, of: (Power, ExactRationalCoefficient).self, usage: &usage)
+                result = try result.adding(Self([power: value]), usage: &usage)
+            }
         }
         return result
     }

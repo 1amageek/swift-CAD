@@ -12,7 +12,7 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
             let polynomial = try source.coefficient(ofV: degree, usage: &usage)
             let value = try ExactAlgebraicFieldElement(polynomial: polynomial, usage: &usage)
             if case .zero = try value.sign(at: root, maximumDepth: maximumDepth, usage: &usage) { continue }
-            try usage.retainExactStorage(1); values[degree] = value
+            try RationalAlgebraStorage.retain(1, of: (Int, ExactAlgebraicFieldElement).self, usage: &usage); values[degree] = value
         } }
         coefficients = values
     }
@@ -25,7 +25,7 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
             guard let coefficient = coefficients[degree] else { throw exactScalarBackendFailure("Missing original fiber coefficient.") }
             let scalar = try ExactBivariatePolynomial.constant(.natural(degree, usage: &usage), usage: &usage)
             let multiplier = try ExactAlgebraicFieldElement(polynomial: scalar, usage: &usage)
-            try usage.retainExactStorage(1); values[degree - 1] = try coefficient.multiplied(by: multiplier, usage: &usage)
+            try RationalAlgebraStorage.retain(1, of: (Int, ExactAlgebraicFieldElement).self, usage: &usage); values[degree - 1] = try coefficient.multiplied(by: multiplier, usage: &usage)
         }
         return Self(root: root, coefficients: values)
     }
@@ -46,12 +46,16 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
         guard let leading = divisor.coefficients[divisor.degree] else {
             throw exactScalarBackendFailure("Exact algebraic fiber division by zero.")
         }
+        // Admit the input map before the first removal or replacement triggers COW.
+        if degree >= divisor.degree {
+            try RationalAlgebraStorage.retain(coefficients.count, of: (Int, ExactAlgebraicFieldElement).self, usage: &usage)
+        }
         var pending = coefficients, quotient: [Int: ExactAlgebraicFieldElement] = [:]
         while let degree = pending.keys.max(), degree >= divisor.degree {
             guard let value = pending[degree] else { throw exactScalarBackendFailure("Missing source fiber leading coefficient.") }
             let shift = degree - divisor.degree
             let ratio = try value.divided(by: leading, at: root, maximumDepth: maximumDepth, usage: &usage)
-            try usage.retainExactStorage(1); quotient[shift] = ratio
+            try RationalAlgebraStorage.retain(1, of: (Int, ExactAlgebraicFieldElement).self, usage: &usage); quotient[shift] = ratio
             for index in try divisor.orderedDegrees(usage: &usage) {
                 guard let coefficient = divisor.coefficients[index] else { throw exactScalarBackendFailure("Missing exact fiber divisor coefficient.") }
                 let target = try exactScalarCount(index, shift)
@@ -61,7 +65,7 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
                 if case .zero = try next.sign(at: root, maximumDepth: maximumDepth, usage: &usage) {
                     pending.removeValue(forKey: target)
                 } else {
-                    if pending[target] == nil { try usage.retainExactStorage(1) }; pending[target] = next
+                    if pending[target] == nil { try RationalAlgebraStorage.retain(1, of: (Int, ExactAlgebraicFieldElement).self, usage: &usage) }; pending[target] = next
                 }
             }
             guard (pending.keys.max() ?? -1) < degree else {
@@ -71,7 +75,7 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
         return (Self(root: root, coefficients: quotient), Self(root: root, coefficients: pending))
     }
     func negated<B: RationalAlgebraAdmitting>(usage: inout B) throws -> Self {
-        try usage.retainExactStorage(coefficients.count)
+        try RationalAlgebraStorage.retain(coefficients.count, of: (Int, ExactAlgebraicFieldElement).self, usage: &usage)
         var values: [Int: ExactAlgebraicFieldElement] = [:]
         for (degree, value) in coefficients { values[degree] = try value.negated(usage: &usage) }
         return Self(root: root, coefficients: values)
@@ -89,7 +93,7 @@ struct ExactAlgebraicFiberPolynomial: Sendable {
     private func orderedDegrees<B: RationalAlgebraAdmitting>(usage: inout B) throws -> [Int] {
         let count = coefficients.count
         try usage.consumeExactWork(try exactScalarCount(count, max(1, count), multiply: true))
-        try usage.retainExactStorage(count)
+        try RationalAlgebraStorage.retain(count, of: Int.self, usage: &usage)
         return coefficients.keys.sorted()
     }
     private func requireSameRootAuthority<B: RationalAlgebraAdmitting>(_ other: Self,
