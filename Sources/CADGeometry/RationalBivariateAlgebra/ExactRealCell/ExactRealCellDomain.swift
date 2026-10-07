@@ -35,12 +35,12 @@ public struct ExactRealCellDomain<Base: ExactScalarArithmetic & ExactScalarOrder
             for law in laws { _ = try polynomials.isZero(law, using: &a); try ExactCellAccess.admit(law.depth, &a) }
             for domain in domains {
                 try ExactCellAccess.admit(domain.depth, &a)
-                if case .finite(let x) = domain.lower { _ = try context.field.sign(of: x, using: &a) }
-                if case .finite(let x) = domain.upper { _ = try context.field.sign(of: x, using: &a) }
+                if case .finite(let x) = domain.lower { _ = try context.field.sign(of: context.field.importing(x, using:&a), using: &a) }
+                if case .finite(let x) = domain.upper { _ = try context.field.sign(of: context.field.importing(x, using:&a), using: &a) }
                 if case .positiveInfinity = domain.lower { throw ExactRealCellFailure.invalidDomain }
                 if case .negativeInfinity = domain.upper { throw ExactRealCellFailure.invalidDomain }
                 if case .finite(let l) = domain.lower, case .finite(let h) = domain.upper {
-                    guard try context.field.compare(l, h, using: &a) != .greater else { throw ExactRealCellFailure.invalidDomain }
+                    guard try context.field.compare(context.field.importing(l,using:&a), context.field.importing(h,using:&a), using: &a) != .greater else { throw ExactRealCellFailure.invalidDomain }
                 }
             }
             try ExactCellAccess.owner((ExactRealCellContext<Base>, [Polynomial], [ExactRealRootInterval<Field.Value>], ExactScalarDepth).self, &a)

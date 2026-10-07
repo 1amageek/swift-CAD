@@ -26,7 +26,7 @@ extension ExactRealCellDomain {
         return result
     }
     func insert(_ law: Polynomial, into result: inout [Polynomial], _ a: inout ExactCellBorrowedAdmission) throws {
-        guard let leading = law.terms.first else { return }
+        guard !law.terms.isEmpty else { return }
         var nonconstant = false
         for term in law.terms {
             try a.consumeWork(term.powers.count)
@@ -34,7 +34,6 @@ extension ExactRealCellDomain {
         }
         if !nonconstant { return }
         let normalized = law
-        _ = leading
         for existing in result { if try polynomials.equals(existing, normalized, using: &a) { return } }
         try ExactCellAccess.storage(1, Polynomial.self, &a); result.append(normalized)
     }
@@ -98,7 +97,7 @@ extension ExactRealCellDomain {
             try ExactCellAccess.storage(2, ExactRealRootBound<Field.Value>.self, &a)
             for bound in [domain.lower, domain.upper] {
                 if case .finite(let value) = bound {
-                    let law = try polynomials.subtracting(polynomials.variable(axis, using: &a), polynomials.constant(value, using: &a), using: &a)
+                    let law = try polynomials.subtracting(polynomials.variable(axis, using: &a), polynomials.constant(context.field.importing(value,using:&a), using: &a), using: &a)
                     try insert(law, into: &pending, &a)
                 }
             }
@@ -108,6 +107,7 @@ extension ExactRealCellDomain {
         for axis in (0..<source.variableCount).reversed() {
             var laws: [Polynomial] = []
             for law in pending { try insert(law, into: &laws, &a) }
+            let cutLawCount = laws.count
             var witnesses: [ExactRealCellProjectionWitness<Base>] = []
             var offset = 0
             while offset < laws.count {
@@ -159,7 +159,7 @@ extension ExactRealCellDomain {
                     }
                 } }
             } }
-            descending.append(.init(axis:axis,laws:laws,coefficients:coefficients,witnesses:witnesses)); pending = lower
+            descending.append(.init(axis:axis,cutLawCount:cutLawCount,laws:laws,coefficients:coefficients,witnesses:witnesses)); pending = lower
         }
         try ExactCellAccess.storage(descending.count, ExactRealCellProjectionLevel<Base>.self, &a)
         return Array(descending.reversed())

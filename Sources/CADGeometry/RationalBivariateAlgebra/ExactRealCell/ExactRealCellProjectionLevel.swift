@@ -7,6 +7,7 @@ import L2
 struct ExactRealCellProjectionLevel<Base: ExactScalarArithmetic & ExactScalarOrdering & ExactScalarImporting>: Sendable where Base.Source == Base.Value {
     typealias Polynomial = ExactPolynomial<ExactAlgebraicScalarDomain<Base>>
     let axis: Int
+    let cutLawCount: Int
     let laws: [Polynomial]
     let coefficients: [[Polynomial]]
     let witnesses: [ExactRealCellProjectionWitness<Base>]

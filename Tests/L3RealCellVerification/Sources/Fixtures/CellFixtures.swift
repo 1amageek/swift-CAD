@@ -48,7 +48,12 @@ public enum CellFixtures {
    if index == 0 { try require(zeros.count == 1 && zeros[0].dimension == 0) }
    else { try require(zeros.contains { $0.dimension == 1 }) }
   }
-  _ = f
+  let shifted=try p.subtracting(x,p.constant(f.integer(1,using:&a),using:&a),using:&a)
+  let mixed=try p.multiplying(x,p.adding(p.multiplying(shifted,shifted,using:&a),yy,using:&a),using:&a)
+  let source=try d.bind(polynomials:[mixed],domains:[all,all],using:&a)
+  let mixedCells=try d.decompose(source,limits:.init(maximumStoredCells:400,maximumRootsPerStack:50),using:&a).cells
+  try require(mixedCells.contains { $0.signs == [.zero] && $0.dimension == 0 })
+  try require(mixedCells.contains { $0.signs == [.zero] && $0.dimension == 1 })
  }
  public static func domains() throws {
   var a=try ledger()
@@ -64,6 +69,9 @@ public enum CellFixtures {
   let s=try d.bind(polynomials:[p.zero(using:&a)],domains:[singleton],using:&a)
   let result=try d.decompose(s,limits:.init(maximumStoredCells:20,maximumRootsPerStack:10),using:&a)
   try require(result.cells.count == 1 && result.cells.first!.dimension == 0)
+  let openSingleton=try r.domain(lower:.finite(zero),upper:.finite(zero),includesLower:false,using:&a)
+  let os=try d.bind(polynomials:[],domains:[openSingleton],using:&a)
+  try require(try d.decompose(os,limits:.init(maximumStoredCells:0,maximumRootsPerStack:0),using:&a).cells.isEmpty)
   let empty=try r.emptyDomain(using:&a)
   let es=try d.bind(polynomials:[],domains:[empty],using:&a)
   let er=try d.decompose(es,limits:.init(maximumStoredCells:0,maximumRootsPerStack:0),using:&a)

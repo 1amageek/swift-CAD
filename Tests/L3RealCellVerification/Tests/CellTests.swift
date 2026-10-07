@@ -21,6 +21,9 @@ import L2
   let g = try p.adding(p.multiplying(y,y,using:&usage),p.constant(f.integer(1,using:&usage),using:&usage),using:&usage)
   let higher = try d.principal(law,g,axis:1,index:1,&usage)
   #expect(try p.isZero(higher,using:&usage))
+  let withLinear=try p.adding(p.multiplying(y,y,using:&usage),y,using:&usage)
+  let nonzeroHigher=try d.principal(law,withLinear,axis:1,index:1,&usage)
+  #expect(try p.equals(nonzeroHigher,p.constant(f.integer(1,using:&usage),using:&usage),using:&usage))
   let levels = try d.projection(s,&usage)
   #expect(levels.count == 2)
   #expect(!levels[0].laws.isEmpty)
@@ -60,4 +63,40 @@ import L3Fixtures
   selected += 1
  }
  #expect(selected == 2)
+}
+@Test(.timeLimit(.minutes(1))) func selectionAndLocation() throws { try QueryFixtures.selectionAndLocation() }
+@Test(.timeLimit(.minutes(1))) func algebraicQueries() throws { try QueryFixtures.algebraicQueries() }
+@Test(.timeLimit(.minutes(1))) func applicationRelations() throws { try QueryFixtures.applicationRelations() }
+@Test(.timeLimit(.minutes(1))) func retainedAndOutside() throws { try QueryFixtures.retainedAndOutside() }
+
+@Test(.timeLimit(.minutes(1))) func resources() throws { try FailureFixtures.resources() }
+@Test(.timeLimit(.minutes(1))) func escapedOwnership() throws { try FailureFixtures.escapedOwnership() }
+
+@Test(.timeLimit(.minutes(1))) func originalAlgebraicCoefficients() throws { try OriginalCoefficientFixtures.run() }
+
+@Test(.timeLimit(.minutes(1))) func nullifiedQuery() throws { try QueryFixtures.nullifiedQuery() }
+@Test(.timeLimit(.minutes(1))) func checkedProjectionSizes() throws {
+ #expect(throws:ExactRealCellFailure.self) { _ = try ExactCellAccess.multiply(Int.max,2) }
+ #expect(throws:ExactRealCellFailure.self) { _ = try ExactCellAccess.add(Int.max,1) }
+ var a=try CellFixtures.ledger()
+ let (_,d,_)=try CellFixtures.setup(1,&a)
+ do { _ = try ExactCellAccess.run(&a) { try d.determinant([],size:Int.max,&$0) }; Issue.record("Accepted matrix overflow") } catch ExactRealCellFailure.countOverflow { }
+}
+
+@Test(.timeLimit(.minutes(1))) func protocolRequirements() throws { try ProtocolFixtures.run() }
+@Test(.timeLimit(.minutes(1))) func concurrentImmutableReaders() async throws {
+ var a=try CellFixtures.ledger()
+ let (f,d,all)=try CellFixtures.setup(1,&a),p=d.polynomials
+ let source=try d.bind(polynomials:[p.variable(0,using:&a)],domains:[all],using:&a)
+ let partition=try d.decompose(source,limits:.init(maximumStoredCells:10,maximumRootsPerStack:10),using:&a)
+ let predicate=try d.predicate(instructions:[.sign(polynomial:0,relation:.greater)],for:source,using:&a)
+ let point=try d.point(field:f,coordinates:[f.integer(3,using:&a)],using:&a)
+ try await withThrowingTaskGroup(of:Bool.self) { group in
+  for _ in 0..<4 { group.addTask {
+   var caller=try CellFixtures.ledger()
+   let selected=try d.select(partition,matching:predicate,using:&caller)
+   return try d.locate(point,in:partition,limits:.init(maximumRoots:10),using:&caller) == selected.cells.first
+  } }
+  for try await result in group { try CellFixtures.require(result) }
+ }
 }

@@ -3,7 +3,7 @@
 ## Purpose and Scope
 
 Parent: [RationalBivariateAlgebra](../DESIGN.md). Children: none. This is the
-fixed L3 design authority; its ports and receipts below are proposed, not existing
+fixed L3 design authority; its ports and receipts below are implemented as independent
 production declarations. L3 owns a complete sign-invariant cylindrical real-cell
 partition of an exact requested box, selection by a quantifier-free polynomial
 predicate, and exact cell conditions and point location.
@@ -71,20 +71,20 @@ field, root or polynomial implementation is accessed by L3.
 | [SSI publisher](../../NativeSurfaceSurfaceRelations/NativeSurfaceSurfaceRelationPublisher.swift) additionally partitions an XYZ/parameter graph | Parameter-cell dimension cannot replace image/fiber dimension |
 
 Lower implementations and their previously recorded target evidence have been
-reviewed independently. The new preparation/producing/selecting/querying protocol witness paths and
-all C1-C10 behavior are unimplemented. No existing higher engine execution
+reviewed independently. The preparation/producing/selecting/querying protocol witness paths are implemented;
+C1-C10 behavior is tracked by the independent verification package. No existing higher engine execution
 establishes the new L3 projection/lifting implementation. No higher engine is built by this design.
 
 ## Architecture
 
 Arrows inside the component are data flow. Lower arrows denote dependencies.
-Solid green is independently verified lower scope; dashed amber is designed but
-not implemented. Gray is later integration.
+Solid green is independently verified lower scope; blue is the implemented L3
+responsibility boundary. Gray is later integration.
 
 ```mermaid
 flowchart TB
     U["Source consumer: exact laws + box + one caller admission"]
-    subgraph L3["L3: ExactRealCell — designed, not implemented"]
+    subgraph L3["L3: ExactRealCell — independent implementation"]
         S["Source and predicate preparation"]
         P["Full projection and derivative provenance"]
         L["Prefix lifting: sections / sectors"]
@@ -111,16 +111,16 @@ flowchart TB
     B --> T
     Q --> T
     classDef fixed fill:#e7f4e7,stroke:#287a35,stroke-width:2px
-    classDef planned fill:#fff4d6,stroke:#a76b00,stroke-width:2px,stroke-dasharray:5 5
+    classDef implemented fill:#e7f0ff,stroke:#3168a4,stroke-width:2px
     classDef later fill:#eeeeee,stroke:#777,stroke-dasharray:5 5
     class L0,L1,L2 fixed
-    class S,P,L,D,B,Q planned
+    class S,P,L,D,B,Q implemented
     class U,T later
 ```
 
 ### Public Ports
 
-The proposed concrete owner is `ExactRealCellDomain<Base>`. Base conforms to L0
+The concrete owner is `ExactRealCellDomain<Base>`. Base conforms to L0
 arithmetic, ordering and importing with Source == Value. Its coefficient Field
 is the existing `ExactAlgebraicScalarDomain<Base>`. The caller supplies that
 field, including its existing explicit extension ceiling. Source polynomials
@@ -130,7 +130,7 @@ itself contain previously retained real-algebraic coefficients.
 Operations are requirements on small Sendable protocols. Generic admission
 requirements use static dispatch; they are not invoked through `any P`.
 
-| Proposed protocol | Requirements / output |
+| Protocol | Requirements / output |
 |---|---|
 | `ExactRealCellPreparing` | Initialize with field/variable count; recover identical domain from source; expose polynomials; bind laws and box into Source; validate and bind a Boolean program into Predicate |
 | `ExactRealCellProducing` | Decompose Source with explicit limits into Partition |
@@ -140,12 +140,12 @@ requirements use static dispatch; they are not invoked through `any P`.
 Each fallible requirement takes `inout A`, with A: ExactScalarAdmission &
 ~Copyable, and throws `ExactRealCellFailure`. The concrete implementation is
 separate from these protocols. Read-only receipt structs are not protocols
-introduced merely to abstract storage. All names in this section are proposed.
+introduced merely to abstract storage. These ports are implemented with static generic admission dispatch.
 
 ### Required Operation Shapes
 
 All operations below additionally take the same explicit generic inout admission;
-all new types are proposed. Initialization creates one immutable L3 context
+receipt types below are implemented. Initialization creates one immutable L3 context
 retaining its Field and public L1 construction domain. Sources retain that L3
 context. Producing/selecting/querying validate it through their own source binding,
 without reading L1/L2 private contexts.
@@ -166,7 +166,7 @@ without reading L1/L2 private contexts.
 
 ### Public Retained Values
 
-| Proposed receipt | Owner and retained meaning |
+| Receipt | Owner and retained meaning |
 |---|---|
 | `ExactRealCellSource<Base>` | Immutable source owner: Field, identical L1 domain, original laws, variable count/order, exact box and inherited depth |
 | `ExactRealCellPredicate<Base>` | Identical source owner plus validated Boolean sign program |
@@ -177,8 +177,9 @@ without reading L1/L2 private contexts.
 | `ExactRealCellCondition<Base>` | Partition owner, cell ID and complete ancestral section/sector condition with root addresses and sign evidence |
 | `ExactRealCellLimits` | Explicit nonnegative maximumStoredCells and maximumRootsPerStack; no guessed default |
 
-Cell descriptions expose read-only axis, parent ID, section/sector kind,
-parameter-space dimension, source signs, derivative/Thom signs and attained depth.
+Cell handles expose read-only axis, parent ID, section/sector kind,
+parameter-space dimension, source signs, matching projection law/sample sign
+arrays (including the derivative closure) and attained depth.
 Section addresses retain the whole-prefix union-law binding and distinct root
 ordinal; sector addresses retain neighboring section addresses or infinity tags.
 A zero-dimensional full cell's sample is its exact point. A positive-dimensional
@@ -409,7 +410,7 @@ non-escape and ASAN evidence; private L2 forwarding types are not an L3 port.
 
 ## Failure, Concurrency, and Constraints
 
-The proposed ExactRealCellFailure distinguishes invalidSource, invalidDomain,
+ExactRealCellFailure distinguishes invalidSource, invalidDomain,
 invalidVariable, invalidPredicate, incompatibleDomain, invalidCell,
 invalidCoverage, countOverflow, cellLimit, unresolved, and preserved scalar,
 polynomial and root causes. Invalid projection witnesses are invalidCoverage.
@@ -441,8 +442,7 @@ WASM synchronous evidence must not be generalized to untested multithreading.
 
 ## Verification and Change Impact
 
-The planned test owner is Tests/L3RealCellVerification, created only during an
-implementation task. It must compile the actual production L0/L1/L2/L3 source
+The test owner is Tests/L3RealCellVerification. It must compile the actual production L0/L1/L2/L3 source
 inventories through an isolated SwiftPM graph. No higher CAD target is needed.
 Use fixed Swift 6.4.0/matching SDKs, dedicated cached paths, explicit timeouts,
 Native behavior/ASAN and normal/Embedded WASM compile/link/runtime evidence.
@@ -506,3 +506,34 @@ Immutable partition storage retains the full graph without cycles. The cell view
 shares a retained index buffer and creates handles without intermediate arrays.
 Native fixtures cover positive-dimensional nullification, cusp/isolated/repeated
 loci, open/closed/singleton/empty boxes and exact coordinate transport.
+
+### Boundary Laws and Auxiliary Derivative Closure
+
+Each projection level distinguishes its incoming source/projection/boundary laws
+from its retained auxiliary derivative closure. Only the incoming laws cut the
+fiber into sections/sectors. The closure still participates fully in coefficient,
+reductum and PSC projection and supplies exact derivative/Thom signs at the issued
+samples. Original source signs are invariant on every cell; derivative signs on
+sectors describe the sample, not an additional sign-invariance claim. On source
+sections, the full retained pairwise rank conditions certify the Thom behavior.
+
+This distinction avoids introducing roots of derivatives of high-multiplicity
+projection polynomials as unrelated parameter boundaries. The mixed fixture
+previously reached 200M work while isolating a ten-term axis-0 auxiliary union;
+the corrected union contains only the required incoming-law zero sets. Resource
+ceilings, complete source partitioning and all projection rank conditions stay
+unchanged. Branch IDs are issued only after this complete construction.
+
+### Implementation Sprint I3
+
+Selection evaluates only validated source-bound programs over proved original
+cell signs. Location validates the field family even on constant/empty relations,
+reconstructs complete L2 fiber unions at the supplied exact prefix and finds its
+retained branch through signs of x minus the query coordinate. Conditions retain
+the full ancestral branch path and partition owner. All failures and final
+checkpoints are propagated. Ancestor bounds are explicitly imported both during
+validation and before forming projection boundary laws.
+
+The isolated package exercises all four ports through generic protocol requirements.
+[Verification package](../../../../Tests/L3RealCellVerification/DESIGN.md) owns
+Native/sanitizer/portable evidence. Higher CAD consumers remain outside this task.

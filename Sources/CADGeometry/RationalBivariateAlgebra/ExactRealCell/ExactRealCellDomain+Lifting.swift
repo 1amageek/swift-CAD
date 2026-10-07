@@ -17,7 +17,7 @@ extension ExactRealCellDomain: ExactRealCellProducing {
    guard limits.maximumStoredCells > 0 else { throw ExactRealCellFailure.cellLimit }
    let origin = ExactRealCellSample(field:context.field,coordinates:[],depth:a.depth)
    try ExactCellAccess.storage(1,ExactRealCellRecord<Base>.self,&a)
-   var records = [ExactRealCellRecord(sample:origin,parent:-1,branch:0,dimension:0,signs:[],stack:-1)]
+   var records = [ExactRealCellRecord(sample:origin,parent:-1,branch:0,dimension:0,projectionSigns:[],signs:[],stack:-1)]
    var stacks: [ExactRealCellStack<Base>] = []
    try ExactCellAccess.storage(1,Int.self,&a)
    var leaves = [0]
@@ -38,9 +38,9 @@ extension ExactRealCellDomain: ExactRealCellProducing {
       for coefficient in level.coefficients[index] {
        coefficientSigns.append(try field.sign(of:evaluate(coefficient,at:prefix,&a),using:&a))
       }; signs.append(coefficientSigns)
-      if let degree = try p.degree(of:law,in:0,using:&a), degree > 0 {
+      if let degree = try p.degree(of:law,in:0,using:&a), degree > 0, index < level.cutLawCount {
        try ExactCellAccess.storage(1,Int.self,&a); active.append(index)
-       product = try p.multiplying(product,law,using:&a)
+       product=try p.multiplying(product,law,using:&a)
       }
      }
      let union = try rootDomain.bind(product,using:&a)
@@ -100,6 +100,9 @@ extension ExactRealCellDomain: ExactRealCellProducing {
       var coordinates: [Field.Value] = []; coordinates.reserveCapacity(prefix.coordinates.count+1)
       for earlier in prefix.coordinates { coordinates.append(try childField.importing(earlier,using:&a)) }; coordinates.append(value)
       let sample = ExactRealCellSample(field:childField,coordinates:coordinates,depth:a.depth)
+      try ExactCellAccess.storage(level.laws.count,ExactSign.self,&a)
+      var projectionSigns: [ExactSign] = []
+      for law in level.laws { projectionSigns.append(try childField.sign(of:evaluate(law,at:sample,&a),using:&a)) }
       var truth: [ExactSign] = []
       if level.axis+1 == source.variableCount {
        try ExactCellAccess.storage(source.polynomials.count,ExactSign.self,&a)
@@ -107,7 +110,7 @@ extension ExactRealCellDomain: ExactRealCellProducing {
       }
       try ExactCellAccess.storage(1,ExactRealCellRecord<Base>.self,&a); try ExactCellAccess.storage(1,Int.self,&a)
       children[branch]=records.count; next.append(records.count)
-      records.append(.init(sample:sample,parent:parent,branch:branch,dimension:try ExactCellAccess.add(records[parent].dimension,section ? 0:1),signs:truth,stack:-1))
+      records.append(.init(sample:sample,parent:parent,branch:branch,dimension:try ExactCellAccess.add(records[parent].dimension,section ? 0:1),projectionSigns:projectionSigns,signs:truth,stack:-1))
      }
      try ExactCellAccess.storage(1,ExactRealCellStack<Base>.self,&a)
      records[parent].stack=stacks.count
@@ -118,7 +121,7 @@ extension ExactRealCellDomain: ExactRealCellProducing {
     try ExactCellAccess.storage(source.polynomials.count,ExactSign.self,&a)
     var truth: [ExactSign] = []
     for law in source.polynomials { truth.append(try context.field.sign(of:evaluate(law,at:origin,&a),using:&a)) }
-    records[0] = .init(sample:origin,parent:-1,branch:0,dimension:0,signs:truth,stack:-1)
+    records[0] = .init(sample:origin,parent:-1,branch:0,dimension:0,projectionSigns:[],signs:truth,stack:-1)
    }
    return try partition(source,levels:levels,records:records,stacks:stacks,leaves:leaves,&a)
   }

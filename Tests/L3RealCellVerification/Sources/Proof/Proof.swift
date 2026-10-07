@@ -1,2 +1,18 @@
 import L3Fixtures
-@main struct Proof { static func main() throws { try CellFixtures.require(true) } }
+@main struct L3Proof {
+ static func main() throws {
+  try CellFixtures.nullification()
+  try CellFixtures.singularities()
+  try CellFixtures.domains()
+  try QueryFixtures.selectionAndLocation()
+  try QueryFixtures.nullifiedQuery()
+  try QueryFixtures.algebraicQueries()
+  try QueryFixtures.applicationRelations()
+  try QueryFixtures.retainedAndOutside()
+  try FailureFixtures.resources()
+  try FailureFixtures.escapedOwnership()
+  try OriginalCoefficientFixtures.run()
+  try ProtocolFixtures.run()
+  print("PASS: 12 complete real-cell, selection, exact location and failure routines")
+ }
+}

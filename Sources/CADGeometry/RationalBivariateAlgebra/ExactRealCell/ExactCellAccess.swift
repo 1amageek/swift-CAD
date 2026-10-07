@@ -50,10 +50,4 @@ enum ExactCellAccess {
     static func admit(_ depth: ExactScalarDepth, _ a: inout ExactCellBorrowedAdmission) throws {
         try a.admitDepth(value: depth.value, coefficient: depth.coefficient)
     }
-    static func step(_ depth: ExactScalarDepth, axis: ExactScalarRootAxis,
-        _ a: inout ExactCellBorrowedAdmission) throws -> ExactScalarDepth {
-        let next = try ExactScalarDepth(value: axis == .value ? add(depth.value, 1) : depth.value,
-            coefficient: axis == .coefficient ? add(depth.coefficient, 1) : depth.coefficient)
-        try admit(next, &a); return next
-    }
 }

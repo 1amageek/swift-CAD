@@ -9,6 +9,7 @@ struct ExactRealCellRecord<Base: ExactScalarArithmetic & ExactScalarOrdering & E
  let parent: Int
  let branch: Int
  let dimension: Int
+ let projectionSigns: [ExactSign]
  let signs: [ExactSign]
  var stack: Int
 }
