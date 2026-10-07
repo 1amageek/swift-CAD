@@ -256,6 +256,7 @@ partway fail. `PlanarCurveExtrusionIntersectorTests` own it.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [Original Boundary Clipping](OriginalBoundaryClipping/DESIGN.md) | child | Immutable original face boundary issuance and parameter clipping | Binds validated face/support and directed coedges to one retained Native raw receipt | Parameter output retains its original model; complete image/fiber clipping and other boundary families remain separate acceptance |
 | [Swift-CAD package](../../DESIGN.md) | parent | immutable exact evaluation | Defines kernel composition and Mesh separation. | Do not re-evaluate during a read. |
 | [Whole Body Boolean](WholeBodyBoolean/DESIGN.md) | child | complete non-crossing operand selection and coincident representative ancestry | Composes original material and complete trim correspondence into one sewing request. | Vertex-only agreement is not whole coincidence. |
 | [CADIR](../CADIR/DESIGN.md) | depends on | complete stable signature value | Provides validated reference values. | Every topology entry is eligible for a reference. |
