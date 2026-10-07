@@ -1,0 +1,407 @@
+# Exact Real Topology (L4)
+
+## Purpose and Scope
+
+Parent: [RationalBivariateAlgebra](../DESIGN.md). No children. This is one
+component of the existing CADGeometry module, not a new package or production
+SwiftPM target. Independent verification will compile actual L0-L4 directories.
+
+L4 consumes complete L3 cells/selection and produces ambient Euclidean closures,
+complete directed incidence pieces and connected components of the selected
+parameter set. Inputs include arbitrary finite variable count, zero variables,
+open/closed/singleton/empty/unbounded domains, rational and retained algebraic
+coefficients, nullification, singularities, repeated factors and mixed dimensions.
+Successful receipts certify the entire requested result; resource failure is
+explicit and atomic. L4 completion is not completion of the seven CAD requirements.
+
+This document fixes a design, not implemented behavior. The required L3 inspection
+extension and all L4 declarations below are proposed and currently unimplemented.
+Existing L0-L3 implementation evidence remains valid for its unchanged interfaces.
+
+## Responsibilities and Boundaries
+
+| Owner | Generates and retains | Consumes |
+|---|---|---|
+| L3 | Exact whole-cell and boundary-root definitions; complete child coverage | Public L0-L2 contracts and its issued partition |
+| L4 formula composition | Capture-free polynomial predicates and explicit quantifier scopes | Issued L3 definitions, original coefficient field and public L1 terms/arithmetic |
+| L4 quantified evaluation | Whole-free-cell truth and complete child decisions | Complete L3 decomposition/traversal, caller admission |
+| L4 closure | Ambient closure and its proof kind | Issued definitions and validated point/affine/section-graph or quantified proof |
+| L4 incidence | All selected-cell pair decisions and exact intersection pieces | Original selection, closures and complete refinements |
+| L4 components | Every selected cell exactly once, with its attachment witnesses | A complete, privately issued incidence receipt |
+| Later consumers | Geometric images, chart quotients, branch continuation and publication | These parameter-space receipts and original shape bindings |
+
+L4 owns no root solver, polynomial projection/lifting, approximate identity,
+shape producer, chart/seam/pole equivalence, image/fiber dimension or XYZ contact
+classification. Connectedness does not specify how smooth branches continue
+through a crossing. The incidence graph preserves that information for later work.
+General quantified evaluation is an internal supporting responsibility, not a new
+public general-purpose quantifier-elimination product.
+
+## Related Designs
+
+| Design | Relationship | Contract Used | Summary | Cautions |
+|---|---|---|---|---|
+| [RationalBivariateAlgebra](../DESIGN.md) | parent | Child index | Owns the existing component hierarchy | No new package or legacy numeric dependency |
+| [ExactRealCell](../ExactRealCell/DESIGN.md#l4-inspection-extension-design-only) | depends on | Whole-cell definitions, boundary roots, complete traversal, prefix location | Owns all cell and root-branch identity | These additional ports must be implemented and verified first |
+| [ExactRealCell verification](../../../../Tests/L3RealCellVerification/VERIFICATION.md) | depends on evidence | Complete current L3 public paths | Native/ASAN and both WASI families | Does not prove the proposed inspection extension or L4 |
+| [ExactPolynomial](../ExactPolynomial/DESIGN.md) | depends on | Polynomial construction/arithmetic/decisions and public terms | Exact variable remapping and formula atoms | No private context or symbolic root-count engine |
+| [ExactRealRoot](../ExactRealRoot/DESIGN.md) | depends on | Public coefficient field and interval construction; root solving through L3 | Preserves original field-family policy | No independent root solver, silent adjoining, coefficient rounding or extension-cap change |
+| [ExactScalar](../ExactScalar/DESIGN.md) | depends on | Arithmetic/order/import and admission | Same caller work/storage/depth/cancel | No local replacement allowance |
+| [IntersectionAlgebra](../../IntersectionAlgebra/DESIGN.md#parameter-connected-components) | reference / prospective used by | Closure and parameter-component meaning | Existing implementation is a reference, not a dependency | No upper CAD build or private legacy implementation reuse |
+| [CADGeometry](../../DESIGN.md) | prospective used by | Complete parameter topology | Later original-shape/image composition | No completion claim for CS/SSI or other geometry |
+
+### Confirmed facts and required differences
+
+| Current fact | Consequence / fixed difference |
+|---|---|
+| L3 publishes cells, conditions, selection, dimensions and point queries | Keep those contracts and receipts; topology is an additional consumer |
+| L3 conditions contain root ordinals, not a standalone polynomial formula | L3 must issue a definition with certified boundary-root descriptions |
+| Auxiliary derivative signs on sectors describe their samples | Never use that sign vector as a whole-sector definition |
+| L3 public leaves retain parent handles, but expose no complete child port | Add owner-validating traversal rather than reconstructing private arrays |
+| Current locate requires a full tuple | Add exact prefix location for quantified free-prefix regions |
+| Legacy incidence retains refined target pieces and rejects excluded-point joins | Preserve that meaning; replace implementation dependency with lower public contracts |
+| Complete L3 generation already admits resource failure | L4 cannot turn that failure into false, empty or partial topology |
+
+The native implementations behind these facts are ExactRealCellDomain,
+ExactRealCellDomain+Lifting/+Query, ExactRealCellID/Condition, and
+OriginalRationalIntersectionIncidence/OriginalRationalParameterComponents.
+Current L3 runtime evidence is reused; this design task builds no upper target.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    S["L3 partition / selection"] --> D["L3 certified definition"]
+    D --> F["L4 exact formula composition"]
+    D --> H["L4 applicability proofs"]
+    H --> P["point / affine / bounded section graph"]
+    H --> Q["general quantified closure"]
+    F --> Q
+    Q --> C["L3 complete decomposition and traversal"]
+    C --> T["L4 whole-prefix quantifier decisions"]
+    P --> R["immutable closure receipt"]
+    T --> R
+    R --> I["complete selected-pair intersection pieces"]
+    S --> I
+    I --> G["connected components and witnesses"]
+    G --> U["later geometric composition"]
+    classDef verified fill:#dcfce7,stroke:#15803d
+    classDef proposed fill:#fef3c7,stroke:#b45309,stroke-dasharray:5 5
+    classDef designed fill:#dbeafe,stroke:#1d4ed8,stroke-dasharray:5 5
+    classDef outside fill:#f3f4f6,stroke:#6b7280
+    class S,C verified
+    class D proposed
+    class F,H,P,Q,T,R,I,G designed
+    class U outside
+```
+
+Green denotes existing verified L3 paths. Amber denotes additional specified L3
+ports awaiting implementation. Blue denotes specified L4 responsibilities awaiting
+implementation; gray denotes later consumers. Design certainty and runtime
+completion are different states.
+
+```mermaid
+flowchart LR
+    L4["L4: ExactRealTopology"] --> L3["L3: cells / identity / traversal"]
+    L4 --> L1["L1: exact polynomial atoms / remapping"]
+    L4 --> L0["L0: scalar operations / one admission"]
+    L4 --> L2["L2: public coefficient fields / bounds"]
+    L3 --> L2
+    L2 --> L1
+    L1 --> L0
+```
+
+No dependency goes from these layers back to IntersectionAlgebra, Curve3D,
+Surface3D, CADCore geometry errors, or application modules.
+
+## Contracts and Invariants
+
+### Public ports (proposed)
+
+Public operations are protocol requirements, with generic noncopyable admission
+and typed throws. Implementations are separate; native Sendable immutable values
+represent receipts. A protocol is not added merely to abstract an array.
+
+| Proposed protocol | Operation | Complete output |
+|---|---|---|
+| `ExactRealClosureProducing<Base>` | `closure(of:in:strategy:limits:using:)` | `ExactRealClosure<Base>` for one issued full cell |
+| `ExactRealIncidenceProducing<Base>` | `incidence(of:strategy:limits:using:)` | `ExactRealIncidence<Base>` for a complete L3 selection |
+| `ExactRealComponentsProducing<Base>` | `components(of:limits:using:)` | `ExactRealComponents<Base>` from issued complete incidence |
+| `ExactRealTopologyQuerying<Base>` | `contains(_:in:limits:using:)` | Exact Boolean membership in a retained closure |
+
+`Base` uses the same arithmetic/order/import constraint and Source == Value
+condition as L3. Proposed `ExactRealTopologyDomain<Base, Cells>` implements these
+ports. `Cells` is injected by its concrete generic provider type conforming to
+L3 preparation, production, query, description and traversal protocols; its Base
+must equal Base. The default provider is ExactRealCellDomain<Base>. This domain
+is stateless: each operation constructs a provider retaining the input source.
+Receipts own source identity; no singleton, mutable cache or shared quota exists.
+
+| Receipt | Retained authority |
+|---|---|
+| `ExactRealClosure` | Original partition/cell, coefficient field, proof kind, complete free-region cover, included region cells and attained depth |
+| `ExactRealIncidence` | Original selection, every source closure, every directed pair decision and all nonempty intersection pieces |
+| `ExactRealAttachment` | Source/target original IDs, closure owner, refined region owner and included piece ID |
+| `ExactRealComponents` | Incidence owner, deterministic member offsets and witness offsets for every component |
+
+Constructors establishing completeness are internal to the issuer. Public callers
+cannot manufacture incidence from an attachment array. Region cells can be prefix
+IDs in a retained quantified partition; coordinateCount states their parameter
+arity. Queries use L3 prefix location, not a suffix sample or guessed embedding.
+Different refinements retain separate owners and explicit original-ID mappings.
+
+### Exact cell formulas
+
+The L3 definition contract is authoritative in its own design. L4 serializes that
+contract, not public sample metadata. A section uses the issued polynomial and
+its complete certified derivative sign signature at the actual coordinate.
+A sector introduces at most two fresh boundary variables. Each satisfies its
+issued selected-root signature, and the actual coordinate lies strictly between
+them (or beyond the single finite boundary). Rootless fibers need no witness.
+Conjoin these clauses with the exact parent path and original endpoint flags.
+
+When a boundary has an issued affine law with constant nonzero axis coefficient,
+substitute its exact linear expression and sign before introducing a witness.
+This is an equivalence proved from the same root identity, not numerical fitting.
+
+Thus membership has the finite form C(x) iff exists b: Psi_C(x,b), with at most
+two witnesses per sector axis. Witness variables are not original parameters.
+All atoms use the original coefficient field, never sample-field generators as
+new original constants. Polynomials are transported through public L1 terms and
+construction with checked injective variable maps. Fresh witness names and scopes
+prevent capture when combining different definitions; identity-based reductions
+require proof, not proximity. Zero variables compile to the unique empty tuple.
+
+### Ambient closure
+
+For a full cell C in R^n, the general proof is exactly:
+
+```text
+p in closure(C) iff
+  forall epsilon:
+    epsilon <= 0 OR
+    exists q, b:
+      Psi_C(q,b) AND
+      AND_i (-epsilon < p_i - q_i AND p_i - q_i < epsilon).
+```
+
+This uses the open-box neighborhood basis of the Euclidean topology. Free p
+coordinates come first, then the radius and existential original/witness slots.
+All slots range over the entire real line; restricted domains are formula guards,
+not a finite search window. Counts and mappings are checked, with no four-variable,
+degree or neighborhood cutoff. The exact box basis avoids a quadratic norm.
+
+Closure is ambient, not relative to the input box or selected set. Open-box
+endpoints and excluded denominator points can belong to it. Infinity is not a
+point: an unbounded cell acquires only finite limits. Periodic/pole quotients are
+later domain responsibilities. Original equations and guard meanings are retained.
+
+### Quantifier reduction
+
+L3 decomposes all formula atoms on the complete real product under the same
+admission. Leaf truth uses L3's proven constant original signs. Starting from the
+last coordinate, existential reduction is OR of complete child truth; universal
+reduction is AND. Each free-prefix truth retains its contributing subtree and
+coverage. The initial implementation traverses all children; later pruning would
+require a separately proved whole-parent consequence, not a favorable sample.
+Traversal is iterative with admitted native arrays, never unbounded recursion.
+For free arity zero the result is one closed Boolean decision. Failed or missing
+children are failures, not false/universal success. A free region may subdivide
+an original target; its identity remains explicit.
+
+This is the standard CAD consequence of sign-invariance and cylindricity
+([Basu, Section 2.2](https://www.math.purdue.edu/~sbasu/raag_survey2011_final.pdf)).
+That reference justifies the mathematical method, not this implementation or its
+budget performance. Connectivity is proved by the finite attachment graph below,
+not inferred from quantifier elimination alone.
+
+### Applicable closure proofs and performance
+
+`automatic` considers the following proofs in order; `quantifiedOnly` disables
+closure-specific theorems for differential verification. Both preserve original
+meaning, budgets and coefficient policy. Formula-level exact linear substitution
+remains permitted in either strategy.
+
+| Proof | Applicability and guarantee |
+|---|---|
+| Point | Issued dimension zero; the cell is one exact point and is closed |
+| Affine cell | The complete issued definition reduces to a nonempty conjunction of affine equations/strict or weak inequalities, with constant nonzero boundary leading coefficients. Weakening strict inequalities gives exactly its closure: segments from any interior point prove sufficiency |
+| Bounded section graph | An affine base and section-only suffix; every suffix has an issued zero law with constant nonzero leading coefficient. A complete weak-condition decomposition must prove exactly one zero-dimensional suffix fiber over every weak-base cell |
+| Quantified | Every remaining valid cell; exact neighborhood formula and complete reduction |
+
+For bounded section graphs, Cauchy bounds give local boundedness successively in
+each suffix coordinate near every finite base point. Continuity puts every cluster
+point in the weak conditions; complete fiber uniqueness makes it the sole limit.
+Affine-base paths approach every weak-base point, proving inclusion. The same
+arguments exclude all other limits. An unbounded base end contributes no point
+at infinity. Nonconstant leading coefficients that can vanish at a boundary,
+missing/nonunique weak fibers, or nonaffine bases refuse this theorem.
+
+Structural checks and any required full weak-fiber decomposition are applicability
+work in the original admission. A completed negative applicability result chooses
+the general method before closure evaluation. Failure during that check aborts;
+it does not trigger another solver. No retry after exhaustion/unresolved/cancel.
+
+The issued proof kind and hypothesis evidence remain inspectable. Point and affine
+paths are required, and the bounded-section path must close the folded algebraic
+SSI-shaped fixture under its existing budget. A nominal general algorithm that
+cannot close the required regression within its recorded limits is not milestone
+completion. Numeric defaults/performance claims are chosen only from measured
+independent fixtures; no cap is raised to make a test green.
+
+### Complete incidence and components
+
+For every ordered distinct selected pair (C_i,C_j), establish the exact region
+A_ij = closure(C_i) intersect C_j. Compose both definitions at the same free tuple
+and produce a partition truth-invariant for their conjunction. Retain all true
+pieces with source/target IDs; retain complete exclusion evidence if empty.
+No representative decides membership of an entire target. Each pair can own its
+own complete refinement; a global frontier-compatible partition is not assumed.
+Diagonal containment C_i subset closure(C_i) is recorded without a graph edge.
+
+An attachment exists exactly when A_ij is nonempty. Only selected targets become
+vertices/endpoints. Two closures meeting at an excluded point do not grant an
+edge. Partial target intersections retain their exact subset rather than claiming
+the whole target is in the closure. A complete incidence receipt covers every
+ordered pair, even those with no attachment; missing pairs cannot imply separation.
+
+Build an invocation-local union forest from these issued attachments, using
+union by size and path compression. Each selected cell appears exactly once;
+components are ordered by first occurrence in the original selection. Witness
+ordering follows original source/target order and local refined-cell order.
+Every attachment stays inside its component. Empty components require a complete
+empty selection; singleton cells need no edge to constitute a component.
+
+Proof: each cell is connected. If closure(C_i) meets selected C_j, their union is
+connected. Conversely, for a graph component S, finiteness gives closure(S) as the
+union of member closures. No missing cross-component incidence means
+closure(S) intersect the selected set equals S. Each graph component is therefore
+relatively closed and, by finite complement, relatively open. These graph
+components are exactly the connected components of the selected set.
+
+## Runtime Flows
+
+```mermaid
+sequenceDiagram
+    participant Caller
+    participant L4
+    participant L3
+    Caller->>L4: selection + explicit limits + one admission
+    L4->>L3: validate and issue source-bound definitions
+    L4->>L4: prove applicability / prepare exact formula
+    L4->>L3: complete region decomposition and traversal when needed
+    L3-->>L4: complete cells or typed failure
+    L4->>L4: closure proof + every selected pair region
+    L4->>L4: complete incidence + component forest
+    L4->>L4: terminal cancellation checkpoint
+    L4-->>Caller: immutable complete receipt OR failure
+```
+
+Later membership queries take a fresh explicit caller admission, inherit receipt
+depths, locate the full/free-prefix cell and read its proven truth. They do not
+reuse or restore an exhausted mutable allowance.
+
+## State, Ownership, and Lifecycle
+
+| State | Owner / lifecycle | Isolation |
+|---|---|---|
+| Original selection and definitions | Immutable retained L3 owners | Same Sendable contract on every target |
+| Formula atoms/maps/program | Immutable L4 owner retaining original owners | No mutable expression cache |
+| Construction buffers and union forest | One synchronous invocation | Exclusive local mutation before publication |
+| Quantifier and incidence decisions | Immutable DAG with indices | No handles retaining their own owner internally |
+| Public closure/attachment/component views | Strong receipt owner plus offsets | Native collection views; no escaped pointers |
+| Admission and count state | Exclusive inout query | One work/storage/depth/cancel authority |
+
+Use Swift value types, Array/COW and owner-retaining views. Charge all new payloads,
+COW copies, decision slots and map traversals before materialization or mutation.
+Reused backing is not charged again. Share the retained region partition between
+its pieces instead of copying its cells. Each future file has one principal type.
+No unsafe memory or shared mutable state is required by this design. If an
+implementation later requires either, its contract must be designed before use.
+Native, ordinary WASM and Embedded use identical owners/conformances and state;
+Embedded is not a reason to remove synchronization or Sendable.
+
+## Failure, Concurrency, and Constraints
+
+Proposed `ExactRealTopologyFailure` distinguishes invalid definition/formula,
+foreign receipt, invalid coverage, count overflow, result/count limit and unresolved
+proof. Lower scalar/polynomial/cell failures and external admission rejection retain
+their original typed causes. No failure becomes an empty region or disconnected
+component result. Incomplete internal paths require the standard code marker.
+
+| Authority | Scope |
+|---|---|
+| L0 work/storage and two depth caps | Cumulative applicability, remapping, decomposition, quantifier reduction, pair checks, graph assembly and publication; never reset/refunded |
+| L2 coefficient extension ceiling | Original effective field-family policy, inherited through L3 |
+| `maximumGeneratedCells` | Cumulative newly generated L3 prefix/full records across successful helper decompositions; each helper gets only the remaining capacity |
+| `maximumRootsPerStack` | Existing per-stack L3 meaning on every helper |
+| `maximumClosures` | Count of newly issued source closures in this operation |
+| `maximumAttachmentPieces` | All retained nonempty directed intersection pieces |
+| `maximumComponents` | All published connected components |
+| Cancellation | Entry, causal work and terminal publication after the last callback |
+
+Each public entry creates one local count state. Nested closure/pair/decomposition
+helpers receive that same inout state and admission; incidence must not call public
+closure entries that would restart count state. Components and later queries start
+new explicit operations over already retained evidence. No mutable counters enter
+a published receipt.
+
+Proposed `ExactRealTopologyLimits` holds the five nonnegative checked counts above;
+there are no guessed defaults or hidden mathematical cutoffs. Existing input
+partitions are retained rather than newly generated, so they do not consume new
+cell/storage capacity. A helper receipt is counted once before further work;
+failure aborts the entire operation. Any cumulative count addition or variable
+map size checks overflow before allocation. Formula variable count is not a new
+shape-recursion or coefficient-root depth axis.
+
+No asynchronous callback, I/O, actor or Mutex is required for local synchronous
+mutation. Concurrent immutable readers each supply a separate admission. A future
+shared cache would change this design and require an explicit isolation owner.
+
+## Verification and Change Impact
+
+The proposed owner is `Tests/L4TopologyVerification`, with source links to the
+actual L0-L4 files, dedicated build paths and an external timeout. It is not
+created in this design task. Native/ASAN, ordinary WASM and Embedded each execute
+public success/failure fixtures on the pinned Swift 6.4.0/matching SDK combination.
+Lower tests are reused when their assumptions are unchanged.
+
+| Evidence ID | Counterexample / required public behavior |
+|---|---|
+| T1 lower inspection | Exact root signatures and complete children on nullified/repeated/close roots, degree drops, clipped roots, unbounded stacks and zero variables; prefix samples and nonsample points locate exactly; ordinary sector sample signs cannot substitute for definitions |
+| T2 closed versus excluded | x != 0 has two components; xy = 0 has one connected union with crossing witnesses; excluding its origin leaves four components |
+| T3 singular / mixed | Tangent and cusp branches, repeated factors, line plus isolated point; retain every incidence rather than pairing by rank or proximity |
+| T4 partial target | C: 0<x<1, 0<y<x, x*z-y=0. At x=y=0 its closure includes precisely 0<=z<=1, subdividing the original nullified full z-fiber; reject z outside that interval |
+| T5 ambient domain | Open intervals acquire endpoints; singleton is closed; an unbounded ray gains its finite endpoint only; separated cells approaching excluded denominator loci remain separate |
+| T6 complete graph | Every ordered selected pair has inclusion/exclusion evidence; every member appears once and every witness stays inside its component; empty selection and R^0 true/false are exact |
+| T7 applicable proofs | Point/affine/bounded graph agree with forced quantified results on small admitted fixtures; a vanishing leading coefficient or nonunique weak fiber refuses the graph theorem; budget exhaustion cannot trigger fallback |
+| T8 folded / field | The complete four-parameter folded relation x0^2-x2^2=0, x1-x3=0 on the closed original box retains both sheets and their meeting set; algebraic coefficients, inherited two-axis depths and the original extension cap stay intact |
+| T9 count / admission | Work/storage/both depths/root/generated-cell/closure/piece/component counts fail independently; exact boundary succeeds; checked overflow, cancellation during checks and at final callbacks publish no receipt |
+| T10 lifecycle / portability | Drop original inputs/providers; retained closures/pieces/components remain queryable. Native concurrent readers, failure followed by valid fresh query and both actual WASI execution families preserve ownership |
+
+Record work, admitted storage, generated cells, coefficient levels, proof kind and
+wall time for the closure, incidence and graph phases. These observations identify
+the bottleneck; graph traversal success cannot substitute for closure success.
+Required Native algebraic fixtures keep the current independent lower fixture
+policy (200M work, 700M admitted bytes, 400 for each depth axis), or a smaller
+recorded budget of the same reference input. No source or result-count cap is
+raised after a failing run. These independent fixtures do not certify the legacy
+Native SSI composition under its separate 80M work limit.
+If a mandatory input exhausts them, report that input and the outstanding algorithm
+rather than broadening scope, increasing limits or declaring a partial milestone.
+The previously failing two-level L3 review probe is not repaired by this design.
+
+### Implementation order and completion gates
+
+| Gate | Ownership / completion |
+|---|---|
+| L4.I1 | Implement and independently verify the required L3 inspection ports; existing L3 paths remain behaviorally equivalent except additive capability |
+| L4.I2 | Implement complete symbolic formulas, internal quantifier reduction, closure/query receipts and the applicable proofs together; verify stable public success/failure |
+| L4.I3 | Implement complete incidence pieces/exclusions and connected components from issued evidence; close partial-target/excluded-point fixtures |
+| L4.V | One cumulative review plus finding recheck; fixed-source Native/ASAN and both WASI runs, retained evidence, coherent commits |
+
+One implementation owner owns L3 inspection changes and L4 integration in this
+isolated worktree. Future verification artifacts must identify exact snapshots.
+No upper-module build, legacy-source migration, main merge or seven-requirement
+completion is part of these independent gates. An implemented structure or type
+cannot satisfy any behavioral completion gate.

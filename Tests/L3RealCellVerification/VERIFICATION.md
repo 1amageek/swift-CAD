@@ -126,3 +126,11 @@ The review's additional x²-2=0/y²-x=0 probe on [1,2]² exhausted 200M work.
 This repair does not change that algorithm or its budget, and does not claim
 successful generation/location for that probe. No upper CAD build or integration
 was performed.
+
+## Subsequent L4 Design Boundary
+
+The later design-only L4 task adds proposed L3 inspection contracts to DESIGN.md.
+They are not implemented or certified by the preceding execution evidence.
+The manifests retain the verified `f0d6ae9e` snapshot, including its earlier design
+and this report; production Swift, test Swift and package manifest bytes are unchanged by the L4 design.
+Do not reinterpret those hashes or logs as proof of the proposed ports or L4.

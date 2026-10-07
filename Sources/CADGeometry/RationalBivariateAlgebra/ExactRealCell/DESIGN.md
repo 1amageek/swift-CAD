@@ -57,6 +57,7 @@ field, root or polynomial implementation is accessed by L3.
 | [ExactPolynomial](../ExactPolynomial/DESIGN.md) | depends on | Canonical construction, public terms, calculus, GCD/division and resultant | Owns polynomial operations | Coefficient extraction and cross-variable reindexing are not public operations |
 | [ExactRealRoot](../ExactRealRoot/DESIGN.md) | depends on | Complete roots, refinement/sign, runtime field family and explicit embeddings | Owns exact section coordinates | Sibling fields are incompatible; no automatic compositum |
 | [IntersectionAlgebra](../../IntersectionAlgebra/DESIGN.md) | prospective used by | Complete partitions and retained conditions | Existing real-relation composition is a future integration consumer | Its current one-through-four-variable API and combined closure result are unchanged |
+| [ExactRealTopology](../ExactRealTopology/DESIGN.md) | prospective used by | Proposed inspection extension and complete partitions | L4 owns closure/incidence/components | Inspection extension is design-only until independently verified |
 
 ### Confirmed Current Facts
 
@@ -337,6 +338,85 @@ Queries that reconstruct root stacks take the existing explicit L2
 ExactRealRootLimits, applied unchanged to each stack. Sample/condition access
 creates no cell graph and takes no redundant cell-count policy. Every query
 uses fresh caller admission and retains the stored proof depth. Immutable evidence owns no prior mutable allowance.
+
+### L4 Inspection Extension (Design Only)
+
+[L4](../ExactRealTopology/DESIGN.md) needs symbolic cell identity and complete
+prefix-tree access. Existing ports do not provide these capabilities. This
+section specifies the additional L3 contract; its operations/receipts are not
+implemented by the current verified snapshot. It does not change the meaning of
+existing decomposition, sample metadata, selection or full-point location.
+
+| Proposed public port | Requirement | Guarantee |
+|---|---|---|
+| `ExactRealCellDescribing<Base>` | `coefficientField(of:using:)` | Validate and retain the source's original effective coefficient field, even for empty/constant sources |
+| `ExactRealCellDescribing<Base>` | `definition(of:in:using:)` | Issue the exact whole-cell path and certified boundary-root descriptions for a valid full or prefix ID |
+| `ExactRealCellTraversing<Base>` | `root(in:using:)` | Unique issued R^0 origin, or nil only for proved empty full-domain coverage |
+| `ExactRealCellTraversing<Base>` | `children(of:in:using:)` | All and only in-domain children in branch order; empty only at a terminal cell; complete coverage retained |
+| `ExactRealCellQuerying<Base>` | `locatePrefix(_:in:limits:using:)` | Locate a compatible m-coordinate point in the issued m-prefix cell, 0<=m<=n; nil only for proved exclusion |
+
+Each operation is a protocol requirement with generic A: ExactScalarAdmission &
+~Copyable and typed ExactRealCellFailure. Native immutable owner-retaining values
+are the result boundary. No generic factory/existential shortcut or private-array
+access is required of L4. Existing querying conformers must add the prefix
+requirement; ordinary locate still requires n coordinates and has unchanged
+success/failure meaning. The current production conformer is ExactRealCellDomain.
+
+Proposed `ExactRealCellDefinition<Base>` retains its original partition/cell,
+source coefficient field, coordinateCount m, complete path steps and attained
+depth. Each step retains its parent identity and exact root-ordinal/sector address.
+A finite boundary is a privately issued `ExactRealCellBoundaryRoot<Base>`:
+
+- its nonnull incoming cut binding and a supporting polynomial in the original
+  coefficient field (that cut law or its certified derivative);
+- the parent cell, axis and root ordinal in its complete distinct union;
+- the complete derivative sign signature from order zero through the polynomial's
+  global axis degree, including any higher derivatives nullified on the parent;
+- original degree/rank/complete-root evidence and attained depth.
+
+For every point in that parent cell, the polynomial remains nonzero, its effective
+positive degree is fixed, and exactly one real root realizes the signature. It is
+precisely the addressed union root there. The signature is a whole-branch
+certificate, not sampled derivative metadata. Exact root identity first prefers a certified globally affine supporting law
+with constant nonzero axis coefficient, then the first active cut law in source
+order vanishing at that union root. An auxiliary derivative may support the same
+root when its identity is proved; it does not become a new cut. No rounded match
+identifies it. Bounds outside the requested box can still be needed
+as sector boundaries, and their original complete root evidence is retained.
+
+Issuing algorithm: use the stored incoming cut/active-law binding, full coefficient
+and reductum/PSC rank evidence, and complete root ordinals. L2's exact root-sign
+operation certifies every derivative at the selected sample root. Effective degree
+and pairwise rank invariance keep ordered roots delineable; a common-root membership
+cannot switch ordered branches without a collision or changed rank. Hence each
+zero derivative sign stays zero on the connected parent. Each nonzero derivative
+value is continuous and never zero, so its sign cannot change. Thom root uniqueness
+then identifies that same root throughout the parent. Retain this evidence chain.
+Rank invariance alone, without delineability and root identity, is insufficient.
+An issuer unable to establish the chain fails instead of issuing a sampled claim.
+
+A section step requires the actual coordinate to equal its described root. A
+sector step requires strict order between the described finite boundaries or its
+single finite boundary and infinity; a rootless step is the entire line. Conjoin
+all steps and the exact prefix of the original box, including inclusion flags.
+This is exactly the original m-prefix cell, not an arbitrary same-sign region.
+L3 owns these semantics; L4 owns their polynomial/quantifier serialization.
+No global derivative-root refinement or changed default cutting policy is needed.
+
+A child view may share existing immutable index storage. If valid-child offsets
+must be materialized from clipped slots, charge their payload before allocation;
+do not claim that copy is zero-copy. Prefix location validates the coefficient
+family and m-coordinate bounds, traverses only those m stacks and uses the caller's
+original root limit/admission. It does not pick any later-coordinate sample.
+A proved empty product projects to an empty set, even at prefix arity zero.
+
+Before L4 consumes the extension, independent L0-L3 tests must establish its new
+whole-branch signatures on nonsample parent points, nullification/degree drops,
+repeated/shared roots, close distinct roots, clipped neighboring roots, algebraic
+coefficients, all child coverage and full/zero-prefix query boundaries. Existing
+L3 tests/evidence remain unchanged where their premises did not change. The
+extension needs actual Native/ordinary-WASM/Embedded execution, source-bound
+ownership, count/depth/cancellation failures and updated snapshot manifests.
 
 ### Handoff to Swift-CAD
 
