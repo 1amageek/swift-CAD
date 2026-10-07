@@ -1,5 +1,10 @@
 # L0 Isolated Verification
 
+> Historical evidence for the pre-repair snapshot, retained in commit 9c4a203e.
+> Source inventories and hashes below describe that snapshot only. The current
+> SOURCE-SHA256.txt has been regenerated for the repaired snapshot; current
+> execution results are in [Resource Repair Verification](../L1PolynomialVerification/RESOURCE-REPAIR-VERIFICATION.md).
+
 ## Scope and Snapshot
 
 Verified on 2026-10-07 in `codex/exact-scalar-contract-design`, based on

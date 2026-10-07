@@ -83,14 +83,16 @@ public enum L1PrimitiveFixtures {
             guard (0...24).contains(depth) else { throw ExactScalarFailure.resourceLimit(.coefficientDepth) }
         }
     }
-    static func scalarField(axis: ExactScalarRootAxis = .coefficient) throws -> OriginalExactScalarDomain {
+    static func scalarField(axis: ExactScalarRootAxis = .coefficient, degree: Int = 2,
+        refine: Bool = true) throws -> OriginalExactScalarDomain {
         var prep = RootAdmission()
         let two = try ExactRationalCoefficient.originalDouble(2, usage: &prep)
-        let p = try ExactBivariatePolynomial.monomial(u: 2, v: 0, coefficient: .one, usage: &prep)
+        let p = try ExactBivariatePolynomial.monomial(u: degree, v: 0, coefficient: .one, usage: &prep)
             .subtracting(.constant(two, usage: &prep), usage: &prep)
         let roots = try ExactUnivariateRootIsolator().isolate(p, lower: .one, upper: two, maximumDepth: 32, usage: &prep)
-        let selected = try ExactAlgebraicRealRoot(polynomial: p, isolation: roots[0], usage: &prep)
-            .refined(maximumWidth: .originalDouble(0x1p-4, usage: &prep), maximumDepth: 32, usage: &prep)
+        let issued = try ExactAlgebraicRealRoot(polynomial: p, isolation: roots[0], usage: &prep)
+        let selected = try refine ? issued.refined(maximumWidth: .originalDouble(0x1p-4, usage: &prep),
+            maximumDepth: 32, usage: &prep) : issued
         var a = ExactScalarLedger(limits: try limits())
         return try OriginalExactScalarDomain(root: selected, axis: axis,
             maximumValueDepth: 32, maximumCoefficientDepth: 24, using: &a)

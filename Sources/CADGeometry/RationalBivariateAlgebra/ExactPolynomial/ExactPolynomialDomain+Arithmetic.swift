@@ -24,6 +24,7 @@ extension ExactPolynomialDomain {
     }
     func multiplying<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
         _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        if lhs.terms.isEmpty || rhs.terms.isEmpty { return try wrap([], &usage) }
         let count = try ExactPolynomialAccess.count(lhs.terms.count, rhs.terms.count, multiply: true)
         try ExactPolynomialAccess.storage(count, ExactPolynomialTerm<Coefficient>.self, &usage)
         var terms: [ExactPolynomialTerm<Coefficient>] = []; terms.reserveCapacity(count)

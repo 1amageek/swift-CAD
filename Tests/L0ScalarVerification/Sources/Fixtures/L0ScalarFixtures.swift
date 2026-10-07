@@ -10,6 +10,7 @@ public enum L0ScalarFixtures {
         try rationals(); print("PASS: rational source bits and field operations")
         try algebraic(); print("PASS: retained algebraic source, order and lifetime")
         try failures(); print("PASS: independent limits, explicit failures and cancellation")
+        try L0PayloadFixtures.run(); print("PASS: typed payload admission and cubic-root sign resource boundaries")
     }
 
     public static func rationals() throws {

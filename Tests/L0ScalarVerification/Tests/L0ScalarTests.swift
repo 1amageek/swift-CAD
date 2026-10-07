@@ -4,6 +4,35 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct L0ScalarTests {
+    @Test func payloadSizingAndCubicSign() throws { try L0PayloadFixtures.run() }
+    @Test func monomialStorageRejectsBeforeConstruction() throws {
+        struct Gate: RationalAlgebraAdmitting {
+            var words = 0
+            let limit: Int
+            mutating func consumeExactWork(_ count: Int) throws {}
+            mutating func visitExactCell(depth: Int) throws {}
+            mutating func retainExactStorage(_ count: Int) throws {
+                guard count <= limit - words else { throw ExactScalarFailure.resourceLimit(.storage) }
+                words += count
+            }
+        }
+        var preparation = Gate(limit: 1_000_000)
+        let x = try ExactBivariatePolynomial.coordinate(alongU: true, usage: &preparation)
+        let one = try ExactBivariatePolynomial.constant(.one, usage: &preparation)
+        let stride = MemoryLayout<(ExactBivariatePolynomial.Power, ExactRationalCoefficient)>.stride
+        let requiredWords = (stride + MemoryLayout<UInt32>.stride - 1) / MemoryLayout<UInt32>.stride
+        for operation in 0..<3 {
+            var gate = Gate(limit: requiredWords - 1)
+            do {
+                if operation == 0 { _ = try x.quotientAndRemainder(dividingBy: one, usage: &gate) }
+                else if operation == 1 { _ = try one.quotientAndRemainder(dividingBy: x, usage: &gate) }
+                else { _ = try ExactBivariateGCD().univariateDivision(x, one, usage: &gate) }
+                Issue.record("Monomial storage limit published success")
+            } catch ExactScalarFailure.resourceLimit(.storage) {
+                #expect(gate.words == 0)
+            }
+        }
+    }
     @Test func exactRationalValuesAndOperations() throws { try L0ScalarFixtures.rationals() }
     @Test func originalAlgebraicValuesAndLifetime() throws { try L0ScalarFixtures.algebraic() }
     @Test func failureResourcesAndCancellation() throws { try L0ScalarFixtures.failures() }

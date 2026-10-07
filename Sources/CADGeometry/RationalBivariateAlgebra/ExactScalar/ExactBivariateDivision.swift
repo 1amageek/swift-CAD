@@ -5,14 +5,15 @@ public extension ExactBivariatePolynomial {
         guard let divisorLead = divisor.leading else { throw exactScalarBackendFailure("Exact polynomial division by zero.") }
         var pending = self, quotient = Self.zero, remainder = Self.zero
         while let lead = pending.leading {
-            try usage.consumeExactWork(1); try usage.retainExactStorage(1)
-            let originalTerm = Self([lead.key: lead.value])
+            try usage.consumeExactWork(1)
+            try RationalAlgebraStorage.retain(1, of: (Power, ExactRationalCoefficient).self, usage: &usage)
             if lead.key.u >= divisorLead.key.u, lead.key.v >= divisorLead.key.v {
                 let power = try Power(u: lead.key.u - divisorLead.key.u, v: lead.key.v - divisorLead.key.v)
                 let term = Self([power: try lead.value.divided(by: divisorLead.value, usage: &usage)])
                 quotient = try quotient.adding(term, usage: &usage)
                 pending = try pending.subtracting(divisor.multiplied(by: term, usage: &usage), usage: &usage)
             } else {
+                let originalTerm = Self([lead.key: lead.value])
                 remainder = try remainder.adding(originalTerm, usage: &usage)
                 pending = try pending.subtracting(originalTerm, usage: &usage)
             }

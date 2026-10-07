@@ -38,7 +38,13 @@ enum ExactPolynomialAccess {
     }
     static func storage<A: ExactScalarAdmission & ~Copyable, T>(_ count: Int, _ type: T.Type,
         _ usage: inout ExactPolynomialAdmission<A>) throws {
-        try usage.retainStorage(bytes: self.count(count, MemoryLayout<T>.stride, multiply: true))
+        let bytes: Int
+        do { bytes = try exactScalarPayloadBytes(count: count, of: type) }
+        catch {
+            if case .countOverflow = error { throw ExactPolynomialFailure.countOverflow }
+            throw ExactPolynomialFailure.scalar(error)
+        }
+        try usage.retainStorage(bytes: bytes)
     }
     static func order<A: ExactScalarAdmission & ~Copyable>(_ a: [Int], _ b: [Int],
         _ usage: inout ExactPolynomialAdmission<A>) throws -> Int {

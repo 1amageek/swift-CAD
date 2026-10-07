@@ -5,6 +5,7 @@ import Testing
 
 @Suite(.timeLimit(.minutes(1)))
 struct L1PolynomialTests {
+    @Test func zeroProductResourceAndDepthContract() throws { try L1ZeroProductFixtures.run() }
     @Test func rationalAlgebra() throws { try L1AlgebraFixtures.rational() }
     @Test func algebraicAlgebra() throws { try L1AlgebraFixtures.algebraic() }
     @Test func algebraFailures() throws { try L1AlgebraFixtures.failures() }

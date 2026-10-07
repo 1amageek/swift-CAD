@@ -32,7 +32,9 @@ public struct ExactBivariateGCD: ExactBivariateGCDProducing, Sendable {
         var remainder = numerator, quotient = ExactBivariatePolynomial.zero
         guard let divisorLead = divisor.leading else { throw exactScalarBackendFailure("Missing exact divisor coefficient.") }
         while let lead = remainder.leading, lead.key.u >= divisorLead.key.u {
-            try usage.consumeExactWork(1); try usage.retainExactStorage(1)
+            try usage.consumeExactWork(1)
+            try RationalAlgebraStorage.retain(1,
+                of: (ExactBivariatePolynomial.Power, ExactRationalCoefficient).self, usage: &usage)
             let power = try ExactBivariatePolynomial.Power(u: lead.key.u - divisorLead.key.u, v: 0)
             let ratio = try lead.value.divided(by: divisorLead.value, usage: &usage)
             let term = ExactBivariatePolynomial([power: ratio])

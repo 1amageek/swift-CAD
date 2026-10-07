@@ -165,7 +165,7 @@ verified operations; the protocol declaration is not that capability.
 
 ### Resource semantics and lifecycle
 
-The planned shared sizing API is one non-overridable free function:
+The shared sizing API is one non-overridable free function:
 
 ```swift
 public func exactScalarPayloadBytes<T>(count: Int, of type: T.Type)
@@ -174,8 +174,8 @@ public func exactScalarPayloadBytes<T>(count: Int, of type: T.Type)
 
 It returns count multiplied by MemoryLayout<T>.stride, rejects negative counts
 and multiplication overflow with countOverflow, and performs no allocation,
-counter mutation or callback. This declaration is a planned contract, not an
-implemented capability. Its only purpose is to give L0 and the independently
+counter mutation or callback. Its implementation is ExactScalarPayloadBytes.swift.
+Its only purpose is to give L0 and the independently
 compiled L1 the same native sizing rule without publishing numeric internals.
 
 Allocation owners call it and admit the resulting bytes before materializing
@@ -301,14 +301,18 @@ higher-level behavioral compatibility have not been verified in this task.
 Execution evidence and reproducible commands are owned by the
 [isolated verification package](../../../../Tests/L0ScalarVerification/VERIFICATION.md).
 
-## Redesign Verification Obligations
+## Resource Repair Verification
 
-The resource contract is currently incomplete: review R1 observed four-byte
-admission before a 40-byte monomial payload in the Native cubic-root sign path.
-The shared helper and repaired numeric call sites must be implemented before
-this redesign is reported as executed. Verify negative counts and overflow,
-target-specific stride, storage rejection before materialization, counter
-retention on failure, and the public sign of alpha squared minus three for the
-selected positive root of alpha cubed minus two. Reuse unchanged arithmetic,
-ownership and target evidence only while its premises remain valid. Build scope
-remains the isolated L0/L1 graphs; no higher target or new package is introduced.
+Review R1 is closed within this independent scalar scope. The shared payload
+helper and both numeric division call sites admit the typed monomial before
+construction. Negative counts, overflow, target-specific stride, storage
+rejection before materialization, retained failure counters and the public sign
+of alpha squared minus three for the positive root of alpha cubed minus two are
+verified. The direct internal univariate fixture first reproduced rejection after
+an insufficient one-word admission, then passed with pre-admission rejection.
+
+Current snapshot evidence is recorded once in
+[RESOURCE-REPAIR-VERIFICATION.md](../../../../Tests/L1PolynomialVerification/RESOURCE-REPAIR-VERIFICATION.md).
+It covers isolated Native tests, Address Sanitizer and the combined L0/L1 proof
+on normal and Embedded WASM. Higher consumers and main integration remain outside
+this task; no production package or target was introduced.

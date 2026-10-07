@@ -2,7 +2,7 @@
 package enum RationalAlgebraStorage {
     package static func retain<T, B: RationalAlgebraAdmitting>(_ count: Int, of type: T.Type,
         usage: inout B) throws {
-        try retainBytes(exactScalarCount(count, MemoryLayout<T>.stride, multiply: true), usage: &usage)
+        try retainBytes(exactScalarPayloadBytes(count: count, of: type), usage: &usage)
     }
     package static func retainBytes<B: RationalAlgebraAdmitting>(_ bytes: Int, usage: inout B) throws {
         let stride = MemoryLayout<UInt32>.stride

@@ -58,7 +58,7 @@ borrowing operands and a noncopyable, invocation-local observation handle. Work
 and storage belong to the caller's one L0 admission; the observer retains only
 attained depth and borrows that admission. It does not allocate a second budget.
 
-Payload-byte sizing is consumed from L0's planned exactScalarPayloadBytes free
+Payload-byte sizing is consumed from L0's exactScalarPayloadBytes free
 function, whose authority is [ExactScalar's resource contract](../ExactScalar/DESIGN.md#resource-semantics-and-lifecycle).
 L1 maps its countOverflow failure to the existing ExactPolynomialFailure case.
 It adds no independent sizing policy, allocator, scheduler or shared cache.
@@ -154,15 +154,21 @@ local commits and final snapshot/evidence correspondence.
 The completed target-specific evidence and reproduction commands are recorded in
 [L1PolynomialVerification/VERIFICATION.md](../../../../Tests/L1PolynomialVerification/VERIFICATION.md).
 
-## Redesign Verification Obligations
+## Resource Repair Verification
 
-Review R2 currently leaves multiplication's traversal contract incomplete: a
-5,000-term left operand times zero walks the outer loop with work 3 and storage 0.
-Verify both operand orders after the certified zero shortcut, retained depths,
-domain rejection and entry/final cancellation. Source-path inspection and a
-Native debug scaling measurement must distinguish elimination of the traversal
-from the unchanged mathematical result; testing only that the product is zero
-cannot close R2. Validate the shared sizing helper through actual L1 allocation
-paths and retain the independent work/storage failure checks. Public contracts,
-budgets and the mandatory mathematical input scope remain unchanged. Completion
-is pending implementation and affected isolated Native/WASM/Embedded validation.
+Review R2 is closed within this independent polynomial scope. A certified zero
+operand returns an empty canonical term list after both input owners and depths
+have been admitted. The result retains the attained depth and existing final
+checkpoints. Both operand orders, foreign-domain rejection, both retained depth
+axes, entry cancellation and terminal cancellation are verified.
+
+Native debug scaling measurements confirm elimination of the formerly unmetered
+outer traversal. Existing independent resource failure fixtures also execute
+through the shared L0 payload sizing rule; L1 count overflow keeps its original
+failure case. Public mathematical contracts and resource limits are unchanged.
+
+Current snapshot evidence and the before/after measurement are recorded once in
+[RESOURCE-REPAIR-VERIFICATION.md](../../../../Tests/L1PolynomialVerification/RESOURCE-REPAIR-VERIFICATION.md).
+Native, Address Sanitizer, normal WASM and Embedded WASM use the same repaired
+production sources. Higher geometry/intersection builds and main integration are
+outside the task.
