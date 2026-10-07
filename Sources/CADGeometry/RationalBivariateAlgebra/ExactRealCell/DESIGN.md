@@ -486,3 +486,12 @@ its affected evidence. Direct parent indices must remain reachable from the
 package master. No existing upper contract changes in this design: its new L3
 consumer relationship is prospective. The implementation task must update the
 real consumed upper contracts when it actually migrates those paths.
+
+### Implementation Sprint I1
+
+Source preparation, postfix validation and full coefficient/reductum/PSC projection
+are implemented in this directory. Exact structural deduplication retains original
+coefficients; no normalization erases provenance. Derivative, coefficient and PSC
+witnesses retain their inputs and outputs. Native tests compare the zero-th PSC with
+L1 resultant and a higher PSC with its known rank-deficient minor. The producer,
+lifting and querying ports remain pending until their implementation sprints.
