@@ -1,0 +1,45 @@
+{
+  "base": "29702a63",
+  "branch": "codex/exact-l1-l4-optimization",
+  "compiler": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+  "compilerVersion": "Apple Swift version 6.4 (swift-6.4-RELEASE)",
+  "node": "/usr/local/bin/node",
+  "nodeVersion": "v24.19.0",
+  "target": "wasm32-unknown-wasip1",
+  "timeoutSeconds": 120,
+  "jobs": 2,
+  "nativeTests": 70,
+  "asanTests": 70,
+  "sourceManifestSHA256": "88f397ed1bb8b0c990313ef8ce7d0038790bb64fb6214c44333c9114a8bcbc7e",
+  "logs": {
+    "after-build.log": "aa472eb293737f868e4c7b1a734c7857391ec4c2faaf11efdc972a51e8536f24",
+    "after.log": "d6a9bd489283b93948f90539bab34ba25ec7a764caa848fad57b8bef98467387",
+    "asan.log": "84ef31af7e952455c22d63dba9f2096aa69539867547275173408838bbea968b",
+    "baseline-build.log": "2cee7fa080ebb18aa2e093b1c721c7800a7bec7eeb351bf55876b56bfdceda30",
+    "before.log": "4c44d56f4212fef5e23d874bdc10c002341e9942a57aeea2053c1da09c3ff49d",
+    "embedded-build.log": "88c81c813913b7ecaf6a1e797be14cb533f36d762a0689db5d5a942ee00e5964",
+    "embedded-run.log": "6837c41fd765db18333f57f81e6218d5c3de0b6cf0a0bb26dc5569685446fe4d",
+    "focused.log": "089b32127b03fe42e54e5cf47a38c724f7077b639dfd66f90943c19d146b381b",
+    "native.log": "13315cd11b08a853daf10b030c2b0ac8c4536d17d216c1977bb54c5fb2b51618",
+    "pair-diagnostic.log": "159bb1ad199b45ea92e982179caf182be3c73843e0a06214e4cfcbe5035565d2",
+    "pair-recheck.log": "fd0fdffc2679e6d1fc825c6ff0b642e6f87ca98d4bc1f6d2818f93bf5aaad26c",
+    "wasm-build.log": "004cbce789cae6d1fbc276cd128d8840d5a57585a540932818ff764c0d2d7e37",
+    "wasm-run.log": "e093b237fc10028120d3e6c40da89ac3a818dadca61ddb901828ab64ff3a5659"
+  },
+  "artifacts": {
+    "wasm": {
+      "path": ".build/opt14-wasm/out/Products/Debug-webassembly-wasm32/L4Proof.wasm",
+      "sdk": "swift-6.4.0-RELEASE_wasm",
+      "sha256": "b714c7aec0769630803f59752fe68dcbd3471b21ba8e69bcc95793a77a25378c",
+      "bytes": 14299741,
+      "runtimeExit": 0
+    },
+    "embedded": {
+      "path": ".build/opt14-embedded/out/Products/Debug-webassembly-wasm32/L4Proof.wasm",
+      "sdk": "swift-6.4.0-RELEASE_wasm-embedded",
+      "sha256": "f86a299aa1bb888e0d72981e4fb41428af3dd975ec2d2935c4c0ef7bf3bee5c3",
+      "bytes": 21076601,
+      "runtimeExit": 0
+    }
+  }
+}

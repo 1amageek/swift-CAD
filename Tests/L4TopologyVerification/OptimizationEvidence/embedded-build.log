@@ -1,0 +1,17 @@
+Building for debugging...
+[Pre-planning 1 / 326]
+[Planning deferred tasks]
+[68 / 140] L0
+[79 / 144] L1
+[88 / 146]
+[95 / 148] L2
+[106 / 150]
+[113 / 152] L3
+[123 / 155] L3Fixtures
+[126 / 156] L4
+[138 / 158]
+[149 / 158] L4Fixtures
+[158 / 160] L4Proof-product
+/private/tmp/cad-exact-l1-l4-opt-20261008/Tests/L4TopologyVerification/Package.swift: L4Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[160 / 160] L4Proof-product
+Build complete! (23.78秒)

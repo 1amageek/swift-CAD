@@ -1,0 +1,20 @@
+Building for debugging...
+[Computing dependencies]
+[1 / 5] L4Fixtures
+[6 / 10] L4Fixtures
+[9 / 10] L4Tests-product
+[12 / 12] L4Proof-product
+Build complete! (1.04秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test retainedPairOptimization() started.
+TRACE: retained incidence start work=15511
+TRACE: retained incidence end work=22537
+TRACE: retained truth end work=918815
+TRACE: split incidence start work=962672
+􀢄  Test retainedPairOptimization() recorded an issue at LayerOptimizationTests.swift:5:2: Caught error: .cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.work)))))
+􀢄  Test retainedPairOptimization() failed after 7.373 seconds with 1 issue.
+􀢄  Test run with 1 test in 0 suites failed after 7.374 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L4Tests (Swift Testing)

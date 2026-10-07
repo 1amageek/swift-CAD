@@ -1,0 +1,244 @@
+{
+  "before": {
+    "L1.monomial100": [
+      {
+        "seconds": 0.016245167,
+        "work": 121300,
+        "storageBytes": 921600
+      },
+      {
+        "seconds": 0.013884792,
+        "work": 121300,
+        "storageBytes": 921600
+      },
+      {
+        "seconds": 0.013950708,
+        "work": 121300,
+        "storageBytes": 921600
+      }
+    ],
+    "L2.singleton100": [
+      {
+        "seconds": 0.07128825,
+        "work": 209200,
+        "storageBytes": 2939200
+      },
+      {
+        "seconds": 0.068972083,
+        "work": 209200,
+        "storageBytes": 2939200
+      },
+      {
+        "seconds": 0.070205375,
+        "work": 209200,
+        "storageBytes": 2939200
+      }
+    ],
+    "L3.projection3": [
+      {
+        "seconds": 0.047077959,
+        "work": 78477,
+        "storageBytes": 3119364
+      },
+      {
+        "seconds": 0.046036042,
+        "work": 78477,
+        "storageBytes": 3119364
+      },
+      {
+        "seconds": 0.048198792,
+        "work": 78477,
+        "storageBytes": 3119364
+      }
+    ],
+    "pipeline.partition": [
+      {
+        "seconds": 6.883267792,
+        "work": 6252721,
+        "storageBytes": 281407945
+      },
+      {
+        "seconds": 6.867086375,
+        "work": 6252721,
+        "storageBytes": 281407945
+      },
+      {
+        "seconds": 6.976559708,
+        "work": 6252721,
+        "storageBytes": 281407945
+      }
+    ],
+    "L4.incidence": [
+      {
+        "seconds": 4.59826375,
+        "work": 9245209,
+        "storageBytes": 292176581
+      },
+      {
+        "seconds": 4.575064125,
+        "work": 9245209,
+        "storageBytes": 292176581
+      },
+      {
+        "seconds": 4.605771542,
+        "work": 9245209,
+        "storageBytes": 292176581
+      }
+    ],
+    "L4.components": [
+      {
+        "seconds": 0.000611084,
+        "work": 4942,
+        "storageBytes": 3056
+      },
+      {
+        "seconds": 0.000577417,
+        "work": 4942,
+        "storageBytes": 3056
+      },
+      {
+        "seconds": 0.000501167,
+        "work": 4942,
+        "storageBytes": 3056
+      }
+    ],
+    "pipeline.total": [
+      {
+        "seconds": 11.482725667,
+        "work": 15504668,
+        "storageBytes": 573601957
+      },
+      {
+        "seconds": 11.4432335,
+        "work": 15504668,
+        "storageBytes": 573601957
+      },
+      {
+        "seconds": 11.583351167,
+        "work": 15504668,
+        "storageBytes": 573601957
+      }
+    ]
+  },
+  "after": {
+    "L1.monomial100": [
+      {
+        "seconds": 0.007694333,
+        "work": 51500,
+        "storageBytes": 307200
+      },
+      {
+        "seconds": 0.008090709,
+        "work": 51500,
+        "storageBytes": 307200
+      },
+      {
+        "seconds": 0.009876041,
+        "work": 51500,
+        "storageBytes": 307200
+      }
+    ],
+    "L2.singleton100": [
+      {
+        "seconds": 0.002104959,
+        "work": 6900,
+        "storageBytes": 27200
+      },
+      {
+        "seconds": 0.002032292,
+        "work": 6900,
+        "storageBytes": 27200
+      },
+      {
+        "seconds": 0.006072125,
+        "work": 6900,
+        "storageBytes": 27200
+      }
+    ],
+    "L3.projection3": [
+      {
+        "seconds": 0.044974417,
+        "work": 67659,
+        "storageBytes": 2172108
+      },
+      {
+        "seconds": 0.039872958,
+        "work": 67659,
+        "storageBytes": 2172108
+      },
+      {
+        "seconds": 0.056811541,
+        "work": 67659,
+        "storageBytes": 2172108
+      }
+    ],
+    "pipeline.partition": [
+      {
+        "seconds": 6.256726208,
+        "work": 5687140,
+        "storageBytes": 228616449
+      },
+      {
+        "seconds": 6.272410417,
+        "work": 5687140,
+        "storageBytes": 228616449
+      },
+      {
+        "seconds": 6.567989875,
+        "work": 5687140,
+        "storageBytes": 228616449
+      }
+    ],
+    "L4.incidence": [
+      {
+        "seconds": 2.396262,
+        "work": 3690954,
+        "storageBytes": 136558296
+      },
+      {
+        "seconds": 2.447200042,
+        "work": 3690954,
+        "storageBytes": 136558296
+      },
+      {
+        "seconds": 2.499452375,
+        "work": 3690954,
+        "storageBytes": 136558296
+      }
+    ],
+    "L4.components": [
+      {
+        "seconds": 0.000301459,
+        "work": 3578,
+        "storageBytes": 3936
+      },
+      {
+        "seconds": 0.000323458,
+        "work": 3578,
+        "storageBytes": 3936
+      },
+      {
+        "seconds": 0.000337,
+        "work": 3578,
+        "storageBytes": 3936
+      }
+    ],
+    "pipeline.total": [
+      {
+        "seconds": 8.653842375,
+        "work": 9383452,
+        "storageBytes": 365192048
+      },
+      {
+        "seconds": 8.720525333,
+        "work": 9383452,
+        "storageBytes": 365192048
+      },
+      {
+        "seconds": 9.06836775,
+        "work": 9383452,
+        "storageBytes": 365192048
+      }
+    ]
+  }
+}

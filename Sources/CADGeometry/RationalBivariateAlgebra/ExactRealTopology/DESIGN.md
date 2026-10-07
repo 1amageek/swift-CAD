@@ -452,3 +452,27 @@ isolated worktree. Verification artifacts identify exact snapshots and build inp
 No upper-module build, legacy-source migration, main merge or seven-requirement
 completion is part of these independent gates. An implemented structure or type
 cannot satisfy any behavioral completion gate.
+
+## Retained Decision and Mask Optimization
+
+This optimization retains public protocols, result fields and proof selection.
+Incidence creates one immutable original cover and maps selected IDs through
+public equality once. When a closure already carries a complete truth table on
+that same original cover, its issued decisions answer whole-target containment.
+A successful whole-target result shares the target's one-hot native Array; an
+excluded target shares one all-false Array. Arrays are admitted on creation and
+never mutated after publication; pair handles are still admitted. There are no
+shared mutable caches, new unsafe paths or implicit budget resets.
+
+Other certified reuse keeps its exact sign proof; partial targets retain complete
+refinement. Every directed pair remains represented and every nonempty piece is
+retained. Whole-target and excluded pairs emit their known piece count directly
+without scanning the complete cover. Components validate all pairs once and
+bucket members/witnesses by deterministic component offsets; no per-component
+rescan of all pairs is needed. Value/depth owners and final checkpoints remain.
+
+The folded integration fixture separately exercises each public closure before
+incidence. Performance measurements separate that diagnostic work from the
+actual partition/selection/incidence/components path. Proof-route requirements
+and the general solver are outside this performance change; no new completion
+claim for the seven CAD requirements is made.

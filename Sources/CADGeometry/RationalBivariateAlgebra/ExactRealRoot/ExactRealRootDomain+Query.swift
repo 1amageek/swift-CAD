@@ -106,6 +106,11 @@ extension ExactRealRootDomain {
                 let coefficientSign = try context.field.sign(of: leading.coefficient, using: &a)
                 return side == coefficientSign ? .positive : .negative
             }
+            // The admitted singleton receipt already proves the root coordinate.
+            if case .finite(let lo) = root.isolation.lower, case .finite(let hi) = root.isolation.upper,
+                try context.field.compare(lo, hi, using: &a) == .equal {
+                return try context.field.sign(of: evaluated(polynomial.law, lo, &a), using: &a)
+            }
             let gcd = try context.univariate.greatestCommonDivisor(root.proof.polynomial, polynomial.law, using: &a)
             if try roots(sturm(gcd, &a), root.isolation, &a) == 1 { return .zero }
             let query = try sturm(polynomial.law, &a)

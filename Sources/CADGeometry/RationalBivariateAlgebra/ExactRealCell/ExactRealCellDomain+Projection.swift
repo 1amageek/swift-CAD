@@ -79,9 +79,15 @@ extension ExactRealCellDomain {
         guard let m = try polynomials.degree(of: first, in: axis, using: &a),
             let n = try polynomials.degree(of: second, in: axis, using: &a), index >= 0, index < min(m,n)
             else { throw ExactRealCellFailure.invalidVariable }
+        return try principal(firstCoefficients: coefficientVector(first, axis: axis, &a),
+            secondCoefficients: coefficientVector(second, axis: axis, &a), index: index, &a)
+    }
+    func principal(firstCoefficients ac: [Polynomial], secondCoefficients bc: [Polynomial], index: Int,
+        _ a: inout ExactCellBorrowedAdmission) throws -> Polynomial {
+        let m = ac.count-1, n = bc.count-1
+        guard index >= 0, index < min(m,n) else { throw ExactRealCellFailure.invalidVariable }
         let sum = try ExactCellAccess.add(m,n), twice = try ExactCellAccess.multiply(index,2)
         let size = sum-twice, highest = sum-index-1
-        let ac = try coefficientVector(first, axis: axis, &a), bc = try coefficientVector(second, axis: axis, &a)
         let zero = try polynomials.zero(using: &a)
         try ExactCellAccess.storage(ExactCellAccess.multiply(size,size), Polynomial.self, &a)
         var matrix: [Polynomial] = []; matrix.reserveCapacity(try ExactCellAccess.multiply(size,size))
@@ -140,8 +146,10 @@ extension ExactRealCellDomain {
                     try ExactCellAccess.storage(1, Polynomial.self, &a); reducta.append(remainder)
                     let derivative = try polynomials.differentiated(remainder, in: axis, using: &a)
                     if let n = try polynomials.degree(of: derivative, in: axis, using: &a), n > 0 {
+                        let ac = try coefficientVector(remainder,axis:axis,&a)
+                        let bc = try coefficientVector(derivative,axis:axis,&a)
                         for j in 0..<min(degree,n) {
-                            let psc = try principal(remainder, derivative, axis: axis, index: j, &a)
+                            let psc = try principal(firstCoefficients:ac,secondCoefficients:bc,index:j,&a)
                             try ExactCellAccess.storage(1, ExactRealCellProjectionWitness<Base>.self, &a)
                             witnesses.append(.principal(first: remainder, second: derivative, result: psc, axis: axis, index: j))
                             try insert(psc, into: &lower, &a)
@@ -159,8 +167,10 @@ extension ExactRealCellDomain {
             for i in families.indices { for j in families.indices where j > i {
                 for left in families[i] { for right in families[j] {
                     guard let m = try polynomials.degree(of: left, in: axis, using: &a), let n = try polynomials.degree(of: right, in: axis, using: &a) else { throw ExactRealCellFailure.invalidCoverage }
+                    let ac = try coefficientVector(left,axis:axis,&a)
+                    let bc = try coefficientVector(right,axis:axis,&a)
                     for k in 0..<min(m,n) {
-                        let psc = try principal(left,right,axis:axis,index:k,&a)
+                        let psc = try principal(firstCoefficients:ac,secondCoefficients:bc,index:k,&a)
                         try ExactCellAccess.storage(1, ExactRealCellProjectionWitness<Base>.self, &a)
                         witnesses.append(.principal(first:left,second:right,result:psc,axis:axis,index:k))
                         try insert(psc,into:&lower,&a)

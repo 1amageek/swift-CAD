@@ -1,0 +1,24 @@
+sample 0
+L1.monomial100 elapsed=0.007694333 seconds work=51500 storage=307200
+L2.singleton100 elapsed=0.002104959 seconds work=6900 storage=27200
+L3.projection3 elapsed=0.044974417 seconds work=67659 storage=2172108
+pipeline.partition elapsed=6.256726208 seconds work=5687140 storage=228616449
+L4.incidence elapsed=2.396262 seconds work=3690954 storage=136558296
+L4.components elapsed=0.000301459 seconds work=3578 storage=3936
+pipeline.total elapsed=8.653842375 seconds work=9383452 storage=365192048
+sample 1
+L1.monomial100 elapsed=0.008090709 seconds work=51500 storage=307200
+L2.singleton100 elapsed=0.002032292 seconds work=6900 storage=27200
+L3.projection3 elapsed=0.039872958 seconds work=67659 storage=2172108
+pipeline.partition elapsed=6.272410417 seconds work=5687140 storage=228616449
+L4.incidence elapsed=2.447200042 seconds work=3690954 storage=136558296
+L4.components elapsed=0.000323458 seconds work=3578 storage=3936
+pipeline.total elapsed=8.720525333 seconds work=9383452 storage=365192048
+sample 2
+L1.monomial100 elapsed=0.009876041 seconds work=51500 storage=307200
+L2.singleton100 elapsed=0.006072125 seconds work=6900 storage=27200
+L3.projection3 elapsed=0.056811541 seconds work=67659 storage=2172108
+pipeline.partition elapsed=6.567989875 seconds work=5687140 storage=228616449
+L4.incidence elapsed=2.499452375 seconds work=3690954 storage=136558296
+L4.components elapsed=0.000337 seconds work=3578 storage=3936
+pipeline.total elapsed=9.06836775 seconds work=9383452 storage=365192048

@@ -185,3 +185,13 @@ Differential fixtures use public canonical construction as the reference and
 cover cancellation, complete cancellation of coefficients, zero operands,
 foreign owners and shared inherited depth. All original algebraic identities
 remain regression obligations; resource limits are unchanged.
+
+## Ordered Product Optimization
+
+Multiplication with a one-term operand translates every exponent by the same
+nonnegative vector; canonical order and uniqueness are preserved. Coefficient
+scaling changes no exponents. Both operations validate operands and retain their
+depths through the existing query before emitting canonical terms without sorting.
+Every emitted coefficient still receives an exact zero test. Checked exponent
+addition, typed payload pre-admission, cancellation and final checkpoints remain.
+Differential fixtures use public arbitrary-term canonical construction.

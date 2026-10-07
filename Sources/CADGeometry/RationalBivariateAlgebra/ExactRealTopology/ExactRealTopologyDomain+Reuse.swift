@@ -78,22 +78,4 @@ extension ExactRealTopologyDomain {
   }
   return certificates
  }
- func reusedRegion<A: ExactScalarAdmission & ~Copyable>(_ closure: ExactRealClosure<Base>, target: ExactRealClosure<Base>,
-  certificate: [ExactRealTopologySignInvariant<Base>], cover: [ExactRealCellID<Base>], counts: inout ExactTopologyCounts, _ a: inout A) throws -> ExactRealTopologyRegion<Base> {
-  let partition = closure.definition.partition
-  let provider = try Cells(retaining:partition.source,using:&a)
-  let sample = try provider.sample(of:target.definition.cell,in:partition,using:&a)
-  let included = try certifiedTruth(closure.region.instructions,certificate:certificate,sample:sample,counts:&counts,&a)
-  try counts.retain(sample.depth,&a)
-  try ExactTopologyAccess.storage(cover.count,Bool.self,&a)
-  var labels = Array(repeating:false,count:cover.count), found = false
-  for index in cover.indices {
-   try a.consumeWork(1)
-   if cover[index] == target.definition.cell { labels[index] = included; found = true }
-  }
-  guard found else { throw ExactRealTopologyFailure.foreignReceipt }
-  return .init(partition:partition,coordinateCount:closure.definition.coordinateCount,cells:cover,included:labels,
-   excludesExterior:true,formulaAtoms:closure.region.formulaAtoms,signInvariants:certificate,certifiedTarget:target.definition.cell,reductions:[],eliminations:[],depth:counts.depth,
-   decisions:[],quantifiers:[],instructions:closure.region.instructions)
- }
 }

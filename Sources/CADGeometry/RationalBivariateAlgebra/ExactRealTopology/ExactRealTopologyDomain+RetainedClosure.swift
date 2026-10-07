@@ -40,9 +40,9 @@ extension ExactRealTopologyDomain {
    decisions:[],quantifiers:[],instructions:[])
  }
  func affineRegion<A: ExactScalarAdmission & ~Copyable>(_ definition: ExactRealCellDefinition<Base>, formula: ExactTopologyFormula<Base>,
-  certificate: [ExactRealTopologySignInvariant<Base>], counts: inout ExactTopologyCounts, _ a: inout A) throws -> ExactRealTopologyRegion<Base> {
+  certificate: [ExactRealTopologySignInvariant<Base>], counts: inout ExactTopologyCounts, retainedCover: [ExactRealCellID<Base>]? = nil, _ a: inout A) throws -> ExactRealTopologyRegion<Base> {
   let partition = definition.partition, provider = try Cells(retaining:partition.source,using:&a)
-  let cells = try cover(partition,&a)
+  let cells = try retainedCover ?? cover(partition,&a)
   try ExactTopologyAccess.storage(cells.count,Bool.self,&a)
   var labels: [Bool] = []; labels.reserveCapacity(cells.count)
   for cell in cells {

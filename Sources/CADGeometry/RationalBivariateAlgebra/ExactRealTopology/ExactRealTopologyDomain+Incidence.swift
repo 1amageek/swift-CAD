@@ -28,6 +28,14 @@ extension ExactRealTopologyDomain: ExactRealIncidenceProducing {
   guard witness == f.polynomials.variableCount else { throw ExactRealTopologyFailure.invalidFormula }
   return try reduce(f,limits:limits,counts:&counts,&a)
  }
+ func appendAttachment<A: ExactScalarAdmission & ~Copyable>(source: ExactRealCellID<Base>, target: ExactRealCellID<Base>,
+  closure: ExactRealClosure<Base>, region: ExactRealTopologyRegion<Base>, piece: ExactRealCellID<Base>,
+  limits: ExactRealTopologyLimits, counts: inout ExactTopologyCounts, attachments: inout [ExactRealAttachment<Base>], _ a: inout A) throws {
+  counts.pieces = try ExactTopologyAccess.add(counts.pieces,1)
+  guard counts.pieces <= limits.maximumAttachmentPieces else { throw ExactRealTopologyFailure.attachmentLimit }
+  try ExactTopologyAccess.storage(ExactTopologyAccess.add(attachments.count,1),ExactRealAttachment<Base>.self,&a)
+  attachments.append(.init(source:source,target:target,closure:closure,region:region,piece:piece))
+ }
  public func incidence<A: ExactScalarAdmission & ~Copyable>(of selection: borrowing ExactRealCellSelection<Base>, strategy: ExactRealClosureStrategy,
   limits: ExactRealTopologyLimits, using admission: inout A) throws(ExactRealTopologyFailure) -> ExactRealIncidence<Base> {
   do {
@@ -38,18 +46,43 @@ extension ExactRealTopologyDomain: ExactRealIncidenceProducing {
    let provider = try Cells(retaining:partition.source,using:&admission)
    // The retained selection validates source ownership even when it is empty.
    _ = try provider.coefficientField(of:selection.predicate.source,using:&admission)
+   let cover = try self.cover(partition,&admission)
+   try ExactTopologyAccess.storage(n,Int.self,&admission)
+   var targets: [Int] = []; targets.reserveCapacity(n)
+   for cell in cells {
+    var ordinal: Int? = nil
+    for index in cover.indices { try admission.consumeWork(1); if cover[index] == cell { ordinal = index; break } }
+    guard let ordinal else { throw ExactRealTopologyFailure.foreignReceipt }
+    targets.append(ordinal)
+   }
    try ExactTopologyAccess.storage(n,ExactRealClosure<Base>.self,&admission)
    var closures: [ExactRealClosure<Base>] = []; closures.reserveCapacity(n)
    for cell in cells {
     try admission.consumeWork(1)
-    closures.append(try issuedClosure(of:cell,in:partition,strategy:strategy,limits:limits,counts:&counts,&admission))
+    closures.append(try issuedClosure(of:cell,in:partition,strategy:strategy,limits:limits,counts:&counts,retainedCover:cover,&admission))
    }
+   try ExactTopologyAccess.storage(n,Bool.self,&admission)
    try ExactTopologyAccess.storage(n,[ExactRealTopologySignInvariant<Base>]?.self,&admission)
+   var originalCovers: [Bool] = []; originalCovers.reserveCapacity(n)
    var certificates: [[ExactRealTopologySignInvariant<Base>]?] = []; certificates.reserveCapacity(n)
-   for closure in closures { certificates.append(try invariantAtoms(closure.definition,atoms:closure.region.formulaAtoms,instructions:closure.region.instructions,quantifiers:closure.region.quantifiers,counts:&counts,&admission)) }
-   try ExactTopologyAccess.storage(partition.cells.count,ExactRealCellID<Base>.self,&admission)
-   var cover: [ExactRealCellID<Base>] = []; cover.reserveCapacity(partition.cells.count)
-   for cell in partition.cells { try admission.consumeWork(1); cover.append(cell) }
+   for closure in closures {
+    try admission.consumeWork(1)
+    let region = closure.region
+    var same = region.coordinateCount == partition.source.variableCount && region.cells.count == cover.count
+    guard region.included.count == region.cells.count else { throw ExactRealTopologyFailure.invalidCoverage }
+    if same {
+     for index in cover.indices { try admission.consumeWork(1); if region.cells[index] != cover[index] { same = false; break } }
+    }
+    originalCovers.append(same)
+    // Complete issued labels already prove whole-cell truth on this exact cover.
+    certificates.append(same ? nil : try invariantAtoms(closure.definition,atoms:region.formulaAtoms,instructions:region.instructions,quantifiers:region.quantifiers,counts:&counts,&admission))
+   }
+   try ExactTopologyAccess.storage(cover.count,Bool.self,&admission)
+   try admission.consumeWork(cover.count)
+   let excluded = Array(repeating:false,count:cover.count)
+   try ExactTopologyAccess.storage(n,[Bool]?.self,&admission)
+   try admission.consumeWork(n)
+   var targetMasks = Array<[Bool]?>(repeating:nil,count:n)
    let pairCount = try ExactTopologyAccess.multiply(n,n)
    try ExactTopologyAccess.storage(pairCount,ExactRealIncidencePair<Base>.self,&admission)
    var pairs: [ExactRealIncidencePair<Base>] = []; pairs.reserveCapacity(pairCount)
@@ -61,20 +94,45 @@ extension ExactRealTopologyDomain: ExactRealIncidenceProducing {
     if i == j { region = nil }
     else {
      let result: ExactRealTopologyRegion<Base>
-     if closures[i].proof == .point {
-      result = try pointRegion(closures[i].definition,cover:cover,target:cells[j],included:false,counts:&counts,&admission)
+     let wholeTarget: Bool?
+     if originalCovers[i] {
+      wholeTarget = closures[i].region.included[targets[j]]
      } else if let certificate = certificates[i] {
-      result = try reusedRegion(closures[i],target:closures[j],certificate:certificate,cover:cover,counts:&counts,&admission)
-     } else { result = try intersection(closures[i],target:closures[j],limits:limits,counts:&counts,&admission) }
-     region = result
-     for index in result.cells.indices {
-      try admission.consumeWork(1)
-      if !result.included[index] { continue }
-      counts.pieces = try ExactTopologyAccess.add(counts.pieces,1)
-      guard counts.pieces <= limits.maximumAttachmentPieces else { throw ExactRealTopologyFailure.attachmentLimit }
-      try ExactTopologyAccess.storage(ExactTopologyAccess.add(attachments.count,1),ExactRealAttachment<Base>.self,&admission)
-      attachments.append(.init(source:cells[i],target:cells[j],closure:closures[i],region:result,piece:result.cells[index]))
+      let sample = try provider.sample(of:cells[j],in:partition,using:&admission)
+      wholeTarget = try certifiedTruth(closures[i].region.instructions,certificate:certificate,sample:sample,counts:&counts,&admission)
+      try counts.retain(sample.depth,&admission)
+     } else { wholeTarget = nil }
+     if let included = wholeTarget {
+      let labels: [Bool]
+      if included {
+       if targetMasks[j] == nil {
+        // The first mutation makes one admitted COW copy; published masks are immutable.
+        try ExactTopologyAccess.storage(cover.count,Bool.self,&admission)
+        try admission.consumeWork(cover.count)
+        var mask = excluded; mask[targets[j]] = true; targetMasks[j] = mask
+       }
+       labels = targetMasks[j]!
+      } else { labels = excluded }
+      let original = closures[i].region
+      result = .init(partition:partition,coordinateCount:partition.source.variableCount,cells:cover,included:labels,
+       excludesExterior:true,formulaAtoms:original.formulaAtoms,signInvariants:certificates[i] ?? original.signInvariants,
+       certifiedTarget:cells[j],reductions:original.reductions,eliminations:original.eliminations,depth:counts.depth,
+       decisions:[],quantifiers:[],instructions:original.instructions)
+      if included {
+       try appendAttachment(source:cells[i],target:cells[j],closure:closures[i],region:result,piece:cells[j],
+        limits:limits,counts:&counts,attachments:&attachments,&admission)
+      }
+     } else {
+      result = try intersection(closures[i],target:closures[j],limits:limits,counts:&counts,&admission)
+      for index in result.cells.indices {
+       try admission.consumeWork(1)
+       if result.included[index] {
+        try appendAttachment(source:cells[i],target:cells[j],closure:closures[i],region:result,piece:result.cells[index],
+         limits:limits,counts:&counts,attachments:&attachments,&admission)
+       }
+      }
      }
+     region = result
     }
     pairs.append(.init(source:cells[i],target:cells[j],region:region,attachments:start..<attachments.count))
    } }

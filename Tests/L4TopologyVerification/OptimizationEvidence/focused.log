@@ -1,0 +1,60 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 501]
+[Finalizing plan]
+[82 / 204] L3Fixtures
+[85 / 218] L3Fixtures
+[101 / 218] L3Fixtures
+[102 / 218] L3Fixtures
+[105 / 218] L3Fixtures
+[106 / 218] L3Fixtures
+[108 / 218] L3Tests-product
+[112 / 220] L2Fixtures
+[128 / 230] L2Fixtures
+[138 / 230] L1Fixtures
+[139 / 230] L1Fixtures
+[143 / 231] L0Fixtures
+[157 / 236] L0Fixtures
+[160 / 236] L0Fixtures
+[167 / 239] L4Proof-product
+[177 / 241] L2Fixtures
+[183 / 272]
+[189 / 273] L2Tests-product
+[195 / 276]
+[200 / 277]
+[202 / 280] L0ScalarTests-product
+[207 / 281]
+[210 / 284]
+[211 / 284]
+[214 / 284] L4Tests-product
+[227 / 284] L3Tests-product
+[237 / 284] L4Tests-product
+[238 / 284] L4Tests-product
+[246 / 284] L3Tests-product
+[249 / 284] L4Tests-product
+[250 / 284] L2Tests-product
+[252 / 284] L2Tests-product
+[255 / 284] L3Tests-product
+[259 / 284] L2Tests-product
+[262 / 284] AllIncludingTests
+[275 / 284] L1PolynomialTests-product
+Build complete! (6.28秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test retainedPairOptimization() started.
+􀟈  Test singletonSignOptimization() started.
+􀟈  Test orderedProductOptimization() started.
+􁁛  Test orderedProductOptimization() passed after 0.001 seconds.
+􁁛  Test singletonSignOptimization() passed after 0.001 seconds.
+􀢄  Test retainedPairOptimization() recorded an issue at LayerOptimizationTests.swift:5:2: Caught error: .cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.work)))))
+􀢄  Test retainedPairOptimization() failed after 29.124 seconds with 1 issue.
+􀢄  Test run with 3 tests in 0 suites failed after 29.124 seconds with 1 issue.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test projectionAndSource() started.
+􁁛  Test projectionAndSource() passed after 0.003 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.003 seconds.
+Note: Some test targets reported failures:
+  - L4Tests (Swift Testing)

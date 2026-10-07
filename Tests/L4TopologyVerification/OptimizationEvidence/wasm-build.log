@@ -1,0 +1,52 @@
+Building for debugging...
+[Pre-planning 1 / 326]
+[Starting]
+[69 / 154] L0
+[71 / 154] L0
+[77 / 154] L1
+[80 / 154] L0
+[82 / 154] L0
+[84 / 154] L0
+[86 / 154] L0
+[86 / 154]
+[91 / 177] L1
+[104 / 177] L1
+[108 / 177] L1
+[112 / 177] L1
+[115 / 177] L0Fixtures
+[117 / 178] L1
+[119 / 178] L0Fixtures
+[126 / 194] L2
+[134 / 195] L2
+[138 / 195] L2
+[141 / 195] L2
+[144 / 195] L2
+[150 / 216] L1Fixtures
+[163 / 217] L3
+[166 / 217] L4
+[171 / 217] L3
+[173 / 217] L3
+[176 / 217] L3
+[179 / 218] L3
+[184 / 225] L2Fixtures
+[184 / 225] L1Fixtures
+[192 / 226] L2Fixtures
+[194 / 226] L1Fixtures
+[200 / 244] L3Fixtures
+[209 / 253] L4
+[218 / 253] L4
+[220 / 253] L4
+[222 / 253] L4
+[224 / 253] L4
+[226 / 253] L3Fixtures
+[229 / 254] L4
+[231 / 254] L3Fixtures
+[234 / 254] L3Fixtures
+[240 / 260] L3Fixtures
+[247 / 261] L4Fixtures
+[249 / 261] L3Fixtures
+[254 / 264] L4Proof-product
+[262 / 265] L4Fixtures
+/private/tmp/cad-exact-l1-l4-opt-20261008/Tests/L4TopologyVerification/Package.swift: L4Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[266 / 266] L4Proof-product
+Build complete! (8.20秒)

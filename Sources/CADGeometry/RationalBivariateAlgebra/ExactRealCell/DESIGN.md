@@ -643,3 +643,13 @@ before materialization. Degree gaps still produce exact zero coefficients and
 all original projection/PSC witnesses remain unchanged. Query-local arrays add
 no shared mutable cache or new public contract. Differential fixtures compare
 against independently filtered original terms and exercise all selected axes.
+
+## Shared Principal Coefficients
+
+A complete family of principal subresultant coefficients for the same ordered
+polynomial pair and axis reuses its two issued coefficient vectors. Each required
+matrix and determinant is still constructed and certified; no rank witness is
+omitted. The existing one-index entry remains a wrapper. Reused arrays retain
+immutable polynomials, depths and the caller admission; only actual new payloads
+are admitted again. Public decomposition plus independent small Sylvester/minor
+fixtures establish equality of the full witness family.

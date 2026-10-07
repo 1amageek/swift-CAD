@@ -442,3 +442,13 @@ receipts retain the original common-root proof and refinement algorithm.
 Exact field comparison uses the same cumulative admission. Fixtures cover both
 orders, identical roots, touching intervals and different-source comparisons;
 existing multiplicity, refinement, tower and failure fixtures remain obligations.
+
+## Singleton Sign Optimization
+
+After both sources, proof ownership and causal depths are admitted, a finite
+singleton isolating interval identifies its exact root coordinate. A nonlinear
+query polynomial can be evaluated there directly without a GCD/Sturm proof.
+Non-singleton intervals keep the existing exact algorithm. Zero/constant/linear
+queries and all independent failure contracts retain their meaning. Verification
+compares public polynomial evaluation and includes zero, either sign, foreign
+owners, resource rejection and terminal cancellation.

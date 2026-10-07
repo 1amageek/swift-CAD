@@ -80,7 +80,7 @@ extension ExactRealTopologyDomain: ExactRealClosureProducing, ExactRealTopologyQ
   return region
  }
  func issuedClosure<A: ExactScalarAdmission & ~Copyable>(of cell: ExactRealCellID<Base>, in partition: ExactRealCellPartition<Base>,
-  strategy: ExactRealClosureStrategy, limits: ExactRealTopologyLimits, counts: inout ExactTopologyCounts, _ a: inout A) throws -> ExactRealClosure<Base> {
+  strategy: ExactRealClosureStrategy, limits: ExactRealTopologyLimits, counts: inout ExactTopologyCounts, retainedCover: [ExactRealCellID<Base>]? = nil, _ a: inout A) throws -> ExactRealClosure<Base> {
   try a.checkpoint(); try counts.retain(partition.depth,&a)
   let provider = try Cells(retaining:partition.source,using:&a)
   let definition = try provider.definition(of:cell,in:partition,using:&a)
@@ -93,12 +93,12 @@ extension ExactRealTopologyDomain: ExactRealClosureProducing, ExactRealTopologyQ
   let proof: ExactRealClosureProof, region: ExactRealTopologyRegion<Base>
   var applicability: ExactRealTopologyRegion<Base>? = nil
   if strategy == .automatic && cell.dimension == 0 {
-   proof = .point; region = try pointRegion(definition,cover:cover(partition,&a),target:cell,included:true,counts:&counts,&a)
+   proof = .point; region = try pointRegion(definition,cover:retainedCover ?? cover(partition,&a),target:cell,included:true,counts:&counts,&a)
   } else if try strategy == .automatic && affine(definition,through:definition.coordinateCount,factors:factors,&a) {
    proof = .affine
    let f = try direct(definition,weak:true,factors:factors,&a)
    if try closedBox(partition.source,&a), let certificate = try invariantAtoms(definition,atoms:f.atoms,instructions:f.instructions,quantifiers:f.quantifiers,counts:&counts,&a) {
-    region = try affineRegion(definition,formula:f,certificate:certificate,counts:&counts,&a)
+    region = try affineRegion(definition,formula:f,certificate:certificate,counts:&counts,retainedCover:retainedCover,&a)
    } else { region = try reduce(f,limits:limits,counts:&counts,&a) }
   } else if strategy == .automatic, let graph = try boundedGraph(definition,limits:limits,counts:&counts,&a) {
    proof = .boundedSectionGraph; region = graph; applicability = graph
