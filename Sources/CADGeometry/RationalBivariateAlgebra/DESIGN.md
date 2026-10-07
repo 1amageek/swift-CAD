@@ -20,6 +20,7 @@ isolation, branch topology or that an interval containing zero is an exact root.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [ExactPolynomial](ExactPolynomial/DESIGN.md) | child | L1 polynomial protocols | Depends only on L0 | Independent verification excludes higher consumers |
 | [ExactScalar](ExactScalar/DESIGN.md) | child and depends on | Exact scalar operation and admission protocols | Owns the five L0 contracts | Higher consumers are outside the independent L0 build |
 | [CADGeometry](../DESIGN.md) | parent | Original stored coefficients and native charts | Owns geometry source validation | No fitted source |
 | [Surface Silhouette](../SurfaceSilhouette/DESIGN.md) | used by | Cumulative work/storage admission | Uses original scalar equality | Real-root lifting is a separate proof |
@@ -1101,6 +1102,11 @@ coefficient. These are the same quotient and chain that generic GCD/long divisio
 produce; the linear polynomial has no repeated factor. Root counts, endpoint
 exclusions, bisection, original field and admission domains remain unchanged.
 
+
+## Exact Polynomial Contract
+
+The [ExactPolynomial](ExactPolynomial/DESIGN.md) child owns L1 and depends only
+on the fixed L0 scalar contracts. The parent owns higher consumers.
 
 ## Exact Scalar Contract
 
