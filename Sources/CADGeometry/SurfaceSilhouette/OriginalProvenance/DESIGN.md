@@ -75,3 +75,14 @@ incident-curve/endpoint-side arrays. Constant-image publication retains the orig
 curve descriptor together with the upper whole-D1-zero and trim receipt.
 
 `Station.writeOriginalProvenance(admittedContact:to:usage:)` visits the actual upper retained station/refinement pair in one emitter and one reference namespace. Runtime owns that association; the visitor preserves both full root laws and does not infer identity from coinciding bounds or deduplicate independent owners.
+
+## L0 Integration
+The field context now retains the shape-independent ExactAlgebraicPairAuthority.
+Its provenance record emits its original projection root, selected fiber root and
+fiber law, under that explicit record type. Geometric source domains and system
+multiplicities remain owned by their outer Geometry receipts, whose existing
+records are unchanged. No domain or multiplicity is fabricated for scalar-only
+owners. Existing event sinks transport typed records without dispatch on this
+record type; the previous ExactBivariateSystemRoot record remains available for
+actual geometric system receipts. The owning integration fixture checks the
+scalar-authority fields and sink failure/cancellation under the same usage.

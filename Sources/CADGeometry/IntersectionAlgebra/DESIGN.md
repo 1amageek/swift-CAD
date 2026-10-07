@@ -1422,3 +1422,11 @@ supplies them. Preferred full rank partitions keep their unpruned contract.
 AdmittedIntersectionRingTests checks both original boundary points, positive and
 negative leading guards, retained domain exclusions and forced full incidence
 under the unchanged 20M work/storage and depth24 allowance.
+
+## L0 Failure Publication
+The existing public OriginalPolynomialRelation resolver normalizes L0 scalar
+resource/invalid/unresolved errors at its Geometry publication boundary. Non-scalar caller errors and scalar admissionRejected causes retain their original
+identity; scalar failures follow Geometry normalization. Cancellation remains explicit.
+The independent L0-L5 APIs continue publishing their own typed failures. This is
+an error translation only, with no retry, empty substitution or budget change.
+The original public portability proof retains its independent-depth assertions.

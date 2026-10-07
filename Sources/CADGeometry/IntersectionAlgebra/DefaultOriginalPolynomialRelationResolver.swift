@@ -4,6 +4,16 @@ public struct DefaultOriginalPolynomialRelationResolver: OriginalPolynomialRelat
 
     public func decompose(_ relation: OriginalPolynomialRelation, maximumDepth: Int,
         maximumCoefficientDepth: Int, usage: OriginalRelationUsage) throws -> OriginalRealRelation {
+        do {
+            return try decomposeOriginal(relation, maximumDepth: maximumDepth,
+                maximumCoefficientDepth: maximumCoefficientDepth, usage: usage)
+        } catch let failure as ExactScalarFailure {
+            throw GeometryExactScalarFailure.published(failure)
+        }
+    }
+
+    private func decomposeOriginal(_ relation: OriginalPolynomialRelation, maximumDepth: Int,
+        maximumCoefficientDepth: Int, usage: OriginalRelationUsage) throws -> OriginalRealRelation {
         var admission = try OriginalRelationDepthAdmission(base: usage, maximumDepth: maximumDepth,
             maximumCoefficientDepth: maximumCoefficientDepth)
         try intersectionAlgebraStep(&admission)

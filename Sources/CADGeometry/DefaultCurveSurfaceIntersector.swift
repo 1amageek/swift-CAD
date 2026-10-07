@@ -201,11 +201,13 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
   public func intersections(curve:Curve3D,surface:Surface3D,options:CurveSurfaceIntersectionOptions,
     tolerance:ModelingTolerance,maximumSubdivisionDepth:Int,
     consumeWork:@escaping @Sendable (Int)throws->Void) throws -> [CurveSurfaceIntersection] {
-    let context = try CurveSurfaceQueryInvocation(maximumSubdivisionDepth:maximumSubdivisionDepth,
-      maximumSpanCount:options.maximumSubdivisionCells,remainingSourceDepth:maximumSubdivisionDepth,consumeWork:consumeWork)
-    var bounded = options
-    bounded.maximumSubdivisionDepth = min(options.maximumSubdivisionDepth,maximumSubdivisionDepth)
-    return try Self(copying:self,invocation:context).intersections(curve:curve,surface:surface,options:bounded,tolerance:tolerance)
+    return try GeometryExactScalarFailure.withPublication {
+      let context = try CurveSurfaceQueryInvocation(maximumSubdivisionDepth:maximumSubdivisionDepth,
+        maximumSpanCount:options.maximumSubdivisionCells,remainingSourceDepth:maximumSubdivisionDepth,consumeWork:consumeWork)
+      var bounded = options
+      bounded.maximumSubdivisionDepth = min(options.maximumSubdivisionDepth,maximumSubdivisionDepth)
+      return try Self(copying:self,invocation:context).intersections(curve:curve,surface:surface,options:bounded,tolerance:tolerance)
+    }
   }
 
   public func intersections(curve: Curve3D, surface: Surface3D,
@@ -214,40 +216,42 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     remainingSourceDepth: Int, consumeWork: @escaping @Sendable (Int) throws -> Void,
     consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
     maximumAlgebraicDepth: Int? = nil) throws -> [CurveSurfaceIntersection] {
-    try options.validate(tolerance: tolerance)
-    let context = try CurveSurfaceQueryInvocation(
-      maximumSubdivisionDepth: min(options.maximumSubdivisionDepth, maximumSubdivisionDepth),
-      maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
-      consumeWork: consumeWork, consumeStorage: consumeStorage,
-      maximumAlgebraicDepth: maximumAlgebraicDepth)
-    if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
-      options: options, tolerance: tolerance, invocation: context) { return native.points }
-    if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
-      options: options, tolerance: tolerance, invocation: context) { return original.points }
-    if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
-      options: options, tolerance: tolerance, invocation: context) { return affine.points }
-    if let coons = try OriginalCoonsCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
-      options: options, tolerance: tolerance, invocation: context) { return coons.points }
-    try curve.validateOriginalSource(tolerance: tolerance,
-      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: context.maximumSubdivisionDepth,
-      consumeWork: { _ in try context.consumeFixedWork() }, consumeStorage: consumeStorage,
-      maximumAlgebraicDepth: maximumAlgebraicDepth)
-    try surface.validateOriginalSource(tolerance: tolerance,
-      remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: context.maximumSubdivisionDepth,
-      consumeWork: { _ in try context.consumeFixedWork() }, consumeStorage: consumeStorage,
-      maximumAlgebraicDepth: maximumAlgebraicDepth)
-    var bounded = options
-    bounded.maximumSubdivisionDepth = context.maximumSubdivisionDepth
-    if case .bSpline(let native) = curve, case .plane(let plane) = surface,
-      plane.uDirection != nil {
-      return try selectedNativePlaneIntersections(curve: native, plane: plane,
-        options: bounded, tolerance: tolerance, admission: context)
+    return try GeometryExactScalarFailure.withPublication {
+      try options.validate(tolerance: tolerance)
+      let context = try CurveSurfaceQueryInvocation(
+        maximumSubdivisionDepth: min(options.maximumSubdivisionDepth, maximumSubdivisionDepth),
+        maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
+        consumeWork: consumeWork, consumeStorage: consumeStorage,
+        maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: context) { return native.points }
+      if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: context) { return original.points }
+      if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: context) { return affine.points }
+      if let coons = try OriginalCoonsCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: context) { return coons.points }
+      try curve.validateOriginalSource(tolerance: tolerance,
+        remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: context.maximumSubdivisionDepth,
+        consumeWork: { _ in try context.consumeFixedWork() }, consumeStorage: consumeStorage,
+        maximumAlgebraicDepth: maximumAlgebraicDepth)
+      try surface.validateOriginalSource(tolerance: tolerance,
+        remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: context.maximumSubdivisionDepth,
+        consumeWork: { _ in try context.consumeFixedWork() }, consumeStorage: consumeStorage,
+        maximumAlgebraicDepth: maximumAlgebraicDepth)
+      var bounded = options
+      bounded.maximumSubdivisionDepth = context.maximumSubdivisionDepth
+      if case .bSpline(let native) = curve, case .plane(let plane) = surface,
+        plane.uDirection != nil {
+        return try selectedNativePlaneIntersections(curve: native, plane: plane,
+          options: bounded, tolerance: tolerance, admission: context)
+      }
+      // FIXME(INCOMPLETE_IMPLEMENTATION): Selected adaptive traversal preserves
+      // original complete cells, but the general critical/coincident atlas and
+      // unbounded original range producer remain required before full family coverage.
+      return try Self(copying: self, invocation: context).adaptiveIntersections(
+        curve: curve, surface: surface, options: bounded, tolerance: tolerance)
     }
-    // FIXME(INCOMPLETE_IMPLEMENTATION): Selected adaptive traversal preserves
-    // original complete cells, but the general critical/coincident atlas and
-    // unbounded original range producer remain required before full family coverage.
-    return try Self(copying: self, invocation: context).adaptiveIntersections(
-      curve: curve, surface: surface, options: bounded, tolerance: tolerance)
   }
 
   public func intersections(
@@ -256,127 +260,150 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     options: CurveSurfaceIntersectionOptions,
     tolerance: ModelingTolerance
   ) throws -> [CurveSurfaceIntersection] {
-    if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
-      options: options, tolerance: tolerance, invocation: invocation) { return native.points }
-    if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
-      options: options, tolerance: tolerance, invocation: invocation) { return original.points }
-    if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
-      options: options, tolerance: tolerance, invocation: invocation) { return affine.points }
-    if let coons = try OriginalCoonsCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
-      options: options, tolerance: tolerance, invocation: invocation) { return coons.points }
-    try invocation?.consumeFixedWork()
-    try options.validate(tolerance: tolerance)
-    try curve.validate(tolerance: tolerance)
-    try surface.validate(tolerance: tolerance)
+    return try GeometryExactScalarFailure.withPublication {
+      if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: invocation) { return native.points }
+      if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: invocation) { return original.points }
+      if let affine = try OriginalAffineCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: invocation) { return affine.points }
+      if let coons = try OriginalCoonsCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: invocation) { return coons.points }
+      try invocation?.consumeFixedWork()
+      try options.validate(tolerance: tolerance)
+      try curve.validate(tolerance: tolerance)
+      try surface.validate(tolerance: tolerance)
 
-    if try proceduralSourceCoincidenceResolver.isSourceSurface(
-      surface,
-      of: curve,
-      tolerance: tolerance
-    ) {
-      throw KernelError(
-        phase: .geometry,
-        code: .nonDiscreteIntersection,
-        tolerance: tolerance,
-        message: "A procedural curve is continuously coincident with its source surface."
-      )
-    }
-
-    if case .certifiedIntersection(let certifiedCurve) = curve {
-      if try certifiedIntersectionCoincidenceResolver.isSourceSurface(
+      if try proceduralSourceCoincidenceResolver.isSourceSurface(
         surface,
-        of: certifiedCurve,
+        of: curve,
         tolerance: tolerance
       ) {
         throw KernelError(
           phase: .geometry,
           code: .nonDiscreteIntersection,
           tolerance: tolerance,
-          message:
-            "A certified intersection curve is continuously coincident with its source surface."
+          message: "A procedural curve is continuously coincident with its source surface."
         )
       }
-      let canonicalTarget = CanonicalAnalyticSurface(surface)
-      if try certifiedIntersectionSpatialDisjointnessResolver.areDisjoint(
-        curve: certifiedCurve,
-        target: canonicalTarget,
-        tolerance: tolerance
-      ) {
-        return []
-      }
-      if try supportsCertifiedReduction(
-        curve: certifiedCurve,
-        target: canonicalTarget,
-        tolerance: tolerance
-      ),
-        let reduction =
-          certifiedIntersectionReductionResolver
-          .reduction(
-            for: certifiedCurve,
-            target: canonicalTarget
-          )
-      {
-        return try certifiedIntersectionReductionIntersector.intersections(
-          curve: certifiedCurve,
-          targetSurface: surface,
-          reduction: reduction,
-          options: options,
-          tolerance: tolerance,
-          sectionCurveIntersector: self
-        )
-      }
-      if case .sphere = canonicalTarget,
-        case .coneCylinder(let coneCylinderCurve) = certifiedCurve
-      {
-        return try coneCylinderSphereIntersector.intersections(
-          curve: coneCylinderCurve,
-          sphereSurface: surface,
-          options: options,
-          tolerance: tolerance
-        )
-      }
-      if case .cone = canonicalTarget,
-        case .coneCylinder(let coneCylinderCurve) = certifiedCurve,
-        try coneCylinderConeIntersector.supports(
-          curve: coneCylinderCurve,
-          coneSurface: surface,
-          tolerance: tolerance
-        )
-      {
-        return try coneCylinderConeIntersector.intersections(
-          curve: coneCylinderCurve,
-          coneSurface: surface,
-          options: options,
-          tolerance: tolerance
-        )
-      }
-      if try coneHostedQuadricIntersector.supports(
-        curve: certifiedCurve,
-        targetSurface: surface,
-        tolerance: tolerance
-      ) {
-        return try coneHostedQuadricIntersector.intersections(
-          curve: certifiedCurve,
-          targetSurface: surface,
-          options: options,
-          tolerance: tolerance
-        )
-      }
-      if case .plane = canonicalTarget,
-        case .parallelTorusTorus(let parallelCurve) = certifiedCurve
-      {
-        return try parallelTorusTorusPlaneIntersector.intersections(
-          curve: parallelCurve,
-          planeSurface: surface,
-          options: options,
-          tolerance: tolerance
-        )
-      }
-      if case .unsupported = canonicalTarget {
-        if let plane = try planarSurfaceResolver.exactPlane(
-          for: surface,
+
+      if case .certifiedIntersection(let certifiedCurve) = curve {
+        if try certifiedIntersectionCoincidenceResolver.isSourceSurface(
+          surface,
+          of: certifiedCurve,
           tolerance: tolerance
         ) {
+          throw KernelError(
+            phase: .geometry,
+            code: .nonDiscreteIntersection,
+            tolerance: tolerance,
+            message:
+              "A certified intersection curve is continuously coincident with its source surface."
+          )
+        }
+        let canonicalTarget = CanonicalAnalyticSurface(surface)
+        if try certifiedIntersectionSpatialDisjointnessResolver.areDisjoint(
+          curve: certifiedCurve,
+          target: canonicalTarget,
+          tolerance: tolerance
+        ) {
+          return []
+        }
+        if try supportsCertifiedReduction(
+          curve: certifiedCurve,
+          target: canonicalTarget,
+          tolerance: tolerance
+        ),
+          let reduction =
+            certifiedIntersectionReductionResolver
+            .reduction(
+              for: certifiedCurve,
+              target: canonicalTarget
+            )
+        {
+          return try certifiedIntersectionReductionIntersector.intersections(
+            curve: certifiedCurve,
+            targetSurface: surface,
+            reduction: reduction,
+            options: options,
+            tolerance: tolerance,
+            sectionCurveIntersector: self
+          )
+        }
+        if case .sphere = canonicalTarget,
+          case .coneCylinder(let coneCylinderCurve) = certifiedCurve
+        {
+          return try coneCylinderSphereIntersector.intersections(
+            curve: coneCylinderCurve,
+            sphereSurface: surface,
+            options: options,
+            tolerance: tolerance
+          )
+        }
+        if case .cone = canonicalTarget,
+          case .coneCylinder(let coneCylinderCurve) = certifiedCurve,
+          try coneCylinderConeIntersector.supports(
+            curve: coneCylinderCurve,
+            coneSurface: surface,
+            tolerance: tolerance
+          )
+        {
+          return try coneCylinderConeIntersector.intersections(
+            curve: coneCylinderCurve,
+            coneSurface: surface,
+            options: options,
+            tolerance: tolerance
+          )
+        }
+        if try coneHostedQuadricIntersector.supports(
+          curve: certifiedCurve,
+          targetSurface: surface,
+          tolerance: tolerance
+        ) {
+          return try coneHostedQuadricIntersector.intersections(
+            curve: certifiedCurve,
+            targetSurface: surface,
+            options: options,
+            tolerance: tolerance
+          )
+        }
+        if case .plane = canonicalTarget,
+          case .parallelTorusTorus(let parallelCurve) = certifiedCurve
+        {
+          return try parallelTorusTorusPlaneIntersector.intersections(
+            curve: parallelCurve,
+            planeSurface: surface,
+            options: options,
+            tolerance: tolerance
+          )
+        }
+        if case .unsupported = canonicalTarget {
+          if let plane = try planarSurfaceResolver.exactPlane(
+            for: surface,
+            tolerance: tolerance
+          ) {
+            let curveRange = try resolvedInterval(
+              domain: curve.parameterDomain,
+              explicit: options.curveRange,
+              label: "curve",
+              tolerance: tolerance
+            )
+            return try certifiedSurfaceLiftAnalyticIntersections(
+              lift: nil,
+              certifiedCurve: certifiedCurve,
+              curve: curve,
+              surface: surface,
+              canonicalSurface: .plane(
+                .init(
+                  origin: plane.origin,
+                  normal: plane.normal
+                )),
+              curveRange: curveRange,
+              options: options,
+              tolerance: tolerance
+            )
+          }
+        } else {
           let curveRange = try resolvedInterval(
             domain: curve.parameterDomain,
             explicit: options.curveRange,
@@ -388,209 +415,188 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
             certifiedCurve: certifiedCurve,
             curve: curve,
             surface: surface,
-            canonicalSurface: .plane(
-              .init(
-                origin: plane.origin,
-                normal: plane.normal
-              )),
+            canonicalSurface: canonicalTarget,
             curveRange: curveRange,
             options: options,
             tolerance: tolerance
           )
         }
-      } else {
-        let curveRange = try resolvedInterval(
-          domain: curve.parameterDomain,
-          explicit: options.curveRange,
-          label: "curve",
-          tolerance: tolerance
-        )
-        return try certifiedSurfaceLiftAnalyticIntersections(
-          lift: nil,
-          certifiedCurve: certifiedCurve,
-          curve: curve,
-          surface: surface,
-          canonicalSurface: canonicalTarget,
-          curveRange: curveRange,
-          options: options,
-          tolerance: tolerance
-        )
       }
-    }
 
-    if case .analytic(.planeTorus(let planeTorusCurve)) = curve {
-      let canonicalSurface = CanonicalAnalyticSurface(surface)
-      if case .unsupported = canonicalSurface {
-        // The rational-surface path owns unsupported analytic targets.
-      } else {
-        guard
-          try representDifferentLoci(
-            CanonicalAnalyticSurface(planeTorusCurve.planeSurface),
-            canonicalSurface,
-            tolerance: tolerance
-          ),
-          try representDifferentLoci(
-            CanonicalAnalyticSurface(planeTorusCurve.torusSurface),
-            canonicalSurface,
+      if case .analytic(.planeTorus(let planeTorusCurve)) = curve {
+        let canonicalSurface = CanonicalAnalyticSurface(surface)
+        if case .unsupported = canonicalSurface {
+          // The rational-surface path owns unsupported analytic targets.
+        } else {
+          guard
+            try representDifferentLoci(
+              CanonicalAnalyticSurface(planeTorusCurve.planeSurface),
+              canonicalSurface,
+              tolerance: tolerance
+            ),
+            try representDifferentLoci(
+              CanonicalAnalyticSurface(planeTorusCurve.torusSurface),
+              canonicalSurface,
+              tolerance: tolerance
+            )
+          else {
+            throw KernelError(
+              phase: .geometry,
+              code: .nonDiscreteIntersection,
+              tolerance: tolerance,
+              message: "A plane-torus intersection curve lies continuously on the target surface."
+            )
+          }
+          let curveRange = try resolvedInterval(
+            domain: curve.parameterDomain,
+            explicit: options.curveRange,
+            label: "curve",
             tolerance: tolerance
           )
-        else {
-          throw KernelError(
-            phase: .geometry,
-            code: .nonDiscreteIntersection,
-            tolerance: tolerance,
-            message: "A plane-torus intersection curve lies continuously on the target surface."
-          )
-        }
-        let curveRange = try resolvedInterval(
-          domain: curve.parameterDomain,
-          explicit: options.curveRange,
-          label: "curve",
-          tolerance: tolerance
-        )
-        return try certifiedSurfaceLiftAnalyticIntersections(
-          lift: nil,
-          planeTorusCurve: planeTorusCurve,
-          curve: curve,
-          surface: surface,
-          canonicalSurface: canonicalSurface,
-          curveRange: curveRange,
-          options: options,
-          tolerance: tolerance
-        )
-      }
-    }
-
-    if let intersections = try closedFormEllipticPlanarIntersections(
-      curve: curve,
-      surface: surface,
-      options: options,
-      tolerance: tolerance
-    ) {
-      return intersections
-    }
-
-    if let intersections = try closedFormCircularPlanarIntersections(
-      curve: curve,
-      surface: surface,
-      options: options,
-      tolerance: tolerance
-    ) {
-      return intersections
-    }
-
-    if case .bSpline(let bSplineCurve) = curve {
-      let canonicalSurface = CanonicalAnalyticSurface(surface)
-      switch canonicalSurface {
-      case .unsupported:
-        break
-      case let supportedSurface:
-        return try BSplineCurveAnalyticSurfaceIntersector().intersections(
-          curve: bSplineCurve,
-          surface: surface,
-          canonicalSurface: supportedSurface,
-          options: options,
-          tolerance: tolerance
-        )
-      }
-    }
-
-    if case .implicit(let implicitCurve) = curve {
-      let canonicalSurface = CanonicalAnalyticSurface(surface)
-      if case .unsupported = canonicalSurface {
-        // The rational target path owns implicit-curve certification.
-      } else {
-        return
-          try implicitCurveAnalyticSurfaceIntersector
-          .intersections(
-            curve: implicitCurve,
-            targetSurface: surface,
-            canonicalTarget: canonicalSurface,
-            options: options,
-            tolerance: tolerance,
-            rationalSurfaceIntersector: self
-          )
-      }
-    }
-
-    if case .surfaceLift(let lift) = curve {
-      let canonicalSurface = CanonicalAnalyticSurface(surface)
-      if case .unsupported = canonicalSurface {
-        // The rational-surface path performs its own exact source-locus reduction.
-      } else {
-        let curveRange = try resolvedInterval(
-          domain: curve.parameterDomain,
-          explicit: options.curveRange,
-          label: "curve",
-          tolerance: tolerance
-        )
-        if let exactCurve = try AnalyticCurveBSplineBuilder().boundedCurve(
-          curve: curve,
-          interval: curveRange,
-          maximumSpanCount: options.maximumCandidateCount,
-          tolerance: tolerance
-        ) {
-          return try BSplineCurveAnalyticSurfaceIntersector().intersections(
-            curve: exactCurve,
+          return try certifiedSurfaceLiftAnalyticIntersections(
+            lift: nil,
+            planeTorusCurve: planeTorusCurve,
+            curve: curve,
             surface: surface,
             canonicalSurface: canonicalSurface,
+            curveRange: curveRange,
             options: options,
             tolerance: tolerance
           )
         }
-        return try certifiedSurfaceLiftAnalyticIntersections(
-          lift: lift,
-          curve: curve,
-          surface: surface,
-          canonicalSurface: canonicalSurface,
-          curveRange: curveRange,
-          options: options,
-          tolerance: tolerance
-        )
       }
-    }
 
-    if let line = lineGeometry(curve) {
-      if let coefficients = try implicitPolynomial(
-        line: line,
+      if let intersections = try closedFormEllipticPlanarIntersections(
+        curve: curve,
         surface: surface,
+        options: options,
         tolerance: tolerance
       ) {
-        return try closedFormLineIntersections(
-          line: line,
-          curve: curve,
-          surface: surface,
-          coefficients: coefficients,
-          options: options,
-          tolerance: tolerance
-        )
+        return intersections
       }
-    }
 
-    if let intersections = try closedFormUnboundedConicAnalyticIntersections(
-      curve: curve,
-      surface: surface,
-      options: options,
-      tolerance: tolerance
-    ) {
-      return intersections
-    }
+      if let intersections = try closedFormCircularPlanarIntersections(
+        curve: curve,
+        surface: surface,
+        options: options,
+        tolerance: tolerance
+      ) {
+        return intersections
+      }
 
-    if let intersections = try closedFormHarmonicAnalyticIntersections(
-      curve: curve,
-      surface: surface,
-      options: options,
-      tolerance: tolerance
-    ) {
-      return intersections
-    }
+      if case .bSpline(let bSplineCurve) = curve {
+        let canonicalSurface = CanonicalAnalyticSurface(surface)
+        switch canonicalSurface {
+        case .unsupported:
+          break
+        case let supportedSurface:
+          return try BSplineCurveAnalyticSurfaceIntersector().intersections(
+            curve: bSplineCurve,
+            surface: surface,
+            canonicalSurface: supportedSurface,
+            options: options,
+            tolerance: tolerance
+          )
+        }
+      }
 
-    return try adaptiveIntersections(
-      curve: curve,
-      surface: surface,
-      options: options,
-      tolerance: tolerance
-    )
+      if case .implicit(let implicitCurve) = curve {
+        let canonicalSurface = CanonicalAnalyticSurface(surface)
+        if case .unsupported = canonicalSurface {
+          // The rational target path owns implicit-curve certification.
+        } else {
+          return
+            try implicitCurveAnalyticSurfaceIntersector
+            .intersections(
+              curve: implicitCurve,
+              targetSurface: surface,
+              canonicalTarget: canonicalSurface,
+              options: options,
+              tolerance: tolerance,
+              rationalSurfaceIntersector: self
+            )
+        }
+      }
+
+      if case .surfaceLift(let lift) = curve {
+        let canonicalSurface = CanonicalAnalyticSurface(surface)
+        if case .unsupported = canonicalSurface {
+          // The rational-surface path performs its own exact source-locus reduction.
+        } else {
+          let curveRange = try resolvedInterval(
+            domain: curve.parameterDomain,
+            explicit: options.curveRange,
+            label: "curve",
+            tolerance: tolerance
+          )
+          if let exactCurve = try AnalyticCurveBSplineBuilder().boundedCurve(
+            curve: curve,
+            interval: curveRange,
+            maximumSpanCount: options.maximumCandidateCount,
+            tolerance: tolerance
+          ) {
+            return try BSplineCurveAnalyticSurfaceIntersector().intersections(
+              curve: exactCurve,
+              surface: surface,
+              canonicalSurface: canonicalSurface,
+              options: options,
+              tolerance: tolerance
+            )
+          }
+          return try certifiedSurfaceLiftAnalyticIntersections(
+            lift: lift,
+            curve: curve,
+            surface: surface,
+            canonicalSurface: canonicalSurface,
+            curveRange: curveRange,
+            options: options,
+            tolerance: tolerance
+          )
+        }
+      }
+
+      if let line = lineGeometry(curve) {
+        if let coefficients = try implicitPolynomial(
+          line: line,
+          surface: surface,
+          tolerance: tolerance
+        ) {
+          return try closedFormLineIntersections(
+            line: line,
+            curve: curve,
+            surface: surface,
+            coefficients: coefficients,
+            options: options,
+            tolerance: tolerance
+          )
+        }
+      }
+
+      if let intersections = try closedFormUnboundedConicAnalyticIntersections(
+        curve: curve,
+        surface: surface,
+        options: options,
+        tolerance: tolerance
+      ) {
+        return intersections
+      }
+
+      if let intersections = try closedFormHarmonicAnalyticIntersections(
+        curve: curve,
+        surface: surface,
+        options: options,
+        tolerance: tolerance
+      ) {
+        return intersections
+      }
+
+      return try adaptiveIntersections(
+        curve: curve,
+        surface: surface,
+        options: options,
+        tolerance: tolerance
+      )
+    }
   }
 
   private func supportsCertifiedReduction(

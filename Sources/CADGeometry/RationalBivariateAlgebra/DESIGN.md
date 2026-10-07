@@ -1118,3 +1118,11 @@ The fixed L0 value, decision, arithmetic, ownership and resource contracts are
 owned by [ExactScalar](ExactScalar/DESIGN.md). The child keeps the existing exact
 numeric algorithms and has no dependency on geometry, CADCore, or Numerics.
 Non-scalar consumers and outward floating-point conversion remain in this parent.
+
+## Production L0-L5 Connection
+[NativeExactRelations](../NativeExactRelations/DESIGN.md) imports the existing
+original homogeneous laws into L5 under one L0 admission. The parent-owned failure
+and count helpers live in RationalAlgebraGeometryFailure.swift, avoiding a Swift
+module filename collision with L0's actual RationalAlgebraAdmitting protocol.
+The scalar-authority provenance boundary is owned by
+[OriginalProvenance](../SurfaceSilhouette/OriginalProvenance/DESIGN.md).

@@ -1,0 +1,269 @@
+warning: 'nativeexactrelationverification': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalPointRelationProof/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalRealRelationProof/DESIGN.md
+warning: 'nativeexactrelationverification': found 77 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+warning: 'nativeexactrelationverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/FailureContract/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /private/tmp/cad-exact-native-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+Building for debugging...
+[Pre-planning 1 / 182]
+[Planning deferred tasks]
+[6 / 93]
+[47 / 94] InternalCollectionsUtilities
+[54 / 111] InternalCollectionsUtilities
+[68 / 111] InternalCollectionsUtilities
+[70 / 111] HashTreeCollections
+[73 / 113] HashTreeCollections
+[77 / 127] HashTreeCollections
+[79 / 127] HashTreeCollections
+[81 / 127] HashTreeCollections
+[83 / 127] HashTreeCollections
+[85 / 127] HashTreeCollections
+[86 / 127] HashTreeCollections
+[88 / 127] HashTreeCollections
+[94 / 127] HashTreeCollections
+[95 / 128] HashTreeCollections
+[97 / 128] CADCore
+[101 / 187]
+[108 / 187]
+[112 / 187]
+[114 / 187]
+[117 / 187]
+[124 / 187]
+[127 / 187]
+[128 / 187]
+[130 / 187]
+[133 / 187]
+[134 / 187]
+[135 / 187]
+[136 / 187]
+[139 / 187]
+[140 / 187]
+[141 / 187]
+[145 / 187] CADCore
+[147 / 187] CADCore
+[149 / 187] CADCore
+[155 / 187] CADCore
+[157 / 187] CADGeometry
+[159 / 187] CADCore
+[160 / 187] CADCore
+[161 / 187] CADCore
+[162 / 187] CADCore
+[163 / 188]
+[163 / 188] CADCore
+[165 / 188] CADGeometry
+[170 / 241] CADGeometry
+[171 / 241] CADGeometry
+[172 / 241] CADGeometry
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:336:5: warning: 'internal' modifier conflicts with extension's default access of 'private'
+334 | 
+335 | private extension SurfaceParameterCurve {
+336 |     internal func thirdOrderDifferential(
+    |     `- warning: 'internal' modifier conflicts with extension's default access of 'private'
+337 |         atNormalizedFraction fraction: Double,
+338 |         on supportSurface: Surface3D,
+
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:49:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+47 |             let argument = SurfaceIntervalJet.parameterU(box.u)
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+   |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:50:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+   |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+52 |             let cycle = cosine ? [cos, -sine, -cos, sine] : [sine, cos, -sine, -cos]
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[173 / 241] CADGeometry
+[175 / 241] CADGeometry
+[182 / 241] CADGeometry
+[184 / 241] CADGeometry
+[185 / 241] CADGeometry
+[186 / 241] CADGeometry
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldPlaneCurveIncidence.swift:32:21: warning: variable 'roots' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 30 |                 let index = side == .lowerStation ? sector.lowerStation : sector.upperStation
+ 31 |                 let station = projection.stations[index]
+ 32 |                 var roots = try Self.ordered(station.roots, maximumDepth: maximumDepth, usage: &usage)
+    |                     `- warning: variable 'roots' was never mutated; consider changing to 'let' constant [#VariableNeverMutated]
+ 33 |                 guard !roots.isEmpty else { throw rationalAlgebraFailure("Original bounded strip branch has no limiting station fiber.") }
+ 34 |                 try RationalAlgebraStorage.retain(rationalAlgebraCount(roots.count, 1), of: ExactRationalCoefficient.self, usage: &usage)
+
+[#VariableNeverMutated]: <https://docs.swift.org/compiler/documentation/diagnostics/variable-never-mutated>
+[187 / 241] CADGeometry
+[188 / 241] CADGeometry
+[189 / 241] CADGeometry
+[190 / 241] CADGeometry
+[191 / 241] CADGeometry
+[192 / 241] CADGeometry
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/CurveCurveContact/OriginalNativeCurveCurveCriticalContact.swift:32:22: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 30 |               parentDepth <= budget.maximumDepth else { throw budget.exhausted() }
+ 31 |         let maximumDepth = budget.maximumDepth - parentDepth
+ 32 |         let domain = try SurfaceParameterBox(u: firstRange, v: secondRange)
+    |                      `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 33 |         var emptyProjection = false
+ 34 |         for axes in [(0, 1), (0, 2), (1, 2)] {
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[193 / 241] CADGeometry
+[194 / 241] CADGeometry
+[195 / 241] CADGeometry
+[196 / 241] CADGeometry
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/StructuralGeometryWork/GeometryStructuralComparisonWork.swift:346:13: warning: immutable value 'cell' was never used; consider replacing with '_' or removing it [#NoUsage]
+344 |         try Self.charge(surface: curve.secondSurface, using: charge)
+345 |         try chargeArray(curve.cells.count, using: charge)
+346 |         for cell in curve.cells {
+    |             `- warning: immutable value 'cell' was never used; consider replacing with '_' or removing it [#NoUsage]
+347 |             try checkCancellation()
+348 |             // parameterBox (four intervals), freeParameter, direction, and
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[197 / 241] NativeExactFixtures
+[198 / 241] NativeExactFixtures
+[199 / 241] CADGeometry
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/PreparedSurfaceDifferentialEncloser.swift:222:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 220 |         let low = try ScalarInterval(lower: interval.lower, upper: middle)
+ 221 |         let high = try ScalarInterval(lower: middle, upper: interval.upper)
+ 222 |         let lowerBox = try SurfaceParameterBox(u: splitU ? low : cell.box.u, v: splitU ? cell.box.v : low)
+     |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 223 |         let upperBox = try SurfaceParameterBox(u: splitU ? high : cell.box.u, v: splitU ? cell.box.v : high)
+ 224 |         pending.append(.init(box: upperBox, depth: cell.depth + 1))
+
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/PreparedSurfaceDifferentialEncloser.swift:223:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 221 |         let high = try ScalarInterval(lower: middle, upper: interval.upper)
+ 222 |         let lowerBox = try SurfaceParameterBox(u: splitU ? low : cell.box.u, v: splitU ? cell.box.v : low)
+ 223 |         let upperBox = try SurfaceParameterBox(u: splitU ? high : cell.box.u, v: splitU ? cell.box.v : high)
+     |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 224 |         pending.append(.init(box: upperBox, depth: cell.depth + 1))
+ 225 |         pending.append(.init(box: lowerBox, depth: cell.depth + 1))
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[201 / 241] CADGeometry
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/OriginalCoons/OriginalCurveTraversalContinuityAdmission.swift:77:17: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 75 |         case .originalGuideTraversalChain(let chain):
+ 76 |             guard depth < capability.remainingSourceDepth,
+ 77 |                 try !first.isNegative, !last.isNegative,
+    |                 `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 78 |                 try !ExactRationalCoefficient.one.subtracting(first, usage: &usage).isNegative,
+ 79 |                 try !ExactRationalCoefficient.one.subtracting(last, usage: &usage).isNegative else { return false }
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[202 / 241] CADGeometry
+[204 / 241] CADGeometry
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/OriginalNativeSilhouetteProjectedContactProducer.swift:131:16: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+129 |         }
+130 |         let u = try axis(original.u, alongU: true), v = try axis(original.v, alongU: false)
+131 |         return try .init(u: u, v: v)
+    |                `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+132 |     }
+133 | }
+
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/OriginalProjectedNativeLocus.swift:114:17: warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+112 |                 for parameterIndex in parameters.indices {
+113 |             let parameter = parameters[parameterIndex]
+114 |             let events = branchEvents[parameterIndex]
+    |                 `- warning: initialization of immutable value 'events' was never used; consider replacing with assignment to '_' or removing it [#NoUsage]
+115 |                     try RationalAlgebraStorage.retain(2, of: SurfaceSilhouetteTrimEndpoint.self, usage: &usage)
+116 |                     let edge = SurfaceSilhouetteTrimEndpoint(point.originalEdgeParameter,
+
+/private/tmp/cad-exact-native-integration-20261008/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/OriginalProjectedNativeLocus.swift:59:31: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 57 |         var planeProjections: [OriginalRationalPlaneCurveProjection] = []
+ 58 |         var stationFibers: [OriginalProjectedNativeSectionFiber] = []
+ 59 |         let parameterDomain = try SurfaceParameterBox(u: domain.u, v: original.edgeRange)
+    |                               `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 60 |         for parameterIndex in parameters.indices {
+ 61 |             let parameter = parameters[parameterIndex]
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[205 / 241] CADGeometry
+[206 / 241] CADGeometry
+bounded command stopped: Command '['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'build', '--package-path', 'Tests/NativeExactRelationVerification', '--build-path', '.build/native-exact-asan', '--sanitize', 'address', '-j', '4', '--product', 'NativeExactProof']' timed out after 120 seconds

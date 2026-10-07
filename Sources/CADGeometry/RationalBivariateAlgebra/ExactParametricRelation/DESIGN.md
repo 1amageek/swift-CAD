@@ -34,6 +34,7 @@ Curve3D, Surface3D or legacy IntersectionAlgebra internals.
 | [L2](../ExactRealRoot/DESIGN.md) | depends on | Retained coefficient field and exact intervals | Original family and extension ceiling | No silent field adjoining |
 | [L3](../ExactRealCell/DESIGN.md) | depends on | Bind, decompose, select, locate, coefficientField | Whole original parameter product | No private owner access |
 | [L4](../ExactRealTopology/DESIGN.md) | depends on | Incidence and components protocols | Complete selected topology | Parameter topology is not image topology |
+| [NativeExactRelations](../../NativeExactRelations/DESIGN.md) | used by | Original homogeneous map composition | Production Native geometry integration | Native owner handles extraction; L5 remains shape-independent |
 | [Verification](../../../../Tests/L5ParametricRelationVerification/DESIGN.md) | test owner | Actual independent composition | Native/ASAN and both WASI | No upper CAD build evidence |
 
 ## Architecture

@@ -95,6 +95,7 @@ measurement policy.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [NativeExactRelations](NativeExactRelations/DESIGN.md) | child | Explicit source-bound Native exactParameterRelation using L0-L5 | Connects complete parameter topology to existing intersectors | Single-span finite nonperiodic scope; existing XYZ publication remains separate |
 | [BSplineCurveCommonBasis](BSplineCurveCommonBasis/DESIGN.md) | child | Caller-paid original common-basis preparation | Supplies shared immutable connector images | Retain original curve laws and the same cumulative allowance |
 | [SurfaceProjectionAdmission](SurfaceProjectionAdmission/DESIGN.md) | child | Whole-domain original closest-point projection with caller admission | Owns finite support inverse query coverage | Numerical witnesses carry original residual upper bounds |
 | [StructuralGeometryWork](StructuralGeometryWork/DESIGN.md) | child | Precharged original structural geometry payload traversal | Supplies package-only cost admission for source-signature comparison/hash | Consumers own the work allowance; no geometry validation, equality or tolerance policy changes |
@@ -1789,3 +1790,12 @@ polyline point queries additionally require exact first-derivative agreement
 on all incident closed segment owners; segment-local zero higher derivatives
 do not establish a smooth corner. Prepared closed owning-span queries retain
 their separate piecewise authority.
+
+## Independent Scalar Failure Compatibility
+Existing default CS/SSI rich, discrete and pair-preparation entry points translate
+L0 scalar resource/invalid/unresolved failures into the existing Geometry failure
+contract at publication. Non-scalar caller errors and admissionRejected causes are forwarded unchanged;
+scalar failures follow this documented Geometry normalization. Cancellation remains explicit. This synchronous translation performs no solving, retry, budget reset
+or result substitution. The new explicit Native exactParameterRelation interfaces
+preserve the L0-L5 typed causes instead. The original portability smoke checks
+legacy source/algebra resource failures as well as successful original tuples.

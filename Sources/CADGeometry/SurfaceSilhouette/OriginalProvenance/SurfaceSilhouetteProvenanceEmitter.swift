@@ -98,6 +98,13 @@ struct SurfaceSilhouetteProvenanceEmitter {
         }
         try emit(.endArray, usage: &usage); try emit(.endRecord, usage: &usage)
     }
+    mutating func write(_ value: ExactAlgebraicPairAuthority, usage: inout SurfaceSilhouetteUsage) throws {
+        try emit(.beginRecord(type: "ExactAlgebraicPairAuthority"), usage: &usage)
+        try field("projectionRoot", usage: &usage); try write(value.projectionRoot, usage: &usage)
+        try field("fiberRoot", usage: &usage); try write(value.fiberRoot, usage: &usage)
+        try field("fiber", usage: &usage); try write(value.fiber, usage: &usage)
+        try emit(.endRecord, usage: &usage)
+    }
     mutating func write(_ value: ExactBivariateSystemRoot, usage: inout SurfaceSilhouetteUsage) throws {
         try emit(.beginRecord(type: "rationalSystemRoot"), usage: &usage)
         try field("equations", usage: &usage); try emit(.beginArray(count: value.equations.count), usage: &usage)
