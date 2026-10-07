@@ -34,6 +34,7 @@ public struct ExactRealCellDomain<Base: ExactScalarArithmetic & ExactScalarOrder
             guard domains.count == polynomials.variableCount else { throw ExactRealCellFailure.invalidDomain }
             for law in laws { _ = try polynomials.isZero(law, using: &a); try ExactCellAccess.admit(law.depth, &a) }
             for domain in domains {
+                try a.consumeWork(1)
                 try ExactCellAccess.admit(domain.depth, &a)
                 if case .finite(let x) = domain.lower { _ = try context.field.sign(of: context.field.importing(x, using:&a), using: &a) }
                 if case .finite(let x) = domain.upper { _ = try context.field.sign(of: context.field.importing(x, using:&a), using: &a) }

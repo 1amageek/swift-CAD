@@ -10,9 +10,10 @@ import L3Fixtures
   try QueryFixtures.applicationRelations()
   try QueryFixtures.retainedAndOutside()
   try FailureFixtures.resources()
+  try FailureFixtures.sourceTraversal()
   try FailureFixtures.escapedOwnership()
   try OriginalCoefficientFixtures.run()
   try ProtocolFixtures.run()
-  print("PASS: 12 complete real-cell, selection, exact location and failure routines")
+  print("PASS: 13 complete real-cell, selection, exact location and failure routines")
  }
 }

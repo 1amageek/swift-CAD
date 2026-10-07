@@ -4,6 +4,24 @@ import L2
 import L3
 
 public enum FailureFixtures {
+ public static func sourceTraversal() throws {
+  var preparation = try CellFixtures.ledger()
+  for count in [0, 1, 100_000] {
+   let (_, domain, all) = try CellFixtures.setup(count, &preparation)
+   let domains = Array(repeating: all, count: count)
+   let requiredWork = count + 1
+   var short = ExactScalarLedger(limits: try .init(work: requiredWork - 1,
+    storageBytes: 100_000, valueDepth: 400, coefficientDepth: 400))
+   do {
+    _ = try domain.bind(polynomials: [], domains: domains, using: &short)
+    throw ExactRealCellFailure.invalidCoverage
+   } catch ExactRealCellFailure.scalar(.resourceLimit(.work)) { }
+   var exact = ExactScalarLedger(limits: try .init(work: requiredWork,
+    storageBytes: 100_000, valueDepth: 400, coefficientDepth: 400))
+   let source = try domain.bind(polynomials: [], domains: domains, using: &exact)
+   try CellFixtures.require(source.domains.count == count && exact.work == requiredWork)
+  }
+ }
  public static func resources() throws {
   var a=try CellFixtures.ledger()
   let (_,d,all)=try CellFixtures.setup(1,&a),p=d.polynomials

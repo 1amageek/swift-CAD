@@ -78,6 +78,7 @@ import L3Fixtures
 @Test(.timeLimit(.minutes(1))) func retainedAndOutside() throws { try QueryFixtures.retainedAndOutside() }
 
 @Test(.timeLimit(.minutes(1))) func resources() throws { try FailureFixtures.resources() }
+@Test(.timeLimit(.minutes(1))) func sourceTraversal() throws { try FailureFixtures.sourceTraversal() }
 @Test(.timeLimit(.minutes(1))) func escapedOwnership() throws { try FailureFixtures.escapedOwnership() }
 
 @Test(.timeLimit(.minutes(1))) func originalAlgebraicCoefficients() throws { try OriginalCoefficientFixtures.run() }

@@ -4,3 +4,9 @@ c442543a6d79032e8658ffabaaf208831a54f5126c6d0ef18af406b416415d4d  .build/l3-evid
 f7379bc1c17d4614f2707c329af703f1c4f718e366c4d40d3617a1eaa4c2e418  .build/l3-evidence/embedded-final-build.log
 f1e19f1e19b208b59c1b70dcf4c735188f5568766540f24946cc1363512c95b8  .build/l3-evidence/wasm-final-runtime.log
 6bb6ee487cc4c80f9e79b91424d918ef276962526a5a87fab28d1b5a1c2d917d  .build/l3-evidence/embedded-final-runtime.log
+5c77e6bc29ce09ceb42c329cee995432e313bdc99be28eb1140139beacdc4669  .build/l3-evidence/r1-asan.log
+95648b0230176d5d60ad95ca9f1fc5eb8134cbdf29b0cf2a2005c9a6535ac695  .build/l3-evidence/r1-embedded-runtime.log
+2ee3e7c423249a77714f8cfc3e3e8b293d0ec2238b5b48b8e7fa8dd1bd98a488  .build/l3-evidence/r1-embedded.log
+20b8fa6193d81c4330fabfee8571303ad118897881a57b4f2f4db72354101a53  .build/l3-evidence/r1-native.log
+25647a9555178e0243e3cd105d7e6aacb7d13ff6eec616780cf18b6246b8bd5a  .build/l3-evidence/r1-wasm-runtime.log
+4e1606680df2b02c8c2480df0889b479b9246aa8e474b5cc8dea4da3ce7b65a1  .build/l3-evidence/r1-wasm.log

@@ -21,10 +21,10 @@ fixtures, tests and manifests. [DESIGN.md](DESIGN.md) owns the verification grap
 
 | Configuration | Actual result on final source |
 |---|---|
-| Native debug | 17 Swift Testing tests passed; four concurrent immutable readers |
-| Native Address Sanitizer | Same 17 tests passed; no sanitizer error |
-| Ordinary WASM debug | All 12 synchronous fixture routines executed; exit 0 |
-| Embedded WASM debug | Same 12 routines executed; exit 0 |
+| Native debug | 18 Swift Testing tests passed; four concurrent immutable readers |
+| Native Address Sanitizer | Same 18 tests passed; no sanitizer error |
+| Ordinary WASM debug | All 13 synchronous fixture routines executed; exit 0 |
+| Embedded WASM debug | Same 13 routines executed; exit 0 |
 
 Pinned compiler: Apple Swift 6.4 (`swift-6.4-RELEASE`), executable
 `/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift`.
@@ -36,8 +36,8 @@ Embedded uses SDK-required WMO, debug `-Onone`, and the matching SDK's
 `libswiftUnicodeDataTables.a`. Raw artifacts remain in their dedicated directories.
 
 Every command has a 120-second process-group guard and each build uses two jobs.
-Final Native execution took 3.195 seconds; ASAN took 5.801 seconds. These are test
-run times, not a general performance guarantee. Cross-builds emitted the existing
+R1 Native execution took 7.169 seconds; ASAN took 16.428 seconds while independent
+builds ran concurrently. These are test run times, not a general performance guarantee. Cross-builds emitted the existing
 unused `-rdynamic` warning; Node emitted its experimental WASI warning. No signature
 mismatch or runtime trap was observed.
 
@@ -53,7 +53,7 @@ mismatch or runtime trap was observed.
 | C6 exact identity/conditions | All samples locate in their issued cells; non-sample points in same-sign disjoint sectors remain separate; foreign IDs fail; generic parent handles yield valid prefix samples/conditions rather than invalidCell |
 | C7 algebraic coefficients | `transportedCoordinates`, `algebraicQueries`, `OriginalCoefficientFixtures`: exact earlier-coordinate embedding, linear-section reuse, ancestor bounds, sibling rejection, compatible descendant queries and retained preexisting algebraic coefficient depth |
 | C8 consumer relations | `applicationRelations`: 3-variable isolated CS, overlap and two distinct folded UV points; 4-variable SSI line and coincidence region; exact selected dimensions and location, no geometry producer integration claim |
-| C9 atomic resources | `resources`, `OriginalCoefficientFixtures`, `checkedProjectionSizes`: independent work/storage/value/coefficient limits, cell/root/extension ceilings, checked matrix/count overflow, cancellation at final producing/querying/selection checkpoint, exact admitted storage/work versus one-less failure; no partial publication/fallback |
+| C9 atomic resources | `resources`, `OriginalCoefficientFixtures`, `checkedProjectionSizes`: independent work/storage/value/coefficient limits, source domain traversal at the exact work boundary, cell/root/extension ceilings, checked matrix/count overflow, cancellation at final producing/querying/selection checkpoint, exact admitted storage/work versus one-less failure; no partial publication/fallback |
 | C10 ownership/portability | `escapedOwnership`: drop creating inputs/domain/partition and recover through retained condition; `concurrentImmutableReaders`: four independent admissions share receipts; same public protocol requirement paths execute on both WASM SDKs |
 
 A complete partition is justified by the retained full projection conditions and
@@ -104,3 +104,25 @@ Final raw logs remain in `.build/l3-evidence`; [LOG-SHA256.txt](LOG-SHA256.txt) 
 The branch has no configured upstream; no push is performed. Closure/incidence,
 components, geometry assembly and publication belong to later layers. This evidence
 completes independent L3, not the seven higher requirements.
+
+## R1 Source Traversal Admission Repair
+
+The subsequent review found that `bind` accepted 100,000 unbounded domains under
+work limit 1, reporting work=1. Each domain now consumes one unit before its
+validation, in the same caller admission as the existing invocation and scalar
+operations. API, field/owner identity, array retention and existing limits are
+unchanged. Source traversal remains invocation-local on every target.
+
+`FailureFixtures.sourceTraversal` covers zero, one and 100,000 domains. Binding
+succeeds with exactly n+1 work and fails explicitly at n work; the same domain
+remains usable after failure. The new Native test failed before the repair with
+invalidCoverage, then passed with the repaired implementation. The cumulative
+18-test Native/ASAN suites and 13-routine ordinary/Embedded WASI executables passed.
+The repair received a targeted finding recheck against the validated source path.
+R1 logs are retained in `.build/l3-evidence/r1-*.log` and included in the log manifest.
+Earlier `*-final` logs describe the pre-R1 snapshot.
+
+The review's additional x²-2=0/y²-x=0 probe on [1,2]² exhausted 200M work.
+This repair does not change that algorithm or its budget, and does not claim
+successful generation/location for that probe. No upper CAD build or integration
+was performed.

@@ -429,6 +429,12 @@ resource failure does not trigger another solver or a fresh allowance.
 | Cancellation | Entry, causal work, after the last admission callback, before every result or Boolean/optional publication |
 | Native stack | Projection axes and prefix queues are iterative; L2 coefficient descent is bounded by its supplied extension policy |
 
+Source binding consumes one work unit before validating each domain, including
+empty and unbounded domains. Depth admission and cancellation checkpoints do not
+replace this traversal charge. The existing invocation charge and any lower
+finite-bound operation charges remain cumulative in the same caller admission.
+Retaining an unchanged caller array does not materialize a second payload.
+
 Count policies are checked nonnegative Int values with no defaults. Zero stored
 cell capacity admits a proved empty box but refuses a materialized nonempty
 partition; count zero roots permits rootless stacks. Overflow refuses before
