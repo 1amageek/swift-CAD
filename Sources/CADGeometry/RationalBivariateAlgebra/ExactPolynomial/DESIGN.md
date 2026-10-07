@@ -6,7 +6,8 @@ Parent: [RationalBivariateAlgebra](../DESIGN.md). Children: none. L1 owns finite
 multivariate polynomials over one explicit exact ordered scalar field. It remains
 in CADGeometry's existing production target. Its only lower contract is
 [ExactScalar (L0)](../ExactScalar/DESIGN.md), plus Swift standard-library ownership,
-collections and integer primitives. L0 is unchanged and never depends on L1.
+collections and integer primitives. L0's mathematical contracts are retained;
+the shared sizing contract belongs to L0, which never depends on L1.
 
 ## Responsibilities and Boundaries
 
@@ -49,6 +50,19 @@ same production sources an L1 module depending only on L0. The explicit
 L1_ISOLATED_VERIFICATION switch changes imports only, never storage, semantics,
 isolation or Sendable. No production target or external dependency is added.
 
+### Native-first dependency boundary
+
+The mathematical capabilities and immutable result types stay fixed. L1 uses
+Swift Array/COW for sparse terms, an immutable ARC context for domain identity,
+borrowing operands and a noncopyable, invocation-local observation handle. Work
+and storage belong to the caller's one L0 admission; the observer retains only
+attained depth and borrows that admission. It does not allocate a second budget.
+
+Payload-byte sizing is consumed from L0's planned exactScalarPayloadBytes free
+function, whose authority is [ExactScalar's resource contract](../ExactScalar/DESIGN.md#resource-semantics-and-lifecycle).
+L1 maps its countOverflow failure to the existing ExactPolynomialFailure case.
+It adds no independent sizing policy, allocator, scheduler or shared cache.
+
 ## Contracts and Invariants
 
 - A polynomial belongs to an immutable context retaining its scalar operation
@@ -88,6 +102,14 @@ ledger and records L0 depth visits. Term traversal, exponent inspection, sorting
 new buffers/COW, task frames and matrix slots are admitted before execution.
 L0 coefficient operations use that same observer. Publication follows a terminal
 checkpoint after all callbacks. Empty/constant/reuse paths follow the same rule.
+
+After the existing entry work, owner and inherited-depth checks, multiplication
+checks whether either canonical term list is empty. If so, it returns a retained
+zero polynomial without traversing either term list. That result preserves the
+merged input depth and identical domain context, and still receives the terminal
+checkpoint. This is a certified algebraic zero rule, not a fallback from failure.
+Nonzero multiplication continues through pre-admitted products and exponent
+buffers. Entry validation retains its existing failure and budget semantics.
 
 ## State, Ownership, and Lifecycle
 
@@ -131,3 +153,16 @@ local commits and final snapshot/evidence correspondence.
 
 The completed target-specific evidence and reproduction commands are recorded in
 [L1PolynomialVerification/VERIFICATION.md](../../../../Tests/L1PolynomialVerification/VERIFICATION.md).
+
+## Redesign Verification Obligations
+
+Review R2 currently leaves multiplication's traversal contract incomplete: a
+5,000-term left operand times zero walks the outer loop with work 3 and storage 0.
+Verify both operand orders after the certified zero shortcut, retained depths,
+domain rejection and entry/final cancellation. Source-path inspection and a
+Native debug scaling measurement must distinguish elimination of the traversal
+from the unchanged mathematical result; testing only that the product is zero
+cannot close R2. Validate the shared sizing helper through actual L1 allocation
+paths and retain the independent work/storage failure checks. Public contracts,
+budgets and the mandatory mathematical input scope remain unchanged. Completion
+is pending implementation and affected isolated Native/WASM/Embedded validation.

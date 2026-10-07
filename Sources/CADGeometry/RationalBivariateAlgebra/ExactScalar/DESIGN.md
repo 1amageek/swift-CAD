@@ -19,6 +19,32 @@ these operations. No additional root-search algorithm is introduced. Cell
 decomposition, geometric shapes, XYZ/UV relations and floating-point enclosures
 are consumers outside L0.
 
+### Native-first resource boundary
+
+L0 owns the scalar meaning and the minimal query-resource contract. Swift owns
+buffer management, value copying, ARC lifetime, task cancellation state and
+checked machine-integer primitives. The admission policy does not own an
+allocator, collection implementation, scheduler or process-memory monitor.
+
+The native-first redesign preserves existing scalar protocols, result meaning,
+owner identity, independent limits and typed failures. Only payload sizing is
+centralized and erroneous call sites are repaired. The mathematical algorithms
+and higher geometry APIs are not redesigned.
+
+| Responsibility | Implementation authority |
+|---|---|
+| Exact scalar mathematics | Existing L0 arithmetic/ordering/importing protocols and concrete domains |
+| Retained buffers and immutable evidence | Swift Array COW, value semantics, strong ARC retention and Sendable |
+| Borrowed operands and one caller ledger | borrowing parameters, noncopyable values and inout admission |
+| Cancellation state | Task.isCancelled plus the caller's explicit cancellation flag |
+| Payload size | MemoryLayout<T>.stride and multipliedReportingOverflow |
+| Cumulative counters | Existing query-local ExactScalarLedger with checked addition and limit comparison |
+| Mathematical refinement depth | Existing independent value/coefficient depth evidence |
+
+L1 may use the scalar protocols, admission requirements and the payload-size
+contract below. It does not inspect scalar root implementations or introduce a
+second resource owner.
+
 ## Related Designs
 
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -139,6 +165,32 @@ verified operations; the protocol declaration is not that capability.
 
 ### Resource semantics and lifecycle
 
+The planned shared sizing API is one non-overridable free function:
+
+```swift
+public func exactScalarPayloadBytes<T>(count: Int, of type: T.Type)
+    throws(ExactScalarFailure) -> Int
+```
+
+It returns count multiplied by MemoryLayout<T>.stride, rejects negative counts
+and multiplication overflow with countOverflow, and performs no allocation,
+counter mutation or callback. This declaration is a planned contract, not an
+implemented capability. Its only purpose is to give L0 and the independently
+compiled L1 the same native sizing rule without publishing numeric internals.
+
+Allocation owners call it and admit the resulting bytes before materializing
+each new payload or necessary COW copy. Existing RationalAlgebraStorage typed
+helpers delegate to this rule. A raw word count denotes UInt32 storage only;
+it never denotes one polynomial term. Single-term polynomial temporaries admit
+the actual (Power, ExactRationalCoefficient) payload and every generated term.
+Native's observed 40-byte stride is evidence for that target, not a hard-coded
+cross-target size. The same generic rule selects WASM's actual layout.
+
+ExactScalarAdmission remains unchanged. Bytes are its canonical storage unit.
+The legacy RationalAlgebraAdmitting entry remains source-compatible: the existing
+checked byte-to-word rounding and word-to-byte conversion are isolated at that
+compatibility boundary. Original work and storage accounting is not reset.
+
 `retainStorage(bytes:)` accounts cumulative admitted storage, including temporary
 and retained buffers, owner payloads and necessary copies; it is not an inferred
 peak-RSS limit. Existing raw UInt32-word admission is preserved through checked
@@ -207,6 +259,12 @@ admission API cannot directly borrow a noncopyable inout ledger, which is why th
 scoped bridge is required. Native Address Sanitizer and target runtime fixtures
 verify the borrowed storage and failure paths. No performance claim is made.
 
+The current bridge remains an internal synchronous compatibility borrow because
+the existing numeric protocol passes copyable handles. Native inout is used at
+public and directly expressible boundaries. Removing this bridge would require
+changing that lower calling contract and its consumers; it is not part of this
+redesign. No new unsafe boundary or shared resource state is introduced.
+
 ## Failure, Concurrency, and Constraints
 
 Failures distinguish invalid sources, zero division, incompatible domains,
@@ -242,3 +300,15 @@ higher-level behavioral compatibility have not been verified in this task.
 
 Execution evidence and reproducible commands are owned by the
 [isolated verification package](../../../../Tests/L0ScalarVerification/VERIFICATION.md).
+
+## Redesign Verification Obligations
+
+The resource contract is currently incomplete: review R1 observed four-byte
+admission before a 40-byte monomial payload in the Native cubic-root sign path.
+The shared helper and repaired numeric call sites must be implemented before
+this redesign is reported as executed. Verify negative counts and overflow,
+target-specific stride, storage rejection before materialization, counter
+retention on failure, and the public sign of alpha squared minus three for the
+selected positive root of alpha cubed minus two. Reuse unchanged arithmetic,
+ownership and target evidence only while its premises remain valid. Build scope
+remains the isolated L0/L1 graphs; no higher target or new package is introduced.
