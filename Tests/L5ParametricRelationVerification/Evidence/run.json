@@ -1,0 +1,301 @@
+{
+  "date": "2026-10-08",
+  "branch": "codex/exact-parametric-relation",
+  "base": "29702a63",
+  "compiler": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+  "compilerVersion": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0",
+  "nodeVersion": "v24.19.0",
+  "target": "wasm32-unknown-wasip1",
+  "commands": {
+    "native": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "test",
+      "--package-path",
+      "Tests/L5ParametricRelationVerification",
+      "--build-path",
+      ".build/l5-native",
+      "-j",
+      "2"
+    ],
+    "asan": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "test",
+      "--package-path",
+      "Tests/L5ParametricRelationVerification",
+      "--build-path",
+      ".build/l5-asan",
+      "--sanitize",
+      "address",
+      "-j",
+      "2"
+    ],
+    "wasm": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "Tests/L5ParametricRelationVerification",
+      "--build-path",
+      ".build/l5-wasm",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm",
+      "--product",
+      "L5Proof",
+      "-j",
+      "2"
+    ],
+    "embedded": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "Tests/L5ParametricRelationVerification",
+      "--build-path",
+      ".build/l5-embedded",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "--product",
+      "L5Proof",
+      "-j",
+      "2",
+      "-Xlinker",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a"
+    ],
+    "wasm-runtime": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/usr/local/bin/node",
+      "Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+      ".build/l5-wasm/out/Products/Debug-webassembly-wasm32/L5Proof.wasm"
+    ],
+    "embedded-runtime": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/usr/local/bin/node",
+      "Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+      ".build/l5-embedded/out/Products/Debug-webassembly-wasm32/L5Proof.wasm"
+    ]
+  },
+  "compilerInputs": {
+    "native": [
+      {
+        "target": "L0",
+        "count": 49,
+        "path": ".build/l5-native/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.SwiftFileList",
+        "sha256": "a716e04be7a8aeec6e7d848edd99cdbe8a553e04285769ab4f1f153b5d2bbc6c"
+      },
+      {
+        "target": "L1",
+        "count": 29,
+        "path": ".build/l5-native/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.SwiftFileList",
+        "sha256": "e9f08a4fd9123de1c178cb5aee64395c756ae078bc0b6538a1213647ab534975"
+      },
+      {
+        "target": "L2",
+        "count": 30,
+        "path": ".build/l5-native/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L2-t.build/Objects-normal/arm64/L2.SwiftFileList",
+        "sha256": "ee6fef56af9965f3c2dd63f3d2203e28cf8a1a6867f53d281cf5c62f43d8c1ce"
+      },
+      {
+        "target": "L3",
+        "count": 40,
+        "path": ".build/l5-native/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L3-t.build/Objects-normal/arm64/L3.SwiftFileList",
+        "sha256": "32629ae54a6ea19fca1283fe7e44d41f57dd15d7df5caac950902b4762c901b6"
+      },
+      {
+        "target": "L4",
+        "count": 36,
+        "path": ".build/l5-native/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L4-t.build/Objects-normal/arm64/L4.SwiftFileList",
+        "sha256": "95078be12b23ecbf69ea13119029d9819c440dc07d78d171791a9ffe00b07f92"
+      },
+      {
+        "target": "L5",
+        "count": 11,
+        "path": ".build/l5-native/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L5-t.build/Objects-normal/arm64/L5.SwiftFileList",
+        "sha256": "d6c1d5fbd78164cd448971c400b0283574e1d09410d927722791f8c01e609eae"
+      }
+    ],
+    "asan": [
+      {
+        "target": "L0",
+        "count": 49,
+        "path": ".build/l5-asan/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.SwiftFileList",
+        "sha256": "a716e04be7a8aeec6e7d848edd99cdbe8a553e04285769ab4f1f153b5d2bbc6c"
+      },
+      {
+        "target": "L1",
+        "count": 29,
+        "path": ".build/l5-asan/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.SwiftFileList",
+        "sha256": "e9f08a4fd9123de1c178cb5aee64395c756ae078bc0b6538a1213647ab534975"
+      },
+      {
+        "target": "L2",
+        "count": 30,
+        "path": ".build/l5-asan/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L2-t.build/Objects-normal/arm64/L2.SwiftFileList",
+        "sha256": "ee6fef56af9965f3c2dd63f3d2203e28cf8a1a6867f53d281cf5c62f43d8c1ce"
+      },
+      {
+        "target": "L3",
+        "count": 40,
+        "path": ".build/l5-asan/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L3-t.build/Objects-normal/arm64/L3.SwiftFileList",
+        "sha256": "32629ae54a6ea19fca1283fe7e44d41f57dd15d7df5caac950902b4762c901b6"
+      },
+      {
+        "target": "L4",
+        "count": 36,
+        "path": ".build/l5-asan/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L4-t.build/Objects-normal/arm64/L4.SwiftFileList",
+        "sha256": "95078be12b23ecbf69ea13119029d9819c440dc07d78d171791a9ffe00b07f92"
+      },
+      {
+        "target": "L5",
+        "count": 11,
+        "path": ".build/l5-asan/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug/L5-t.build/Objects-normal/arm64/L5.SwiftFileList",
+        "sha256": "d6c1d5fbd78164cd448971c400b0283574e1d09410d927722791f8c01e609eae"
+      }
+    ],
+    "wasm": [
+      {
+        "target": "L0",
+        "count": 49,
+        "path": ".build/l5-wasm/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0.SwiftFileList",
+        "sha256": "a716e04be7a8aeec6e7d848edd99cdbe8a553e04285769ab4f1f153b5d2bbc6c"
+      },
+      {
+        "target": "L1",
+        "count": 29,
+        "path": ".build/l5-wasm/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1.SwiftFileList",
+        "sha256": "e9f08a4fd9123de1c178cb5aee64395c756ae078bc0b6538a1213647ab534975"
+      },
+      {
+        "target": "L2",
+        "count": 30,
+        "path": ".build/l5-wasm/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2.SwiftFileList",
+        "sha256": "ee6fef56af9965f3c2dd63f3d2203e28cf8a1a6867f53d281cf5c62f43d8c1ce"
+      },
+      {
+        "target": "L3",
+        "count": 40,
+        "path": ".build/l5-wasm/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3.SwiftFileList",
+        "sha256": "32629ae54a6ea19fca1283fe7e44d41f57dd15d7df5caac950902b4762c901b6"
+      },
+      {
+        "target": "L4",
+        "count": 36,
+        "path": ".build/l5-wasm/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L4-t.build/Objects-normal/wasm32/L4.SwiftFileList",
+        "sha256": "95078be12b23ecbf69ea13119029d9819c440dc07d78d171791a9ffe00b07f92"
+      },
+      {
+        "target": "L5",
+        "count": 11,
+        "path": ".build/l5-wasm/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L5-t.build/Objects-normal/wasm32/L5.SwiftFileList",
+        "sha256": "d6c1d5fbd78164cd448971c400b0283574e1d09410d927722791f8c01e609eae"
+      }
+    ],
+    "embedded": [
+      {
+        "target": "L0",
+        "count": 49,
+        "path": ".build/l5-embedded/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0.SwiftFileList",
+        "sha256": "a716e04be7a8aeec6e7d848edd99cdbe8a553e04285769ab4f1f153b5d2bbc6c"
+      },
+      {
+        "target": "L1",
+        "count": 29,
+        "path": ".build/l5-embedded/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1.SwiftFileList",
+        "sha256": "e9f08a4fd9123de1c178cb5aee64395c756ae078bc0b6538a1213647ab534975"
+      },
+      {
+        "target": "L2",
+        "count": 30,
+        "path": ".build/l5-embedded/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2.SwiftFileList",
+        "sha256": "ee6fef56af9965f3c2dd63f3d2203e28cf8a1a6867f53d281cf5c62f43d8c1ce"
+      },
+      {
+        "target": "L3",
+        "count": 40,
+        "path": ".build/l5-embedded/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3.SwiftFileList",
+        "sha256": "32629ae54a6ea19fca1283fe7e44d41f57dd15d7df5caac950902b4762c901b6"
+      },
+      {
+        "target": "L4",
+        "count": 36,
+        "path": ".build/l5-embedded/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L4-t.build/Objects-normal/wasm32/L4.SwiftFileList",
+        "sha256": "95078be12b23ecbf69ea13119029d9819c440dc07d78d171791a9ffe00b07f92"
+      },
+      {
+        "target": "L5",
+        "count": 11,
+        "path": ".build/l5-embedded/out/Intermediates.noindex/L5ParametricRelationVerification.build/Debug-webassembly-wasm32/L5-t.build/Objects-normal/wasm32/L5.SwiftFileList",
+        "sha256": "d6c1d5fbd78164cd448971c400b0283574e1d09410d927722791f8c01e609eae"
+      }
+    ]
+  },
+  "artifacts": {
+    "wasm": {
+      "path": ".build/l5-wasm/out/Products/Debug-webassembly-wasm32/L5Proof.wasm",
+      "bytes": 12570879,
+      "sha256": "717376d700fadba3e9752fd4f9c60dde3f5ccb02c86e8b7cf675643776acd516"
+    },
+    "embedded": {
+      "path": ".build/l5-embedded/out/Products/Debug-webassembly-wasm32/L5Proof.wasm",
+      "bytes": 5425443,
+      "sha256": "645732926e000906af9cf4d125418c31e8b8ee257685909fe59d3975014e7e36"
+    }
+  },
+  "logs": [
+    {
+      "path": "Tests/L5ParametricRelationVerification/Evidence/asan.log",
+      "sha256": "09042569b80b55e17e7ddd1eb61efafff029cad966d4d1799bb033f4c02c0c58"
+    },
+    {
+      "path": "Tests/L5ParametricRelationVerification/Evidence/cs-focused.log",
+      "sha256": "fb3bef2df822e91388e1e97a57456027fcaf466f3d6c3b4b879af43fdf53a40a"
+    },
+    {
+      "path": "Tests/L5ParametricRelationVerification/Evidence/embedded-build.log",
+      "sha256": "cdae7b7a922045469a3bd8a8f5be1b87294d7aab5c21adfc603029c8274d171b"
+    },
+    {
+      "path": "Tests/L5ParametricRelationVerification/Evidence/embedded-runtime.log",
+      "sha256": "c5c001c2b337b2dd588f555f038e6741b1a506c065811bc2a8b1c27f612d439f"
+    },
+    {
+      "path": "Tests/L5ParametricRelationVerification/Evidence/native-final.log",
+      "sha256": "21f9afc9760dff64ff535637faca9434b96c371416b4aac60a71920afd74121a"
+    },
+    {
+      "path": "Tests/L5ParametricRelationVerification/Evidence/native.log",
+      "sha256": "559905aae10de489a2987d60c597331f4eab379c4c39778f707763ea43e88d75"
+    },
+    {
+      "path": "Tests/L5ParametricRelationVerification/Evidence/wasm-build.log",
+      "sha256": "9920614593ca2d8e6b6718b23d69a9fdec42ab2dce03b4adc373affbdc73d5cd"
+    },
+    {
+      "path": "Tests/L5ParametricRelationVerification/Evidence/wasm-runtime.log",
+      "sha256": "43b5078ace1812a2f27f73bc01e7f351b5fba9e9aa0c91c6527ef258b8e0609b"
+    }
+  ],
+  "historicalDiagnosticLogs": [
+    "Tests/L5ParametricRelationVerification/Evidence/native.log",
+    "Tests/L5ParametricRelationVerification/Evidence/cs-focused.log"
+  ]
+}

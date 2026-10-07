@@ -1,0 +1,20 @@
+Building for debugging...
+[1 / 5] L5Fixtures
+[6 / 10] L5Fixtures
+[9 / 10] L5Tests-product
+[12 / 12] L5Proof-product
+Build complete! (0.86秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite RelationTests started.
+􀟈  Test cs() started.
+PASS: CS case=0 work=572227 storage=26130924
+PASS: CS case=1 work=481557 storage=21941227
+PASS: CS case=2 work=361914 storage=17009459
+􀢄  Test cs() recorded an issue at RelationTests.swift:4:6: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.storage)))))
+􀢄  Test cs() failed after 33.314 seconds with 1 issue.
+􀢄  Suite RelationTests failed after 33.314 seconds with 1 issue.
+􀢄  Test run with 1 test in 1 suite failed after 33.314 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L5Tests (Swift Testing)

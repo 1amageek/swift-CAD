@@ -1,0 +1,41 @@
+Building for debugging...
+[Planning deferred tasks]
+[54 / 118] L0
+[62 / 118] L0
+[63 / 118] L0
+[64 / 118] L1
+[66 / 118] L0
+[68 / 118] L0
+[71 / 118]
+[75 / 135] L1
+[82 / 135] L1
+[85 / 135] L2
+[89 / 135] L1
+[92 / 135] L1
+[102 / 152] L2
+[110 / 152] L2
+[112 / 152] L3
+[116 / 152] L2
+[119 / 152] L2
+[122 / 168] L3
+[123 / 169] L3
+[131 / 169] L3
+[135 / 169] L3
+[138 / 169] L3
+[140 / 169] L3
+[141 / 169]
+[148 / 186] L4
+[151 / 186] L4
+[158 / 186] L4
+[160 / 186] L5
+[163 / 186] L4
+[165 / 186] L4
+[169 / 199] L4
+[178 / 200] L5Fixtures
+[184 / 200] L5
+[191 / 206] L5Fixtures
+[193 / 206] L5Fixtures
+[204 / 210] L5Proof-product
+/private/tmp/cad-exact-parametric-relation-20261008/Tests/L5ParametricRelationVerification/Package.swift: L5Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[211 / 211] L5Proof-product
+Build complete! (6.64秒)

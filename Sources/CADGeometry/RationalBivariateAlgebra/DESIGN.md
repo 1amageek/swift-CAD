@@ -20,6 +20,7 @@ isolation, branch topology or that an interval containing zero is an exact root.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [ExactParametricRelation](ExactParametricRelation/DESIGN.md) | child | Source-bound CS/SSI parameter relation composition | Uses public L0-L4 | Independent verification; upper geometry publication is separate |
 | [ExactRealTopology](ExactRealTopology/DESIGN.md) | child | L4 closures, complete incidence and selected parameter components | Consumes public L0-L3 contracts | Independently verified on Native/ASAN and both WASI families; upper geometry integration is separate |
 | [ExactRealCell](ExactRealCell/DESIGN.md) | child | L3 complete real-cell partitions, selection and retained conditions | Depends only on public L0/L1/L2 and Swift | Isolated paths and L4 inspection extension verified; upper integration remains separate |
 | [ExactRealRoot](ExactRealRoot/DESIGN.md) | child | L2 complete univariate roots and selected-root coefficients | Depends only on public L0/L1 contracts and Swift | Independently verified; higher consumer integration is separate |

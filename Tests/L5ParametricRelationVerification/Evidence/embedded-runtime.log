@@ -1,0 +1,15 @@
+(node:87472) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS: CS case=0 work=569073 storage=13161388
+PASS: CS case=1 work=478564 storage=11039711
+PASS: CS case=2 work=359904 storage=8548307
+PASS: CS case=3 work=591456 storage=13641891
+PASS: CS case=4 work=462494 storage=10708089
+PASS: CS case=5 work=496847 storage=11386234
+PASS: CS case=6 work=107303 storage=2792904
+PASS: CS case=7 work=254822 storage=5854746
+PASS: weighted/repeated/multiple-UV/guard/empty/continuous CS
+PASS: folded SSI cells=45 attachments=108 components=1 work=15463359 storage=291731758
+PASS: unbounded/singleton retained source and exact tuples
+PASS: exact compile admission work=362 storage=10064; typed limits/cancellation/invalid/foreign-family
+PASS: independent original parameter relation composition

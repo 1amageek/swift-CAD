@@ -1,0 +1,79 @@
+Building for debugging...
+[Pre-planning 1 / 269]
+[Starting]
+[69 / 150] L0
+[74 / 166] L0
+[83 / 166] L0
+[85 / 166] L0
+[90 / 166] L0
+[92 / 166] L0
+[93 / 167]
+[96 / 182] L1
+[104 / 182] L1
+[108 / 182] L1
+[112 / 182] L1
+[114 / 182] L1
+[117 / 183]
+[120 / 198] L2
+[130 / 198] L2
+[132 / 198] L3
+[136 / 198] L2
+[138 / 198] L2
+[145 / 214] L3
+[148 / 214] L3
+[155 / 214] L3
+[159 / 214] L3
+[163 / 214] L3
+[166 / 230] L4
+[166 / 230] L3
+[176 / 230] L4
+[177 / 230] L4
+[182 / 230] L4
+[183 / 230] L4
+[185 / 230] L4
+[189 / 243] L5
+[198 / 243] L5Fixtures
+[203 / 243] L5
+[209 / 244] L5
+[213 / 248] L5Fixtures
+[215 / 248] L5Fixtures
+[231 / 251] L5Proof-product
+[238 / 252] L5Tests-product
+[244 / 277]
+[250 / 277]
+[254 / 277]
+[258 / 277]
+[261 / 277]
+[263 / 277]
+[266 / 277] L5Tests-product
+[273 / 277] L5Tests-product
+Build complete! (7.76秒)
+Test Suite 'All tests' started at 2026-10-08 00:20:38.681.
+Test Suite 'All tests' passed at 2026-10-08 00:20:38.682.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite RelationTests started.
+􀟈  Test lifetime() started.
+􀟈  Test ssi() started.
+􀟈  Test cs() started.
+􀟈  Test failures() started.
+PASS: unbounded/singleton retained source and exact tuples
+􁁛  Test lifetime() passed after 0.189 seconds.
+PASS: CS case=0 work=572260 storage=26131724
+PASS: CS case=1 work=481590 storage=21942027
+PASS: CS case=2 work=361947 storage=17010259
+PASS: exact compile admission work=363 storage=20104; typed limits/cancellation/invalid/foreign-family
+􁁛  Test failures() passed after 4.190 seconds.
+PASS: CS case=3 work=594751 storage=27130907
+PASS: CS case=4 work=465202 storage=21281381
+PASS: CS case=5 work=499604 storage=22632362
+PASS: CS case=6 work=107888 storage=5571868
+PASS: CS case=7 work=256011 storage=11632082
+PASS: weighted/repeated/multiple-UV/guard/empty/continuous CS
+􁁛  Test cs() passed after 7.256 seconds.
+PASS: folded SSI cells=45 attachments=108 components=1 work=15641604 storage=580194166
+􁁛  Test ssi() passed after 27.921 seconds.
+􁁛  Suite RelationTests passed after 27.921 seconds.
+􁁛  Test run with 4 tests in 1 suite passed after 27.921 seconds.

@@ -1,0 +1,73 @@
+Building for debugging...
+[Pre-planning 1 / 269]
+[Constructing 163 / 597]
+[68 / 146] L0
+[73 / 163] L0
+[80 / 163] L0
+[82 / 163] L0
+[86 / 163] L0
+[88 / 163] L0
+[90 / 163] L0
+[94 / 164] L1
+[97 / 179] L1
+[100 / 179] L1
+[107 / 179] L1
+[112 / 179] L1
+[115 / 179] L0
+[119 / 195] L2
+[120 / 195] L2
+[129 / 195] L3
+[134 / 195] L2
+[136 / 195] L2
+[137 / 195] L2
+[144 / 211] L3
+[148 / 211] L3
+[155 / 211] L4
+[160 / 211] L3
+[162 / 211] L3
+[163 / 212]
+[166 / 227] L4
+[175 / 227] L5
+[178 / 227] L4
+[180 / 227] L4
+[181 / 227] L4
+[184 / 227] L4
+[188 / 239] L5
+[197 / 239] L5Fixtures
+[202 / 239] L5
+[209 / 244] L3
+[213 / 244] L5Fixtures
+[225 / 247] L5Proof-product
+[235 / 248]
+[242 / 273]
+[246 / 273]
+[251 / 273]
+[254 / 273]
+[257 / 273]
+[259 / 273]
+[262 / 273] L5Tests-product
+[269 / 273] L5Tests-product
+Build complete! (7.56秒)
+Test Suite 'All tests' started at 2026-10-08 00:15:24.531.
+Test Suite 'All tests' passed at 2026-10-08 00:15:24.532.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite RelationTests started.
+􀟈  Test failures() started.
+􀟈  Test lifetime() started.
+􀟈  Test ssi() started.
+􀟈  Test cs() started.
+PASS: unbounded/singleton retained source and exact tuples
+􁁛  Test lifetime() passed after 0.110 seconds.
+PASS: exact compile admission work=330 storage=19320; typed limits/cancellation/invalid/foreign-family
+􁁛  Test failures() passed after 2.211 seconds.
+PASS: folded SSI cells=45 attachments=108 components=1 work=15641565 storage=580193366
+􁁛  Test ssi() passed after 14.521 seconds.
+􀢄  Test cs() recorded an issue at RelationTests.swift:4:6: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.storage)))))
+􀢄  Test cs() failed after 27.649 seconds with 1 issue.
+􀢄  Suite RelationTests failed after 27.650 seconds with 1 issue.
+􀢄  Test run with 4 tests in 1 suite failed after 27.650 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L5Tests (Swift Testing)
