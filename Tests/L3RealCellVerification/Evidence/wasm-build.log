@@ -1,0 +1,71 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 268]
+[Planning deferred tasks]
+[5 / 114]
+[59 / 130] L0
+[62 / 130] L0
+[67 / 130] L0
+[68 / 130] L1
+[69 / 130] L1
+[71 / 130] L0
+[72 / 130] L0
+[73 / 130] L0
+[74 / 130] L0
+[75 / 130] L0
+[76 / 130] L0
+[80 / 152] L0Fixtures
+[82 / 153] L0Fixtures
+[93 / 153] L1
+[94 / 153] L2
+[95 / 153] L2
+[99 / 153] L1
+[101 / 153] L1
+[102 / 153] L1
+[103 / 153] L1
+[104 / 153] L1
+[105 / 153] L0Fixtures
+[105 / 153] L1
+[107 / 154] L1
+[109 / 154] L0Fixtures
+[117 / 157] L0
+[120 / 176] L2
+[132 / 176] L2
+[133 / 176] L2
+[135 / 176] L2
+[136 / 176] L2
+[137 / 176] L3
+[138 / 176] L3
+[140 / 176] L2
+[141 / 176] L2
+[143 / 176] L2
+[145 / 176] L1Fixtures
+[146 / 176]
+[150 / 179] L2Fixtures
+[151 / 200] L1Fixtures
+[153 / 201] L2Fixtures
+[166 / 201] L3
+[167 / 201] L3
+[169 / 201] L3
+[172 / 201] L3
+[173 / 201] L3
+[175 / 201] L3
+[176 / 201] L2Fixtures
+[179 / 202] L3
+[181 / 202] L2Fixtures
+[184 / 202] L1Fixtures
+[184 / 202]
+[188 / 211] L3Fixtures
+[189 / 212] L3Fixtures
+[192 / 212] L3Fixtures
+[196 / 212] L3Fixtures
+[197 / 212] L3Proof-product
+[198 / 212] L3Proof-product
+[200 / 212]
+[204 / 215] L3Proof-product
+[205 / 215]
+[206 / 216] L3Proof-product
+[213 / 217] L2Fixtures
+/private/tmp/cad-exact-layer-opt-20261007/Tests/L3RealCellVerification/Package.swift: L3Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[217 / 217] L3Proof-product
+Build complete! (25.15秒)

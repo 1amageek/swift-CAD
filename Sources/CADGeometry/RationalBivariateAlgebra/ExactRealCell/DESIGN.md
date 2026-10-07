@@ -632,3 +632,15 @@ has one coordinate per attained axis; location still requires a full source poin
 A prefix condition tests the corresponding ancestral region intersected with the
 complete requested box. Source-sign selection remains restricted to full cells.
 The generic cell-query contract never turns a valid parent handle into invalidCell.
+
+## Scoped Coefficient Grouping Optimization
+
+Coefficient extraction validates the polynomial via its public L1 degree query.
+A degree-zero law is its own coefficient and can retain its existing backing.
+Other laws are counted and grouped by the selected exponent using two linear
+term traversals, then each coefficient is constructed through public L1.
+Counts, bucket headers, actual term/power payloads and output slots are admitted
+before materialization. Degree gaps still produce exact zero coefficients and
+all original projection/PSC witnesses remain unchanged. Query-local arrays add
+no shared mutable cache or new public contract. Differential fixtures compare
+against independently filtered original terms and exercise all selected axes.

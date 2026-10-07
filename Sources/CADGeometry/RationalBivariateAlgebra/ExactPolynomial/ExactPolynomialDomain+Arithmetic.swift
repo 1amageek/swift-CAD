@@ -5,10 +5,35 @@ import L0
 extension ExactPolynomialDomain {
     func adding<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
         _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
+        try merged(lhs, rhs, subtract: false, &usage)
+    }
+    func merged<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
+        subtract: Bool, _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
         let count = try ExactPolynomialAccess.count(lhs.terms.count, rhs.terms.count)
-        try usage.consumeWork(count); try ExactPolynomialAccess.storage(count, ExactPolynomialTerm<Coefficient>.self, &usage)
-        var terms = lhs.terms; terms.reserveCapacity(count); terms.append(contentsOf: rhs.terms)
-        return try canonical(terms, &usage)
+        try ExactPolynomialAccess.storage(count, ExactPolynomialTerm<Coefficient>.self, &usage)
+        var terms: [ExactPolynomialTerm<Coefficient>] = []; terms.reserveCapacity(count)
+        var left = 0, right = 0
+        // Issued operands already have unique, nonzero terms in descending order.
+        while left < lhs.terms.count || right < rhs.terms.count {
+            try usage.consumeWork(1)
+            let order = left == lhs.terms.count ? -1 : right == rhs.terms.count ? 1
+                : try ExactPolynomialAccess.order(lhs.terms[left].powers, rhs.terms[right].powers, &usage)
+            if order > 0 { terms.append(lhs.terms[left]); left += 1 }
+            else if order < 0 {
+                let term = rhs.terms[right]
+                let coefficient = try subtract ? field.negated(term.coefficient, using: &usage) : term.coefficient
+                terms.append(.init(powers: term.powers, coefficient: coefficient)); right += 1
+            } else {
+                let l = lhs.terms[left], r = rhs.terms[right]
+                let coefficient = try subtract ? field.subtracting(l.coefficient, r.coefficient, using: &usage)
+                    : field.adding(l.coefficient, r.coefficient, using: &usage)
+                if try field.sign(of: coefficient, using: &usage) != .zero {
+                    terms.append(.init(powers: l.powers, coefficient: coefficient))
+                }
+                left += 1; right += 1
+            }
+        }
+        return try wrap(terms, &usage)
     }
     func negated<A: ExactScalarAdmission & ~Copyable>(_ value: borrowing Polynomial,
         _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
@@ -20,7 +45,7 @@ extension ExactPolynomialDomain {
     }
     func subtracting<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
         _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {
-        try adding(lhs, negated(rhs, &usage), &usage)
+        try merged(lhs, rhs, subtract: true, &usage)
     }
     func multiplying<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing Polynomial, _ rhs: borrowing Polynomial,
         _ usage: inout ExactPolynomialAdmission<A>) throws -> Polynomial {

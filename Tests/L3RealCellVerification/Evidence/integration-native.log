@@ -1,0 +1,196 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 16 / 414]
+[Planning deferred tasks]
+[5 / 13] L0
+[6 / 14] L0
+[15 / 36] L0Fixtures
+[18 / 37] L0Fixtures
+[19 / 37] L0
+[23 / 39] L0
+[26 / 39] L0Fixtures
+[29 / 39] L0
+[31 / 39] L0
+[32 / 39] L0
+[37 / 45] L0Fixtures
+[38 / 45] L0Fixtures
+[42 / 46] L0ScalarTests-product
+[45 / 49] L0ScalarTests-product
+[51 / 53] L0ScalarTests-product
+[59 / 67] L1
+[71 / 90] L1Fixtures
+[73 / 90] L1
+[77 / 92] L1
+[83 / 92] L1
+[85 / 92] L1
+[90 / 97] L1Fixtures
+[94 / 98] L1PolynomialTests-product
+[97 / 101] L1PolynomialTests-product
+[103 / 105] L1PolynomialTests-product
+[111 / 119] L2
+[123 / 142] L2Fixtures
+[124 / 142] L2
+[133 / 144] L2
+[134 / 144] L2
+[137 / 144] L2
+[142 / 151] L2Fixtures
+[144 / 151] L2Fixtures
+[151 / 155] L2Tests-product
+[157 / 159] L2Tests-product
+[163 / 165] L3
+[177 / 191] L3
+[180 / 191] L3
+[183 / 191] L3
+[185 / 191] L3
+[187 / 191] L3
+[188 / 191] L3
+[191 / 194] L3Fixtures
+[195 / 200] L3Fixtures
+[197 / 200] L3Fixtures
+[198 / 200] L3Fixtures
+[203 / 205] L3Tests-product
+[205 / 208] L3Tests-product
+[206 / 208] L3Tests-product
+[208 / 208] L3Tests-product
+[214 / 216] OptimizationBenchmark-product
+[216 / 216] OptimizationBenchmark-product
+[228 / 230] L3Proof-product
+[230 / 230] L3Proof-product
+Build complete! (9.61秒)
+Test Suite 'All tests' started at 2026-10-07 21:35:27.510.
+Test Suite 'All tests' passed at 2026-10-07 21:35:27.512.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+Test Suite 'All tests' started at 2026-10-07 21:35:27.617.
+Test Suite 'All tests' passed at 2026-10-07 21:35:27.618.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-07 21:35:27.718.
+Test Suite 'All tests' passed at 2026-10-07 21:35:27.718.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-07 21:35:27.809.
+Test Suite 'All tests' passed at 2026-10-07 21:35:27.810.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test selectionAndLocation() started.
+􀟈  Test projectionAndSource() started.
+􀟈  Test protocolRequirements() started.
+􀟈  Test nullifiedQuery() started.
+􀟈  Test checkedProjectionSizes() started.
+􀟈  Test domainClipping() started.
+􀟈  Test transportedCoordinates() started.
+􀟈  Test sourceTraversal() started.
+􀟈  Test retainedAndOutside() started.
+􀟈  Test optimizedExactOperations() started.
+􀟈  Test sourceFailures() started.
+􀟈  Test applicationRelations() started.
+􀟈  Test nullification() started.
+􀟈  Test resources() started.
+􀟈  Test coefficientGroupingReference() started.
+􀟈  Test concurrentImmutableReaders() started.
+􀟈  Test originalAlgebraicCoefficients() started.
+􀟈  Test singularities() started.
+􀟈  Test algebraicQueries() started.
+􀟈  Test escapedOwnership() started.
+􁁛  Test checkedProjectionSizes() passed after 0.244 seconds.
+􁁛  Test sourceFailures() passed after 0.244 seconds.
+􁁛  Test coefficientGroupingReference() passed after 0.244 seconds.
+􁁛  Test projectionAndSource() passed after 0.244 seconds.
+􁁛  Test protocolRequirements() passed after 0.244 seconds.
+􁁛  Test sourceTraversal() passed after 0.244 seconds.
+􁁛  Test optimizedExactOperations() passed after 0.244 seconds.
+􁁛  Test escapedOwnership() passed after 0.264 seconds.
+􁁛  Test concurrentImmutableReaders() passed after 0.280 seconds.
+􁁛  Test domainClipping() passed after 0.615 seconds.
+􁁛  Test resources() passed after 0.630 seconds.
+􁁛  Test nullification() passed after 0.662 seconds.
+􁁛  Test nullifiedQuery() passed after 0.662 seconds.
+􁁛  Test retainedAndOutside() passed after 0.664 seconds.
+􁁛  Test transportedCoordinates() passed after 0.941 seconds.
+􁁛  Test originalAlgebraicCoefficients() passed after 1.021 seconds.
+􁁛  Test selectionAndLocation() passed after 1.043 seconds.
+􁁛  Test singularities() passed after 1.155 seconds.
+􁁛  Test applicationRelations() passed after 1.902 seconds.
+􁁛  Test algebraicQueries() passed after 2.525 seconds.
+􁁛  Test run with 20 tests in 0 suites passed after 2.526 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test algebraicTower() started.
+􀟈  Test concurrentImmutableRootReaders() started.
+􀟈  Test exactQueries() started.
+􀟈  Test rootDomains() started.
+􀟈  Test rootFailures() started.
+􀟈  Test rationalRoots() started.
+􀟈  Test retainedOwners() started.
+􀟈  Test finalCancellationAndStorage() started.
+􀟈  Test reducibleLaw() started.
+􀟈  Test existingAlgebraicBase() started.
+􀟈  Test fieldFailures() started.
+􀟈  Test generalDegree() started.
+􁁛  Test rootFailures() passed after 0.061 seconds.
+PASS: terminal cancellation, atomic publication and exact storage boundary
+􁁛  Test finalCancellationAndStorage() passed after 0.066 seconds.
+􁁛  Test concurrentImmutableRootReaders() passed after 0.068 seconds.
+􁁛  Test rationalRoots() passed after 0.078 seconds.
+PASS: higher degree, odd multiplicity and invalid input failures
+􁁛  Test generalDegree() passed after 0.081 seconds.
+PASS: retained owners, original variable map and exact base import
+􁁛  Test retainedOwners() passed after 0.081 seconds.
+􁁛  Test exactQueries() passed after 0.108 seconds.
+􁁛  Test rootDomains() passed after 0.110 seconds.
+PASS: reducible root law and selected-root denominator decisions
+􁁛  Test reducibleLaw() passed after 0.119 seconds.
+PASS: incompatible owners, extension ceiling and scalar failures
+􁁛  Test fieldFailures() passed after 0.150 seconds.
+PASS: existing algebraic base coefficients and inherited coefficient depth
+􁁛  Test existingAlgebraicBase() passed after 0.178 seconds.
+PASS: runtime algebraic tower and retained ancestor embeddings
+􁁛  Test algebraicTower() passed after 0.708 seconds.
+􁁛  Test run with 12 tests in 0 suites passed after 0.709 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite L1PolynomialTests started.
+􀟈  Test taskCancellation() started.
+􀟈  Test primitiveRational() started.
+􀟈  Test algebraicAlgebra() started.
+􀟈  Test primitiveAlgebraicAndLifetime() started.
+􀟈  Test primitiveFailuresAndResources() started.
+􀟈  Test rationalAlgebra() started.
+􀟈  Test algebraFailures() started.
+􀟈  Test zeroProductResourceAndDepthContract() started.
+􁁛  Test taskCancellation() passed after 0.001 seconds.
+􁁛  Test primitiveFailuresAndResources() passed after 0.001 seconds.
+􁁛  Test primitiveRational() passed after 0.001 seconds.
+􁁛  Test algebraFailures() passed after 0.011 seconds.
+􁁛  Test primitiveAlgebraicAndLifetime() passed after 0.012 seconds.
+􁁛  Test rationalAlgebra() passed after 0.025 seconds.
+􁁛  Test zeroProductResourceAndDepthContract() passed after 0.027 seconds.
+􁁛  Test algebraicAlgebra() passed after 0.062 seconds.
+􁁛  Suite L1PolynomialTests passed after 0.063 seconds.
+􁁛  Test run with 8 tests in 1 suite passed after 0.063 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite L0ScalarTests started.
+􀟈  Test exactRationalValuesAndOperations() started.
+􀟈  Test monomialStorageRejectsBeforeConstruction() started.
+􀟈  Test originalAlgebraicValuesAndLifetime() started.
+􀟈  Test nativeTaskCancellation() started.
+􀟈  Test fiberStorageAndOriginalIdentities() started.
+􀟈  Test unmappedFailureRetainsCauseAndSpentWork() started.
+􀟈  Test payloadSizingAndCubicSign() started.
+􀟈  Test checkedWordConversionAndInheritedDepth() started.
+􀟈  Test failureResourcesAndCancellation() started.
+􁁛  Test nativeTaskCancellation() passed after 0.001 seconds.
+􁁛  Test unmappedFailureRetainsCauseAndSpentWork() passed after 0.001 seconds.
+􁁛  Test checkedWordConversionAndInheritedDepth() passed after 0.001 seconds.
+􁁛  Test monomialStorageRejectsBeforeConstruction() passed after 0.001 seconds.
+􁁛  Test failureResourcesAndCancellation() passed after 0.001 seconds.
+􁁛  Test exactRationalValuesAndOperations() passed after 0.001 seconds.
+􁁛  Test payloadSizingAndCubicSign() passed after 0.005 seconds.
+􁁛  Test originalAlgebraicValuesAndLifetime() passed after 0.006 seconds.
+􁁛  Test fiberStorageAndOriginalIdentities() passed after 0.028 seconds.
+􁁛  Suite L0ScalarTests passed after 0.028 seconds.
+􁁛  Test run with 9 tests in 1 suite passed after 0.028 seconds.

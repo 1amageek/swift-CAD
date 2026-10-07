@@ -31,4 +31,4 @@ External timeout bounds every run. Ordinary and Embedded SDKs are separate verif
 
 ## Verification and Change Impact
 `Tests/CellTests.swift` owns projection and source tests. Public fixtures own lifting/query, ownership and resource regressions; [VERIFICATION.md](VERIFICATION.md) records actual target evidence.
-Unchanged lower evidence is reused; lower sources are not modified.
+The optimization snapshot changes one arithmetic/comparison path in each lower layer. Existing lower fixtures and test modules are linked into this package, compiling the same production modules once. The combined proof executes lower and upper synchronous fixtures on both WASM SDKs. Native-only OptimizationBenchmark records identical-input measurements before and after source changes.

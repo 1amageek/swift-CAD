@@ -351,3 +351,14 @@ fixtures preserve operands and spent counters. Normal and Embedded WASM execute
 the same assertions. The completed stable review and scoped cumulative L0/L1 verification are
 recorded in the existing repair verification owner. The R3 obligations above
 are closed for the verified snapshot; upper consumers remain outside scope.
+
+## Scoped Comparison Optimization
+
+Rational comparison admits the inspected denominator/numerator limbs before
+comparison. Opposite signs and zero decide order without allocation. Equal
+canonical denominators permit direct magnitude comparison, reversing the order
+for negatives; other denominators retain the existing exact subtraction path.
+All paths retain entry/terminal checkpoints and the same caller admission. No
+large-integer algorithm, public protocol or approximate comparison changes.
+Differential fixtures compare against exact subtraction and cover signed/equal
+values, unequal denominators, work rejection and terminal cancellation.

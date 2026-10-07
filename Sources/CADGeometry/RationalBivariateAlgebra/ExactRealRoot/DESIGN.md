@@ -432,3 +432,13 @@ root domain before root-to-root queries. The coefficient owner and polynomial
 basis must both be compatible; a common field alone does not silently import a
 foreign receipt. Public L1 importing/construction, the retained original law and
 variable map, and certified L2 isolation provide that explicit path.
+
+## Scoped Disjoint Comparison Optimization
+
+After both root receipts, owners and depths are admitted, disjoint finite
+isolation intervals decide order before GCD/Sturm construction. Equal endpoints
+are disjoint only when at least one touching endpoint is excluded. Overlapping
+receipts retain the original common-root proof and refinement algorithm.
+Exact field comparison uses the same cumulative admission. Fixtures cover both
+orders, identical roots, touching intervals and different-source comparisons;
+existing multiplicity, refinement, tower and failure fixtures remain obligations.

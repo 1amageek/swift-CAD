@@ -1,0 +1,15 @@
+Building for debugging...
+[Pre-planning 1 / 268]
+[Planning deferred tasks]
+[58 / 116] L0
+[70 / 120] L1
+[78 / 122]
+[85 / 124] L2
+[97 / 127] L2Fixtures
+[99 / 128] L1Fixtures
+[112 / 130] L1
+[121 / 130] L3Fixtures
+[130 / 132] L3Proof-product
+[132 / 132] L3Proof-product
+/private/tmp/cad-exact-layer-opt-20261007/Tests/L3RealCellVerification/Package.swift: L3Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+Build complete! (31.14秒)
