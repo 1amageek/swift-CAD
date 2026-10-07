@@ -128,3 +128,6 @@ Native, normal WASM and Embedded WASM use Swift 6.4.0 and matching SDKs. Higher
 geometry/intersection builds and main integration are outside the task. Unchanged
 L0 evidence is reused. L1 completion requires actual behavior, one stable review,
 local commits and final snapshot/evidence correspondence.
+
+The completed target-specific evidence and reproduction commands are recorded in
+[L1PolynomialVerification/VERIFICATION.md](../../../../Tests/L1PolynomialVerification/VERIFICATION.md).

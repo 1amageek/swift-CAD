@@ -41,7 +41,7 @@ public enum L1AlgebraFixtures {
         let repeated = try d.scaled(d.multiplying(powered(d,c,2,one,&a),powered(d,b,3,one,&a),using:&a),by:two,using:&a)
         let decomposition = try d.squareFreeDecomposition(repeated,using:&a)
         check(decomposition.unit == two)
-        check(decomposition.factors.map(\.multiplicity) == [2,3])
+        check(decomposition.factors.map { $0.multiplicity } == [2,3])
         check(try d.equals(decomposition.factors[0].polynomial,c,using:&a))
         check(try d.equals(decomposition.factors[1].polynomial,b,using:&a))
         var rebuilt = try d.constant(decomposition.unit,using:&a)

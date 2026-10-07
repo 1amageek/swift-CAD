@@ -8,7 +8,5 @@
 - [x] L0.V Confirmed the committed 48-file production inventory, isolated dependency graph, source hashes and retained runtime evidence; higher consumers and main integration remain outside the verified scope. `depends:ES.C1,ES.C2,ES.C3,ES.V,L0.I` `parallel:none`
 
 - [x] L1.1 Completed the isolated polynomial primitives, rational/algebraic lifetime and resource checks, stable review and local commit. `commit:4358e99c` `depends:L0.I,L0.V` `parallel:none`
-- [ ] L1.2 Implement single-divisor division, iterative content/primitive PRS GCD, square-free decomposition and exact Sylvester resultants. `depends:L1.1` `parallel:none`
-  - [x] L1.2.I Complete all algebraic algorithms using only L1 primitives and L0 coefficients/admission. `depends:L1.1` `parallel:none`
-  - [x] L1.2.V Verify identities, remainders, common contents, multiplicities, elimination and explicit failures; review and commit. `depends:L1.2.I` `parallel:none`
-- [ ] L1.V Verify cumulative L1 success/failure/lifetime/resource/cancellation paths on Native, normal WASM and Embedded WASM; verify only L0+L1 source inventories and commit final evidence. `depends:ES.C1,ES.C2,ES.C3,ES.V,L0.I,L0.V,L1.1,L1.2` `parallel:none`
+- [x] L1.2 Completed division, iterative multivariate GCD, square-free decomposition and resultants; Native/ASAN 7 tests passed and stable implementation reviewed. `commit:66e6c8fd` `depends:L1.1` `parallel:none`
+- [x] L1.V Completed cumulative isolated verification: Native/ASAN 7 tests, normal/Embedded WASM execution, all four compiler inventories matched 48 L0 plus 29 L1 sources, reviewed portability repair and committed final evidence. `depends:ES.C1,ES.C2,ES.C3,ES.V,L0.I,L0.V,L1.1,L1.2` `parallel:none`
