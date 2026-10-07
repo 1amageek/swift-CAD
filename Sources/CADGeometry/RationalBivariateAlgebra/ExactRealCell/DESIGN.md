@@ -339,15 +339,14 @@ ExactRealRootLimits, applied unchanged to each stack. Sample/condition access
 creates no cell graph and takes no redundant cell-count policy. Every query
 uses fresh caller admission and retains the stored proof depth. Immutable evidence owns no prior mutable allowance.
 
-### L4 Inspection Extension (Design Only)
+### L4 Inspection Extension
 
 [L4](../ExactRealTopology/DESIGN.md) needs symbolic cell identity and complete
 prefix-tree access. Existing ports do not provide these capabilities. This
-section specifies the additional L3 contract; its operations/receipts are not
-implemented by the current verified snapshot. It does not change the meaning of
+section owns the additional L3 contract implemented by the inspection extension. It does not change the meaning of
 existing decomposition, sample metadata, selection or full-point location.
 
-| Proposed public port | Requirement | Guarantee |
+| Public port | Requirement | Guarantee |
 |---|---|---|
 | `ExactRealCellDescribing<Base>` | `coefficientField(of:using:)` | Validate and retain the source's original effective coefficient field, even for empty/constant sources |
 | `ExactRealCellDescribing<Base>` | `definition(of:in:using:)` | Issue the exact whole-cell path and certified boundary-root descriptions for a valid full or prefix ID |
@@ -362,7 +361,7 @@ access is required of L4. Existing querying conformers must add the prefix
 requirement; ordinary locate still requires n coordinates and has unchanged
 success/failure meaning. The current production conformer is ExactRealCellDomain.
 
-Proposed `ExactRealCellDefinition<Base>` retains its original partition/cell,
+`ExactRealCellDefinition<Base>` retains its original partition/cell,
 source coefficient field, coordinateCount m, complete path steps and attained
 depth. Each step retains its parent identity and exact root-ordinal/sector address.
 A finite boundary is a privately issued `ExactRealCellBoundaryRoot<Base>`:

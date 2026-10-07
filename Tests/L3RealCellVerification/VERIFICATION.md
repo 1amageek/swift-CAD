@@ -141,3 +141,28 @@ remains applicable. No higher CAD build or L4 implementation claim is added.
 
 The integration commit is intended for a clean fast-forward of
 `codex/exact-real-cell-l3`; `main` and remote branches remain outside this operation.
+
+## L4 Inspection Prerequisite
+
+The inspection implementation follows the L0-L3 optimization integration c6674f0e.
+Forty actual L3 sources add original-field definitions, root derivative signatures,
+complete child traversal and exact prefix location. InspectionEvidence/sources.json
+binds the final source snapshot; InspectionEvidence/logs.json binds execution logs.
+Native: 21 L3, 12 L2, 8 L1, 9 L0 tests pass. ASAN: same combined tests pass.
+The final targeted inspection recheck passes on Native and ASAN. Ordinary WASI
+and Embedded WASI execute the combined proof including InspectionFixtures with
+Swift 6.4.0 and matching SDKs on Node 24.19.0. Dedicated cached build directories:
+.build/l3-native, .build/opt-asan, .build/opt-wasm, .build/opt-embedded.
+Each command uses the existing external 120-second guard.
+
+The added fixture checks nonsample x=4 branch identity, complete y²-x signatures,
+rootless/nullified fibers, repeated/shared/close roots, clipped finite neighbors,
+original algebraic coefficients, foreign handles, empty-product R0 projection,
+and generic protocol requirements. Full locate still rejects partial coordinates.
+Inspection owns immutable retained records on all targets; temporary arrays remain
+invocation-local. Existing scoped admission owner retains its nonescaping borrow
+and is never Sendable. No platform-dependent mutable storage or unsafe access was
+introduced. Review corrected the order of empty-domain traversal admission; the
+final targeted recheck and both portable runs include that correction.
+
+These results certify the added L3 ports, not L4 closure/incidence behavior.

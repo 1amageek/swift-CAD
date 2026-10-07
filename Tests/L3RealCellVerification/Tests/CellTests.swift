@@ -129,3 +129,5 @@ import L3Fixtures
   }
  }
 }
+
+@Test(.timeLimit(.minutes(1))) func issuedDefinitionsAndPrefixes() throws { try InspectionFixtures.run() }

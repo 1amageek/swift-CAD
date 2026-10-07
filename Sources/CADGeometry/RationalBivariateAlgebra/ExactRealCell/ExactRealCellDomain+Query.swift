@@ -46,19 +46,28 @@ extension ExactRealCellDomain: ExactRealCellQuerying {
   let point=copy point,partition=copy partition
   return try ExactCellAccess.run(&admission,inherited:partition.depth) { try located(point,partition:partition,limits:limits,&$0) }
  }
- func located(_ point: ExactRealCellSample<Base>, partition: ExactRealCellPartition<Base>, limits: ExactRealRootLimits,
+ public func locatePrefix<A: ExactScalarAdmission & ~Copyable>(_ point: borrowing ExactRealCellSample<Base>, in partition: borrowing ExactRealCellPartition<Base>,
+  limits: ExactRealRootLimits, using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellID<Base>? {
+  let point=copy point,partition=copy partition
+  return try ExactCellAccess.run(&admission,inherited:partition.depth) { try located(point,partition:partition,limits:limits,prefix:true,&$0) }
+ }
+ func located(_ point: ExactRealCellSample<Base>, partition: ExactRealCellPartition<Base>, limits: ExactRealRootLimits, prefix: Bool = false,
   _ a: inout ExactCellBorrowedAdmission) throws -> ExactRealCellID<Base>? {
   try require(partition.source,&a); try ExactCellAccess.admit(partition.depth,&a); try ExactCellAccess.admit(point.depth,&a)
   let field=point.field,source=partition.source
   _ = try field.importing(context.field.integer(1,using:&a),using:&a)
-  guard point.coordinates.count == source.variableCount else { throw ExactRealCellFailure.invalidVariable }
+  guard point.coordinates.count <= source.variableCount, prefix || point.coordinates.count == source.variableCount else { throw ExactRealCellFailure.invalidVariable }
   for value in point.coordinates { _ = try field.sign(of:value,using:&a) }
-  for axis in source.domains.indices {
+  for axis in point.coordinates.indices {
    if try !inside(point.coordinates[axis],field:field,domain:source.domains[axis],&a) { return nil }
   }
-  guard !partition.owner.records.isEmpty else { throw ExactRealCellFailure.invalidCoverage }
+  if partition.owner.records.isEmpty {
+   try a.consumeWork(source.domains.count)
+   guard source.domains.contains(where: { $0.isEmpty }) else { throw ExactRealCellFailure.invalidCoverage }
+   return nil
+  }
   var index=0
-  for axis in 0..<source.variableCount {
+  for axis in point.coordinates.indices {
    try a.consumeWork(1)
    let offset=partition.owner.records[index].stack
    guard offset >= 0,offset < partition.owner.stacks.count else { throw ExactRealCellFailure.invalidCoverage }

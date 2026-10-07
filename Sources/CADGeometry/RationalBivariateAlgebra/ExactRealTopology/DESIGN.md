@@ -42,7 +42,7 @@ public general-purpose quantifier-elimination product.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [RationalBivariateAlgebra](../DESIGN.md) | parent | Child index | Owns the existing component hierarchy | No new package or legacy numeric dependency |
-| [ExactRealCell](../ExactRealCell/DESIGN.md#l4-inspection-extension-design-only) | depends on | Whole-cell definitions, boundary roots, complete traversal, prefix location | Owns all cell and root-branch identity | These additional ports must be implemented and verified first |
+| [ExactRealCell](../ExactRealCell/DESIGN.md#l4-inspection-extension) | depends on | Whole-cell definitions, boundary roots, complete traversal, prefix location | Owns all cell and root-branch identity | These additional ports must be implemented and verified first |
 | [ExactRealCell verification](../../../../Tests/L3RealCellVerification/VERIFICATION.md) | depends on evidence | Complete current L3 public paths | Native/ASAN and both WASI families | Does not prove the proposed inspection extension or L4 |
 | [ExactPolynomial](../ExactPolynomial/DESIGN.md) | depends on | Polynomial construction/arithmetic/decisions and public terms | Exact variable remapping and formula atoms | No private context or symbolic root-count engine |
 | [ExactRealRoot](../ExactRealRoot/DESIGN.md) | depends on | Public coefficient field and interval construction; root solving through L3 | Preserves original field-family policy | No independent root solver, silent adjoining, coefficient rounding or extension-cap change |

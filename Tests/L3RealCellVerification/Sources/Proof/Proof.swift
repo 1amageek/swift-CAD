@@ -36,6 +36,7 @@ import L2Fixtures
   try FailureFixtures.escapedOwnership()
   try OriginalCoefficientFixtures.run()
   try ProtocolFixtures.run()
+  try InspectionFixtures.run()
   try OptimizationFixtures.run()
   print("PASS: combined L0-L3 exact arithmetic, polynomial algebra, roots, real cells and optimization regressions")
  }
