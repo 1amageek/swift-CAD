@@ -1,0 +1,112 @@
+Building for debugging...
+[1 / 3] L4
+[2 / 4] L4
+[8 / 11] L4
+[9 / 11] L4
+[10 / 11] L4
+[12 / 12] L4Proof-product
+[13 / 13] L4Tests-product
+Build complete! (1.07秒)
+Test Suite 'All tests' started at 2026-10-07 22:46:40.508.
+Test Suite 'All tests' passed at 2026-10-07 22:46:40.508.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test checkedCountOverflow() started.
+􀟈  Test concurrentRetainedReaders() started.
+􀟈  Test graphClosure() started.
+􀟈  Test closeDistinctPoints() started.
+􀟈  Test differentialStrategiesAndPorts() started.
+􀟈  Test singularComponents() started.
+􀟈  Test retainedAlgebraicField() started.
+􀟈  Test quantifiedClosure() started.
+􀟈  Test partialTarget() started.
+􀟈  Test zeroAndFailures() started.
+􀟈  Test folded() started.
+􀟈  Test affineClosures() started.
+􀟈  Test countLimitsAndCancellation() started.
+􀟈  Test partialIncidence() started.
+􀟈  Test connectivity() started.
+PASS: zero-arity closure and exact admission boundaries
+PHASE: folded source bound work=253 storage=15880
+􁁛  Test checkedCountOverflow() passed after 0.002 seconds.
+􁁛  Test zeroAndFailures() passed after 0.002 seconds.
+PASS: connectivity case=0 components=2 work=3743 storage=228777
+PASS: cumulative counts, mid/terminal cancellation, empty selection and recovery
+􁁛  Test countLimitsAndCancellation() passed after 0.461 seconds.
+PASS: close distinct exact points remain separate
+􁁛  Test closeDistinctPoints() passed after 0.707 seconds.
+PASS: affine ambient closures work=69561 storage=3874322
+􁁛  Test affineClosures() passed after 1.550 seconds.
+PASS: bounded section graph work=114009 storage=5675004
+􁁛  Test graphClosure() passed after 1.676 seconds.
+􁁛  Test concurrentRetainedReaders() passed after 2.089 seconds.
+PASS: connectivity case=1 components=1 work=130540 storage=7645352
+PASS: retained algebraic field, extension policy and inherited depth
+􁁛  Test retainedAlgebraicField() passed after 2.315 seconds.
+PASS: connectivity case=2 components=4 work=107051 storage=6263739
+􁁛  Test connectivity() passed after 2.577 seconds.
+PASS: quantified closure work=366188 storage=15647233
+􁁛  Test quantifiedClosure() passed after 2.647 seconds.
+PASS: singular case=0 components=1 work=453859 storage=19954418
+􁁛  Test differentialStrategiesAndPorts() passed after 3.275 seconds.
+PASS: partial nullified target work=727891 storage=33010706
+􁁛  Test partialTarget() passed after 3.395 seconds.
+PASS: partial directed incidence pieces=3 work=1244822 storage=54720312
+􁁛  Test partialIncidence() passed after 3.897 seconds.
+PASS: singular case=1 components=1 work=3667697 storage=141602416
+PASS: singular case=2 components=1 work=37004 storage=1963277
+PASS: singular case=3 components=2 work=469347 storage=17911211
+􁁛  Test singularComponents() passed after 6.618 seconds.
+PHASE: folded partition work=6252974 storage=281423825 cells=525
+PHASE: folded selected cells=45
+PHASE: folded closure proof=point work=47927 storage=2517217
+PHASE: folded closure proof=point work=48020 storage=2522653
+PHASE: folded closure proof=affine work=128984 storage=5678266
+PHASE: folded closure proof=affine work=129081 storage=5683702
+PHASE: folded closure proof=point work=46697 storage=2410089
+PHASE: folded closure proof=point work=46794 storage=2415525
+PHASE: folded closure proof=affine work=129987 storage=5725234
+PHASE: folded closure proof=affine work=130084 storage=5730670
+PHASE: folded closure proof=point work=48181 storage=2528157
+PHASE: folded closure proof=point work=48274 storage=2533593
+PHASE: folded closure proof=affine work=543069 storage=23933828
+PHASE: folded closure proof=affine work=543772 storage=23952052
+PHASE: folded closure proof=affine work=613073 storage=26798905
+PHASE: folded closure proof=affine work=613780 storage=26817129
+PHASE: folded closure proof=affine work=554387 storage=24168916
+PHASE: folded closure proof=affine work=555094 storage=24187140
+PHASE: folded closure proof=affine work=623641 storage=27263121
+PHASE: folded closure proof=affine work=624348 storage=27281345
+PHASE: folded closure proof=affine work=551049 storage=24253576
+PHASE: folded closure proof=affine work=551752 storage=24271800
+PHASE: folded closure proof=point work=48005 storage=2476381
+PHASE: folded closure proof=affine work=123813 storage=5426735
+PHASE: folded closure proof=point work=46795 storage=2369253
+PHASE: folded closure proof=affine work=124836 storage=5473703
+PHASE: folded closure proof=point work=48295 storage=2487321
+PHASE: folded closure proof=affine work=542561 storage=24136224
+PHASE: folded closure proof=affine work=541154 storage=24099336
+PHASE: folded closure proof=affine work=612565 storage=27001301
+PHASE: folded closure proof=affine work=611162 storage=26964413
+PHASE: folded closure proof=affine work=553879 storage=24371312
+PHASE: folded closure proof=affine work=552476 storage=24334424
+PHASE: folded closure proof=affine work=623133 storage=27465517
+PHASE: folded closure proof=affine work=621730 storage=27428629
+PHASE: folded closure proof=affine work=550541 storage=24455972
+PHASE: folded closure proof=affine work=549134 storage=24419084
+PHASE: folded closure proof=point work=50288 storage=2598917
+PHASE: folded closure proof=point work=50381 storage=2604353
+PHASE: folded closure proof=affine work=131149 storage=5754406
+PHASE: folded closure proof=affine work=131246 storage=5759842
+PHASE: folded closure proof=point work=49058 storage=2491789
+PHASE: folded closure proof=point work=49155 storage=2497225
+PHASE: folded closure proof=affine work=132152 storage=5801374
+PHASE: folded closure proof=affine work=132249 storage=5806810
+PHASE: folded closure proof=point work=50542 storage=2609857
+PHASE: folded closure proof=point work=50635 storage=2615293
+PHASE: folded incidence start
+PASS: folded sheets members=45 pieces=108 work=15504165 storage=573605781
+􁁛  Test folded() passed after 31.171 seconds.
+􁁛  Test run with 15 tests in 0 suites passed after 31.172 seconds.

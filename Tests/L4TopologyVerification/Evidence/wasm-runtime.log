@@ -1,0 +1,69 @@
+(node:40261) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PHASE: folded source bound work=246 storage=7960
+PHASE: folded partition work=6190310 storage=141394189 cells=525
+PHASE: folded selected cells=45
+PHASE: folded closure proof=point work=47817 storage=1261053
+PHASE: folded closure proof=point work=47910 storage=1263769
+PHASE: folded closure proof=affine work=127666 storage=2849274
+PHASE: folded closure proof=affine work=127763 storage=2851990
+PHASE: folded closure proof=point work=46589 storage=1207725
+PHASE: folded closure proof=point work=46686 storage=1210441
+PHASE: folded closure proof=affine work=128668 storage=2873098
+PHASE: folded closure proof=affine work=128765 storage=2875814
+PHASE: folded closure proof=point work=48071 storage=1266537
+PHASE: folded closure proof=point work=48164 storage=1269253
+PHASE: folded closure proof=affine work=536496 storage=11996328
+PHASE: folded closure proof=affine work=537193 storage=12005700
+PHASE: folded closure proof=affine work=605574 storage=13435869
+PHASE: folded closure proof=affine work=606275 storage=13445241
+PHASE: folded closure proof=affine work=547501 storage=12115452
+PHASE: folded closure proof=affine work=548202 storage=12124824
+PHASE: folded closure proof=affine work=616015 storage=13668485
+PHASE: folded closure proof=affine work=616716 storage=13677857
+PHASE: folded closure proof=affine work=544324 storage=12156624
+PHASE: folded closure proof=affine work=545021 storage=12165996
+PHASE: folded closure proof=point work=47890 storage=1240693
+PHASE: folded closure proof=affine work=122550 storage=2723443
+PHASE: folded closure proof=point work=46682 storage=1187365
+PHASE: folded closure proof=affine work=123572 storage=2747267
+PHASE: folded closure proof=point work=48180 storage=1246177
+PHASE: folded closure proof=affine work=535954 storage=12094924
+PHASE: folded closure proof=affine work=534545 storage=12076000
+PHASE: folded closure proof=affine work=605032 storage=13534465
+PHASE: folded closure proof=affine work=603627 storage=13515541
+PHASE: folded closure proof=affine work=546959 storage=12214048
+PHASE: folded closure proof=affine work=545554 storage=12195124
+PHASE: folded closure proof=affine work=615473 storage=13767081
+PHASE: folded closure proof=affine work=614068 storage=13748157
+PHASE: folded closure proof=affine work=543782 storage=12255220
+PHASE: folded closure proof=affine work=542373 storage=12236296
+PHASE: folded closure proof=point work=50174 storage=1302201
+PHASE: folded closure proof=point work=50267 storage=1304917
+PHASE: folded closure proof=affine work=129827 storage=2887634
+PHASE: folded closure proof=affine work=129924 storage=2890350
+PHASE: folded closure proof=point work=48946 storage=1248873
+PHASE: folded closure proof=point work=49043 storage=1251589
+PHASE: folded closure proof=affine work=130829 storage=2911458
+PHASE: folded closure proof=affine work=130926 storage=2914174
+PHASE: folded closure proof=point work=50428 storage=1307685
+PHASE: folded closure proof=point work=50521 storage=1310401
+PHASE: folded incidence start
+PASS: folded sheets members=45 pieces=108 work=15327127 storage=288429097
+PASS: affine ambient closures work=69241 storage=1937062
+PASS: quantified closure work=363539 storage=7905337
+PASS: bounded section graph work=113254 storage=2848868
+PASS: zero-arity closure and exact admission boundaries
+PASS: connectivity case=0 components=2 work=3707 storage=114209
+PASS: connectivity case=1 components=1 work=129243 storage=3814428
+PASS: connectivity case=2 components=4 work=105990 storage=3125147
+PASS: partial nullified target work=722525 storage=16631182
+PASS: singular case=0 components=1 work=450360 storage=10027902
+PASS: singular case=1 components=1 work=3642214 storage=71303220
+PASS: singular case=2 components=1 work=36759 storage=982765
+PASS: singular case=3 components=2 work=467665 storage=9026707
+PASS: partial directed incidence pieces=3 work=1235755 storage=27603140
+PASS: retained algebraic field, extension policy and inherited depth
+PASS: cumulative counts, mid/terminal cancellation, empty selection and recovery
+PASS: close distinct exact points remain separate
+PASS: independent L4 topology

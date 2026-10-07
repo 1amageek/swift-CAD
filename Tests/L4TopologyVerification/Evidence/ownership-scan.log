@@ -1,0 +1,98 @@
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+RetainedClosure.swift:20:  var cells: [ExactRealCellID<Base>] = []; cells.reserveCapacity(partition.cells.count)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+RetainedClosure.swift:35:  var labels = Array(repeating:false,count:cover.count), found = false
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+RetainedClosure.swift:47:  var labels: [Bool] = []; labels.reserveCapacity(cells.count)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+RetainedClosure.swift:63:  var signs: [ExactSign] = []; signs.reserveCapacity(certificate.count)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+RetainedClosure.swift:72:   var value = try field.integer(0,using:&a)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+RetainedClosure.swift:74:    var product = try field.importing(term.coefficient,using:&a)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyDecision.swift:11: var truth: Bool
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md:398:No asynchronous callback, I/O, actor or Mutex is required for local synchronous
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+PolynomialGraph.swift:17:  var existential = ExactTopologyFormula(field:direct.field,polynomials:direct.polynomials,freeCount:0,quantifiers:Array(repeating:true,count:n))
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+PolynomialGraph.swift:24:    var degree = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+PolynomialGraph.swift:30:  var f = try formula(field:definition.coefficientField,free:n,quantifiers:[],&a)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+PolynomialGraph.swift:32:  var remaining = try map(n,&a)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+PolynomialGraph.swift:39:   var next: [Int] = []; next.reserveCapacity(remaining.count-1)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula+Composition.swift:32:  var used = Array(repeating:false,count:polynomials.variableCount)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula+Composition.swift:39:  var terms: [ExactPolynomialTerm<Field.Value>] = []; terms.reserveCapacity(law.termCount)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula+Composition.swift:42:   var powers = Array(repeating:0,count:polynomials.variableCount)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula+Composition.swift:49:  var leading: Field.Value? = nil
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula+Composition.swift:51:   var degree = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula+Composition.swift:69:  var law = root.polynomial
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula+Composition.swift:106:      var rootMap = map; rootMap[axis] = slot
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift:23:  var base = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift:30:   var degree = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift:33:   var constantLeading = false
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift:45:  var f = try formula(field:definition.coefficientField,free:n,quantifiers:[],&a)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift:46:  let slots = try map(n,&a); var witness = n
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift:58:   var baseTruth: Bool? = nil, solutions = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift:62:    var ancestor = leaf.cell
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift:94:  var applicability: ExactRealTopologyRegion<Base>? = nil
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift:116:   var counts = ExactTopologyCounts(depth:partition.depth)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift:15:  var quantifiers = original.quantifiers
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift:18:  var f = try formula(field:target.definition.coefficientField,free:original.coordinateCount,quantifiers:quantifiers,&a)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift:25:  var witness = oldCount
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift:35:   var counts = ExactTopologyCounts(depth:selection.depth)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift:42:   var closures: [ExactRealClosure<Base>] = []; closures.reserveCapacity(n)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift:48:   var certificates: [[ExactRealTopologySignInvariant<Base>]?] = []; certificates.reserveCapacity(n)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift:51:   var cover: [ExactRealCellID<Base>] = []; cover.reserveCapacity(partition.cells.count)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift:55:   var pairs: [ExactRealIncidencePair<Base>] = []; pairs.reserveCapacity(pairCount)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift:56:   var attachments: [ExactRealAttachment<Base>] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift:12:  var atoms: [(Int,ExactRealCellSignRelation)] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift:24:  var f = input
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift:28:   var certificate: (Int,ExactSign)? = nil
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift:34:    var valid = true
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift:43:   var changed = false
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift:49:    var exponent = Int.max
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift:53:    var terms: [ExactPolynomialTerm<Field.Value>] = []; terms.reserveCapacity(law.termCount)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift:56:     var powers = term.powers; powers[variable] -= exponent
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyCounts.swift:9: var generated = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyCounts.swift:10: var closures = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyCounts.swift:11: var pieces = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyCounts.swift:12: var depth: ExactScalarDepth
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Formula.swift:21:  var count = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Formula.swift:33:  var f = try formula(field:definition.coefficientField,free:n,quantifiers:Array(repeating:true,count:count),&a)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Formula.swift:34:  var witness = n
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Formula.swift:43:  var quantifiers = Array(repeating:true,count:suffix); quantifiers[0] = false
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Formula.swift:44:  var f = try formula(field:definition.coefficientField,free:n,quantifiers:quantifiers,&a)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Formula.swift:46:  var witness = try ExactTopologyAccess.add(qOffset,n)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reduction.swift:11:  var stack: [Bool] = []; stack.reserveCapacity(instructions.count)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reduction.swift:43:  var atoms: [Polynomial] = []; atoms.reserveCapacity(formula.atoms.count)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reduction.swift:58:  var nodes: [ExactTopologyDecision<Base>] = []; nodes.reserveCapacity(partition.storedCellCount)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reduction.swift:60:  var cursor = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reduction.swift:79:    var value = !existential
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reduction.swift:89:  var regions: [ExactRealCellID<Base>] = [], included: [Bool] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealComponents.swift:14: public var count: Int { memberRanges.count }
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula.swift:12: var polynomials: ExactPolynomialDomain<Field>
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula.swift:13: var atoms: [Polynomial] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula.swift:14: var instructions: [ExactRealCellInstruction] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula.swift:16: var conjunctionEnd: Int? = nil
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula.swift:17: var reductions: [ExactRealTopologyReduction<Base>] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula.swift:18: var eliminations: [ExactRealTopologyElimination<Base>] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula.swift:19: var quantifiers: [Bool]
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Components.swift:10:  var current = input
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Components.swift:16:  var path = input
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Components.swift:30:   var forest = Array(0..<n), sizes = Array(repeating:1,count:n), labels = Array(repeating:-1,count:n), roots: [Int] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Components.swift:37:    var x = try representative(i,forest:&forest,&admission), y = try representative(j,forest:&forest,&admission)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Components.swift:44:    var label: Int? = nil
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Components.swift:55:   var members: [ExactRealCellID<Base>] = [], memberRanges: [Range<Int>] = [], witnesses: [Int] = [], witnessRanges: [Range<Int>] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift:10:  var result = input
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift:13:   var selected: (Int,Int,Field.Value)? = nil
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift:22:     var leading: Field.Value? = nil, valid = true
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift:41:   var replacements: [Polynomial] = []; replacements.reserveCapacity(n)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift:44:   var quantifiers: [Bool] = []; quantifiers.reserveCapacity(result.quantifiers.count-1)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift:46:   var next = try formula(field:f,free:result.freeCount,quantifiers:quantifiers,&a)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift:48:   var slotMap = Array(repeating:-1,count:n)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift:55:    var terms: [ExactPolynomialTerm<Field.Value>] = []; terms.reserveCapacity(substituted.termCount)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift:59:     var powers: [Int] = []; powers.reserveCapacity(n-1)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift:10:  var degree = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift:25:  var certificates: [ExactRealTopologySignInvariant<Base>] = []; certificates.reserveCapacity(atoms.count)
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift:29:   var axis: Int? = nil
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift:31:    var degree = 0
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift:42:   var certificate: ExactRealTopologySignInvariant<Base>? = nil
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift:57:    var remainder = division.remainder
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift:60:    var assumptions: [Int] = [], reductions: [ExactPolynomialDivision<Field>] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift:66:     var lower = true
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift:89:  var labels = Array(repeating:false,count:cover.count), found = false
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Factors.swift:12:  var result: [ExactRealTopologyFactor<Base>] = []
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Factors.swift:18:    var found = false
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Factors.swift:31:      var coordinates = prefix.coordinates
+Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Factors.swift:37:      var derivative = root.polynomial, valid = true

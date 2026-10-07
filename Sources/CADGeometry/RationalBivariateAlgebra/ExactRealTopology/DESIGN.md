@@ -4,7 +4,7 @@
 
 Parent: [RationalBivariateAlgebra](../DESIGN.md). No children. This is one
 component of the existing CADGeometry module, not a new package or production
-SwiftPM target. Independent verification will compile actual L0-L4 directories.
+SwiftPM target. Independent verification compiles actual L0-L4 directories.
 
 L4 consumes complete L3 cells/selection and produces ambient Euclidean closures,
 complete directed incidence pieces and connected components of the selected
@@ -14,9 +14,10 @@ coefficients, nullification, singularities, repeated factors and mixed dimension
 Successful receipts certify the entire requested result; resource failure is
 explicit and atomic. L4 completion is not completion of the seven CAD requirements.
 
-This document fixes a design, not implemented behavior. The required L3 inspection
-extension and all L4 declarations below are proposed and currently unimplemented.
-Existing L0-L3 implementation evidence remains valid for its unchanged interfaces.
+L4.I1-I3 are implemented and independently verified. The scoped cumulative review,
+Native/ASAN and both actual WASI executions are recorded in
+[L4 verification](../../../../Tests/L4TopologyVerification/VERIFICATION.md).
+Existing unchanged lower evidence is reused only for byte-identical sources.
 
 ## Responsibilities and Boundaries
 
@@ -42,8 +43,9 @@ public general-purpose quantifier-elimination product.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [RationalBivariateAlgebra](../DESIGN.md) | parent | Child index | Owns the existing component hierarchy | No new package or legacy numeric dependency |
-| [ExactRealCell](../ExactRealCell/DESIGN.md#l4-inspection-extension) | depends on | Whole-cell definitions, boundary roots, complete traversal, prefix location | Owns all cell and root-branch identity | These additional ports must be implemented and verified first |
-| [ExactRealCell verification](../../../../Tests/L3RealCellVerification/VERIFICATION.md) | depends on evidence | Complete current L3 public paths | Native/ASAN and both WASI families | Does not prove the proposed inspection extension or L4 |
+| [ExactRealCell](../ExactRealCell/DESIGN.md#l4-inspection-extension) | depends on | Whole-cell definitions, boundary roots, complete traversal, prefix location | Owns all cell and root-branch identity | Inspection implementation is verified by L4.I1 before L4 composition |
+| [ExactRealCell verification](../../../../Tests/L3RealCellVerification/VERIFICATION.md) | depends on evidence | Complete current L3 public paths and appended inspection evidence | Native/ASAN and both WASI families | Historical snapshots retain their original proof scope |
+| [L4 verification](../../../../Tests/L4TopologyVerification/DESIGN.md) | test owner | Public closure, incidence, components and queries | Independent actual L0-L4 execution | No upper CAD build or geometric-image claim |
 | [ExactPolynomial](../ExactPolynomial/DESIGN.md) | depends on | Polynomial construction/arithmetic/decisions and public terms | Exact variable remapping and formula atoms | No private context or symbolic root-count engine |
 | [ExactRealRoot](../ExactRealRoot/DESIGN.md) | depends on | Public coefficient field and interval construction; root solving through L3 | Preserves original field-family policy | No independent root solver, silent adjoining, coefficient rounding or extension-cap change |
 | [ExactScalar](../ExactScalar/DESIGN.md) | depends on | Arithmetic/order/import and admission | Same caller work/storage/depth/cancel | No local replacement allowance |
@@ -52,20 +54,20 @@ public general-purpose quantifier-elimination product.
 
 ### Confirmed facts and required differences
 
-| Current fact | Consequence / fixed difference |
+| Pre-implementation fact | Implemented difference |
 |---|---|
 | L3 publishes cells, conditions, selection, dimensions and point queries | Keep those contracts and receipts; topology is an additional consumer |
-| L3 conditions contain root ordinals, not a standalone polynomial formula | L3 must issue a definition with certified boundary-root descriptions |
+| L3 conditions contain root ordinals, not a standalone polynomial formula | L3 now issues a definition with certified boundary-root descriptions |
 | Auxiliary derivative signs on sectors describe their samples | Never use that sign vector as a whole-sector definition |
-| L3 public leaves retain parent handles, but expose no complete child port | Add owner-validating traversal rather than reconstructing private arrays |
-| Current locate requires a full tuple | Add exact prefix location for quantified free-prefix regions |
+| L3 public leaves retained parent handles, but exposed no complete child port | Owner-validating complete traversal now exposes the issued coverage |
+| Prior locate required a full tuple | Exact prefix location now supports quantified free-prefix regions |
 | Legacy incidence retains refined target pieces and rejects excluded-point joins | Preserve that meaning; replace implementation dependency with lower public contracts |
 | Complete L3 generation already admits resource failure | L4 cannot turn that failure into false, empty or partial topology |
 
 The native implementations behind these facts are ExactRealCellDomain,
 ExactRealCellDomain+Lifting/+Query, ExactRealCellID/Condition, and
 OriginalRationalIntersectionIncidence/OriginalRationalParameterComponents.
-Current L3 runtime evidence is reused; this design task builds no upper target.
+Current L3 runtime evidence is reused; independent implementation builds no upper target.
 
 ## Architecture
 
@@ -74,7 +76,7 @@ flowchart TD
     S["L3 partition / selection"] --> D["L3 certified definition"]
     D --> F["L4 exact formula composition"]
     D --> H["L4 applicability proofs"]
-    H --> P["point / affine / bounded section graph"]
+    H --> P["point / affine / bounded section graph / polynomial graph"]
     H --> Q["general quantified closure"]
     F --> Q
     Q --> C["L3 complete decomposition and traversal"]
@@ -86,19 +88,14 @@ flowchart TD
     I --> G["connected components and witnesses"]
     G --> U["later geometric composition"]
     classDef verified fill:#dcfce7,stroke:#15803d
-    classDef proposed fill:#fef3c7,stroke:#b45309,stroke-dasharray:5 5
-    classDef designed fill:#dbeafe,stroke:#1d4ed8,stroke-dasharray:5 5
     classDef outside fill:#f3f4f6,stroke:#6b7280
-    class S,C verified
-    class D proposed
-    class F,H,P,Q,T,R,I,G designed
+    class S,C,D,F,H,P,Q,T,R,I,G verified
     class U outside
 ```
 
-Green denotes existing verified L3 paths. Amber denotes additional specified L3
-ports awaiting implementation. Blue denotes specified L4 responsibilities awaiting
-implementation; gray denotes later consumers. Design certainty and runtime
-completion are different states.
+Green denotes implemented paths exercised by the independent evidence below.
+Gray denotes later consumers outside this task. Runtime evidence is limited to
+its recorded inputs, resource caps and targets.
 
 ```mermaid
 flowchart LR
@@ -116,13 +113,13 @@ Surface3D, CADCore geometry errors, or application modules.
 
 ## Contracts and Invariants
 
-### Public ports (proposed)
+### Public ports
 
 Public operations are protocol requirements, with generic noncopyable admission
 and typed throws. Implementations are separate; native Sendable immutable values
 represent receipts. A protocol is not added merely to abstract an array.
 
-| Proposed protocol | Operation | Complete output |
+| Protocol | Operation | Complete output |
 |---|---|---|
 | `ExactRealClosureProducing<Base>` | `closure(of:in:strategy:limits:using:)` | `ExactRealClosure<Base>` for one issued full cell |
 | `ExactRealIncidenceProducing<Base>` | `incidence(of:strategy:limits:using:)` | `ExactRealIncidence<Base>` for a complete L3 selection |
@@ -130,7 +127,7 @@ represent receipts. A protocol is not added merely to abstract an array.
 | `ExactRealTopologyQuerying<Base>` | `contains(_:in:limits:using:)` | Exact Boolean membership in a retained closure |
 
 `Base` uses the same arithmetic/order/import constraint and Source == Value
-condition as L3. Proposed `ExactRealTopologyDomain<Base, Cells>` implements these
+condition as L3. `ExactRealTopologyDomain<Base, Cells>` implements these
 ports. `Cells` is injected by its concrete generic provider type conforming to
 L3 preparation, production, query, description and traversal protocols; its Base
 must equal Base. The default provider is ExactRealCellDomain<Base>. This domain
@@ -145,7 +142,13 @@ Receipts own source identity; no singleton, mutable cache or shared quota exists
 | `ExactRealComponents` | Incidence owner, deterministic member offsets and witness offsets for every component |
 
 Constructors establishing completeness are internal to the issuer. Public callers
-cannot manufacture incidence from an attachment array. Region cells can be prefix
+cannot manufacture incidence from an attachment array. A point closure can retain its original complete partition with the point ID as
+its truth label. An affine closure may retain that partition when the original
+box is closed and every atom has the sign-invariance certificate described below.
+The closed box bounds the ambient closure, so exclusion outside the retained box
+is explicit evidence. All other closures generate a complete real free cover.
+Retained input records do not count as generated cells.
+Region cells can be prefix
 IDs in a retained quantified partition; coordinateCount states their parameter
 arity. Queries use L3 prefix location, not a suffix sample or guessed embedding.
 Different refinements retain separate owners and explicit original-ID mappings.
@@ -163,6 +166,13 @@ Conjoin these clauses with the exact parent path and original endpoint flags.
 When a boundary has an issued affine law with constant nonzero axis coefficient,
 substitute its exact linear expression and sign before introducing a witness.
 This is an equivalence proved from the same root identity, not numerical fitting.
+
+A globally affine factor may additionally replace a selected boundary law after
+public L1 exact division proves it is a factor and the issued complete Thom
+signature identifies its root. Its affine root is continuous over the connected
+parent; original delineability and absence of root collisions preserve the union
+ordinal. Retain the division, factor, parent and exact signature match. A factor
+candidate without these certificates does not change the definition.
 
 Thus membership has the finite form C(x) iff exists b: Psi_C(x,b), with at most
 two witnesses per sector axis. Witness variables are not original parameters.
@@ -204,6 +214,17 @@ last coordinate, existential reduction is OR of complete child truth; universal
 reduction is AND. Each free-prefix truth retains its contributing subtree and
 coverage. The initial implementation traverses all children; later pruning would
 require a separately proved whole-parent consequence, not a favorable sample.
+Before decomposition, a neighborhood matrix may eliminate an existential slot
+from a mandatory linear equality with constant nonzero coefficient. Substitution
+is capture-free, exact and recorded with the original matrix, replacement and
+variable map. The independent epsilon guard contains no eliminated slot, so
+exists x: guard OR (a*x+b=0 AND rest) is exactly guard OR rest[-b/a].
+Existential suffix slots may be reordered within the same quantifier block.
+Within a mandatory conjunction, an explicitly proved nonzero signed coordinate
+factor may be removed from another atom with its parity/sign retained. Original
+matrices and the derived atoms remain in reduction evidence. This normalization
+supports the polynomial-graph theorem below, without introducing another root
+solver or raising limits.
 Traversal is iterative with admitted native arrays, never unbounded recursion.
 For free arity zero the result is one closed Boolean decision. Failed or missing
 children are failures, not false/universal success. A free region may subdivide
@@ -227,6 +248,7 @@ remains permitted in either strategy.
 | Point | Issued dimension zero; the cell is one exact point and is closed |
 | Affine cell | The complete issued definition reduces to a nonempty conjunction of affine equations/strict or weak inequalities, with constant nonzero boundary leading coefficients. Weakening strict inequalities gives exactly its closure: segments from any interior point prove sufficiency |
 | Bounded section graph | An affine base and section-only suffix; every suffix has an issued zero law with constant nonzero leading coefficient. A complete weak-condition decomposition must prove exactly one zero-dimensional suffix fiber over every weak-base cell |
+| Polynomial graph | Exact constant-leading linear elimination of original coordinate slots and certified signed-coordinate factor cancellation produces a nonempty affine base. The retained equalities reconstruct every removed coordinate uniquely as a polynomial of the remaining original coordinates. The graph embedding and its coordinate projection are continuous inverses; closing the affine base gives exactly the ambient closure. An original vanishing leading coefficient never grants this proof; the alternate constant-leading equations must be explicitly certified. |
 | Quantified | Every remaining valid cell; exact neighborhood formula and complete reduction |
 
 For bounded section graphs, Cauchy bounds give local boundedness successively in
@@ -255,7 +277,26 @@ For every ordered distinct selected pair (C_i,C_j), establish the exact region
 A_ij = closure(C_i) intersect C_j. Compose both definitions at the same free tuple
 and produce a partition truth-invariant for their conjunction. Retain all true
 pieces with source/target IDs; retain complete exclusion evidence if empty.
-No representative decides membership of an entire target. Each pair can own its
+An existing original partition is reused only after proving every closure atom
+has constant sign on all its cells. A globally affine atom qualifies when it is
+a divisor of an incoming cut law whose leading coefficient on that axis is a
+nonzero constant (so the cut never nullifies), or is an original finite box cut. A nonzero division remainder can be reduced
+exactly to zero using earlier mandatory equalities involving only lower-axis
+coordinates. Retain all divisions and assumption indices. The certificate is
+then conditional on those equalities; a target failing an earlier equality is
+already excluded, and no later sample sign is used. Each accepted assumption's
+whole-cell sign has its own earlier certificate, preserving acyclic proof order.
+Complete original delineability/rank coverage then prevents its affine root from
+switching union ordinals or crossing a section without a recorded collision.
+An original polynomial that vanishes on the source also vanishes on its closure
+by continuity. Its proven nonzero original sign can exclude a target before
+sample-field arithmetic. This is a whole-cell exclusion, with original source
+and sign evidence retained. Constants are decided exactly. Retain the incoming law/division, original cover,
+and target identity. Only after this certificate may the exact target sample
+read the already proved whole-cell sign. The conjunction with the target ID is
+then constant on the original cover, and every included/excluded piece is issued
+without a new decomposition. An unproved atom declines reuse before solving.
+No representative alone decides membership of an entire target. Each pair can own its
 own complete refinement; a global frontier-compatible partition is not assumed.
 Diagonal containment C_i subset closure(C_i) is recorded without a graph edge.
 
@@ -360,9 +401,9 @@ shared cache would change this design and require an explicit isolation owner.
 
 ## Verification and Change Impact
 
-The proposed owner is `Tests/L4TopologyVerification`, with source links to the
-actual L0-L4 files, dedicated build paths and an external timeout. It is not
-created in this design task. Native/ASAN, ordinary WASM and Embedded each execute
+The owner is [Tests/L4TopologyVerification](../../../../Tests/L4TopologyVerification/DESIGN.md), with source links to the
+actual L0-L4 files, dedicated build paths and an external timeout.
+Native/ASAN, ordinary WASM and Embedded each execute
 public success/failure fixtures on the pinned Swift 6.4.0/matching SDK combination.
 Lower tests are reused when their assumptions are unchanged.
 
@@ -401,7 +442,7 @@ The previously failing two-level L3 review probe is not repaired by this design.
 | L4.V | One cumulative review plus finding recheck; fixed-source Native/ASAN and both WASI runs, retained evidence, coherent commits |
 
 One implementation owner owns L3 inspection changes and L4 integration in this
-isolated worktree. Future verification artifacts must identify exact snapshots.
+isolated worktree. Verification artifacts identify exact snapshots and build inputs.
 No upper-module build, legacy-source migration, main merge or seven-requirement
 completion is part of these independent gates. An implemented structure or type
 cannot satisfy any behavioral completion gate.

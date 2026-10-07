@@ -57,7 +57,7 @@ field, root or polynomial implementation is accessed by L3.
 | [ExactPolynomial](../ExactPolynomial/DESIGN.md) | depends on | Canonical construction, public terms, calculus, GCD/division and resultant | Owns polynomial operations | Coefficient extraction and cross-variable reindexing are not public operations |
 | [ExactRealRoot](../ExactRealRoot/DESIGN.md) | depends on | Complete roots, refinement/sign, runtime field family and explicit embeddings | Owns exact section coordinates | Sibling fields are incompatible; no automatic compositum |
 | [IntersectionAlgebra](../../IntersectionAlgebra/DESIGN.md) | prospective used by | Complete partitions and retained conditions | Existing real-relation composition is a future integration consumer | Its current one-through-four-variable API and combined closure result are unchanged |
-| [ExactRealTopology](../ExactRealTopology/DESIGN.md) | prospective used by | Proposed inspection extension and complete partitions | L4 owns closure/incidence/components | Inspection extension is design-only until independently verified |
+| [ExactRealTopology](../ExactRealTopology/DESIGN.md) | used by | Certified definitions, complete traversal, prefix location and partitions | L4 owns closure/incidence/components | Inspection extension independently verified in L4.I1; upper geometric consumers remain separate |
 
 ### Confirmed Current Facts
 

@@ -1,0 +1,154 @@
+Building for debugging...
+[Pre-planning 1 / 240]
+[Constructing 24 / 537]
+[63 / 135] L0
+[68 / 152] L0
+[78 / 152] L0
+[79 / 152] L0
+[81 / 152] L1
+[82 / 152] L0
+[85 / 152] L0
+[86 / 152]
+[88 / 168] L0
+[92 / 168] L1
+[99 / 168] L1
+[102 / 168] L2
+[106 / 168] L1
+[108 / 168] L1
+[116 / 184] L2
+[125 / 184] L2
+[127 / 184] L3
+[131 / 184] L2
+[133 / 184] L2
+[135 / 185]
+[139 / 200] L3
+[142 / 200] L3
+[150 / 200] L4
+[153 / 200] L3
+[155 / 200] L3
+[156 / 200] L3
+[158 / 200]
+[161 / 216] L4
+[164 / 216] L4
+[171 / 216] L4
+[173 / 216] L4
+[177 / 216] L4
+[180 / 216] L4
+[184 / 221] L4Fixtures
+[184 / 221] L4
+[186 / 221] L4Fixtures
+[203 / 224] L4Proof-product
+[212 / 225]
+[218 / 250] L4Proof-product
+[223 / 250]
+[227 / 250]
+[231 / 250]
+[234 / 250]
+[236 / 250]
+[239 / 250] L4Tests-product
+[244 / 250] L4Tests-product
+[246 / 250] L4Tests-product
+Build complete! (8.11秒)
+Test Suite 'All tests' started at 2026-10-07 22:48:56.613.
+Test Suite 'All tests' passed at 2026-10-07 22:48:56.614.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test differentialStrategiesAndPorts() started.
+􀟈  Test graphClosure() started.
+􀟈  Test quantifiedClosure() started.
+􀟈  Test affineClosures() started.
+􀟈  Test closeDistinctPoints() started.
+􀟈  Test zeroAndFailures() started.
+􀟈  Test partialTarget() started.
+􀟈  Test singularComponents() started.
+􀟈  Test partialIncidence() started.
+􀟈  Test countLimitsAndCancellation() started.
+􀟈  Test retainedAlgebraicField() started.
+􀟈  Test connectivity() started.
+􀟈  Test checkedCountOverflow() started.
+􀟈  Test concurrentRetainedReaders() started.
+􀟈  Test folded() started.
+PHASE: folded source bound work=253 storage=15880
+PASS: zero-arity closure and exact admission boundaries
+􁁛  Test checkedCountOverflow() passed after 0.005 seconds.
+􁁛  Test zeroAndFailures() passed after 0.006 seconds.
+PASS: connectivity case=0 components=2 work=3743 storage=228777
+PASS: cumulative counts, mid/terminal cancellation, empty selection and recovery
+􁁛  Test countLimitsAndCancellation() passed after 0.328 seconds.
+PASS: affine ambient closures work=69561 storage=3874322
+PASS: close distinct exact points remain separate
+􁁛  Test affineClosures() passed after 1.295 seconds.
+􁁛  Test closeDistinctPoints() passed after 1.295 seconds.
+PASS: bounded section graph work=114009 storage=5675004
+􁁛  Test graphClosure() passed after 1.313 seconds.
+PASS: connectivity case=1 components=1 work=130540 storage=7645352
+􁁛  Test concurrentRetainedReaders() passed after 1.593 seconds.
+PASS: retained algebraic field, extension policy and inherited depth
+􁁛  Test retainedAlgebraicField() passed after 1.838 seconds.
+PASS: connectivity case=2 components=4 work=107051 storage=6263739
+􁁛  Test connectivity() passed after 2.225 seconds.
+PASS: quantified closure work=366188 storage=15647233
+􁁛  Test quantifiedClosure() passed after 2.659 seconds.
+PASS: singular case=0 components=1 work=453859 storage=19954418
+PASS: partial nullified target work=727891 storage=33010706
+􁁛  Test partialTarget() passed after 3.908 seconds.
+􁁛  Test differentialStrategiesAndPorts() passed after 4.146 seconds.
+PASS: partial directed incidence pieces=3 work=1244822 storage=54720312
+􁁛  Test partialIncidence() passed after 5.205 seconds.
+PASS: singular case=1 components=1 work=3667697 storage=141602416
+PASS: singular case=2 components=1 work=37004 storage=1963277
+PASS: singular case=3 components=2 work=469347 storage=17911211
+􁁛  Test singularComponents() passed after 11.958 seconds.
+PHASE: folded partition work=6252974 storage=281423825 cells=525
+PHASE: folded selected cells=45
+PHASE: folded closure proof=point work=47927 storage=2517217
+PHASE: folded closure proof=point work=48020 storage=2522653
+PHASE: folded closure proof=affine work=128984 storage=5678266
+PHASE: folded closure proof=affine work=129081 storage=5683702
+PHASE: folded closure proof=point work=46697 storage=2410089
+PHASE: folded closure proof=point work=46794 storage=2415525
+PHASE: folded closure proof=affine work=129987 storage=5725234
+PHASE: folded closure proof=affine work=130084 storage=5730670
+PHASE: folded closure proof=point work=48181 storage=2528157
+PHASE: folded closure proof=point work=48274 storage=2533593
+PHASE: folded closure proof=affine work=543069 storage=23933828
+PHASE: folded closure proof=affine work=543772 storage=23952052
+PHASE: folded closure proof=affine work=613073 storage=26798905
+PHASE: folded closure proof=affine work=613780 storage=26817129
+PHASE: folded closure proof=affine work=554387 storage=24168916
+PHASE: folded closure proof=affine work=555094 storage=24187140
+PHASE: folded closure proof=affine work=623641 storage=27263121
+PHASE: folded closure proof=affine work=624348 storage=27281345
+PHASE: folded closure proof=affine work=551049 storage=24253576
+PHASE: folded closure proof=affine work=551752 storage=24271800
+PHASE: folded closure proof=point work=48005 storage=2476381
+PHASE: folded closure proof=affine work=123813 storage=5426735
+PHASE: folded closure proof=point work=46795 storage=2369253
+PHASE: folded closure proof=affine work=124836 storage=5473703
+PHASE: folded closure proof=point work=48295 storage=2487321
+PHASE: folded closure proof=affine work=542561 storage=24136224
+PHASE: folded closure proof=affine work=541154 storage=24099336
+PHASE: folded closure proof=affine work=612565 storage=27001301
+PHASE: folded closure proof=affine work=611162 storage=26964413
+PHASE: folded closure proof=affine work=553879 storage=24371312
+PHASE: folded closure proof=affine work=552476 storage=24334424
+PHASE: folded closure proof=affine work=623133 storage=27465517
+PHASE: folded closure proof=affine work=621730 storage=27428629
+PHASE: folded closure proof=affine work=550541 storage=24455972
+PHASE: folded closure proof=affine work=549134 storage=24419084
+PHASE: folded closure proof=point work=50288 storage=2598917
+PHASE: folded closure proof=point work=50381 storage=2604353
+PHASE: folded closure proof=affine work=131149 storage=5754406
+PHASE: folded closure proof=affine work=131246 storage=5759842
+PHASE: folded closure proof=point work=49058 storage=2491789
+PHASE: folded closure proof=point work=49155 storage=2497225
+PHASE: folded closure proof=affine work=132152 storage=5801374
+PHASE: folded closure proof=affine work=132249 storage=5806810
+PHASE: folded closure proof=point work=50542 storage=2609857
+PHASE: folded closure proof=point work=50635 storage=2615293
+PHASE: folded incidence start
+PASS: folded sheets members=45 pieces=108 work=15504165 storage=573605781
+􁁛  Test folded() passed after 70.179 seconds.
+􁁛  Test run with 15 tests in 0 suites passed after 70.180 seconds.

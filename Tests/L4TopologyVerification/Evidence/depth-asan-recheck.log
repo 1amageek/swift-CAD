@@ -1,0 +1,16 @@
+Building for debugging...
+[2 / 5] L4Fixtures
+[7 / 10] L4Fixtures
+[10 / 12] L4Tests-product
+[12 / 14] L4Tests-product
+[16 / 17] L4Tests-product
+[21 / 23] L4Proof-product
+[23 / 23] L4Proof-product
+Build complete! (1.48秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test retainedAlgebraicField() started.
+PASS: retained algebraic field, extension policy and inherited depth
+􁁛  Test retainedAlgebraicField() passed after 0.820 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.820 seconds.

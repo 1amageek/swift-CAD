@@ -1,0 +1,270 @@
+{
+  "artifacts": {
+    "embedded": {
+      "bytes": 5406013,
+      "path": ".build/l4-embedded/out/Products/Debug-webassembly-wasm32/L4Proof.wasm",
+      "sha256": "42449b65ea3677a36141e86c4f74067957d4dec82fc8bc6f6314e6976f327aeb"
+    },
+    "wasm": {
+      "bytes": 12525446,
+      "path": ".build/l4-wasm/out/Products/Debug-webassembly-wasm32/L4Proof.wasm",
+      "sha256": "b584e3688690e7d19205faf3b01412bbcb7de36c1af4daf2b15792b070230865"
+    }
+  },
+  "branch": "codex/exact-real-cell-l3",
+  "commands": {
+    "asan": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "test",
+      "--package-path",
+      "Tests/L4TopologyVerification",
+      "--build-path",
+      ".build/l4-asan",
+      "-j",
+      "2",
+      "--sanitize",
+      "address"
+    ],
+    "asan-depth-recheck": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "test",
+      "--package-path",
+      "Tests/L4TopologyVerification",
+      "--build-path",
+      ".build/l4-asan",
+      "-j",
+      "2",
+      "--sanitize",
+      "address",
+      "--filter",
+      "retainedAlgebraicField"
+    ],
+    "embedded": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "Tests/L4TopologyVerification",
+      "--build-path",
+      ".build/l4-embedded",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "--product",
+      "L4Proof",
+      "-j",
+      "2",
+      "-Xlinker",
+      "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a"
+    ],
+    "embedded-runtime": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/usr/local/bin/node",
+      "Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+      ".build/l4-embedded/out/Products/Debug-webassembly-wasm32/L4Proof.wasm"
+    ],
+    "native": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "test",
+      "--package-path",
+      "Tests/L4TopologyVerification",
+      "--build-path",
+      ".build/l4-native",
+      "-j",
+      "2"
+    ],
+    "native-depth-recheck": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "test",
+      "--package-path",
+      "Tests/L4TopologyVerification",
+      "--build-path",
+      ".build/l4-native",
+      "-j",
+      "2",
+      "--filter",
+      "retainedAlgebraicField"
+    ],
+    "wasm": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "Tests/L4TopologyVerification",
+      "--build-path",
+      ".build/l4-wasm",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm",
+      "--product",
+      "L4Proof",
+      "-j",
+      "2"
+    ],
+    "wasm-runtime": [
+      "bash",
+      "scripts/swift-test-timeout.sh",
+      "120",
+      "--",
+      "/usr/local/bin/node",
+      "Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+      ".build/l4-wasm/out/Products/Debug-webassembly-wasm32/L4Proof.wasm"
+    ]
+  },
+  "compiler": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0",
+  "compilerInputs": {
+    "asan": {
+      "L0": {
+        "fileCount": 49,
+        "fileList": ".build/l4-asan/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.SwiftFileList",
+        "sha256": "cdebf8fc32c5ef0dabd8bae05c9a3c2e136620e08a60c3fcb3aeeab019aa3091"
+      },
+      "L1": {
+        "fileCount": 29,
+        "fileList": ".build/l4-asan/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.SwiftFileList",
+        "sha256": "d313efaadf708b97eae5e982117042c1e13610483e844e5cd55671dbcebda4ea"
+      },
+      "L2": {
+        "fileCount": 30,
+        "fileList": ".build/l4-asan/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L2-t.build/Objects-normal/arm64/L2.SwiftFileList",
+        "sha256": "e0e7de15ef9887ceebaff0443dc69a900a7d385d3044426cd76fc38a778eba7f"
+      },
+      "L3": {
+        "fileCount": 40,
+        "fileList": ".build/l4-asan/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L3-t.build/Objects-normal/arm64/L3.SwiftFileList",
+        "sha256": "dad166f92c160593095a3688f60c8b4bc2e58d2ed60d18b6a2a6585361c20370"
+      },
+      "L4": {
+        "fileCount": 36,
+        "fileList": ".build/l4-asan/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L4-t.build/Objects-normal/arm64/L4.SwiftFileList",
+        "sha256": "8089572a614b3f13b2bc6a1d8990ffdea0a8b3ab3ce413d8d50339618943ad33"
+      }
+    },
+    "embedded": {
+      "L0": {
+        "fileCount": 49,
+        "fileList": ".build/l4-embedded/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0.SwiftFileList",
+        "sha256": "cdebf8fc32c5ef0dabd8bae05c9a3c2e136620e08a60c3fcb3aeeab019aa3091"
+      },
+      "L1": {
+        "fileCount": 29,
+        "fileList": ".build/l4-embedded/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1.SwiftFileList",
+        "sha256": "d313efaadf708b97eae5e982117042c1e13610483e844e5cd55671dbcebda4ea"
+      },
+      "L2": {
+        "fileCount": 30,
+        "fileList": ".build/l4-embedded/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2.SwiftFileList",
+        "sha256": "e0e7de15ef9887ceebaff0443dc69a900a7d385d3044426cd76fc38a778eba7f"
+      },
+      "L3": {
+        "fileCount": 40,
+        "fileList": ".build/l4-embedded/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3.SwiftFileList",
+        "sha256": "dad166f92c160593095a3688f60c8b4bc2e58d2ed60d18b6a2a6585361c20370"
+      },
+      "L4": {
+        "fileCount": 36,
+        "fileList": ".build/l4-embedded/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L4-t.build/Objects-normal/wasm32/L4.SwiftFileList",
+        "sha256": "8089572a614b3f13b2bc6a1d8990ffdea0a8b3ab3ce413d8d50339618943ad33"
+      }
+    },
+    "native": {
+      "L0": {
+        "fileCount": 49,
+        "fileList": ".build/l4-native/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.SwiftFileList",
+        "sha256": "cdebf8fc32c5ef0dabd8bae05c9a3c2e136620e08a60c3fcb3aeeab019aa3091"
+      },
+      "L1": {
+        "fileCount": 29,
+        "fileList": ".build/l4-native/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.SwiftFileList",
+        "sha256": "d313efaadf708b97eae5e982117042c1e13610483e844e5cd55671dbcebda4ea"
+      },
+      "L2": {
+        "fileCount": 30,
+        "fileList": ".build/l4-native/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L2-t.build/Objects-normal/arm64/L2.SwiftFileList",
+        "sha256": "e0e7de15ef9887ceebaff0443dc69a900a7d385d3044426cd76fc38a778eba7f"
+      },
+      "L3": {
+        "fileCount": 40,
+        "fileList": ".build/l4-native/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L3-t.build/Objects-normal/arm64/L3.SwiftFileList",
+        "sha256": "dad166f92c160593095a3688f60c8b4bc2e58d2ed60d18b6a2a6585361c20370"
+      },
+      "L4": {
+        "fileCount": 36,
+        "fileList": ".build/l4-native/out/Intermediates.noindex/L4TopologyVerification.build/Debug/L4-t.build/Objects-normal/arm64/L4.SwiftFileList",
+        "sha256": "8089572a614b3f13b2bc6a1d8990ffdea0a8b3ab3ce413d8d50339618943ad33"
+      }
+    },
+    "wasm": {
+      "L0": {
+        "fileCount": 49,
+        "fileList": ".build/l4-wasm/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0.SwiftFileList",
+        "sha256": "cdebf8fc32c5ef0dabd8bae05c9a3c2e136620e08a60c3fcb3aeeab019aa3091"
+      },
+      "L1": {
+        "fileCount": 29,
+        "fileList": ".build/l4-wasm/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1.SwiftFileList",
+        "sha256": "d313efaadf708b97eae5e982117042c1e13610483e844e5cd55671dbcebda4ea"
+      },
+      "L2": {
+        "fileCount": 30,
+        "fileList": ".build/l4-wasm/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2.SwiftFileList",
+        "sha256": "e0e7de15ef9887ceebaff0443dc69a900a7d385d3044426cd76fc38a778eba7f"
+      },
+      "L3": {
+        "fileCount": 40,
+        "fileList": ".build/l4-wasm/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3.SwiftFileList",
+        "sha256": "dad166f92c160593095a3688f60c8b4bc2e58d2ed60d18b6a2a6585361c20370"
+      },
+      "L4": {
+        "fileCount": 36,
+        "fileList": ".build/l4-wasm/out/Intermediates.noindex/L4TopologyVerification.build/Debug-webassembly-wasm32/L4-t.build/Objects-normal/wasm32/L4.SwiftFileList",
+        "sha256": "8089572a614b3f13b2bc6a1d8990ffdea0a8b3ab3ce413d8d50339618943ad33"
+      }
+    }
+  },
+  "date": "2026-10-07",
+  "logs": {
+    "asan-final.log": "3135455e9dccc4f05abfe619e3a89f4e96ead3190d73b1aa3c4e2e0f5e8b4c97",
+    "depth-asan-recheck.log": "3ee5c5ae4b15e4cc7275eb25edc5f1dfd3793195d8cd0355dbb1efd8dc0e630d",
+    "depth-native-recheck.log": "3cc690eb4838d2f2e5db7c70e3bdf73ce247c2b158f9402fc4c8bac73aead349",
+    "embedded-build.log": "e97affb9b2dc1ae6d5b652176703af3eb3818f2f1b0dc28594f80a7b61d362ce",
+    "embedded-runtime.log": "3e54de8e718ad61421acb9af613d43e3aadaf53f0a679aebc56549209219b6bf",
+    "native-final.log": "38c313073144cf90b85cb2a1e0f0d3e316f17e72085961e7ba537301e98c7ca5",
+    "ownership-scan.log": "cc79504516b93f2424f32d630bdccd1d89f881851dddd66a7ea907033a0fdf23",
+    "wasm-build.log": "c229ad058706bcf2b5c388c31c27eb422da1afcc0bd4cc43faad9595b8a46fd6",
+    "wasm-runtime.log": "85f8f9dd77e85eedff4e913d7a7f79f02f70ff8eb683eec81369c9395263366e"
+  },
+  "node": "v24.19.0",
+  "prerequisite": "2bd81a77",
+  "sourceCounts": {
+    "L0": 49,
+    "L1": 29,
+    "L2": 30,
+    "L3": 40,
+    "L4": 36
+  },
+  "target": "wasm32-unknown-wasip1"
+}

@@ -20,8 +20,8 @@ isolation, branch topology or that an interval containing zero is an exact root.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
-| [ExactRealTopology](ExactRealTopology/DESIGN.md) | child | L4 closures, complete incidence and selected parameter components | Consumes public L0-L3 contracts | Design-only; additional L3 inspection and L4 runtime evidence are implementation gates |
-| [ExactRealCell](ExactRealCell/DESIGN.md) | child | L3 complete real-cell partitions, selection and retained conditions | Depends only on public L0/L1/L2 and Swift | Current isolated paths verified; proposed L4 inspection extension and upper integration remain pending |
+| [ExactRealTopology](ExactRealTopology/DESIGN.md) | child | L4 closures, complete incidence and selected parameter components | Consumes public L0-L3 contracts | Independently verified on Native/ASAN and both WASI families; upper geometry integration is separate |
+| [ExactRealCell](ExactRealCell/DESIGN.md) | child | L3 complete real-cell partitions, selection and retained conditions | Depends only on public L0/L1/L2 and Swift | Isolated paths and L4 inspection extension verified; upper integration remains separate |
 | [ExactRealRoot](ExactRealRoot/DESIGN.md) | child | L2 complete univariate roots and selected-root coefficients | Depends only on public L0/L1 contracts and Swift | Independently verified; higher consumer integration is separate |
 | [ExactPolynomial](ExactPolynomial/DESIGN.md) | child | L1 polynomial protocols | Depends only on L0 | Independent verification excludes higher consumers |
 | [ExactScalar](ExactScalar/DESIGN.md) | child and depends on | Exact scalar operation and admission protocols | Owns the five L0 contracts | Higher consumers are outside the independent L0 build |
