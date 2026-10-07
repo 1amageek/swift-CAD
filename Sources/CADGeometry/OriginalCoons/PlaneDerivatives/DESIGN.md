@@ -18,6 +18,7 @@ orthogonal null-space action, never rounded native row projection.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [CADGeometry](../../DESIGN.md) | depends on | Original framed infinite-plane chart | Authored U defines the support image | Tolerated nonorthogonality does not replace the chart cofactor |
 | [Original Coons](../DESIGN.md) | parent | Original corner incidence | Coherent four boundaries | Position sources are retained |
 | [Boundary Correction](../BoundaryCorrection/DESIGN.md) | depends on | Native tensor and original flat position correction | Unconstrained base | Its pure native Dv claim applies only to that base |
 | [Original Root Span](../../OriginalRootSpan/DESIGN.md) | depends on | Requested-order original directed jets | Source endpoint derivatives | No midpoint becomes a derivative source |
@@ -35,7 +36,13 @@ native tensor + original position-corrected base + corrected connectors
 
 ## Contracts and Invariants
 
-Each plane equation uses the original source coefficients. Raw affine images
+Each plane equation uses the original source coefficients. For `Plane3D` with
+an authored U, the support equation uses the exact original cofactor
+`U cross (N cross U)` and the original origin, following the module's authored
+chart contract. Tolerated nonzero `N dot U` is retained; the stored N alone is
+not the support equation. A zero cofactor fails explicitly. Nil-U and direct
+analytic plane arms retain their existing raw-normal equation and admission.
+Raw affine images
 use the exact cofactor/determinant equation. Independent normals are reduced by
 exact rational Gram-Schmidt without normalization; their null-space projection
 is an exact real law. A dependent plane is retained as original source but adds
@@ -94,7 +101,11 @@ derivatives, unavailable original requested-order continuity, zero final normal,
 cancellation or caller exhaustion fail explicitly. Scalar algebra, source
 nesting and geometric subdivision remain distinct capabilities. Normalized
 algebraic plane coefficients require their actual ordered-field issuer, not a
-rounded equation. Unsupported arms retain a precise incomplete marker.
+rounded equation. Unsupported arms retain a precise incomplete marker. The supporting equation issuer
+checks cancellation at every successful publication boundary, including after
+recursive affine and word cofactor transport. A terminal admission callback may
+cancel and return normally; this never authorizes successful issuance. These
+checks consume no additional work or storage allowance.
 
 ## Verification and Change Impact
 
@@ -110,3 +121,9 @@ production Embedded and normal WASM builds run the same public smoke with
 `-Onone`; optimized lowering cannot establish this storage portability.
 
 Exact rational boundary consumers apply the retained exact normal-basis projection to original quotient-rule endpoint derivatives. The four Hermite corrections are reconstructed from original homogeneous source coefficients and raw constraint equations. This path uses no cached interval delta as a coefficient and preserves original piece domains through directed affine restriction. The interval projection cache and exact action share the same immutable normal basis.
+
+The [authored support tests](../../../../Tests/CADGeometryTests/OriginalAuthoredSupportingPlaneEquationTests.swift)
+exercise exact chart incidence, original tangent projection and retained source
+identity, exact affine cofactor transport, malformed chart refusal, and independent
+caller work, storage, source-depth and cancellation failures. These local proofs
+do not establish final Loft or complete public intersection publication.

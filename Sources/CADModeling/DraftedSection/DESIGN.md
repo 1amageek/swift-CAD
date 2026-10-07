@@ -17,6 +17,7 @@ persistence belong to their existing feature owners.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [Original Plane Derivatives](../../CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md) | depends on | Original supporting plane equation | Section planarity uses the same chart support | Authored U retains its exact cofactor; nil-U retains its existing normal law |
 | [CADModeling](../DESIGN.md) | parent | Extrusion evaluation | Publishes admitted wall sheets | Publication requires topology admission |
 | [OriginalDraftedSection](../../CADGeometry/OriginalDraftedSection/DESIGN.md) | depends on | Persistent original quadratic curve and ruled wall | Supplies final source geometry | Candidate sections cannot replace the original law |
 | [GeometryConversion](../../CADGeometry/GeometryConversion/DESIGN.md) | depends on | Native derivative jet and certified conversion | Proves the original ruling law | Conversion failure remains explicit |
@@ -168,6 +169,10 @@ Inputs and prepared curves are immutable and Sendable. Missing tangents,
 infeasible pull direction, nonpositive quadratic clearance and conversion
 exhaustion throw typed errors. Shared conversion limits remain 4096 controls,
 eight candidates, 65536 certification boxes and the existing work/memory limits.
+Section planarity checks cancellation after the last admission callback before
+both its exact identity return and its complete closed-cover return. A callback
+that cancels and returns normally cannot publish successful support admission;
+these final checks do not charge additional work or storage.
 
 ## Verification and Change Impact
 
@@ -195,7 +200,13 @@ The profile facade never supplies a replacement law for original face edges.
 Each retained generator must remain within the original section-plane distance
 allowance. Original homogeneous plane identities provide a complete exact fast
 proof; other supported laws use closed original position bounds over a paid
-depth-first cover. Endpoint or display planarity alone cannot admit a wall.
+depth-first cover. For an authored-U section plane, both paths consume the same
+exact original support equation. The distance path encloses its cofactor with
+outward intervals and uses the existing interval normalization under the same
+admission. It never substitutes the stored raw N for the chart support normal.
+Nil-U section planes retain their existing raw-normal fallback. This support
+admission does not change the separate supplied normal law of offset or draft
+construction. Endpoint or display planarity alone cannot admit a wall.
 Material loop direction is selected by the existing original whole line integral
 before constructing the raw ruling; reversal transports the retained chart.
 
@@ -297,3 +308,8 @@ Descending authored endpoints reverse the original owning traversals and their
 order, independently of fitted candidates. The wall partition's additive directed
 flag changes traversal only, preserving the same physical source coefficients,
 source depth and original height/draft law.
+
+The [authored section planarity tests](../../../Tests/CADModelingTests/OriginalAuthoredDraftedBoundaryPlanarityTests.swift)
+exercise complete closed native traversals on the chart, raw-normal-plane curves
+outside the authored chart allowance, and typed independent admission failures.
+They verify section support admission, not final extrusion publication.

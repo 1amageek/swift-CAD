@@ -22,9 +22,19 @@ package struct OriginalDraftedBoundaryPlanarity {
             for piece in pieces {
                 if try !equation.polynomial(piece.homogeneous, includeOffset: true, usage: &usage).isZero { exact = false }
             }
-            if exact { return }
+            if exact {
+                try CurrentTaskCancellationChecker().checkCancellation()
+                return
+            }
         }
-        let direction = IntervalVector3DBounds(x: .exact(raw.x), y: .exact(raw.y), z: .exact(raw.z))
+        let direction: IntervalVector3DBounds
+        if plane.uDirection != nil {
+            direction = try .init(x: equation.normal.x.outwardInterval(usage: &usage),
+                y: equation.normal.y.outwardInterval(usage: &usage),
+                z: equation.normal.z.outwardInterval(usage: &usage))
+        } else {
+            direction = .init(x: .exact(raw.x), y: .exact(raw.y), z: .exact(raw.z))
+        }
         guard let normal = try direction.normalized(consumeWork: { try admission.chargeWork() }) else {
             throw GeometryConversionError.resourceLimitExceeded("Original section normal has no finite outward normalization.")
         }
@@ -60,5 +70,6 @@ package struct OriginalDraftedBoundaryPlanarity {
             pending.append(.init(range: try .init(lower: middle, upper: cell.range.upper), depth: cell.depth + 1))
             pending.append(.init(range: try .init(lower: cell.range.lower, upper: middle), depth: cell.depth + 1))
         }
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 }

@@ -92,11 +92,22 @@ package struct OriginalSupportingPlaneEquation: Sendable {
         }
         let origin: Point3D, normal: Vector
         switch source {
-        case .plane(let plane): origin = plane.origin; normal = try .original(plane.normal, usage: &usage)
+        case .plane(let plane):
+            origin = plane.origin
+            let originalNormal = try Vector.original(plane.normal, usage: &usage)
+            if let direction = plane.uDirection {
+                let u = try Vector.original(direction, usage: &usage)
+                // The authored chart retains tolerated nonorthogonality of N and U.
+                normal = try u.cross(originalNormal.cross(u, usage: &usage), usage: &usage)
+            } else {
+                normal = originalNormal
+            }
         case .analytic(.plane(let point, let direction)): origin = point; normal = try .original(direction, usage: &usage)
         case .procedural(.originalImage(let image)):
-            return try prepared(source: image.source, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
+            let equation = try prepared(source: image.source, tolerance: tolerance, remainingSourceDepth: remainingSourceDepth - 1,
                 usage: &usage).pushedForward(by: image.transform, usage: &usage)
+            try CurrentTaskCancellationChecker().checkCancellation()
+            return equation
         case .procedural(.originalAffineWord(let image)):
             let original = try prepared(source: image.source, tolerance: tolerance,
                 remainingSourceDepth: remainingSourceDepth - 1, usage: &usage)
@@ -116,7 +127,9 @@ package struct OriginalSupportingPlaneEquation: Sendable {
             try usage.consumeExactWork(3)
             let translation = try Vector(x: image.preparedWord.translationCoefficient(row: 0),
                 y: image.preparedWord.translationCoefficient(row: 1), z: image.preparedWord.translationCoefficient(row: 2))
-            return try original.pushedForward(x: column(0), y: column(1), z: column(2), translation: translation, usage: &usage)
+            let equation = try original.pushedForward(x: column(0), y: column(1), z: column(2), translation: translation, usage: &usage)
+            try CurrentTaskCancellationChecker().checkCancellation()
+            return equation
         case .bSpline(let spline):
             guard let first = spline.controlPoints.first?.first else {
                 throw GeometryConversionError.invalidInput("Original plane support is empty.")
@@ -154,6 +167,7 @@ package struct OriginalSupportingPlaneEquation: Sendable {
                 }
             } }
         }
+        try CurrentTaskCancellationChecker().checkCancellation()
         return equation
     }
 }
