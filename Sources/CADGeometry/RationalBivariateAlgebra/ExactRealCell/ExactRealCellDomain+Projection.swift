@@ -9,18 +9,26 @@ extension ExactRealCellDomain {
         guard let degree = try polynomials.degree(of: law, in: axis, using: &a) else { return [] }
         let count = try ExactCellAccess.add(degree, 1)
         try ExactCellAccess.storage(count, Polynomial.self, &a)
+        if degree == 0 { return [law] }
+        try ExactCellAccess.storage(count, Int.self, &a)
+        var counts = Array(repeating: 0, count: count)
+        for term in law.terms {
+            try a.consumeWork(1)
+            counts[term.powers[axis]] = try ExactCellAccess.add(counts[term.powers[axis]], 1)
+        }
+        try ExactCellAccess.storage(count, [ExactPolynomialTerm<Field.Value>].self, &a)
+        try ExactCellAccess.storage(law.termCount, ExactPolynomialTerm<Field.Value>.self, &a)
+        var buckets = Array(repeating: [ExactPolynomialTerm<Field.Value>](), count: count)
+        for index in counts.indices { try a.consumeWork(1); buckets[index].reserveCapacity(counts[index]) }
+        for term in law.terms {
+            try a.consumeWork(1)
+            try ExactCellAccess.storage(term.powers.count, Int.self, &a)
+            try a.consumeWork(term.powers.count)
+            var powers = term.powers; powers[axis] = 0
+            buckets[term.powers[axis]].append(.init(powers: powers, coefficient: term.coefficient))
+        }
         var result: [Polynomial] = []; result.reserveCapacity(count)
-        for d in 0..<count {
-            try ExactCellAccess.storage(law.termCount, ExactPolynomialTerm<Field.Value>.self, &a)
-            var terms: [ExactPolynomialTerm<Field.Value>] = []; terms.reserveCapacity(law.termCount)
-            for term in law.terms {
-                try a.consumeWork(1)
-                if term.powers[axis] != d { continue }
-                try ExactCellAccess.storage(term.powers.count, Int.self, &a)
-                try a.consumeWork(term.powers.count)
-                var powers = term.powers; powers[axis] = 0
-                terms.append(.init(powers: powers, coefficient: term.coefficient))
-            }
+        for terms in buckets {
             result.append(try polynomials.polynomial(terms: terms, using: &a))
         }
         return result

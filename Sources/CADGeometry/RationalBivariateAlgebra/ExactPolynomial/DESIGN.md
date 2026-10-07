@@ -172,3 +172,16 @@ Current snapshot evidence and the before/after measurement are recorded once in
 Native, Address Sanitizer, normal WASM and Embedded WASM use the same repaired
 production sources. Higher geometry/intersection builds and main integration are
 outside the task.
+
+## Scoped Ordered Arithmetic Optimization
+
+Issued polynomials already contain strictly descending, unique, nonzero terms.
+After both input owners and depths are admitted, addition and subtraction merge
+those ordered streams. Matching exponents invoke coefficient arithmetic and
+remove proven zeros. Right-only subtraction terms are negated as they are
+emitted. Unchanged terms retain their buffers; only output slots are allocated
+and admitted. No public construction validation is bypassed for caller terms.
+Differential fixtures use public canonical construction as the reference and
+cover cancellation, complete cancellation of coefficients, zero operands,
+foreign owners and shared inherited depth. All original algebraic identities
+remain regression obligations; resource limits are unchanged.

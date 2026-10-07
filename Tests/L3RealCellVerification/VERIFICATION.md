@@ -1,128 +1,113 @@
-# L3 Real-Cell Verification
+# L0-L3 Optimization Verification
 
 ## Scope and Snapshot
 
-Verified 2026-10-07 in `codex/exact-real-cell-l3`, worktree
-`/private/tmp/cad-exact-polynomial-l1-20261007`.
-Implementation commits: `3eb70937` (source/projection), `b8c0e554` (lifting),
-`cc4e8ae6` (query/selection). The final evidence commit includes the issued-prefix
-query repair and final C1/C2/C4/C6 behavioral assertions.
+Verified 2026-10-07 in `codex/exact-layer-optimization`, worktree
+`/private/tmp/cad-exact-layer-opt-20261007`, based on `f0d6ae9e`.
+This report supersedes the original L3 final-source report for this branch.
+The original report remains available at the base commit. The task changes four
+internal operations and their authoritative component designs. Public protocols,
+source equality, exact ordering, ownership, depths, cancellation, caller limits,
+production package graph and higher CAD code are unchanged.
 
-The isolated SwiftPM package compiles actual production files through symlinks.
-[SOURCE-INVENTORIES.txt](SOURCE-INVENTORIES.txt) records exact compiler inventories:
-49 L0, 29 L1, 30 L2 and 34 L3 files in every configuration. All existing recorded
-L0/L1/L2 production hashes match; their independently verified contracts/evidence
-are reused. No lower production file, production package graph, new dependency,
-higher CAD target or main integration is included.
-[SOURCE-SHA256.txt](SOURCE-SHA256.txt) identifies the final L3 implementation,
-fixtures, tests and manifests. [DESIGN.md](DESIGN.md) owns the verification graph.
+## Implementation and Review
+
+| Layer | Change | Correctness evidence |
+|---|---|---|
+| L0 | Opposite-sign/zero and equal-denominator comparison without subtraction/reduction | Pairwise differential comparison against exact subtraction over signs, fractions and multi-limb inputs; work failure and terminal cancellation |
+| L1 | Ordered addition/subtraction merge; negate only right-only subtraction terms | Public canonical construction reference, matching/cancelling terms, empty operands, foreign ownership, storage refusal and terminal cancellation; existing rational/algebraic division, GCD, resultant and square-free fixtures |
+| L2 | Prove disjoint isolation order before GCD/Sturm construction | Both orders, touching half-open intervals, same-root and different-law equality, foreign root issuer, final cancellation; existing multiplicity/refinement/tower/denominator fixtures |
+| L3 | Count/group terms by exponent rather than scan all terms at every degree; retain degree-zero law | Independent filtered-coefficient reference for both axes and missing degrees; existing projection/PSC, nullification, geometry-shaped relations, location, source binding and resource fixtures |
+
+One stable source review checked each changed path and its lower/upper assumptions.
+Canonical polynomial operands justify ordered merge; matching coefficients are
+still proven zero/nonzero by the field. Disjoint intervals justify strict root
+order; overlapping intervals retain the original common-root proof. Public L1
+construction remains the authority for grouped coefficients. No scoped finding
+remains. The two-level L3 workload previously exhausting 200M work is outside this
+fixed-input optimization measurement and has not been rerun; no claim that this
+optimization closes that case or the seven higher requirements is made.
+
+## Native Performance Measurement
+
+[OptimizationBenchmark](Sources/OptimizationBenchmark/OptimizationBenchmark.swift)
+uses prepared identical inputs outside timing, five fresh-process samples and
+Native debug with the pinned compiler. Results below are median seconds for the
+entire repetition batch, not per-call latency. [baseline.log](Evidence/baseline.log)
+and [after.log](Evidence/after.log) retain raw samples. Work/storage values are
+cumulative admitted logical payloads, not peak RSS or measured allocator counts.
+
+| Path and repetitions | Before seconds | After seconds | Speed ratio | Work before/after | Storage bytes before/after |
+|---|---:|---:|---:|---:|---:|
+| L0 equal-denominator 1000 comparisons | 0.003668083 | 0.000382167 | 9.60 | 48000 / 7000 | 52000 / 0 |
+| L1 100 additions of interleaved 64-term operands | 0.016405416 | 0.003284958 | 4.99 | 153300 / 38500 | 1638400 / 409600 |
+| L2 100 comparisons of disjoint roots | 0.094604750 | 0.000698000 | 135.54 | 291800 / 200 | 3957600 / 19200 |
+| L3 100 sparse degree-48 coefficient extractions | 0.014593750 | 0.007801334 | 1.87 | 29200 / 15300 | 2499200 / 580800 |
+
+These measurements establish improvements only for the four specified inputs.
+They are not general CAD timings, release optimization measurements or portable
+wall-time guarantees. The limits are unchanged. Fewer operations and allocations
+reduce admitted consumption rather than bypassing admission checks.
 
 ## Executed Configurations
 
-| Configuration | Actual result on final source |
+| Configuration | Result |
 |---|---|
-| Native debug | 18 Swift Testing tests passed; four concurrent immutable readers |
-| Native Address Sanitizer | Same 18 tests passed; no sanitizer error |
-| Ordinary WASM debug | All 13 synchronous fixture routines executed; exit 0 |
-| Embedded WASM debug | Same 13 routines executed; exit 0 |
+| Native debug | 49 tests passed: L0 9, L1 8, L2 12, L3 20 |
+| Native Address Sanitizer | Same 49 tests passed; no sanitizer errors |
+| Ordinary WASM debug | Combined L0/L1/L2/L3 synchronous fixtures and optimization regression completed; exit 0 |
+| Embedded WASM debug | Same combined proof completed; exit 0 |
 
-Pinned compiler: Apple Swift 6.4 (`swift-6.4-RELEASE`), executable
+The combined test package links existing lower fixtures/tests and compiles each
+production module once. Exact compiler inventories match actual production
+sources in all four builds: L0 49, L1 29, L2 30, L3 34; see
+[SOURCE-INVENTORIES.txt](SOURCE-INVENTORIES.txt). Current sources are bound by
+[SOURCE-SHA256.txt](SOURCE-SHA256.txt). Lower evidence is re-executed because its
+production sources changed. Existing unchanged contracts remain authoritative.
+
+Pinned executable:
 `/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift`.
-Host target: arm64-apple-macosx27.0.0, package deployment target macOS 14;
-execution is on the host, not a macOS 14 device. SDK identifiers:
-`swift-6.4.0-RELEASE_wasm` and `swift-6.4.0-RELEASE_wasm-embedded`;
-WASM target: wasm32-unknown-wasip1. Runtime: Node 24.19.0, WASI Preview 1.
-Embedded uses SDK-required WMO, debug `-Onone`, and the matching SDK's
-`libswiftUnicodeDataTables.a`. Raw artifacts remain in their dedicated directories.
+Actual version: Apple Swift 6.4 (`swift-6.4-RELEASE`), host
+arm64-apple-macosx27.0.0; package deployment macOS 14, executed on the host.
+SDK IDs: `swift-6.4.0-RELEASE_wasm`,
+`swift-6.4.0-RELEASE_wasm-embedded`; wasm32-unknown-wasip1.
+Runtime: `/usr/local/bin/node`, 24.19.0, WASI Preview 1. Embedded uses WMO,
+debug Onone and the matching SDK Unicode archive. Existing unused `-rdynamic`
+and experimental WASI warnings remain; no signature mismatch or trap was found.
 
-Every command has a 120-second process-group guard and each build uses two jobs.
-R1 Native execution took 7.169 seconds; ASAN took 16.428 seconds while independent
-builds ran concurrently. These are test run times, not a general performance guarantee. Cross-builds emitted the existing
-unused `-rdynamic` warning; Node emitted its experimental WASI warning. No signature
-mismatch or runtime trap was observed.
+## Ownership and Isolation
 
-## Behavioral Evidence
-
-| Contract | Actual paths and assertions |
-|---|---|
-| C1 source/Boolean binding | `sourceFailures`, `domains`, `selectionAndLocation`: foreign owners, invalid postfix/index/box count, retained initialization, source-specific predicate identity, zero-variable true/false selection and exact point/condition queries, field-family validation with no coordinates |
-| C2 full projection | Native `projectionAndSource`: PSC j=0 equals L1 resultant; higher minors equal known zero/one determinants; shared-factor zero PSC matches independently computed GCD degree; derivative/coefficient/PSC provenance retained |
-| C3 nullification/degree drop | `nullification`, `nullifiedQuery`: xy=0 has all three exact zero cells; xz+y=0 has an entire z-fiber at x=y=0; non-sample z=7 and z=-9 satisfy the same retained condition |
-| C4 box coverage | `domains`, `retainedAndOutside`: all four endpoint combinations, closed/open singleton, explicit empty box, unbounded/rootless domains, zero/nonzero constants, zero variables and six variables; outside queries prove exclusion without root enumeration |
-| C5 singular/mixed sets | `singularities`: isolated x²+y², cusp y²-x³, repeated (x-y)² and a line plus an isolated point; `nullification` also checks crossing branches |
-| C6 exact identity/conditions | All samples locate in their issued cells; non-sample points in same-sign disjoint sectors remain separate; foreign IDs fail; generic parent handles yield valid prefix samples/conditions rather than invalidCell |
-| C7 algebraic coefficients | `transportedCoordinates`, `algebraicQueries`, `OriginalCoefficientFixtures`: exact earlier-coordinate embedding, linear-section reuse, ancestor bounds, sibling rejection, compatible descendant queries and retained preexisting algebraic coefficient depth |
-| C8 consumer relations | `applicationRelations`: 3-variable isolated CS, overlap and two distinct folded UV points; 4-variable SSI line and coincidence region; exact selected dimensions and location, no geometry producer integration claim |
-| C9 atomic resources | `resources`, `OriginalCoefficientFixtures`, `checkedProjectionSizes`: independent work/storage/value/coefficient limits, source domain traversal at the exact work boundary, cell/root/extension ceilings, checked matrix/count overflow, cancellation at final producing/querying/selection checkpoint, exact admitted storage/work versus one-less failure; no partial publication/fallback |
-| C10 ownership/portability | `escapedOwnership`: drop creating inputs/domain/partition and recover through retained condition; `concurrentImmutableReaders`: four independent admissions share receipts; same public protocol requirement paths execute on both WASM SDKs |
-
-A complete partition is justified by the retained full projection conditions and
-complete L2 root unions, not by sample residuals. Incoming projection/source/boundary
-laws cut stacks; auxiliary derivatives remain in rank/Thom evidence and sample sign
-metadata. This corrected unnecessary axis-0 auxiliary roots in the mixed fixture
-without increasing its 200M work ceiling. No approximation solver or new root engine
-was introduced. The final cumulative review closed ancestor-bound import, zero-variable
-behavior, higher-minor evidence and the valid-prefix query defect; its finding fixes
-were rechecked. No further review cycle or unrelated hardening remains.
-
-## Ownership and Isolation Matrix
-
-| State/owner | Native / ordinary WASM / Embedded storage | Isolation and release |
+| Logical state | Native / ordinary WASM / Embedded | Owner and lifetime |
 |---|---|---|
-| Source/context/coefficient field | Identical immutable Sendable ARC owners | Read-only after construction; source retains lower owners |
-| Projection/records/stacks | Identical immutable arrays with integer graph offsets | Partition owns graph; no internal ARC cycle |
-| Cell/view/condition/selection | Identical retained owner plus offsets/shared arrays | Safe owner-retaining reads; final ARC release |
-| Construction and predicate stack | Identical invocation-local arrays | Exclusive synchronous construction, then immutable transfer |
-| Admission pointer/depth observer | Identical non-Sendable scoped owner and four callbacks | Exclusive synchronous borrow inside ExactCellAccess.run; never stored in receipts |
-| Caller ledger | Identical inout admission | Separate ledger per invocation/task; no shared mutable state |
+| Original values, fields, polynomials and root proof | Identical immutable Sendable owners | Existing receipts retain backing and causal depths |
+| Merge output and coefficient counts/buckets | Identical invocation-local Array values | Exclusive construction; admitted before allocation/mutation; output retains required values |
+| Admission and cancellation | Same caller inout ledger and scoped forwarding | No reset, copied budget, escaping pointer, new unsafe code or shared mutable cache |
+| Partition/cell graph | Identical immutable owners and index arrays | Existing retained graph/view semantics |
 
-No target-conditional synchronization, storage or Sendable contract exists. Only
-isolated-module imports are conditional. Logical storage admission counts typed
-payloads, not exact allocator capacity/RSS. The sole unsafe boundary is the scoped
-exclusive admission pointer; ASAN exercised success/failure/cancellation and Native
-readers exercise concurrent retained ownership. Synchronous WASI execution does not
-establish multithreaded WASM semantics.
+Changed files have no target-conditional storage, isolation or Sendable path.
+ASAN exercises the existing scoped borrow through new success/failure paths.
+Native immutable-reader tests remain successful. Synchronous WASI does not prove
+multithreaded WASM behavior; no new shared mutable state requires such a claim.
 
-## Reproduction and Evidence
+## Reproduction
 
-From the worktree root, use `bash scripts/swift-test-timeout.sh 120 --` before every
-command. Pinned compiler commands:
+Prefix every build/test/run with `bash scripts/swift-test-timeout.sh 120 --`.
+Use the pinned absolute compiler above for `swift` below, two jobs, and the same
+package `Tests/L3RealCellVerification`:
 
 ```sh
-swift test --package-path Tests/L3RealCellVerification --build-path .build/l3-native -j 2
-swift test --package-path Tests/L3RealCellVerification --build-path .build/l3-asan -j 2 --sanitize address
-swift build --package-path Tests/L3RealCellVerification --build-path .build/l3-wasm --swift-sdk swift-6.4.0-RELEASE_wasm -j 2 --product L3Proof
-swift build --package-path Tests/L3RealCellVerification --build-path .build/l3-embedded --swift-sdk swift-6.4.0-RELEASE_wasm-embedded -j 2 --product L3Proof -Xlinker <matching-SDK>/libswiftUnicodeDataTables.a
-node Tests/L1PolynomialVerification/Scripts/RunWASI.mjs .build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3Proof.wasm
-node Tests/L1PolynomialVerification/Scripts/RunWASI.mjs .build/l3-embedded/out/Products/Debug-webassembly-wasm32/L3Proof.wasm
+swift test --package-path Tests/L3RealCellVerification --build-path .build/opt-native -j 2
+swift test --package-path Tests/L3RealCellVerification --build-path .build/opt-asan -j 2 --sanitize address
+swift build --package-path Tests/L3RealCellVerification --build-path .build/opt-wasm --swift-sdk swift-6.4.0-RELEASE_wasm -j 2 --product L3Proof
+swift build --package-path Tests/L3RealCellVerification --build-path .build/opt-embedded --swift-sdk swift-6.4.0-RELEASE_wasm-embedded -j 2 --product L3Proof -Xlinker <matching-sdk>/libswiftUnicodeDataTables.a
+node Tests/L1PolynomialVerification/Scripts/RunWASI.mjs .build/opt-wasm/out/Products/Debug-webassembly-wasm32/L3Proof.wasm
+node Tests/L1PolynomialVerification/Scripts/RunWASI.mjs .build/opt-embedded/out/Products/Debug-webassembly-wasm32/L3Proof.wasm
+swift run --package-path Tests/L3RealCellVerification --build-path .build/opt-native -j 2 OptimizationBenchmark
 ```
 
-Replace `swift` with the pinned absolute compiler above and `node` with
-`/usr/local/bin/node`. The matching Embedded archive is located beneath
-`/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/`.
-Final raw logs remain in `.build/l3-evidence`; [LOG-SHA256.txt](LOG-SHA256.txt) binds them.
-The branch has no configured upstream; no push is performed. Closure/incidence,
-components, geometry assembly and publication belong to later layers. This evidence
-completes independent L3, not the seven higher requirements.
-
-## R1 Source Traversal Admission Repair
-
-The subsequent review found that `bind` accepted 100,000 unbounded domains under
-work limit 1, reporting work=1. Each domain now consumes one unit before its
-validation, in the same caller admission as the existing invocation and scalar
-operations. API, field/owner identity, array retention and existing limits are
-unchanged. Source traversal remains invocation-local on every target.
-
-`FailureFixtures.sourceTraversal` covers zero, one and 100,000 domains. Binding
-succeeds with exactly n+1 work and fails explicitly at n work; the same domain
-remains usable after failure. The new Native test failed before the repair with
-invalidCoverage, then passed with the repaired implementation. The cumulative
-18-test Native/ASAN suites and 13-routine ordinary/Embedded WASI executables passed.
-The repair received a targeted finding recheck against the validated source path.
-R1 logs are retained in `.build/l3-evidence/r1-*.log` and included in the log manifest.
-Earlier `*-final` logs describe the pre-R1 snapshot.
-
-The review's additional x²-2=0/y²-x=0 probe on [1,2]² exhausted 200M work.
-This repair does not change that algorithm or its budget, and does not claim
-successful generation/location for that probe. No upper CAD build or integration
-was performed.
+The Embedded archive is in the matching SDK's
+`wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/`
+directory. [Evidence](Evidence) retains logs;
+[LOG-SHA256.txt](LOG-SHA256.txt) binds their contents. No higher CAD build,
+main integration or changes to the original worktree were performed. This branch
+has no configured upstream and is not pushed.

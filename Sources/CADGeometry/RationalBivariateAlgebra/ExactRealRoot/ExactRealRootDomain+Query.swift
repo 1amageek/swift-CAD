@@ -42,11 +42,22 @@ extension ExactRealRootDomain {
         let common = try interval(.finite(lo), .finite(hi), il, iu, &a)
         return common.isEmpty ? nil : common
     }
+    func disjointOrder(_ l: ExactRealRootInterval<F.Value>, _ r: ExactRealRootInterval<F.Value>,
+        _ a: inout ExactRootBorrowedAdmission) throws -> ExactOrder? {
+        guard case .finite(let ll) = l.lower, case .finite(let lh) = l.upper,
+            case .finite(let rl) = r.lower, case .finite(let rh) = r.upper else { throw ExactRealRootFailure.invalidEvidence }
+        let left = try context.field.compare(lh, rl, using: &a)
+        if left == .less || (left == .equal && !(l.includesUpper && r.includesLower)) { return .less }
+        let right = try context.field.compare(rh, ll, using: &a)
+        if right == .less || (right == .equal && !(r.includesUpper && l.includesLower)) { return .greater }
+        return nil
+    }
     public func compare<A: ExactScalarAdmission & ~Copyable>(_ lhs: borrowing ExactRealRoot<F>,
         _ rhs: borrowing ExactRealRoot<F>, using admission: inout A) throws(ExactRealRootFailure) -> ExactOrder {
         let lhs = copy lhs, rhs = copy rhs
         return try ExactRootAccess.run(&admission, inherited: context.depth) { a in
             try admitted(copy lhs, &a); try admitted(copy rhs, &a)
+            if let order = try disjointOrder(lhs.isolation, rhs.isolation, &a) { return order }
             let gcd = try context.univariate.greatestCommonDivisor(lhs.proof.polynomial, rhs.proof.polynomial, using: &a)
             let common = try sturm(gcd, &a)
             var l = lhs.isolation, r = rhs.isolation
@@ -54,12 +65,7 @@ extension ExactRealRootDomain {
             while true {
                 guard case .finite(let ll) = l.lower, case .finite(let lh) = l.upper,
                     case .finite(let rl) = r.lower, case .finite(let rh) = r.upper else { throw ExactRealRootFailure.invalidEvidence }
-                if try context.field.compare(lh, rl, using: &a) != .greater {
-                    if try context.field.compare(lh, rl, using: &a) == .less || !(l.includesUpper && r.includesLower) { return .less }
-                }
-                if try context.field.compare(rh, ll, using: &a) != .greater {
-                    if try context.field.compare(rh, ll, using: &a) == .less || !(r.includesUpper && l.includesLower) { return .greater }
-                }
+                if let order = try disjointOrder(l, r, &a) { return order }
                 if try context.field.compare(ll, lh, using: &a) == .less {
                     l = try contracted(lhs.proof, l, axis: lhs.source.refinementAxis, &a)
                 }

@@ -109,3 +109,23 @@ import L3Fixtures
   for try await result in group { try CellFixtures.require(result) }
  }
 }
+
+@Test(.timeLimit(.minutes(1))) func optimizedExactOperations() throws { try OptimizationFixtures.run() }
+@Test(.timeLimit(.minutes(1))) func coefficientGroupingReference() throws {
+ var a = try CellFixtures.ledger()
+ let (f,d,_) = try CellFixtures.setup(2,&a), p = d.polynomials
+ let one = try f.integer(1,using:&a)
+ let law = try p.polynomial(terms:[.init(powers:[3,0],coefficient:one),.init(powers:[1,7],coefficient:one),.init(powers:[0,2],coefficient:one)],using:&a)
+ for axis in 0..<2 {
+  let coefficients = try ExactCellAccess.run(&a) { try d.coefficientVector(law,axis:axis,&$0) }
+  for degree in coefficients.indices {
+   var terms: [ExactPolynomialTerm<CellFixtures.Field.Value>] = []
+   for term in law.terms where term.powers[axis] == degree {
+    var powers = term.powers; powers[axis] = 0
+    terms.append(.init(powers:powers,coefficient:term.coefficient))
+   }
+   let expected = try p.polynomial(terms:terms,using:&a)
+   #expect(try p.equals(coefficients[degree],expected,using:&a))
+  }
+ }
+}

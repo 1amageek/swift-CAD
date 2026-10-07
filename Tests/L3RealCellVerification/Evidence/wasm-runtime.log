@@ -1,0 +1,15 @@
+(node:6531) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS: rational source bits and field operations
+PASS: retained algebraic source, order and lifetime
+PASS: independent limits, explicit failures and cancellation
+PASS: typed payload admission and cubic-root sign resource boundaries
+PASS: typed monomial and fiber storage, exact roots and retained identities
+PASS: runtime algebraic tower and retained ancestor embeddings
+PASS: reducible root law and selected-root denominator decisions
+PASS: incompatible owners, extension ceiling and scalar failures
+PASS: terminal cancellation, atomic publication and exact storage boundary
+PASS: retained owners, original variable map and exact base import
+PASS: higher degree, odd multiplicity and invalid input failures
+PASS: existing algebraic base coefficients and inherited coefficient depth
+PASS: combined L0-L3 exact arithmetic, polynomial algebra, roots, real cells and optimization regressions
