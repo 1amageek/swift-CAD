@@ -1,0 +1,36 @@
+import L0
+
+extension L0ScalarFixtures {
+    static func multiwordGoldens(_ field: ExactRationalScalarDomain, using admission: inout ExactScalarLedger) throws {
+        let a0 = try field.canonical(sign: 1, numerator: [0x11, 0x0, 0x2], denominator: [0x5, 0x10], using: &admission)
+        let b0 = try field.canonical(sign: 1, numerator: [0x15, 0x0, 0x1], denominator: [0x7, 0x8], using: &admission)
+        let adding0 = try field.adding(a0, b0, using: &admission)
+        verify(adding0.canonicalSign == 1 && adding0.canonicalNumeratorWords == [0xc71c71e0, 0x55555589, 0x8e38e390, 0x3] && adding0.canonicalDenominatorWords == [0xc71c71cb, 0x38e38e49, 0xe])
+        let subtracting0 = try field.subtracting(a0, b0, using: &admission)
+        verify(subtracting0.canonicalSign == 1 && subtracting0.canonicalNumeratorWords == [0x5555555a, 0xffffffbd, 0x2] && subtracting0.canonicalDenominatorWords == [0x55555561, 0xaaaaaadd, 0x2a])
+        let multiplying0 = try field.multiplying(a0, b0, using: &admission)
+        verify(multiplying0.canonicalSign == 1 && multiplying0.canonicalNumeratorWords == [0x165, 0x0, 0x3b, 0x0, 0x2] && multiplying0.canonicalDenominatorWords == [0x23, 0x98, 0x80])
+        let dividing0 = try field.dividing(a0, b0, using: &admission)
+        verify(dividing0.canonicalSign == 1 && dividing0.canonicalNumeratorWords == [0x5555557d, 0x2d, 0x5555555a, 0x5] && dividing0.canonicalDenominatorWords == [0x23, 0x70, 0x55555557, 0x5])
+        let a1 = try field.canonical(sign: -1, numerator: [0x3, 0x0, 0x40], denominator: [0xd, 0x100], using: &admission)
+        let b1 = try field.canonical(sign: 1, numerator: [0x7, 0x0, 0x10], denominator: [0xf, 0x400], using: &admission)
+        let adding1 = try field.adding(a1, b1, using: &admission)
+        verify(adding1.canonicalSign == -1 && adding1.canonicalNumeratorWords == [0xffffffd2, 0x4ff, 0x2f0, 0xf000] && adding1.canonicalDenominatorWords == [0xc3, 0x4300, 0x40000])
+        let subtracting1 = try field.subtracting(a1, b1, using: &admission)
+        verify(subtracting1.canonicalSign == -1 && subtracting1.canonicalNumeratorWords == [0x88, 0x1300, 0x490, 0x11000] && subtracting1.canonicalDenominatorWords == [0xc3, 0x4300, 0x40000])
+        let multiplying1 = try field.multiplying(a1, b1, using: &admission)
+        verify(multiplying1.canonicalSign == -1 && multiplying1.canonicalNumeratorWords == [0x15, 0x0, 0x1f0, 0x0, 0x400] && multiplying1.canonicalDenominatorWords == [0xc3, 0x4300, 0x40000])
+        let dividing1 = try field.dividing(a1, b1, using: &admission)
+        verify(dividing1.canonicalSign == -1 && dividing1.canonicalNumeratorWords == [0x2d, 0xc00, 0x3c0, 0x10000] && dividing1.canonicalDenominatorWords == [0x5b, 0x700, 0xd0, 0x1000])
+        let a2 = try field.canonical(sign: 1, numerator: [0xd, 0x0, 0x80000000], denominator: [0x3, 0x0, 0x40], using: &admission)
+        let b2 = try field.canonical(sign: 1, numerator: [0x11, 0x0, 0x4000000], denominator: [0x5, 0x0, 0x8], using: &admission)
+        let adding2 = try field.adding(a2, b2, using: &admission)
+        verify(adding2.canonicalSign == 1 && adding2.canonicalNumeratorWords == [0x74, 0x0, 0x8c0004a8, 0x2, 0x0, 0x5] && adding2.canonicalDenominatorWords == [0xf, 0x0, 0x158, 0x0, 0x200])
+        let subtracting2 = try field.subtracting(a2, b2, using: &admission)
+        verify(subtracting2.canonicalSign == 1 && subtracting2.canonicalNumeratorWords == [0xe, 0x0, 0x73fffc28, 0x2, 0x0, 0x3] && subtracting2.canonicalDenominatorWords == [0xf, 0x0, 0x158, 0x0, 0x200])
+        let multiplying2 = try field.multiplying(a2, b2, using: &admission)
+        verify(multiplying2.canonicalSign == 1 && multiplying2.canonicalNumeratorWords == [0xdd, 0x0, 0xb4000000, 0x8, 0x0, 0x2000000] && multiplying2.canonicalDenominatorWords == [0xf, 0x0, 0x158, 0x0, 0x200])
+        let dividing2 = try field.dividing(a2, b2, using: &admission)
+        verify(dividing2.canonicalSign == 1 && dividing2.canonicalNumeratorWords == [0x71c71c79, 0x1c71c71c, 0x638e38ef, 0xc71c71c7, 0x71c71c71] && dividing2.canonicalDenominatorWords == [0x5555555b, 0x55555555, 0xc871c795, 0x71c71c71, 0x1c71c71c])
+    }
+}

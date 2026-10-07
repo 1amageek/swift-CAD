@@ -4,7 +4,7 @@
 
 Parent: [CADGeometry](../DESIGN.md). This child owns exact rational arithmetic,
 sparse bivariate polynomial equality, primitive pseudo-remainder GCD, exact Sylvester/Bareiss elimination and original
-native homogeneous surface polynomial construction. It has no children.
+native homogeneous surface polynomial construction. Its [ExactScalar](ExactScalar/DESIGN.md) child owns the isolated L0 numeric contracts and their scalar implementation closure.
 
 ## Responsibilities and Boundaries
 
@@ -20,6 +20,7 @@ isolation, branch topology or that an interval containing zero is an exact root.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
+| [ExactScalar](ExactScalar/DESIGN.md) | child and depends on | Exact scalar operation and admission protocols | Owns the five L0 contracts | Higher consumers are outside the independent L0 build |
 | [CADGeometry](../DESIGN.md) | parent | Original stored coefficients and native charts | Owns geometry source validation | No fitted source |
 | [Surface Silhouette](../SurfaceSilhouette/DESIGN.md) | used by | Cumulative work/storage admission | Uses original scalar equality | Real-root lifting is a separate proof |
 | [CADCore](../../CADCore/DESIGN.md) | depends on | KernelError and cancellation | Failure publication | No partial successful polynomial |
@@ -1099,3 +1100,11 @@ and derivative chain `[source, 1]` directly after validating its nonzero leading
 coefficient. These are the same quotient and chain that generic GCD/long division
 produce; the linear polynomial has no repeated factor. Root counts, endpoint
 exclusions, bisection, original field and admission domains remain unchanged.
+
+
+## Exact Scalar Contract
+
+The fixed L0 value, decision, arithmetic, ownership and resource contracts are
+owned by [ExactScalar](ExactScalar/DESIGN.md). The child keeps the existing exact
+numeric algorithms and has no dependency on geometry, CADCore, or Numerics.
+Non-scalar consumers and outward floating-point conversion remain in this parent.

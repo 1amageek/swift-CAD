@@ -6,6 +6,9 @@ package struct ExactBivariateSystemRoot: Sendable {
     package let projectionRoot: ExactAlgebraicRealRoot
     let fiber: ExactAlgebraicFiberPolynomial
     let fiberRoot: ExactAlgebraicFiberRootIsolator.Root
+    var scalarAuthority: ExactAlgebraicPairAuthority {
+        .init(projectionRoot: projectionRoot, fiber: fiber, fiberRoot: fiberRoot)
+    }
     package let sourceDomain: SurfaceParameterBox
     package let projectionMultiplicity: Int
     package let fiberMultiplicity: Int

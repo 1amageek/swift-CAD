@@ -1,7 +1,7 @@
 /// Descends an ORIGINAL two-coordinate field to a rational scalar polynomial.
 struct OriginalFieldOriginalPointNorm {
     static func descending<B: RationalAlgebraAdmitting>(_ original: OriginalSingularFieldPolynomial,
-        at root: ExactBivariateSystemRoot, maximumDepth: Int, usage: inout B) throws -> ExactBivariatePolynomial {
+        at root: ExactAlgebraicPairAuthority, maximumDepth: Int, usage: inout B) throws -> ExactBivariatePolynomial {
         var fiber = root.fiber
         var projection = root.projectionRoot.polynomial
         try RationalAlgebraStorage.retain(original.coefficients.count, of: ExactBivariatePolynomial.self, usage: &usage)

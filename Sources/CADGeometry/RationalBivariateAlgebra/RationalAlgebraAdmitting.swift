@@ -1,17 +1,5 @@
 import CADCore
 
-/// Admission supplied by the invocation owning all exact and interval work.
-public protocol RationalAlgebraAdmitting {
-    mutating func visitExactCell(depth: Int) throws
-    mutating func visitCoefficientCell(depth: Int) throws
-    mutating func consumeExactWork(_ count: Int) throws
-    mutating func retainExactStorage(_ count: Int) throws
-}
-
-public extension RationalAlgebraAdmitting {
-    mutating func visitCoefficientCell(depth: Int) throws { try visitExactCell(depth: depth) }
-}
-
 func rationalAlgebraFailure(_ message: String) -> KernelError {
     KernelError(phase: .geometry, code: .intersectionFailure, tolerance: nil, message: message)
 }
