@@ -5,6 +5,8 @@ import L1
 
 public protocol ExactRealRootPreparing: Sendable {
     associatedtype Field: ExactScalarArithmetic & ExactScalarOrdering
+    init<A: ExactScalarAdmission & ~Copyable>(retaining source: borrowing ExactRealRootSource<Field>,
+        using admission: inout A) throws(ExactRealRootFailure)
     var polynomials: ExactPolynomialDomain<Field> { get }
     func bind<A: ExactScalarAdmission & ~Copyable>(_ polynomial: borrowing ExactPolynomial<Field>,
         variable: Int, refinementAxis: ExactScalarRootAxis, using admission: inout A

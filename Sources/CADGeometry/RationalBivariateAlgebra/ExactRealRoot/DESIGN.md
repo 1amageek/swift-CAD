@@ -347,12 +347,13 @@ Depth observers capture opaque base-value admission without inspecting concrete
 scalar representation. L2 preserves the L0 cumulative payload meaning; it does
 not claim to cap exact allocator capacity, RSS or unmeasured stack bytes.
 
-The library/deployment owner selects default result/extension ceilings from
-guarded worst-supported-configuration measurements on the fixed toolchain and
-targets. Callers may lower them. This design does not guess numeric defaults;
-implementation completion requires published defaults, supported range and
-failure evidence. Changing them requires boundary/resource tests on affected
-targets. There is no budget reset between stages or alternative-solver replay
+This implementation requires explicit caller result/extension ceilings and
+provides no implicit default. Both are checked nonnegative Int policies; zero
+refuses enumeration/adjoining while preserving count-only/base operations. The
+caller/deployment owns their selection and the same cumulative L0 limits. A
+future convenience default requires guarded measurements on its supported
+configuration and corresponding boundary/failure evidence. Changing deployed
+ceilings requires boundary/resource tests on affected targets. There is no budget reset between stages or alternative-solver replay
 after failure. An interrupted query returns no partial root set.
 
 The same owner, Sendable, admission and failure contracts apply to Native,
@@ -380,8 +381,9 @@ from this design task.
 
 Fixed Swift 6.4.0 and matching SDKs are the current target baseline. Validation
 must execute each actual path; compilation or protocol declarations alone do
-not prove the forwarding bridge or root algorithm. Defaults for extension level
-must be justified against the supported targets before implementation completion.
+not prove the forwarding bridge or root algorithm. Explicit caller extension
+ceilings must be exercised through success and refusal paths on each target;
+no unmeasured default or unlimited-resource completion is claimed.
 
 Implementation should close three bounded units in order: (1) source/domain,
 receipts, admission bridge and rational complete roots; (2) exact root queries
@@ -412,3 +414,15 @@ throwing functions internally; requirements map the preserved scalar failure to
 their typed signature. Class payload, header and the four captured pointer
 contexts are admitted before construction. Pointer lifetime and fixed kernel
 specialization are unchanged.
+
+Fraction normalization cancels the parent-field polynomial GCD only after the
+original selected-root denominator has been proved nonzero, then normalizes its
+leading coefficient through public L1 scaling. Already lower-degree expressions
+retain their buffers. Constant signs delegate to the parent field; linear signs
+compare their exact zero with the retained original Sturm root, without creating
+another root law. This bounds expression growth without relaxing admission.
+
+Public retaining initializers recover the identical root domain from an issued
+source, and the identical coefficient domain from a retained scalar. These
+initializers admit inherited depth and cancellation without rebuilding owners
+or changing extension policy. They make post-input-destruction evidence usable.

@@ -7,7 +7,13 @@ public struct ExactRealRootDomain<F: ExactScalarArithmetic & ExactScalarOrdering
     ExactRealRootPreparing, ExactRealRootProducing, ExactRealRootQuerying {
     public typealias Field = F
     let context: ExactRealRootContext<F>
+    init(context: ExactRealRootContext<F>) { self.context = context }
     public var polynomials: ExactPolynomialDomain<F> { context.input }
+    public init<A: ExactScalarAdmission & ~Copyable>(retaining source: borrowing ExactRealRootSource<F>,
+        using admission: inout A) throws(ExactRealRootFailure) {
+        let source = copy source
+        context = try ExactRootAccess.run(&admission, inherited: source.depth) { _ in source.context }
+    }
     public init<A: ExactScalarAdmission & ~Copyable>(field: F, variableCount: Int = 1,
         using admission: inout A) throws(ExactRealRootFailure) {
         context = try ExactRootAccess.run(&admission) { usage in

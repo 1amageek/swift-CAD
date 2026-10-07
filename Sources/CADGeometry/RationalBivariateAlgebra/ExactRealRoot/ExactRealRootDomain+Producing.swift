@@ -8,6 +8,8 @@ extension ExactRealRootDomain {
         _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootCount<F> {
         try require(source, &a); try ExactRootAccess.admit(domain.depth, &a)
         // Revalidate endpoints in this field even when another issuer created the domain.
+        if case .finite(let bound) = domain.lower { _ = try context.field.sign(of: bound, using: &a) }
+        if case .finite(let bound) = domain.upper { _ = try context.field.sign(of: bound, using: &a) }
         if !domain.isEmpty { _ = try interval(domain.lower, domain.upper, domain.includesLower, domain.includesUpper, &a) }
         let zero = try context.univariate.isZero(source.law, using: &a)
         if domain.isEmpty || zero {

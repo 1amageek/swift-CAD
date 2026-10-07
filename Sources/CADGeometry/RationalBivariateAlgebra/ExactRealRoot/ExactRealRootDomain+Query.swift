@@ -75,6 +75,31 @@ extension ExactRealRootDomain {
         return try ExactRootAccess.run(&admission, inherited: context.depth) { a in
             try require(copy polynomial, &a); try admitted(copy root, &a)
             if try context.univariate.isZero(polynomial.law, using: &a) { return .zero }
+            if polynomial.law.termCount == 1, let constant = polynomial.law.terms.first, constant.powers[0] == 0 {
+                return try context.field.sign(of: constant.coefficient, using: &a)
+            }
+            if try degree(polynomial.law, &a) == 1 {
+                guard let leading = polynomial.law.terms.first,
+                    case .finite(let lo) = root.isolation.lower, case .finite(let hi) = root.isolation.upper else {
+                    throw ExactRealRootFailure.invalidEvidence
+                }
+                let constant = polynomial.law.terms.last!.powers[0] == 0
+                    ? polynomial.law.terms.last!.coefficient : try context.field.integer(0, using: &a)
+                let threshold = try context.field.dividing(context.field.negated(constant, using: &a), leading.coefficient, using: &a)
+                let left = try context.field.compare(threshold, lo, using: &a)
+                let right = try context.field.compare(threshold, hi, using: &a)
+                let side: ExactSign
+                if left == .less || (left == .equal && !root.isolation.includesLower) { side = .positive }
+                else if right == .greater || (right == .equal && !root.isolation.includesUpper) { side = .negative }
+                else if try context.field.sign(of: evaluated(root.proof.polynomial, threshold, &a), using: &a) == .zero {
+                    return .zero
+                } else {
+                    let below = try interval(.finite(lo), .finite(threshold), root.isolation.includesLower, true, &a)
+                    side = try roots(root.proof, below, &a) == 1 ? .negative : .positive
+                }
+                let coefficientSign = try context.field.sign(of: leading.coefficient, using: &a)
+                return side == coefficientSign ? .positive : .negative
+            }
             let gcd = try context.univariate.greatestCommonDivisor(root.proof.polynomial, polynomial.law, using: &a)
             if try roots(sturm(gcd, &a), root.isolation, &a) == 1 { return .zero }
             let query = try sturm(polynomial.law, &a)
