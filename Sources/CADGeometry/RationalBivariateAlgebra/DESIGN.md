@@ -20,7 +20,7 @@ isolation, branch topology or that an interval containing zero is an exact root.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
-| [ExactRealRoot](ExactRealRoot/DESIGN.md) | child | Proposed L2 complete univariate roots and selected-root coefficients | Depends only on public L0/L1 contracts and Swift | Design fixed; implementation and independent verification pending |
+| [ExactRealRoot](ExactRealRoot/DESIGN.md) | child | L2 complete univariate roots and selected-root coefficients | Depends only on public L0/L1 contracts and Swift | Independently verified; higher consumer integration is separate |
 | [ExactPolynomial](ExactPolynomial/DESIGN.md) | child | L1 polynomial protocols | Depends only on L0 | Independent verification excludes higher consumers |
 | [ExactScalar](ExactScalar/DESIGN.md) | child and depends on | Exact scalar operation and admission protocols | Owns the five L0 contracts | Higher consumers are outside the independent L0 build |
 | [CADGeometry](../DESIGN.md) | parent | Original stored coefficients and native charts | Owns geometry source validation | No fitted source |

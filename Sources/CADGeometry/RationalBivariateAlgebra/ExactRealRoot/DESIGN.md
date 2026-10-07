@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-Parent: [RationalBivariateAlgebra](../DESIGN.md). This document owns the proposed
+Parent: [RationalBivariateAlgebra](../DESIGN.md). This document owns the implemented
 L2 contract. L2 supplies complete real roots of a univariate polynomial and
 retained selected-root coefficients. Its dependencies are L0, L1 and the Swift
 standard library. This contract is the implementation authority. Implementation and target evidence
@@ -59,7 +59,7 @@ same admission; polynomial arithmetic remains in L1.
 | [L0 admission](../ExactScalar/ExactScalarAdmission.swift) has four non-generic requirements | Every stage forwards the same caller admission |
 | [L1 domain](../ExactPolynomial/ExactPolynomialDomain.swift) validates identical polynomial context; its field getter is internal | Create coefficient field and polynomial domain together; expose the retained construction domain |
 | [L1 calculus](../ExactPolynomial/ExactPolynomialDomain+Calculus.swift), [division](../ExactPolynomial/ExactPolynomialDomain+Division.swift), [GCD](../ExactPolynomial/ExactPolynomialDomain+GCD.swift) and [square-free decomposition](../ExactPolynomial/ExactPolynomialDomain+SquareFree.swift) are public | Build root algorithms from these ports, not a second polynomial engine |
-| [Legacy isolation](../ExactScalar/ExactUnivariateRootIsolator.swift) returns rational finite-interval root brackets | This does not establish the proposed complete result, unbounded domains or generic algebraic coefficients |
+| [Legacy isolation](../ExactScalar/ExactUnivariateRootIsolator.swift) returns rational finite-interval root brackets | This does not establish the L2 complete result, unbounded domains or generic algebraic coefficients |
 | [Legacy selected root](../ExactScalar/ExactAlgebraicRealRoot.swift) retains a defining law and Sturm evidence | Retention and exact zero decisions are existing foundations; legacy private APIs are not L2 dependencies |
 
 The [current lower verification record](../../../../Tests/L1PolynomialVerification/RESOURCE-REPAIR-VERIFICATION.md)
@@ -95,19 +95,19 @@ flowchart TB
     E --> L1
     E --> L0
     L1 --> L0
-    style L2 fill:#fff4d6,stroke:#a76b00,stroke-width:2px
+    style L2 fill:#e7f4e7,stroke:#287a35,stroke-width:2px
     style L1 fill:#e7f4e7,stroke:#287a35,stroke-width:2px
     style L0 fill:#e7f4e7,stroke:#287a35,stroke-width:2px
     style U fill:#eeeeee,stroke:#777,stroke-dasharray:5 5
 ```
 
-Green denotes implemented lower contracts with the recorded evidence. Yellow
-denotes this fixed design awaiting implementation. Gray denotes upper scope.
+Green denotes independently verified implementation. Gray denotes upper scope.
+Target-specific L2 evidence is owned by the verification package below.
 The coefficient field's recursive calculations always use a strictly smaller
 parent extension level. This is value-level recursion within L2, not a module
 dependency back from L0 or L1 to L2.
 
-### Proposed Protocols and Implementations
+### Public Protocols and Implementations
 
 Each operation below is a protocol requirement. Public protocols are generic
 over associated field/value types; calls involving generic admission use static
@@ -174,7 +174,7 @@ unbounded directions.
 All evidence constructors are issuer-only. Read-only data retain strong
 immutable owners; consumers cannot manufacture completeness flags.
 
-| Proposed value | Required retained meaning |
+| Issued value | Required retained meaning |
 |---|---|
 | `ExactRealRootSource<F>` | Original polynomial, variable mapping, canonical law, coefficient owner and inherited depths |
 | `ExactRealRootCount<F>` | Requested domain; finite distinct count and total multiplicity, or whole-domain zero-law classification; source and counting evidence |
@@ -282,7 +282,7 @@ not retain an old mutable budget or acquire a fresh allowance internally.
 
 L1 wraps its admission generically. Naively nesting such wrappers while a
 coefficient sign recursively invokes a parent root calculation can demand
-unbounded Embedded specialization. The proposed internal root kernel therefore
+unbounded Embedded specialization. The internal root kernel therefore
 uses one fixed `ExactRootBorrowedAdmission` type.
 
 A synchronous invocation owns a scoped forwarding object with the caller's
@@ -358,16 +358,16 @@ after failure. An interrupted query returns no partial root set.
 
 The same owner, Sendable, admission and failure contracts apply to Native,
 ordinary WASM and Embedded WASM. Embedded is not a reason to remove synchronization
-or weaken ownership. The proposed implementation has immutable shared state and
+or weaken ownership. The implementation has immutable shared state and
 query-local mutable state; adding shared mutable state requires a separate
 review of the owning design before implementation.
 
 ## Verification and Change Impact
 
-Verification belongs to a future `Tests/L2RealRootVerification` owner compiling
+Verification belongs to the [L2 verification package](../../../../Tests/L2RealRootVerification/DESIGN.md), compiling
 the actual L2 sources against only L0/L1. It must use timeouts, dedicated build
-paths and recorded source inventories. No L2 build or runtime evidence exists
-from this design task.
+paths and recorded source inventories. Executed target/snapshot evidence is in its
+[verification record](../../../../Tests/L2RealRootVerification/VERIFICATION.md).
 
 | Contract | Required behavioral evidence |
 |---|---|
@@ -426,3 +426,9 @@ Public retaining initializers recover the identical root domain from an issued
 source, and the identical coefficient domain from a retained scalar. These
 initializers admit inherited depth and cancellation without rebuilding owners
 or changing extension policy. They make post-input-destruction evidence usable.
+
+Receipts from separate root issuers require explicit reissuance in one common
+root domain before root-to-root queries. The coefficient owner and polynomial
+basis must both be compatible; a common field alone does not silently import a
+foreign receipt. Public L1 importing/construction, the retained original law and
+variable map, and certified L2 isolation provide that explicit path.

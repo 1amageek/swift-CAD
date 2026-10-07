@@ -19,8 +19,8 @@ extension ExactRealRootDomain {
         }
         let decomposition = try context.univariate.squareFreeDecomposition(source.law, using: &a)
         try ExactRootAccess.admit(decomposition.depth, &a)
-        try ExactRootAccess.storage(decomposition.factors.count, (ExactRootSturm<F>, Int).self, &a)
-        var factors: [(ExactRootSturm<F>, Int)] = []
+        try ExactRootAccess.storage(decomposition.factors.count, (proof: ExactRootSturm<F>, multiplicity: Int).self, &a)
+        var factors: [(proof: ExactRootSturm<F>, multiplicity: Int)] = []
         factors.reserveCapacity(decomposition.factors.count)
         var distinct = 0, total = 0
         for factor in decomposition.factors {
@@ -79,7 +79,8 @@ extension ExactRealRootDomain {
             }
             // Ordinals are globally certified by the full source, so sorting needs no approximate comparator.
             try ExactRootAccess.storage(result.count, ExactRealRoot<F>.self, &a)
-            result = try result.sorted { l, r in try a.consumeWork(1); return l.ordinal < r.ordinal }
+            // This buffer has one owner; sort in place and admit its sorting workspace above.
+            try result.sort { l, r in try a.consumeWork(1); return l.ordinal < r.ordinal }
             var observed = 0, previous: Int? = nil
             for root in result {
                 try a.consumeWork(1)
