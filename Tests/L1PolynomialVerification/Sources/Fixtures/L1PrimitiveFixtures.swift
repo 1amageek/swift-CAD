@@ -123,6 +123,13 @@ public enum L1PrimitiveFixtures {
         try rejected("scalarDomain") {
             _ = try d.constant(other.integer(0, using: &cancelledTerms), using: &cancelledTerms)
         }
+        let parameterField = try scalarField(axis: .value)
+        let parameterDomain = try ExactPolynomialDomain(field: parameterField, variableCount: 1, using: &a)
+        let parameter = try parameterDomain.constant(parameterField.generator(using: &a), using: &a)
+        let parameterZero = try parameterDomain.subtracting(parameter, parameter, using: &a)
+        check(parameterZero.depth.value > 0 && parameterZero.depth.coefficient == 0)
+        var noValueDepth = ExactScalarLedger(limits: try limits(valueDepth: 0))
+        try rejected("valueDepth") { _ = try parameterDomain.isZero(parameterZero, using: &noValueDepth) }
         let empty = try d.differentiated(p, in: 1, using: &a)
         check(empty.terms.isEmpty && empty.depth.coefficient >= p.depth.coefficient)
         check(try d.isZero(d.substituted(empty, with: [p,p], using: &a), using: &a))
