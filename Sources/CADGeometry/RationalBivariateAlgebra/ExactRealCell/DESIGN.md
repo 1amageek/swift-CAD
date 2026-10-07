@@ -495,3 +495,14 @@ coefficients; no normalization erases provenance. Derivative, coefficient and PS
 witnesses retain their inputs and outputs. Native tests compare the zero-th PSC with
 L1 resultant and a higher PSC with its known rank-deficient minor. The producer,
 lifting and querying ports remain pending until their implementation sprints.
+
+### Implementation Sprint I2
+
+Full projection levels feed ascending complete L2 root unions. Each stack retains
+its source-bound specialized laws, coefficient signs, complete root count/set,
+active-law indices and branch-to-child table. These data implement the projection
+induction stated above; a sample alone is never exposed as a whole-cell proof.
+Immutable partition storage retains the full graph without cycles. The cell view
+shares a retained index buffer and creates handles without intermediate arrays.
+Native fixtures cover positive-dimensional nullification, cusp/isolated/repeated
+loci, open/closed/singleton/empty boxes and exact coordinate transport.

@@ -39,3 +39,25 @@ import L2
  _ = try retained.predicate(instructions:[.sign(polynomial:0,relation:.equal)],for:s,using:&a)
  do { _ = try d.bind(polynomials:[other.polynomials.zero(using:&a)],domains:[],using:&a); Issue.record("Accepted foreign polynomial") } catch { }
 }
+
+import L3Fixtures
+@Test(.timeLimit(.minutes(1))) func nullification() throws { try CellFixtures.nullification() }
+@Test(.timeLimit(.minutes(1))) func singularities() throws { try CellFixtures.singularities() }
+@Test(.timeLimit(.minutes(1))) func domainClipping() throws { try CellFixtures.domains() }
+
+@Test(.timeLimit(.minutes(1))) func transportedCoordinates() throws {
+ var a=try CellFixtures.ledger()
+ let (f,d,all)=try CellFixtures.setup(2,&a),p=d.polynomials
+ let x=try p.variable(0,using:&a),y=try p.variable(1,using:&a)
+ let law=try p.subtracting(p.multiplying(x,x,using:&a),p.constant(f.integer(2,using:&a),using:&a),using:&a)
+ let s=try d.bind(polynomials:[law,p.subtracting(y,x,using:&a)],domains:[all,all],using:&a)
+ let result=try d.decompose(s,limits:.init(maximumStoredCells:100,maximumRootsPerStack:20),using:&a)
+ var selected=0
+ for cell in result.cells where cell.signs == [.zero,.zero] {
+  let sample=result.owner.records[cell.index].sample
+  #expect(sample.field.extensionLevel == 1)
+  #expect(try sample.field.compare(sample.coordinates[0],sample.coordinates[1],using:&a) == .equal)
+  selected += 1
+ }
+ #expect(selected == 2)
+}
