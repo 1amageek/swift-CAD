@@ -91,3 +91,14 @@ logs. Artifact sizes are raw debug sizes, not optimized deployment measurements.
 LowerIntegrationEvidence/source-mapping.json records the original224 verified
 inputs and the four changed integration inputs. The historical lower receipts
 remain retained; affected current contracts use the new evidence above.
+
+## Committed Latest-Main Composition
+
+Commitac6d597b owns the complete bounded CS/SSI sprint after the lower import
+443cc49c. All1453 compiler-input hashes also match the corresponding committed
+Git blobs; all53 retained logs and four compile inventories match. Latest main
+remains the tested base326af519 with a clean index/worktree, so the combined
+public integration execution above is reused without an identical rebuild.
+The final integration commit restores the pre-existing main progress history
+and records this bounded scope before a normal fast-forward merge. Full
+L6PUB multi-span/periodic migration remains open; whole-seven count remains1/7.
