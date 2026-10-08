@@ -2,9 +2,11 @@
 
 ## Purpose and Scope
 
-Direct child of [CADGeometry](../DESIGN.md). ExactParameterDomain is implemented and
-independently verified; transport, coverage and structural-identity children remain
-design-only. Their proposed protocols and receipts are not implemented yet.
+Direct child of [CADGeometry](../DESIGN.md). ExactParameterDomain, exact affine/periodic
+transport, finite/cartesian Native covers and checked scoped identity constructors
+are implemented. Intrinsic sphere coverage and pole certificates use their dedicated
+source-law contract. Existing consumer migration and the remaining mandatory family
+adapters are not complete; this foundation does not complete DI.4 or the seven requirements.
 Children: ExactParameterDomain, OriginalParameterTransport, OriginalDomainCoverage,
 and OriginalParameterIdentity. All remain within CADGeometry; no production package,
 SwiftPM target, external dependency or replacement root solver is introduced.
@@ -27,7 +29,7 @@ Finite Native issuance is a staged implementation dependency, not reduced accept
 | L3/L4/L5/L6 | Solution selection, connected components, image/fiber evidence | Verified sets, charts and declared correspondences | Inventing source identity |
 | Kernel/topology | Declared face/coedge incidence and material policy | Scoped identity and intersection receipts | Turning proximity into foundation identity |
 
-Reuse the proposed OriginalSourceBinding from the adjacent source-issuance design;
+Reuse the existing OriginalSourceBinding from the adjacent source-issuance design;
 this component does not create a competing binding issuer. The domain-side role
 record retains that authored source/issuer owner, parameter roles,
 source depth and coordinate semantics. It is not a UUID, structural hash, callback or
@@ -98,9 +100,9 @@ covers ambient source/request sets and retains references to separately certifie
 restrictions when composed. A trim's bounding box is never its material set.
 Neither a raw ambient cover nor structural source identity certifies trim inclusion.
 
-### Proposed public protocol surface
+### Public protocol surface
 
-These are contract names and operation groups, not compiled declarations.
+These contracts are compiled protocols with separate concrete implementations.
 Each field/ordering/source/map type is an associated type. Input values are borrowed;
 all fallible operations take the same generic inout admission and typed failure.
 
@@ -109,8 +111,8 @@ all fallible operations take the same generic inout admission and typed failure.
 | ExactParameterDomainConstructing | interval, empty, finiteUnion, Cartesian selection | Checked immutable set |
 | ExactParameterDomainQuerying | contains, intersection, difference, union, setEqual | Exact decision or typed failure |
 | OriginalParameterTransporting | construct supported word, forward, inverse correspondence, compose, restrict | Checked source/axis-bound transport |
-| OriginalDomainCoverIssuing | issue support/request cover, verify source charts/family theorem | Complete cover receipt |
-| OriginalDomainCoverQuerying | request/effective views, charts/families, incident owners, scoped restriction | Owner-backed read-only records |
+| OriginalDomainCoverIssuing | issue declared-frame cover; specialized Native/sphere protocols verify source coverage | Complete cover receipt |
+| OriginalDomainCoverQuerying | request/effective and chart views, incident owners | Owner-backed read-only records |
 | OriginalParameterIdentityIssuing | verify supported source theorem and its scope | Non-forgeable identity receipt |
 | OriginalParameterIdentityQuerying | identity decision, restrict, supported compose | Scoped evidence; no guessed XYZ result |
 
@@ -140,7 +142,7 @@ as `inout A` with `A: ExactScalarAdmission & ~Copyable`.
 
 ## Failure, Concurrency, and Constraints
 
-Proposed typed OriginalDomainIdentityFailure preserves lower scalar causes and
+Typed OriginalDomainIdentityFailure preserves lower scalar causes and
 separately represents invalidDomain, foreignOwner, incompatibleCoordinateSemantics,
 unprovedTransport, incompleteCoverage, unsupportedSourceProof and countOverflow.
 Resource/cancellation failures keep their existing causes. An unsupported required
@@ -172,7 +174,7 @@ shared state is planned; any later addition requires the common Mutex/actor cont
 The retained PublicReviewFixEvidence source hashes match current main209a5b46.
 Existing issuer and L2 behavioral tests/receipts are understanding evidence for
 unchanged implementations, not proof that these proposed interfaces work.
-No new implementation, build or runtime success is claimed by this design.
+Current foundation verification is owned by [the independent DI package](../../../Tests/OriginalDomainIdentityVerification/DESIGN.md). Historical evidence is not generalized to newly compiled source adapters or public consumers.
 
 ### Staged acceptance with the full destination retained
 

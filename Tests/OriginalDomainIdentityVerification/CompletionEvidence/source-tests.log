@@ -1,0 +1,71 @@
+Building for debugging...
+[Constructing description]
+[Planning deferred tasks]
+[50 / 104] L0
+[55 / 121] L0
+[59 / 121] L0
+[64 / 121] L0
+[65 / 121] L0
+[66 / 121] L0
+[68 / 121] L1
+[70 / 121] L0
+[72 / 121] L0
+[73 / 121] L0
+[74 / 122]
+[76 / 137] L1
+[78 / 137] L1
+[84 / 137] L1
+[86 / 137] SourceIssuer
+[88 / 137] L1
+[89 / 137] L1
+[90 / 137] L1
+[91 / 137] L1
+[92 / 137] L1
+[94 / 137] L1
+[95 / 137] L1
+[97 / 137]
+[103 / 153] SourceIssuer
+[105 / 153] SourceIssuer
+[107 / 153] SourceIssuer
+[114 / 153] SourceIssuerFixtures
+[118 / 153] SourceIssuer
+[120 / 153] SourceIssuer
+[125 / 158] SourceIssuerFixtures
+[134 / 158] SourceIssuerFixtures
+[143 / 161] SourceIssuerFixtures
+[149 / 162] SourceIssuerProof-product
+[153 / 187]
+[157 / 187]
+[161 / 187]
+[162 / 187]
+[165 / 187]
+[168 / 187]
+[171 / 187]
+[172 / 187]
+[173 / 187]
+[176 / 187] SourceIssuerTests-product
+[183 / 187] SourceIssuerTests-product
+Build complete! (10.10秒)
+Test Suite 'All tests' started at 2026-10-09 01:10:56.006.
+Test Suite 'All tests' passed at 2026-10-09 01:10:56.008.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test originalTypedFailures() started.
+􀟈  Test originalSelectedSpansAndTensor() started.
+􀟈  Test originalCumulativeResources() started.
+􀟈  Test originalOwnership() started.
+􀟈  Test originalExactLaws() started.
+PASS invalid source/chart, unproved periodic law and independently inherited source-depth refusal
+􁁛  Test originalTypedFailures() passed after 0.001 seconds.
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+􁁛  Test originalOwnership() passed after 0.001 seconds.
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+􁁛  Test originalExactLaws() passed after 0.003 seconds.
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4349 storageAdmissions=165
+􁁛  Test originalCumulativeResources() passed after 0.003 seconds.
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+􁁛  Test originalSelectedSpansAndTensor() passed after 0.004 seconds.
+􁁛  Test run with 5 tests in 0 suites passed after 0.004 seconds.

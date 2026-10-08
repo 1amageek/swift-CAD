@@ -325,7 +325,7 @@ conformance for those existing geometry values is a later integration obligation
 DefaultOriginalSourceBindingIssuer publishes the retained snapshot atomically.
 Binding-owned chart selections are provenance-bearing candidates, not proofs of
 coverage or valid chart membership. DefaultOriginalBSplineChartIssuer validates
-one selected nonperiodic positive span per axis, consumes those candidates and
+one selected positive span per axis, consumes those candidates and
 constructs the exact original homogeneous law in the caller's L1 ring. It does
 not restrict the original source to one total span. The unchanged Cox-de Boor
 recurrence is expressed through existing L0/L1 operations so no legacy Geometry
@@ -334,9 +334,9 @@ remains in place until its separately verified consuming adapter is migrated.
 
 The initial Native representation uses one/two original native parameters,
 finite closed span support and identity parameter transport. It retains all raw
-source knots, positive weights and controls, with W!=0 explicit. Native periodic
-transports and other family constructors remain explicit unsupported capabilities
-in this implementation; they are not considered whole-family completion. Future
+source knots, positive weights and controls, with W!=0 explicit. Native periodic local laws require the checked period capability described below;
+other family constructors retain their explicit capability boundaries and are not
+considered whole-family completion. Future
 issuers use the same source-binding and rational-chart contracts rather than
 changing the meaning of this finite Native receipt.
 
@@ -356,8 +356,8 @@ positive degree, control count greater than degree, finite nondecreasing knots,
 count+degree+1 knots, nonempty native interval, finite XYZ controls, positive
 finite weights and checked tensor layout. Interior knot multiplicity is at most
 degree; this positional continuity makes both endpoints of a selected positive
-span valid for its closed local law. Periodic sources require separately issued
-original transport and are rejected here. A provider must establish these
+span valid for its closed local law. Periodic sources additionally require the independently checked original period
+contract below before any local law is published. A provider must establish these
 assumptions before returning its snapshot; `Sendable` is not that proof.
 
 For selected span k, seed N[k,0]=1 and other basis values=0 on its interior.
@@ -377,3 +377,59 @@ Receipt construction is module-internal. Public reads retain the immutable owner
 Independent tests compare the complete coefficient laws and distinguish separate
 owners even when their values agree. Source-limit refusal is independent of L0
 value/coefficient depth refusal; both are forwarded without resetting admission.
+
+## Checked Native period capability
+
+OriginalSourcePeriodIssuing and DefaultOriginalBSplinePeriodIssuer issue immutable
+OriginalSourcePeriodReceipt values for validated Native cyclic storage. The issuer
+preserves the original binary wrapping subtraction and proves it equals the exact
+endpoint difference; every cycle-separated knot must differ by that period and all
+repeated XYZ/weight controls must agree. Cox-de Boor translation then proves the
+whole original orbit law, not sampled seams. No period or source owner can be minted
+by a Bool initializer. Rounded wrapping differences, altered translated knots and
+unmatched homogeneous controls fail unresolvedAuthority. The DI transporter consumes
+the source-owned receipt and retains arbitrary-precision cycle expressions.
+The local chart issuer consumes this period capability; existing geometry/public
+consumer migration still requires separate verification.
+
+Periodic Native local law issuance now retains a whole cyclic-storage receipt for
+each periodic axis. The local polynomial remains in unreduced fundamental Native
+coordinates with identity transport. Domain-issued family members supply exact lifts;
+the source issuer neither wraps caller coordinates nor truncates an infinite family.
+Changing the periodic marker alone cannot authorize a local law. The period issuer
+validates exact translated knots and repeated homogeneous controls before success.
+
+## Intrinsic Sphere Capability
+
+`OriginalIntrinsicSphereSourceReading` has the exact continuous phase law owned by
+[CanonicalSphereChart](../CanonicalSphereChart/DESIGN.md). It is not a physical-radian
+image or a fitted sphere. The law issuer proves longitude label periodicity and
+whole longitude-fiber collapse only at the exact authored quarter-turn labels.
+The label period is the dyadic original label, not mathematical pi rounded into a
+coefficient. Actual geometry snapshot conformance is an adapter obligation; the
+independent primitive provider does not certify that adapter.
+
+## Stored-N Plane Basis Authority
+
+The user decision fixes the original plane to stored N and origin. The new
+OriginalPlaneSourceReading contract requires finite coordinates and a nonzero N.
+OriginalPlaneBasisIssuing takes positive caller-field normalization lengths and
+proves their squares equal the exact source squared lengths before constructing
+U and V. It proves orthogonality, unit length and N alignment over the entire
+plane. A rounded normalization candidate fails; it cannot redefine that plane.
+Selected algebraic roots remain owned by the injected coefficient field. This
+issuer does not solve for roots or introduce an L2 dependency.
+
+OriginalPlaneBasisReceipt retains the source and coefficient-field owners with
+exact origin/N/U/V. The domain component consumes this receipt to evaluate the
+plane and its exact on-plane UV inverse; off-plane points fail rather than being
+projected. Both operations preserve source/value/coefficient depth and caller
+admission. This implements the foundational handoff, not a claim that legacy
+Plane3D or analytic point/UV paths have already migrated. Authored-U planes retain
+their distinct previously fixed authority.
+
+Independent verification injects the existing L2 selected-root field for N=(0,1,1),
+checks whole-plane algebra and point/UV round trip, refuses rounded sqrt(2),
+off-plane inputs, low depth/work/storage and final cancellation. L2 is a fixture
+dependency only; production SourceIssuer and DI dependency directions remain
+unchanged. Legacy analytic consumers require their own migration evidence.

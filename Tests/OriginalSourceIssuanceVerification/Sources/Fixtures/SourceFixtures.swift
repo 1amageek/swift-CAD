@@ -155,7 +155,7 @@ public enum SourceFixtures {
         catch OriginalSourceIssuanceFailure.invalidChart {}
         var periodic = input(); periodic.periodic[0] = true
         do { _ = try issue(periodic, using: &a); throw Failure.incorrectEvidence }
-        catch OriginalSourceIssuanceFailure.unsupportedRepresentation {}
+        catch OriginalSourceIssuanceFailure.unresolvedAuthority {}
         var deep = input(); deep.sourceDepth = 1
         do { _ = try issue(deep, depth: 0, using: &a); throw Failure.incorrectEvidence }
         catch OriginalSourceIssuanceFailure.sourceDepthLimit {}
@@ -168,7 +168,7 @@ public enum SourceFixtures {
         do { _ = try DefaultOriginalBSplineChartIssuer<NativeSnapshot, Field>().issue(source: owner, chart: chart,
             field: Field(), limits: .init(remainingSourceDepth: 0), using: &a); throw Failure.incorrectEvidence }
         catch OriginalSourceIssuanceFailure.sourceDepthLimit {}
-        print("PASS invalid source/chart, unsupported periodic and independently inherited source-depth refusal")
+        print("PASS invalid source/chart, unproved periodic law and independently inherited source-depth refusal")
     }
 
     public static func resources() throws {

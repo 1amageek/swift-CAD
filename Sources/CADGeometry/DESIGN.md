@@ -105,7 +105,7 @@ measurement policy.
 | [SurfaceSilhouette](SurfaceSilhouette/DESIGN.md) | child | Original normal zero-contour source and cumulative usage | Retains native source graphs for D1 drawing | Critical and coincident contour exhaustion remain lower-owned completion conditions |
 | [GeometryConversion](GeometryConversion/DESIGN.md) | child | Same-chart approximation and continuous error admission | Owns G6 source protocols, candidates and certificates | Point-only mapped consumers still require migration |
 | [SurfaceAreaIntegration](SurfaceAreaIntegration/DESIGN.md) | child | Certified area-density/moment and original trim root/jet enclosures | Supplies geometry evidence to CADTopology integration | Nonlinear implicit consumers must provide their own cumulative work callback; derivative order must be valid for the concrete representation |
-| [Original Domain Identity](OriginalDomainIdentity/DESIGN.md) | child, proposed | Exact parameter sets, source-bound transport, complete chart coverage and scoped structural identity | Owns the domain/identity foundation design | Design only; existing issuers and consumer paths are not migrated |
+| [Original Domain Identity](OriginalDomainIdentity/DESIGN.md) | child | Exact parameter sets, source-bound transport, complete chart coverage and scoped structural identity | Owns the independently implemented domain/identity foundation | Existing public consumer and all-family migration remain incomplete |
 | [Original Analytic Intersection Sources](OriginalAnalyticIntersectionSources/DESIGN.md) | child | Exact direct-authored plane, cylinder, sphere and torus pullbacks to retained original rational curves | Supplies raw equations, denominators, original frame and closed source domain | Cone coefficient authority, public UV/angular composition and whole analytic-family acceptance remain separate |
 | [Original Polynomial Curve-Surface Points](OriginalPolynomialCurveSurfacePoints/DESIGN.md) | child | Complete isolated original Native curve versus ruled surface tuples and closed-domain evidence | Supplies retained original source/parameter receipts through shared public CS dispatch | Positive-dimensional and remaining procedural source composition are separate unfinished scope |
 | [Original Boundary Clipping](OriginalBoundaryClipping/DESIGN.md) | child | Original boundary predicates composed with retained raw Native parameter relations | Re-proves complete selected cells, source correspondence and maximal parameter components under one admission | General boundary families and image/fiber clipping remain separate acceptance |
@@ -1358,8 +1358,11 @@ rolling-ball area result or complete the higher-order nested-offset obligation.
 The module's existing primitive representation owns `Plane3D`; it has no
 separate primitive component directory. An optional stored `uDirection` retains
 an explicitly authored native chart. Its absence preserves the existing
-origin/normal initializer, two-field Codable representation and legacy basis
-selection. Its presence defines the infinite law
+origin/normal initializer and two-field Codable representation. The user decision
+fixes its exact geometric authority to stored N and origin; evaluation/UV must
+consume the [source-owned exact basis proof](OriginalSourceIssuance/DESIGN.md#stored-n-plane-basis-authority).
+Existing rounded legacy evaluators have not yet migrated and are not evidence
+of completion of this corrected authority contract. Its presence defines the infinite law
 `S(u,v) = origin + uDirection*u + normal.cross(uDirection)*v`, with unbounded
 U/V domains. The authored X is never projected, normalized or replaced during
 evaluation. Exchange owns deriving a valid orthonormal X/Z pair and converting

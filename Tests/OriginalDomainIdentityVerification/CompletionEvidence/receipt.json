@@ -1,0 +1,51 @@
+{
+  "base_commit": "4887f5e9",
+  "compiler": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0",
+  "sdks": [
+    "swift-6.4.0-RELEASE_wasm",
+    "swift-6.4.0-RELEASE_wasm-embedded"
+  ],
+  "wasm_target": "wasm32-unknown-wasip1",
+  "node": "v24.19.0",
+  "timeout_seconds": 120,
+  "native_tests": 15,
+  "asan_tests": 15,
+  "source_tests": 5,
+  "review": "one scoped review and finding-specific confirmation",
+  "scope": "DI1-DI3 foundation and source-law handoff; DI4/public/all-family migration remains incomplete",
+  "products": {
+    "native": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-completion-native/out/Products/Debug/DomainProof",
+      "sha256": "d34b4bd905bfb2667b6017653552152a8ebd302eb6585e72c15fd0fe83863df9"
+    },
+    "asan": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-completion-asan/out/Products/Debug/DomainProof",
+      "sha256": "ecce9379f6abaa16c295ff5edfda8bf1f7e9039dc3fdc94d1f5bd82bf166e3a8"
+    },
+    "wasm": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-completion-wasm/out/Products/Debug-webassembly-wasm32/DomainProof.wasm",
+      "sha256": "0ec27e58c54d361a3fbcae6cbdb3216baa16339f9bc17801bccbdefdf2ee8c01"
+    },
+    "embedded": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-completion-embedded/out/Products/Debug-webassembly-wasm32/DomainProof.wasm",
+      "sha256": "9e8cd7adc0d5b6056bcc63c15da1a10c34217c16410b80ace27b8ad5181f2bc4"
+    }
+  },
+  "evidence_hashes": {
+    "VERIFICATION.md": "dedd2eeff9096089528022cc3f31f5ae1a87cf19d96daf6ebb98f79c776bb38e",
+    "asan-tests.log": "05f559eb173e3c2ede34ad27a120abd112f2589d6a694f39b119ce6d3043b52e",
+    "compiler-inputs.json": "fcb8b065d86915e5d5c898438a6aae1ea5093a58dad877bc38a877166c7869a4",
+    "embedded-build.log": "e636c7c124d9066ab8f2061e4105cbd936bb24cf3d614e5073fbddd3bc1097dc",
+    "embedded-runtime.log": "7aefdfd50fdc3978169cf789397e60430bad1f8f80abdf264eaa39d4a9a327ce",
+    "map-depth-green.log": "0dc0207d6ec8d8613cc5d8939e4af11e7969b6cd3c8b67a535da7a92be1a541b",
+    "map-depth-red.log": "aa6b420198aab56f3c754f4f05b6c77694566a31116162834a484ae0a7e90f01",
+    "native-runtime.log": "3bd42694675ac6d7e4101cdb3bc84e6605d27ea199f0edf6d356e85cc34c4c38",
+    "native-tests.log": "3640a3f674cf8a04a444b58bd32acaeb2a69e7ba1462068a982e5b9aa63342b9",
+    "probe-build.log": "58d3b028a970bae8c36caa39bf6752c8bc66ecece7546c785c5351ec41d45121",
+    "probe-runtime.log": "12f86199b4a650a00cae812c3a8b2b12f4f004f9ba1361ba131caf6af33dc166",
+    "source-hashes.json": "577f602537e6b6d3cf5a47417d27b1599845d85cd031ce877a7dd5b00348194a",
+    "source-tests.log": "6505a5319c384da29188141844b2b9243606d3dcb5f5b67be7f507b19b0fc949",
+    "wasm-build.log": "6875de5d0f8bf71bbce054bb31d514eb1e411f7d55635fa4799ff34a2d53541f",
+    "wasm-runtime.log": "fe4b61f34ea1594215751866693d3d71f9b76371e68f2c7516fa778eee915c5e"
+  }
+}

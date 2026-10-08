@@ -2,6 +2,16 @@ import DomainFixtures
 @main struct DomainProof {
     static func main() throws {
         try DomainFixtures.runAll()
-        print("PASS DI0: exact endpoint-sector algebra, canonical unions, unbounded sets, products, lifetime, owner/order refusal, budgets and terminal cancel")
+        try TransportFixtures.affineAndComposition()
+        try TransportFixtures.periodsAndRefusal()
+            try CoverageFixtures.finiteAndHoles()
+            try CoverageFixtures.periodicAndTensor()
+        try IdentityFixtures.scopedCoordinatesAndPeriods()
+        try IdentityFixtures.collapsedAndBoundaryLaws()
+        try IdentityFixtures.declaredWholeBoundary()
+        try IntrinsicFixtures.polesAndMeaning()
+        try IntrinsicFixtures.sourceDomainHandoff()
+        try PlaneFixtures.exactBasisAndUV()
+        print("PASS DI0-DI3 Native/intrinsic foundation: exact endpoint-sector algebra, canonical unions, unbounded sets, products, lifetime, owner/order refusal, budgets and terminal cancel")
     }
 }

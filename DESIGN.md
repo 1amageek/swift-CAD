@@ -340,3 +340,5 @@ proof obligations.
 Verification owner for the exact heap/PSC optimization: [HeapPSCVerification](Tests/HeapPSCVerification/DESIGN.md).
 
 Independent source-issuer verification owner: [OriginalSourceIssuanceVerification](Tests/OriginalSourceIssuanceVerification/DESIGN.md). It compiles only linked L0/L1, issuer ports/implementation and primitive source-provider fixtures; it does not establish existing Geometry adapter or whole-domain acceptance.
+
+Independent domain/identity verification owner: [OriginalDomainIdentityVerification](Tests/OriginalDomainIdentityVerification/DESIGN.md). It verifies linked DI contracts and source-law handoffs without compiling upper consumers; actual public adapter integration remains separate.

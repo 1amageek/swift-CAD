@@ -11,6 +11,7 @@ public struct OriginalRationalChartReceipt<Source: Sendable, Selection: Sendable
     public let polynomials: ExactPolynomialDomain<Field>
     public let homogeneous: [ExactPolynomial<Field>]
     public let support: [OriginalSourceParameterInterval<Field.Value>]
+    public let periods: [OriginalSourcePeriodReceipt<Source,Field>]
     public let parameterTransport: OriginalRationalParameterTransport<Field>
     public var source: OriginalSourceBinding<Source> { chart.binding }
     public var denominator: ExactPolynomial<Field> { homogeneous[3] }
@@ -19,9 +20,10 @@ public struct OriginalRationalChartReceipt<Source: Sendable, Selection: Sendable
     init(chart: OriginalSourceChart<Source, Selection>, field: Field,
         polynomials: ExactPolynomialDomain<Field>, homogeneous: [ExactPolynomial<Field>],
         support: [OriginalSourceParameterInterval<Field.Value>],
-        parameterTransport: OriginalRationalParameterTransport<Field>) {
+        parameterTransport: OriginalRationalParameterTransport<Field>, periods: [OriginalSourcePeriodReceipt<Source,Field>]) {
         self.chart = chart; self.field = field; self.polynomials = polynomials
         self.homogeneous = homogeneous; self.support = support
         self.parameterTransport = parameterTransport
+        self.periods = periods
     }
 }

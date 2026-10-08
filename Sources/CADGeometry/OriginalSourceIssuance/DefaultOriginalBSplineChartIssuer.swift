@@ -31,14 +31,16 @@ public struct DefaultOriginalBSplineChartIssuer<Source: OriginalBSplineSourceRea
                 of: [ExactPolynomial<Field>].self))
             var support: [OriginalSourceParameterInterval<Field.Value>] = []
             var bases: [[ExactPolynomial<Field>]] = []
+            var periods: [OriginalSourcePeriodReceipt<Source,Field>] = []
             support.reserveCapacity(arity); bases.reserveCapacity(arity)
             for axis in 0..<arity {
                 try admission.consumeWork(1)
-                // FIXME(INCOMPLETE_IMPLEMENTATION): This local Native issuer has no
-                // original periodic transport port yet. Independent source issuance
-                // must retain exact domain-issued transport before periodic success.
-                guard !original.isPeriodic(in: axis) else {
-                    throw OriginalSourceIssuanceFailure.unsupportedRepresentation
+                if original.isPeriodic(in: axis) {
+                    let period = try DefaultOriginalBSplinePeriodIssuer<Source,Field>().issue(
+                        source: source, axis: axis, field: copy field, limits: limits, using: &admission)
+                    try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
+                        of: OriginalSourcePeriodReceipt<Source,Field>.self))
+                    periods.append(period)
                 }
                 let degree = original.degree(in: axis), count = original.controlCount(in: axis)
                 let knots = original.knotCount(in: axis), span = chart.selection.spans[axis]
@@ -106,7 +108,7 @@ public struct DefaultOriginalBSplineChartIssuer<Source: OriginalBSplineSourceRea
                 of: OriginalRationalChartReceipt<Source, Selection, Field>.self))
             let result = OriginalRationalChartReceipt(chart: copy chart, field: copy field,
                 polynomials: ring, homogeneous: homogeneous, support: support,
-                parameterTransport: .init(numerators: numerators, denominators: denominators))
+                parameterTransport: .init(numerators: numerators, denominators: denominators), periods: periods)
             try admission.checkpoint()
             return result
         } catch { throw .init(preserving: error) }

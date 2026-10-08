@@ -1,0 +1,5 @@
+#if ORIGINAL_DOMAIN_ISOLATED_VERIFICATION
+import SourceIssuer
+#endif
+
+public typealias OriginalCoordinateSemantics = OriginalSourceParameterMeaning

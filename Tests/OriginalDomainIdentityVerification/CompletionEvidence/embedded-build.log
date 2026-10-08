@@ -1,0 +1,10 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 239]
+[Planning deferred tasks]
+[2 / 7] DI
+[7 / 11] DomainFixtures
+[12 / 14] DomainProof-product
+/private/tmp/cad-domain-identity-completion-20261008/Tests/OriginalDomainIdentityVerification/Package.swift: DomainProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[18 / 18] DomainProof-product
+Build complete! (13.57秒)

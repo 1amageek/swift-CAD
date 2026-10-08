@@ -1,0 +1,1 @@
+../../../OriginalSourceIssuanceVerification/Sources/Fixtures/NativeSource.swift

@@ -1,0 +1,62 @@
+Building for debugging...
+[Computing dependencies]
+[1 / 3] DI
+[2 / 4] DI
+[8 / 10] DomainFixtures
+[14 / 17] DI
+[16 / 25] DI
+[17 / 25] DI
+[18 / 25] DI
+[20 / 25] DI
+[21 / 25] DI
+[22 / 25] DI
+[23 / 25] DI
+[25 / 25] DI
+[28 / 30] DomainFixtures
+[31 / 31] DomainDependencyProbe-product
+[32 / 34] DomainProof-product
+[34 / 36] DomainProof-product
+[36 / 36] DomainProof-product
+[38 / 40] DomainTests-product
+[39 / 41] DomainTests-product
+[42 / 44] DomainTests-product
+[44 / 44] DomainTests-product
+[48 / 48] DomainDependencyProbe-product
+Build complete! (8.87秒)
+Test Suite 'All tests' started at 2026-10-09 01:06:04.396.
+Test Suite 'All tests' passed at 2026-10-09 01:06:04.398.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test completeIntegerFamiliesAndTensorOwners() started.
+􀟈  Test canonicalDisconnectedUnboundedSets() started.
+􀟈  Test exactPeriodicLiftsAndRefusal() started.
+􀟈  Test allEndpointSectors() started.
+􀟈  Test completeSourceDomainChartHandoff() started.
+􀟈  Test sourceAffineCorrespondence() started.
+􀟈  Test originalStoredNormalPlaneBasisAndUV() started.
+􀟈  Test scopedIdentityAndExactPeriodOrbits() started.
+􀟈  Test verifyEntireDeclaredBoundary() started.
+􀟈  Test intrinsicPolesAndPhysicalMeaningRefusal() started.
+􀟈  Test explicitFailuresAndAdmission() started.
+􀟈  Test completeFiniteCoversAndHoles() started.
+􀟈  Test immutableReadersAndTaskCancellation() started.
+􀟈  Test productsAndRetainedOwners() started.
+􀟈  Test sourceCollapsedSubsetsAndOneSidedBoundaries() started.
+􁁛  Test canonicalDisconnectedUnboundedSets() passed after 0.001 seconds.
+􁁛  Test immutableReadersAndTaskCancellation() passed after 0.001 seconds.
+􁁛  Test explicitFailuresAndAdmission() passed after 0.001 seconds.
+􁁛  Test productsAndRetainedOwners() passed after 0.002 seconds.
+􁁛  Test sourceAffineCorrespondence() passed after 0.005 seconds.
+􁁛  Test exactPeriodicLiftsAndRefusal() passed after 0.006 seconds.
+􁁛  Test intrinsicPolesAndPhysicalMeaningRefusal() passed after 0.007 seconds.
+􁁛  Test scopedIdentityAndExactPeriodOrbits() passed after 0.008 seconds.
+􁁛  Test completeFiniteCoversAndHoles() passed after 0.011 seconds.
+􁁛  Test completeSourceDomainChartHandoff() passed after 0.012 seconds.
+􁁛  Test sourceCollapsedSubsetsAndOneSidedBoundaries() passed after 0.012 seconds.
+􁁛  Test verifyEntireDeclaredBoundary() passed after 0.015 seconds.
+􁁛  Test completeIntegerFamiliesAndTensorOwners() passed after 0.027 seconds.
+􁁛  Test originalStoredNormalPlaneBasisAndUV() passed after 0.040 seconds.
+􁁛  Test allEndpointSectors() passed after 0.114 seconds.
+􁁛  Test run with 15 tests in 0 suites passed after 0.114 seconds.

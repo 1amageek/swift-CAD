@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-Proposed child of [Original Domain Identity](../DESIGN.md), without children.
+Child of [Original Domain Identity](../DESIGN.md), without children.
 Own exact, scoped source-structural equivalence evidence. This is not an intersection
 solver, a proximity classifier, a general point deduplicator or topology sewing.
 
@@ -108,3 +108,31 @@ independent limits and final cancellation on Native/ASAN/normal/Embedded. Generi
 identity tests use literal exact laws; shape-specific law proofs remain at their
 producer. Self-contact/trim/publication composition is verified only when those
 consumers actually accept the new receipts.
+
+## Checked Implementation
+
+Authored-coordinate receipts consume two maps into the identical authored frame.
+Native periodic receipts consume the complete Native family and its source-issued
+period theorem. Rational collapsed-subset receipts prove all three homogeneous
+constant-value equations on every selected fiber. Boundary declarations remain
+candidates until the complete paired boundary polynomial laws are proved.
+No constructor infers identity from a sampled value or a periodic marker.
+
+The identity receipt owns retained source/law/period/declaration evidence. Restriction
+and symmetry share that owner. Composition requires the identical middle coordinate
+frame and the same proof kind, pulls back the complete intermediate scope, and
+retains both parents. Different-kind strengthening is rejected.
+Decisions distinguish supported proof, refutation of this particular relation and
+unsupported scope; the latter two never assert XYZ distinctness.
+
+The rational constructors do not certify intrinsic trigonometric poles. The
+intrinsic sphere constructor instead consumes the canonical source's period/pole
+capability, verifies exact latitude and full selected support, and retains every
+longitude in the ambient two-coordinate frame. Physical-radian images remain a
+distinct producer/adapter obligation.
+
+Retained boundary proofs include both original law owners in addition to the
+substituted law and residuals. Composition retains the maximum source depth of
+all parent evidence, including intermediate roles absent from the final endpoints.
+Reuse admits retained scalar words/period/pole values and polynomial evidence.
+These constraints are independent of source-coordinate scope restriction.

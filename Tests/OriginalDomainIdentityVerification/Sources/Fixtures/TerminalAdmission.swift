@@ -5,7 +5,7 @@ struct TerminalAdmission: ~Copyable, ExactScalarAdmission {
     var checks = 0
     var cancelAt = Int.max
     var maxStorageRequest = 0
-    init() throws { ledger = ExactScalarLedger(limits: try DomainFixtures.limits()) }
+    init(valueDepth: Int = 12,coefficientDepth: Int = 12) throws { ledger = ExactScalarLedger(limits: try DomainFixtures.limits(valueDepth:valueDepth,coefficientDepth:coefficientDepth)) }
     mutating func checkpoint() throws(ExactScalarFailure) {
         checks += 1
         if checks == cancelAt { ledger.cancel() }

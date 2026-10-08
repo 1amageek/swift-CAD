@@ -1,0 +1,21 @@
+Building for debugging...
+[Computing dependencies]
+[1 / 3] DomainFixtures
+[2 / 4] DomainFixtures
+[7 / 9] DomainFixtures
+[10 / 12] DomainProof-product
+[14 / 14] DomainProof-product
+[16 / 18] DomainTests-product
+[17 / 19] DomainTests-product
+[20 / 22] DomainTests-product
+[22 / 22] DomainTests-product
+Build complete! (2.35秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test originalStoredNormalPlaneBasisAndUV() started.
+􀢄  Test originalStoredNormalPlaneBasisAndUV() recorded an issue at DomainTests.swift:23:2: Caught error: .mapDepthAccepted
+􀢄  Test originalStoredNormalPlaneBasisAndUV() failed after 0.016 seconds with 1 issue.
+􀢄  Test run with 1 test in 0 suites failed after 0.016 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - DomainTests (Swift Testing)

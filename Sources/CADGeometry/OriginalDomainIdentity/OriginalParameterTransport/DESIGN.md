@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-Proposed child of [Original Domain Identity](../DESIGN.md), without children.
+Child of [Original Domain Identity](../DESIGN.md), without children.
 Own exact source/axis-bound correspondence between local charts and authored parameter
 spaces. Does not own shape evaluation, periodicity proof or geometric equivalence.
 
@@ -36,7 +36,7 @@ flowchart LR
 
 ## Contracts and Invariants
 
-Proposed OriginalParameterTransporting defines required source-binding, support,
+OriginalParameterTransporting defines required source-binding, support,
 forward transport, inverse correspondence, composition and restriction operations.
 Associated immutable map/proof values and generic admissions enable static dispatch.
 No protocol returns an unchecked Bool asserting that an arbitrary callback is a map.
@@ -90,3 +90,40 @@ actual source period separately. Foreign owner, zero gain, huge integer bounds,
 physical/intrinsic mismatch, source mutation/release and independent limits/final
 cancellation must refuse correctly. Changes to gain or phase words recheck their
 owning ParameterImage/CanonicalSphereChart tests, not unrelated geometric solvers.
+
+## Implementation contract fixed for DIA.1
+
+Coordinate frames retain the existing SourceBinding through a chart anchor. A frame
+is a coordinate declaration, not a source-support or source-identity theorem. Family
+cover issuers must derive authoritative support from the source; arbitrary affine
+map correctness never proves source periodicity. Local and authored frames have
+separate immutable axis owners and explicit coordinate semantics. An axis-separated
+invertible map proves the entire local selection maps into authored support. Empty,
+disconnected and unbounded sets preserve exact endpoint flags. Composition pulls
+back the second support before forming its flattened word. Transport depth records
+causal history even though flattened coefficients are reused. Source depth remains
+independent under OriginalSourceIssuanceLimits. No phase conversion or singular
+inverse is inferred from a numerical coefficient.
+
+DIA.1 uses L0/DI0 arithmetic and the existing binding contract; the independent
+compiler graph includes SourceIssuer and its unchanged L1 dependency, never L2-L6
+or concrete Geometry. DIA.2/DIA.3 add checked Native source-law/period certificates,
+complete cover proofs and supported identity constructors. DIA.4 consumes those
+receipts in actual existing source/consumer adapters; its full acceptance remains
+separate from a generic kernel test.
+
+Cartesian selection intersection, equality and difference belong to the transport
+component. Difference returns disjoint strips and retains all open/closed boundaries;
+it does not classify XYZ. Intermediate strip counts use the caller chart limit.
+Integer reduction uses exact doubling/bisection in the coefficient field and preserves
+unbounded word-size cycles. No binary64 quotient selects a family member.
+
+Retained coefficient words are admitted on reuse even when both supports are
+unbounded and no finite endpoint arithmetic is needed. A coordinate frame also
+admits its coefficient-field owner. Both rules preserve selected algebraic proof
+depth without adding root solving to the transporter.
+
+OriginalPlaneCoordinateQuerying consumes the source-owned basis receipt described
+in [source issuance](../../OriginalSourceIssuance/DESIGN.md#stored-n-plane-basis-authority).
+It evaluates the whole exact plane law and provides an exact on-plane inverse;
+this operation is separate from later numerical output/projection.

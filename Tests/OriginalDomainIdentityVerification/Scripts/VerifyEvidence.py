@@ -1,8 +1,11 @@
-import hashlib, json
+import argparse, hashlib, json
 from pathlib import Path
 
 root = Path(__file__).resolve().parents[3]
-evidence = root / "Tests/OriginalDomainIdentityVerification/Evidence"
+parser = argparse.ArgumentParser()
+parser.add_argument("--evidence", default="Tests/OriginalDomainIdentityVerification/Evidence")
+args = parser.parse_args()
+evidence = root / args.evidence
 inputs = json.loads((evidence / "source-hashes.json").read_text())
 for relative, expected in inputs.items():
     actual = hashlib.sha256((root / relative).read_bytes()).hexdigest()

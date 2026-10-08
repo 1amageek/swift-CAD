@@ -6,3 +6,18 @@ import DomainFixtures
 @Test(.timeLimit(.minutes(1))) func explicitFailuresAndAdmission() throws { try DomainFixtures.rejectionAndBudgets() }
 
 @Test(.timeLimit(.minutes(1))) func immutableReadersAndTaskCancellation() async throws { try await DomainFixtures.concurrentReadersAndTaskCancel() }
+
+@Test(.timeLimit(.minutes(1))) func sourceAffineCorrespondence() throws { try TransportFixtures.affineAndComposition() }
+@Test(.timeLimit(.minutes(1))) func exactPeriodicLiftsAndRefusal() throws { try TransportFixtures.periodsAndRefusal() }
+
+@Test(.timeLimit(.minutes(1))) func completeFiniteCoversAndHoles() throws { try CoverageFixtures.finiteAndHoles() }
+@Test(.timeLimit(.minutes(1))) func completeIntegerFamiliesAndTensorOwners() throws { try CoverageFixtures.periodicAndTensor() }
+
+@Test(.timeLimit(.minutes(1))) func scopedIdentityAndExactPeriodOrbits() throws { try IdentityFixtures.scopedCoordinatesAndPeriods() }
+@Test(.timeLimit(.minutes(1))) func sourceCollapsedSubsetsAndOneSidedBoundaries() throws { try IdentityFixtures.collapsedAndBoundaryLaws() }
+@Test(.timeLimit(.minutes(1))) func verifyEntireDeclaredBoundary() throws { try IdentityFixtures.declaredWholeBoundary() }
+
+@Test(.timeLimit(.minutes(1))) func intrinsicPolesAndPhysicalMeaningRefusal() throws { try IntrinsicFixtures.polesAndMeaning() }
+@Test(.timeLimit(.minutes(1))) func completeSourceDomainChartHandoff() throws { try IntrinsicFixtures.sourceDomainHandoff() }
+
+@Test(.timeLimit(.minutes(1))) func originalStoredNormalPlaneBasisAndUV() throws { try PlaneFixtures.exactBasisAndUV() }

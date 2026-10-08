@@ -113,3 +113,15 @@ period-law mismatch, independent count/work/storage/depth and final cancellation
 Existing Native cover suites remain adapter regression owners. New cover acceptance
 must include current limits and actual portable execution; source-only adapters do
 not establish domain completion or whole-seven acceptance.
+
+## Implementation Boundary
+
+`OriginalDomainCover` certifies exact parameter coverage relative to a declared frame.
+It is not an assertion that a caller's frame is a shape's whole support.
+`OriginalBSplineDomainSpace` is issued only from a validated retained Native reader;
+it derives original knots, positive spans, full support and independently proved periods.
+`OriginalBSplineDomainCover` retains the original request and its exact support
+intersection. Nonperiodic covers are finite. Periodic covers retain all-integer
+Cartesian families over a verified complete closed fundamental cover; `member` and
+`incident` materialize only the requested lifts, preserving both seam sides.
+No operation implicitly flattens an infinite family.
