@@ -57,6 +57,7 @@
     "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/SourceIssuer.SwiftFileList": "bd13340fb862836267034cbd4fe1ffa1a9d2dc20d3252e7be2e00b9bbf12145b"
   },
   "evidence_hashes": {
+    "INTEGRATION.md": "a5f330308a55cd96e2f4e21bc166419ec9105be1aaef4366b0bd19ca94489645",
     "VERIFICATION.md": "66e259d58d71abe6d4f38f3cdce8f2dd47ced9e765f7b732678e94fde2489e30",
     "asan-runtime.log": "3bd42694675ac6d7e4101cdb3bc84e6605d27ea199f0edf6d356e85cc34c4c38",
     "asan-tests.log": "06c64d78ee7ac2259aef49d5aa0924c7bba580654208b6bd3b0036f4783e2795",
@@ -82,6 +83,7 @@
     "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51",
     "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51"
   },
+  "implementation_commit": "b142b902",
   "native_tests": 18,
   "node": "v24.19.0",
   "products": {
