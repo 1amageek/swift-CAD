@@ -764,3 +764,13 @@ embeddings, incompatible siblings, exact work/storage N and N-1, inherited depth
 and terminal cancellation. Existing full weighted and real three-stage fixtures
 measure cold-process batches at unchanged original ceilings. Native/ASAN and both
 matching WASM SDKs verify the composed lower graph; upper adoption remains separate.
+
+## Planned Exact Domain Foundation Composition
+
+The proposed [Exact Parameter Domain](../../OriginalDomainIdentity/ExactParameterDomain/DESIGN.md)
+will own the shared L0-only interval/set meaning. The planned implementation factors
+compatible bound/interval storage without changing root field ownership, inherited
+depth, root algorithms or public interval behavior. Existing names remain aliases or
+lossless wrappers. This is design-only; L2 has not gained a runtime dependency yet.
+Its open/closed/singleton/empty/unbounded interval fixtures own the focused regression
+when that refactoring is implemented. No root solver moves into the domain issuer.
