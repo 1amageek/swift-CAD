@@ -45,63 +45,6 @@ extension ExactRealCellDomain {
         for existing in result { if try polynomials.equals(existing, normalized, using: &a) { return } }
         try ExactCellAccess.storage(1, Polynomial.self, &a); result.append(normalized)
     }
-    func determinant(_ input: [Polynomial], size: Int, _ a: inout ExactCellBorrowedAdmission) throws -> Polynomial {
-        if size == 0 { return try polynomials.constant(context.field.integer(1, using: &a), using: &a) }
-        let slots = try ExactCellAccess.multiply(size, size)
-        guard input.count == slots else { throw ExactRealCellFailure.invalidCoverage }
-        try ExactCellAccess.storage(slots, Polynomial.self, &a)
-        var matrix = input
-        var previous = try polynomials.constant(context.field.integer(1, using: &a), using: &a), negative = false
-        if size > 1 { for k in 0..<(size-1) {
-            var pivot = k
-            while try pivot < size && polynomials.isZero(matrix[pivot*size+k], using: &a) { try a.consumeWork(1); pivot += 1 }
-            if pivot == size { return try polynomials.zero(using: &a) }
-            if pivot != k {
-                try a.consumeWork(size)
-                for j in 0..<size { matrix.swapAt(k*size+j, pivot*size+j) }; negative.toggle()
-            }
-            let diagonal = matrix[k*size+k]
-            for i in (k+1)..<size {
-                let left = matrix[i*size+k]
-                for j in (k+1)..<size {
-                    let n = try polynomials.subtracting(polynomials.multiplying(diagonal, matrix[i*size+j], using: &a),
-                        polynomials.multiplying(left, matrix[k*size+j], using: &a), using: &a)
-                    matrix[i*size+j] = try polynomials.dividedExactly(n, by: previous, using: &a)
-                }
-                matrix[i*size+k] = try polynomials.zero(using: &a)
-            }
-            previous = diagonal
-        } }
-        return try negative ? polynomials.negated(matrix[slots-1], using: &a) : matrix[slots-1]
-    }
-    func principal(_ first: Polynomial, _ second: Polynomial, axis: Int, index: Int,
-        _ a: inout ExactCellBorrowedAdmission) throws -> Polynomial {
-        guard let m = try polynomials.degree(of: first, in: axis, using: &a),
-            let n = try polynomials.degree(of: second, in: axis, using: &a), index >= 0, index < min(m,n)
-            else { throw ExactRealCellFailure.invalidVariable }
-        return try principal(firstCoefficients: coefficientVector(first, axis: axis, &a),
-            secondCoefficients: coefficientVector(second, axis: axis, &a), index: index, &a)
-    }
-    func principal(firstCoefficients ac: [Polynomial], secondCoefficients bc: [Polynomial], index: Int,
-        _ a: inout ExactCellBorrowedAdmission) throws -> Polynomial {
-        let m = ac.count-1, n = bc.count-1
-        guard index >= 0, index < min(m,n) else { throw ExactRealCellFailure.invalidVariable }
-        let sum = try ExactCellAccess.add(m,n), twice = try ExactCellAccess.multiply(index,2)
-        let size = sum-twice, highest = sum-index-1
-        let zero = try polynomials.zero(using: &a)
-        try ExactCellAccess.storage(ExactCellAccess.multiply(size,size), Polynomial.self, &a)
-        var matrix: [Polynomial] = []; matrix.reserveCapacity(try ExactCellAccess.multiply(size,size))
-        for row in 0..<size {
-            let entries = row < n-index ? ac : bc
-            let shift = row < n-index ? n-index-1-row : m-index-1-(row-(n-index))
-            for col in 0..<size {
-                try a.consumeWork(1)
-                let degree = highest-col-shift
-                matrix.append(degree >= 0 && degree < entries.count ? entries[degree] : zero)
-            }
-        }
-        return try determinant(matrix, size: size, &a)
-    }
     func projection(_ source: ExactRealCellSource<Base>, _ a: inout ExactCellBorrowedAdmission) throws -> [ExactRealCellProjectionLevel<Base>] {
         try require(source, &a)
         var pending: [Polynomial] = []
@@ -146,10 +89,11 @@ extension ExactRealCellDomain {
                     try ExactCellAccess.storage(1, Polynomial.self, &a); reducta.append(remainder)
                     let derivative = try polynomials.differentiated(remainder, in: axis, using: &a)
                     if let n = try polynomials.degree(of: derivative, in: axis, using: &a), n > 0 {
-                        let ac = try coefficientVector(remainder,axis:axis,&a)
-                        let bc = try coefficientVector(derivative,axis:axis,&a)
-                        for j in 0..<min(degree,n) {
-                            let psc = try principal(firstCoefficients:ac,secondCoefficients:bc,index:j,&a)
+                        let sequence = try polynomials.principalSubresultants(remainder,derivative,eliminating:axis,using:&a)
+                        try a.consumeWork(1)
+                        guard sequence.values.count == min(degree,n) else { throw ExactRealCellFailure.invalidCoverage }
+                        for j in sequence.values.indices {
+                            let psc = sequence.values[j]
                             try ExactCellAccess.storage(1, ExactRealCellProjectionWitness<Base>.self, &a)
                             witnesses.append(.principal(first: remainder, second: derivative, result: psc, axis: axis, index: j))
                             try insert(psc, into: &lower, &a)
@@ -167,10 +111,11 @@ extension ExactRealCellDomain {
             for i in families.indices { for j in families.indices where j > i {
                 for left in families[i] { for right in families[j] {
                     guard let m = try polynomials.degree(of: left, in: axis, using: &a), let n = try polynomials.degree(of: right, in: axis, using: &a) else { throw ExactRealCellFailure.invalidCoverage }
-                    let ac = try coefficientVector(left,axis:axis,&a)
-                    let bc = try coefficientVector(right,axis:axis,&a)
-                    for k in 0..<min(m,n) {
-                        let psc = try principal(firstCoefficients:ac,secondCoefficients:bc,index:k,&a)
+                    let sequence = try polynomials.principalSubresultants(left,right,eliminating:axis,using:&a)
+                    try a.consumeWork(1)
+                    guard sequence.values.count == min(m,n) else { throw ExactRealCellFailure.invalidCoverage }
+                    for k in sequence.values.indices {
+                        let psc = sequence.values[k]
                         try ExactCellAccess.storage(1, ExactRealCellProjectionWitness<Base>.self, &a)
                         witnesses.append(.principal(first:left,second:right,result:psc,axis:axis,index:k))
                         try insert(psc,into:&lower,&a)

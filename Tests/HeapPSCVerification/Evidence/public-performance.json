@@ -1,0 +1,100 @@
+{
+  "native": {
+    "commands": {
+      "before": [
+        "/private/tmp/cad-exact-native-preparation-20261008/.build/native-exact-native/out/Products/Debug/NativeExactProof"
+      ],
+      "after": [
+        "/private/tmp/cad-exact-heap-psc-20261008/.build/native-exact-native/out/Products/Debug/NativeExactProof"
+      ]
+    },
+    "artifactSHA256": {
+      "before": "7fe34e3de760e10fada00b801c29e6160f426d8af0795d37d03a766e20da382e",
+      "after": "78e6680bdbd44c59442f1d70e392ca48688e4a4c5a62a2aaf5859fb02a3397b6"
+    },
+    "samplesSeconds": {
+      "before": [
+        20.640732416999526,
+        20.9286920420127,
+        21.335348749998957
+      ],
+      "after": [
+        21.341983083984815,
+        20.765865458000917,
+        22.12513741699513
+      ]
+    },
+    "mediansSeconds": {
+      "before": 20.9286920420127,
+      "after": 21.341983083984815
+    }
+  },
+  "wasm": {
+    "commands": {
+      "before": [
+        "/usr/local/bin/node",
+        "/private/tmp/cad-exact-heap-psc-20261008/Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+        "/private/tmp/cad-exact-native-preparation-20261008/.build/native-exact-wasm/out/Products/Debug-webassembly-wasm32/NativeExactProof.wasm"
+      ],
+      "after": [
+        "/usr/local/bin/node",
+        "/private/tmp/cad-exact-heap-psc-20261008/Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+        "/private/tmp/cad-exact-heap-psc-20261008/.build/native-exact-wasm/out/Products/Debug-webassembly-wasm32/NativeExactProof.wasm"
+      ]
+    },
+    "artifactSHA256": {
+      "before": "2baecafd36e91eb053ad26e9ec7c4802b5e95f80383c6d61ecfdaa8932be82ee",
+      "after": "fc129ea3bc873279e21097249887054142f01b16ca25644a352bfacd84a56b4e"
+    },
+    "samplesSeconds": {
+      "before": [
+        33.22774645895697,
+        30.49784320802428,
+        30.292090291972272
+      ],
+      "after": [
+        32.13467825000407,
+        30.078640374995302,
+        31.010808249993715
+      ]
+    },
+    "mediansSeconds": {
+      "before": 30.49784320802428,
+      "after": 31.010808249993715
+    }
+  },
+  "embedded": {
+    "commands": {
+      "before": [
+        "/usr/local/bin/node",
+        "/private/tmp/cad-exact-heap-psc-20261008/Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+        "/private/tmp/cad-exact-native-preparation-20261008/.build/native-exact-embedded/out/Products/Debug-webassembly-wasm32/NativeExactProof.wasm"
+      ],
+      "after": [
+        "/usr/local/bin/node",
+        "/private/tmp/cad-exact-heap-psc-20261008/Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+        "/private/tmp/cad-exact-heap-psc-20261008/.build/native-exact-embedded/out/Products/Debug-webassembly-wasm32/NativeExactProof.wasm"
+      ]
+    },
+    "artifactSHA256": {
+      "before": "867044995d7e77d77b465ec75670712c4d6edc1969a3d6a94855db4aa5172135",
+      "after": "9c95cc304d2f07e792cdb9bd5bb78c1a57f1897e93b19281703bc207e60c875a"
+    },
+    "samplesSeconds": {
+      "before": [
+        17.56803075002972,
+        17.72698225005297,
+        17.555983666039538
+      ],
+      "after": [
+        17.34499858302297,
+        17.628805292013567,
+        17.75360370799899
+      ]
+    },
+    "mediansSeconds": {
+      "before": 17.56803075002972,
+      "after": 17.628805292013567
+    }
+  }
+}

@@ -1,0 +1,6 @@
+Building for debugging...
+[3 / 12] KernelFixtures
+[12 / 14] KernelProof-product
+/private/tmp/cad-exact-heap-psc-20261008/Tests/HeapPSCVerification/Package.swift: KernelProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[14 / 14] KernelProof-product
+Build complete! (4.40秒)

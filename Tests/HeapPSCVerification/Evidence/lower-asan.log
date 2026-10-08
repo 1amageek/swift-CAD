@@ -1,0 +1,324 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 617]
+[Planning deferred tasks]
+[158 / 376] L0
+[165 / 393] L0
+[175 / 393] L0
+[179 / 393] L0
+[181 / 393]
+[187 / 415] L1
+[197 / 415] L1
+[199 / 415] L1
+[209 / 415] L2
+[213 / 415] L0Fixtures
+[222 / 417]
+[228 / 436] L2
+[244 / 436] L3
+[248 / 436] L2
+[253 / 436] L1PolynomialTests-product
+[259 / 436]
+[267 / 459] L2Fixtures
+[285 / 459] L3
+[291 / 459] L3
+[293 / 459] L3
+[295 / 459] L2Tests-product
+[306 / 485] L3Fixtures
+[322 / 485] LayerBenchmark-product
+[325 / 485] L4
+[326 / 485] L4
+[332 / 485] L3Fixtures
+[334 / 485] L3Fixtures
+[338 / 485] L3Tests-product
+[349 / 494] L4Fixtures
+[359 / 494] L4Fixtures
+[369 / 497] L3
+[382 / 505] KernelFixtures
+[393 / 530] L4Fixtures
+[402 / 533] KernelFixtures
+[406 / 533] KernelFixtures
+[424 / 534] L2Tests-product
+[430 / 534]
+[439 / 541] L4Proof-product
+[449 / 548] KernelBenchmark-product
+[457 / 548] KernelBenchmark-product
+[464 / 555] KernelTests-product
+[471 / 558]
+[485 / 558] L1PolynomialTests-product
+[500 / 558] L0ScalarTests-product
+[513 / 558] L3Tests-product
+[515 / 558] L4Tests-product
+[518 / 558] L1PolynomialTests-product
+[522 / 558] L0ScalarTests-product
+[526 / 558] L4Tests-product
+[530 / 558] L1PolynomialTests-product
+[546 / 558] L1PolynomialTests-product
+[554 / 558] L0ScalarTests-product
+Build complete! (7.11秒)
+Test Suite 'All tests' started at 2026-10-08 09:40:33.584.
+Test Suite 'All tests' passed at 2026-10-08 09:40:33.585.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-08 09:40:33.969.
+Test Suite 'All tests' passed at 2026-10-08 09:40:33.970.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-08 09:40:34.482.
+Test Suite 'All tests' passed at 2026-10-08 09:40:34.483.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-08 09:40:35.002.
+Test Suite 'All tests' passed at 2026-10-08 09:40:35.003.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-08 09:40:35.372.
+Test Suite 'All tests' passed at 2026-10-08 09:40:35.373.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-08 09:40:35.892.
+Test Suite 'All tests' passed at 2026-10-08 09:40:35.893.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test folded() started.
+􀟈  Test retainedAlgebraicField() started.
+􀟈  Test affineClosures() started.
+􀟈  Test concurrentRetainedReaders() started.
+􀟈  Test countLimitsAndCancellation() started.
+􀟈  Test graphClosure() started.
+􀟈  Test partialIncidence() started.
+􀟈  Test checkedCountOverflow() started.
+􀟈  Test partialTarget() started.
+􀟈  Test closeDistinctPoints() started.
+􀟈  Test quantifiedClosure() started.
+􀟈  Test eliminationAdmissionRepair() started.
+􀟈  Test retainedPairOptimization() started.
+􀟈  Test connectivity() started.
+􀟈  Test singletonSignOptimization() started.
+􀟈  Test differentialStrategiesAndPorts() started.
+􀟈  Test orderedProductOptimization() started.
+􀟈  Test zeroAndFailures() started.
+􀟈  Test factorAdmissionRepair() started.
+􀟈  Test singularComponents() started.
+PHASE: folded source bound work=237 storage=14872
+PASS: zero-arity closure and exact admission boundaries
+PASS: connectivity case=0 components=2 work=3318 storage=190784
+􁁛  Test checkedCountOverflow() passed after 0.078 seconds.
+PASS: cumulative counts, mid/terminal cancellation, empty selection and recovery
+􁁛  Test eliminationAdmissionRepair() passed after 0.309 seconds.
+􁁛  Test singletonSignOptimization() passed after 0.309 seconds.
+􁁛  Test zeroAndFailures() passed after 0.309 seconds.
+􁁛  Test orderedProductOptimization() passed after 0.310 seconds.
+􁁛  Test factorAdmissionRepair() passed after 0.310 seconds.
+􁁛  Test countLimitsAndCancellation() passed after 0.311 seconds.
+PASS: affine ambient closures work=63393 storage=3267562
+PASS: close distinct exact points remain separate
+PASS: bounded section graph work=104674 storage=4777284
+􁁛  Test affineClosures() passed after 1.342 seconds.
+􁁛  Test closeDistinctPoints() passed after 1.341 seconds.
+􁁛  Test graphClosure() passed after 1.342 seconds.
+PASS: connectivity case=1 components=1 work=119661 storage=6501195
+􁁛  Test concurrentRetainedReaders() passed after 1.646 seconds.
+PASS: connectivity case=2 components=4 work=98075 storage=5322592
+􁁛  Test connectivity() passed after 2.278 seconds.
+PASS: retained algebraic field, extension policy and inherited depth
+􁁛  Test retainedAlgebraicField() passed after 2.315 seconds.
+PASS: quantified closure work=345858 storage=13822817
+􁁛  Test quantifiedClosure() passed after 2.842 seconds.
+PASS: singular case=0 components=1 work=361520 storage=15692392
+PASS: partial nullified target work=683939 storage=28982302
+􁁛  Test partialTarget() passed after 4.294 seconds.
+􁁛  Test differentialStrategiesAndPorts() passed after 4.545 seconds.
+􁁛  Test retainedPairOptimization() passed after 5.272 seconds.
+PASS: partial directed incidence pieces=3 work=1174077 storage=48347859
+􁁛  Test partialIncidence() passed after 5.686 seconds.
+PASS: singular case=1 components=1 work=2483610 storage=100808062
+PASS: singular case=2 components=1 work=30903 storage=1556256
+PASS: singular case=3 components=2 work=162481 storage=6519114
+􁁛  Test singularComponents() passed after 10.344 seconds.
+PHASE: folded partition work=5677726 storage=227532765 cells=525
+PHASE: folded selected cells=45
+PHASE: folded closure proof=point work=43747 storage=2114889
+PHASE: folded closure proof=point work=43840 storage=2120325
+PHASE: folded closure proof=affine work=119410 storage=4786058
+PHASE: folded closure proof=affine work=119507 storage=4791494
+PHASE: folded closure proof=point work=42998 storage=2043841
+PHASE: folded closure proof=point work=43095 storage=2049277
+PHASE: folded closure proof=affine work=120395 storage=4832522
+PHASE: folded closure proof=affine work=120492 storage=4837958
+PHASE: folded closure proof=point work=44015 storage=2127021
+PHASE: folded closure proof=point work=44108 storage=2132457
+PHASE: folded closure proof=affine work=480319 storage=18062700
+PHASE: folded closure proof=affine work=480935 storage=18075388
+PHASE: folded closure proof=affine work=543000 storage=20212681
+PHASE: folded closure proof=affine work=543620 storage=20225369
+PHASE: folded closure proof=affine work=492433 storage=18323164
+PHASE: folded closure proof=affine work=493053 storage=18335852
+PHASE: folded closure proof=affine work=552367 storage=20556945
+PHASE: folded closure proof=affine work=552987 storage=20569633
+PHASE: folded closure proof=affine work=487846 storage=18330768
+PHASE: folded closure proof=affine work=488462 storage=18343456
+PHASE: folded closure proof=point work=44178 storage=2105429
+PHASE: folded closure proof=affine work=114930 storage=4596647
+PHASE: folded closure proof=point work=43449 storage=2034381
+PHASE: folded closure proof=affine work=115935 storage=4643111
+PHASE: folded closure proof=point work=44482 storage=2117561
+PHASE: folded closure proof=affine work=479425 storage=18235352
+PHASE: folded closure proof=affine work=478020 storage=18196920
+PHASE: folded closure proof=affine work=542106 storage=20385333
+PHASE: folded closure proof=affine work=540705 storage=20346901
+PHASE: folded closure proof=affine work=491539 storage=18495816
+PHASE: folded closure proof=affine work=490138 storage=18457384
+PHASE: folded closure proof=affine work=551473 storage=20729597
+PHASE: folded closure proof=affine work=550072 storage=20691165
+PHASE: folded closure proof=affine work=486952 storage=18503420
+PHASE: folded closure proof=affine work=485547 storage=18464988
+PHASE: folded closure proof=point work=46098 storage=2196581
+PHASE: folded closure proof=point work=46191 storage=2202017
+PHASE: folded closure proof=affine work=121591 storage=4863198
+PHASE: folded closure proof=affine work=121688 storage=4868634
+PHASE: folded closure proof=point work=45349 storage=2125533
+PHASE: folded closure proof=point work=45446 storage=2130969
+PHASE: folded closure proof=affine work=122576 storage=4909662
+PHASE: folded closure proof=affine work=122673 storage=4915098
+PHASE: folded closure proof=point work=46366 storage=2208713
+PHASE: folded closure proof=point work=46459 storage=2214149
+PHASE: folded incidence start
+PASS: folded sheets members=45 pieces=108 work=9373838 storage=364097316
+􁁛  Test folded() passed after 59.193 seconds.
+􁁛  Test run with 20 tests in 0 suites passed after 59.194 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test checkedProjectionSizes() started.
+􀟈  Test coefficientGroupingReference() started.
+􀟈  Test nullifiedQuery() started.
+􀟈  Test issuedDefinitionsAndPrefixes() started.
+􀟈  Test nullification() started.
+􀟈  Test transportedCoordinates() started.
+􀟈  Test applicationRelations() started.
+􀟈  Test selectionAndLocation() started.
+􀟈  Test sourceFailures() started.
+􀟈  Test algebraicQueries() started.
+􀟈  Test retainedAndOutside() started.
+􀟈  Test escapedOwnership() started.
+􀟈  Test optimizedExactOperations() started.
+􀟈  Test resources() started.
+􀟈  Test originalAlgebraicCoefficients() started.
+􀟈  Test singularities() started.
+􀟈  Test concurrentImmutableReaders() started.
+􀟈  Test projectionAndSource() started.
+􀟈  Test protocolRequirements() started.
+􀟈  Test domainClipping() started.
+􀟈  Test sourceTraversal() started.
+􁁛  Test checkedProjectionSizes() passed after 0.311 seconds.
+􁁛  Test sourceFailures() passed after 0.311 seconds.
+􁁛  Test coefficientGroupingReference() passed after 0.311 seconds.
+􁁛  Test projectionAndSource() passed after 0.311 seconds.
+􁁛  Test protocolRequirements() passed after 0.312 seconds.
+􁁛  Test escapedOwnership() passed after 0.312 seconds.
+􁁛  Test optimizedExactOperations() passed after 0.312 seconds.
+􁁛  Test concurrentImmutableReaders() passed after 0.312 seconds.
+􁁛  Test domainClipping() passed after 0.517 seconds.
+􁁛  Test retainedAndOutside() passed after 0.544 seconds.
+􁁛  Test nullification() passed after 0.573 seconds.
+􁁛  Test nullifiedQuery() passed after 0.589 seconds.
+􁁛  Test resources() passed after 0.595 seconds.
+􁁛  Test issuedDefinitionsAndPrefixes() passed after 1.410 seconds.
+􁁛  Test transportedCoordinates() passed after 1.478 seconds.
+􁁛  Test sourceTraversal() passed after 1.528 seconds.
+􁁛  Test singularities() passed after 1.609 seconds.
+􁁛  Test originalAlgebraicCoefficients() passed after 1.676 seconds.
+􁁛  Test selectionAndLocation() passed after 1.756 seconds.
+􁁛  Test applicationRelations() passed after 3.845 seconds.
+􁁛  Test algebraicQueries() passed after 5.124 seconds.
+􁁛  Test run with 21 tests in 0 suites passed after 5.125 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test reducibleLaw() started.
+􀟈  Test rootDomains() started.
+􀟈  Test concurrentImmutableRootReaders() started.
+􀟈  Test retainedOwners() started.
+􀟈  Test finalCancellationAndStorage() started.
+􀟈  Test rootFailures() started.
+􀟈  Test fieldFailures() started.
+􀟈  Test existingAlgebraicBase() started.
+􀟈  Test rationalRoots() started.
+􀟈  Test generalDegree() started.
+􀟈  Test exactQueries() started.
+􀟈  Test algebraicTower() started.
+􁁛  Test concurrentImmutableRootReaders() passed after 0.043 seconds.
+PASS: terminal cancellation, atomic publication and exact storage boundary
+􁁛  Test finalCancellationAndStorage() passed after 0.054 seconds.
+􁁛  Test rootFailures() passed after 0.059 seconds.
+􁁛  Test rationalRoots() passed after 0.062 seconds.
+PASS: higher degree, odd multiplicity and invalid input failures
+􁁛  Test generalDegree() passed after 0.066 seconds.
+PASS: retained owners, original variable map and exact base import
+􁁛  Test retainedOwners() passed after 0.080 seconds.
+􁁛  Test exactQueries() passed after 0.149 seconds.
+􁁛  Test rootDomains() passed after 0.153 seconds.
+PASS: reducible root law and selected-root denominator decisions
+􁁛  Test reducibleLaw() passed after 0.176 seconds.
+PASS: incompatible owners, extension ceiling and scalar failures
+􁁛  Test fieldFailures() passed after 0.268 seconds.
+PASS: existing algebraic base coefficients and inherited coefficient depth
+􁁛  Test existingAlgebraicBase() passed after 0.400 seconds.
+PASS: runtime algebraic tower and retained ancestor embeddings
+􁁛  Test algebraicTower() passed after 1.551 seconds.
+􁁛  Test run with 12 tests in 0 suites passed after 1.552 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite L1PolynomialTests started.
+􀟈  Test primitiveFailuresAndResources() started.
+􀟈  Test zeroProductResourceAndDepthContract() started.
+􀟈  Test primitiveAlgebraicAndLifetime() started.
+􀟈  Test algebraicAlgebra() started.
+􀟈  Test taskCancellation() started.
+􀟈  Test primitiveRational() started.
+􀟈  Test rationalAlgebra() started.
+􀟈  Test algebraFailures() started.
+􁁛  Test taskCancellation() passed after 0.001 seconds.
+􁁛  Test primitiveFailuresAndResources() passed after 0.001 seconds.
+􁁛  Test primitiveRational() passed after 0.002 seconds.
+􁁛  Test algebraFailures() passed after 0.017 seconds.
+􁁛  Test primitiveAlgebraicAndLifetime() passed after 0.019 seconds.
+􁁛  Test rationalAlgebra() passed after 0.069 seconds.
+􁁛  Test zeroProductResourceAndDepthContract() passed after 0.085 seconds.
+􁁛  Test algebraicAlgebra() passed after 0.145 seconds.
+􁁛  Suite L1PolynomialTests passed after 0.145 seconds.
+􁁛  Test run with 8 tests in 1 suite passed after 0.145 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite L0ScalarTests started.
+􀟈  Test originalAlgebraicValuesAndLifetime() started.
+􀟈  Test checkedWordConversionAndInheritedDepth() started.
+􀟈  Test exactRationalValuesAndOperations() started.
+􀟈  Test payloadSizingAndCubicSign() started.
+􀟈  Test unmappedFailureRetainsCauseAndSpentWork() started.
+􀟈  Test monomialStorageRejectsBeforeConstruction() started.
+􀟈  Test fiberStorageAndOriginalIdentities() started.
+􀟈  Test failureResourcesAndCancellation() started.
+􀟈  Test nativeTaskCancellation() started.
+􁁛  Test nativeTaskCancellation() passed after 0.001 seconds.
+􁁛  Test monomialStorageRejectsBeforeConstruction() passed after 0.001 seconds.
+􁁛  Test checkedWordConversionAndInheritedDepth() passed after 0.001 seconds.
+􁁛  Test unmappedFailureRetainsCauseAndSpentWork() passed after 0.001 seconds.
+􁁛  Test failureResourcesAndCancellation() passed after 0.001 seconds.
+􁁛  Test exactRationalValuesAndOperations() passed after 0.007 seconds.
+􁁛  Test payloadSizingAndCubicSign() passed after 0.013 seconds.
+􁁛  Test originalAlgebraicValuesAndLifetime() passed after 0.016 seconds.
+􁁛  Test fiberStorageAndOriginalIdentities() passed after 0.063 seconds.
+􁁛  Suite L0ScalarTests passed after 0.063 seconds.
+􁁛  Test run with 9 tests in 1 suite passed after 0.064 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite KernelTests started.
+􀟈  Test principalSubresultants() started.
+􀟈  Test heapProducts() started.
+PASS heap products, independent coefficients, overflow, algebraic depth, limits and final cancel
+􁁛  Test heapProducts() passed after 0.078 seconds.
+PASS complete PSC values, determinants, defects, contents, swap signs, axis/owner/depth and terminal failure
+􁁛  Test principalSubresultants() passed after 0.395 seconds.
+􁁛  Suite KernelTests passed after 0.396 seconds.
+􁁛  Test run with 2 tests in 1 suite passed after 0.396 seconds.

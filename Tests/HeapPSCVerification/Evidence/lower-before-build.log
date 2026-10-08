@@ -1,0 +1,24 @@
+Building for debugging...
+[Planning deferred tasks]
+[47 / 94] L0
+[54 / 111] L0
+[64 / 111] L1
+[67 / 111] L0
+[70 / 111] L0
+[75 / 127] L1
+[78 / 127] L1
+[88 / 127] L1
+[95 / 128]
+[101 / 143] L2
+[110 / 143] L3
+[118 / 143]
+[124 / 159] L3
+[129 / 159] L3
+[140 / 159] L3
+[147 / 175] L4
+[158 / 175] L4
+[163 / 175] L4
+[171 / 178] LayerBenchmark-product
+[172 / 178] LayerBenchmark-product
+[176 / 178] LayerBenchmark-product
+Build complete! (3.34秒)

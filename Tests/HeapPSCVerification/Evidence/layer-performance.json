@@ -1,0 +1,28 @@
+{
+  "fixtureSHA256": "a4645bb0aacb3d4df54013c396aa12f8cf25fe94825aa46d3f59186419e49766",
+  "baselineRevision": "a0890f841cbb0b5abec381a36111163fffdee44f",
+  "commands": {
+    "before": "/private/tmp/cad-exact-heap-psc-20261008/.build/heap-before/out/Products/Debug/LayerBenchmark",
+    "after": "/private/tmp/cad-exact-heap-psc-20261008/.build/heap-native/out/Products/Debug/LayerBenchmark"
+  },
+  "artifactSHA256": {
+    "before": "f0fb02e4d788e7dc2c8e2a0283feb8480db034c55f14a40f1498a3217dc10948",
+    "after": "b34fb7acc63a8b50f75ecc048425cf09af3319988d52512bc632f850124a4ffa"
+  },
+  "samplesSeconds": {
+    "before": [
+      8.540408624976408,
+      8.351256249996368,
+      8.274324833007995
+    ],
+    "after": [
+      8.697519333043601,
+      8.24973499996122,
+      8.392171167011838
+    ]
+  },
+  "medianSeconds": {
+    "before": 8.351256249996368,
+    "after": 8.392171167011838
+  }
+}

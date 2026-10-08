@@ -33,3 +33,9 @@ Native/ASAN/WASM/Embedded runs. Runtime watchdogs are at most 120 seconds; porta
 full WMO compilation uses the existing separately bounded build-only watchdog.
 No additional review after the stable integrated review unless a scoped concrete
 counterexample changes the verified premise.
+
+## Target Timing Boundary
+ContinuousClock benchmark helpers are Native/normal-WASM-only under the pinned
+runtime's actual API availability. Embedded proof products keep the identical
+exact/failure fixtures. Public performance is measured externally in fresh
+processes on every lane. No production field or synchronization contract changes.

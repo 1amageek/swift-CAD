@@ -1,0 +1,26 @@
+Building for debugging...
+[Computing dependencies]
+[2 / 4] KernelFixtures
+[9 / 11] KernelFixtures
+[10 / 12] KernelFixtures
+[12 / 13] L3Fixtures
+[17 / 17] KernelBenchmark-product
+[23 / 23] KernelProof-product
+[25 / 27] KernelTests-product
+[26 / 28] KernelTests-product
+[29 / 31] KernelTests-product
+[31 / 31] KernelTests-product
+[37 / 37] KernelBenchmark-product
+Build complete! (1.95秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite KernelTests started.
+􀟈  Test principalSubresultants() started.
+􀟈  Test heapProducts() started.
+PASS heap products, independent coefficients, overflow, algebraic depth, limits and final cancel
+􁁛  Test heapProducts() passed after 0.017 seconds.
+PASS complete PSC values, determinants, defects, contents, swap signs, axis/owner/depth and terminal failure
+􁁛  Test principalSubresultants() passed after 0.148 seconds.
+􁁛  Suite KernelTests passed after 0.148 seconds.
+􁁛  Test run with 2 tests in 1 suite passed after 0.148 seconds.

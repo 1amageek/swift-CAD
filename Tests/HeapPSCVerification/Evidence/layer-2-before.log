@@ -1,0 +1,7 @@
+L1.monomial100 elapsed=0.007157375 seconds work=51500 storage=307200
+L2.singleton100 elapsed=0.001893042 seconds work=6900 storage=27200
+L3.projection3 elapsed=0.037931459 seconds work=67659 storage=2172108
+pipeline.partition elapsed=5.909846834 seconds work=5687140 storage=228616449
+L4.incidence elapsed=2.277992416 seconds work=3690954 storage=136558296
+L4.components elapsed=0.000310292 seconds work=3578 storage=3936
+pipeline.total elapsed=8.188665459000001 seconds work=9383452 storage=365192048

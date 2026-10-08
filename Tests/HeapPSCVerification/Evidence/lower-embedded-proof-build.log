@@ -1,0 +1,10 @@
+Building for debugging...
+[Pre-planning 1 / 326]
+[Constructing 109 / 678]
+[7 / 28] L4Fixtures
+[19 / 28] L2Fixtures
+[19 / 28] L3Fixtures
+[28 / 30] L4Proof-product
+/private/tmp/cad-exact-heap-psc-20261008/Tests/HeapPSCVerification/Package.swift: L4Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[30 / 30] L4Proof-product
+Build complete! (16.61秒)

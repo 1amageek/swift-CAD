@@ -1,3 +1,5 @@
+// ContinuousClock is not provided by the pinned Embedded runtime.
+#if !hasFeature(Embedded)
 import L0
 @testable import L1
 
@@ -39,3 +41,5 @@ extension KernelFixtures {
         }
     }
 }
+
+#endif

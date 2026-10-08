@@ -1,0 +1,44 @@
+Building for debugging...
+[Pre-planning 1 / 443]
+[Creating build graph]
+[88 / 187] L0
+[90 / 187] L0
+[96 / 187] L1
+[101 / 187] L0
+[103 / 187]
+[109 / 209] L1
+[124 / 210] L1
+[126 / 210] L1
+[131 / 210] L1
+[135 / 210] L0Fixtures
+[141 / 228] L1Fixtures
+[144 / 232] L1Fixtures
+[156 / 232] L3
+[163 / 233] L2
+[169 / 233] L1Fixtures
+[172 / 234] L0Fixtures
+[180 / 257] L2Fixtures
+[190 / 258] L3
+[199 / 258] L4
+[202 / 258] L3
+[205 / 258] L2Fixtures
+[208 / 258] L2Fixtures
+[217 / 285] L3Fixtures
+[230 / 286] L4
+[236 / 286] L4
+[241 / 286] L3Fixtures
+[242 / 286] L3Fixtures
+[245 / 287] L3Fixtures
+[251 / 287] L2Fixtures
+[261 / 296] L4Fixtures
+[261 / 297] LayerBenchmark-product
+[277 / 307] L4Proof-product
+[284 / 308] KernelFixtures
+[296 / 312] KernelProof-product
+[316 / 318] KernelBenchmark-product
+/private/tmp/cad-exact-heap-psc-20261008/Tests/HeapPSCVerification/Package.swift: LayerBenchmark-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[318 / 318] LayerBenchmark-product
+/private/tmp/cad-exact-heap-psc-20261008/Tests/HeapPSCVerification/Package.swift: KernelBenchmark-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+/private/tmp/cad-exact-heap-psc-20261008/Tests/HeapPSCVerification/Package.swift: KernelProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+/private/tmp/cad-exact-heap-psc-20261008/Tests/HeapPSCVerification/Package.swift: L4Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+Build complete! (6.41秒)

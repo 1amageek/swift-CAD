@@ -15,18 +15,18 @@ import L2
  _ = try d.predicate(instructions:[.sign(polynomial:0,relation:.equal)],for:s,using:&a)
  try ExactCellAccess.run(&a) { usage in
   let derivative = try p.differentiated(law,in:1,using:&usage)
-  let psc = try d.principal(law,derivative,axis:1,index:0,&usage)
+  let psc = try p.principalSubresultants(law,derivative,eliminating:1,using:&usage).values[0]
   let resultant = try p.resultant(law,derivative,eliminating:1,using:&usage)
   #expect(try p.equals(psc,resultant,using:&usage))
   let g = try p.adding(p.multiplying(y,y,using:&usage),p.constant(f.integer(1,using:&usage),using:&usage),using:&usage)
-  let higher = try d.principal(law,g,axis:1,index:1,&usage)
+  let higher = try p.principalSubresultants(law,g,eliminating:1,using:&usage).values[1]
   #expect(try p.isZero(higher,using:&usage))
   let withLinear=try p.adding(p.multiplying(y,y,using:&usage),y,using:&usage)
-  let nonzeroHigher=try d.principal(law,withLinear,axis:1,index:1,&usage)
+  let nonzeroHigher=try p.principalSubresultants(law,withLinear,eliminating:1,using:&usage).values[1]
   #expect(try p.equals(nonzeroHigher,p.constant(f.integer(1,using:&usage),using:&usage),using:&usage))
   let factor=try p.subtracting(y,x,using:&usage)
   let squared=try p.multiplying(factor,factor,using:&usage)
-  let sharedPSC=try d.principal(squared,factor,axis:1,index:0,&usage)
+  let sharedPSC=try p.principalSubresultants(squared,factor,eliminating:1,using:&usage).values[0]
   #expect(try p.isZero(sharedPSC,using:&usage))
   #expect(try p.degree(of:p.greatestCommonDivisor(squared,factor,using:&usage),in:1,using:&usage) == 1)
   let levels = try d.projection(s,&usage)
@@ -87,9 +87,6 @@ import L3Fixtures
 @Test(.timeLimit(.minutes(1))) func checkedProjectionSizes() throws {
  #expect(throws:ExactRealCellFailure.self) { _ = try ExactCellAccess.multiply(Int.max,2) }
  #expect(throws:ExactRealCellFailure.self) { _ = try ExactCellAccess.add(Int.max,1) }
- var a=try CellFixtures.ledger()
- let (_,d,_)=try CellFixtures.setup(1,&a)
- do { _ = try ExactCellAccess.run(&a) { try d.determinant([],size:Int.max,&$0) }; Issue.record("Accepted matrix overflow") } catch ExactRealCellFailure.countOverflow { }
 }
 
 @Test(.timeLimit(.minutes(1))) func protocolRequirements() throws { try ProtocolFixtures.run() }

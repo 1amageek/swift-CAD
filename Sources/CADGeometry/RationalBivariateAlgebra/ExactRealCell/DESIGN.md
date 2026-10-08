@@ -64,7 +64,7 @@ field, root or polynomial implementation is accessed by L3.
 | Fact and actual implementation path | Design consequence |
 |---|---|
 | [L1 calculus](../ExactPolynomial/ExactPolynomialDomain+Calculus.swift) evaluates or substitutes all slots in the same polynomial owner; importing preserves variable count | L3 specialization extracts/reindexes admitted public terms and imports coefficients explicitly; it cannot pretend a public partial-specialization port already exists |
-| [L1 coefficient helpers](../ExactPolynomial/ExactPolynomialDomain+Coefficients.swift) are internal; [resultant](../ExactPolynomial/ExactPolynomialDomain+Resultant.swift) is public, but principal-subresultant coefficients are not | Projection consumes the public L1 principal-subresultant sequence; the determinant sign definition and complete algorithm selection belong to L1 |
+| [L1 PSC port](../ExactPolynomial/ExactPolynomialSubresultantProducing.swift) now issues complete principal coefficients; coefficient helpers remain internal | Projection consumes the public L1 principal-subresultant sequence; the determinant sign definition and complete algorithm selection belong to L1 |
 | [L2 extension](../ExactRealRoot/ExactAlgebraicScalarDomain.swift) keeps one static type, requires identical parent identity at adjoining, and accepts own/ancestor scalar imports | Every sample has one runtime field family; each section explicitly transports all earlier coordinates into its child |
 | [Existing projection](../../IntersectionAlgebra/ExactIntersectionProjection.swift) retains reducta and principal-subresultant conditions; [tower](../../IntersectionAlgebra/ExactIntersectionProjectionTower.swift) adds derivatives | These are algorithmic/reference paths, not allowed L3 implementation dependencies or already verified new L3 behavior |
 | [Existing resolver](../../IntersectionAlgebra/DefaultOriginalPolynomialRelationResolver.swift) composes selected cells, incidence and components | New L3 stops at cells/selection; later integration keeps connection decisions separate |
@@ -230,21 +230,17 @@ L3 uses exhaustive retained conditions rather than that paper's local selection,
 irreducible-factor input assumption or restart strategy. Its obligation is to
 prove the induction below using the exact retained coefficient/rank conditions.
 
-L1 has no public principal-subresultant operation. This is not a hidden lower
-prerequisite: L3 constructs the appropriate Sylvester truncation matrices from
-public terms, and computes their determinants using L1 adding/subtracting/
-multiplying/dividedExactly. Fraction-free elimination admits matrix slots,
-pivots, copies, overflow and zero-pivot row swaps. This is an internal projection
-certificate computation, not a second public polynomial algebra. Its j=0 output
-must agree with L1 resultant; higher minors must satisfy independent rank/GCD
-fixtures, including repeated/shared factors and specialization degree drops.
+L1 owns complete principal-subresultant production through its public protocol.
+L3 consumes the source-retaining, complete index-preserving values and retains
+same-input .principal witnesses. The determinant orientation and Brown recurrence
+are authoritative in [L1's contract](../ExactPolynomial/DESIGN.md#sparse-product-and-principal-subresultant-contract).
+No lower algorithm is duplicated in L3. Its j=0 value agrees with L1 resultant;
+independent rank/GCD fixtures cover higher coefficients, repeated/shared factors
+and specialization degree drops.
 
-For degrees m and n and 0 <= j < min(m,n), use n-j shifted rows of the first law
-and m-j of the second, with descending powers. The highest m+n-2j columns form
-the principal coefficient minor; row order is fixed in provenance. Constant and
-zero laws are handled by their coefficients and degree receipts, not illegal
-negative-size matrices. Exact positive normalization may deduplicate projection
-zero sets; original sign laws are never normalized without their sign mapping.
+All original variable slots, input order and zero PSC indices are retained.
+The L1 contract owns the determinant definition and value/sign/index convention;
+L3 owns exhaustive derivative/reductum pairs, projection provenance and lifting.
 
 The lifting induction owns these proof obligations:
 
@@ -499,7 +495,7 @@ resource failure does not trigger another solver or a fresh allowance.
 
 | Constraint | Fixed owner and semantics |
 |---|---|
-| Work/storage | Existing L0 admission; charge source traversal, projection generation, all matrix slots and determinant arithmetic, reindexing/transport, stacks, roots, selections, queries and publication |
+| Work/storage | Existing L0 admission; charge source traversal, projection generation, L1 PSC and polynomial operations, reindexing/transport, stacks, roots, selections, queries and publication |
 | Payload sizing | Public L0 exactScalarPayloadBytes with checked counts; cumulative logical payload, not RSS or guessed allocator capacity |
 | Value/coefficient depths | Preserve both lower receipt axes; L3 geometric-coordinate refinement uses value axis; existing coefficient depths remain admitted |
 | Stored cell limit | Explicit maximumStoredCells applies to all retained prefix/full records, including predicate-false cells and the R^0 record when materialized |

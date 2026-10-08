@@ -109,6 +109,11 @@ extension KernelFixtures {
             try check(result.values.isEmpty && result.second.termCount == cubic.termCount)
             try check(try d.equals(result.first,p,using:&a))
         }
+        let extreme = try d.polynomial(terms:[.init(powers:[Int.max],coefficient:one)],using:&a)
+        do {
+            _ = try d.principalSubresultants(extreme,x,eliminating:0,algorithm:.determinant,using:&a)
+            throw ExactPolynomialFailure.invalidCertificate
+        } catch ExactPolynomialFailure.countOverflow { }
         let foreign = try Domain(field:f,variableCount:1,using:&a)
         do { _ = try d.principalSubresultants(zero,foreign.zero(using:&a),eliminating:0,using:&a); throw ExactPolynomialFailure.invalidCertificate }
         catch ExactPolynomialFailure.incompatibleDomain { }
