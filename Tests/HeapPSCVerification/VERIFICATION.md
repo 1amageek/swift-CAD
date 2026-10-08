@@ -82,8 +82,7 @@ heap/PSC oracle and combined L0-L4 proof, including 45 folded members, 108 piece
 and one component. Full production Native and ASAN each pass five public tests;
 portable preparation and legacy public smoke preserve success/empty/owner/resource
 and cancellation contracts. Four compiler input inventories contain every one
-of the 1,367 production CADCore/CADGeometry Swift sources. Public performance comparison is complete; latest-main identity remains the
-publication condition.
+of the 1,367 production CADCore/CADGeometry Swift sources. Public performance comparison is complete; latest-main identity is verified below.
 
 ## Accepted Performance Boundary
 Three alternating fresh-process pairs on identical public fixture sources produce:
@@ -110,3 +109,12 @@ is effectively unchanged: root lifting/partition and incidence dominate it.
 No allocator/RSS, release-build or general geometry speedup is inferred.
 
 L3 projection (three runs per sample) median: 0.038105 s -> 0.009936 s.
+
+## Main Integration Checkpoint
+Main fast-forwarded from a0890f84 to f55edd0b, containing sprint commits
+e11a0284, ed83b537 and f55edd0b. Main and the verified isolated worktree match
+all 1,367 production-source hashes and every public fixture hash in run.json.
+No concurrent source change or new premise required another build/review cycle.
+Raw compiler output is retained verbatim, including diagnostic source blank-line
+whitespace. Source/document checks exclude those unmodified compiler excerpts.
+The optimization completes KOPT; overall seven/87 requirements remain in PARI.
