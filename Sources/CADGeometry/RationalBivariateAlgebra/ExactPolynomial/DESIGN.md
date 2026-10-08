@@ -255,9 +255,10 @@ References: Brown (1978), The Subresultant PRS Algorithm, Theorems 1-3,
 https://people.eecs.berkeley.edu/~fateman/282/readings/brown.pdf.
 
 Algorithm selection belongs to L1, before remainder/determinant work begins.
-Initially pairs with at most one PSC use the determinant; larger sequences use
-PRS. Fixed-input sparse/small/dense benchmarks may refine this operational
-selection before integration; every branch remains complete and determinant
+Measured small/dense/sparse inputs select a direct 2x2 determinant for two
+linear inputs and PRS for larger degrees. The linear formula is
+a1*b0-a0*b1, in the original input order. Complete matrix determinants remain
+forceable for reference on other degrees. Every branch remains complete and determinant
 identical. Failure/cancel after selection propagates without retry. Test-only
 internal entry points force either complete algorithm for differential evidence.
 

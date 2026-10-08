@@ -65,5 +65,5 @@ public enum KernelFixtures {
         catch ExactPolynomialFailure.scalar(.resourceLimit(.coefficientDepth)) { }
         print("PASS heap products, independent coefficients, overflow, algebraic depth, limits and final cancel")
     }
-    public static func run() throws { try heap() }
+    public static func run() throws { try heap(); try psc() }
 }

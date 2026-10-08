@@ -1,0 +1,17 @@
+Building for debugging...
+[Computing dependencies]
+[2 / 4] KernelFixtures
+[6 / 8] KernelFixtures
+[9 / 9] KernelBenchmark-product
+[10 / 10] KernelProof-product
+[11 / 11] KernelTests-product
+Build complete! (1.20秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite KernelTests started.
+􀟈  Test principalSubresultants() started.
+PASS complete PSC values, determinants, defects, contents, swap signs, axis/owner/depth and terminal failure
+􁁛  Test principalSubresultants() passed after 0.142 seconds.
+􁁛  Suite KernelTests passed after 0.143 seconds.
+􁁛  Test run with 1 test in 1 suite passed after 0.143 seconds.
