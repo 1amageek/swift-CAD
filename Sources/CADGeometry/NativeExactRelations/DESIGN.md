@@ -141,3 +141,11 @@ use the existing caller admission. Original source and domain failure wrappers
 remain explicit, while scalar admission causes preserve their existing public
 classification. Independent source/domain composition verification reuses checked
 lower modules and unchanged geometry DTOs without an upper-target build.
+
+
+## Planned Composition Consumer Migration
+
+Status: design only; current implementation guarantees above remain unchanged.
+Generic internal composition will consume family source/domain receipts. Existing rational Native public types remain unchanged; algebraic families use their retained original scalar Base.
+The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
+owns coefficient transport, complete-cover, publication and migration acceptance.

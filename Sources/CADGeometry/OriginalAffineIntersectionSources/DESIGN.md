@@ -90,3 +90,11 @@ its exact center point preserves the asserted parameter correspondence while
 meeting the lower Native surface's positive-degree validation contract.
 Changes to word or Native-law contracts require this checkpoint's regression tests; shared
 public dispatch and full SC/seven acceptance remain parent verification scope.
+
+
+## Planned Composition Consumer Migration
+
+Status: design only; current implementation guarantees above remain unchanged.
+Affine intersection preparation will consume homogeneous-only child laws and retained exact word fields, including normalized words; no rational rounding or differential preparation is authorized.
+The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
+owns coefficient transport, complete-cover, publication and migration acceptance.

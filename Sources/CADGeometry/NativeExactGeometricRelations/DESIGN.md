@@ -182,3 +182,11 @@ The L4 issuer owns early closure-count rejection as specified in
 No approximate identity, different field, solver retry or partial publication is
 introduced. Existing successful CS parameter/geometry/numerical receipts remain
 unchanged; public rejection is still `resourceLimitExceeded`.
+
+
+## Planned Composition Consumer Migration
+
+Status: design only; current implementation guarantees above remain unchanged.
+Public family consumers will retain the issued source/domain evidence and solved relation, including the exact compatibility bridge for existing point receipt accessors.
+The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
+owns coefficient transport, complete-cover, publication and migration acceptance.

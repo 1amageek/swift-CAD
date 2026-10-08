@@ -46,3 +46,11 @@ Unsupported input families, algebraic endpoints, periodic sources and multiple n
 ## Verification and Change Impact
 
 [OriginalCoonsIntersectionSourceTests](../../../Tests/CADGeometryTests/OriginalCoonsIntersectionSourceTests.swift) owns independent exact Coons equation expectations, reversed/nonunit/varying-weight Native maps, exact corners and closed singleton domains, released-source lifetime, CS/SSI denominator and ring binding, shared differential quotient regression, and work/storage/source-depth/cancellation failures. Focused Native compile/link/runtime uses complete Core/Geometry and the existing fixed warm proof path after one source review. Public CS/SSI, other procedural domains and whole seven-target acceptance remain separate integration responsibilities.
+
+
+## Planned Composition Consumer Migration
+
+Status: design only; current implementation guarantees above remain unchanged.
+Coons intersection preparation will consume retained endpoint coefficients and selected local laws. The existing differential atlas remains on its current path until separately verified delegation.
+The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
+owns coefficient transport, complete-cover, publication and migration acceptance.

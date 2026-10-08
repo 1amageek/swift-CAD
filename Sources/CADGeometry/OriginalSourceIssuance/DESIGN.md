@@ -683,3 +683,215 @@ Retained receipts and position/UV queries are unchanged. The
 [independent verification owner](../../../Tests/OriginalDomainIdentityVerification/DESIGN.md)
 checks exact equivalence and rational/algebraic cost separately. This optimization
 does not establish migration of legacy Plane3D evaluation or full CS/SSI paths.
+
+
+## Composition Consumer Handoff Design
+
+Status: design fixed against main `5de88ec1`; consumer migration is not implemented.
+This section owns the target handoff for `OSI.ALL.C.W.K.C.M`. The independently
+completed issuer and its verification boundary remain unchanged. The consumer task
+also closes the composition portion of `DIA.4.I`; boundary and self-query consumers
+remain separate obligations. This task creates no production target or solver.
+
+### Purpose and Scope
+
+Connect issued ruled, continuous Coons, spatial/affine/original-word and invertible
+parameter-image laws to existing relation preparation and public CS entries.
+Preserve every capability already issued for these families: exact weighted laws,
+retained algebraic endpoints, reverse traversal, exact normalized word coefficients,
+original parameter correspondence and finite selected-chart composition. Single-span
+success is not evidence for the complete finite cover. Families still absent from
+the issuer, non-affine Coons traversal, discontinuous one-sided construction,
+periodic/unbounded families and intrinsic poles remain visibly incomplete under
+their existing owners; they do not become completed through this migration.
+
+The public acceptance gate is the existing family CS isolated-result contract,
+including atomic rejection of positive-dimensional or mixed solutions. SSI source
+preparation/equality handoffs are included; completing general public SSI curves,
+regions, or whole-seven requirements is not a claim of this task. Rich CS entry
+points retain their existing discrete-family failure behavior until their separate
+complete-relation publisher is implemented.
+
+### Confirmed Execution Paths
+
+| Current path | Confirmed gap | Target consumer |
+|---|---|---|
+| `DefaultCurveSurfaceIntersector` and `CurveSurfaceOverlapResolver` call three family point producers | Ordinary, caller-admitted, discrete and rich entries prepare legacy laws and solve legacy cells | One receipt-based family producer selected before legacy dispatch |
+| `OriginalRuledSurfacePolynomial` / `OriginalRuledRelationEquations` | Rebuild boundary laws and pair equations | Ruled issuer supplies laws; existing L5 compiler supplies pair equations |
+| `OriginalCoonsSurfacePolynomial.boundary` | Requires authored Double endpoints and one Native span | Existing Coons/traversal issuer supplies exact endpoint field, transport and selected laws |
+| `OriginalAffineCurveSurfacePointProducer` / `OriginalAffineSurfaceIntersectionSource` | Prepares differential Native data and rejects normalized algebraic words | Homogeneous-only child issuer and existing spatial issuer |
+| `DefaultNativeExactRelationResolver` | Public Native receipt and aliases fix rational Base | Preserve Native receipt; generic internal composition binds the appropriate Base |
+| `OriginalCoonsCurveSurfacePoints` and corresponding ruled/affine receipts | Expose original scalar coordinates, source and coverage owners | Retain existing public accessors through an exact coordinate bridge |
+| `OriginalCoonsRationalDifferentialAtlas` | Consumes the shared legacy position atlas | Retain this differential dependency until a separately verified delegation; do not delete its position provider |
+
+### Responsibilities and Boundaries
+
+```mermaid
+flowchart TD
+  Q[Existing public request and caller admission] --> S[Family snapshot and local-law issuer]
+  Q --> D[Domain issuer: complete finite request cover]
+  S --> D
+  S --> H[Consumer binding: field, issued law, cover and transport]
+  D --> H
+  H --> A[Existing L5 compiler and complete relation resolution]
+  A --> G[Existing L6 where image or fiber evidence is required]
+  A --> P[Public numerical preparation and classification]
+  G --> P
+  H --> P
+  P --> O[Existing public result and retained source receipt]
+  classDef fixed fill:#e8f5e9,stroke:#287d3c,stroke-width:2px;
+  classDef migration fill:#fff3cd,stroke:#9b6b00,stroke-width:2px,stroke-dasharray:5 3;
+  class S,A,G fixed;
+  class D,H,P,O migration;
+```
+
+Green denotes existing implementations to reuse; amber denotes the consumer
+connection to implement, not a missing replacement for the lower algorithm.
+The domain engine already exists; amber D denotes missing family frames/covers.
+
+| Owner | Produces and retains | Does not decide |
+|---|---|---|
+| OriginalSourceIssuance and concrete source providers | Original source binding, HXYZW, field provenance, exact parameter expressions and source guards | Request-wide coverage or intersection existence |
+| OriginalDomainIdentity plus family frame adapter | Authored support, request, effective selection, all selected charts, overlap ownership and certified transports | Shape equations or numerical root identity |
+| Existing family intersection-source component | Bound chart receipt and checked import to the solver ring | Roots, connection, image dimension or public accuracy |
+| Existing L5 compiler/resolver | Raw equality, guards, complete cells/incidence/components for each selected chart pair | Source meaning or public numerical classification |
+| Existing geometric/public family consumer | Complete aggregate ownership, numerical representatives and existing point handles | New geometric equality inferred from residuals |
+
+The binding is a retained value containing the existing law receipt, domain chart
+and solver map. Its generic parameter keeps source and field types statically
+known. Reuse `OriginalRationalChartIssuing`, domain cover/transport protocols and
+`ExactParametricRelationConstructing/Resolving`; do not create a second generic
+source facade or expose solver arrays through the issuer. A new protocol is needed
+only for the checked source-to-solver coefficient/coordinate transfer described
+below, which existing same-type `importing` cannot express.
+
+### Coefficient and Coordinate Contract
+
+1. Retain the rational Native lane and its current public result types. A genuinely
+   rational source is admitted by its representation certificate, not by rounded
+   values or an attempted conversion followed by retry.
+2. Algebraic endpoint/word sources use `OriginalExactScalarDomain` as Base and
+   `ExactAlgebraicScalarDomain<OriginalExactScalarDomain>` as the solving field.
+   Existing L2/L3 support this Base; use `importingBase` for issued coefficients.
+   L5/L6 generic composition is reused without changing their mathematical contract.
+3. One query fixes a common coefficient owner before constructing solver maps.
+   Same-owner/ancestor imports use the existing import contract. Independent
+   retained algebraic owners require an explicit immutable embedding receipt.
+   Reuse `OriginalSingularFieldTransport` behind the source/scalar boundary: retain
+   original definitions and selected-root isolations, validate the transported
+   selector, and import coefficients. This validation can consume Sturm work;
+   it is not another geometric solve or a search for a replacement coefficient root.
+   Ordinary `importing` continues to reject foreign owners.
+4. The new checked-transfer protocol accepts the retained source field/value,
+   destination authority and the same admission; it returns a destination value
+   together with retained original-to-destination evidence. Failure preserves
+   incompatible-domain, invalid-evidence, depth, budget and cancellation errors.
+   Root choice, denominators, value/coefficient depths and the original owner must
+   survive transport. Its implementation belongs to the scalar owner, with only
+   a typed receipt consumed by the family binder. No raw context escape is exposed.
+5. Existing public family point accessors return `OriginalAlgebraicCoordinate`.
+   Convert retained L2 tuple coordinates through the same checked-transfer boundary,
+   including their defining relation, chosen selector, original coefficient owner
+   and attained depths. No conversion through Double, rational-only polynomial
+   or new geometric solve is permitted. Keep points/overlaps Codable payloads intact.
+   Transport walks the retained L2 field tower from its original Base, maps
+   parent coefficients and fractional numerators/denominators, and retains each
+   chosen root definition. Where a legacy root handle requires rational isolation
+   bounds, obtain a dyadic enclosing bracket by certified refinement of that same
+   selected root, then validate unique-root coverage in the destination field.
+   Refinement is charged, retains attained depths and does not solve the original
+   intersection again. One invocation-local embedding table reuses already mapped
+   owners across coordinates; immutable transfer evidence survives in the receipt.
+   Failure to establish this exact compatibility is a failed publication, and
+   blocks the migration milestone; a new result type alone is not completion.
+
+### Domain, Composition and Complete Publication
+
+Ruled uses authored common U and linear V. Coons uses original normalized U/V;
+its boundary native station is `a + (b-a)q` in the retained exact endpoint field.
+Spatial actions preserve the child's original parameter frame. Parameter images
+retain exact inverse affine gains, offsets, axis permutations and orientation;
+solver-local coordinates and published original coordinates remain distinct.
+The source receipt's support array is not a complete-request cover.
+
+The family adapter supplies every finite chart template and exact frame transport
+to the existing domain issuer. The cover must establish that the union of selected
+images equals the exact requested/support intersection. Preserve all native
+one-sided owners at shared endpoints. Empty success requires cover exclusion or
+complete L5 exclusion for every selected chart pair. A missing template fails.
+
+Bind each law/selected chart once. Check inherited proof depth, import four
+homogeneous laws into the L3 ring, create the existing L5 map, then compile CS
+variables `(t,u,v)` or SSI `(u,v,s,t)`. Preserve source W and all transport-denominator
+predicates in addition to the existing pair guards. No preparation of silhouette
+or normal occurs for a parameter-only query. Public classification generates
+required differential evidence from the issued law only when requested.
+
+Current L5 constructs one map pair; it does not prove a multi-chart cover. The
+consumer owns a retained collection of pair results plus the complete cover.
+Resolve every selected pair exactly once under one cumulative admission. Reconcile
+shared-boundary duplicates through original parameter correspondence and proved
+chart identity, using existing finite-chart reconciliation rules. Distinct native
+sides and different UV fibers survive unless their source identity is proved.
+A failed pair or unresolved reconciliation invalidates the entire publication.
+
+For the existing discrete-family public contract, inspect all selected relations
+before generating output: any positive-dimensional component, including a mixed
+isolated/positive result, produces `.nonDiscreteIntersection`. Retain all isolated
+original parameter tuples, exact correspondence and complete exclusion evidence.
+Rich relation/image publication consumes retained L5/L6 evidence when its separate
+capability is available; it never reruns the TUV/UVUV relation.
+
+### State, Ownership, Failure and Compatibility
+
+One invocation owns scratch, checked word/byte conversion and exclusive admission.
+Source, field/embedding, chart cover and solved relation owners are immutable and
+retained by public receipts. Pass owners and index/range views between stages;
+allocate only new transformed coefficients, maps, evidence or public output.
+No global cache, mutable solver sharing, target-specific raw state or new lock is
+introduced. Reuse admissions without resetting cumulative work/storage/depth.
+
+Applicability returns not-applicable before entering this producer. Once admitted,
+invalid input, unsupported required coverage, failed transport, unresolved algebra,
+exhausted resources or cancellation propagates without legacy solver fallback.
+The final publication checkpoint also applies to empty results. Mathematical
+precision, existing degree/result limits and source/value/coefficient depth axes
+retain their current meanings.
+
+Existing rational family entry points and receipt accessors remain source-compatible.
+Legacy implementations delegate only after their migrated route is verified. Keep
+explicit incomplete markers on remaining family branches. The shared Coons
+position provider remains callable by differential consumers until they migrate;
+its mere presence must not keep a second intersection preparation route active.
+
+### Implementation Ownership and Completion
+
+One implementation owner serializes shared source contracts, family binding,
+public dispatch, receipt changes and verification scripts. Integration owns only
+snapshot/commit comparison and main merging. No parallel edits to these files.
+
+| Sprint | Owned paths | Completion evidence |
+|---|---|---|
+| M.B | Scalar checked-transfer boundary; OriginalSourceIssuance; OriginalDomainIdentity family frame adapters; generic preparation in NativeExactRelations | Rational and retained algebraic binding, exact round-trip parameter/coordinate transfer, finite cover/exclusion, independent budget/foreign-owner failures |
+| M.R | OriginalRuledIntersectionSources and OriginalPolynomialCurveSurfacePoints | Weighted/reversed common-U charts, multi-chart closed endpoints, same public receipt and atomic positive/mixed rejection |
+| M.C | OriginalCoonsIntersectionSources and OriginalCoonsCurveSurfacePoints | Authored and retained algebraic endpoints, exact corners and reversed traversal, finite selected chart cover, unchanged differential caller regression |
+| M.W | OriginalAffineIntersectionSources, OriginalAffineCurveSurfacePoints and concrete spatial/parameter-image providers | Rational and normalized original words, forward/inverse action, swapped/reversed parameters, nested admitted descendants and released-source ownership |
+| M.P | NativeExactGeometricRelations, DefaultCurveSurfaceIntersector, CurveSurfaceOverlap and shared result receipts | All existing ordinary/caller-admitted rich/discrete entries select the same producer; SSI preparation retains both UV; no old relation replay |
+| M.V | OriginalSourceIssuanceVerification and NativeExactRelationVerification granular overlays | Native/ASAN, normal WASM and Embedded build/link/runtime of changed paths; success/empty/input/work/storage/source/value/coefficient depth/result-limit/cancel failures |
+| M.I | Independent integration worktree and PROGRESS.md | Coherent reviewed implementation commits, current-main source comparison, changed public integration proof and main merge |
+
+Compile granular changed source overlays against immutable validated lower caches.
+Do not build complete CADCore/CADGeometry, Kernel or L2-L6 targets. Reuse lower
+behavioral evidence only while its actual source and toolchain premises match.
+The OriginalCoefficientFixtures in L2/L3 establish algebraic Base use, not the new
+public coordinate bridge or all four target lanes of composition publication.
+Those new boundaries require focused behavioral evidence; docs/type presence do
+not close them. Time-bound every proof execution. Compare identical public inputs,
+semantics and ceilings for weighted CS, tangency, distinct UV, empty and folded SSI
+preparation. Record phase work/generated bytes and whether differential preparation
+or relation resolution ran twice; claim performance only from measured results.
+
+Design completeness means these boundaries and gates are fixed. Implementation
+completeness requires every row above, without counting unsupported issuer families
+or whole-seven requirements as completed. `DIA.4.I` remains open for its other
+boundary/self consumers after this composition handoff completes.
