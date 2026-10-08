@@ -38,9 +38,9 @@ No build of upper CADGeometry or another production target is authorized here.
 
 The original foundation evidence remains at [VERIFICATION](Evidence/VERIFICATION.md).
 [Fixtures](Sources/Fixtures/SourceFixtures.swift) and [tests](Tests/SourceTests.swift)
-now share twelve behavior groups: original Native laws, selected/tensor spans,
+now share thirteen behavior groups: original Native laws, selected/tensor spans,
 periodic laws, primitive images, ownership, typed failures, resources, exact
-physical-angle arithmetic/ordering, angle resources, cone images, heterogeneous ruled laws and spatial action. The
+physical-angle arithmetic/ordering, angle resources, cone images, heterogeneous ruled laws, spatial action and parameter-image correspondence. The
 [adapter proof](Sources/GeometryProof/GeometryProof.swift) uses actual Native and
 analytic inputs, existing validators/basis authority and the same issuer laws.
 The [spatial proof](Sources/SpatialGeometryProof/SpatialGeometryProof.swift) also

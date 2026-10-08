@@ -17,3 +17,5 @@ import SourceIssuerFixtures
 @Test(.timeLimit(.minutes(1))) func heterogeneousRuledLaws() throws { try SourceFixtures.ruledLaws() }
 
 @Test(.timeLimit(.minutes(1))) func spatialLaws() throws { try SourceFixtures.spatialLaws() }
+
+@Test(.timeLimit(.minutes(1))) func parameterImageLaws() throws { try SourceFixtures.parameterImageLaws() }

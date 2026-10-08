@@ -50,12 +50,13 @@ if digest(old_proof) != expected: raise RuntimeError('Geometry cache does not ma
 # are outside this execution. Record, but do not generalize to, that other scope.
 prefixes = ['Sources/CADCore/', 'Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/',
     'Sources/CADGeometry/OriginalAffineOperationWord/', 'Sources/CADGeometry/OriginalAffineImage/',
-    'Sources/CADGeometry/PeriodicBSpline/',
+    'Sources/CADGeometry/PeriodicBSpline/', 'Sources/CADGeometry/ParameterImage/',
     'Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/',
     'Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/',
     'Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/']
 exact = ['Sources/CADGeometry/BSplineCurve3D.swift', 'Sources/CADGeometry/BSplineSurface3D.swift',
-    'Sources/CADGeometry/AnalyticSurface3D.swift', 'Sources/CADGeometry/AnalyticBasis.swift']
+    'Sources/CADGeometry/AnalyticSurface3D.swift', 'Sources/CADGeometry/AnalyticBasis.swift',
+    'Sources/CADGeometry/AffineTransform3D.swift', 'Sources/CADGeometry/Curve3D.swift', 'Sources/CADGeometry/Surface3D.swift']
 premises = {name: expected_hash for name, expected_hash in receipt['source_sha256'].items()
     if name in exact or any(name.startswith(prefix) for prefix in prefixes)}
 for name, expected_hash in premises.items():

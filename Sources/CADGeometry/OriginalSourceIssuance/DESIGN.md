@@ -263,6 +263,29 @@ remains an injected capability; source depth is one plus the retained child's
 source depth. Both actual provider paths are independently compiled against the
 validated geometry module; no upper target build is required by this boundary.
 
+### Parameter images
+
+Parameter-image issuance keeps the child's local variables, exact local support
+and complete child receipt. It does not invert a child law or find another root.
+For each parent authored parameter j, choose the original child axis k and publish
+q_j=(childTransport_k-offset_j)/gain_j. Original nonzero signed gains and offsets
+are imported exactly into the caller's field. Every child axis occurs once; the
+actual swapped-surface convention maps parent U to child V and parent V to child U.
+Nonunit transport denominators and all child source guards survive. A finite
+local support is not a rounded parent-domain bound or whole-domain cover.
+
+Actual gain variants use their existing exactCoefficient authority: binary,
+ratio, retained product and directed difference. Canonical numerator/denominator
+words are imported with exact field integer arithmetic; value/enclosure getters
+never provide source coefficients. The provider retains the original wrapper and
+its injected child binding. Source depth is one plus child depth. The rational
+chart port computes parent correspondence under the same exclusive admission.
+Surface wrappers additionally apply the original stored affine columns and
+translation to child homogeneous coordinates. Curve wrappers share the child's
+position laws. Coefficients, child-law imports, transport buffers and final
+publication are admitted atomically; zero gain, foreign authority, invalid axis
+mapping, tighter depth, budget exhaustion and cancellation fail explicitly.
+
 ### Receipt content and evidence
 
 | Retained value | Owner and invariant |
