@@ -1235,5 +1235,6 @@
       "sha256": "a6ad411301c1ae36e46b7024793c53976ed5d33630ce2c406bd5acf9f840a33e"
     }
   ],
-  "coverageStrategy": "Full stable suite plus affected-path confirmations; unchanged lower/path evidence is reused."
+  "coverageStrategy": "Full stable suite plus affected-path confirmations; unchanged lower/path evidence is reused.",
+  "implementationCommit": "b26fa47c91e9cdc5386fba3afce8f177f5c83b44"
 }
