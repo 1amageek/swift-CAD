@@ -487,7 +487,8 @@
             - [x] OSI.ALL.C.W.K.C.M.D Fix source/domain/coefficient/public handoff design; design only, implementation remains open. `depends:OSI.ALL.C.W.K.C.T` `parallel:none`
             - [ ] OSI.ALL.C.W.K.C.M.B Implement checked exact field/coordinate transfer, source-bound generic maps and complete finite family covers. `depends:OSI.ALL.C.W.K.C.M.D` `parallel:none`
               - [x] OSI.ALL.C.W.K.C.M.B.S Implement and verify explicit original scalar-owner transport; preserve ordinary foreign import rejection, original selectors, lifetime and same-admission failures. `depends:OSI.ALL.C.W.K.C.M.D` `parallel:none`
-              - [ ] OSI.ALL.C.W.K.C.M.B.Q Connect retained L2 coordinate transfer and complete finite source/domain maps to the checked scalar boundary. `depends:OSI.ALL.C.W.K.C.M.B.S` `parallel:none`
+              - [x] OSI.ALL.C.W.K.C.M.B.Q.C Retained L2 roots/fractions and explicit coefficient-owner mappings transfer into the original field on Native/ASAN/normal-WASM/Embedded; exact budgets, lifetime and rejection paths verified. CoordinateTransferEvidence; accompanying coherent commit. `depends:OSI.ALL.C.W.K.C.M.B.S` `parallel:none`
+              - [ ] OSI.ALL.C.W.K.C.M.B.Q Connect retained L2 coordinate transfer and complete finite source/domain maps to the checked scalar boundary. `depends:OSI.ALL.C.W.K.C.M.B.Q.C` `parallel:none`
             - [ ] OSI.ALL.C.W.K.C.M.R Migrate ruled preparation and receipt consumers, preserving full issued finite-chart scope. `depends:OSI.ALL.C.W.K.C.M.B` `parallel:none`
             - [ ] OSI.ALL.C.W.K.C.M.C Migrate Coons preparation including retained algebraic endpoints; preserve shared differential caller. `depends:OSI.ALL.C.W.K.C.M.R` `parallel:none`
             - [ ] OSI.ALL.C.W.K.C.M.W Migrate spatial, affine, parameter-image and original-word consumers including exact normalized coefficients. `depends:OSI.ALL.C.W.K.C.M.C` `parallel:none`

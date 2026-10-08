@@ -804,3 +804,17 @@ finite values and infinity tags, adds no coefficient buffer, and performs no sec
 validation. This avoids leaking the DI0 alias into consumers on Embedded, whose
 specialization requires the declaring module to be imported by the consuming file.
 Only the root construction/access files import DI0; no upper source changes are needed.
+
+
+### Original Coordinate Handoff
+
+An additive exact-coordinate transfer consumes retained L2 field values over an
+OriginalExactScalarDomain Base. It walks their parent tower, translates exact
+parent coefficients and fractional expressions, and retains the original selected
+root. A dyadic bracket is refined until the same retained L2 root is the unique
+root of its original definition within the bracket. L0 then validates and binds
+that selector through its checked transfer protocol. The bridge keeps the full
+L2 value owner and attained depths; no geometric equations are solved again.
+An invocation-local table shares transferred owners. This addition changes no
+existing root-solving, field-import or selected-root contract. Its proof compiles
+only the new bridge against immutable cached L2 modules; it does not rebuild L2.

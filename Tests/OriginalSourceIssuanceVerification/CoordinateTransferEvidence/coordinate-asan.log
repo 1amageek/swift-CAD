@@ -1,0 +1,5 @@
+COMMAND: ['python3', 'Tests/OriginalSourceIssuanceVerification/Scripts/VerifyCoordinateTransfer.py', '--lane', 'asan']
+PASS retained L2 selected root, fractions, repeated owner, original arithmetic and exact work boundary
+COORDINATE_TRANSFER_OK work=6351 bytes=130672
+
+EXIT: 0; SECONDS: 4.021

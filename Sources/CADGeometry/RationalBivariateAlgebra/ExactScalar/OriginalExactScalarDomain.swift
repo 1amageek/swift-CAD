@@ -78,6 +78,13 @@ public struct OriginalExactScalarDomain: ExactScalarArithmetic, ExactScalarOrder
                 maximumDepth: maximumValueDepth, usage: &usage)
         }
     }
+    /// Imports an already exact rational coefficient without a floating conversion.
+    public func rational<A: ExactScalarAdmission & ~Copyable>(exactly source: ExactRationalCoefficient,
+        using admission: inout A) throws(ExactScalarFailure) -> Value {
+        try operation(using: &admission) { usage in
+            try .constant(source, in: context, maximumDepth: maximumValueDepth, usage: &usage)
+        }
+    }
     public func generator<A: ExactScalarAdmission & ~Copyable>(using admission: inout A) throws(ExactScalarFailure) -> Value {
         try operation(using: &admission) { usage in
             guard case .extended(let root) = context.source else { throw ExactScalarFailure.unsupportedRepresentation }

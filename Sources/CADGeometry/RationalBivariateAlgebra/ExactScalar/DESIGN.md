@@ -445,3 +445,12 @@ Tests: `OriginalSourceIssuanceVerification/ScalarTransportFixtures.swift` checks
 independent and ancestor owners, dependent roots, exact arithmetic, lifetime,
 strict budgets/depth and entry/terminal cancellation. This additive boundary is
 consumed by the composition handoff; it changes no ordinary scalar import rule.
+
+`bindSelectedRoot` verifies one retained selector over an exact ordered parent
+coefficient vector and rational interval. It performs existing Sturm counting,
+not isolation/search, rejects zero/multiple/excluded roots and unrelated parent
+coefficients, and retains the original parent/definition/selector. Its explicit
+value/coefficient axis and inherited depths use the same admission. The rational
+coefficient constructor preserves exact input without passing through Double.
+The L2 coordinate bridge uses these two operations; it owns L2 source provenance
+and refinement, while L0 owns destination-root validation and original values.

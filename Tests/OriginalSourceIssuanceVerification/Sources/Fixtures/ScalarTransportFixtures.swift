@@ -55,6 +55,69 @@ extension SourceFixtures {
             maximumCoefficientDepth: 0, using: &a)
         do { _ = try transporter.transfer(values, into: shallow, using: &a); throw Failure.incorrectEvidence }
         catch ExactScalarFailure.resourceLimit(.coefficientDepth) {}
+        try selectedScalarBinding()
         print("PASS explicit retained scalar transport, exact values, foreign import rejection, lifetime and atomic budgets/depth/cancel")
+    }
+}
+
+extension SourceFixtures {
+    static func selectedScalarBinding() throws {
+        var a = try TraceAdmission()
+        let base = try OriginalExactScalarDomain(maximumValueDepth: 32,
+            maximumCoefficientDepth: 32, using: &a)
+        let transporter = DefaultOriginalScalarTransporter()
+        let zero = try base.integer(0, using: &a), one = try base.integer(1, using: &a)
+        let two = try base.integer(2, using: &a)
+        let depth = try ExactScalarDepth(value: 0, coefficient: 0)
+        let coefficients = [try base.negated(two, using: &a), zero, one]
+        let q = ExactRationalScalarDomain()
+        let lower = try q.integer(1, using: &a), upper = try q.integer(2, using: &a)
+        var measured = try TraceAdmission()
+        let selected = try transporter.bindSelectedRoot(coefficients: coefficients, in: base,
+            lower: lower, upper: upper, includesLower: true, includesUpper: true,
+            depth: depth, axis: .value, using: &measured)
+        let field = selected.field
+        try require(try field.compare(field.multiplying(selected.value, selected.value, using: &a),
+            field.integer(2, using: &a), using: &a) == .equal)
+        for bounds in [(try q.integer(-2, using: &a), upper),
+                       (try q.integer(3, using: &a), try q.integer(4, using: &a))] {
+            do {
+                _ = try transporter.bindSelectedRoot(coefficients: coefficients, in: base,
+                    lower: bounds.0, upper: bounds.1, includesLower: true, includesUpper: true,
+                    depth: depth, axis: .value, using: &a)
+                throw Failure.incorrectEvidence
+            } catch ExactScalarFailure.invalidEvidence {}
+        }
+        do {
+            _ = try transporter.bindSelectedRoot(coefficients: [try base.negated(one, using: &a), one],
+                in: base, lower: lower, upper: lower, includesLower: false, includesUpper: false,
+                depth: depth, axis: .value, using: &a)
+            throw Failure.incorrectEvidence
+        } catch ExactScalarFailure.invalidEvidence {}
+        let mapped = try transporter.transfer([selected.value], into: base, using: &a)
+        let secondValue = try field.adding(selected.value, field.integer(1, using: &a), using: &a)
+        let secondMapped = try transporter.importing(secondValue, through: mapped, using: &a)
+        try require(try mapped.field.compare(mapped.field.subtracting(secondMapped, mapped.values[0], using: &a),
+            mapped.field.integer(1, using: &a), using: &a) == .equal)
+        let unrelated = try retainedRootBinding(try selectedRoot(3), using: &a)
+        do {
+            _ = try transporter.importing(unrelated.generator(using: &a), through: mapped, using: &a)
+            throw Failure.incorrectEvidence
+        } catch ExactScalarFailure.incompatibleDomain {}
+        var exact = try TraceAdmission(work: measured.work, storage: measured.storageBytes)
+        _ = try transporter.bindSelectedRoot(coefficients: coefficients, in: base, lower: lower, upper: upper,
+            includesLower: true, includesUpper: true, depth: depth, axis: .value, using: &exact)
+        var storage = try TraceAdmission(storage: measured.storageBytes - 1)
+        do {
+            _ = try transporter.bindSelectedRoot(coefficients: coefficients, in: base, lower: lower, upper: upper,
+                includesLower: true, includesUpper: true, depth: depth, axis: .value, using: &storage)
+            throw Failure.incorrectEvidence
+        } catch ExactScalarFailure.resourceLimit(.storage) {}
+        var final = try TraceAdmission(cancelAtStorage: measured.storageCalls)
+        do {
+            _ = try transporter.bindSelectedRoot(coefficients: coefficients, in: base, lower: lower, upper: upper,
+                includesLower: true, includesUpper: true, depth: depth, axis: .value, using: &final)
+            throw Failure.incorrectEvidence
+        } catch ExactScalarFailure.cancelled {}
     }
 }
