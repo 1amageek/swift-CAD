@@ -1,0 +1,25 @@
+COMMAND: ['python3', 'Tests/OriginalSourceIssuanceVerification/Scripts/VerifyMergedPreparation.py']
+PASS one original binding retains both issued source law and complete domain cover, including exclusion
+PASS existing curve preparation uses common original law, all coefficients, retained COW and closed clipping
+PASS native bounds, singleton closed endpoint and disjoint selected domain remain distinct
+PASS existing surface preparation transfers weighted four tensor laws and both clipped coordinates
+PASS invalid family inputs, degree and existing periodic/multispan coverage fail explicitly
+PASS same-ledger exact and independently insufficient budgets, entry/final cancellation and typed failure preservation
+METRIC prepared weighted curve work=1739 storageBytes=115242
+PASS Native CS case 0 work=194947 bytes=10906109
+PASS Native CS case 1 work=176995 bytes=9995088
+PASS Native CS case 2 work=113089 bytes=6388452
+PASS Native CS case 3 work=114312 bytes=6557611
+PASS Native CS case 4 work=5717 bytes=362610
+PASS Native CS case 5 work=45872 bytes=2573556
+PASS Native CS case 6 work=140214 bytes=6563110
+PASS Native CS case 7 work=102301 bytes=5857430
+PASS Native distinct UV work=761605 bytes=34020834
+PASS Native SSI case 0 work=335123 bytes=19660287
+PASS Native SSI case 1 work=309328 bytes=17600079
+PASS Native SSI case 2 work=218367 bytes=12643682
+PASS Native folded SSI cells=45 attachments=108 work=8732619 bytes=260178962
+PASS Native atomic limits/input/cancel and final point/empty cancellation
+PASS original domain consumer composition
+
+EXIT: 0; SECONDS: 16.689

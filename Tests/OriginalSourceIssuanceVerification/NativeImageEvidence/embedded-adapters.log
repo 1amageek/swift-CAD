@@ -1,0 +1,11 @@
+COMMAND: ['python3', 'Tests/OriginalSourceIssuanceVerification/Scripts/VerifyGeometryAdapters.py', '--lane', 'embedded', '--geometry-cache', '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-embedded', '--issuer-cache', '.build/source-complete-embedded', '--output', '.build/source-adapters-embedded']
+(node:14077) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS actual weighted curve law, retained COW source and zero leaf source depth
+PASS actual weighted tensor net, U-fastest reads and complete four coefficient laws
+PASS actual family validation, same-ledger work/storage and entry cancellation failures
+PASS actual periodic curve and doubly-periodic tensor providers, opposite cycle translations and exact original laws
+PASS actual sphere/cylinder/torus original gauge; plane authority blocked, cone routed to its physical-angle capability
+PASS actual physical-radian cone binding, existing original basis, full exact image law and original invalid-angle rejection
+
+EXIT: 0; SECONDS: 12.547

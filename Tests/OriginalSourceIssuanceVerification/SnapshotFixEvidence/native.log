@@ -1,0 +1,8 @@
+COMMAND: ['python3', 'Tests/OriginalSourceIssuanceVerification/Scripts/VerifyNativeConsumer.py', '--lane', 'native', '--geometry-cache', '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native', '--source-only', '--proof', 'Tests/OriginalSourceIssuanceVerification/Sources/CoonsGeometryProof/CoonsGeometryProof.swift', '--reuse-archives', '.build/source-adapters-native', '--output', '.build/source-snapshot-fix-native']
+PASS actual weighted nonunit Coons complete HXYZW, signed traversal, exact corners, owned sources, depth/work/storage/cancel: reversed=false
+PASS actual weighted nonunit Coons complete HXYZW, signed traversal, exact corners, owned sources, depth/work/storage/cancel: reversed=true
+PASS actual sealed algebraic traversal, ancestor coefficient embedding, original endpoint XYZ and signed exact support: reversed=false
+PASS actual sealed algebraic traversal, ancestor coefficient embedding, original endpoint XYZ and signed exact support: reversed=true
+PASS actual four algebraic Coons boundaries retain eight endpoint owners in one field, exact repeated-root corners and complete HXYZW
+
+EXIT: 0; SECONDS: 12.856

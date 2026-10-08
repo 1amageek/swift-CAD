@@ -1,0 +1,64 @@
+COMMAND: ['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--build-path', '.build/source-complete-asan', '--sanitize', 'address']
+Building for debugging...
+[Pre-planning 1 / 182]
+[Planning deferred tasks]
+[3 / 6] SourceIssuer
+[4 / 7] SourceIssuer
+[13 / 16] SourceIssuerFixtures
+[21 / 25] SourceIssuer
+[23 / 25] SourceIssuer
+[32 / 36] SourceIssuerFixtures
+[36 / 40] SourceIssuerTests-product
+[38 / 42] SourceIssuerTests-product
+[44 / 46] SourceIssuerTests-product
+[49 / 51] SourceIssuerProof-product
+[51 / 51] SourceIssuerProof-product
+Build complete! (2.48秒)
+Test Suite 'All tests' started at 2026-10-09 02:51:09.879.
+Test Suite 'All tests' passed at 2026-10-09 02:51:09.880.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test coneImages() started.
+􀟈  Test originalImplicitImages() started.
+􀟈  Test originalExactLaws() started.
+􀟈  Test originalOwnership() started.
+􀟈  Test originalTypedFailures() started.
+􀟈  Test physicalAngleCoefficients() started.
+􀟈  Test heterogeneousRuledLaws() started.
+􀟈  Test originalCumulativeResources() started.
+􀟈  Test physicalAngleResources() started.
+􀟈  Test spatialLaws() started.
+􀟈  Test originalPeriodicLaws() started.
+􀟈  Test originalSelectedSpansAndTensor() started.
+PASS invalid source/chart, unsupported periodic and independently inherited source-depth refusal
+􁁛  Test originalTypedFailures() passed after 0.003 seconds.
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+􁁛  Test originalOwnership() passed after 0.006 seconds.
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+􁁛  Test originalExactLaws() passed after 0.016 seconds.
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4357 storageAdmissions=165
+􁁛  Test originalCumulativeResources() passed after 0.017 seconds.
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+􁁛  Test originalSelectedSpansAndTensor() passed after 0.020 seconds.
+PASS periodic exact knot/control law, two axes, negative cycles, seam owners, transport and failures
+􁁛  Test originalPeriodicLaws() passed after 0.021 seconds.
+PASS heterogeneous Native/line ruled whole laws, product W, exact support, retained child owners and atomic budgets/cancel/depth
+􁁛  Test heterogeneousRuledLaws() passed after 0.023 seconds.
+PASS original spatial homogeneous action, exact rational/transcendental coefficients, W/support/transport retention and atomic failures
+􁁛  Test spatialLaws() passed after 0.033 seconds.
+PASS complete sphere/cylinder/torus image equations, original sheared frames, source lifetime and failures
+􁁛  Test originalImplicitImages() passed after 0.040 seconds.
+PASS physical-angle exact cumulative work/storage, entry/final cancellation and independent coefficient depth
+MEASURE physical-angle work=20985 generatedBytes=22041
+􁁛  Test physicalAngleResources() passed after 0.101 seconds.
+PASS physical-radian exact identities, near-binary64 sign separation, range doubling, lifetime and typed failures
+􁁛  Test physicalAngleCoefficients() passed after 0.295 seconds.
+PASS exact physical-angle cone image, sheared original frame, both nappes/apex, excluded point, ownership and atomic failures
+MEASURE cone work=59788 generatedBytes=123905
+􁁛  Test coneImages() passed after 0.718 seconds.
+􁁛  Test run with 12 tests in 0 suites passed after 0.718 seconds.
+
+EXIT: 0; SECONDS: 4.359

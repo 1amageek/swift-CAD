@@ -77,20 +77,22 @@ public struct DefaultNativeExactRelationResolver:
     }
 
     private func publish<A: ExactScalarAdmission & ~Copyable>(
-        first: ExactParametricMap<ExactRationalScalarDomain>,
-        second: ExactParametricMap<ExactRationalScalarDomain>, field: Field,
+        first: NativeExactPreparedMap,
+        second: NativeExactPreparedMap, field: Field,
         domains: NativeExactRelationDomains, source: NativeExactRelationSource, kind: ExactParametricRelationKind,
         tolerance: ModelingTolerance, cellLimits: ExactRealCellLimits,
         topologyLimits: ExactRealTopologyLimits, using admission: inout A
     ) throws -> NativeExactParametricRelation {
         let d = Domain(cells: Cells.self, topology: .init(cells: Cells.self))
-        let compiled = try d.compile(kind: kind, first: first, second: second, using: &admission)
+        let compiled = try d.compile(kind: kind, first: first.map, second: second.map, using: &admission)
         let relation = try d.resolve(compiled, cellLimits: cellLimits,
             topologyLimits: topologyLimits, using: &admission)
         try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: NativeExactParametricRelation.self))
         let result = NativeExactParametricRelation(source: source, domains: domains, tolerance: tolerance,
             coefficientField: field, relation: relation)
         try admission.checkpoint()
+        withExtendedLifetime(first.sourceLaw) {}
+        withExtendedLifetime(second.sourceLaw) {}
         return result
     }
 }

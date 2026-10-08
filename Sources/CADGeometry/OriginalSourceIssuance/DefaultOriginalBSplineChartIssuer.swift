@@ -21,7 +21,8 @@ public struct DefaultOriginalBSplineChartIssuer<Source: OriginalBSplineSourceRea
             guard source.owns(chart) else { throw OriginalSourceIssuanceFailure.foreignBinding }
             let original = source.original
             let arity = original.parameterCount
-            guard (1...2).contains(arity), chart.selection.spans.count == arity else {
+            guard (1...2).contains(arity), chart.selection.spans.count == arity,
+                chart.selection.cycles == nil || chart.selection.cycles?.count == arity else {
                 throw OriginalSourceIssuanceFailure.invalidChart
             }
             let ring = try ExactPolynomialDomain(field: copy field, variableCount: arity, using: &admission)
@@ -35,13 +36,6 @@ public struct DefaultOriginalBSplineChartIssuer<Source: OriginalBSplineSourceRea
             support.reserveCapacity(arity); bases.reserveCapacity(arity)
             for axis in 0..<arity {
                 try admission.consumeWork(1)
-                if original.isPeriodic(in: axis) {
-                    let period = try DefaultOriginalBSplinePeriodIssuer<Source,Field>().issue(
-                        source: source, axis: axis, field: copy field, limits: limits, using: &admission)
-                    try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
-                        of: OriginalSourcePeriodReceipt<Source,Field>.self))
-                    periods.append(period)
-                }
                 let degree = original.degree(in: axis), count = original.controlCount(in: axis)
                 let knots = original.knotCount(in: axis), span = chart.selection.spans[axis]
                 guard degree > 0, count > degree, span >= degree, span < count else {
@@ -57,10 +51,32 @@ public struct DefaultOriginalBSplineChartIssuer<Source: OriginalBSplineSourceRea
                 guard lower.isFinite, upper.isFinite, lower < upper else {
                     throw OriginalSourceIssuanceFailure.invalidChart
                 }
-                support.append(.init(lower: try field.binary64(exactly: lower, using: &admission),
-                    upper: try field.binary64(exactly: upper, using: &admission)))
+                let cycle = chart.selection.cycles?[axis] ?? 0
+                let translation: Field.Value?
+                if original.isPeriodic(in: axis) {
+                    let period = try periodicLaw(original, axis: axis, field: field, using: &admission)
+                    // Preserve the local-law failure contract while retaining the
+                    // independently issued whole-period authority for domain consumers.
+                    let authority = try DefaultOriginalBSplinePeriodIssuer<Source,Field>().issue(
+                        source: source, axis: axis, field: copy field, limits: limits, using: &admission)
+                    try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
+                        of: OriginalSourcePeriodReceipt<Source,Field>.self))
+                    periods.append(authority)
+                    translation = cycle == 0 ? nil : try field.multiplying(period,
+                        field.integer(cycle, using: &admission), using: &admission)
+                } else {
+                    guard cycle == 0 else { throw OriginalSourceIssuanceFailure.invalidChart }
+                    translation = nil
+                }
+                var exactLower = try field.binary64(exactly: lower, using: &admission)
+                var exactUpper = try field.binary64(exactly: upper, using: &admission)
+                if let translation {
+                    exactLower = try field.adding(exactLower, translation, using: &admission)
+                    exactUpper = try field.adding(exactUpper, translation, using: &admission)
+                }
+                support.append(.init(lower: exactLower, upper: exactUpper))
                 bases.append(try basis(original, axis: axis, span: span, degree: degree,
-                    field: field, ring: ring, using: &admission))
+                    translation: translation, field: field, ring: ring, using: &admission))
             }
             let zero = try ring.zero(using: &admission)
             try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: ExactPolynomial<Field>.self))
@@ -115,9 +131,13 @@ public struct DefaultOriginalBSplineChartIssuer<Source: OriginalBSplineSourceRea
     }
 
     private func basis<A: ExactScalarAdmission & ~Copyable>(_ source: Source, axis: Int,
-        span: Int, degree: Int, field: borrowing Field, ring: ExactPolynomialDomain<Field>,
+        span: Int, degree: Int, translation: Field.Value?,
+        field: borrowing Field, ring: ExactPolynomialDomain<Field>,
         using admission: inout A) throws -> [ExactPolynomial<Field>] {
-        let parameter = try ring.variable(axis, using: &admission)
+        var parameter = try ring.variable(axis, using: &admission)
+        if let translation {
+            parameter = try ring.subtracting(parameter, ring.constant(translation, using: &admission), using: &admission)
+        }
         let one = try field.integer(1, using: &admission)
         try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: ExactPolynomial<Field>.self))
         var current = [try ring.constant(one, using: &admission)]
@@ -163,5 +183,62 @@ public struct DefaultOriginalBSplineChartIssuer<Source: OriginalBSplineSourceRea
             current = next
         }
         return current
+    }
+
+    private func periodicLaw<A: ExactScalarAdmission & ~Copyable>(_ source: Source, axis: Int,
+        field: borrowing Field, using admission: inout A) throws -> Field.Value {
+        let degree = source.degree(in: axis), count = source.controlCount(in: axis)
+        let independent = count - degree
+        guard independent > 0 else { throw OriginalSourceIssuanceFailure.invalidSource }
+        try admission.consumeWork(2)
+        let low = source.knot(at: degree, in: axis), high = source.knot(at: count, in: axis)
+        let originalPeriod = high - low
+        guard originalPeriod.isFinite, originalPeriod > 0 else { throw OriginalSourceIssuanceFailure.invalidSource }
+        let period = try field.binary64(exactly: originalPeriod, using: &admission)
+        let exact = try field.subtracting(field.binary64(exactly: high, using: &admission),
+            field.binary64(exactly: low, using: &admission), using: &admission)
+        guard try field.compare(period, exact, using: &admission) == .equal else {
+            throw OriginalSourceIssuanceFailure.unsupportedRepresentation
+        }
+        for index in 0..<(source.knotCount(in: axis) - independent) {
+            try admission.consumeWork(2)
+            let difference = try field.subtracting(
+                field.binary64(exactly: source.knot(at: index + independent, in: axis), using: &admission),
+                field.binary64(exactly: source.knot(at: index, in: axis), using: &admission), using: &admission)
+            guard try field.compare(difference, period, using: &admission) == .equal else {
+                throw OriginalSourceIssuanceFailure.unsupportedRepresentation
+            }
+        }
+        let otherCount = source.parameterCount == 2 ? source.controlCount(in: 1 - axis) : 1
+        for other in 0..<otherCount {
+            for index in independent..<count {
+                let first: Int, second: Int
+                if axis == 0 {
+                    first = try controlIndex(row: other, column: index, width: count)
+                    second = try controlIndex(row: other, column: index % independent, width: count)
+                } else {
+                    first = try controlIndex(row: index, column: other, width: otherCount)
+                    second = try controlIndex(row: index % independent, column: other, width: otherCount)
+                }
+                try admission.consumeWork(2)
+                guard source.weight(ofControl: first) == source.weight(ofControl: second) else {
+                    throw OriginalSourceIssuanceFailure.invalidSource
+                }
+                for coordinate in 0..<3 {
+                    try admission.consumeWork(2)
+                    guard source.coordinate(ofControl: first, in: coordinate) == source.coordinate(ofControl: second, in: coordinate) else {
+                        throw OriginalSourceIssuanceFailure.invalidSource
+                    }
+                }
+            }
+        }
+        return period
+    }
+
+    private func controlIndex(row: Int, column: Int, width: Int) throws -> Int {
+        let product = row.multipliedReportingOverflow(by: width)
+        let sum = product.partialValue.addingReportingOverflow(column)
+        guard !product.overflow, !sum.overflow else { throw OriginalSourceIssuanceFailure.countOverflow }
+        return sum.partialValue
     }
 }

@@ -22,7 +22,7 @@ extension DefaultNativeExactRelationResolver {
     func curveMap<A: ExactScalarAdmission & ~Copyable>(_ curve: BSplineCurve3D,
         selected: ScalarInterval?, field: Field, tolerance: ModelingTolerance,
         degree: Int, using admission: inout A
-    ) throws -> (map: ExactParametricMap<ExactRationalScalarDomain>, cover: OriginalBSplineDomainCover<BSplineCurve3D,Field>) {
+    ) throws -> (map: NativeExactPreparedMap, cover: OriginalBSplineDomainCover<BSplineCurve3D,Field>) {
         guard degree >= 0, curve.degree <= degree else { throw NativeExactRelationFailure.invalidDegree }
         guard !curve.isPeriodic else { throw NativeExactRelationFailure.unsupportedCoverage }
         let limits = try domainLimits()
@@ -33,13 +33,17 @@ extension DefaultNativeExactRelationResolver {
             try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:ScalarInterval.self))
             request = [selected]
         } else { request = nil }
-        return try boundMap(source:source,selected:request,field:field,limits:limits,using:&admission)
+        let bound = try boundMap(source:source,selected:request,field:field,limits:limits,using:&admission)
+        try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:NativeExactPreparedMap.self))
+        let prepared = NativeExactPreparedMap(map:bound.map,sourceLaw:.curve(bound.law))
+        try admission.checkpoint()
+        return (prepared,bound.cover)
     }
 
     func surfaceMap<A: ExactScalarAdmission & ~Copyable>(_ surface: BSplineSurface3D,
         selected: SurfaceParameterBox?, field: Field, tolerance: ModelingTolerance,
         degree: Int, using admission: inout A
-    ) throws -> (map: ExactParametricMap<ExactRationalScalarDomain>, cover: OriginalBSplineDomainCover<BSplineSurface3D,Field>) {
+    ) throws -> (map: NativeExactPreparedMap, cover: OriginalBSplineDomainCover<BSplineSurface3D,Field>) {
         guard degree >= 0, max(surface.uDegree,surface.vDegree) <= degree else { throw NativeExactRelationFailure.invalidDegree }
         guard !surface.isUPeriodic, !surface.isVPeriodic else { throw NativeExactRelationFailure.unsupportedCoverage }
         let limits = try domainLimits()
@@ -50,7 +54,11 @@ extension DefaultNativeExactRelationResolver {
             try admission.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:ScalarInterval.self))
             request = [selected.u,selected.v]
         } else { request = nil }
-        return try boundMap(source:source,selected:request,field:field,limits:limits,using:&admission)
+        let bound = try boundMap(source:source,selected:request,field:field,limits:limits,using:&admission)
+        try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:NativeExactPreparedMap.self))
+        let prepared = NativeExactPreparedMap(map:bound.map,sourceLaw:.surface(bound.law))
+        try admission.checkpoint()
+        return (prepared,bound.cover)
     }
 
     private func domainLimits() throws -> OriginalDomainIdentityLimits {
@@ -63,7 +71,7 @@ extension DefaultNativeExactRelationResolver {
     private func boundMap<S: OriginalBSplineSourceReading,A: ExactScalarAdmission & ~Copyable>(
         source: OriginalSourceBinding<S>,selected: [ScalarInterval]?,field: Field,
         limits: OriginalDomainIdentityLimits,using admission: inout A
-    ) throws -> (map: ExactParametricMap<ExactRationalScalarDomain>, cover: OriginalBSplineDomainCover<S,Field>) {
+    ) throws -> (map: ExactParametricMap<ExactRationalScalarDomain>, cover: OriginalBSplineDomainCover<S,Field>, law: OriginalRationalChartReceipt<S,OriginalBSplineChartSelection,Field>) {
         let original = source.original,n = original.parameterCount
         guard n == 1 || n == 2 else { throw NativeExactRelationFailure.unsupportedCoverage }
         // Validation is owned by the snapshot provider and precedes every indexed access.
@@ -121,6 +129,6 @@ extension DefaultNativeExactRelationResolver {
         }
         let system = try cells.bind(polynomials:polynomials,domains:domains,using:&admission)
         let map = try Domain(cells:Cells.self,topology:.init(cells:Cells.self)).map(from:system,using:&admission)
-        return (map,cover)
+        return (map,cover,chart.law)
     }
 }

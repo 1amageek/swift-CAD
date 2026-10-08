@@ -106,16 +106,9 @@ does not prepare interval jets, derivatives, normals or silhouette equations.
 The existing differential law uses this same issuer after validating its existing
 native token, including periodic translations; its normal/view behavior remains.
 
-Native import visits the original coefficient dictionary directly into one final
-term buffer, preserving exact coefficient embedding and checked powers. It sorts
-that buffer once in L1's descending slot order with admitted comparison work and
-workspace. L1's ordered construction validates every exponent, coefficient and
-strict adjacency before retaining the same buffer; it never trusts caller flags.
-The legacy ascending v/u ordering is not treated as L1's descending u/v ordering.
-All entry/depth/storage/cancel contracts remain; no global cache or new shared
-state is introduced. This change does not compose XYZ images or reuse topology
-across modified domains. Its before/after proof uses identical public CS/SSI
-inputs, fixtures, mathematical guarantees and query limits.
+Native import consumes the source issuer's four exact homogeneous polynomials
+through L1's checked importing contract. No legacy dictionary conversion,
+normal/silhouette preparation or separate source reconstruction is performed.
 
 ## Domain Receipt Composition
 Native single-span/nonperiodic capability is unchanged. The adapter binds a
@@ -136,3 +129,15 @@ independent lower modules and validated unchanged Native DTO/intersector cache.
 This proves this adapter composition, not a fresh build of the whole module.
 The cached module premises and runtime artifact are checked against retained
 full-production evidence before reuse. Legacy XYZ APIs remain outside this change.
+
+## Verified Issuer Composition
+Preparation retains the selected source-law receipt with the L5 map in
+NativeExactPreparedMap. curveMap/surfaceMap also return the complete domain cover;
+publication retains both covers and keeps both source laws alive through terminal
+cancellation. DomainBoundBSplineChartIssuer remains the sole request-clipping
+owner. The generic bound-map helper returns its already-issued law; it does not
+issue or solve the same relation again. All work/storage/depth/cancel operations
+use the existing caller admission. Original source and domain failure wrappers
+remain explicit, while scalar admission causes preserve their existing public
+classification. Independent source/domain composition verification reuses checked
+lower modules and unchanged geometry DTOs without an upper-target build.

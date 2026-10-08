@@ -1,0 +1,9 @@
+COMMAND: ['python3', 'Tests/OriginalSourceIssuanceVerification/Scripts/VerifyGeometryAdapters.py', '--lane', 'native', '--geometry-cache', '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native', '--issuer-cache', '.build/source-complete-native', '--output', '.build/source-adapters-native']
+PASS actual weighted curve law, retained COW source and zero leaf source depth
+PASS actual weighted tensor net, U-fastest reads and complete four coefficient laws
+PASS actual family validation, same-ledger work/storage and entry cancellation failures
+PASS actual periodic curve and doubly-periodic tensor providers, opposite cycle translations and exact original laws
+PASS actual sphere/cylinder/torus original gauge; plane authority blocked, cone routed to its physical-angle capability
+PASS actual physical-radian cone binding, existing original basis, full exact image law and original invalid-angle rejection
+
+EXIT: 0; SECONDS: 9.064

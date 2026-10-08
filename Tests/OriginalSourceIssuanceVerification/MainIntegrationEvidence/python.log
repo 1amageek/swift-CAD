@@ -1,0 +1,12 @@
+COMMAND: ['python3', 'Tests/OriginalSourceIssuanceVerification/Scripts/TestVerificationInputs.py']
+test_overlay_edit_during_copy_is_rejected (__main__.VerificationInputTests.test_overlay_edit_during_copy_is_rejected) ... ok
+test_proof_edit_during_copy_is_rejected (__main__.VerificationInputTests.test_proof_edit_during_copy_is_rejected) ... ok
+test_unchanged_overlay_and_later_edit (__main__.VerificationInputTests.test_unchanged_overlay_and_later_edit) ... ok
+test_unchanged_proof_and_later_edit (__main__.VerificationInputTests.test_unchanged_proof_and_later_edit) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.004s
+
+OK
+
+EXIT: 0; SECONDS: 0.090

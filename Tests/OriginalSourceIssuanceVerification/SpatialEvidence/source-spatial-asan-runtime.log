@@ -1,0 +1,19 @@
+COMMAND: ['.build/source-complete-asan/out/Products/Debug/SourceIssuerProof']
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+PASS periodic exact knot/control law, two axes, negative cycles, seam owners, transport and failures
+PASS complete sphere/cylinder/torus image equations, original sheared frames, source lifetime and failures
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+PASS invalid source/chart, unsupported periodic and independently inherited source-depth refusal
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4357 storageAdmissions=165
+PASS physical-radian exact identities, near-binary64 sign separation, range doubling, lifetime and typed failures
+PASS physical-angle exact cumulative work/storage, entry/final cancellation and independent coefficient depth
+MEASURE physical-angle work=20985 generatedBytes=22041
+PASS exact physical-angle cone image, sheared original frame, both nappes/apex, excluded point, ownership and atomic failures
+MEASURE cone work=59788 generatedBytes=123905
+PASS heterogeneous Native/line ruled whole laws, product W, exact support, retained child owners and atomic budgets/cancel/depth
+PASS original spatial homogeneous action, exact rational/transcendental coefficients, W/support/transport retention and atomic failures
+ORIGINAL_SOURCE_ISSUANCE_PROOF_OK
+
+EXIT: 0; SECONDS: 1.270

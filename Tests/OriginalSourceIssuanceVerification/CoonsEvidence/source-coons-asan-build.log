@@ -1,0 +1,67 @@
+COMMAND: ['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--build-path', '.build/source-complete-asan', '--sanitize', 'address']
+Building for debugging...
+[1 / 4] SourceIssuer
+[2 / 5] SourceIssuer
+[7 / 10] SourceIssuerFixtures
+[11 / 14] SourceIssuer
+[14 / 17] SourceIssuerFixtures
+[17 / 18] SourceIssuerTests-product
+[20 / 20] SourceIssuerProof-product
+Build complete! (1.64秒)
+Test Suite 'All tests' started at 2026-10-09 03:31:27.605.
+Test Suite 'All tests' passed at 2026-10-09 03:31:27.607.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test originalImplicitImages() started.
+􀟈  Test parameterImageLaws() started.
+􀟈  Test originalSelectedSpansAndTensor() started.
+􀟈  Test originalCumulativeResources() started.
+􀟈  Test originalExactLaws() started.
+􀟈  Test spatialLaws() started.
+􀟈  Test originalOwnership() started.
+􀟈  Test originalTypedFailures() started.
+􀟈  Test originalPeriodicLaws() started.
+􀟈  Test heterogeneousRuledLaws() started.
+􀟈  Test physicalAngleResources() started.
+􀟈  Test endpointDecisionDepths() started.
+􀟈  Test physicalAngleCoefficients() started.
+􀟈  Test coneImages() started.
+􀟈  Test coonsLaws() started.
+PASS endpoint decision-only value/coefficient depths survive otherwise depth-zero rational laws
+PASS invalid source/chart, unsupported periodic and independently inherited source-depth refusal
+􁁛  Test endpointDecisionDepths() passed after 0.003 seconds.
+􁁛  Test originalTypedFailures() passed after 0.003 seconds.
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+􁁛  Test originalOwnership() passed after 0.006 seconds.
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+􁁛  Test originalExactLaws() passed after 0.017 seconds.
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4381 storageAdmissions=165
+􁁛  Test originalCumulativeResources() passed after 0.020 seconds.
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+􁁛  Test originalSelectedSpansAndTensor() passed after 0.023 seconds.
+PASS heterogeneous Native/line ruled whole laws, product W, exact support, retained child owners and atomic budgets/cancel/depth
+􁁛  Test heterogeneousRuledLaws() passed after 0.027 seconds.
+PASS periodic exact knot/control law, two axes, negative cycles, seam owners, transport and failures
+􁁛  Test originalPeriodicLaws() passed after 0.030 seconds.
+PASS signed/nested original parameter transport, nonunit denominators, child-local support, swap/spatial action, provenance and atomic failures
+􁁛  Test parameterImageLaws() passed after 0.040 seconds.
+PASS original spatial homogeneous action, exact rational/transcendental coefficients, W/support/transport retention and atomic failures
+􁁛  Test spatialLaws() passed after 0.052 seconds.
+PASS complete sphere/cylinder/torus image equations, original sheared frames, source lifetime and failures
+􁁛  Test originalImplicitImages() passed after 0.061 seconds.
+PASS heterogeneous Coons full laws, signed correspondence, uncancelled W, exact corners, other-span endpoint owners and atomic failures
+􁁛  Test coonsLaws() passed after 0.070 seconds.
+PASS physical-angle exact cumulative work/storage, entry/final cancellation and independent coefficient depth
+MEASURE physical-angle work=20985 generatedBytes=22041
+􁁛  Test physicalAngleResources() passed after 0.137 seconds.
+PASS physical-radian exact identities, near-binary64 sign separation, range doubling, lifetime and typed failures
+􁁛  Test physicalAngleCoefficients() passed after 0.339 seconds.
+PASS exact physical-angle cone image, sheared original frame, both nappes/apex, excluded point, ownership and atomic failures
+MEASURE cone work=59788 generatedBytes=123905
+􁁛  Test coneImages() passed after 0.759 seconds.
+􁁛  Test run with 15 tests in 0 suites passed after 0.760 seconds.
+
+EXIT: 0; SECONDS: 3.434

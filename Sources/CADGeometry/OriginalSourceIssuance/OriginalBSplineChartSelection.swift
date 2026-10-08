@@ -6,5 +6,8 @@ import L1
 /// Original native span ordinals; the family issuer validates each selection.
 public struct OriginalBSplineChartSelection: Sendable {
     public let spans: [Int]
-    public init(spans: [Int]) { self.spans = spans }
+    public let cycles: [Int]?
+    public init(spans: [Int], cycles: [Int]? = nil) {
+        self.spans = spans; self.cycles = cycles
+    }
 }

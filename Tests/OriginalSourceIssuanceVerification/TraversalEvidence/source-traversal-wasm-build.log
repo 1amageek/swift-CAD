@@ -1,0 +1,22 @@
+COMMAND: ['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'build', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--build-path', '.build/source-complete-wasm', '--swift-sdk', 'swift-6.4.0-RELEASE_wasm', '--product', 'SourceIssuerProof']
+Building for debugging...
+[Computing dependencies]
+[Planning deferred tasks]
+[3 / 7] SourceIssuer
+[4 / 8] SourceIssuer
+[11 / 15] SourceIssuerFixtures
+[12 / 16] SourceIssuerFixtures
+[18 / 20] SourceIssuerProof-product
+[20 / 22] L0
+[35 / 40] SourceIssuer
+[35 / 40] SourceIssuerFixtures
+[36 / 41] SourceIssuerFixtures
+[36 / 41] SourceIssuer
+[38 / 42] SourceIssuer
+[39 / 42] SourceIssuerFixtures
+[42 / 43] SourceIssuerFixtures
+[43 / 43] SourceIssuerProof-product
+/private/tmp/cad-source-issuer-complete-20261008/Tests/OriginalSourceIssuanceVerification/Package.swift: SourceIssuerProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+Build complete! (5.31秒)
+
+EXIT: 0; SECONDS: 7.362
