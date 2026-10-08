@@ -1,0 +1,9 @@
+COMMAND: ['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'build', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--build-path', '.build/source-issuer-contract', '--build-tests']
+Building for debugging...
+[1 / 7] SourceIssuer
+[9 / 13] SourceIssuerFixtures
+[17 / 18] SourceIssuerTests-product
+[20 / 20] SourceIssuerProof-product
+Build complete! (0.97秒)
+
+EXIT: 0; SECONDS: 1.547

@@ -338,3 +338,5 @@ URL persistence, every exchange format, WasmKit and Embedded remain separate
 proof obligations.
 
 Verification owner for the exact heap/PSC optimization: [HeapPSCVerification](Tests/HeapPSCVerification/DESIGN.md).
+
+Independent source-issuer verification owner: [OriginalSourceIssuanceVerification](Tests/OriginalSourceIssuanceVerification/DESIGN.md). It compiles only linked L0/L1, issuer ports/implementation and primitive source-provider fixtures; it does not establish existing Geometry adapter or whole-domain acceptance.

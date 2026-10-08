@@ -1,0 +1,26 @@
+COMMAND: ['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--build-path', '.build/source-issuer-asan', '--sanitize', 'address', '--skip-build']
+Test Suite 'All tests' started at 2026-10-08 23:35:40.744.
+Test Suite 'All tests' passed at 2026-10-08 23:35:40.745.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test originalSelectedSpansAndTensor() started.
+􀟈  Test originalCumulativeResources() started.
+􀟈  Test originalOwnership() started.
+􀟈  Test originalExactLaws() started.
+􀟈  Test originalTypedFailures() started.
+PASS invalid source/chart, unsupported periodic and independently inherited source-depth refusal
+􁁛  Test originalTypedFailures() passed after 0.001 seconds.
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+􁁛  Test originalOwnership() passed after 0.002 seconds.
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4341 storageAdmissions=165
+􁁛  Test originalCumulativeResources() passed after 0.005 seconds.
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+􁁛  Test originalExactLaws() passed after 0.005 seconds.
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+􁁛  Test originalSelectedSpansAndTensor() passed after 0.005 seconds.
+􁁛  Test run with 5 tests in 0 suites passed after 0.005 seconds.
+
+EXIT: 0; SECONDS: 0.937

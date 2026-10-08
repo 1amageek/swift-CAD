@@ -1,0 +1,10 @@
+COMMAND: ['.build/source-issuer-asan/out/Products/Debug/SourceIssuerProof']
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+PASS invalid source/chart, unsupported periodic and independently inherited source-depth refusal
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4341 storageAdmissions=165
+ORIGINAL_SOURCE_ISSUANCE_PROOF_OK
+
+EXIT: 0; SECONDS: 0.346

@@ -1,0 +1,12 @@
+COMMAND: ['/usr/local/bin/node', 'Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs', '.build/source-issuer-embedded/out/Products/Debug-webassembly-wasm32/SourceIssuerProof.wasm']
+(node:81852) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+PASS invalid source/chart, unsupported periodic and independently inherited source-depth refusal
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1003 generatedBytes=2429 storageAdmissions=165
+ORIGINAL_SOURCE_ISSUANCE_PROOF_OK
+
+EXIT: 0; SECONDS: 0.077
