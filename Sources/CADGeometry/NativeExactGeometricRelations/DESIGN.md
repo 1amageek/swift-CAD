@@ -128,12 +128,12 @@ boundary clipping, must consume the new retained evidence before their route is
 claimed migrated. No old receipt is reconstructed by solving the same problem.
 
 The legacy entry has no separate L6 stored-cell, closure, attachment, strata,
-projection-span or scalar-extension-level option. Those structural fields are
-Int.max in the adapter rather than an invented additional ceiling. This does not
-remove any existing caller ceiling: actual L2/L3 visits, work, allocation bytes
-and both independent depths still reach that same finite original allowance.
-The complete CS selected-cell/component ceiling is checked after exact resolution
-and before numerical publication; the unchanged finite allowance bounds construction.
+projection-span or scalar-extension-level option. The adapter starts these fields
+at Int.max; CS transports its existing selected-cell ceiling through closure
+capacity as specified below. No additional independent public ceiling is invented.
+Actual L2/L3 visits, work, allocation bytes and both independent depths still
+reach the same finite original allowance. Final CS selected-cell/component checks
+remain before numerical publication, alongside the early topology capacity check.
 Publisher candidate/component/root limits retain their previous meanings. Explicit
 exact-ledger overloads continue to honor every caller-specified lower structural
 limit. This internal mapping is not an increase to any existing public option.
@@ -168,3 +168,17 @@ selected, the complete box uses that axis and the unchanged native bound for the
 other axis. The source issuer owns the effective intersection with native domains.
 A numerical publisher must not rewrite an absent request into an explicit box.
 Weighted public proof checks the retained original request and raw-equation TUV.
+
+### Early CS candidate rejection
+
+The CS publisher bounds the existing topology closure capacity by the smaller of
+the caller's `maximumClosures` and `options.maximumCandidateCount`. Complete L4
+incidence requires one closure per selected cell, so this transports the existing
+selected-result ceiling to the earliest topology boundary without interpreting
+the full partition count as a result count. All other caller limits are preserved.
+The final selected-cell/component/isolated checks remain defense in depth.
+The L4 issuer owns early closure-count rejection as specified in
+[its contract](../RationalBivariateAlgebra/ExactRealTopology/DESIGN.md#incidence-closure-capacity-preflight).
+No approximate identity, different field, solver retry or partial publication is
+introduced. Existing successful CS parameter/geometry/numerical receipts remain
+unchanged; public rejection is still `resourceLimitExceeded`.

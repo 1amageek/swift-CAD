@@ -1,0 +1,81 @@
+{
+  "binary_sha256": "c74ceb7c96fa549af17cfb49710e9208b16c0baf673098fa7fa18b82a31ad80a",
+  "production_sha256": {
+    "Sources/CADGeometry/NativeExactGeometricRelations/NativeExactCurveSurfacePointProducer.swift": "a827d889617880186f2084bc56c47b285b45e6cc8926232a8fb2f8b3fad287b4",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift": "f5a6af47a795df9a9b4904ca5199814850a8f061d582ee3ca9136b782c136631"
+  },
+  "measurements": [
+    {
+      "ceiling": 1,
+      "repeat": 0,
+      "process_seconds": 6.543666916957591,
+      "work": 5876439,
+      "generated_bytes": 267837496,
+      "storage_calls": 1690197
+    },
+    {
+      "ceiling": 5,
+      "repeat": 0,
+      "process_seconds": 5.879522749979515,
+      "work": 5876436,
+      "generated_bytes": 267837496,
+      "storage_calls": 1690197
+    },
+    {
+      "ceiling": 6,
+      "repeat": 0,
+      "process_seconds": 5.810647916980088,
+      "work": 5876452,
+      "generated_bytes": 267838416,
+      "storage_calls": 1690200
+    },
+    {
+      "ceiling": 1,
+      "repeat": 1,
+      "process_seconds": 5.830415292002726,
+      "work": 5876439,
+      "generated_bytes": 267837496,
+      "storage_calls": 1690197
+    },
+    {
+      "ceiling": 5,
+      "repeat": 1,
+      "process_seconds": 6.042321457993239,
+      "work": 5876439,
+      "generated_bytes": 267837496,
+      "storage_calls": 1690197
+    },
+    {
+      "ceiling": 6,
+      "repeat": 1,
+      "process_seconds": 6.26801391702611,
+      "work": 5876452,
+      "generated_bytes": 267838416,
+      "storage_calls": 1690200
+    },
+    {
+      "ceiling": 1,
+      "repeat": 2,
+      "process_seconds": 6.164757833001204,
+      "work": 5876436,
+      "generated_bytes": 267837496,
+      "storage_calls": 1690197
+    },
+    {
+      "ceiling": 5,
+      "repeat": 2,
+      "process_seconds": 6.1460419169743545,
+      "work": 5876439,
+      "generated_bytes": 267837496,
+      "storage_calls": 1690197
+    },
+    {
+      "ceiling": 6,
+      "repeat": 2,
+      "process_seconds": 6.18831570900511,
+      "work": 5876452,
+      "generated_bytes": 267838416,
+      "storage_calls": 1690200
+    }
+  ]
+}

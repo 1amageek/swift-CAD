@@ -25,12 +25,20 @@ struct NativeExactCurveSurfacePointProducer {
                 upper: surface.vKnots[surface.vControlPointCount])
             let requested = SurfaceParameterBox(u: options.surfaceURange ?? u,
                 v: options.surfaceVRange ?? v)
+            let topology = limits.topology
+            let boundedLimits = try ExactGeometricRelationLimits(cells: limits.cells,
+                topology: .init(maximumGeneratedCells: topology.maximumGeneratedCells,
+                    maximumRootsPerStack: topology.maximumRootsPerStack,
+                    maximumClosures: min(topology.maximumClosures, options.maximumCandidateCount),
+                    maximumAttachmentPieces: topology.maximumAttachmentPieces,
+                    maximumComponents: topology.maximumComponents),
+                maximumStrata: limits.maximumStrata, maximumProjectionSpans: limits.maximumProjectionSpans)
             let receipt = try DefaultCurveSurfaceIntersector().exactGeometricRelation(
                 curve: curve, surface: surface, curveRange: options.curveRange,
                 surfaceDomain: options.surfaceURange == nil && options.surfaceVRange == nil ? nil : requested,
                 tolerance: tolerance,
                 maximumPolynomialDegree: options.maximumPolynomialDegree,
-                maximumExtensionLevel: maximumExtensionLevel, limits: limits, using: &admission)
+                maximumExtensionLevel: maximumExtensionLevel, limits: boundedLimits, using: &admission)
             let relation = receipt.parameterRelation.relation
             guard relation.selection.cells.count <= options.maximumCandidateCount,
                 relation.components.count <= options.maximumCandidateCount else {

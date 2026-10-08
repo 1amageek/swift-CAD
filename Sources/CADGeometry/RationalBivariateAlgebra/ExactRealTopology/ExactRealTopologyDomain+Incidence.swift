@@ -49,6 +49,8 @@ extension ExactRealTopologyDomain: ExactRealIncidenceProducing {
    let provider = try Cells(retaining:partition.source,using:&admission)
    // The retained selection validates source ownership even when it is empty.
    _ = try provider.coefficientField(of:selection.predicate.source,using:&admission)
+   // Complete incidence needs one closure per selected cell, before any refinement.
+   guard n <= limits.maximumClosures else { throw ExactRealTopologyFailure.closureLimit }
    if strategy == .automatic, let refined = try affineFactorIncidence(selection, limits: limits, counts: &counts, &admission) {
     try admission.checkpoint(); return refined
    }

@@ -12,3 +12,12 @@ Fixtures -> L4 -> L3/L2/L1/L0; source symlinks compile the real implementation.
 No upper CAD source, quota reset, approximate identity or fake receipt. Dedicated paths and external timeouts.
 ## Verification and Change Impact
 Native/ASAN and normal/Embedded WASI execute success and failure fixtures; exact source hashes bind [implementation evidence](VERIFICATION.md). The source snapshot and target-specific runtime claims are recorded there.
+
+## Closure Capacity Preflight Regression
+
+`incidenceClosureCapacityPreflight` uses a complete two-cell selection with closure
+capacity one. Its separate work-4 admission permits source retention/validation
+but refuses traversal or closure construction. The issuer must report the existing
+`closureLimit` rather than spend that admission on an impossible result. Existing
+zero-selection, exact-boundary, lifecycle, inherited-depth and cancellation tests
+retain the same limits and source inputs.

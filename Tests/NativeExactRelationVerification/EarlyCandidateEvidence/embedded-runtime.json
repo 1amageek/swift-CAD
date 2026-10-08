@@ -1,0 +1,109 @@
+[
+  {
+    "group": "public-cs-limit-early",
+    "exit": 0,
+    "seconds": 0.8340443329652771,
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-embedded/out/Products/Debug-webassembly-wasm32/NativeExactGeometricProof.wasm",
+      "public-cs-limit-early"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-cs-candidate-ordinary",
+    "exit": 0,
+    "seconds": 10.564575625001453,
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-embedded/out/Products/Debug-webassembly-wasm32/NativeExactGeometricProof.wasm",
+      "public-cs-candidate-ordinary"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-cs-candidate-admitted",
+    "exit": 0,
+    "seconds": 12.823027083999477,
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-embedded/out/Products/Debug-webassembly-wasm32/NativeExactGeometricProof.wasm",
+      "public-cs-candidate-admitted"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-cs",
+    "exit": 0,
+    "seconds": 3.7180607079644687,
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-embedded/out/Products/Debug-webassembly-wasm32/NativeExactGeometricProof.wasm",
+      "public-cs"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-cs-weighted",
+    "exit": 0,
+    "seconds": 8.810043875011615,
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-embedded/out/Products/Debug-webassembly-wasm32/NativeExactGeometricProof.wasm",
+      "public-cs-weighted"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "ssi-images",
+    "exit": 0,
+    "seconds": 12.97938612505095,
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-embedded/out/Products/Debug-webassembly-wasm32/NativeExactGeometricProof.wasm",
+      "ssi-images"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "ssi-failures",
+    "exit": 0,
+    "seconds": 3.959528000035789,
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-embedded/out/Products/Debug-webassembly-wasm32/NativeExactGeometricProof.wasm",
+      "ssi-failures"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-ssi-cover-ordinary",
+    "exit": 0,
+    "seconds": 2.0854146250057966,
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-embedded/out/Products/Debug-webassembly-wasm32/NativeExactGeometricProof.wasm",
+      "public-ssi-cover-ordinary"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "smoke",
+    "exit": 0,
+    "seconds": 2.7998030410381034,
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/Scripts/run_wasi_smoke.mjs",
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-embedded/out/Products/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke.wasm"
+    ],
+    "timeout_seconds": 120
+  }
+]

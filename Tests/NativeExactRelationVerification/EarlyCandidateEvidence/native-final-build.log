@@ -1,0 +1,244 @@
+warning: 'nativeexactrelationverification': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalPointRelationProof/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalRealRelationProof/DESIGN.md
+warning: 'nativeexactrelationverification': found 79 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+warning: 'nativeexactrelationverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/FailureContract/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /private/tmp/cad-cs-early-limit-optimization-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+Building for debugging...
+[Pre-planning 1 / 270]
+[Planning deferred tasks]
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/NativeExactPreparationProof.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/NativeExactPreparationProof.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/NativeExactProof.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/NativeExactProof.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/NativeExactPreparationProof_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactPreparationProof-p.build/Objects-normal/arm64/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Products/Debug/NativeExactProof' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Products/Debug/NativeExactPreparationProof' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/CADIntersectionPortabilitySmoke.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/CADIntersectionPortabilitySmoke.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilityEntry.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilityEntry.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalPointRelationAllowance.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalPointRelationAllowance.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalPointRelationProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalPointRelationProof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalRealRelationAllowance.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalRealRelationAllowance.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalRealRelationProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalRealRelationProof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-lower-public-main-integration-20261008/.build/public-native/out/Products/Debug/CADIntersectionPortabilitySmoke' is located outside of the allowed root paths.
+
+[23 / 34] NativeExactProof-product
+[25 / 51]
+[28 / 51] CADIntersectionPortabilitySmoke-product
+[30 / 57]
+[31 / 57]
+[32 / 57]
+[34 / 57]
+[36 / 57]
+[39 / 57] NativeExactProof-product
+[40 / 57] NativeExactPreparationProof-product
+[45 / 57] CADIntersectionPortabilitySmoke-product
+[49 / 57] NativeExactProof-product
+[51 / 57] CADIntersectionPortabilitySmoke-product
+[53 / 57] CADIntersectionPortabilitySmoke-product
+[54 / 57] NativeExactProof-product
+[55 / 59] CADIntersectionPortabilitySmoke-product
+[57 / 59] CADIntersectionPortabilitySmoke-product
+[60 / 61] NativeExactPreparationProof-product
+Build complete! (8.10秒)

@@ -21,3 +21,10 @@ func l6SurfaceSurfacePublicSelectedDomains() throws { try L6SurfaceSurfaceFixtur
 
 @Test(.timeLimit(.minutes(2)))
 func l6SurfaceSurfacePublicFailures() throws { try L6SurfaceSurfaceFixtures.verifyFailures() }
+
+@Test(.timeLimit(.minutes(2)))
+func l6CurveSurfaceEarlyCandidateRejection() throws {
+    for ceiling in [1, 5] {
+        try L6PublicCurveSurfaceFixtures.verifyCandidateLimitCost(ceiling: ceiling, maximumWork: 400_000)
+    }
+}

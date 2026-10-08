@@ -202,6 +202,30 @@ public enum L6PublicCurveSurfaceFixtures {
         print("PASS migrated CS distinct UV, rational weights, singleton and independent caller failures")
     }
 
+    /// Measures one original public query; admission bytes are not allocator bytes.
+    public static func verifyCandidateLimitCost(ceiling: Int, maximumWork: Int = 80_000_000) throws {
+        let curve = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [
+            .init(x: 0, y: 0, z: 0), .init(x: 1, y: 0, z: 0)])
+        let surface = BSplineSurface3D(uDegree: 1, vDegree: 2,
+            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 0, 1, 1, 1], controlPoints: [
+                [.init(x: 0, y: 0.1875, z: 0), .init(x: 1, y: 0.1875, z: 0)],
+                [.init(x: 0, y: -0.3125, z: 0), .init(x: 1, y: -0.3125, z: 0)],
+                [.init(x: 0, y: 0.1875, z: 0), .init(x: 1, y: 0.1875, z: 0)]])
+        let caller = Caller(work: maximumWork)
+        if ceiling < 6 {
+            try resource { _ = try rich(curve, surface,
+                options: .init(maximumCandidateCount: ceiling), caller: caller) }
+        } else {
+            let result = try rich(curve, surface, options: .init(maximumCandidateCount: ceiling), caller: caller)
+            guard let owner = result.originalExactGeometricRelation else { throw NativeExactFixtures.Failure.invalidEvidence }
+            try NativeExactFixtures.require(result.points.isEmpty && result.hasPositiveDimensionalSolutions
+                && owner.parameterRelation.relation.selection.cells.count == 6
+                && owner.parameterRelation.relation.components.count == 2)
+        }
+        let counts = caller.counts.withLock { $0 }
+        print("CS_CANDIDATE_COST ceiling=\(ceiling) work=\(counts.work) bytes=\(counts.bytes) storageCalls=\(counts.allocations)")
+    }
+
     public static func verifyCandidateLimits(onlyAdmitted: Bool? = nil) throws {
         let curve = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [
             .init(x: 0, y: 0, z: 0), .init(x: 1, y: 0, z: 0)])

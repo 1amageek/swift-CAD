@@ -70,3 +70,19 @@ import L3
 }
 
 @Test(.timeLimit(.minutes(1))) func constantCutGraphClosures() throws { try ConstantCutGraphFixtures.run() }
+
+@Test(.timeLimit(.minutes(1))) func incidenceClosureCapacityPreflight() throws {
+ var setup = try TopologyFixtures.ledger()
+ let (_, cells, line) = try TopologyFixtures.setup(1, &setup)
+ let source = try cells.bind(polynomials: [cells.polynomials.variable(0, using: &setup)], domains: [line], using: &setup)
+ let partition = try cells.decompose(source, limits: .init(maximumStoredCells: 100, maximumRootsPerStack: 10), using: &setup)
+ let selection = try cells.select(partition, matching: cells.predicate(instructions: [.sign(polynomial: 0, relation: .notEqual)], for: source, using: &setup), using: &setup)
+ try TopologyFixtures.require(selection.cells.count == 2)
+ var bounded = ExactScalarLedger(limits: try .init(work: 4, storageBytes: 10_000, valueDepth: 400, coefficientDepth: 400))
+ do {
+  _ = try TopologyFixtures.Topology(cells: TopologyFixtures.Cells.self).incidence(of: selection, strategy: .automatic,
+   limits: .init(maximumGeneratedCells: 20_000, maximumRootsPerStack: 10, maximumClosures: 1,
+    maximumAttachmentPieces: 20_000, maximumComponents: 100), using: &bounded)
+  throw ExactRealTopologyFailure.invalidCoverage
+ } catch ExactRealTopologyFailure.closureLimit { }
+}

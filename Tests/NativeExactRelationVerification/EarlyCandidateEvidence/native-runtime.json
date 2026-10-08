@@ -1,0 +1,91 @@
+[
+  {
+    "group": "public-cs-limit-early",
+    "exit": 0,
+    "seconds": 2.342011749977246,
+    "command": [
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-native/out/Products/Debug/NativeExactGeometricProof",
+      "public-cs-limit-early"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-cs-candidate-ordinary",
+    "exit": 0,
+    "seconds": 21.05961599998409,
+    "command": [
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-native/out/Products/Debug/NativeExactGeometricProof",
+      "public-cs-candidate-ordinary"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-cs-candidate-admitted",
+    "exit": 0,
+    "seconds": 18.421151709044352,
+    "command": [
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-native/out/Products/Debug/NativeExactGeometricProof",
+      "public-cs-candidate-admitted"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-cs",
+    "exit": 0,
+    "seconds": 6.213056750013493,
+    "command": [
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-native/out/Products/Debug/NativeExactGeometricProof",
+      "public-cs"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-cs-weighted",
+    "exit": 0,
+    "seconds": 15.011332000023685,
+    "command": [
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-native/out/Products/Debug/NativeExactGeometricProof",
+      "public-cs-weighted"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "ssi-images",
+    "exit": 0,
+    "seconds": 16.45981579198269,
+    "command": [
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-native/out/Products/Debug/NativeExactGeometricProof",
+      "ssi-images"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "ssi-failures",
+    "exit": 0,
+    "seconds": 7.097967582987621,
+    "command": [
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-native/out/Products/Debug/NativeExactGeometricProof",
+      "ssi-failures"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "public-ssi-cover-ordinary",
+    "exit": 0,
+    "seconds": 3.442529416992329,
+    "command": [
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-native/out/Products/Debug/NativeExactGeometricProof",
+      "public-ssi-cover-ordinary"
+    ],
+    "timeout_seconds": 120
+  },
+  {
+    "group": "smoke",
+    "exit": 0,
+    "seconds": 6.871327790955547,
+    "command": [
+      "/private/tmp/cad-cs-early-limit-optimization-20261008/.build/public-native/out/Products/Debug/CADIntersectionPortabilitySmoke"
+    ],
+    "timeout_seconds": 120
+  }
+]

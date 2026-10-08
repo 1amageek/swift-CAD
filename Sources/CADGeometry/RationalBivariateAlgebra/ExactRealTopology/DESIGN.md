@@ -602,3 +602,16 @@ is used for uniqueness and closure checks and remains retained in the closure.
 Quantifier-free closure/strict-target intersections reduce on the target's original
 domain. Every possible attachment belongs to that strict target, including singleton
 coordinates. Quantified intersections retain their existing ambient witness domains.
+
+### Incidence closure-capacity preflight
+
+Every complete incidence receipt owns exactly one closure per selected input cell,
+including point cells. After retaining and validating the selection's source, the
+issuer can reject `selection.cells.count > maximumClosures` before constructing
+closure definitions, affine refinements or pair intersections. This is the same
+existing closure limit, not a cap on the full L3 partition or generated cells.
+The failure remains `closureLimit`, publishes no receipt, retains inherited depth
+and entry cancellation, and does not reset any caller resource. Empty selection
+with zero closure capacity remains admissible. Successful queries follow the
+existing algorithms unchanged. Native public CS is a consumer of this preflight;
+its candidate-to-capacity policy belongs to its own component design.

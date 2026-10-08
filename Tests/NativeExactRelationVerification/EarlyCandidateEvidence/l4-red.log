@@ -1,0 +1,104 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 501]
+[Planning deferred tasks]
+[121 / 295] L0
+[127 / 296] L0
+[132 / 313] L0
+[135 / 313] L0
+[140 / 313] L0
+[142 / 313] L0
+[144 / 313] L0
+[146 / 313] L0
+[147 / 313] L0
+[149 / 313] L0
+[150 / 313] L0
+[154 / 335] L0Fixtures
+[169 / 335] L1
+[170 / 335] L1
+[171 / 335] L1
+[173 / 335] L1
+[176 / 335] L1
+[179 / 335] L1
+[181 / 335] L1
+[185 / 335] L0Fixtures
+[191 / 338] L2
+[194 / 356] L1Fixtures
+[203 / 356] L2
+[212 / 356] L2
+[213 / 356] L2
+[216 / 356] L2
+[219 / 356] L2
+[220 / 356] L1Fixtures
+[221 / 356] L1Fixtures
+[227 / 357] L0
+[230 / 372] L3
+[232 / 372] L3
+[240 / 372] L3
+[242 / 372] L4
+[245 / 372] L3
+[246 / 372] L3
+[248 / 372] L3
+[252 / 386] L2Fixtures
+[262 / 386] L2Fixtures
+[263 / 386] L2Fixtures
+[264 / 386] L2Fixtures
+[266 / 386] L2Tests-product
+[268 / 386] L2Fixtures
+[273 / 387]
+[276 / 402] L4
+[283 / 402] L4
+[286 / 402] L4
+[290 / 402] L4
+[293 / 402] L4
+[294 / 402] L4
+[297 / 403] L4
+[303 / 427] LayerBenchmark-product
+[319 / 427] L4Fixtures
+[324 / 427] L4Fixtures
+[326 / 427] L3Fixtures
+[329 / 427] L3Fixtures
+[332 / 427] L3Fixtures
+[334 / 427] L3Fixtures
+[336 / 427] L3Fixtures
+[338 / 427] L3Fixtures
+[347 / 428]
+[357 / 431]
+[360 / 431] L3Fixtures
+[365 / 458]
+[367 / 461] L4Fixtures
+[372 / 461] LayerBenchmark-product
+[377 / 462] L1PolynomialTests-product
+[384 / 466] L3Tests-product
+[386 / 466]
+[389 / 469]
+[392 / 469]
+[395 / 470]
+[397 / 476]
+[400 / 476]
+[402 / 476]
+[405 / 476] L2Tests-product
+[417 / 476] L0ScalarTests-product
+[428 / 476] L0ScalarTests-product
+[429 / 476] L4Tests-product
+[437 / 476] L3Tests-product
+[441 / 476] L2Tests-product
+[442 / 476] L2Tests-product
+[447 / 476] L1PolynomialTests-product
+[449 / 476] L1PolynomialTests-product
+[450 / 476] L2Tests-product
+[451 / 476] L1PolynomialTests-product
+[452 / 476] L0ScalarTests-product
+[455 / 476] L4Tests-product
+[465 / 476]
+[475 / 476] L0ScalarTests-product
+Build complete! (16.12秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test incidenceClosureCapacityPreflight() started.
+􀢄  Test incidenceClosureCapacityPreflight() recorded an issue at TopologyTests.swift:74:2: Caught error: .cell(L3.ExactRealCellFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.work)))
+􀢄  Test incidenceClosureCapacityPreflight() failed after 0.002 seconds with 1 issue.
+􀢄  Test run with 1 test in 0 suites failed after 0.003 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L4Tests (Swift Testing)

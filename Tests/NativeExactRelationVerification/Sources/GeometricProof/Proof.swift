@@ -23,6 +23,11 @@ import WASILibc
         switch group {
         case "all": try L6CurveSurfaceFixtures.verify(); try L6SurfaceSurfaceFixtures.verify()
         case "public-cs": try L6PublicCurveSurfaceFixtures.verify()
+        case "public-cs-limit-1": try L6PublicCurveSurfaceFixtures.verifyCandidateLimitCost(ceiling: 1)
+        case "public-cs-limit-5": try L6PublicCurveSurfaceFixtures.verifyCandidateLimitCost(ceiling: 5)
+        case "public-cs-limit-6": try L6PublicCurveSurfaceFixtures.verifyCandidateLimitCost(ceiling: 6)
+        case "public-cs-limit-early":
+            for ceiling in [1, 5] { try L6PublicCurveSurfaceFixtures.verifyCandidateLimitCost(ceiling: ceiling, maximumWork: 400_000) }
         case "public-cs-weighted": try L6PublicCurveSurfaceFixtures.verifyWeightedContact()
         case "public-cs-candidate-limits": try L6PublicCurveSurfaceFixtures.verifyCandidateLimits()
         case "public-cs-candidate-ordinary": try L6PublicCurveSurfaceFixtures.verifyCandidateLimits(onlyAdmitted: false)

@@ -1,0 +1,3 @@
+PASS L5 exact square identities, retained reductions and rejected hypotheses
+CS_CANDIDATE_COST ceiling=5 work=345982 bytes=16193780 storageCalls=100934
+PASS full production Native L6 geometric publication public-cs-limit-5
