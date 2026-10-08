@@ -1,0 +1,110 @@
+# Original Parameter Identity
+
+## Purpose and Scope
+
+Proposed child of [Original Domain Identity](../DESIGN.md), without children.
+Own exact, scoped source-structural equivalence evidence. This is not an intersection
+solver, a proximity classifier, a general point deduplicator or topology sewing.
+
+## Responsibilities and Boundaries
+
+Retain participating source/axis/chart handles, exact supporting subsets, original
+identity theorem and intended relation kind. The shape issuer proves its original
+law; topology supplies explicitly declared shared-boundary roles when applicable.
+This component verifies binding, proof kind, scope and supported proof composition.
+
+## Related Designs
+
+| Design | Relationship | Contract Used | Summary | Cautions |
+|---|---|---|---|---|
+| [Parent](../DESIGN.md) | parent | Three distinct equality relations | Source authority | No XYZ-based identity |
+| [Transport](../OriginalParameterTransport/DESIGN.md) | depends on | Original parameter correspondence | Relates chart coordinates | Map correctness is not periodicity |
+| [Coverage](../OriginalDomainCoverage/DESIGN.md) | depends on | Supports and incident owners | Scopes identity receipts | Does not merge chart sides |
+| [Angular source](../../CanonicalSphereChart/DESIGN.md) | depends on | Intrinsic full/quarter turn and collapsed-pole law | Supplies sphere identity | Physical radians keep symbolic period |
+| [Embedding](../../OriginalSurfaceEmbedding/DESIGN.md) | used by, proposed | Scoped exclusion relation | Excludes structural self pairs | Coincident distinct tuples remain contacts |
+| [L6](../../RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md) | used by, proposed | Original parameter/fiber evidence | Keeps all UV correspondence | Parameter versus image dimensions differ |
+
+## Architecture
+
+```mermaid
+flowchart LR
+ S[Original source identity theorem] --> V[Checked proof-kind / owner / support validation]
+ C[Retained chart cover + transport] --> V
+ V --> I[Immutable scoped identity receipt]
+ I --> Q[Query / restriction / supported composition]
+ Q --> U[Consumer-specific quotient or exclusion]
+```
+
+## Contracts and Invariants
+
+Proposed OriginalParameterIdentityIssuing and OriginalParameterIdentityQuerying expose
+required issue, restrict, compare-source-role and supported-compose operations over
+opaque immutable receipts. There is no public unchecked certificate initializer.
+A protocol conformer cannot authorize identity by returning true; supported proof
+constructors validate the retained source theorem and exact domains. New proof kinds
+need a checked implementation and behavioral evidence before public consumption.
+
+| Kind | Required proof | Permitted interpretation |
+|---|---|---|
+| Authored coordinate | Same retained parameter space and exact transported tuple | Two charts refer to one authored coordinate |
+| Chart boundary | Source-defined boundary correspondence plus whole-boundary original value law when geometric equality is used | Shared source position; retain distinct one-sided germs |
+| Periodic orbit | Source-wide G(q+kP)=G(q), original period/turn roles and exact transports | Structural periodic equivalence with every lift retained |
+| Collapsed subset | Whole original source map is constant on the issued supported subset | Pole/constant-fiber equivalence, not nearby collapse |
+| Declared shared boundary | Original paired boundary maps and declaration verified on their complete supported ranges | Scoped boundary incidence, not global source equality |
+
+An identical authored parameter across knot sides does not prove equal normal/tangent
+or continuity; geometric boundary identity additionally requires the source value law.
+Equal-valued separate sources do not automatically share an owner. A self-crossing
+with distinct tuples remains a geometric intersection unless an original structural
+identity theorem applies. Topological adjacency is a declaration to validate, not a
+proof that two independently authored boundaries coincide.
+
+Identity scope includes source owner, coordinate semantics, participating roles and
+support. Symmetry/restriction preserve that scope. Transitive composition requires
+matching intermediate source/role, verified correspondence and full support pullback;
+it can strengthen neither support nor proof kind. No global union-find on positions,
+residuals, hash matches, tolerance proximity or names is introduced.
+
+An inquiry distinguishes proven structural identity, proved failure of that particular
+structural relation, and not established. Not established is not proof of distinct XYZ
+and cannot exclude a self-contact pair. Resource, cancellation, foreign binding or
+unsupported required proof throws its typed cause. Consumers exclude only supported
+pairs covered by an identity receipt; any unresolved remainder stays in the query.
+
+Pole proof uses CanonicalSphereChart's continuous intrinsic phase law. At latitude
+quarter-turn boundaries every selected longitude maps to the original collapsed
+point. Nearby latitudes do not. Physical-radian transports need the original symbolic
+phase equality; a numerical latitude near pi/2 is not a pole certificate. The ambient
+UV arity and parameter fiber dimension are retained independently of zero image dimension.
+
+A geometric intersection result may use an identity annotation for quotient topology,
+but must keep original requested tuples/chart sides and the correspondence map. The
+issuer never chooses a single inverse UV or removes a repeated traversal from coverage.
+
+## State, Ownership, and Lifecycle
+
+Receipts retain immutable source/theorem/cover owners and supported subset handles.
+Query borrows and restriction receipts keep those owners alive. No mutable identity
+registry, global cache, unowned source pointer or target-specific Sendable weakening.
+New composition records allocate under the same exclusive caller admission.
+
+## Failure, Concurrency, and Constraints
+
+Unknown geometric equality is not guessed. Incompatible owners, invalid proof-kind
+composition, missing source laws and support violations fail or report not established
+as specified above. Independent work/storage/source/depth/result limits and terminal
+cancellation apply to proof verification and all subsequent queries. Rebinding requires
+an explicit verified source correspondence, never a hash-only match.
+
+## Verification and Change Impact
+
+Refutation fixtures include two chart sides with different tangents at the same knot,
+periodic seam versus distinct repeated traversal, a constant pole versus near-pole ring,
+self-crossing distinct UV at equal XYZ, false adjacency, partially valid boundary
+correspondence, foreign owner and attempted support-widening composition. Success tests
+retain every original tuple and allow only precisely supported consumer exclusions.
+Test released sources, COW mutation, concurrent immutable readers, separate admissions,
+independent limits and final cancellation on Native/ASAN/normal/Embedded. Generic
+identity tests use literal exact laws; shape-specific law proofs remain at their
+producer. Self-contact/trim/publication composition is verified only when those
+consumers actually accept the new receipts.

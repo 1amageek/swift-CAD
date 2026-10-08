@@ -1,0 +1,299 @@
+# Original Source Issuance
+
+## Purpose and Scope
+
+Parent: [CADGeometry](../DESIGN.md). No children or new SwiftPM targets. This
+component is the design owner for the proposed common source-issuance contracts
+inside CADGeometry. Its implementation has not been added. Existing family
+components retain their current implementations and contracts until migration.
+
+Issue a retained description of one authored source and a proved exact local
+representation of that source. A law is valid on its stated support and carries
+its original parameter correspondence. Issuance does not prove that any two
+shapes intersect or that a requested domain has been completely covered.
+
+The complete required family scope remains native splines, analytic lines/conics
+and plane/cylinder/cone/sphere/torus, procedural offset/ruled/rolling-ball/
+revolution/Coons/boundary-correction/derivative/draft/angular-transport, and
+implicit/certified/lift/join/guide/rigid/affine/parameter-image/original-word
+sources. A common contract does not establish support for every family.
+
+## Responsibilities and Boundaries
+
+| Owner | Produces | Consumes | Decision authority |
+|---|---|---|---|
+| Existing authored family | Original representation and semantic rules | Authored fields and retained construction certificates | What the original shape means |
+| Source binding issuer | Immutable binding to the original snapshot and descendants | Existing family validation and certificates | Source provenance and retained authority |
+| Local law issuer | Original law, guards, support, coefficient provenance and parameter transport | Bound source, selected source chart and caller field | Equality of the local representation to the authored law |
+| Domain issuer, outside this component | Requested-domain cover, chart joins and seam/pole identities | Binding and local support/parameter contracts | Whole coverage and identification of distinct chart representatives |
+| Relation compiler, outside this component | CS/SSI/projected/self equality and selection predicates | Issued laws and domain evidence | Variable placement and pair/query predicate semantics |
+| L3/L4/L5/L6 and publisher, outside this component | Solutions, connections, images/fibers and numerical output | Complete compiled input | Solution completeness, topology and public results |
+
+The issuer validates that a selected chart belongs to its retained source and
+that the law is valid throughout its support. This local obligation is distinct
+from enumerating every chart needed to cover a caller's request. Domain issuance
+may retain these local laws, but source issuance never invokes domain coverage.
+Neither side can replace the other's proof with sampled agreement.
+
+Family semantics remain owned by their existing designs. This component owns
+provenance, local-representation evidence and the inter-component handoff, not a
+second definition of a sphere, plane, ruled surface or operation word.
+
+## Related Designs
+
+| Design | Relationship | Contract Used | Summary | Cautions |
+|---|---|---|---|---|
+| [Geometry](../DESIGN.md) | parent | Authored family semantics and source dispatch | Owns original meaning | Existing unresolved semantic conflicts cannot be hidden by issuance |
+| [Source Validation](../OriginalGeometrySourceValidation/DESIGN.md) | depends on | Bounded original-source validation | Reuse current structural validators | Validation alone is not law-equivalence evidence |
+| [L0](../RationalBivariateAlgebra/ExactScalar/DESIGN.md) | depends on | Exact import, ordering, arithmetic and exclusive admission | Coefficient and resource authority | Binary64 values and canonical primitive roles have distinct meanings |
+| [L1](../RationalBivariateAlgebra/ExactPolynomial/DESIGN.md) | depends on | Exact polynomials and admitted operations | Rational/polynomial local representation | No new polynomial engine |
+| [L2](../RationalBivariateAlgebra/ExactRealRoot/DESIGN.md) | conditional dependency | Existing selected algebraic coefficient field and transport | Needed only by genuinely algebraic coefficients | No geometric root solve; no silent field extension |
+| [Native Exact Relations](../NativeExactRelations/DESIGN.md) | coordinates with | Current Native preparation and coefficient transport | First consuming migration | Its resolver currently also clips domains and resolves relations |
+| [Ruled Sources](../OriginalRuledIntersectionSources/DESIGN.md) | coordinates with | Original boundary laws and ruled composition | Existing exact source producer | Pair-equation adapters move to the relation owner when migrated |
+| [Coons Sources](../OriginalCoonsIntersectionSources/DESIGN.md) | coordinates with | Original boundary maps, corners and shared position formula | Existing exact source producer | Retain current corner and construction authority |
+| [Affine Sources](../OriginalAffineIntersectionSources/DESIGN.md) | coordinates with | Original word coefficients and homogeneous action | Existing exact source producer | Normalized words require their genuine coefficient field |
+| [Analytic Sources](../OriginalAnalyticIntersectionSources/DESIGN.md) | coordinates with | Original implicit image equations | Separate representation capability | Image membership does not provide all source UV |
+| [Curve Cover](../OriginalNativeCurveChartCover/DESIGN.md) | used by, after migration | Source binding and local law support | Owns requested curve coverage | Exact periodic transport remains a domain obligation |
+| [Surface Cover](../OriginalNativeSurfaceChartCover/DESIGN.md) | used by, after migration | Source binding and local law support | Owns requested surface coverage | No tolerance-based chart identification |
+| [L5](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md) | used by, through compiler | Original homogeneous map laws | Owns pair relation composition | Issuance must not duplicate its CS/SSI equations |
+| [Native Verification](../../../Tests/NativeExactRelationVerification/DESIGN.md) | integration test owner | Current full-module Native/WASI behavior | Reuse unchanged input hashes | This design adds no runtime evidence |
+
+## Architecture
+
+```mermaid
+flowchart TD
+    V[Existing family validation and semantic authority] --> B[Source binding]
+    B --> L[Family-specific exact local law issuer]
+    C[Selected source chart] --> L
+    F[L0/L1 and optional L2 coefficient field] --> L
+    A[One exclusive caller admission] --> B
+    A --> L
+    L --> R[Immutable law receipt and parameter correspondence]
+    R --> D[Domain issuer: complete requested cover and identities]
+    R --> Q[Relation compiler: query predicates]
+    D --> Q
+    Q --> S[L3-L6: solving, connectivity and image/fiber]
+    S --> P[Public output]
+```
+
+There are two foundational steps, not a new replacement algebra hierarchy:
+
+1. Bind the original source and its authority without claiming any representation.
+2. Issue an exact supported local law with its support and original parameter map.
+
+Composite sources use the same two steps recursively for their original
+descendants. Consumer-facing conversion to L5 is a checked representation handoff;
+it does not create another source owner or run the solver.
+
+## Contracts and Invariants
+
+### Native Swift protocol boundaries
+
+The following names are proposed protocol responsibilities, not existing APIs.
+Implement operations as protocol requirements and supply concrete implementations
+separately. Use associated types and generic static dispatch; production hot paths
+do not erase coefficient fields or law types into `Any` or callback closures.
+
+| Proposed protocol | Inputs | Successful output | Required guarantee |
+|---|---|---|---|
+| `OriginalSourceBindingIssuing` | Borrowed concrete source, existing validation policy, source limits, same admission | `OriginalSourceBinding<Source>` | Original immutable snapshot, declared family authority, retained descendant owners and established source depth |
+| `OriginalRationalChartIssuing` | Binding, source-specific chart, caller exact coefficient field, same admission | `OriginalRationalChartReceipt<Field>` | Exact X/Y/Z/W law, all guards, whole local support and original parameter transport |
+| `OriginalImplicitImageIssuing` | Binding, source-specific support, caller exact coefficient field, same admission | `OriginalImplicitImageReceipt<Field>` | Exact original image predicate including every required branch/denominator guard; explicitly no complete UV correspondence |
+
+All receipts have read-only public contracts and issuer-controlled construction.
+Binding identity and proof ownership are not externally constructible flags.
+Protocol operations receive `borrowing` inputs and a generic
+`inout A` where `A: ExactScalarAdmission & ~Copyable`; no admission is retained.
+Source-limit policy is forwarded from the existing caller instead of defaulting
+to a fresh allowance. The concrete chart type retains its own source binding.
+
+The rational-port signature is a proposed design sketch. Names for binding,
+receipt, limits and failure are new; they are not compiled declarations yet.
+The implementation must compile this contract with the fixed toolchain before
+claiming an implemented API. Limits carry the existing family-validation policy
+and independently remaining source depth; they do not duplicate L0 counters or
+introduce geometric query tolerances as equality predicates.
+
+```swift
+public protocol OriginalRationalChartIssuing {
+    associatedtype Source: Sendable
+    associatedtype Chart: Sendable
+    associatedtype Field: ExactScalarArithmetic & ExactScalarOrdering & ExactScalarImporting
+
+    func issue<A: ExactScalarAdmission & ~Copyable>(
+        source: borrowing OriginalSourceBinding<Source>,
+        chart: borrowing Chart,
+        field: borrowing Field,
+        limits: OriginalSourceIssuanceLimits,
+        using admission: inout A
+    ) throws(OriginalSourceIssuanceFailure) -> OriginalRationalChartReceipt<Field>
+}
+```
+
+The concrete issuer validates chart-to-binding provenance; `Sendable` alone
+does not prove that relationship. A stronger retained source certificate cannot
+override the current caller's tighter depth or capability limit. The binding
+port uses the same admission/limits contract, without requiring a coefficient
+field or generating a law. The implicit-image port likewise uses a concrete
+source/support type and returns only its image predicate capability.
+
+The implicit capability is separate because existing sphere/cylinder/torus
+pullbacks prove image membership without issuing a parameterized surface law.
+They cannot satisfy the rational-chart protocol merely because they expose an
+equation. A full public result still requires the separately proved all-UV map.
+The issuer supplies the original guarded image predicate in XYZ. Substitution of
+a participating curve or another surface into that predicate belongs to the
+relation compiler; the issuer never acquires that second source.
+Do not introduce a universal arbitrary-expression solver or symbolic scalar
+type to declare every family supported.
+
+### Receipt content and evidence
+
+| Retained value | Owner and invariant |
+|---|---|
+| Source snapshot | One immutable binding; original controls, weights, knots, frames, operation words and construction owners remain reachable |
+| Source authority | Reference to the existing family rule; stored binary values and canonical symbolic roles are never conflated |
+| Source chart and support | Concrete original chart selection plus the full support on which the representation is valid; bounds are exact values, not necessarily Double |
+| Coefficient field | Same caller-selected field, original embeddings and inherited coefficient depths; unrelated fields fail |
+| Law and guards | Original construction and denominator validity; no fitted source or unexplained cancellation |
+| Parameter correspondence | Exact map from representation parameters to authored parameters; every auxiliary variable and its guard is retained |
+| Equivalence evidence | Family-owned algebraic construction/rewrite evidence tying the representation to the retained source on the stated support |
+
+A rational receipt denotes the exact graph of the original source on its support:
+every admitted local parameter produces the original point, and the retained
+correspondence accounts for all authored parameters represented by that chart.
+No injectivity is assumed. If the transport is relational, every valid original
+parameter must be retained; downstream code cannot select one inverse UV.
+An implicit receipt instead denotes the guarded original image set. A necessary
+equation with unexcluded extraneous branches does not satisfy that contract.
+
+W is permitted to have zeros, but W!=0 remains an explicit source guard. A proved
+positive denominator may strengthen that evidence; it never authorizes deleting
+the original law. Representation singularities and genuine collapsed source
+fibers must remain distinguishable. Removing a factor requires retained exact
+rewrite and domain evidence; tolerance cannot provide that evidence.
+
+Source binding identity establishes provenance only. Equal-valued independent
+bindings are distinct owners unless an explicit structural equality proof is
+issued. Different source charts, periods or UV values are not identified by XYZ,
+hashes or close numerical evaluation. Cross-chart seam/pole equivalence belongs
+to the domain issuer, including when different parameters map to one point.
+
+### Applicability and unresolved authority
+
+Dispatch owns capability selection before issuance. A known family outside a
+specific issuer's capability may be routed to another declared issuer before
+work starts. Once issuance starts, resource exhaustion, cancellation, invalid
+binding or unresolved evidence aborts; no other issuer is silently retried.
+Unsupported required representation remains an explicit incomplete family.
+
+The legacy nil-U/direct analytic plane authority is recorded as unresolved in
+PROGRESS I7R.SA.CP. This design neither selects stored-normal authority nor
+evaluation-basis authority for that unresolved path. Only already-resolved family
+semantics may authorize successful issuance. The common ownership and local-law
+contracts are independent of that choice; affected plane migration remains gated.
+
+## Runtime Flows
+
+Same admission -> entry checkpoint -> original source validation/binding ->
+source-chart ownership validation -> coefficient import and exact construction ->
+support/transport/guard evidence -> retained receipt -> final checkpoint.
+
+Source preparation does not receive a second shape, CS/SSI variable order,
+projection query or requested intersection output. Later consumers borrow the
+same prepared receipt. They create new coefficients only when an actual operation
+or variable transformation changes the law, and do not replay source preparation.
+Position-law issuance computes no normals, silhouette laws or geometric roots.
+Optional derivative consumers derive needed evidence from the retained original
+law under an explicit admission, retaining the correct parameter chain rule.
+
+## State, Ownership, and Lifecycle
+
+The binding retains immutable COW snapshots and existing coefficient/proof
+owners. Law receipts retain that binding, their field and construction evidence.
+A value copy preserves the same proof owner; releasing or mutating the caller's
+source cannot change an issued receipt. Views retain their owner or remain within
+a scoped borrow. Externally stored pointers and weak owners are not introduced.
+
+Layer handoff shares original buffers; it does not materialize copies proportional
+to their payload. Arithmetic outputs, changed variable maps and evidence indices
+are necessary admitted storage. No global cache, new Mutex, actor or mutable
+cross-query ledger is introduced. Independent queries use independent admissions.
+Native, normal WASM and Embedded retain identical ownership and Sendable contracts.
+These are design constraints, not new zero-copy benchmark results.
+
+## Failure, Concurrency, and Constraints
+
+Use a proposed typed `OriginalSourceIssuanceFailure` with distinct invalid source,
+foreign binding/chart, incompatible coefficient field, unsupported representation,
+unresolved source authority/equivalence, and preserved lower failure causes.
+Exact cancellation, work/storage/depth/overflow and caller rejection remain
+distinguishable through those causes. Every failure publishes no receipt; there
+is no successful empty law meaning absence. A domain issuer may separately prove
+that a caller selection is empty.
+
+Reuse L0 work, generated-byte storage, coefficient/value depth and cancellation.
+Retained source depth is an independent structural axis owned by the source caller;
+each actual descent consumes it before the child. Source validation, term visits,
+field transport, new payload allocations and final publication use the same
+admission. Checked word/byte adapters retain current storage semantics. Reuse does
+not recharge retained allocation, but capability/depth/cancellation checks and
+new operations remain charged. Fixed limits and mathematical tolerances are not
+changed by the handoff.
+
+The rational implementation depends on existing source validation, L0 and L1.
+L2 is needed only when exact source coefficients require the existing algebraic
+field. It does not depend on L3/L4/L5/L6, Kernel, Topology or public intersectors.
+Coefficient-root evidence from L2 is distinct from solving a geometric relation.
+Existing homogeneous extraction and exact construction arithmetic are reused
+through their current checked admission bridges; this boundary does not require
+reimplementing the legacy polynomial producers or moving them to a new target.
+
+## Verification and Change Impact
+
+### Current implementation mapping and target migration
+
+| Current path | Confirmed behavior | Required target change |
+|---|---|---|
+| `RationalBivariateAlgebra/OriginalRationalCurvePolynomial.swift` | Original control/weight/knot law and retained span/translation | Bind existing law evidence behind the rational-chart port |
+| `RationalBivariateAlgebra/OriginalRationalSurfaceHomogeneous.swift` | Homogeneous-only preparation, source/native-span validation | Reuse this position issuer; no differential preparation |
+| `NativeExactRelations/DefaultNativeExactRelationResolver+Sources.swift` | Prepares laws, imports coefficients and clips selected finite domains | Source issuer retains preparation/import; domain owner retains request clipping |
+| `OriginalRuledIntersectionSources/OriginalRuledSurfacePolynomial.swift` | Original common-U composition and product W | Reuse exact formula and bound descendants; consume selected charts without scanning for a whole request |
+| `OriginalRuledIntersectionSources/OriginalRuledRelationEquations.swift` | Pair equations and denominator predicates shared with Coons | Move consuming pair composition to the relation compiler, preserving raw laws and guards |
+| `OriginalCoonsIntersectionSources/OriginalCoonsHomogeneousAtlas.swift` | Shared original position law and directed boundary correspondence | Retain construction/corner authority behind the same receipt contract |
+| `OriginalAffineIntersectionSources/OriginalAffineSurfaceIntersectionSource.swift` | Original rational word action, but prepares the differential Native polynomial | Consume the homogeneous-only descendant; preserve original word and UV |
+| `OriginalAnalyticIntersectionSources/OriginalAnalyticCurvePullback.swift` | Implicit image pullback; no complete analytic UV | Keep image capability separate; gate unresolved semantic paths |
+
+Existing family DESIGN.md files own current behavior. This document owns the
+target common handoff; family contracts are changed together with their actual
+migration, not relabeled as migrated by adding this document. Existing relation
+facades may delegate after migration but may not retain duplicated algorithms.
+Public API/result/Codable changes are not part of this design-only task.
+
+### Behavioral acceptance for subsequent implementation
+
+| Invariant | Required positive and negative evidence | Verification owner |
+|---|---|---|
+| Authored coefficient meaning | Independent exact coefficients/construction identity; reject rounded transform, radius/weight products and foreign field imports | Corresponding family issuer tests in CADGeometryTests |
+| Local law equivalence | Exact whole-law formula/identity and guards; reject invalid corners, unsupported source/word and unproved branch removal | Existing ruled/Coons/affine/analytic test owners |
+| Source/parameter binding | Reversed/nonunit/weighted charts, retained original parameters; reject foreign chart and changed source | NativeExactRelationVerification and family issuer tests |
+| Lifetime and ownership | Release/mutate original input and retain exact laws; reject independent foreign owner | Family issuer tests and Native portability smoke |
+| Atomic same-ledger failure | Independently exhausted work/bytes/source/coefficient depths, overflow, entry/final cancellation; no receipt or retry | Issuer protocol and concrete-family verification |
+| Representation capability | Implicit image cannot masquerade as a UV map; unsupported required families remain visibly incomplete | Protocol consumers and analytic issuer tests |
+| Consumer composition | Existing exact L5 equations and original public correspondence/empty/failure unchanged on migrated inputs | NativeExactRelationVerification on all fixed target lanes |
+
+Existing source tests inspect actual formulas, unsupported inputs, lifetime and
+resource boundaries: OriginalRuledIntersectionSourceTests,
+OriginalCoonsIntersectionSourceTests and OriginalAffineIntersectionSourceTests
+in Tests/CADGeometryTests. Their prior success is evidence for those existing
+paths only, not for the proposed protocols. The current integrated
+[review-fix evidence](../../../Tests/NativeExactRelationVerification/PublicReviewFixEvidence/VERIFICATION.md)
+remains valid for unchanged compiled sources.
+
+Implement foundational binding and rational-chart handoff first, then migrate
+Native, ruled, Coons and affine through this same contract. Extend genuine
+analytic/procedural/composite representations without weakening the contract.
+Domain coverage and whole-seven acceptance remain independent completion gates.
+A lower change that breaks source authority, field import, guard meaning or
+parameter transport requires rechecking every direct consuming family/compiler;
+unchanged lower evidence is reused by source hash.

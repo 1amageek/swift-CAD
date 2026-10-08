@@ -108,10 +108,26 @@ the existing target-specific executable input boundary. Source retention,
 coefficient-family validation, cancellation and depth checks precede preflight.
 The source, all closure strategies, CS-only consumer and typed publication
 failure path were read together. One stable scoped review found no remaining
-contract violation. Local design links and whitespace checks pass.
+contract violation. Local design links and source/design whitespace checks pass. Raw build logs
+retain compiler whitespace unchanged.
 
 `receipt.json` binds actual compiler lists, every current source hash, raw
 products, runtime commands, lower test inputs and logs. Unchanged lower-source
 evidence remains reusable; this change's L4 behavior and upper composition are
 verified afresh. The full seven requirements and full-87 acceptance remain
 separate and unchanged.
+
+## Latest-main composition
+
+The independent implementation commit is `f2a1f937`. Main advanced from the
+base to `e9c1e8775f87d19f4f437093a6a55e3130b7ce19` with source/domain design
+and progress updates only. Those updates are preserved. The sole Git conflict
+was `PROGRESS.md`; its resolution retains every latest-main item and adds the
+independent optimization records and final dependency.
+
+Every one of the 1,453 compiler-input hashes and the additional test/log hashes
+matches the stable four-target runtime snapshot after composition. Existing
+producer/source semantics remain authoritative; the incoming issuer contracts
+are explicitly proposed designs. No production or fixture premise changed, so
+the four-target behavior and paired measurements are reused without rerunning
+unchanged builds. Actual main integration is recorded separately in `PROGRESS.md`.
