@@ -1,0 +1,35 @@
+{
+  "compiler": "swift-6.4.0-RELEASE",
+  "native": "arm64-apple-macos",
+  "sdks": [
+    "swift-6.4.0-RELEASE_wasm",
+    "swift-6.4.0-RELEASE_wasm-embedded"
+  ],
+  "wasm_target": "wasm32-unknown-wasip1",
+  "node": "24.19.0",
+  "review": "one scoped review; Embedded alias finding closed by lossless facade",
+  "evidence_hashes": {
+    "asan-build.log": "f2eae2c019c450f88506573e83042f0abb3cec6edd9cff56aa96f5612572eceb",
+    "l2-wasm-runtime.log": "c153b65f5206b6018fd947dfcc3f8d33d59049c3a0fd2b92b6bd9a6af48c345b",
+    "source-hashes.json": "a7b6fe5f8e5c738202370882627746df106eb1e25cb566f6e7de85342956a812",
+    "dependency-runtime.log": "12f86199b4a650a00cae812c3a8b2b12f4f004f9ba1361ba131caf6af33dc166",
+    "wasm-build.log": "0966d3c38da5902229ba9b5088c059f5506909ace54db9e0970f792e932e6fb1",
+    "native-runtime.log": "0ec52311411dedfaa88643c981c40843ce6249acbf6ee43ee36c5080f1cfcc35",
+    "wasm-runtime.log": "69601287e289f31ca7d8a339ace64ce241fe087dd9a18c10db1cb39ac73de394",
+    "l2-embedded-runtime.log": "d9ed36e4f8ac812ce076f54d5f208bb443368ecd440241514f4392b6f0b66258",
+    "compiler-inputs.json": "35a7c18d4344368b9858ef10b48c251f5511140958a64e9ffa0ac83e5a7fd32f",
+    "dependency-inputs.json": "3d0cc8c82470a93b5334f63d2e1112be8f836458b224cdc755e9116f6bed57f3",
+    "l2-native-runtime.log": "16de1f1bbdaca61b52929fefcf18f9e4abf3dc6b4e20985bd9fde38073788ed6",
+    "dependency-build.log": "846c61de56942d22f12bb65e8723a930ae29fa6d73d35e8365b62f817428defd",
+    "VERIFICATION.md": "5b212a72b4860995c54e39da95d5445771670afb5e4824acb108d85bc7adfd31",
+    "l2-wasm-build.log": "6313e773216761550410d116b9dece62fb604839cbe6d60c1b0019c78e76c165",
+    "implementation-build.log": "ab1964aceb0da6566f7f71b0a39663bf21e8778fdddefe86f1c80e0c696c375d",
+    "native-tests.log": "8ac2806ec2da6223b290572de1484a9bf82217acf2d20a1eb164252463252591",
+    "l2-native-tests.log": "c9c029ea4f0d85debe95689aa397f554033b62101fe57c3a18067677ebbe7887",
+    "embedded-build.log": "24d88f3777027dfac4e2cc5628cf55c92dcf6fc49874f86f8f68ff2c9e4e655e",
+    "l2-asan-build.log": "de11743443637e25277fd15c1531ab3702ff9c81eefd6e194bd9baa449bc5c28",
+    "REVIEW.md": "45e67c124078123900eb0714a4511120e08ee6c0b6aac0f6543af165f0e34271",
+    "embedded-runtime.log": "e34bbc9220735a9cf4e6b504d3bfb173b4c8fb3013ea13fcf3a10716231797c3",
+    "l2-embedded-build.log": "833de99f66cdadcc4a9e1808b6cb53af461011ec2b39e5af769189094d5c889e"
+  }
+}

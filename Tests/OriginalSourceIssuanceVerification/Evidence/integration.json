@@ -1,5 +1,5 @@
 {
-  "mainBase": "68d9a626",
+  "mainBase": "414136e7",
   "implementation": "3eacab1b",
   "proofInputsReused": 107,
   "lowerInputsUnchanged": 88,
@@ -10,8 +10,11 @@
   "progressPreserved": [
     "DI.D",
     "CSOPT.S",
-    "CSOPT.INT"
+    "CSOPT.INT",
+    "DI0"
   ],
   "requirementCount": "1/7",
-  "verification": "Reuse stable four-lane source/log/artifact evidence. New law API has no migrated upper consumer."
+  "verification": "Reuse stable four-lane source/log/artifact evidence. New law API has no migrated upper consumer.",
+  "previousComposition": "085c3035",
+  "changedLowerNondependency": "Latest selected-root/domain implementation changes neither the L0/L1-only graph nor this issuer contract."
 }

@@ -2,8 +2,9 @@
 
 ## Purpose and Scope
 
-Proposed direct child of [CADGeometry](../DESIGN.md). This is a design-only component;
-none of the proposed protocols or receipts in these documents is implemented yet.
+Direct child of [CADGeometry](../DESIGN.md). ExactParameterDomain is implemented and
+independently verified; transport, coverage and structural-identity children remain
+design-only. Their proposed protocols and receipts are not implemented yet.
 Children: ExactParameterDomain, OriginalParameterTransport, OriginalDomainCoverage,
 and OriginalParameterIdentity. All remain within CADGeometry; no production package,
 SwiftPM target, external dependency or replacement root solver is introduced.

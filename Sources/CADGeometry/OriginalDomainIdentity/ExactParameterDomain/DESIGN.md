@@ -2,9 +2,9 @@
 
 ## Purpose and Scope
 
-Proposed child of [Original Domain Identity](../DESIGN.md), without children.
+Implemented child of [Original Domain Identity](../DESIGN.md), without children.
 Own exact ordered parameter sets independently of source geometry and root solving.
-Production implementation is pending. The only mathematical dependency is existing
+The independent implementation is present. The only mathematical dependency is existing
 L0 ExactScalarOrdering; arithmetic is not required for interval membership.
 
 ## Responsibilities and Boundaries
@@ -40,7 +40,7 @@ flowchart LR
 
 ## Contracts and Invariants
 
-Proposed protocols ExactParameterDomainConstructing and ExactParameterDomainQuerying
+Public protocols ExactParameterDomainConstructing and ExactParameterDomainQuerying
 use an associated ordering domain and opaque immutable interval/set values. Required
 operations are interval, empty, union, intersection, difference, contains and setEqual.
 Operations take borrowed inputs and the same generic exclusive admission. Concrete
@@ -68,9 +68,8 @@ the existing L2 bound/interval value storage is factored into this L0-only compo
 where structurally compatible. L2 keeps its existing names through compatibility
 aliases or lossless wrappers and delegates interval semantics to the common constructor.
 Its inherited depth remains retained. Root-specific algorithms and admission axes stay
-in L2. There must not be two independently maintained interval validators. This is a
-planned L2 composition change requiring its focused interval regression, not a change
-already applied. The root facade preserves its existing error classification, endpoint
+in L2. There must not be two independently maintained interval validators. The L2 composition delegates to the shared checked constructor and requires
+the isolated L2 interval/count regression. The root facade preserves its existing error classification, endpoint
 field validation and depth checks through explicit failure mapping, without resetting
 or duplicating admission. Its isolated compiler input manifest must include the shared
 DI.0 value kernel alongside L0, while the DI.0-only manifest remains free of L2.
@@ -104,6 +103,51 @@ and empty construction, difference/union holes, whole/half-line sets, disconnect
 selections, Cartesian arity, foreign field/axis, released-input owners and work/storage/
 depth/cancel limits including final publication. Compare set operations with direct
 exact membership at all endpoint cells and open sectors. Existing L2 open/closed/
-singleton/unbounded/count fixtures verify the planned shared-value refactoring. A
+singleton/unbounded/count fixtures verify the shared-value composition. A
 separate L0+DI.0 compiler inventory must exclude L1-L6 and Geometry shape implementations.
 No downstream shape or solver build is part of isolated DI.0 acceptance.
+
+### Implementation and acceptance boundary
+
+`ExactParameterDomain<F>` implements both public protocols. A domain context owns one
+immutable parameter-axis authority and its inherited depth. Copies preserve that
+context; `init(retaining:using:)` restores it from a surviving set without another
+allocation. Binding raw scalar intervals explicitly validates finite endpoints under
+that axis's ordering provider. Bound set operations reject another context.
+`ExactParameterProduct` retains its ordered axes, each with its own field/axis owner;
+tuple validation uses each retained provider. The product's issuing context controls
+subsequent product queries. Zero arity and empty-axis state are computed during the
+admitted construction scan, making metadata access constant time.
+
+`ExactParameterInterval.checked` is the sole interval validator. The scalar interval
+is independent of an axis, retaining bound values and explicit inherited depth.
+`retainingDepth` only joins causal depths; it cannot weaken them. L2's lossless
+wrappers retain its existing public storage fields and tagged bound cases. Its facade
+maps typed failures and preserves depths discovered by its scalar admission. A
+source-side provider must validate its own retained endpoint depths in sign/compare;
+source issuers additionally pass inherited source depth when constructing the axis.
+No root dependency or second interval validator is introduced.
+
+Unsorted raw input uses one admitted insertion-sort scratch buffer, O(n²) worst case,
+and one canonical output buffer. Every comparison/shift scan is charged. Existing
+canonical union/intersection/difference use ordered sweeps, O(n+m) comparisons plus
+output; membership is O(n) and structural set equality O(n). Output capacity is bounded
+by n+m. Admission counts generated typed payload bytes and immutable owner headers;
+allocator rounding/Swift Array capacity overhead is not claimed to be peak physical
+memory. ArraySlice views and product-axis sharing do not copy retained payload.
+The view fixture checks shared buffer addresses inside scoped standard-library borrows.
+
+Behavior owners: [isolated package](../../../../Tests/OriginalDomainIdentityVerification/Package.swift),
+[fixtures](../../../../Tests/OriginalDomainIdentityVerification/Sources/Fixtures/DomainFixtures.swift),
+[tests](../../../../Tests/OriginalDomainIdentityVerification/Tests/DomainTests.swift),
+and [verification](../../../../Tests/OriginalDomainIdentityVerification/Evidence/VERIFICATION.md).
+Only this component and the L2 interval facade are implemented in this task. Transport,
+source-chart coverage, periods, poles and source-structural identity remain separate
+unimplemented children. Their design is not evidence of implemented source issuance.
+
+The isolated L2 facade keeps its bound enum and read-only interval member types local
+to L2. The interval contains exactly one shared DI0 value; bound conversion preserves
+finite values and infinity tags, adds no coefficient buffer, and performs no second
+validation. This avoids leaking the DI0 alias into consumers on Embedded, whose
+specialization requires the declaring module to be imported by the consuming file.
+Only the root construction/access files import DI0; no upper source changes are needed.
