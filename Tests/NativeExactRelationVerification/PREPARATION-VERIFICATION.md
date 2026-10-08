@@ -112,3 +112,12 @@ excerpt; that failed build is not pass evidence. Full Embedded WMO compilation
 uses the communicated build-only 300-second watchdog and completed in 176.98s.
 An initial degree-zero fixture assumption was corrected to preserve the existing
 Geometry source-validation contract; its rejected run is retained separately.
+
+## Main Integration
+Implementation commit ad490916 was fast-forwarded from main 498c4367, with no
+concurrent main changes or merge edits. All 1,359 compiled production hashes,
+five shared fixture hashes and retained runtime log hashes match integrated main.
+The unchanged byte snapshot reuses the four-lane evidence above; no redundant
+full compilation follows the fast-forward. Main and the isolated implementation
+worktree retain clean committed checkpoints. Existing outside-task unpushed main
+history is preserved; it is not included in an automatic push.
