@@ -1,9 +1,23 @@
 #if L2_ISOLATED_VERIFICATION
 import L0
 import L1
+import DI0
 #endif
 
 enum ExactRootAccess {
+    static func parameterDomain<R>(_ body: () throws(ExactParameterDomainFailure) -> R)
+        throws(ExactRealRootFailure) -> R {
+        do { return try body() }
+        catch {
+            switch error {
+            case .invalidDomain, .invalidArity: throw .invalidDomain
+            case .foreignOwner: throw .incompatibleDomain
+            case .countOverflow: throw .countOverflow
+            case .scalar(let cause): throw .scalar(cause)
+            case .operationRejected(let cause): throw .operationRejected(cause)
+            }
+        }
+    }
     static func run<A: ExactScalarAdmission & ~Copyable, R>(_ admission: inout A,
         inherited: ExactScalarDepth? = nil, _ body: (inout ExactRootBorrowedAdmission) throws -> R
     ) throws(ExactRealRootFailure) -> R {

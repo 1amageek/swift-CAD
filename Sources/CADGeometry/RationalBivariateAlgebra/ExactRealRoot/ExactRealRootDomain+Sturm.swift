@@ -107,8 +107,7 @@ extension ExactRealRootDomain {
             if try context.field.compare(h, hi, using: &a) != .greater { hi = h; iu = selected.includesUpper }
         }
         if try context.field.compare(lo, hi, using: &a) == .greater {
-            return ExactRealRootInterval(lower: .finite(lo), upper: .finite(lo), includesLower: false,
-                includesUpper: false, isEmpty: true, depth: a.depth)
+            return try interval(.finite(lo), .finite(lo), false, false, &a)
         }
         return try interval(.finite(lo), .finite(hi), il, iu, &a)
     }

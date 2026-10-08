@@ -1,6 +1,7 @@
 #if L2_ISOLATED_VERIFICATION
 import L0
 import L1
+import DI0
 #endif
 
 public struct ExactRealRootDomain<F: ExactScalarArithmetic & ExactScalarOrdering>:
@@ -59,24 +60,25 @@ public struct ExactRealRootDomain<F: ExactScalarArithmetic & ExactScalarOrdering
     public func emptyDomain<A: ExactScalarAdmission & ~Copyable>(using admission: inout A
     ) throws(ExactRealRootFailure) -> ExactRealRootInterval<F.Value> {
         try ExactRootAccess.run(&admission, inherited: context.depth) { a in
-            ExactRealRootInterval(lower: .negativeInfinity, upper: .positiveInfinity,
-                includesLower: false, includesUpper: false, isEmpty: true, depth: a.depth)
+            let interval: ExactParameterInterval<F.Value> = try ExactRootAccess.parameterDomain {
+                () throws(ExactParameterDomainFailure) -> ExactParameterInterval<F.Value> in
+                try .empty(depth: a.depth, using: &a)
+            }
+            return ExactRealRootInterval(retaining: interval)
         }
     }
     func interval(_ lo: ExactRealRootBound<F.Value>, _ hi: ExactRealRootBound<F.Value>,
         _ il: Bool, _ iu: Bool, _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootInterval<F.Value> {
-        if case .positiveInfinity = lo { throw ExactRealRootFailure.invalidDomain }
-        if case .negativeInfinity = hi { throw ExactRealRootFailure.invalidDomain }
-        var empty = false
-        if case .finite(let value) = lo { _ = try context.field.sign(of: value, using: &a) }
-        if case .finite(let value) = hi { _ = try context.field.sign(of: value, using: &a) }
-        if case .finite(let l) = lo, case .finite(let h) = hi {
-            let order = try context.field.compare(l, h, using: &a)
-            guard order != .greater else { throw ExactRealRootFailure.invalidDomain }
-            empty = order == .equal && !(il && iu)
+        let result: ExactParameterInterval<F.Value> = try ExactRootAccess.parameterDomain { () throws(ExactParameterDomainFailure) -> ExactParameterInterval<F.Value> in
+            try .checked(field: context.field, lower: lo.domainBound, upper: hi.domainBound,
+                includesLower: il, includesUpper: iu, depth: a.depth, using: &a)
         }
-        return ExactRealRootInterval(lower: lo, upper: hi,
-            includesLower: { if case .finite = lo { return il }; return false }(),
-            includesUpper: { if case .finite = hi { return iu }; return false }(), isEmpty: empty, depth: a.depth)
+        // Scalar validation may discover retained coefficient depths. Preserve them
+        // in the shared interval without resetting the exclusive caller admission.
+        let retained = try ExactRootAccess.parameterDomain {
+            () throws(ExactParameterDomainFailure) -> ExactParameterInterval<F.Value> in
+            try result.retainingDepth(a.depth, using: &a)
+        }
+        return ExactRealRootInterval(retaining: retained)
     }
 }

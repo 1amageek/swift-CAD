@@ -765,12 +765,23 @@ and terminal cancellation. Existing full weighted and real three-stage fixtures
 measure cold-process batches at unchanged original ceilings. Native/ASAN and both
 matching WASM SDKs verify the composed lower graph; upper adoption remains separate.
 
-## Planned Exact Domain Foundation Composition
+## Exact Domain Foundation Composition
 
-The proposed [Exact Parameter Domain](../../OriginalDomainIdentity/ExactParameterDomain/DESIGN.md)
-will own the shared L0-only interval/set meaning. The planned implementation factors
-compatible bound/interval storage without changing root field ownership, inherited
-depth, root algorithms or public interval behavior. Existing names remain aliases or
-lossless wrappers. This is design-only; L2 has not gained a runtime dependency yet.
-Its open/closed/singleton/empty/unbounded interval fixtures own the focused regression
-when that refactoring is implemented. No root solver moves into the domain issuer.
+[Exact Parameter Domain](../../OriginalDomainIdentity/ExactParameterDomain/DESIGN.md)
+owns the shared L0-only interval/set meaning. `ExactRealRootBound` and
+`ExactRealRootInterval` expose lossless wrappers; the root facade delegates construction
+to its checked kernel, retains depths discovered by its admission, and maps failures
+back to the established L2 error cases. Root field ownership, algorithms and original
+source receipts remain in L2. Its isolated graph adds DI0, while DI0 never imports L2.
+Open/closed/singleton/empty/unbounded root-count fixtures and existing L2 failure,
+depth and owner tests own the affected regression. No shape or L3-L6 build is required
+for this boundary. Six downstream verification manifests declare the transitive DI0
+module so the isolated facades remain composable; those upper graphs are not executed
+as part of DI0 acceptance.
+
+The isolated L2 facade keeps its bound enum and read-only interval member types local
+to L2. The interval contains exactly one shared DI0 value; bound conversion preserves
+finite values and infinity tags, adds no coefficient buffer, and performs no second
+validation. This avoids leaking the DI0 alias into consumers on Embedded, whose
+specialization requires the declaring module to be imported by the consuming file.
+Only the root construction/access files import DI0; no upper source changes are needed.

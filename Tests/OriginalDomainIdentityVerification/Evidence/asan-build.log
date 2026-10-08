@@ -1,0 +1,59 @@
+Building for debugging...
+[Pre-planning 1 / 182]
+[Planning deferred tasks]
+[50 / 105] L0
+[55 / 122] L0
+[63 / 122] L0
+[66 / 122] L0
+[67 / 122] L0
+[68 / 122] L0
+[70 / 122] L0
+[71 / 122] L0
+[72 / 122] L0
+[73 / 122] L0
+[74 / 123]
+[76 / 136] DI0
+[81 / 136] DI0
+[88 / 136] DI0
+[90 / 136] DI0
+[91 / 136] DI0
+[95 / 136] DI0
+[98 / 137]
+[103 / 143] DomainFixtures
+[106 / 145] DomainDependencyProbe-product
+[113 / 145] DomainTests-product
+[115 / 145] DomainDependencyProbe-product
+[123 / 148] DomainProof-product
+[126 / 148] DomainDependencyProbe-product
+[130 / 148]
+[135 / 149]
+[138 / 149] DomainTests-product
+[143 / 174]
+[145 / 174]
+[148 / 174]
+[150 / 174]
+[152 / 174]
+[155 / 174]
+[158 / 174]
+[159 / 174]
+[160 / 174]
+[163 / 174] DomainTests-product
+[170 / 174] DomainTests-product
+Build complete! (8.66秒)
+Test Suite 'All tests' started at 2026-10-08 23:29:19.912.
+Test Suite 'All tests' passed at 2026-10-08 23:29:19.913.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test allEndpointSectors() started.
+􀟈  Test canonicalDisconnectedUnboundedSets() started.
+􀟈  Test immutableReadersAndTaskCancellation() started.
+􀟈  Test productsAndRetainedOwners() started.
+􀟈  Test explicitFailuresAndAdmission() started.
+􁁛  Test immutableReadersAndTaskCancellation() passed after 0.001 seconds.
+􁁛  Test explicitFailuresAndAdmission() passed after 0.001 seconds.
+􁁛  Test productsAndRetainedOwners() passed after 0.001 seconds.
+􁁛  Test canonicalDisconnectedUnboundedSets() passed after 0.001 seconds.
+􁁛  Test allEndpointSectors() passed after 0.161 seconds.
+􁁛  Test run with 5 tests in 0 suites passed after 0.161 seconds.

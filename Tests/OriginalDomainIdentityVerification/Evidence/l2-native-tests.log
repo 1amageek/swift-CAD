@@ -1,0 +1,93 @@
+Building for debugging...
+[2 / 6] L2
+[9 / 13] L2Fixtures
+[16 / 33] L2
+[18 / 33] L2
+[21 / 33] L2
+[23 / 33] L2
+[24 / 33] L2
+[25 / 33] L2
+[28 / 33] L2
+[29 / 33] L2
+[34 / 46] L2Fixtures
+[36 / 46] L2Fixtures
+[38 / 46] L2Fixtures
+[40 / 46] L2Fixtures
+[41 / 46] L2Fixtures
+[42 / 46] L2Fixtures
+[45 / 47] L2Tests-product
+[47 / 49] L2Tests-product
+[51 / 52] L2Tests-product
+[56 / 58] L2Proof-product
+[58 / 58] L2Proof-product
+Build complete! (5.75秒)
+Test Suite 'All tests' started at 2026-10-08 23:35:47.988.
+Test Suite 'All tests' passed at 2026-10-08 23:35:47.989.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test rootDomains() started.
+􀟈  Test generalDegree() started.
+􀟈  Test fieldFailures() started.
+􀟈  Test retainedOwners() started.
+􀟈  Test denominatorUnits() started.
+􀟈  Test algebraicTower() started.
+􀟈  Test concurrentImmutableRootReaders() started.
+􀟈  Test cumulativeCellVisits() started.
+􀟈  Test rationalRoots() started.
+􀟈  Test rootSeparation() started.
+􀟈  Test rootFailures() started.
+􀟈  Test exactCandidateCompletion() started.
+􀟈  Test exactQueries() started.
+􀟈  Test exactCandidateRefinement() started.
+􀟈  Test reducibleLaw() started.
+􀟈  Test signedDecisions() started.
+􀟈  Test countReuse() started.
+􀟈  Test finalCancellationAndStorage() started.
+􀟈  Test rootTransport() started.
+􀟈  Test existingAlgebraicBase() started.
+􀟈  Test canonicalScalarExecution() started.
+􀟈  Test localCalculationLaws() started.
+􀟈  Test factoredCount() started.
+􀟈  Test definingDivisorRefinement() started.
+PASS: retained owners, original variable map and exact base import
+PASS: terminal cancellation, atomic publication and exact storage boundary
+PASS: higher degree, odd multiplicity and invalid input failures
+PASS: reducible root law and selected-root denominator decisions
+PASS: canonical scalar/public root signs, field identities, exact work/storage, depth, owners and final cancellation
+PASS: count reuse reduces admitted work/storage while preserving original global ordinal and multiplicity
+􁁛  Test rootFailures() passed after 0.247 seconds.
+􁁛  Test rationalRoots() passed after 0.248 seconds.
+􁁛  Test retainedOwners() passed after 0.248 seconds.
+􁁛  Test exactCandidateCompletion() passed after 0.248 seconds.
+􁁛  Test exactCandidateRefinement() passed after 0.248 seconds.
+􁁛  Test finalCancellationAndStorage() passed after 0.248 seconds.
+􁁛  Test generalDegree() passed after 0.248 seconds.
+􁁛  Test reducibleLaw() passed after 0.248 seconds.
+􁁛  Test canonicalScalarExecution() passed after 0.248 seconds.
+􁁛  Test countReuse() passed after 0.248 seconds.
+􁁛  Test concurrentImmutableRootReaders() passed after 0.248 seconds.
+􁁛  Test rootDomains() passed after 0.251 seconds.
+PASS: denominator units preserve exact inverses and zero rejection within depth32
+􁁛  Test denominatorUnits() passed after 0.260 seconds.
+􁁛  Test exactQueries() passed after 0.308 seconds.
+PASS: incompatible owners, extension ceiling and scalar failures
+􁁛  Test fieldFailures() passed after 0.329 seconds.
+PASS: signed remainder, near-root order without bisection, endpoint contributions and shared admission
+􁁛  Test signedDecisions() passed after 0.354 seconds.
+􁁛  Test definingDivisorRefinement() passed after 0.364 seconds.
+PASS: L2 isolate/refine cumulative visits N=26, both axes, exact ceiling, cause and final cancellation
+􁁛  Test cumulativeCellVisits() passed after 0.366 seconds.
+􁁛  Test factoredCount() passed after 0.388 seconds.
+PASS: strict separation, singleton endpoints, original identities, union sectors, lifetime and atomic resource failures
+􁁛  Test rootSeparation() passed after 0.453 seconds.
+PASS: reducible local inverses, mixed immutable laws, original identity and uncancelled zero denominator
+􁁛  Test localCalculationLaws() passed after 0.472 seconds.
+PASS: existing algebraic base coefficients and inherited coefficient depth
+􁁛  Test existingAlgebraicBase() passed after 0.476 seconds.
+PASS: runtime algebraic tower and retained ancestor embeddings
+􁁛  Test algebraicTower() passed after 0.673 seconds.
+PASS: explicit root transport preserves source, conjugate, endpoints, depth and lifetime; foreign owners and cancellation reject
+􁁛  Test rootTransport() passed after 0.887 seconds.
+􁁛  Test run with 24 tests in 0 suites passed after 0.888 seconds.

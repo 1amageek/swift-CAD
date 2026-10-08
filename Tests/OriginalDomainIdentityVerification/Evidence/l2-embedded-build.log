@@ -1,0 +1,7 @@
+Building for debugging...
+[3 / 19] L2
+[12 / 21] L2Fixtures
+[21 / 23] L2Proof-product
+/private/tmp/cad-domain-identity-design-20261008/Tests/L2RealRootVerification/Package.swift: L2Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[23 / 23] L2Proof-product
+Build complete! (13.45秒)
