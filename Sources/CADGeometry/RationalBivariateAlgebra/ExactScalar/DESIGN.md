@@ -381,3 +381,28 @@ spent resources and original causes; publication still has a final checkpoint.
 Changed admission conformers must implement this requirement. Upper Native
 ordinary/callback entry migration depends on recorded visit counts and independent
 cell/depth/cancel rejection through the actual L0-L3 execution path.
+
+### Retained-root extension for source coefficients
+
+The additive OriginalExactScalarDomain initializer extending an existing domain
+with an already-certified ExactAlgebraicRealRoot retains the parent's comparison
+owner and its explicit value/coefficient limits. It embeds the original rational
+polynomial into that same parent, keeps the certified unique-root interval and
+its open/closed endpoints, and creates the existing immutable extension context.
+It does not run an isolator, enumerate candidates or choose another root. A
+rational law has the same real roots after exact embedding into the parent field;
+the sealed original unique-root selector therefore remains authoritative even
+for a reducible or algebraically dependent extension. Existing local-field
+algorithms own equality, signs and inverses. The generic L2 adjoin/transport
+contract and all existing scalar constructors remain unchanged.
+
+The chosen admission axis inherits root isolation depth independently of parent
+value/coefficient depth. The parent's original limits, work/storage and entry/final
+cancel apply unchanged. Existing ancestor values import into the new descendant
+through the already-defined exact embedding; unrelated independent root owners
+still fail. OriginalSourceIssuance uses this port for algebraic directed endpoints
+and retains the raw endpoint/source as well as scalar evidence. Independent
+issuer tests own two-root/dependent-root arithmetic, ancestor transfer, exact
+selector identity, lifetime and each resource/failure boundary. This additive
+port is verified with L0/L1 and actual source adapters only; no upper target build
+or revalidation of unchanged L2-L6 algorithms is implied.

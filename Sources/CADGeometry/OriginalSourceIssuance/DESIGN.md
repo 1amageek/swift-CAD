@@ -334,6 +334,28 @@ boundary. Existing Coons construction
 and traversal authorities remain with their source providers; the generic
 formula alone does not complete those providers or consuming migration.
 
+### Directed traversal providers
+
+A directed traversal retains its actual OriginalCurveRootSpan3D, original child
+binding and exact start/end coefficients. Authored endpoints import their stored
+binary64 bits. Algebraic endpoints bind their existing sealed root in one explicit
+parent coefficient field using the additive L0 retained-root extension contract.
+A Coons provider prepares all endpoint coefficients into one ancestor chain
+before issuing child charts; prior values import through that chain. Original
+endpoint/source equality is checked directly when sharing an already-prepared
+coefficient. Neither representative bounds nor interval corner caches are source
+coefficients, and root isolation is never repeated by the provider.
+
+The traversal chart issuer keeps child-local variables and all position/transport
+guards. It proves affine child correspondence t=a*s+b and clips selected support
+exactly to t in the closed interval between original start/end. Its directed
+authored coordinate is q=(t-start)/(end-start), with signed direction preserved.
+Zero extent, non-affine child transport, foreign owners, disjoint support and
+resource/cancellation failures are explicit. This produces a local law only;
+whole coverage/span connections remain with the domain issuer. Static injection
+owns actual child-family validation and existing Coons construction/continuity
+authority. No child law or coefficient is imported through a numeric estimate.
+
 ### Receipt content and evidence
 
 | Retained value | Owner and invariant |

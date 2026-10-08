@@ -23,3 +23,5 @@ import SourceIssuerFixtures
 @Test(.timeLimit(.minutes(1))) func coonsLaws() throws { try SourceFixtures.coonsLaws() }
 
 @Test(.timeLimit(.minutes(1))) func endpointDecisionDepths() throws { try SourceFixtures.endpointDecisionDepths() }
+
+@Test(.timeLimit(.minutes(1))) func retainedRootExtensions() throws { try SourceFixtures.retainedRootExtensions() }
