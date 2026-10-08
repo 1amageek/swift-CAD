@@ -52,9 +52,15 @@ lower nominal identity without new root isolation.
 The [Coons proof](Sources/CoonsGeometryProof/CoonsGeometryProof.swift) uses actual
 weighted nonunit directed boundaries and sealed algebraic root endpoints. It
 checks whole HXYZW laws, eight endpoint owners in a common coefficient field,
-exact selector reuse and source/depth/work/storage/cancel failures. Proof input
-copies remain fixed during compilation; source hashes must still match at receipt
-publication. Its evidence is [TraversalEvidence](TraversalEvidence/VERIFICATION.md).
+exact selector reuse and source/depth/work/storage/cancel failures. Each compiler
+input is read once: those same bytes produce its immutable copy and recorded
+hash. Import prefixes are the only overlay additions. Receipt publication checks
+current originals against the captured hashes, rejecting edits after capture.
+The shared [input snapshot helper](Scripts/VerificationInputs.py) owns this
+boundary; [deterministic regressions](Scripts/TestVerificationInputs.py) verify
+overlay/proof edits during copying and unchanged publication. Its geometry
+evidence is [TraversalEvidence](TraversalEvidence/VERIFICATION.md).
+The copy/hash race fix is recorded in [SnapshotFixEvidence](SnapshotFixEvidence/VERIFICATION.md).
 Its script verifies cached runtime artifact hashes and source-provider premises
 before linking. It records every reused object and every compiled adapter.
 The verification-only dual admission conformance reconciles cached and separately

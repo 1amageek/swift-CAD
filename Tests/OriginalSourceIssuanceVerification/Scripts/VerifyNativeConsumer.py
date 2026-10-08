@@ -6,6 +6,7 @@ import hashlib
 import json
 import subprocess
 from collections import Counter
+from VerificationInputs import copy_input, require_unchanged_inputs
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--lane', choices=['native', 'asan', 'wasm', 'embedded'], default='native')
@@ -72,6 +73,7 @@ excluded = {'OriginalAnalyticPrimitiveSnapshot.swift', 'OriginalAnalyticPrimitiv
 originals = sorted(p for p in (root / 'Sources/CADGeometry/OriginalSourceIssuance').rglob('*.swift')
     if p.name not in excluded)
 commands = []
+source_hashes = {}
 def run(command):
     commands.append(command)
     result = subprocess.run(command, timeout=120)
@@ -80,17 +82,13 @@ def overlays(paths, prefix):
     result = []
     for path in paths:
         target = overlay / path.name
-        target.write_text(prefix + path.read_text())
-        if target.read_text()[len(prefix):] != path.read_text():
-            raise RuntimeError('Overlay changed production source')
-        result.append(target)
+        result.append(copy_input(path, target, root, source_hashes, prefix.encode('utf-8')))
     return result
 # Compile the additive retained-root port against the cached lower nominal types.
 # Every pre-existing cached lower input remains unchanged; this source-only overlay
 # contains the actual current extension and introduces no upper-target build.
 retained_root = root / 'Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalExactScalarDomain+RetainedRoot.swift'
 issued = overlays([*originals, retained_root], '@testable import CADGeometry\n')
-source_hashes = {str(p.relative_to(root)): digest(p) for p in [*originals, retained_root]}
 run(common + ['-emit-library', '-static', '-emit-module', '-module-name', 'SourceIssuerCached',
     *map(str, issued), '-emit-module-path', str(output / 'SourceIssuerCached.swiftmodule'),
     '-o', str(output / 'libSourceIssuerCached.a')])
@@ -104,8 +102,7 @@ if args.source_only: consumers = []
 prepared = overlays(consumers, 'import CADGeometry\nimport SourceIssuerCached\n')
 proof = args.proof.resolve() if args.proof else root / 'Tests/OriginalSourceIssuanceVerification/Sources/NativeConsumerProof/NativeConsumerProof.swift'
 proof_input = output / 'ProofInput.swift'
-proof_input.write_bytes(proof.read_bytes())
-source_hashes.update({str(p.relative_to(root)): digest(p) for p in [*consumers, proof]})
+copy_input(proof, proof_input, root, source_hashes)
 def archive_object_hashes(path):
     hashes = []
     with path.open('rb') as archive:
@@ -161,9 +158,7 @@ run(['/usr/local/bin/node', str(root / 'Tests/OriginalSourceIssuanceVerification
 changed_lower = {name: {'validated': value, 'current': digest(root / name)}
     for name, value in receipt['source_sha256'].items()
     if '/ExactRealRoot/' in name and digest(root / name) != value}
-for name, expected_hash in source_hashes.items():
-    if digest(root / name) != expected_hash:
-        raise RuntimeError('Source changed during verification: ' + name)
+require_unchanged_inputs(root, source_hashes)
 manifest = {'compiledSources': source_hashes,
     'cachedInputs': {str(p): digest(p) for p in objects}, 'cachedArchives': archive_hashes, 'commands': commands,
     'toolchain': subprocess.check_output([str(swiftc), '--version'], text=True).strip(),
