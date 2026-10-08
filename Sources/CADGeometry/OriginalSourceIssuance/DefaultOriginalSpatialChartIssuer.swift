@@ -20,6 +20,7 @@ public struct DefaultOriginalSpatialChartIssuer<Source: OriginalSpatialSourceRea
             }
             guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
             try chart.selection.child.source.require(.init(remainingSourceDepth: limits.remainingSourceDepth - 1))
+            try chart.selection.child.admitProof(using: &admission)
             let child = chart.selection.child
             guard child.homogeneous.count == 4, child.support.count == child.polynomials.variableCount,
                 child.parameterTransport.numerators.count == child.support.count,
@@ -65,7 +66,7 @@ public struct DefaultOriginalSpatialChartIssuer<Source: OriginalSpatialSourceRea
                 of: OriginalRationalChartReceipt<Source, Selection, Field>.self))
             let result = OriginalRationalChartReceipt(chart: copy chart, field: copy field,
                 polynomials: ring, homogeneous: output, support: support,
-                parameterTransport: .init(numerators: numerator, denominators: denominator))
+                parameterTransport: .init(numerators: numerator, denominators: denominator), proofDepth: child.proofDepth)
             try admission.checkpoint(); return result
         } catch { throw .init(preserving: error) }
     }

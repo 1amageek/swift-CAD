@@ -19,3 +19,7 @@ import SourceIssuerFixtures
 @Test(.timeLimit(.minutes(1))) func spatialLaws() throws { try SourceFixtures.spatialLaws() }
 
 @Test(.timeLimit(.minutes(1))) func parameterImageLaws() throws { try SourceFixtures.parameterImageLaws() }
+
+@Test(.timeLimit(.minutes(1))) func coonsLaws() throws { try SourceFixtures.coonsLaws() }
+
+@Test(.timeLimit(.minutes(1))) func endpointDecisionDepths() throws { try SourceFixtures.endpointDecisionDepths() }

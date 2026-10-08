@@ -19,6 +19,7 @@ public struct DefaultOriginalParameterImageChartIssuer<Source: OriginalParameter
                 throw OriginalSourceIssuanceFailure.foreignBinding
             }
             guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
+            try chart.selection.child.admitProof(using: &admission)
             let child = chart.selection.child, count = source.original.parameterCount
             try child.source.require(.init(remainingSourceDepth: limits.remainingSourceDepth - 1))
             guard (count == 1 || count == 2), child.support.count == count,
@@ -84,7 +85,7 @@ public struct DefaultOriginalParameterImageChartIssuer<Source: OriginalParameter
                 of: OriginalRationalChartReceipt<Source, Selection, Field>.self))
             let result = OriginalRationalChartReceipt(chart: copy chart, field: copy field,
                 polynomials: ring, homogeneous: h, support: support,
-                parameterTransport: .init(numerators: numerators, denominators: denominators))
+                parameterTransport: .init(numerators: numerators, denominators: denominators), proofDepth: child.proofDepth)
             try admission.checkpoint(); return result
         } catch { throw .init(preserving: error) }
     }

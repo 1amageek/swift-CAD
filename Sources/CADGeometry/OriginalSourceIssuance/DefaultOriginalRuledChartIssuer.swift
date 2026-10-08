@@ -24,6 +24,8 @@ public struct DefaultOriginalRuledChartIssuer<Source: OriginalRuledSourceReading
             guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
             let children = try OriginalSourceIssuanceLimits(remainingSourceDepth: limits.remainingSourceDepth - 1)
             try chart.selection.first.source.require(children); try chart.selection.second.source.require(children)
+            try chart.selection.first.admitProof(using: &admission)
+            try chart.selection.second.admitProof(using: &admission)
             let first = chart.selection.first, second = chart.selection.second
             guard first.support.count == 1, second.support.count == 1,
                 first.homogeneous.count == 4, second.homogeneous.count == 4,
@@ -89,9 +91,11 @@ public struct DefaultOriginalRuledChartIssuer<Source: OriginalRuledSourceReading
             try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: ExactPolynomial<Field>.self))
             try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
                 of: OriginalRationalChartReceipt<Source, Selection, Field>.self))
+            let inherited = try ExactScalarDepth(value: max(first.proofDepth?.value ?? 0, second.proofDepth?.value ?? 0),
+                coefficient: max(first.proofDepth?.coefficient ?? 0, second.proofDepth?.coefficient ?? 0))
             let result = OriginalRationalChartReceipt(chart: copy chart, field: copy field,
                 polynomials: ring, homogeneous: laws, support: support,
-                parameterTransport: .init(numerators: [u, v], denominators: [unit, unit]))
+                parameterTransport: .init(numerators: [u, v], denominators: [unit, unit]), proofDepth: inherited)
             try admission.checkpoint(); return result
         } catch { throw .init(preserving: error) }
     }

@@ -286,6 +286,54 @@ position laws. Coefficients, child-law imports, transport buffers and final
 publication are admitted atomically; zero gain, foreign authority, invalid axis
 mapping, tighter depth, budget exhaustion and cancellation fail explicitly.
 
+### Coons composition and endpoint evidence
+
+The Coons reader retains four independently typed boundary bindings. Each boundary
+selection keeps its current rational chart and two sealed endpoint receipts, which
+may use other charts of the same original binding. The endpoint issuer proves
+closed local membership, nonzero position/transport denominators, the exact
+original parameter and XYZ using L0/L1 evaluation. It retains the full original
+chart and attained evaluation depths. No extrapolated corner or interval cache
+is an exact coefficient authority.
+
+The Coons issuer imports each boundary transport and proves by exact polynomial
+division that it is a nonconstant affine function of the local coordinate. It
+then substitutes its exact inverse into all original homogeneous laws and guard
+polynomials. This is a coefficient transformation, not inverse geometry, fitting,
+root selection or a whole-domain claim. Signed gains reverse support exactly.
+Transport denominator factors remain in HXYZW even when their quotient is affine.
+Non-affine transport is explicitly unsupported by this constructor; its full
+family obligation remains open rather than being counted as complete.
+
+| Owner | Consumes | Guarantees |
+|---|---|---|
+| Endpoint issuer | Owned curve chart, exact local and expected original parameter | Closed membership, guarded exact XYZ, complete source and evaluation-depth retention |
+| Coons selection | Four position charts and eight endpoint receipts | Persistent boundary/corner proof ownership; no independent source substitution |
+| Coons issuer | Parent and owned selection, same field/admission | Exact corner equality, normalized support intersection, uncancelled original Coons laws |
+
+Corner pairs are bottom-start/left-start, bottom-end/right-start,
+top-start/left-end and top-end/right-end. Every start/end receipt must prove
+original parameter 0/1 and retain the parent's corresponding boundary owner.
+Corners come from bottom/top endpoint XYZ only after all four exact pair checks.
+For each spatial axis, the law is (1-v)B(u)+vT(u)+(1-u)L(v)+uR(v) minus
+the four-corner bilinear interpolation. Original denominators are multiplied and
+never deleted. Bottom/top support intersects normalized [0,1] on U; left/right
+support does so on V. Closed singleton intersections remain valid; disjoint
+charts fail invalidChart. Foreign bindings, invalid corner identity, zero guard,
+non-affine transport, tighter source/scalar depths, exhaustion and final cancel
+fail before publication under one caller admission. The receipt's optional proofDepth retains causal decision depths beyond coefficient
+payloads. All derived ruled, spatial and parameter-image issuers admit and propagate
+it. Endpoint receipts retain every decision depth, including endpoint membership and
+corner comparisons. A private noncopyable forwarding admission borrows the existing
+exclusive ledger only inside a synchronous scoped stack-pointer closure. It owns no
+allocation, shared state or allowance; initialized/aligned A is never rebound,
+deallocated or accessed concurrently, and its pointer never crosses the closure or
+Sendable boundary. Native, WASM and Embedded use the identical declaration/access
+path. Endpoint/coons success, limits/cancel and ASAN checks own this narrow unsafe
+boundary. Existing Coons construction
+and traversal authorities remain with their source providers; the generic
+formula alone does not complete those providers or consuming migration.
+
 ### Receipt content and evidence
 
 | Retained value | Owner and invariant |

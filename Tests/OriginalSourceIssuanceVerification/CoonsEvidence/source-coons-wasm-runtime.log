@@ -1,0 +1,24 @@
+COMMAND: ['/usr/local/bin/node', 'Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs', '.build/source-complete-wasm/out/Products/Debug-webassembly-wasm32/SourceIssuerProof.wasm']
+(node:72339) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+PASS periodic exact knot/control law, two axes, negative cycles, seam owners, transport and failures
+PASS complete sphere/cylinder/torus image equations, original sheared frames, source lifetime and failures
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+PASS invalid source/chart, unsupported periodic and independently inherited source-depth refusal
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1003 generatedBytes=2449 storageAdmissions=165
+PASS physical-radian exact identities, near-binary64 sign separation, range doubling, lifetime and typed failures
+PASS physical-angle exact cumulative work/storage, entry/final cancellation and independent coefficient depth
+MEASURE physical-angle work=20951 generatedBytes=21341
+PASS exact physical-angle cone image, sheared original frame, both nappes/apex, excluded point, ownership and atomic failures
+MEASURE cone work=59609 generatedBytes=107397
+PASS heterogeneous Native/line ruled whole laws, product W, exact support, retained child owners and atomic budgets/cancel/depth
+PASS original spatial homogeneous action, exact rational/transcendental coefficients, W/support/transport retention and atomic failures
+PASS signed/nested original parameter transport, nonunit denominators, child-local support, swap/spatial action, provenance and atomic failures
+PASS heterogeneous Coons full laws, signed correspondence, uncancelled W, exact corners, other-span endpoint owners and atomic failures
+PASS endpoint decision-only value/coefficient depths survive otherwise depth-zero rational laws
+ORIGINAL_SOURCE_ISSUANCE_PROOF_OK
+
+EXIT: 0; SECONDS: 1.122
