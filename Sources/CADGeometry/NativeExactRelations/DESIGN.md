@@ -8,8 +8,8 @@ one positive knot span per axis. No new production package or module is added.
 
 ## Responsibilities and Boundaries
 This component owns source extraction, exact coefficient transport and closed
-native/request domain intersection. Existing original homogeneous producers own
-basis semantics. L5 owns equations and complete parameter topology. Public
+native/request domain intersection. The common OriginalSourceIssuance component owns the retained original Native
+local law and its basis semantics. L5 owns equations and complete parameter topology. Public
 `exactParameterRelation` requirements and the existing default intersectors return
 a source-bound receipt; this explicit query accepts an L0 admission and lower
 limits. Existing `intersectionResult` XYZ representatives, classification and
@@ -21,7 +21,7 @@ its roots. Unsupported source coverage is a typed failure, never a fallback.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [Parent](../DESIGN.md) | parent | Native source types and public intersectors | Actual production integration | Preserve existing numerical APIs |
-| [Algebra](../RationalBivariateAlgebra/DESIGN.md) | depends on | Original homogeneous curve/surface issuers | Exact stored coefficient authority | No fitted map |
+| [Source Issuance](../OriginalSourceIssuance/DESIGN.md) | depends on | Native bindings, selected local laws and source/parameter receipts | Exact stored source authority | Preserve currently admitted finite single-span coverage |
 | [L0](../RationalBivariateAlgebra/ExactScalar/DESIGN.md) | depends on | Scoped numeric admission, exact import | One exclusive caller ledger | Checked words-to-bytes |
 | [L1](../RationalBivariateAlgebra/ExactPolynomial/DESIGN.md) | depends on | Checked ordered construction | Retain final canonical terms | Strict descending slot order and exact nonzero validation |
 | [L5](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md) | depends on | Compile, resolve and tuple membership | Complete parameter relation | Preserve denominator guards and all UV |
@@ -31,7 +31,7 @@ its roots. Unsupported source coverage is a typed failure, never a fallback.
 ```mermaid
 flowchart LR
  Q[Existing intersector exactParameterRelation] --> N[Native source and closed request]
- N --> H[Existing original homogeneous issuers]
+ N --> H[Common original source issuer]
  H --> T[Exact coefficient and domain transport]
  T --> L[L0-L5 complete relation]
  L --> R[Immutable original source and parameter receipt]
@@ -67,8 +67,12 @@ receive their own explicit admission and consume retained L5 receipts.
 
 ## State, Ownership, and Lifecycle
 Only invocation-local arrays mutate. No shared mutable state, cache, unsafe pointer
-or callback owner is introduced. The existing L0 scoped bridge borrows the exact
-same admission during legacy coefficient extraction; it cannot escape its closure.
+or callback owner is introduced. The source issuer receives the exact same exclusive admission directly. The
+prepared map retains its source-law receipt through compilation and resolution.
+Publication transfers its original immutable COW snapshot to the existing
+NativeExactRelationSource and its exact polynomials/domains to the retained L5
+owner. No private binding identity is advertised by this existing facade, and
+no new stored field or result ABI is introduced.
 All published owners and Sendable contracts are identical across targets.
 
 ## Failure, Concurrency, and Constraints
@@ -98,21 +102,29 @@ Legacy scalar error normalization is specified by the CADGeometry parent and
 IntersectionAlgebra designs; no original mathematical result is substituted.
 The full existing public portability proof remains required beside this new path.
 
-## Homogeneous Preparation and Ordered Import
-The parameter-only surface path selects its original nonperiodic positive knot
-span and consumes OriginalRationalSurfaceHomogeneous. This immutable issuer owns
-stored-source validation, native indices/domain and exact Cox-de Boor laws. It
-does not prepare interval jets, derivatives, normals or silhouette equations.
-The existing differential law uses this same issuer after validating its existing
-native token, including periodic translations; its normal/view behavior remains.
+## Common Issuance Handoff
 
-Native import visits the original coefficient dictionary directly into one final
-term buffer, preserving exact coefficient embedding and checked powers. It sorts
-that buffer once in L1's descending slot order with admitted comparison work and
-workspace. L1's ordered construction validates every exponent, coefficient and
-strict adjacency before retaining the same buffer; it never trusts caller flags.
-The legacy ascending v/u ordering is not treated as L1's descending u/v ordering.
-All entry/depth/storage/cancel contracts remain; no global cache or new shared
-state is introduced. This change does not compose XYZ images or reuse topology
-across modified domains. Its before/after proof uses identical public CS/SSI
-inputs, fixtures, mathematical guarantees and query limits.
+Preparation binds the actual Native source once, checks the existing degree and
+finite nonperiodic single-positive-span coverage contract, and issues its four
+homogeneous laws through DefaultOriginalBSplineChartIssuer. The same selected L2
+coefficient field enters source arithmetic and the L5 binding. L1's checked import
+transfers only the final laws; there is no legacy bivariate coefficient dictionary
+or separate ordered-term conversion in this adapter. Source issuance prepares
+position only, without differential, normal or silhouette work.
+
+NativeExactPreparedMap retains the issued law and resulting L5 map until the
+existing facade publishes its source-bound result. Publication uses the issued
+snapshot, not a separately reconstructed source. The existing result retains
+original geometry COW buffers and the exact L5 proof/polynomial/domain owners.
+The public source/result/Codable representations remain unchanged. Requested
+closed-domain intersection remains this component's responsibility; source
+issuance does not choose a requested-domain cover or execute a root solver.
+
+The source-only migration has a separate verification scope: independently
+compile the changed preparation files and issuer, importing already-validated
+cached lower/geometry modules, then exercise actual prepared maps, complete
+coefficient identities, retained sources, request clipping and atomic failures.
+This fulfills the user's restricted-build instruction without rebuilding upper
+targets. It is not a replacement for the recorded whole public CS/SSI evidence,
+and does not claim new public coverage or whole-seven completion. Unchanged
+lower contracts remain reusable only when the executed premises match.

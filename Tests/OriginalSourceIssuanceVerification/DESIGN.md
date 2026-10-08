@@ -9,7 +9,8 @@ Own the source inventory gate, exact behavioral fixtures, timeout-bounded runtim
 and evidence for the [issuer contract](../../Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md).
 The separate adapter proof compiles only concrete source providers/readers and
 the existing AnalyticBasis source against validated cached geometry modules.
-Whole-seven acceptance and CS/SSI consumer migration are outside this proof.
+Whole-seven acceptance and public CS/SSI solve behavior are outside this proof.
+The separate Native consumer proof owns the common-law preparation handoff.
 
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -61,3 +62,9 @@ existing CS/SSI public consumer behavior are not inferred from these tests.
 
 The Native/primitive/physical-angle extension is recorded in
 [NativeImageEvidence](NativeImageEvidence/VERIFICATION.md).
+
+The Native preparation handoff is recorded in
+[NativeConsumerEvidence](NativeConsumerEvidence/VERIFICATION.md). Its import-only
+overlays compile current consumer sources against one validated cached lower
+identity. Current DI0 interval composition remains a final integration obligation;
+no cached L2 solver execution is used as evidence for that newer implementation.

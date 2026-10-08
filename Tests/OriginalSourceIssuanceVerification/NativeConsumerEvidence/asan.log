@@ -1,0 +1,6 @@
+PASS existing curve preparation uses common original law, all coefficients, retained COW and closed clipping
+PASS native bounds, singleton closed endpoint and disjoint selected domain remain distinct
+PASS existing surface preparation transfers weighted four tensor laws and both clipped coordinates
+PASS invalid family inputs, degree and existing periodic/multispan coverage fail explicitly
+PASS same-ledger exact and independently insufficient budgets, entry/final cancellation and typed failure preservation
+METRIC prepared weighted curve work=592 storageBytes=32320

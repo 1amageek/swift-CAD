@@ -12,6 +12,19 @@ public enum NativeExactRelationFailure: Error {
         case let value as ExactScalarFailure:
             if case .admissionRejected(let cause) = value, let native = cause as? Self { return native }
             return .scalar(value)
+        case let value as OriginalSourceIssuanceFailure:
+            switch value {
+            case .scalar(let cause): return .preserving(cause)
+            case .sourceRejected(let cause): return .preserving(cause)
+            case .polynomial(let cause): return .preserving(cause)
+            default: return .geometry(value)
+            }
+        case let value as ExactPolynomialFailure:
+            switch value {
+            case .scalar(let cause): return .preserving(cause)
+            case .operationRejected(let cause): return .preserving(cause)
+            default: return .geometry(value)
+            }
         case let value as ExactRealRootFailure: return .root(value)
         case let value as ExactRealCellFailure: return .cell(value)
         case let value as ExactParametricRelationFailure: return .relation(value)

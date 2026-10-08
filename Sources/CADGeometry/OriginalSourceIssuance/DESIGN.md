@@ -319,7 +319,7 @@ reimplementing the legacy polynomial producers or moving them to a new target.
 |---|---|---|
 | `RationalBivariateAlgebra/OriginalRationalCurvePolynomial.swift` | Original control/weight/knot law and retained span/translation | Bind existing law evidence behind the rational-chart port |
 | `RationalBivariateAlgebra/OriginalRationalSurfaceHomogeneous.swift` | Homogeneous-only preparation, source/native-span validation | Reuse this position issuer; no differential preparation |
-| `NativeExactRelations/DefaultNativeExactRelationResolver+Sources.swift` | Prepares laws, imports coefficients and clips selected finite domains | Source issuer retains preparation/import; domain owner retains request clipping |
+| `NativeExactRelations/DefaultNativeExactRelationResolver+Sources.swift` | Prepares laws, imports coefficients and clips selected finite domains | Common issuer prepares the law; this facade retains its checked L1 import and existing request clipping |
 | `OriginalRuledIntersectionSources/OriginalRuledSurfacePolynomial.swift` | Original common-U composition and product W | Reuse exact formula and bound descendants; consume selected charts without scanning for a whole request |
 | `OriginalRuledIntersectionSources/OriginalRuledRelationEquations.swift` | Pair equations and denominator predicates shared with Coons | Move consuming pair composition to the relation compiler, preserving raw laws and guards |
 | `OriginalCoonsIntersectionSources/OriginalCoonsHomogeneousAtlas.swift` | Shared original position law and directed boundary correspondence | Retain construction/corner authority behind the same receipt contract |
