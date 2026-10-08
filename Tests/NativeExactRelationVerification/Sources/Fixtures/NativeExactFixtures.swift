@@ -1,5 +1,24 @@
 import CADCore
+#if NATIVE_DOMAIN_ISOLATED_VERIFICATION
+import struct CADGeometry.ScalarInterval
+import struct CADGeometry.BSplineCurve3D
+import struct CADGeometry.BSplineSurface3D
+import struct CADGeometry.DefaultCurveSurfaceIntersector
+import struct CADGeometry.DefaultSurfaceSurfaceIntersector
+import struct CADGeometry.SurfaceParameterBox
+import L0
+import L1
+import L2
+import L3
+import L4
+import L5
+import DI
+import NativeDomainAdapters
+import SourceGeometryAdapters
+import SourceIssuer
+#else
 import CADGeometry
+#endif
 
 public enum NativeExactFixtures {
     typealias Base = ExactRationalScalarDomain
@@ -60,6 +79,19 @@ public enum NativeExactFixtures {
             let s=plane(z:mode == 2 ? 2:0)
             let box: SurfaceParameterBox? = mode == 6 ? .init(u:try .init(lower:0.3,upper:1),v:try .init(lower:0,upper:1)):nil
             let result=try cs(resolver,source,s,range:range,box:box,using:&a)
+            if case .curveSurface(let curveCover,let surfaceCover) = result.domains {
+                try require(curveCover.space.sourceCharts.count == 1 && surfaceCover.space.sourceCharts.count == 1)
+                try require(curveCover.request.isEmpty == false)
+                try require(curveCover.effective.isEmpty == (mode == 4))
+                try require(surfaceCover.effective.isEmpty == false)
+                try require(curveCover.finite != nil && surfaceCover.finite != nil)
+                if mode == 4 {
+                    let f = result.coefficientField
+                    let two = try f.integer(2,using:&a)
+                    try require(try curveCover.request.contains([two],limits:.init(source:.init(remainingSourceDepth:0),
+                        maximumTransportDepth:2,maximumCharts:1,maximumFamilies:0,maximumIdentityProofs:0),using:&a))
+                }
+            } else { throw Failure.invalidEvidence }
             source.controlPoints.removeAll()
             if case .curveSurface(let retained,_,_,_)=result.source { try require(!retained.controlPoints.isEmpty) }
             else { throw Failure.invalidEvidence }

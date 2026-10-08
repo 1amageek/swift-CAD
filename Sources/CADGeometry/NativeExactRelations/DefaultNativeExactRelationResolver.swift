@@ -1,4 +1,22 @@
 import CADCore
+#if NATIVE_DOMAIN_ISOLATED_VERIFICATION
+import struct CADGeometry.ScalarInterval
+import struct CADGeometry.BSplineCurve3D
+import struct CADGeometry.BSplineSurface3D
+import struct CADGeometry.DefaultCurveSurfaceIntersector
+import struct CADGeometry.DefaultSurfaceSurfaceIntersector
+import struct CADGeometry.SurfaceParameterBox
+import L0
+import L1
+import L2
+import L3
+import L4
+import L5
+import DI0
+import SourceIssuer
+import DI
+import SourceGeometryAdapters
+#endif
 
 /// Source adapter only; all solving and topology remain in the exact layers.
 public struct DefaultNativeExactRelationResolver:
@@ -25,7 +43,8 @@ public struct DefaultNativeExactRelationResolver:
                 tolerance: tolerance, degree: maximumPolynomialDegree, using: &admission)
             let second = try surfaceMap(surface, selected: surfaceDomain, field: field,
                 tolerance: tolerance, degree: maximumPolynomialDegree, using: &admission)
-            return try publish(first: first, second: second, field: field,
+            return try publish(first: first.map, second: second.map, field: field,
+                domains: .curveSurface(curve: first.cover, surface: second.cover),
                 source: .curveSurface(curve: curve, surface: surface,
                     curveRange: curveRange, surfaceDomain: surfaceDomain),
                 kind: .curveSurface, tolerance: tolerance,
@@ -48,7 +67,8 @@ public struct DefaultNativeExactRelationResolver:
                 tolerance: tolerance, degree: maximumPolynomialDegree, using: &admission)
             let b = try surfaceMap(second, selected: secondDomain, field: field,
                 tolerance: tolerance, degree: maximumPolynomialDegree, using: &admission)
-            return try publish(first: a, second: b, field: field,
+            return try publish(first: a.map, second: b.map, field: field,
+                domains: .surfaceSurface(first: a.cover, second: b.cover),
                 source: .surfaceSurface(first: first, second: second,
                     firstDomain: firstDomain, secondDomain: secondDomain),
                 kind: .surfaceSurface, tolerance: tolerance,
@@ -59,7 +79,7 @@ public struct DefaultNativeExactRelationResolver:
     private func publish<A: ExactScalarAdmission & ~Copyable>(
         first: ExactParametricMap<ExactRationalScalarDomain>,
         second: ExactParametricMap<ExactRationalScalarDomain>, field: Field,
-        source: NativeExactRelationSource, kind: ExactParametricRelationKind,
+        domains: NativeExactRelationDomains, source: NativeExactRelationSource, kind: ExactParametricRelationKind,
         tolerance: ModelingTolerance, cellLimits: ExactRealCellLimits,
         topologyLimits: ExactRealTopologyLimits, using admission: inout A
     ) throws -> NativeExactParametricRelation {
@@ -68,7 +88,7 @@ public struct DefaultNativeExactRelationResolver:
         let relation = try d.resolve(compiled, cellLimits: cellLimits,
             topologyLimits: topologyLimits, using: &admission)
         try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: NativeExactParametricRelation.self))
-        let result = NativeExactParametricRelation(source: source, tolerance: tolerance,
+        let result = NativeExactParametricRelation(source: source, domains: domains, tolerance: tolerance,
             coefficientField: field, relation: relation)
         try admission.checkpoint()
         return result

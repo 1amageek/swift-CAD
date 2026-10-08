@@ -1,112 +1,126 @@
 import CADCore
+#if NATIVE_DOMAIN_ISOLATED_VERIFICATION
+import struct CADGeometry.ScalarInterval
+import struct CADGeometry.BSplineCurve3D
+import struct CADGeometry.BSplineSurface3D
+import struct CADGeometry.DefaultCurveSurfaceIntersector
+import struct CADGeometry.DefaultSurfaceSurfaceIntersector
+import struct CADGeometry.SurfaceParameterBox
+import L0
+import L1
+import L2
+import L3
+import L4
+import L5
+import DI0
+import SourceIssuer
+import DI
+import SourceGeometryAdapters
+#endif
 
 extension DefaultNativeExactRelationResolver {
     func curveMap<A: ExactScalarAdmission & ~Copyable>(_ curve: BSplineCurve3D,
         selected: ScalarInterval?, field: Field, tolerance: ModelingTolerance,
         degree: Int, using admission: inout A
-    ) throws -> ExactParametricMap<ExactRationalScalarDomain> {
+    ) throws -> (map: ExactParametricMap<ExactRationalScalarDomain>, cover: OriginalBSplineDomainCover<BSplineCurve3D,Field>) {
         guard degree >= 0, curve.degree <= degree else { throw NativeExactRelationFailure.invalidDegree }
         guard !curve.isPeriodic else { throw NativeExactRelationFailure.unsupportedCoverage }
-        let law = try ExactScalarNumericAccess.withAdmission(&admission) { usage in
-            try curve.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
-            let span = try singleSpan(curve.knots, degree: curve.degree,
-                count: curve.controlPointCount, usage: &usage)
-            return try OriginalRationalCurvePolynomial(source: curve, spanIndex: span,
-                tolerance: tolerance, usage: &usage)
-        }.value
-        let native = try ScalarInterval(lower: curve.knots[curve.degree],
-            upper: curve.knots[curve.controlPointCount])
-        try admission.retainStorage(bytes: exactScalarPayloadBytes(count: selected == nil ? 1 : 2, of: ScalarInterval.self))
-        return try map(laws: law.homogeneous, native: [native], selected: selected.map { [$0] },
-            field: field, using: &admission)
+        let limits = try domainLimits()
+        let source = try DefaultOriginalSourceBindingIssuer(provider:
+            OriginalBSplineCurveSnapshotProvider(tolerance:tolerance)).bind(curve,limits:limits.source,using:&admission)
+        let request: [ScalarInterval]?
+        if let selected {
+            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:ScalarInterval.self))
+            request = [selected]
+        } else { request = nil }
+        return try boundMap(source:source,selected:request,field:field,limits:limits,using:&admission)
     }
 
     func surfaceMap<A: ExactScalarAdmission & ~Copyable>(_ surface: BSplineSurface3D,
         selected: SurfaceParameterBox?, field: Field, tolerance: ModelingTolerance,
         degree: Int, using admission: inout A
-    ) throws -> ExactParametricMap<ExactRationalScalarDomain> {
-        guard degree >= 0, max(surface.uDegree, surface.vDegree) <= degree else {
-            throw NativeExactRelationFailure.invalidDegree
-        }
+    ) throws -> (map: ExactParametricMap<ExactRationalScalarDomain>, cover: OriginalBSplineDomainCover<BSplineSurface3D,Field>) {
+        guard degree >= 0, max(surface.uDegree,surface.vDegree) <= degree else { throw NativeExactRelationFailure.invalidDegree }
         guard !surface.isUPeriodic, !surface.isVPeriodic else { throw NativeExactRelationFailure.unsupportedCoverage }
-        let law = try ExactScalarNumericAccess.withAdmission(&admission) { usage in
-            try surface.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
-            let uSpan = try singleSpan(surface.uKnots, degree: surface.uDegree,
-                count: surface.uControlPointCount, usage: &usage)
-            let vSpan = try singleSpan(surface.vKnots, degree: surface.vDegree,
-                count: surface.vControlPointCount, usage: &usage)
-            return try OriginalRationalSurfaceHomogeneous(source: surface,
-                uSpanIndex: uSpan, vSpanIndex: vSpan, tolerance: tolerance, usage: &usage)
-        }.value
-        try admission.retainStorage(bytes: exactScalarPayloadBytes(count: selected == nil ? 2 : 4, of: ScalarInterval.self))
-        return try map(laws: law.homogeneous, native: [law.domain.u, law.domain.v],
-            selected: selected.map { [$0.u, $0.v] }, field: field, using: &admission)
+        let limits = try domainLimits()
+        let source = try DefaultOriginalSourceBindingIssuer(provider:
+            OriginalBSplineSurfaceSnapshotProvider(tolerance:tolerance)).bind(surface,limits:limits.source,using:&admission)
+        let request: [ScalarInterval]?
+        if let selected {
+            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:ScalarInterval.self))
+            request = [selected.u,selected.v]
+        } else { request = nil }
+        return try boundMap(source:source,selected:request,field:field,limits:limits,using:&admission)
     }
 
-    private func singleSpan<B: RationalAlgebraAdmitting>(_ knots: [Double], degree: Int,
-        count: Int, usage: inout B) throws -> Int {
-        var selected: Int?
-        for index in degree..<count {
-            try usage.consumeExactWork(1)
-            if knots[index] < knots[index + 1] {
-                guard selected == nil else { throw NativeExactRelationFailure.unsupportedCoverage }
-                selected = index
+    private func domainLimits() throws -> OriginalDomainIdentityLimits {
+        // Direct snapshots have source depth zero, one nonperiodic chart, and a
+        // fixed identity/inverse word of depth two. Caller scalar limits are unchanged.
+        try .init(source:.init(remainingSourceDepth:0),maximumTransportDepth:2,
+            maximumCharts:1,maximumFamilies:0,maximumIdentityProofs:0)
+    }
+
+    private func boundMap<S: OriginalBSplineSourceReading,A: ExactScalarAdmission & ~Copyable>(
+        source: OriginalSourceBinding<S>,selected: [ScalarInterval]?,field: Field,
+        limits: OriginalDomainIdentityLimits,using admission: inout A
+    ) throws -> (map: ExactParametricMap<ExactRationalScalarDomain>, cover: OriginalBSplineDomainCover<S,Field>) {
+        let original = source.original,n = original.parameterCount
+        guard n == 1 || n == 2 else { throw NativeExactRelationFailure.unsupportedCoverage }
+        // Validation is owned by the snapshot provider and precedes every indexed access.
+        for axis in 0..<n {
+            var count = 0
+            for index in original.degree(in:axis)..<original.controlCount(in:axis) {
+                try admission.consumeWork(1)
+                if original.knot(at:index,in:axis) < original.knot(at:index+1,in:axis) { count += 1 }
             }
+            guard count == 1 else { throw NativeExactRelationFailure.unsupportedCoverage }
         }
-        guard let selected else { throw NativeExactRelationFailure.unsupportedCoverage }
-        return selected
-    }
-
-    private func map<A: ExactScalarAdmission & ~Copyable>(laws: [ExactBivariatePolynomial],
-        native: [ScalarInterval], selected: [ScalarInterval]?, field: Field, using admission: inout A
-    ) throws -> ExactParametricMap<ExactRationalScalarDomain> {
-        let cells = try Cells(field: field, variableCount: native.count, using: &admission)
-        let roots = try ExactRealRootDomain(field: field, using: &admission)
-        try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: ExactPolynomial<Field>.self))
-        try admission.retainStorage(bytes: exactScalarPayloadBytes(count: native.count,
-            of: ExactRealRootInterval<Field.Value>.self))
+        let issuer = DefaultOriginalBSplineDomainIssuer<S,Field>()
+        let space = try issuer.prepare(source:source,field:field,limits:limits,using:&admission)
+        let request: OriginalParameterSelection<S,Field>
+        if let selected {
+            guard selected.count == n else { throw NativeExactRelationFailure.invalidDomain }
+            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:n,of:[ExactParameterInterval<Field.Value>].self))
+            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:n,of:ExactParameterInterval<Field.Value>.self))
+            var intervals: [[ExactParameterInterval<Field.Value>]] = []; intervals.reserveCapacity(n)
+            for axis in selected {
+                try admission.consumeWork(1)
+                guard axis.lower.isFinite,axis.upper.isFinite,axis.lower <= axis.upper else { throw NativeExactRelationFailure.invalidDomain }
+                intervals.append([try .checked(field:field,lower:.finite(field.binary64(exactly:axis.lower,using:&admission)),
+                    upper:.finite(field.binary64(exactly:axis.upper,using:&admission)),depth:.init(value:0,coefficient:0),using:&admission)])
+            }
+            request = try space.frame.selection(intervals:intervals,limits:limits,using:&admission)
+        } else { request = try space.frame.fullSelection(limits:limits,using:&admission) }
+        let cover = try issuer.issue(space:space,request:request,limits:limits,using:&admission)
+        try admission.retainStorage(bytes:exactScalarPayloadBytes(count:n,of:OriginalParameterCycle.self))
+        let zero = try OriginalParameterCycle(exact:ExactRationalScalarDomain().integer(0,using:&admission),using:&admission)
+        let chart = try DefaultOriginalDomainBoundBSplineChartIssuer<S,Field>().issue(cover:cover,template:0,
+            cycles:[OriginalParameterCycle](repeating:zero,count:n),limits:limits,using:&admission)
+        let cells = try Cells(field:field,variableCount:n,using:&admission)
+        let roots = try ExactRealRootDomain(field:field,using:&admission)
+        try admission.retainStorage(bytes:exactScalarPayloadBytes(count:4,of:ExactPolynomial<Field>.self))
+        try admission.retainStorage(bytes:exactScalarPayloadBytes(count:n,of:ExactRealRootInterval<Field.Value>.self))
         var polynomials: [ExactPolynomial<Field>] = []; polynomials.reserveCapacity(4)
-        var domains: [ExactRealRootInterval<Field.Value>] = []; domains.reserveCapacity(native.count)
-        for law in laws {
+        var domains: [ExactRealRootInterval<Field.Value>] = []; domains.reserveCapacity(n)
+        for law in chart.law.homogeneous {
             try admission.consumeWork(1)
-            let terms = law.originalCoefficients
-            try admission.retainStorage(bytes: exactScalarPayloadBytes(count: terms.count,
-                of: ExactPolynomialTerm<Field.Value>.self))
-            var imported: [ExactPolynomialTerm<Field.Value>] = []; imported.reserveCapacity(terms.count)
-            for (power, coefficient) in terms {
-                try admission.consumeWork(native.count)
-                guard native.count == 2 || power.v == 0 else { throw NativeExactRelationFailure.unsupportedCoverage }
-                try admission.retainStorage(bytes: exactScalarPayloadBytes(count: native.count, of: Int.self))
-                let powers = native.count == 1 ? [power.u] : [power.u, power.v]
-                imported.append(.init(powers: powers, coefficient: try field.importingBase(coefficient, using: &admission)))
-            }
-            // Admit sort workspace before mutation; sort only the final term buffer.
-            try admission.retainStorage(bytes: exactScalarPayloadBytes(count: imported.count,
-                of: ExactPolynomialTerm<Field.Value>.self))
-            try imported.sort { lhs, rhs in
-                try admission.consumeWork(native.count + 1)
-                for index in lhs.powers.indices {
-                    if lhs.powers[index] != rhs.powers[index] { return lhs.powers[index] > rhs.powers[index] }
+            // L3 has a different ring owner. This is a checked representation transfer,
+            // not another source preparation or equation solve.
+            polynomials.append(try cells.polynomials.importing(law,using:&admission))
+        }
+        for axis in chart.localSelection.axes {
+            try admission.consumeWork(1)
+            guard axis.intervalCount <= 1 else { throw NativeExactRelationFailure.unsupportedCoverage }
+            if let interval = axis.intervals.first {
+                guard case .finite(let lower) = interval.lower,case .finite(let upper) = interval.upper else {
+                    throw NativeExactRelationFailure.unsupportedCoverage
                 }
-                return false
-            }
-            polynomials.append(try cells.polynomials.polynomial(orderedTerms: imported, using: &admission))
+                domains.append(try roots.domain(lower:.finite(lower),upper:.finite(upper),
+                    includesLower:interval.includesLower,includesUpper:interval.includesUpper,using:&admission))
+            } else { domains.append(try roots.emptyDomain(using:&admission)) }
         }
-        for index in native.indices {
-            try admission.consumeWork(1)
-            let query = selected?[index] ?? native[index]
-            guard query.lower.isFinite, query.upper.isFinite, query.lower <= query.upper else {
-                throw NativeExactRelationFailure.invalidDomain
-            }
-            // Finite binary64 ordering is exactly the ordering of the original dyadic values.
-            let lower = max(query.lower, native[index].lower), upper = min(query.upper, native[index].upper)
-            if lower > upper { domains.append(try roots.emptyDomain(using: &admission)) }
-            else {
-                domains.append(try roots.domain(lower: .finite(field.binary64(exactly: lower, using: &admission)),
-                    upper: .finite(field.binary64(exactly: upper, using: &admission)), using: &admission))
-            }
-        }
-        let source = try cells.bind(polynomials: polynomials, domains: domains, using: &admission)
-        return try Domain(cells: Cells.self, topology: .init(cells: Cells.self)).map(from: source, using: &admission)
+        let system = try cells.bind(polynomials:polynomials,domains:domains,using:&admission)
+        let map = try Domain(cells:Cells.self,topology:.init(cells:Cells.self)).map(from:system,using:&admission)
+        return (map,cover)
     }
 }

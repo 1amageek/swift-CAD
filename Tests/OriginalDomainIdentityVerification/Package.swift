@@ -8,7 +8,7 @@ let package = Package(name: "OriginalDomainIdentityVerification", platforms: [.m
         swiftSettings: [.define("EXACT_DOMAIN_ISOLATED_VERIFICATION")]),
     .target(name: "L1", dependencies: ["L0"], path: "Sources/L1", exclude: ["DESIGN.md"], swiftSettings: [.define("L1_ISOLATED_VERIFICATION")]),
     .target(name: "L2", dependencies: ["L0", "L1", "DI0"], path: "Sources/L2", exclude: ["DESIGN.md"], swiftSettings: [.define("L2_ISOLATED_VERIFICATION")]),
-    .target(name: "SourceIssuer", dependencies: ["L0", "L1"], path: "Sources/SourceIssuer", exclude: ["DESIGN.md"], swiftSettings: [.define("ORIGINAL_SOURCE_ISOLATED_VERIFICATION")]),
+    .target(name: "SourceIssuer", dependencies: ["L0", "L1"], path: "Sources/SourceIssuer", exclude: ["DESIGN.md", "BSplineCurve3D+OriginalSourceReading.swift", "BSplineSurface3D+OriginalSourceReading.swift", "OriginalBSplineCurveSnapshotProvider.swift", "OriginalBSplineSurfaceSnapshotProvider.swift"], swiftSettings: [.define("ORIGINAL_SOURCE_ISOLATED_VERIFICATION")]),
     .target(name: "DI", dependencies: ["L0", "L1", "DI0", "SourceIssuer"], path: "Sources/DI", exclude: ["DESIGN.md", "ExactParameterDomain", "OriginalParameterTransport/DESIGN.md", "OriginalDomainCoverage/DESIGN.md", "OriginalParameterIdentity/DESIGN.md"], swiftSettings: [.define("ORIGINAL_DOMAIN_ISOLATED_VERIFICATION")]),
     .executableTarget(name: "DomainDependencyProbe", dependencies: ["L0", "DI0"], path: "Sources/Probe"),
     .target(name: "DomainFixtures", dependencies: ["L0", "L1", "L2", "DI0", "DI", "SourceIssuer"], path: "Sources/Fixtures"),

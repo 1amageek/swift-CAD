@@ -8,8 +8,8 @@ one positive knot span per axis. No new production package or module is added.
 
 ## Responsibilities and Boundaries
 This component owns source extraction, exact coefficient transport and closed
-native/request domain intersection. Existing original homogeneous producers own
-basis semantics. L5 owns equations and complete parameter topology. Public
+native/request domain intersection. SourceIssuer owns original homogeneous laws; DomainIdentity owns whole support,
+request intersection and chart correspondence. The adapter consumes their receipts. L5 owns equations and complete parameter topology. Public
 `exactParameterRelation` requirements and the existing default intersectors return
 a source-bound receipt; this explicit query accepts an L0 admission and lower
 limits. Existing `intersectionResult` XYZ representatives, classification and
@@ -31,7 +31,7 @@ its roots. Unsupported source coverage is a typed failure, never a fallback.
 ```mermaid
 flowchart LR
  Q[Existing intersector exactParameterRelation] --> N[Native source and closed request]
- N --> H[Existing original homogeneous issuers]
+ N --> H[Source and domain issuers]
  H --> T[Exact coefficient and domain transport]
  T --> L[L0-L5 complete relation]
  L --> R[Immutable original source and parameter receipt]
@@ -67,8 +67,8 @@ receive their own explicit admission and consume retained L5 receipts.
 
 ## State, Ownership, and Lifecycle
 Only invocation-local arrays mutate. No shared mutable state, cache, unsafe pointer
-or callback owner is introduced. The existing L0 scoped bridge borrows the exact
-same admission during legacy coefficient extraction; it cannot escape its closure.
+or callback owner is introduced. Source snapshot providers validate stored Native data using the same caller
+admission. No legacy homogeneous producer or second clipping authority is used.
 All published owners and Sendable contracts are identical across targets.
 
 ## Failure, Concurrency, and Constraints
@@ -116,3 +116,23 @@ All entry/depth/storage/cancel contracts remain; no global cache or new shared
 state is introduced. This change does not compose XYZ images or reuse topology
 across modified domains. Its before/after proof uses identical public CS/SSI
 inputs, fixtures, mathematical guarantees and query limits.
+
+## Domain Receipt Composition
+Native single-span/nonperiodic capability is unchanged. The adapter binds a
+validated source, prepares its full domain, issues the exact request cover, and
+consumes its selected domain-bound rational chart. The published result retains
+both covers even for empty selection. Source depth is zero for these direct
+snapshots; there is exactly one chart and no family/identity proof. Its fixed
+transport word is identity (depth one) followed by inverse (depth two); this is
+an adapter construction bound, not a replacement for any caller scalar depth.
+All preparation still passes through caller work/storage/depth/cancel admission.
+
+L3 owns its polynomial ring. Import across that distinct ring is an explicit
+checked coefficient transfer; domain intervals are consumed as owner-backed
+views, preserving emptiness and inclusion. No binary64 clipping is repeated.
+
+Verification compiles the changed production consumer files against fresh
+independent lower modules and validated unchanged Native DTO/intersector cache.
+This proves this adapter composition, not a fresh build of the whole module.
+The cached module premises and runtime artifact are checked against retained
+full-production evidence before reuse. Legacy XYZ APIs remain outside this change.

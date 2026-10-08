@@ -1,0 +1,16 @@
+PASS checked Native cache premises: 80
+PASS Native CS case 0 work=194947 bytes=10905789
+PASS Native CS case 1 work=176995 bytes=9994768
+PASS Native CS case 2 work=113089 bytes=6388132
+PASS Native CS case 3 work=114312 bytes=6557291
+PASS Native CS case 4 work=5717 bytes=362290
+PASS Native CS case 5 work=45872 bytes=2573236
+PASS Native CS case 6 work=140214 bytes=6562790
+PASS Native CS case 7 work=102301 bytes=5857110
+PASS Native distinct UV work=761605 bytes=34020514
+PASS Native SSI case 0 work=335123 bytes=19659967
+PASS Native SSI case 1 work=309328 bytes=17599759
+PASS Native SSI case 2 work=218367 bytes=12643362
+PASS Native folded SSI cells=45 attachments=108 work=8732619 bytes=260178642
+PASS Native atomic limits/input/cancel and final point/empty cancellation
+PASS original domain consumer composition

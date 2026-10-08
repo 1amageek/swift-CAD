@@ -1,4 +1,8 @@
+#if NATIVE_DOMAIN_ISOLATED_VERIFICATION
+import L0
+#else
 import CADGeometry
+#endif
 
 struct FinalPublicationAdmission: ~Copyable, ExactScalarAdmission {
     var ledger: ExactScalarLedger

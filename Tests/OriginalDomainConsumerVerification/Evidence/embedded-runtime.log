@@ -1,0 +1,18 @@
+PASS checked Native cache premises: 80
+(node:25648) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS Native CS case 0 work=191975 bytes=5481129
+PASS Native CS case 1 work=174404 bytes=5022972
+PASS Native CS case 2 work=111492 bytes=3208604
+PASS Native CS case 3 work=112897 bytes=3291779
+PASS Native CS case 4 work=5686 bytes=181762
+PASS Native CS case 5 work=45380 bytes=1292240
+PASS Native CS case 6 work=138614 bytes=3317506
+PASS Native CS case 7 work=100859 bytes=2941102
+PASS Native distinct UV work=742537 bytes=17076366
+PASS Native SSI case 0 work=329194 bytes=9857191
+PASS Native SSI case 1 work=304902 bytes=8820259
+PASS Native SSI case 2 work=214355 bytes=6338374
+PASS Native folded SSI cells=45 attachments=108 work=8647487 bytes=132828782
+PASS Native atomic limits/input/cancel and final point/empty cancellation
+PASS original domain consumer composition

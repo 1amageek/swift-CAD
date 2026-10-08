@@ -42,7 +42,7 @@ accepted as the same handle owner.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [Geometry](../DESIGN.md) | parent | Authored source and canonical primitive semantics | Determines original meaning | No source-law redefinition |
-| [Original source issuance](../OriginalSourceIssuance/DESIGN.md) | depends on, proposed | OriginalSourceBinding and source-supported local-law receipts | Reuses source provenance rather than rebinding it | Local law support does not establish complete coverage or identity |
+| [Original source issuance](../OriginalSourceIssuance/DESIGN.md) | depends on | OriginalSourceBinding and source-supported local-law receipts | Reuses source provenance rather than rebinding it | Local law support does not establish complete coverage or identity |
 | [ExactParameterDomain](ExactParameterDomain/DESIGN.md) | child | Exact set operations | Shape-independent foundation | L0 only |
 | [OriginalParameterTransport](OriginalParameterTransport/DESIGN.md) | child | Certified parameter correspondence | Keeps requested and local coordinates | No rounded lift |
 | [OriginalDomainCoverage](OriginalDomainCoverage/DESIGN.md) | child | Whole-support/request cover | Finite and symbolic unbounded coverage | A chart list alone is not proof |
@@ -51,7 +51,7 @@ accepted as the same handle owner.
 | [Native surface cover](../OriginalNativeSurfaceChartCover/DESIGN.md) | coordinates with | Tensor owners and independent cycles | First surface adapter | Existing mesh policy stays separate |
 | [ParameterImage](../ParameterImage/DESIGN.md) | coordinates with | Original exact gain/translation words | Reuse existing symbolic arithmetic | A transform alone proves no periodic law |
 | [Canonical angular chart](../CanonicalSphereChart/DESIGN.md) | depends on | Intrinsic labels versus physical radians | Owns mathematical phase and poles | A pi enclosure is not an exact scalar |
-| [L5](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md) | used by, proposed | Exact domains and source-map slots | Accepts complete chart relations | Does not yet consume this proposed issuer |
+| [Native L5 consumer](../NativeExactRelations/DESIGN.md) | used by | Complete selected domain-bound charts | Existing Native parameter queries retain covers | XYZ/boundary/self migration remains open |
 | [L6](../RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md) | used by, proposed | Original correspondence and collapse evidence | Interprets complete retained relation | Parameter dimension remains distinct |
 
 ## Architecture
@@ -190,4 +190,4 @@ Each implementation stage closes its contract through one stable verification/re
 and coherent commit; later stages do not reopen it without a concrete violation.
 A proposed isolated test package may compile DI.0 with L0 only; it is a test harness,
 not a new production module. Broader source adapters compile only their transitive
-production dependencies. Full seven requirements remain the task's final acceptance.
+production dependencies. DI completion is distinct from completion of the seven intersection requirements.
