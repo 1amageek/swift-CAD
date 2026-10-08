@@ -1,0 +1,44 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 617]
+[Planning deferred tasks]
+[6 / 72] L1
+[10 / 76] L1
+[21 / 108] L1
+[34 / 114] L2Fixtures
+[41 / 116] L2
+[51 / 122] L3Fixtures
+[55 / 124] L3Fixtures
+[63 / 124] L1
+[72 / 140] L1
+[80 / 140] L1
+[86 / 144] KernelProof-product
+[96 / 144] L1
+[104 / 162] L3
+[111 / 164] L3
+[114 / 164] L3
+[122 / 164] L4
+[128 / 186] L4
+[130 / 186] L4
+[136 / 186] L4
+[140 / 186] L3Fixtures
+[144 / 186] L3Fixtures
+[154 / 186] KernelTests-product
+[158 / 193] L2Tests-product
+[167 / 193] KernelBenchmark-product
+[172 / 194] L3Tests-product
+[182 / 197] LayerBenchmark-product
+[195 / 202] L2Tests-product
+[199 / 203] KernelTests-product
+[201 / 204] L3Tests-product
+[203 / 204] L3Tests-product
+Build complete! (4.57秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite KernelTests started.
+􀟈  Test heapProducts() started.
+PASS heap products, independent coefficients, overflow, algebraic depth, limits and final cancel
+􁁛  Test heapProducts() passed after 0.011 seconds.
+􁁛  Suite KernelTests passed after 0.011 seconds.
+􁁛  Test run with 1 test in 1 suite passed after 0.011 seconds.

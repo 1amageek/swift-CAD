@@ -336,3 +336,5 @@ source equality, and malformed-package refusal. That receipt is scoped to
 its original source snapshot; it does not verify this stopped composition.
 URL persistence, every exchange format, WasmKit and Embedded remain separate
 proof obligations.
+
+Verification owner for the exact heap/PSC optimization: [HeapPSCVerification](Tests/HeapPSCVerification/DESIGN.md).

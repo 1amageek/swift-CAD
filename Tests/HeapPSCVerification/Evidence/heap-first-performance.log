@@ -1,0 +1,26 @@
+Building for debugging...
+[Pre-planning 1 / 239]
+[Constructing 311 / 514]
+[9 / 24] KernelFixtures
+[18 / 25] KernelFixtures
+[21 / 28] KernelBenchmark-product
+[26 / 28] KernelBenchmark-product
+Build complete! (1.03秒)
+multiply mode=0 iteration=0 algorithm=expanded elapsed=0.018178208 seconds work=211790 bytes=775720 output=63
+multiply mode=0 iteration=0 algorithm=heap elapsed=0.019275708 seconds work=207135 bytes=66520 output=63
+multiply mode=0 iteration=1 algorithm=heap elapsed=0.019434417 seconds work=207135 bytes=66520 output=63
+multiply mode=0 iteration=1 algorithm=expanded elapsed=0.0171355 seconds work=211790 bytes=775720 output=63
+multiply mode=0 iteration=2 algorithm=expanded elapsed=0.016948125 seconds work=211790 bytes=775720 output=63
+multiply mode=0 iteration=2 algorithm=heap elapsed=0.019166708 seconds work=207135 bytes=66520 output=63
+multiply mode=1 iteration=0 algorithm=expanded elapsed=0.009858542 seconds work=97265 bytes=737280 output=1024
+multiply mode=1 iteration=0 algorithm=heap elapsed=0.017423542 seconds work=192390 bytes=412160 output=1024
+multiply mode=1 iteration=1 algorithm=heap elapsed=0.01774875 seconds work=192390 bytes=412160 output=1024
+multiply mode=1 iteration=1 algorithm=expanded elapsed=0.009670584 seconds work=97265 bytes=737280 output=1024
+multiply mode=1 iteration=2 algorithm=expanded elapsed=0.009478834 seconds work=97265 bytes=737280 output=1024
+multiply mode=1 iteration=2 algorithm=heap elapsed=0.017492667 seconds work=192390 bytes=412160 output=1024
+multiply mode=2 iteration=0 algorithm=expanded elapsed=0.015090041 seconds work=188385 bytes=747200 output=32
+multiply mode=2 iteration=0 algorithm=heap elapsed=0.0187055 seconds work=200520 bytes=35680 output=32
+multiply mode=2 iteration=1 algorithm=heap elapsed=0.019277958 seconds work=200520 bytes=35680 output=32
+multiply mode=2 iteration=1 algorithm=expanded elapsed=0.014935417 seconds work=188385 bytes=747200 output=32
+multiply mode=2 iteration=2 algorithm=expanded elapsed=0.015539125 seconds work=188385 bytes=747200 output=32
+multiply mode=2 iteration=2 algorithm=heap elapsed=0.018737416 seconds work=200520 bytes=35680 output=32

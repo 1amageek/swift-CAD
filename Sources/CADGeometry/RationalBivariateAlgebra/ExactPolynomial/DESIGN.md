@@ -109,8 +109,8 @@ checks whether either canonical term list is empty. If so, it returns a retained
 zero polynomial without traversing either term list. That result preserves the
 merged input depth and identical domain context, and still receives the terminal
 checkpoint. This is a certified algebraic zero rule, not a fallback from failure.
-Nonzero multiplication continues through pre-admitted products and exponent
-buffers. Entry validation retains its existing failure and budget semantics.
+Nonzero single-monomial multiplication continues through pre-admitted products
+and exponent buffers; general products use the heap contract below. Entry validation retains its existing failure and budget semantics.
 
 ## State, Ownership, and Lifecycle
 
@@ -211,3 +211,69 @@ Native source transport owns its new buffer and admitted in-place sort workspace
 The behavioral owner is NativeExactRelationVerification's ordered-construction
 fixture, covering differential equality, malformed terms, ownership, independent
 limits and final callback cancellation in Native/ASAN and both WASM targets.
+
+## Sparse Product and Principal Subresultant Contract
+L1 owns ordered row-stream heap multiplication and all principal-subresultant
+coefficient production. Inputs remain in their identical context; both inherited
+depths and owner checks precede zero/empty/specialized paths. No L0 change, source
+normalization, variable permutation, cache, shared state or unsafe allocation is
+introduced. A product stream is a translated canonical input order. Each heap
+node holds two input indices; the smaller input bounds heap slots. Per-axis
+maximum exponent sums are checked before generating any nonzero product, even
+if its eventual coefficient cancels. Equal exponents are summed before exact
+zero testing; only final nonzero terms allocate exponent buffers. Heap, maxima,
+result growth, comparisons and coefficient work use the same admission.
+
+ExactPolynomialSubresultantProducing issues ExactPrincipalSubresultantSequence,
+retaining original first/second polynomials, eliminated slot, complete values
+indexed 0..<min(m,n), and cumulative inherited depth. Nonzero constant or zero
+input issues an empty sequence, after owner/axis/depth/cancel checks. Missing PSCs
+are retained as exact zero entries, never removed. Values have eliminated power
+zero and exactly the existing determinant's coefficient, sign and index.
+
+For index j, the reference square matrix has size m+n-2j and descending columns
+starting at degree m+n-j-1. Its first n-j rows are shifted coefficients of the
+original first input; remaining m-j rows are shifted second-input coefficients.
+This determinant definition is the sign authority. The complete reference lives
+in L1; L3 only consumes the sequence and preserves its .principal witnesses.
+
+Brown PRS runs on f,g with deg(f)>=deg(g). It uses full prem(f,g), defined by
+lc(g)^(deg(f)-deg(g)+1)*f=q*g+r, deg(r)<deg(g). Unlike the existing primitive-GCD
+pseudo-remainder, skipped cancellation degrees still multiply by the remaining
+lc(g) power. No primitive/content or monic normalization is applied.
+Initially d=deg(f)-deg(g), h=(-1)^(d+1)*prem(f,g), lc=lc(g), c=-lc^d.
+For nonzero h of degree k: replace (f,g) with (g,h), set d=oldDegree(g)-k;
+b=-lc*c^d; nextH=prem(f,g)/b by exact polynomial division. Set lc=lc(g), then
+c=(-lc)^d/c^(d-1) if d>1, else c=-lc. PSC[k]=-c. Degrees absent from this
+sequence have zero PSC, including the defective upper subresultant whose degree
+is below its index. If original inputs were swapped, restore each j with
+(-1)^((m-j)*(n-j)); parity is computed without overflowing degree products.
+All divisibility, strictly decreasing degree, count/exponent and final
+eliminated-slot invariants fail explicitly. The reference verifies arbitrary
+nonprimitive inputs, rational/retained algebraic and multivariate coefficients.
+References: Brown (1978), The Subresultant PRS Algorithm, Theorems 1-3,
+https://people.eecs.berkeley.edu/~fateman/282/readings/brown.pdf.
+
+Algorithm selection belongs to L1, before remainder/determinant work begins.
+Initially pairs with at most one PSC use the determinant; larger sequences use
+PRS. Fixed-input sparse/small/dense benchmarks may refine this operational
+selection before integration; every branch remains complete and determinant
+identical. Failure/cancel after selection propagates without retry. Test-only
+internal entry points force either complete algorithm for differential evidence.
+
+Verification owner: [HeapPSCVerification](../../../../Tests/HeapPSCVerification/DESIGN.md).
+The stable fixtures compare an independent cartesian product/reference
+construction and all PSC determinants, including common factors, abnormal degree
+jumps, source contents, input swapping, arbitrary eliminated axes and inherited
+algebraic owners. L3, L4, L5 and full Native public paths verify composition;
+fixed-toolchain Native/ASAN/normal/Embedded proofs execute the same code.
+
+Equal product keys encountered on heap insertion retain a row-index chain, with
+one cursor and one next-index per row. A removed chain is consumed once before
+its successors are inserted. Heap nodes still retain no coefficient/exponent
+payload; all auxiliary indices are bounded by the smaller term count and
+admitted before allocation. Canonical row/column ordering remains the authority.
+If the varying axes of the first input strictly precede all varying axes of the
+second (or vice versa), translated row streams have disjoint, ordered ranges.
+The admitted structural check permits direct ordered output without a heap or
+sort. This is complete preselection, not recovery from an exhausted algorithm.

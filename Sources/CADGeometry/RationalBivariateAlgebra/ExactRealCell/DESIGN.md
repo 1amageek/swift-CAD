@@ -54,7 +54,7 @@ field, root or polynomial implementation is accessed by L3.
 |---|---|---|---|---|
 | [RationalBivariateAlgebra](../DESIGN.md) | parent | Component index | Owns higher consumers | No existing consumer migration is implied |
 | [ExactScalar](../ExactScalar/DESIGN.md) | depends on | Arithmetic/order/import, admission and retained depths | Owns scalar and resource meanings | No replacement quota, allocator or implicit failure conversion |
-| [ExactPolynomial](../ExactPolynomial/DESIGN.md) | depends on | Canonical construction, public terms, calculus, GCD/division and resultant | Owns polynomial operations | Coefficient extraction and cross-variable reindexing are not public operations |
+| [ExactPolynomial](../ExactPolynomial/DESIGN.md) | depends on | Canonical construction, public terms, calculus, GCD/division, resultant and complete PSC sequence | Owns polynomial operations | Coefficient extraction and cross-variable reindexing are not public operations |
 | [ExactRealRoot](../ExactRealRoot/DESIGN.md) | depends on | Complete roots, refinement/sign, runtime field family and explicit embeddings | Owns exact section coordinates | Sibling fields are incompatible; no automatic compositum |
 | [IntersectionAlgebra](../../IntersectionAlgebra/DESIGN.md) | prospective used by | Complete partitions and retained conditions | Existing real-relation composition is a future integration consumer | Its current one-through-four-variable API and combined closure result are unchanged |
 | [ExactRealTopology](../ExactRealTopology/DESIGN.md) | used by | Certified definitions, complete traversal, prefix location and partitions | L4 owns closure/incidence/components | Inspection extension independently verified in L4.I1; upper geometric consumers remain separate |
@@ -64,7 +64,7 @@ field, root or polynomial implementation is accessed by L3.
 | Fact and actual implementation path | Design consequence |
 |---|---|
 | [L1 calculus](../ExactPolynomial/ExactPolynomialDomain+Calculus.swift) evaluates or substitutes all slots in the same polynomial owner; importing preserves variable count | L3 specialization extracts/reindexes admitted public terms and imports coefficients explicitly; it cannot pretend a public partial-specialization port already exists |
-| [L1 coefficient helpers](../ExactPolynomial/ExactPolynomialDomain+Coefficients.swift) are internal; [resultant](../ExactPolynomial/ExactPolynomialDomain+Resultant.swift) is public, but principal-subresultant coefficients are not | Projection builds its certificate matrices from admitted public terms and computes their determinants with public L1 operations |
+| [L1 coefficient helpers](../ExactPolynomial/ExactPolynomialDomain+Coefficients.swift) are internal; [resultant](../ExactPolynomial/ExactPolynomialDomain+Resultant.swift) is public, but principal-subresultant coefficients are not | Projection consumes the public L1 principal-subresultant sequence; the determinant sign definition and complete algorithm selection belong to L1 |
 | [L2 extension](../ExactRealRoot/ExactAlgebraicScalarDomain.swift) keeps one static type, requires identical parent identity at adjoining, and accepts own/ancestor scalar imports | Every sample has one runtime field family; each section explicitly transports all earlier coordinates into its child |
 | [Existing projection](../../IntersectionAlgebra/ExactIntersectionProjection.swift) retains reducta and principal-subresultant conditions; [tower](../../IntersectionAlgebra/ExactIntersectionProjectionTower.swift) adds derivatives | These are algorithmic/reference paths, not allowed L3 implementation dependencies or already verified new L3 behavior |
 | [Existing resolver](../../IntersectionAlgebra/DefaultOriginalPolynomialRelationResolver.swift) composes selected cells, incidence and components | New L3 stops at cells/selection; later integration keeps connection decisions separate |
@@ -653,3 +653,16 @@ omitted. The existing one-index entry remains a wrapper. Reused arrays retain
 immutable polynomials, depths and the caller admission; only actual new payloads
 are admitted again. Public decomposition plus independent small Sylvester/minor
 fixtures establish equality of the full witness family.
+
+## Batched PSC Consumption
+L3 requests one L1 principalSubresultants sequence for each existing reductum /
+derivative pair or reductum family pair. It retains every same-index .principal
+witness and inserts exactly the same value into lower projection. Original
+polynomial order, derivative/reductum enumeration, zero/constant exclusion,
+nullification, cell coverage and lifting do not change. L1 owns the determinant
+orientation and PRS recurrence; L3 contains no second PRS or determinant engine.
+Its existing coefficient vectors remain for coefficient/degree evidence.
+The same borrowed admission flows through L1 without a budget reset.
+[HeapPSCVerification](../../../../Tests/HeapPSCVerification/DESIGN.md) compares
+projection witness values and full lower topology; Native integration verifies
+source-to-public success, absence, limits and retained correspondence.

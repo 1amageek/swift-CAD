@@ -1,0 +1,5 @@
+import KernelFixtures
+import Testing
+@Suite(.timeLimit(.minutes(1))) struct KernelTests {
+    @Test func heapProducts() throws { try KernelFixtures.heap() }
+}
