@@ -1,0 +1,47 @@
+{
+  "base_commit": "e41fad17",
+  "compiler": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0",
+  "sdks": [
+    "swift-6.4.0-RELEASE_wasm",
+    "swift-6.4.0-RELEASE_wasm-embedded"
+  ],
+  "wasm_target": "wasm32-unknown-wasip1",
+  "node": "v24.19.0",
+  "native_tests": 16,
+  "asan_tests": 16,
+  "source_tests": 5,
+  "products": {
+    "native": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-native/out/Products/Debug/DomainProof",
+      "sha256": "cfcb7f63cae1a73a001f21893eed7c9fbe2bb1b2fcc0a33a1b7d2833c9aaf2af"
+    },
+    "asan": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-asan/out/Products/Debug/DomainProof",
+      "sha256": "d8e7f353a59d2d9330b46123b1afd3b1f6ed6b905fc2fe49abfe1d9d4407d563"
+    },
+    "wasm": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DomainProof.wasm",
+      "sha256": "5fb3cd9dd9a4949a199f1333100d1d599f7e38d02ea258ebca9c243613e1c1d2"
+    },
+    "embedded": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-embedded/out/Products/Debug-webassembly-wasm32/DomainProof.wasm",
+      "sha256": "07811392a3932b69fa712544d4f99555142cc24225a43ef12d8c62e14d646ab1"
+    }
+  },
+  "scope": "Stored-N plane reference-axis repair only",
+  "evidence_hashes": {
+    "VERIFICATION.md": "32386abe9f84028a62216bbccdb6508c43e77546a250826f6d47c394309d7b38",
+    "asan-tests.log": "675b70a571eed10efe697dd26d751e74448749ce255d90fa6eead61d36cec9ab",
+    "compiler-inputs.json": "ef5d5a992b9929e668a9c96b8068fddf3a8c78aba0eb1b352ede551bf2a51436",
+    "embedded-build.log": "38d47fe27a5da0ea6541bbce19e12ef84f2a2fd44d4ce78d0b659f6b25c1b546",
+    "embedded-runtime.log": "b6bc6c038f4c73a4ae54e1d0d18661e0e3398264362cfb5cb8038a8d60aaf95d",
+    "native-final.log": "e0db4a9a07645fb60cea68f5efe4755d644a517627dc954ed460ea591df6673b",
+    "native-runtime.log": "3bd42694675ac6d7e4101cdb3bc84e6605d27ea199f0edf6d356e85cc34c4c38",
+    "native-tests.log": "237cf5f469b615e72b1299b05a43e1e96631dd1e0a2b4f3c4e3bdf8b5d91f508",
+    "red.log": "fdca1bd0d28a8602ed11b1e66f6170746c8a103b5e8ea5d9baaf2713843bfcd1",
+    "source-hashes.json": "09b05832c2b7dcc458900880bf55f2a3fd00fa1f0d0bc1338104345715631041",
+    "source-tests.log": "67ba3c5363d1c5491e031fec0164d2fd2e1d06ab5ebba0c700cfe36453abc797",
+    "wasm-build.log": "3d6b80ba9abb6f719176605b58ea313ab113a7162a219b60e1e6f9652ae71837",
+    "wasm-runtime.log": "fb0191f5fc79497ae31419d62328439f91f32b8ecca62026118633700ee7a08b"
+  }
+}

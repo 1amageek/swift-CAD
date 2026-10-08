@@ -7,6 +7,16 @@ public struct DefaultOriginalPlaneBasisIssuer<S: OriginalPlaneSourceReading,F: E
     public typealias Source = S
     public typealias Field = F
     public init() {}
+    public func referenceAxis<A: ExactScalarAdmission & ~Copyable>(source: borrowing OriginalSourceBinding<S>,
+        limits: OriginalSourceIssuanceLimits,using a: inout A) throws(OriginalSourceIssuanceFailure) -> Int {
+        do {
+            try a.checkpoint(); try a.consumeWork(2); try source.require(limits)
+            let x = abs(source.original.normalCoordinate(in:0))
+            let y = abs(source.original.normalCoordinate(in:1))
+            let axis = x <= y ? 0 : 1
+            try a.checkpoint(); return axis
+        } catch { throw .init(preserving:error) }
+    }
     public func issue<A: ExactScalarAdmission & ~Copyable>(source: borrowing OriginalSourceBinding<S>,field f: F,
         firstLength: F.Value,normalLength: F.Value,limits: OriginalSourceIssuanceLimits,using a: inout A)
         throws(OriginalSourceIssuanceFailure) -> OriginalPlaneBasisReceipt<S,F> {
@@ -17,8 +27,8 @@ public struct DefaultOriginalPlaneBasisIssuer<S: OriginalPlaneSourceReading,F: E
             var origin: [F.Value] = [],n: [F.Value] = []
             for i in 0..<3 { try a.consumeWork(1); origin.append(try f.binary64(exactly:source.original.originCoordinate(in:i),using:&a)); n.append(try f.binary64(exactly:source.original.normalCoordinate(in:i),using:&a)) }
             let zero = try f.integer(0,using:&a)
-            // Match the existing reference-axis role; normalization itself is exact.
-            let referenceX = abs(source.original.normalCoordinate(in:0)) < 0.8
+            // The shared source-axis rule avoids parallel axes without normalizing Double values.
+            let referenceX = try referenceAxis(source:source,limits:limits,using:&a) == 0
             let cross = referenceX ? [zero,n[2],try f.negated(n[1],using:&a)] : [try f.negated(n[2],using:&a),zero,n[0]]
             func dot(_ x: [F.Value],_ y: [F.Value],_ a: inout A) throws -> F.Value {
                 var value = zero

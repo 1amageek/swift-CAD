@@ -1,0 +1,57 @@
+Building for debugging...
+[Computing dependencies]
+[1 / 5] SourceIssuer
+[2 / 6] SourceIssuer
+[9 / 13] DI
+[13 / 17] DomainFixtures
+[18 / 21] SourceIssuer
+[22 / 25] DomainFixtures
+[25 / 28] DomainTests-product
+[27 / 28] DomainTests-product
+[30 / 38]
+[31 / 38]
+[32 / 38]
+[33 / 38]
+[34 / 38] DomainTests-product
+[41 / 41] DomainProof-product
+[45 / 45] DomainProof-product
+Build complete! (3.99秒)
+Test Suite 'All tests' started at 2026-10-09 02:12:40.520.
+Test Suite 'All tests' passed at 2026-10-09 02:12:40.521.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test completeSourceDomainChartHandoff() started.
+􀟈  Test immutableReadersAndTaskCancellation() started.
+􀟈  Test verifyEntireDeclaredBoundary() started.
+􀟈  Test allEndpointSectors() started.
+􀟈  Test completeFiniteCoversAndHoles() started.
+􀟈  Test sourceAffineCorrespondence() started.
+􀟈  Test exactPeriodicLiftsAndRefusal() started.
+􀟈  Test sourceCollapsedSubsetsAndOneSidedBoundaries() started.
+􀟈  Test productsAndRetainedOwners() started.
+􀟈  Test intrinsicPolesAndPhysicalMeaningRefusal() started.
+􀟈  Test scaledStoredNormalsAndExactPlaneUV() started.
+􀟈  Test explicitFailuresAndAdmission() started.
+􀟈  Test canonicalDisconnectedUnboundedSets() started.
+􀟈  Test completeIntegerFamiliesAndTensorOwners() started.
+􀟈  Test originalStoredNormalPlaneBasisAndUV() started.
+􀟈  Test scopedIdentityAndExactPeriodOrbits() started.
+􁁛  Test productsAndRetainedOwners() passed after 0.003 seconds.
+􁁛  Test canonicalDisconnectedUnboundedSets() passed after 0.003 seconds.
+􁁛  Test immutableReadersAndTaskCancellation() passed after 0.003 seconds.
+􁁛  Test explicitFailuresAndAdmission() passed after 0.003 seconds.
+􁁛  Test exactPeriodicLiftsAndRefusal() passed after 0.007 seconds.
+􁁛  Test completeFiniteCoversAndHoles() passed after 0.010 seconds.
+􁁛  Test intrinsicPolesAndPhysicalMeaningRefusal() passed after 0.010 seconds.
+􁁛  Test completeSourceDomainChartHandoff() passed after 0.012 seconds.
+􁁛  Test sourceCollapsedSubsetsAndOneSidedBoundaries() passed after 0.012 seconds.
+􁁛  Test sourceAffineCorrespondence() passed after 0.013 seconds.
+􁁛  Test scopedIdentityAndExactPeriodOrbits() passed after 0.014 seconds.
+􁁛  Test verifyEntireDeclaredBoundary() passed after 0.016 seconds.
+􁁛  Test scaledStoredNormalsAndExactPlaneUV() passed after 0.017 seconds.
+􁁛  Test completeIntegerFamiliesAndTensorOwners() passed after 0.028 seconds.
+􁁛  Test originalStoredNormalPlaneBasisAndUV() passed after 0.036 seconds.
+􁁛  Test allEndpointSectors() passed after 0.095 seconds.
+􁁛  Test run with 16 tests in 0 suites passed after 0.095 seconds.

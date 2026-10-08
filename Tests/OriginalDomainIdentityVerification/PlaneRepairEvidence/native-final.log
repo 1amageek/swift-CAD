@@ -1,0 +1,15 @@
+Building for debugging...
+[Computing dependencies]
+[1 / 5] DomainFixtures
+[2 / 6] DomainFixtures
+[6 / 9] DomainFixtures
+[8 / 10] DomainFixtures
+[9 / 10] DomainTests-product
+[12 / 12] DomainProof-product
+Build complete! (2.94秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test scaledStoredNormalsAndExactPlaneUV() started.
+􁁛  Test scaledStoredNormalsAndExactPlaneUV() passed after 0.007 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.007 seconds.

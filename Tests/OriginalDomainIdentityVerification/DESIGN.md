@@ -53,7 +53,7 @@ per query. No target-specific synchronization or Sendable contract is weakened.
 
 ## Verification and Change Impact
 
-Native and ASAN use the 15 focused Swift Testing functions; a deterministic proof
+Native and ASAN use the 16 focused Swift Testing functions; a deterministic proof
 calls the same synchronous fixtures on Native, normal WASM and Embedded WASM.
 Every command has an external timeout. Each target has a separate build path.
 Toolchain is Swift 6.4.0 release with matching WASM SDKs and Node 24.19.0 WASI Preview 1.
@@ -62,3 +62,14 @@ CADCore and L3-L6. Reused lower source evidence is valid only while its input ha
 match. Current completion evidence is separate from the historical DI0 evidence.
 Changed source contracts also run their owning independent SourceIssuer suite.
 Actual public consumer changes require their own trace and behavioral evidence.
+
+## Stored-N Plane Regression
+
+PlaneFixtures.scaledNormalsAndUV verifies the actual source binding and public
+plane issuer for positive/negative axial scales, subnormal and maximal finite
+components, and rational oblique normals. It checks the shared reference-axis
+contract, exact basis coefficients and position/UV round trips. The original
+selected-root fixture continues checking rounded candidate refusal, off-plane
+refusal and independent depth/storage/cancellation failures. PlaneRepairEvidence
+binds the repaired Native/ASAN/normal-WASM/Embedded snapshot separately from the
+historical CompletionEvidence checkpoint; upper CAD modules are not built.

@@ -418,6 +418,21 @@ OriginalPlaneBasisIssuing takes positive caller-field normalization lengths and
 proves their squares equal the exact source squared lengths before constructing
 U and V. It proves orthogonality, unit length and N alignment over the entire
 plane. A rounded normalization candidate fails; it cannot redefine that plane.
+Reference-axis selection belongs to OriginalPlaneBasisIssuing.referenceAxis. It
+returns X when abs(N.x) <= abs(N.y), otherwise Y, using the original finite
+binary64 components and charging the same caller admission. Ties choose X. A
+nonzero N cannot be parallel to the selected axis: if both compared components
+are zero, N.z is nonzero. This comparison is exact, avoids norm overflow or
+underflow, and is invariant under exactly proportional nonzero source normals.
+Caller candidate-length generation consumes this same protocol operation:
+firstLength is the positive exact norm of N cross the selected unit axis;
+normalLength is the positive exact norm of N. The issuer uses the same rule and
+continues proving both squared lengths, orthogonality and unit lengths in Field.
+Previously issued basis receipts retain their owned U/V and UV meaning. New
+issuance may choose a different axis from the old unnormalized 0.8 heuristic;
+callers must obtain the axis from the protocol rather than replicate that heuristic.
+The existing independently verified (0,1,1) fixture keeps its X-axis choice.
+
 Selected algebraic roots remain owned by the injected coefficient field. This
 issuer does not solve for roots or introduce an L2 dependency.
 

@@ -21,3 +21,5 @@ import DomainFixtures
 @Test(.timeLimit(.minutes(1))) func completeSourceDomainChartHandoff() throws { try IntrinsicFixtures.sourceDomainHandoff() }
 
 @Test(.timeLimit(.minutes(1))) func originalStoredNormalPlaneBasisAndUV() throws { try PlaneFixtures.exactBasisAndUV() }
+
+@Test(.timeLimit(.minutes(1))) func scaledStoredNormalsAndExactPlaneUV() throws { try PlaneFixtures.scaledNormalsAndUV() }

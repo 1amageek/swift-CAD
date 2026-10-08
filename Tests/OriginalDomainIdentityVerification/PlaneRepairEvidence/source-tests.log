@@ -1,0 +1,823 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 182]
+[Planning deferred tasks]
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/GeneratedModuleMaps/SourceIssuerFixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/GeneratedModuleMaps/SourceIssuerFixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/NativeSource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/DerivedSources/test_entry_point.swift' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/NativeSource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/SourceIssuerProof.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/SourceIssuerProof.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerProof' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/TraceAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/TraceAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/SourceIssuerFixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerFixtures.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerFixtures.swiftmodule/arm64-apple-macos.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerFixtures.swiftmodule/arm64-apple-macos.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerFixtures.swiftmodule/arm64-apple-macos.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/GeneratedModuleMaps/SourceIssuer-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/GeneratedModuleMaps/SourceIssuer.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalBSplineChartIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalBSplineChartIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalBSplinePeriodIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalBSplinePeriodIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalIntrinsicSphereLawIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalIntrinsicSphereLawIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceTests.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalPlaneBasisIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceTests.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalPlaneBasisIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalSourceBindingIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/test_entry_point.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/DefaultOriginalSourceBindingIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/test_entry_point.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalBSplineChartSelection.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/SourceIssuerTests.xctest.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/SourceIssuerTests.xctest.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalBSplineChartSelection.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/empty-SourceIssuerTests.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalBSplineSourceReading.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalBSplineSourceReading.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalIntrinsicSphereLawIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.swiftmodule/arm64-apple-macos.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalIntrinsicSphereLawIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.swiftmodule/arm64-apple-macos.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalIntrinsicSphereSourceReading.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.swiftmodule/arm64-apple-macos.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalIntrinsicSphereSourceReading.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalPlaneBasisIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.xctest' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalPlaneBasisIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.xctest/Contents' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalPlaneBasisReceipt.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalPlaneBasisReceipt.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.xctest/Contents/Info.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalPlaneSourceReading.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.xctest/Contents/MacOS' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.xctest/Contents/MacOS/SourceIssuerTests' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuerTests.xctest/_CodeSignature' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalPlaneSourceReading.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalRationalChartIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalRationalChartIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalRationalChartReceipt.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalRationalChartReceipt.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalRationalParameterTransport.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalRationalParameterTransport.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceBinding.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceBinding.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceBindingIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceBindingIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceChart.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/GeneratedModuleMaps/L1-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/GeneratedModuleMaps/L1.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/L1.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialArithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialArithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialCalculus.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialCalculus.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialConstructing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/GeneratedModuleMaps/L0-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialConstructing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/GeneratedModuleMaps/L0.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceChart.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/L0.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceIssuanceFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicFiberPolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDeciding.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDeciding.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDegreeCoefficient.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicFiberPolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDegreeCoefficient.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceIssuanceFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicFiberRootIsolator.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDividing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceIssuanceLimits.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicFiberRootIsolator.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceIssuanceLimits.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDividing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicFiberSturmSequence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceParameterInterval.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDivision.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicFiberSturmSequence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceParameterInterval.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDivision.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicFieldElement.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceParameterMeaning.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Arithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicFieldElement.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceParameterMeaning.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicPairAuthority+Fiber.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Arithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourcePeriodIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicPairAuthority+Fiber.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Calculus.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicPairAuthority.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourcePeriodIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicPairAuthority.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourcePeriodReceipt.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicRealRoot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourcePeriodReceipt.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactAlgebraicRealRoot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourcePoleReceipt.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateDivision.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourcePoleReceipt.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateDivision.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceSnapshot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateEvaluation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceSnapshot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateEvaluation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceSnapshotting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/OriginalSourceSnapshotting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateGCD.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateGCD.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateGCDProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateGCDProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateMonomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariateMonomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariatePolynomial+Composition.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariatePolynomial+Composition.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariatePolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactBivariatePolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactNaturalMagnitude.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactNaturalMagnitude.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactOrder.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactOrder.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactRationalCoefficient+Hashable.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactRationalCoefficient+Hashable.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/SourceIssuer.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactRationalCoefficient.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactRationalCoefficient.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuer.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactRationalScalarDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactRationalScalarDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuer.swiftmodule/arm64-apple-macos.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactResource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuer.swiftmodule/arm64-apple-macos.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactResource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/SourceIssuer.swiftmodule/arm64-apple-macos.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarArithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarArithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarCount.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarCount.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarDepth.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarDepth.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarImporting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarImporting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarLedger.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarLedger.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarLimits.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarLimits.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarNumericAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarNumericAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarOrdering.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarOrdering.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarPayloadBytes.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarPayloadBytes.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarRationalAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarRationalAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarRootAxis.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactScalarRootAxis.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactSign.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactSign.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactUnivariateRootIsolator.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactUnivariateRootIsolator.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactUnivariateSturmSequence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/ExactUnivariateSturmSequence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalExactScalar.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalExactScalar.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalExactScalarDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalExactScalarDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalRationalPolynomialRange.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalRationalPolynomialRange.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalScalarRootDomainAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalScalarRootDomainAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldElement.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldElement.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldPolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldPolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Calculus.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldRoot+RationalRefinement.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldRoot+RationalRefinement.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Coefficients.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldRoot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Coefficients.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldRoot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldSturm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Division.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/OriginalSingularFieldSturm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/RationalAlgebraAdmitting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/RationalAlgebraAdmitting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/RationalAlgebraStorage.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/RationalAlgebraStorage.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/RationalCoefficientDepthAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Division.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/RationalCoefficientDepthAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L0.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L0.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L0.swiftmodule/arm64-apple-macos.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+GCD.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L0.swiftmodule/arm64-apple-macos.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L0.swiftmodule/arm64-apple-macos.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+GCD.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+HeapProduct.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+HeapProduct.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+OrderedConstruction.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+OrderedConstruction.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+PrincipalDeterminant.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+PrincipalDeterminant.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Resultant.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Resultant.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+SeparatedProduct.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+SeparatedProduct.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+SquareFree.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+SquareFree.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Subresultants.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain+Subresultants.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialEliminating.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialEliminating.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialEvaluation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialEvaluation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialGCDProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialGCDProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialGCDTask.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialGCDTask.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialImporting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialImporting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialOrderedConstructing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialOrderedConstructing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialProductIndex.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialProductIndex.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSquareFreeDecomposition.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSquareFreeDecomposition.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSquareFreeFactor.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSquareFreeFactor.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSquareFreeProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSquareFreeProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSubresultantAlgorithm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSubresultantAlgorithm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSubresultantProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialSubresultantProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialTerm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPolynomialTerm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPrincipalSubresultantSequence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/ExactPrincipalSubresultantSequence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L1.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L1.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L1.swiftmodule/arm64-apple-macos.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L1.swiftmodule/arm64-apple-macos.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-source-native/out/Products/Debug/L1.swiftmodule/arm64-apple-macos.swiftmodule' is located outside of the allowed root paths.
+
+[7 / 101]
+[50 / 102] L0
+[55 / 117] L0
+[57 / 117] L0
+[58 / 117] L0
+[63 / 117] L0
+[65 / 117] L0
+[69 / 117] L0
+[70 / 117] L0
+[71 / 117] L0
+[72 / 118] L1
+[76 / 133] L1
+[78 / 133] L1
+[79 / 133] L1
+[84 / 133] L1
+[88 / 133] SourceIssuer
+[89 / 133] SourceIssuer
+[93 / 133] L1
+[96 / 134] L0
+[98 / 149] SourceIssuer
+[100 / 149] SourceIssuer
+[103 / 149] SourceIssuer
+[110 / 149] SourceIssuer
+[114 / 149] SourceIssuer
+[117 / 149] SourceIssuer
+[118 / 149] L1
+[122 / 150] SourceIssuerFixtures
+[126 / 154] SourceIssuer
+[137 / 155] SourceIssuerProof-product
+[139 / 157] SourceIssuerFixtures
+[141 / 157] SourceIssuerFixtures
+[147 / 158] SourceIssuerProof-product
+[148 / 177]
+[151 / 177]
+[155 / 177]
+[157 / 177]
+[158 / 177]
+[160 / 177]
+[161 / 177]
+[162 / 177]
+[163 / 177]
+[166 / 177] SourceIssuerTests-product
+[172 / 177] SourceIssuerTests-product
+[173 / 177] SourceIssuerTests-product
+[178 / 179] SourceIssuerProof-product
+Build complete! (10.02秒)
+Test Suite 'All tests' started at 2026-10-09 02:15:13.354.
+Test Suite 'All tests' passed at 2026-10-09 02:15:13.355.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test originalOwnership() started.
+􀟈  Test originalTypedFailures() started.
+􀟈  Test originalExactLaws() started.
+􀟈  Test originalSelectedSpansAndTensor() started.
+􀟈  Test originalCumulativeResources() started.
+PASS invalid source/chart, unproved periodic law and independently inherited source-depth refusal
+􁁛  Test originalTypedFailures() passed after 0.001 seconds.
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+􁁛  Test originalOwnership() passed after 0.001 seconds.
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+􁁛  Test originalExactLaws() passed after 0.003 seconds.
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4349 storageAdmissions=165
+􁁛  Test originalCumulativeResources() passed after 0.003 seconds.
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+􁁛  Test originalSelectedSpansAndTensor() passed after 0.003 seconds.
+􁁛  Test run with 5 tests in 0 suites passed after 0.004 seconds.

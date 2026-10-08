@@ -32,6 +32,49 @@ struct PlaneProvider: OriginalSourceSnapshotting {
 }
 enum PlaneFixtureFailure: Error { case roundTrip,roundedAccepted,offPlaneAccepted,depthAccepted,storageAccepted,cancelAccepted,mapDepthAccepted }
 public enum PlaneFixtures {
+    public static func scaledNormalsAndUV() throws {
+        let f = ExactRationalScalarDomain(), limits = try TransportFixtures.limits()
+        let issuer = DefaultOriginalPlaneBasisIssuer<PlaneInput,ExactRationalScalarDomain>()
+        let cases: [([Double],Int,Int,Int)] = [([1,0,0],1,1,1),([0,1,0],0,1,1),
+            ([0,0,1],0,1,1),([3,4,0],0,4,5),([4,3,0],1,4,5)]
+        for (normal,axis,crossLength,normalLength) in cases {
+            let scales: [Double] = normalLength == 1
+                ? [0.5,1,-0.5,Double.leastNonzeroMagnitude,Double.greatestFiniteMagnitude]
+                : [0.5,1,-2]
+            for scale in scales {
+                var a = try TransportFixtures.admission()
+                let source = try DefaultOriginalSourceBindingIssuer(provider:PlaneProvider()).bind(
+                    PlaneInput(origin:[2,3,4],normal:normal.map { $0 * scale }),limits:limits.source,using:&a)
+                try TransportFixtures.require(issuer.referenceAxis(source:source,limits:limits.source,using:&a) == axis)
+                let magnitude = try f.binary64(exactly:abs(scale),using:&a)
+                let first = try f.multiplying(magnitude,f.integer(crossLength,using:&a),using:&a)
+                let length = try f.multiplying(magnitude,f.integer(normalLength,using:&a),using:&a)
+                let basis = try issuer.issue(source:source,field:f,firstLength:first,normalLength:length,limits:limits.source,using:&a)
+                let x = try f.integer(3,using:&a), y = try f.integer(-2,using:&a)
+                let point = try basis.position(u:x,v:y,limits:limits,using:&a)
+                let uv = try basis.parameters(of:point,limits:limits,using:&a)
+                try TransportFixtures.require(f.compare(uv[0],x,using:&a) == .equal && f.compare(uv[1],y,using:&a) == .equal)
+                // Exact U agrees with N cross the selected reference axis.
+                let zero = try f.integer(0,using:&a)
+                let expected = axis == 0 ? [zero,basis.normal[2],try f.negated(basis.normal[1],using:&a)]
+                    : [try f.negated(basis.normal[2],using:&a),zero,basis.normal[0]]
+                for i in 0..<3 {
+                    try TransportFixtures.require(f.compare(basis.u[i],f.dividing(expected[i],first,using:&a),using:&a) == .equal)
+                }
+            }
+        }
+        var preparation = try TransportFixtures.admission()
+        let source = try DefaultOriginalSourceBindingIssuer(provider:PlaneProvider()).bind(
+            PlaneInput(origin:[0,0,0],normal:[0.5,0,0]),limits:limits.source,using:&preparation)
+        var denied = try TransportFixtures.admission(work:0)
+        do { _ = try issuer.referenceAxis(source:source,limits:limits.source,using:&denied); throw ExactScalarFailure.invalidEvidence }
+        catch OriginalSourceIssuanceFailure.scalar(.resourceLimit(.work)) {}
+        var observed = try TerminalAdmission()
+        _ = try issuer.referenceAxis(source:source,limits:limits.source,using:&observed)
+        var cancelled = try TerminalAdmission(); cancelled.cancelAt = observed.checks
+        do { _ = try issuer.referenceAxis(source:source,limits:limits.source,using:&cancelled); throw ExactScalarFailure.invalidEvidence }
+        catch OriginalSourceIssuanceFailure.scalar(.cancelled) {}
+    }
     public static func exactBasisAndUV() throws {
         typealias F = ExactAlgebraicScalarDomain<ExactRationalScalarDomain>
         var a = try TransportFixtures.admission(valueDepth:128)
