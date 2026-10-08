@@ -1126,3 +1126,17 @@ and count helpers live in RationalAlgebraGeometryFailure.swift, avoiding a Swift
 module filename collision with L0's actual RationalAlgebraAdmitting protocol.
 The scalar-authority provenance boundary is owned by
 [OriginalProvenance](../SurfaceSilhouette/OriginalProvenance/DESIGN.md).
+
+## Homogeneous Surface Law Ownership
+OriginalRationalSurfaceHomogeneous owns exact stored B-spline X/Y/Z/W construction
+from validated original knot spans. Its nonperiodic source/index initializer
+validates source dimensions, positive span bounds and retained closed domain. Its
+legacy-token initializer validates source/domain/tolerance and preserves original
+periodic translations before using the same basis/weight arithmetic. It retains
+source snapshots and performs no differential or interval-jet preparation.
+OriginalRationalSurfacePolynomial consumes this issuer and continues to own exact
+derivative, normal and view equations. Native parameter-only queries consume
+only the homogeneous law. Differential fixtures compare both issuers on weighted,
+nonclamped sources, with degree-zero input rejected by existing source validation; old geometric publication remains unchanged.
+See [Native consumption](../NativeExactRelations/DESIGN.md) and
+[behavioral owner](../../../Tests/NativeExactRelationVerification/DESIGN.md).

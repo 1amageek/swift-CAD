@@ -23,6 +23,7 @@ its roots. Unsupported source coverage is a typed failure, never a fallback.
 | [Parent](../DESIGN.md) | parent | Native source types and public intersectors | Actual production integration | Preserve existing numerical APIs |
 | [Algebra](../RationalBivariateAlgebra/DESIGN.md) | depends on | Original homogeneous curve/surface issuers | Exact stored coefficient authority | No fitted map |
 | [L0](../RationalBivariateAlgebra/ExactScalar/DESIGN.md) | depends on | Scoped numeric admission, exact import | One exclusive caller ledger | Checked words-to-bytes |
+| [L1](../RationalBivariateAlgebra/ExactPolynomial/DESIGN.md) | depends on | Checked ordered construction | Retain final canonical terms | Strict descending slot order and exact nonzero validation |
 | [L5](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md) | depends on | Compile, resolve and tuple membership | Complete parameter relation | Preserve denominator guards and all UV |
 | [Verification](../../../Tests/NativeExactRelationVerification/DESIGN.md) | test owner | Full production Core/Geometry | Public Native and WASI routes | No subset build as integration evidence |
 
@@ -96,3 +97,22 @@ owning parent helpers and scalar-authority provenance record, with actual tests.
 Legacy scalar error normalization is specified by the CADGeometry parent and
 IntersectionAlgebra designs; no original mathematical result is substituted.
 The full existing public portability proof remains required beside this new path.
+
+## Homogeneous Preparation and Ordered Import
+The parameter-only surface path selects its original nonperiodic positive knot
+span and consumes OriginalRationalSurfaceHomogeneous. This immutable issuer owns
+stored-source validation, native indices/domain and exact Cox-de Boor laws. It
+does not prepare interval jets, derivatives, normals or silhouette equations.
+The existing differential law uses this same issuer after validating its existing
+native token, including periodic translations; its normal/view behavior remains.
+
+Native import visits the original coefficient dictionary directly into one final
+term buffer, preserving exact coefficient embedding and checked powers. It sorts
+that buffer once in L1's descending slot order with admitted comparison work and
+workspace. L1's ordered construction validates every exponent, coefficient and
+strict adjacency before retaining the same buffer; it never trusts caller flags.
+The legacy ascending v/u ordering is not treated as L1's descending u/v ordering.
+All entry/depth/storage/cancel contracts remain; no global cache or new shared
+state is introduced. This change does not compose XYZ images or reuse topology
+across modified domains. Its before/after proof uses identical public CS/SSI
+inputs, fixtures, mathematical guarantees and query limits.

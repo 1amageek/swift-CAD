@@ -30,3 +30,15 @@ continuous topology, source lifetime and atomic independent resource failures.
 ## Verification and Change Impact
 Bounded commands run fixed 6.4.0 Native, ASAN and matching WASM/Embedded. Only the
 owning changed path is tested; lower untouched proofs and caches are reused.
+
+## Homogeneous Preparation Verification
+Preparation fixtures compare homogeneous coefficients and original span/domain
+authority against the existing differential issuer, including weighted, nonclamped
+surfaces; degree-zero surfaces retain the existing source-validation failure. Ordered-construction fixtures compare the unchanged
+arbitrary-term constructor and reject invalid exponents, zero/duplicate/order,
+foreign coefficients, resource/depth limits and final cancellation. Public CS/SSI
+fixtures stay identical for before/after measurements; optimized proof adds a
+separate preparation group. Measure fresh-process wall time and admitted counters
+per target; admitted bytes are not allocation counts, peak RSS or copied bytes.
+Historical connection evidence remains untouched in Evidence/. Optimization
+evidence lives in PreparationEvidence/, with current compiler inventories.

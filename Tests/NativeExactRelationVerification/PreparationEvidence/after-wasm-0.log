@@ -1,0 +1,18 @@
+(node:17225) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS Native CS case 0 work=827716 bytes=15532735
+PASS Native CS case 1 work=804909 bytes=15143488
+PASS Native CS case 2 work=498407 bytes=9343980
+PASS Native CS case 3 work=477525 bytes=9032990
+PASS Native CS case 4 work=1941 bytes=28092
+PASS Native CS case 5 work=187905 bytes=3587581
+PASS Native CS case 6 work=6966027 bytes=12915972
+PASS Native CS case 7 work=470072 bytes=8884749
+PASS Native distinct UV work=3354237 bytes=63749588
+PASS Native SSI case 0 work=912336 bytes=21206334
+PASS Native SSI case 1 work=787705 bytes=17120380
+PASS Native SSI case 2 work=679275 bytes=14801351
+PASS Native folded SSI cells=45 attachments=108 work=9396734 bytes=186487885
+PASS Native atomic limits/input/cancel and final point/empty cancellation
+PASS scalar authority provenance and sink failure
+PASS Native exact integration all

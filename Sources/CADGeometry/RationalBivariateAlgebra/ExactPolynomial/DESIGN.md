@@ -25,6 +25,7 @@ Existing polynomial algorithms inside L0's scalar proof implementation stay ther
 |---|---|---|---|---|
 | [RationalBivariateAlgebra](../DESIGN.md) | parent | Component composition | Owns higher numeric consumers | Not built by this task |
 | [ExactScalar](../ExactScalar/DESIGN.md) | depends on | Arithmetic, ordering, importing and admission | Exact coefficient values and retained owners | No concrete scalar internals or legacy polynomial implementation is used |
+| [NativeExactRelations](../../NativeExactRelations/DESIGN.md) | used by | Checked ordered construction | Native final-buffer import | Caller order is fully validated, never trusted |
 
 ## Architecture
 
@@ -195,3 +196,18 @@ depths through the existing query before emitting canonical terms without sortin
 Every emitted coefficient still receives an exact zero test. Checked exponent
 addition, typed payload pre-admission, cancellation and final checkpoints remain.
 Differential fixtures use public arbitrary-term canonical construction.
+
+## Checked Ordered Construction
+ExactPolynomialOrderedConstructing exposes polynomial(orderedTerms:using:).
+Its input must be strictly descending lexicographic, unique and certified nonzero.
+The concrete domain checks dimensions, nonnegative exponents, adjacent order and
+each coefficient through the same L0 admission before retaining the input Array
+backing. A foreign coefficient, zero, duplicate or unordered term is explicit
+failure; caller claims cannot bypass validation. Empty input is canonical zero.
+The existing arbitrary-term constructor still sorts and merges without change.
+Inherited context/coefficient depth and terminal cancellation are preserved.
+No new term buffer or sorting workspace is required by this retaining operation.
+Native source transport owns its new buffer and admitted in-place sort workspace.
+The behavioral owner is NativeExactRelationVerification's ordered-construction
+fixture, covering differential equality, malformed terms, ownership, independent
+limits and final callback cancellation in Native/ASAN and both WASM targets.

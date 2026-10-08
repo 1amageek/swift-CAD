@@ -1,0 +1,3 @@
+Copied PCM encoded the original module-cache absolute path; private relocated PCM cache was retained and regenerated.
+<unknown>:0: error: precompiled file '/private/tmp/cad-exact-native-preparation-20261008/.build/native-exact-wasm/out/ModuleCache.noindex/2WB0T9QKQYPA1/SwiftShims-37S6PA6KOEWFT.pcm' was compiled with module cache path '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-wasm/out/ModuleCache.noindex/2WB0T9QKQYPA1', but the path is currently '/private/tmp/cad-exact-native-preparation-20261008/.build/native-exact-wasm/out/ModuleCache.noindex/2WB0T9QKQYPA1'
+Build failed before runtime; this is not pass evidence.

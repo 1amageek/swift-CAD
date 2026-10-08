@@ -1,0 +1,16 @@
+PASS Native CS case 0 work=831313 bytes=30505479
+PASS Native CS case 1 work=808510 bytes=29743032
+PASS Native CS case 2 work=500403 bytes=18348636
+PASS Native CS case 3 work=479314 bytes=17753374
+PASS Native CS case 4 work=1956 bytes=55068
+PASS Native CS case 5 work=188594 bytes=7053761
+PASS Native CS case 6 work=6968040 bytes=22111500
+PASS Native CS case 7 work=471922 bytes=17459493
+PASS Native distinct UV work=3388077 bytes=126272604
+PASS Native SSI case 0 work=919175 bytes=42190442
+PASS Native SSI case 1 work=792529 bytes=33952300
+PASS Native SSI case 2 work=683882 bytes=29343971
+PASS Native folded SSI cells=45 attachments=108 work=9520022 bytes=371096473
+PASS Native atomic limits/input/cancel and final point/empty cancellation
+PASS scalar authority provenance and sink failure
+PASS Native exact integration all

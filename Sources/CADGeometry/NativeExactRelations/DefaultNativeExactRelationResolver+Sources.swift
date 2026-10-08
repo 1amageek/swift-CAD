@@ -31,22 +31,12 @@ extension DefaultNativeExactRelationResolver {
         guard !surface.isUPeriodic, !surface.isVPeriodic else { throw NativeExactRelationFailure.unsupportedCoverage }
         let law = try ExactScalarNumericAccess.withAdmission(&admission) { usage in
             try surface.validate(tolerance: tolerance, consumeWork: { try usage.consumeExactWork(1) })
-            _ = try singleSpan(surface.uKnots, degree: surface.uDegree,
+            let uSpan = try singleSpan(surface.uKnots, degree: surface.uDegree,
                 count: surface.uControlPointCount, usage: &usage)
-            _ = try singleSpan(surface.vKnots, degree: surface.vDegree,
+            let vSpan = try singleSpan(surface.vKnots, degree: surface.vDegree,
                 count: surface.vControlPointCount, usage: &usage)
-            let box = SurfaceParameterBox(
-                u: try .init(lower: surface.uKnots[surface.uDegree], upper: surface.uKnots[surface.uControlPointCount]),
-                v: try .init(lower: surface.vKnots[surface.vDegree], upper: surface.vKnots[surface.vControlPointCount]))
-            let prepared = try PreparedBSplineSurfaceDifferentialEncloser(surface: surface, tolerance: tolerance,
-                consumeWork: { try usage.consumeExactWork(1) },
-                consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
-            let spans = try prepared.originalIntersectionNativeSpans(over: box, tolerance: tolerance,
-                maximumSpanCount: 1, consumeWork: { try usage.consumeExactWork(1) },
-                consumeStorage: { try RationalAlgebraStorage.retainBytes($0, usage: &usage) })
-            guard spans.count == 1, let span = spans.first else { throw NativeExactRelationFailure.unsupportedCoverage }
-            return try OriginalRationalSurfacePolynomial(source: surface, native: span,
-                domain: box, view: .init(x: 0, y: 0, z: 1), tolerance: tolerance, usage: &usage)
+            return try OriginalRationalSurfaceHomogeneous(source: surface,
+                uSpanIndex: uSpan, vSpanIndex: vSpan, tolerance: tolerance, usage: &usage)
         }.value
         try admission.retainStorage(bytes: exactScalarPayloadBytes(count: selected == nil ? 2 : 4, of: ScalarInterval.self))
         return try map(laws: law.homogeneous, native: [law.domain.u, law.domain.v],
@@ -79,9 +69,7 @@ extension DefaultNativeExactRelationResolver {
         var domains: [ExactRealRootInterval<Field.Value>] = []; domains.reserveCapacity(native.count)
         for law in laws {
             try admission.consumeWork(1)
-            let terms = try ExactScalarNumericAccess.withAdmission(&admission) {
-                try law.orderedTerms(usage: &$0)
-            }.value
+            let terms = law.originalCoefficients
             try admission.retainStorage(bytes: exactScalarPayloadBytes(count: terms.count,
                 of: ExactPolynomialTerm<Field.Value>.self))
             var imported: [ExactPolynomialTerm<Field.Value>] = []; imported.reserveCapacity(terms.count)
@@ -92,7 +80,17 @@ extension DefaultNativeExactRelationResolver {
                 let powers = native.count == 1 ? [power.u] : [power.u, power.v]
                 imported.append(.init(powers: powers, coefficient: try field.importingBase(coefficient, using: &admission)))
             }
-            polynomials.append(try cells.polynomials.polynomial(terms: imported, using: &admission))
+            // Admit sort workspace before mutation; sort only the final term buffer.
+            try admission.retainStorage(bytes: exactScalarPayloadBytes(count: imported.count,
+                of: ExactPolynomialTerm<Field.Value>.self))
+            try imported.sort { lhs, rhs in
+                try admission.consumeWork(native.count + 1)
+                for index in lhs.powers.indices {
+                    if lhs.powers[index] != rhs.powers[index] { return lhs.powers[index] > rhs.powers[index] }
+                }
+                return false
+            }
+            polynomials.append(try cells.polynomials.polynomial(orderedTerms: imported, using: &admission))
         }
         for index in native.indices {
             try admission.consumeWork(1)

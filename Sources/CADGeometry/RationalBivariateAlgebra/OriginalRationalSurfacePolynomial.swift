@@ -14,34 +14,11 @@ package struct OriginalRationalSurfacePolynomial: Sendable {
          native: PreparedBSplineSurfaceDifferentialEncloser.OriginalNativeSpan,
          domain: SurfaceParameterBox, view: Vector3D, tolerance: ModelingTolerance,
          usage: inout B) throws {
-        try native.validate(on: source, over: domain, tolerance: tolerance,
-            consumeWork: { try usage.consumeExactWork(1) })
+        let law = try OriginalRationalSurfaceHomogeneous(source: source, native: native,
+            domain: domain, tolerance: tolerance, usage: &usage)
         self.source = source; self.domain = domain
         uSpanIndex = native.uSpanIndex; vSpanIndex = native.vSpanIndex
-        let uBasis = try OriginalRationalBSplineBasis.powerPolynomials(knots: source.uKnots, degree: source.uDegree,
-            span: native.uSpanIndex, alongU: true, translation: native.originalUTranslation, usage: &usage)
-        let vBasis = try OriginalRationalBSplineBasis.powerPolynomials(knots: source.vKnots, degree: source.vDegree,
-            span: native.vSpanIndex, alongU: false, translation: native.originalVTranslation, usage: &usage)
-        try RationalAlgebraStorage.retain(4, of: ExactBivariatePolynomial.self, usage: &usage)
-        var h = [ExactBivariatePolynomial](repeating: .zero, count: 4)
-        for i in (native.uSpanIndex - source.uDegree)...native.uSpanIndex {
-            for j in (native.vSpanIndex - source.vDegree)...native.vSpanIndex {
-                guard let ub = uBasis[i], let vb = vBasis[j] else {
-                    throw rationalAlgebraFailure("Missing original native rational basis coefficient.")
-                }
-                let basis = try ub.multiplied(by: vb, usage: &usage)
-                let weight = try ExactRationalCoefficient.originalDouble(source.weights[j][i], usage: &usage)
-                let point = source.controlPoints[j][i]
-                for axis in 0..<3 {
-                    let coordinate: Double
-                    switch axis { case 0: coordinate = point.x; case 1: coordinate = point.y; default: coordinate = point.z }
-                    let coefficient = try ExactRationalCoefficient.originalDouble(coordinate, usage: &usage)
-                        .multiplied(by: weight, usage: &usage)
-                    h[axis] = try h[axis].adding(basis.scaled(by: coefficient, usage: &usage), usage: &usage)
-                }
-                h[3] = try h[3].adding(basis.scaled(by: weight, usage: &usage), usage: &usage)
-            }
-        }
+        let h = law.homogeneous
         homogeneous = h
         let wu = try h[3].differentiated(alongU: true, usage: &usage)
         let wv = try h[3].differentiated(alongU: false, usage: &usage)

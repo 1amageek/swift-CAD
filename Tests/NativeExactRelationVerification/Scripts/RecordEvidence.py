@@ -2,7 +2,7 @@
 """Verify complete production compiler inputs and retain one source manifest."""
 import hashlib,json,pathlib,subprocess
 root=pathlib.Path(__file__).resolve().parents[3]
-out=root/'Tests/NativeExactRelationVerification/Evidence'
+out=root/'Tests/NativeExactRelationVerification/PreparationEvidence'
 def digest(p):return hashlib.sha256(p.read_bytes()).hexdigest()
 expected={str(p.relative_to(root)):digest(p) for module in ['CADCore','CADGeometry'] for p in sorted((root/'Sources'/module).rglob('*.swift'))}
 lanes={}
@@ -20,7 +20,7 @@ for lane in ['native','asan','wasm','embedded']:
    lists.append({'path':str(file.relative_to(root)),'sha256':digest(file),'sourceCount':len(paths)})
  lanes[lane]={'compilerInputs':lists}
  artifacts=[]
- for name in ['NativeExactProof.wasm','CADIntersectionPortabilitySmoke.wasm']:
+ for name in ['NativeExactProof.wasm','NativeExactPreparationProof.wasm','CADIntersectionPortabilitySmoke.wasm']:
   for p in scratch.rglob(name):artifacts.append({'path':str(p.relative_to(root)),'sha256':digest(p),'bytes':p.stat().st_size})
  lanes[lane]['rawArtifacts']=artifacts
 manifest={'compiler':subprocess.check_output(['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift','--version'],text=True).strip(),

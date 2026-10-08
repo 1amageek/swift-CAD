@@ -1,0 +1,100 @@
+{
+  "native": {
+    "pairs": [
+      {
+        "before": 20.394918625010177,
+        "after": 20.519684624974616,
+        "afterBeforeRatio": 1.0061175041812345
+      },
+      {
+        "after": 20.692519292002544,
+        "before": 20.699844207963906,
+        "afterBeforeRatio": 0.999646136662297
+      },
+      {
+        "before": 20.578969208989292,
+        "after": 20.83939520898275,
+        "afterBeforeRatio": 1.0126549584359017
+      }
+    ],
+    "samplesSeconds": {
+      "before": [
+        20.394918625010177,
+        20.699844207963906,
+        20.578969208989292
+      ],
+      "after": [
+        20.519684624974616,
+        20.692519292002544,
+        20.83939520898275
+      ]
+    },
+    "mediansSeconds": {
+      "before": 20.578969208989292,
+      "after": 20.692519292002544
+    },
+    "commands": {
+      "before": [
+        "/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactProof"
+      ],
+      "after": [
+        "/private/tmp/cad-exact-native-preparation-20261008/.build/native-exact-native/out/Products/Debug/NativeExactProof"
+      ]
+    },
+    "artifactSHA256": {
+      "before": "e074dc140d509feee162edac611d0f69d73413517cdb74b0096838b723c5e534",
+      "after": "7fe34e3de760e10fada00b801c29e6160f426d8af0795d37d03a766e20da382e"
+    }
+  },
+  "embedded": {
+    "pairs": [
+      {
+        "before": 17.89158795803087,
+        "after": 17.753512541996315,
+        "afterBeforeRatio": 0.9922826628715996
+      },
+      {
+        "after": 17.444186459004413,
+        "before": 17.872758625017013,
+        "afterBeforeRatio": 0.9760209279941422
+      },
+      {
+        "before": 17.8751390419784,
+        "after": 17.94156358303735,
+        "afterBeforeRatio": 1.0037160293356575
+      }
+    ],
+    "samplesSeconds": {
+      "before": [
+        17.89158795803087,
+        17.872758625017013,
+        17.8751390419784
+      ],
+      "after": [
+        17.753512541996315,
+        17.444186459004413,
+        17.94156358303735
+      ]
+    },
+    "mediansSeconds": {
+      "before": 17.8751390419784,
+      "after": 17.753512541996315
+    },
+    "commands": {
+      "before": [
+        "/usr/local/bin/node",
+        "/private/tmp/cad-exact-native-preparation-20261008/Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+        "/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-embedded/out/Products/Debug-webassembly-wasm32/NativeExactProof.wasm"
+      ],
+      "after": [
+        "/usr/local/bin/node",
+        "/private/tmp/cad-exact-native-preparation-20261008/Tests/L1PolynomialVerification/Scripts/RunWASI.mjs",
+        "/private/tmp/cad-exact-native-preparation-20261008/.build/native-exact-embedded/out/Products/Debug-webassembly-wasm32/NativeExactProof.wasm"
+      ]
+    },
+    "artifactSHA256": {
+      "before": "bb22543658f8a9d6dba9b00b5f164b63476dcdbcf49afbb965fa1321145c548e",
+      "after": "867044995d7e77d77b465ec75670712c4d6edc1969a3d6a94855db4aa5172135"
+    }
+  }
+}

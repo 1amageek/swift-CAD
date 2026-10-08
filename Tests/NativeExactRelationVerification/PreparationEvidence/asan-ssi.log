@@ -1,0 +1,5 @@
+PASS Native SSI case 0 work=919175 bytes=42190442
+PASS Native SSI case 1 work=792529 bytes=33952300
+PASS Native SSI case 2 work=683882 bytes=29343971
+PASS Native folded SSI cells=45 attachments=108 work=9520022 bytes=371096473
+PASS Native exact integration ssi

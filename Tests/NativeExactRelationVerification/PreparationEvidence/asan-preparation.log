@@ -1,0 +1,7 @@
+VERIFY homogeneous source case 0
+VERIFY homogeneous source case 1
+VERIFY homogeneous source case 2
+VERIFY homogeneous source case 3
+VERIFY ordered construction
+VERIFY inherited depth
+PASS homogeneous-only laws and checked ordered construction

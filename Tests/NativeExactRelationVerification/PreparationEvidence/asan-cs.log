@@ -1,0 +1,10 @@
+PASS Native CS case 0 work=831313 bytes=30505479
+PASS Native CS case 1 work=808512 bytes=29743032
+PASS Native CS case 2 work=500403 bytes=18348636
+PASS Native CS case 3 work=479314 bytes=17753374
+PASS Native CS case 4 work=1956 bytes=55068
+PASS Native CS case 5 work=188594 bytes=7053761
+PASS Native CS case 6 work=6968040 bytes=22111500
+PASS Native CS case 7 work=471922 bytes=17459493
+PASS Native distinct UV work=3388077 bytes=126272604
+PASS Native exact integration cs

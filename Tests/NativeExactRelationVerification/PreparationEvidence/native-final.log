@@ -1,0 +1,315 @@
+warning: 'nativeexactrelationverification': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalPointRelationProof/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalRealRelationProof/DESIGN.md
+warning: 'nativeexactrelationverification': found 77 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+warning: 'nativeexactrelationverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/FailureContract/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+Building for debugging...
+[Pre-planning 1 / 270]
+[Planning deferred tasks]
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/NativeExactProof.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/NativeExactProof.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/CADIntersectionPortabilitySmoke.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/DerivedSources/test_entry_point.swift' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/CADIntersectionPortabilitySmoke.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/NativeExactTests.xctest.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/NativeExactTests.xctest.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilityEntry.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilityEntry.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/NativeExactProof_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactProof-p.build/Objects-normal/arm64/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactProof' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/CADIntersectionPortabilitySmoke_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/NativeExactTests_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalPointRelationAllowance.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/test_entry_point.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalPointRelationAllowance.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/Objects-normal/arm64/test_entry_point.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalPointRelationProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/NativeExactTests-p.build/empty-NativeExactTests.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalPointRelationProof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalRealRelationAllowance.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalRealRelationAllowance.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.swiftmodule/arm64-apple-macos.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalRealRelationProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.swiftmodule/arm64-apple-macos.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug/CADIntersectionPortabilitySmoke-p.build/Objects-normal/arm64/OriginalRealRelationProof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.swiftmodule/arm64-apple-macos.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/CADIntersectionPortabilitySmoke' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.xctest' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.xctest/Contents' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.xctest/Contents/Info.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.xctest/Contents/MacOS' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.xctest/Contents/MacOS/NativeExactTests' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-exact-native-integration-20261008/.build/native-exact-native/out/Products/Debug/NativeExactTests.xctest/_CodeSignature' is located outside of the allowed root paths.
+
+[22 / 55] CADIntersectionPortabilitySmoke-product
+[23 / 56] NativeExactFixtures
+[26 / 70] CADIntersectionPortabilitySmoke-product
+[30 / 76]
+[31 / 76]
+[33 / 76]
+[35 / 76]
+[40 / 76] CADIntersectionPortabilitySmoke-product
+[43 / 76] CADIntersectionPortabilitySmoke-product
+/private/tmp/cad-exact-native-preparation-20261008/Tests/NativeExactRelationVerification/Sources/Fixtures/NativePreparationFixtures.swift:47:42: warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 45 |                 continue
+ 46 |             }
+ 47 |             try ExactScalarNumericAccess.withAdmission(&a) { usage in
+    |                                          `- warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 48 |                 let direct = try OriginalRationalSurfaceHomogeneous(source: surface,
+ 49 |                     uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree, tolerance: .standard, usage: &usage)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[58 / 79]
+[63 / 82] NativeExactTests-product
+[67 / 86] NativeExactProof-product
+[72 / 86] NativeExactTests-product
+[78 / 86] NativeExactTests-product
+[81 / 86] NativeExactProof-product
+[82 / 86] NativeExactTests-product
+[84 / 86] NativeExactTests-product
+Build complete! (5.82秒)
+Test Suite 'All tests' started at 2026-10-08 08:54:22.721.
+Test Suite 'All tests' passed at 2026-10-08 08:54:22.723.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test nativeFailures() started.
+􀟈  Test nativeSSI() started.
+􀟈  Test nativeCS() started.
+􀟈  Test nativePreparation() started.
+􀟈  Test nativeProvenance() started.
+VERIFY homogeneous source case 0
+PASS scalar authority provenance and sink failure
+􁁛  Test nativeProvenance() passed after 0.007 seconds.
+PASS Native CS case 0 work=831313 bytes=30505479
+VERIFY homogeneous source case 1
+PASS Native SSI case 0 work=919175 bytes=42190442
+PASS Native CS case 1 work=808510 bytes=29743032
+VERIFY homogeneous source case 2
+PASS Native SSI case 1 work=792529 bytes=33952300
+PASS Native CS case 2 work=500403 bytes=18348636
+PASS Native CS case 3 work=479314 bytes=17753374
+PASS Native CS case 4 work=1956 bytes=55068
+VERIFY homogeneous source case 3
+VERIFY ordered construction
+VERIFY inherited depth
+PASS homogeneous-only laws and checked ordered construction
+􁁛  Test nativePreparation() passed after 3.044 seconds.
+PASS Native SSI case 2 work=683882 bytes=29343971
+PASS Native CS case 5 work=188594 bytes=7053761
+PASS Native atomic limits/input/cancel and final point/empty cancellation
+􁁛  Test nativeFailures() passed after 3.405 seconds.
+PASS Native CS case 6 work=6968040 bytes=22111500
+PASS Native CS case 7 work=471922 bytes=17459493
+PASS Native distinct UV work=3388077 bytes=126272604
+􁁛  Test nativeCS() passed after 9.372 seconds.
+PASS Native folded SSI cells=45 attachments=108 work=9520022 bytes=371096473
+􁁛  Test nativeSSI() passed after 12.353 seconds.
+􁁛  Test run with 5 tests in 0 suites passed after 12.354 seconds.

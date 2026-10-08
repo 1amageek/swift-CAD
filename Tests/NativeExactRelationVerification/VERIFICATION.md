@@ -98,3 +98,7 @@ One integrated source review covers Native extraction, exact coefficient/domain
 transport, admission/lifetime, complete public relation, original provenance and
 legacy error compatibility. The concrete integration findings above were fixed
 before the stable four-lane verification. Unchanged lower proofs are reused.
+
+Current homogeneous-only preparation and checked ordered import are recorded in
+[PREPARATION-VERIFICATION.md](PREPARATION-VERIFICATION.md); the inventory and timings
+above remain the historical connection checkpoint.

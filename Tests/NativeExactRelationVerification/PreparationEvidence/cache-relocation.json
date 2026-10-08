@@ -1,0 +1,6 @@
+{
+  "rawPath": ".build/preparation-artifacts/wasm-cache-relocation-failure.log",
+  "sha256": "5c907312a1894b09048e523976d6a2be38c9c915ad0c7ce21b094ce366b4aa29",
+  "bytes": 1026404,
+  "reason": "Copied PCM encoded the original module-cache absolute path; private relocated PCM cache was retained and regenerated."
+}
