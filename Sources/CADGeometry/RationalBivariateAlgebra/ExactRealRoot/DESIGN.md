@@ -235,6 +235,25 @@ owner or ancestor embedding path under the caller admission.
 
 ## Contracts and Invariants
 
+### Shared-divisor specialization
+
+L2 implements the [L0 ordered shared-divisor contract](../ExactScalar/DESIGN.md)
+inside one scoped scalar invocation. For at least three numerators and a
+nonconstant polynomial divisor in the selected coefficient field, it generates
+one exact reciprocal through the existing division/local-inverse algorithm and
+multiplies each numerator by that retained value. Original selected-root
+calculation receipts, embeddings and inherited depth remain authoritative.
+Base-field and constant-polynomial divisors use direct division; geometry never
+selects this representation branch. Applicability is checked before arithmetic;
+resource/cancellation/unresolved failures propagate without direct retry.
+All outputs, including zero numerators, pass the existing scalar operations.
+One caller admission owns applicability, inverse generation, element visits and
+output publication. No new root solver, field extension or cache is added.
+The [plane verification](../../../../Tests/OriginalDomainIdentityVerification/DESIGN.md)
+checks equivalence, independent limits, foreign owners and performance against
+scalar division while unchanged root-isolation evidence remains scoped separately.
+
+
 ### Source and Input Domain
 
 `ExactRealRootDomain<F>` retains F and creates its L1 construction domain in the

@@ -1,0 +1,1228 @@
+Building for debugging...
+[Planning deferred tasks]
+[6 / 67] SourceIssuer
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/SourceIssuer-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/SourceIssuer.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalBSplineChartIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalBSplineChartIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalBSplinePeriodIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalBSplinePeriodIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalIntrinsicSphereLawIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalIntrinsicSphereLawIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalPlaneBasisIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalPlaneBasisIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalSourceBindingIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/DefaultOriginalSourceBindingIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/Modules/SourceIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/Modules/SourceIssuer.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/Modules/SourceIssuer.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/Modules/SourceIssuer.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalBSplineChartSelection.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalBSplineChartSelection.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalBSplineSourceReading.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalBSplineSourceReading.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalIntrinsicSphereLawIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalIntrinsicSphereLawIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalIntrinsicSphereSourceReading.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalIntrinsicSphereSourceReading.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalPlaneBasisIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalPlaneBasisIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalPlaneBasisReceipt.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalPlaneBasisReceipt.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalPlaneSourceReading.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalPlaneSourceReading.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalRationalChartIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalRationalChartIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalRationalChartReceipt.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalRationalChartReceipt.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalRationalParameterTransport.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalRationalParameterTransport.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceBinding.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceBinding.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceBindingIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceBindingIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceChart.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceChart.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceIssuanceFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceIssuanceFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceIssuanceLimits.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceIssuanceLimits.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceParameterInterval.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceParameterInterval.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceParameterMeaning.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceParameterMeaning.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourcePeriodIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourcePeriodIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourcePeriodReceipt.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourcePeriodReceipt.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourcePoleReceipt.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourcePoleReceipt.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceSnapshot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceSnapshot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceSnapshotting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/OriginalSourceSnapshotting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/SourceIssuer Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/SourceIssuer Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/SourceIssuer-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/SourceIssuer-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/SourceIssuer.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/SourceIssuer_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/SourceIssuer.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/SourceIssuer.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/SourceIssuer.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/SourceIssuer.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/SourceIssuer.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L2-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L2.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/L2.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicCalculation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicCalculation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicEmbedding.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicEmbedding.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicExtending.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L1-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicExtending.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L1.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicExtension.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/L1.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicExtension.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalar.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalar.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain+Arithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain+Arithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain+UnitInverse.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain+UnitInverse.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialArithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialArithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicStorage.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialCalculus.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicStorage.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialCalculus.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRoot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialConstructing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRoot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialConstructing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootBound.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootBound.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootClassification.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDeciding.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootClassification.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDeciding.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDegreeCoefficient.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDegreeCoefficient.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDividing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDividing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootCount.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDivision.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDivision.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootCount.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Arithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+DefiningDivisor.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Arithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+DefiningDivisor.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Calculus.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+ExactCandidates.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Calculus.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+ExactCandidates.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Coefficients.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+FactoredCount.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Coefficients.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+FactoredCount.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Division.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+LawSource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Division.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+LawSource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+GCD.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Producing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+GCD.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Producing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+HeapProduct.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Query.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+HeapProduct.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Query.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+OrderedConstruction.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Separation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+OrderedConstruction.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Separation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+PrincipalDeterminant.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+SignedRemainder.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+PrincipalDeterminant.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+SignedRemainder.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Resultant.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Sturm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Resultant.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Sturm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Transport.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+SeparatedProduct.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Transport.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+SeparatedProduct.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+SquareFree.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+SquareFree.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Subresultants.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Subresultants.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootInterval.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialEliminating.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootInterval.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialEliminating.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootLimits.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialEvaluation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootLimits.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialEvaluation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootPreparing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootPreparing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialGCDProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialGCDProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootQuerying.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialGCDTask.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootQuerying.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialGCDTask.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSeparation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialImporting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSeparation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialImporting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSet.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialOrderedConstructing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSet.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialOrderedConstructing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSigns.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialProductIndex.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSigns.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialProductIndex.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeDecomposition.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeDecomposition.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeFactor.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootTransport.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeFactor.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootTransport.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootTransporting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootTransporting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSubresultantAlgorithm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSubresultantAlgorithm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSubresultantProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootBorrowedAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSubresultantProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootBorrowedAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialTerm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootInvocation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialTerm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootInvocation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPrincipalSubresultantSequence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootInvocationOwner.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPrincipalSubresultantSequence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootInvocationOwner.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootSturm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootSturm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/Modules/L1.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/Modules/L1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/Modules/L1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/Modules/L2.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/Modules/L1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L1.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/Modules/L2.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L1.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/Modules/L2.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/Modules/L2.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L1.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L2.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L1.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L2.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L2.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L2.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L0-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L0.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/L0.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberPolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberPolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberRootIsolator.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/DomainProof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberRootIsolator.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/DomainProof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberSturmSequence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberSturmSequence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/DomainProof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFieldElement.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFieldElement.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/DomainProof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicPairAuthority+Fiber.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicPairAuthority+Fiber.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/DomainProof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicPairAuthority.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/DomainProof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicPairAuthority.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/Modules/DomainProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicRealRoot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/Modules/DomainProof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicRealRoot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/Modules/DomainProof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateDivision.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/Modules/DomainProof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateDivision.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateEvaluation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateEvaluation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DomainProof.wasm' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateGCD.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateGCD.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateGCDProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateGCDProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateMonomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateMonomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariatePolynomial+Composition.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariatePolynomial+Composition.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariatePolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariatePolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactNaturalMagnitude.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactNaturalMagnitude.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactOrder.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactOrder.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalCoefficient+Hashable.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalCoefficient+Hashable.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalCoefficient.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalCoefficient.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalScalarDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalScalarDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactResource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactResource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarArithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarArithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarCount.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarCount.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarDepth.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarDepth.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarImporting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarImporting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarLedger.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarLedger.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarLimits.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarLimits.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarNumericAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarNumericAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarOrdering.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarOrdering.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarPayloadBytes.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/DomainFixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarPayloadBytes.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/DomainFixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarRationalAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/DomainFixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarRationalAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/CoverageFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarRootAxis.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/CoverageFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarRootAxis.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactSign.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactSign.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactUnivariateRootIsolator.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactUnivariateRootIsolator.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactUnivariateSturmSequence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactUnivariateSturmSequence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/Modules/L0.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/Modules/L0.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/Modules/L0.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/Modules/L0.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/IdentityFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalExactScalar.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/IdentityFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalExactScalar.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/IntrinsicFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalExactScalarDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/IntrinsicFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalExactScalarDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/Modules/DomainFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalRationalPolynomialRange.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/Modules/DomainFixtures.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalRationalPolynomialRange.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/Modules/DomainFixtures.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalScalarRootDomainAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/Modules/DomainFixtures.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalScalarRootDomainAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/NativeSource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/NativeSource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/PlaneFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldElement.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/PlaneFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldElement.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/TerminalAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldPolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/TerminalAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldPolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/TestOrderedValue.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/TestOrderedValue.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/TestOrdering.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/TestOrdering.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldRoot+RationalRefinement.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/TransportFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/TransportFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldRoot+RationalRefinement.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DomainFixtures.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldRoot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldRoot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DomainFixtures.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldSturm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DomainFixtures.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldSturm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DomainFixtures.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalAlgebraAdmitting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalAlgebraAdmitting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalAlgebraStorage.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalAlgebraStorage.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalCoefficientDepthAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalCoefficientDepthAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L0.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L0.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L0.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/L0.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/DI0-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/DI0.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/DI0.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/DI0 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/DI0 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/DI0-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/DI0-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/DI0.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/DI0_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterBound.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterBound.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomain+Algebra.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomain+Algebra.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomain+Queries.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomain+Queries.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainConstructing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainConstructing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainQuerying.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterDomainQuerying.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterInterval.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterInterval.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterProduct.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterProduct.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterSet.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/DI-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/DI.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/DI.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DI Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DI Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DI-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DI-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DI.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DI_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalBSplineDomainIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalBSplineDomainIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/ExactParameterSet.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalDomainBoundBSplineChartIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/Modules/DI0.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalDomainBoundBSplineChartIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/Modules/DI0.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalDomainCoverIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/Modules/DI0.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalDomainCoverIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/Modules/DI0.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalIntrinsicSphereDomainIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DI0.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DI0.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalIntrinsicSphereDomainIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DI0.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DI0.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterIdentityIssuer+IntrinsicPole.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterIdentityIssuer+IntrinsicPole.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterIdentityIssuer+Periodic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterIdentityIssuer+Periodic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterIdentityIssuer+SourceLaws.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterIdentityIssuer+SourceLaws.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterIdentityIssuer.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterIdentityIssuer.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterTransporter+Periodic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterTransporter+Periodic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterTransporter.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DefaultOriginalParameterTransporter.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/Modules/DI.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/Modules/DI.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/Modules/DI.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/Modules/DI.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineChartOccurrence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineChartOccurrence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineDomainCover+Families.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineDomainCover+Families.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineDomainCover.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineDomainCover.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineDomainIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineDomainIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineDomainSpace.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalBSplineDomainSpace.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalCoordinateSemantics.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalCoordinateSemantics.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainBoundRationalChart.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainBoundRationalChart.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainBoundRationalChartIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainBoundRationalChartIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainChart.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainChart.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainCover.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainCover.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainCoverIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainCoverIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainCoverQuerying.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainCoverQuerying.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainIdentityFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainIdentityFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainIdentityLimits.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalDomainIdentityLimits.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalIntrinsicParameterIdentityIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalIntrinsicParameterIdentityIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalIntrinsicSphereDomainCover.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalIntrinsicSphereDomainCover.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalIntrinsicSphereDomainIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalIntrinsicSphereDomainIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterCycle+Reduction.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterCycle+Reduction.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterCycle.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterCycle.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterFrame.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterFrame.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentity.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentity.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentityDecision.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentityDecision.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentityIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentityIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentityKind.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentityKind.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentityQuerying.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterIdentityQuerying.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterPeriodicLift.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterPeriodicLift.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterSelection+Operations.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterSelection+Operations.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterSelection.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterSelection.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterTransport.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterTransport.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterTransporting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalParameterTransporting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalPeriodicParameterIdentityIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalPeriodicParameterIdentityIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalPlaneBasisReceipt+Coordinates.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalPlaneBasisReceipt+Coordinates.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalPlaneCoordinateQuerying.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalPlaneCoordinateQuerying.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalRationalParameterIdentityIssuing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalRationalParameterIdentityIssuing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalSourceBoundaryDeclaration.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/OriginalSourceBoundaryDeclaration.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DI.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DI.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DI.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-wasm/out/Products/Debug-webassembly-wasm32/DI.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+[54 / 118] L0
+[56 / 118] L0
+[58 / 118] L0
+[63 / 118] L0
+[64 / 118] L0
+[68 / 118] L0
+[70 / 118] L0
+[71 / 118] L0
+[72 / 120] DI0
+[77 / 149] L1
+[90 / 149] L1
+[91 / 149] L1
+[92 / 149] L1
+[93 / 149] L1
+[95 / 149] SourceIssuer
+[98 / 149] L1
+[99 / 149] L1
+[103 / 150] DI0
+[107 / 150] DI0
+[110 / 150] DI0
+[115 / 150] DI0
+[119 / 167] SourceIssuer
+[121 / 183] L2
+[123 / 183] SourceIssuer
+[131 / 183] SourceIssuer
+[140 / 183] SourceIssuer
+[142 / 183] SourceIssuer
+[144 / 183] SourceIssuer
+[146 / 183] L2
+[148 / 184] L2
+[151 / 184] L2
+[152 / 184] L2
+[153 / 184] L2
+[156 / 184] L2
+[158 / 184] L2
+[160 / 184] L2
+[165 / 185] L1
+[166 / 200] SourceIssuer
+[169 / 201] DI
+[176 / 201] L2
+[179 / 201] L2
+[182 / 201] DI
+[183 / 201] DomainFixtures
+[184 / 201] DomainFixtures
+[187 / 201] DI
+[189 / 201] DI
+[189 / 201]
+[192 / 214] DomainFixtures
+[193 / 215] DomainFixtures
+[195 / 215] DomainFixtures
+[201 / 215] DomainProof-product
+[205 / 218] DomainProof-product
+[208 / 218] DomainFixtures
+[212 / 219] DomainFixtures
+/private/tmp/cad-domain-identity-completion-20261008/Tests/OriginalDomainIdentityVerification/Package.swift: DomainProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[220 / 220] DomainProof-product
+Build complete! (9.91秒)

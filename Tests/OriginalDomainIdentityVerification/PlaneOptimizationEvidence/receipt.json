@@ -1,0 +1,124 @@
+{
+  "asan_tests": 18,
+  "base_commit": "a419b57c",
+  "baseline_root": "/private/tmp/cad-domain-native-main-integration-20261009",
+  "baseline_sources": "baseline-source-hashes.json",
+  "compiler": "Swift 6.4.0 RELEASE",
+  "compiler_filelist_hashes": {
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DI-t.build/Objects-normal/arm64/DI.SwiftFileList": "7317e1b2c977e5e404433e5dc171c62c5fe038e46dd9a87609144a53c61fd5ec",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DI0-t.build/Objects-normal/arm64/DI0.SwiftFileList": "ae8b69f47f54158c41dd6d08063f8e35920d0b9afed3cacb3f0028defed2a34f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainDependencyProbe-p.build/Objects-normal/arm64/DomainDependencyProbe.SwiftFileList": "5a9649d07a82f66c12ba3858b557cf4b4a2fa46575a608bebcc52c52c47b60eb",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainFixtures-t.build/Objects-normal/arm64/DomainFixtures.SwiftFileList": "d746f2ab8bdc6d86d59071cbfd8b6a1b49c8192997fafc88a3802d83f5bfa13f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainProof-p.build/Objects-normal/arm64/DomainProof.SwiftFileList": "2101585bed9e1fb69e288e9cfb93fa9061d7ec8d1f417e0acdaaddf0935451e4",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainTests-p.build/Objects-normal/arm64/DomainTests.SwiftFileList": "10a926716d9653203bc9bd3b30f3c8ab9598400fc5debf6cda0178ab1add5942",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.SwiftFileList": "7cc29df90435b5794982fb21e33fc8a031823fc9dbe7225c927af07c08032ce7",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.SwiftFileList": "2d34383be80725dc07b0007f3745a7731097ca7a6028ed1a275505dc5dc74f39",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/L2-t.build/Objects-normal/arm64/L2.SwiftFileList": "591b24b6d513ca6a1d08c460e84ca6d2802866ea6d791c248826c8ec4fa98dde",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.SwiftFileList": "bd13340fb862836267034cbd4fe1ffa1a9d2dc20d3252e7be2e00b9bbf12145b",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-embedded/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DI.SwiftFileList": "7317e1b2c977e5e404433e5dc171c62c5fe038e46dd9a87609144a53c61fd5ec",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-embedded/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/DI0.SwiftFileList": "ae8b69f47f54158c41dd6d08063f8e35920d0b9afed3cacb3f0028defed2a34f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-embedded/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures.SwiftFileList": "d746f2ab8bdc6d86d59071cbfd8b6a1b49c8192997fafc88a3802d83f5bfa13f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-embedded/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/DomainProof.SwiftFileList": "2101585bed9e1fb69e288e9cfb93fa9061d7ec8d1f417e0acdaaddf0935451e4",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-embedded/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0.SwiftFileList": "7cc29df90435b5794982fb21e33fc8a031823fc9dbe7225c927af07c08032ce7",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-embedded/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1.SwiftFileList": "2d34383be80725dc07b0007f3745a7731097ca7a6028ed1a275505dc5dc74f39",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-embedded/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2.SwiftFileList": "591b24b6d513ca6a1d08c460e84ca6d2802866ea6d791c248826c8ec4fa98dde",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-embedded/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/SourceIssuer.SwiftFileList": "bd13340fb862836267034cbd4fe1ffa1a9d2dc20d3252e7be2e00b9bbf12145b",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DI-t.build/Objects-normal/arm64/DI.SwiftFileList": "7317e1b2c977e5e404433e5dc171c62c5fe038e46dd9a87609144a53c61fd5ec",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DI0-t.build/Objects-normal/arm64/DI0.SwiftFileList": "ae8b69f47f54158c41dd6d08063f8e35920d0b9afed3cacb3f0028defed2a34f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainDependencyProbe-p.build/Objects-normal/arm64/DomainDependencyProbe.SwiftFileList": "5a9649d07a82f66c12ba3858b557cf4b4a2fa46575a608bebcc52c52c47b60eb",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainFixtures-t.build/Objects-normal/arm64/DomainFixtures.SwiftFileList": "d746f2ab8bdc6d86d59071cbfd8b6a1b49c8192997fafc88a3802d83f5bfa13f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainProof-p.build/Objects-normal/arm64/DomainProof.SwiftFileList": "2101585bed9e1fb69e288e9cfb93fa9061d7ec8d1f417e0acdaaddf0935451e4",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainTests-p.build/Objects-normal/arm64/DomainTests.SwiftFileList": "59e4e0469979f1d069dc0f25729d316e0223eec511b5c2edf7e4fdf319dc4cf3",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.SwiftFileList": "7cc29df90435b5794982fb21e33fc8a031823fc9dbe7225c927af07c08032ce7",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.SwiftFileList": "2d34383be80725dc07b0007f3745a7731097ca7a6028ed1a275505dc5dc74f39",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/L2-t.build/Objects-normal/arm64/L2.SwiftFileList": "591b24b6d513ca6a1d08c460e84ca6d2802866ea6d791c248826c8ec4fa98dde",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.SwiftFileList": "bd13340fb862836267034cbd4fe1ffa1a9d2dc20d3252e7be2e00b9bbf12145b",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-release-after/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Release/DI-t.build/Objects-normal/arm64/DI.SwiftFileList": "7317e1b2c977e5e404433e5dc171c62c5fe038e46dd9a87609144a53c61fd5ec",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-release-after/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Release/DI0-t.build/Objects-normal/arm64/DI0.SwiftFileList": "ae8b69f47f54158c41dd6d08063f8e35920d0b9afed3cacb3f0028defed2a34f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-release-after/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Release/DomainFixtures-t.build/Objects-normal/arm64/DomainFixtures.SwiftFileList": "d746f2ab8bdc6d86d59071cbfd8b6a1b49c8192997fafc88a3802d83f5bfa13f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-release-after/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Release/DomainProof-p.build/Objects-normal/arm64/DomainProof.SwiftFileList": "2101585bed9e1fb69e288e9cfb93fa9061d7ec8d1f417e0acdaaddf0935451e4",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-release-after/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Release/L0-t.build/Objects-normal/arm64/L0.SwiftFileList": "7cc29df90435b5794982fb21e33fc8a031823fc9dbe7225c927af07c08032ce7",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-release-after/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Release/L1-t.build/Objects-normal/arm64/L1.SwiftFileList": "2d34383be80725dc07b0007f3745a7731097ca7a6028ed1a275505dc5dc74f39",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-release-after/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Release/L2-t.build/Objects-normal/arm64/L2.SwiftFileList": "591b24b6d513ca6a1d08c460e84ca6d2802866ea6d791c248826c8ec4fa98dde",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-release-after/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Release/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.SwiftFileList": "bd13340fb862836267034cbd4fe1ffa1a9d2dc20d3252e7be2e00b9bbf12145b",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L0-t.build/Objects-normal/arm64/L0.SwiftFileList": "7cc29df90435b5794982fb21e33fc8a031823fc9dbe7225c927af07c08032ce7",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/L1-t.build/Objects-normal/arm64/L1.SwiftFileList": "2d34383be80725dc07b0007f3745a7731097ca7a6028ed1a275505dc5dc74f39",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuer-t.build/Objects-normal/arm64/SourceIssuer.SwiftFileList": "bd13340fb862836267034cbd4fe1ffa1a9d2dc20d3252e7be2e00b9bbf12145b",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerFixtures-t.build/Objects-normal/arm64/SourceIssuerFixtures.SwiftFileList": "8749dcc7f230d0ce4c4881b819d5fefab76fd5bb86e50434d7c02108ff56673a",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerProof-p.build/Objects-normal/arm64/SourceIssuerProof.SwiftFileList": "fbdfaa6842342148b71178de43a207875f443eb6971611491af1cc13cd0a49bb",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/Objects-normal/arm64/SourceIssuerTests.SwiftFileList": "0135a8b7418afcebc9df0c79684f9d906dda816d576a9261f4d9a1f58e256c20",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI-t.build/Objects-normal/wasm32/DI.SwiftFileList": "7317e1b2c977e5e404433e5dc171c62c5fe038e46dd9a87609144a53c61fd5ec",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DI0-t.build/Objects-normal/wasm32/DI0.SwiftFileList": "ae8b69f47f54158c41dd6d08063f8e35920d0b9afed3cacb3f0028defed2a34f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainFixtures-t.build/Objects-normal/wasm32/DomainFixtures.SwiftFileList": "d746f2ab8bdc6d86d59071cbfd8b6a1b49c8192997fafc88a3802d83f5bfa13f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/DomainProof-p.build/Objects-normal/wasm32/DomainProof.SwiftFileList": "2101585bed9e1fb69e288e9cfb93fa9061d7ec8d1f417e0acdaaddf0935451e4",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0.SwiftFileList": "7cc29df90435b5794982fb21e33fc8a031823fc9dbe7225c927af07c08032ce7",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1.SwiftFileList": "2d34383be80725dc07b0007f3745a7731097ca7a6028ed1a275505dc5dc74f39",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2.SwiftFileList": "591b24b6d513ca6a1d08c460e84ca6d2802866ea6d791c248826c8ec4fa98dde",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug-webassembly-wasm32/SourceIssuer-t.build/Objects-normal/wasm32/SourceIssuer.SwiftFileList": "bd13340fb862836267034cbd4fe1ffa1a9d2dc20d3252e7be2e00b9bbf12145b"
+  },
+  "evidence_hashes": {
+    "VERIFICATION.md": "66e259d58d71abe6d4f38f3cdce8f2dd47ced9e765f7b732678e94fde2489e30",
+    "asan-runtime.log": "3bd42694675ac6d7e4101cdb3bc84e6605d27ea199f0edf6d356e85cc34c4c38",
+    "asan-tests.log": "06c64d78ee7ac2259aef49d5aa0924c7bba580654208b6bd3b0036f4783e2795",
+    "baseline-source-hashes.json": "3619f69f6687ae783a0e0cee40424cf6e38d472ac12be911739bd8beb8daa223",
+    "benchmark-after-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "benchmark-before-compile.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "compiler-inputs.json": "ec5675173a177332917de9cf23d19f352844777aab0ee12bd2ae9bca56218f88",
+    "embedded-build.log": "3f46c304a462792da842dc9c24c11549bae42cda5bc340b7bfd63999f803b948",
+    "embedded-runtime.log": "3648c31225b3f49c6300fb7e9e8f1220deca1f1d21e98c4f864172ded0ff38c7",
+    "native-runtime.log": "3bd42694675ac6d7e4101cdb3bc84e6605d27ea199f0edf6d356e85cc34c4c38",
+    "native-tests.log": "da5e0ae48b519fb7139f46082b0e5e1d8ffa1a5edc598672cb42462d9a706f89",
+    "release-after-build.log": "78aa6e9b389dee6054555542f3a16d7055582647d2655aec0d0bfdefeb2fae1e",
+    "release-before-build.log": "218dd6fa3986b17c2ec472cb03c568d7b2e1fd5e454927ef28ceeddbf8174ac8",
+    "release-benchmark.json": "b9f309ca7cd42d91564cd3c6a26b19c0f50930c1fd1bdd23090a74440484a9db",
+    "release-runtime.log": "3bd42694675ac6d7e4101cdb3bc84e6605d27ea199f0edf6d356e85cc34c4c38",
+    "source-hashes.json": "6e4a026a4a992ab08569537a1c871274252ca72f3158799a8e3c991ffc0fc0e8",
+    "source-tests.log": "1a2a8a3b864bb4a7119702501d82d91f167835d3fe70e93f68742a69416e45a6",
+    "wasm-build.log": "aa53fcc5b594be3f03865215f538a4e98474fc181ff5dc1ce53ca46e1e080d62",
+    "wasm-runtime.log": "83fa10de921addda74c47ae2ae2a8b75bfc3c4ca6fcc3969b6f169f95f143417"
+  },
+  "generated_inputs": {
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51"
+  },
+  "native_tests": 18,
+  "node": "v24.19.0",
+  "products": {
+    "asan": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Products/Debug/DomainProof",
+      "sha256": "09b49350d22505964297ca2d84f8ab5515a85bffa7bfcf692008c5d00ede5b24"
+    },
+    "benchmark-after": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/PlaneNormalization-after",
+      "sha256": "29635ef1b6be070b7562770996c8cfd765e35b0186db9040b4499ac96e54d259"
+    },
+    "benchmark-before": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/PlaneNormalization-before",
+      "sha256": "3dd2d2e9b080abb97f4a5ba4e5bc67627aa5ad1f27982adbb3c227fdeff6c833"
+    },
+    "embedded": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-embedded/out/Products/Debug-webassembly-wasm32/DomainProof.wasm",
+      "sha256": "c1d71f5862ae8305353c56059ab6ac88fcff67fe8717319bf588dc6e9d6e4e9d"
+    },
+    "native": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-native/out/Products/Debug/DomainProof",
+      "sha256": "7d1318741f01e4f14abb9304766b1d6152a5c14954f94192af6b807a4ecbc69f"
+    },
+    "release-after": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-release-after/out/Products/Release/DomainProof",
+      "sha256": "8d60229f282356b73159345a91396b22fe1684948bdc2a84ae60692abae0d8cb"
+    },
+    "wasm": {
+      "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-wasm/out/Products/Debug-webassembly-wasm32/DomainProof.wasm",
+      "sha256": "68dbc4c63d4b900e608d7b80a4ae5c1fca1f5c0df2ef416017163dccacf061a8"
+    }
+  },
+  "scope": "Ordered shared-divisor arithmetic and exact plane normalization only",
+  "sdks": [
+    "swift-6.4.0-RELEASE_wasm",
+    "swift-6.4.0-RELEASE_wasm-embedded"
+  ],
+  "source_tests": 5,
+  "wasm_target": "wasm32-unknown-wasip1"
+}

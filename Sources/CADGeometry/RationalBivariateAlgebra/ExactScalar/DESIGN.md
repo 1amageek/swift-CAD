@@ -69,6 +69,25 @@ failures use ExactScalarFailure and Swift cancellation directly.
 
 ## Contracts and Invariants
 
+### Ordered shared-divisor arithmetic
+
+`ExactScalarArithmetic.dividing(_:by:using:)` divides an ordered borrowed array
+by one borrowed divisor, returning the same exact values as scalar division in
+input order. The protocol requirement has a direct default, preserving existing
+conformers and allowing coefficient owners to select their own arithmetic.
+An empty array returns an empty array after entry/terminal checkpoints and does
+not evaluate the divisor. A nonempty operation admits all new output slots before
+allocation, accounts each visited numerator, uses the same cumulative admission,
+and publishes only after its terminal checkpoint. Failure exposes no partial
+array. No result cache, type erasure or mutable shared state is introduced.
+Scalar owner/depth/zero-divisor validation remains the operation implementation's
+responsibility. The L2 specialization is owned by its [design](../ExactRealRoot/DESIGN.md).
+The consuming [plane issuer](../../OriginalSourceIssuance/DESIGN.md) does not inspect
+coefficient representations. New array payload admission belongs to this operation;
+callers must not also charge those generated slots. Scalar arithmetic inside the
+batch continues charging its own generated numeric buffers/evidence.
+
+
 ### Standard-library protocol decisions
 
 The pinned Swift 6.4.0 macOS `Swift.swiftinterface` is the checked declaration

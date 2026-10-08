@@ -23,3 +23,6 @@ import DomainFixtures
 @Test(.timeLimit(.minutes(1))) func originalStoredNormalPlaneBasisAndUV() throws { try PlaneFixtures.exactBasisAndUV() }
 
 @Test(.timeLimit(.minutes(1))) func scaledStoredNormalsAndExactPlaneUV() throws { try PlaneFixtures.scaledNormalsAndUV() }
+
+@Test(.timeLimit(.minutes(1))) func rationalSharedDivisorPreservesCostAndFailures() throws { try RepeatedDivisionFixtures.rational() }
+@Test(.timeLimit(.minutes(1))) func selectedRootSharedDivisorRetainsLocalInverseLaws() throws { try RepeatedDivisionFixtures.localInverse() }

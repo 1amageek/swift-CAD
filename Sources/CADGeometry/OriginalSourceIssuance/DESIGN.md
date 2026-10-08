@@ -449,3 +449,17 @@ checks whole-plane algebra and point/UV round trip, refuses rounded sqrt(2),
 off-plane inputs, low depth/work/storage and final cancellation. L2 is a fixture
 dependency only; production SourceIssuer and DI dependency directions remain
 unchanged. Legacy analytic consumers require their own migration evidence.
+
+### Shared-divisor plane normalization
+
+The issuer delegates both three-component normalization steps to the
+[L0 ordered shared-divisor arithmetic contract](../RationalBivariateAlgebra/ExactScalar/DESIGN.md).
+The coefficient implementation owns reuse of exact inverse calculations; the
+issuer never casts or examines its field. All existing positive-length,
+squared-length, orthogonality and unit-length checks are retained, as are source
+and terminal cancellation checks. The batch owns generated U/V array payloads;
+the issuer owns origin/N/cross and the newly generated cross-product payload.
+Retained receipts and position/UV queries are unchanged. The
+[independent verification owner](../../../Tests/OriginalDomainIdentityVerification/DESIGN.md)
+checks exact equivalence and rational/algebraic cost separately. This optimization
+does not establish migration of legacy Plane3D evaluation or full CS/SSI paths.

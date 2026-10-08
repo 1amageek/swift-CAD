@@ -89,6 +89,7 @@ public enum PlaneFixtures {
         let refined = try roots.refine(isolated,maximumWidth:base.dividing(base.integer(1,using:&a),base.integer(16,using:&a),using:&a),using:&a)
         let extensionField = try base.adjoin(refined,using:&a)
         let f = extensionField.domain,sqrt2 = extensionField.generator
+        try RepeatedDivisionFixtures.verify(field:f,divisor:sqrt2,expectSavings:true)
         let source = try DefaultOriginalSourceBindingIssuer(provider:PlaneProvider()).bind(
             PlaneInput(origin:[2,3,4],normal:[0,1,1]),limits:limits.source,using:&a)
         let issuer = DefaultOriginalPlaneBasisIssuer<PlaneInput,F>()
@@ -115,6 +116,11 @@ public enum PlaneFixtures {
         do { try t.admitted(map,limits:limits,using:&mapShallow); throw PlaneFixtureFailure.mapDepthAccepted }
         catch OriginalDomainIdentityFailure.scalar(.resourceLimit(.coefficientDepth)) {}
         let foreign = try F.base(field:.init(),maximumExtensionLevel:2,using:&a)
+        let foreignValue = try foreign.integer(1,using:&a)
+        do { _ = try f.dividing([x,y,x],by:foreignValue,using:&a); throw ExactScalarFailure.invalidEvidence }
+        catch ExactScalarFailure.incompatibleDomain {}
+        do { _ = try f.dividing([x,foreignValue,y],by:sqrt2,using:&a); throw ExactScalarFailure.invalidEvidence }
+        catch ExactScalarFailure.incompatibleDomain {}
         let foreignInterval = try ExactParameterInterval<F.Value>.checked(field:foreign,lower:.negativeInfinity,upper:.positiveInfinity,
             depth:.init(value:0,coefficient:0),using:&a)
         let foreignFrame = try t.frame(source:source,field:foreign,support:[[foreignInterval]],semantics:[.authoredScalar],limits:limits,using:&a)

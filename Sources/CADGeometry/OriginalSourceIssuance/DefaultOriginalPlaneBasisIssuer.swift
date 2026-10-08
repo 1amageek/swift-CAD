@@ -23,7 +23,7 @@ public struct DefaultOriginalPlaneBasisIssuer<S: OriginalPlaneSourceReading,F: E
         do {
             try a.checkpoint(); try a.consumeWork(1); try source.require(limits)
             guard try f.sign(of:firstLength,using:&a) == .positive,try f.sign(of:normalLength,using:&a) == .positive else { throw OriginalSourceIssuanceFailure.invalidChart }
-            try a.retainStorage(bytes:exactScalarPayloadBytes(count:15,of:F.Value.self))
+            try a.retainStorage(bytes:exactScalarPayloadBytes(count:9,of:F.Value.self))
             var origin: [F.Value] = [],n: [F.Value] = []
             for i in 0..<3 { try a.consumeWork(1); origin.append(try f.binary64(exactly:source.original.originCoordinate(in:i),using:&a)); n.append(try f.binary64(exactly:source.original.normalCoordinate(in:i),using:&a)) }
             let zero = try f.integer(0,using:&a)
@@ -37,13 +37,12 @@ public struct DefaultOriginalPlaneBasisIssuer<S: OriginalPlaneSourceReading,F: E
             }
             guard try f.compare(dot(cross,cross,&a),f.multiplying(firstLength,firstLength,using:&a),using:&a) == .equal,
                 try f.compare(dot(n,n,&a),f.multiplying(normalLength,normalLength,using:&a),using:&a) == .equal else { throw OriginalSourceIssuanceFailure.invalidChart }
-            var u: [F.Value] = [],v: [F.Value] = []
-            for i in 0..<3 { try a.consumeWork(1); u.append(try f.dividing(cross[i],firstLength,using:&a)) }
+            let u = try f.dividing(cross,by:firstLength,using:&a)
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:F.Value.self))
             let vRaw = [try f.subtracting(f.multiplying(n[1],u[2],using:&a),f.multiplying(n[2],u[1],using:&a),using:&a),
                 try f.subtracting(f.multiplying(n[2],u[0],using:&a),f.multiplying(n[0],u[2],using:&a),using:&a),
                 try f.subtracting(f.multiplying(n[0],u[1],using:&a),f.multiplying(n[1],u[0],using:&a),using:&a)]
-            for i in 0..<3 { try a.consumeWork(1); v.append(try f.dividing(vRaw[i],normalLength,using:&a)) }
+            let v = try f.dividing(vRaw,by:normalLength,using:&a)
             let one = try f.integer(1,using:&a)
             guard try f.sign(of:dot(n,u,&a),using:&a) == .zero,try f.sign(of:dot(n,v,&a),using:&a) == .zero,
                 try f.sign(of:dot(u,v,&a),using:&a) == .zero,try f.compare(dot(u,u,&a),one,using:&a) == .equal,

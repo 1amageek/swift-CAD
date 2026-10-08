@@ -13,6 +13,8 @@ import DomainFixtures
         try IntrinsicFixtures.sourceDomainHandoff()
         try PlaneFixtures.exactBasisAndUV()
         try PlaneFixtures.scaledNormalsAndUV()
+        try RepeatedDivisionFixtures.rational()
+        try RepeatedDivisionFixtures.localInverse()
         print("PASS DI0-DI3 Native/intrinsic foundation: exact endpoint-sector algebra, canonical unions, unbounded sets, products, lifetime, owner/order refusal, budgets and terminal cancel")
     }
 }

@@ -73,3 +73,18 @@ selected-root fixture continues checking rounded candidate refusal, off-plane
 refusal and independent depth/storage/cancellation failures. PlaneRepairEvidence
 binds the repaired Native/ASAN/normal-WASM/Embedded snapshot separately from the
 historical CompletionEvidence checkpoint; upper CAD modules are not built.
+
+## Shared-Divisor Plane Optimization
+
+The same independent graph verifies L0 direct shared-divisor arithmetic, L2
+selected-root specialization and the public plane issuer together. Scalar
+reference division must match every returned component exactly, including zero
+numerators and a selected-root local inverse from a reducible defining law.
+Rational generation/work must not increase. Existing plane cases continue proving
+candidate refusal, exact round trips, off-plane refusal and immutable lifetime.
+New focused tests cover work/storage and independent depth refusal, zero divisor,
+foreign owner and terminal cancellation with no partial published array.
+The four target proofs call the same fixtures; Native ASAN checks the unchanged
+scoped invocation bridge. Performance compares identical prepared source/field,
+issuer checks and exact results with bounded alternating execution; setup and
+root generation are excluded and Debug/Release evidence is distinguished.

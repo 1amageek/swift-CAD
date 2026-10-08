@@ -69,6 +69,34 @@ extension ExactAlgebraicScalarDomain {
         let lhs = copy lhs, rhs = copy rhs
         return try scalarQuery(&admission) { try operation(lhs, rhs, 3, &$0) }
     }
+    public func dividing<A: ExactScalarAdmission & ~Copyable>(_ numerators: borrowing [Value], by divisor: borrowing Value,
+        using admission: inout A) throws(ExactScalarFailure) -> [Value] {
+        if numerators.isEmpty {
+            try admission.checkpoint(); try admission.checkpoint()
+            return []
+        }
+        let numerators = copy numerators, divisor = copy divisor
+        return try scalarQuery(&admission) { a in
+            let denominator = try admitted(divisor, &a)
+            try ExactRootAccess.storage(numerators.count, Value.self, &a)
+            var result: [Value] = []
+            result.reserveCapacity(numerators.count)
+            var inverse: Value?
+            // Constant divisors retain the cheaper direct path; only algebraic inverses are shared.
+            if numerators.count >= 3, case .fraction(let n, _) = denominator.storage {
+                guard let root = context.root else { throw ExactScalarFailure.invalidEvidence }
+                if try (root.source.context.univariate.degree(of: n, in: 0, using: &a) ?? 0) > 0 {
+                    inverse = try operation(integer(1, using: &a), denominator, 3, &a)
+                }
+            }
+            for numerator in numerators {
+                try a.consumeWork(1)
+                if let inverse { result.append(try operation(numerator, inverse, 2, &a)) }
+                else { result.append(try operation(numerator, denominator, 3, &a)) }
+            }
+            return result
+        }
+    }
     public func sign<A: ExactScalarAdmission & ~Copyable>(of value: borrowing Value,
         using admission: inout A) throws(ExactScalarFailure) -> ExactSign {
         let value = copy value

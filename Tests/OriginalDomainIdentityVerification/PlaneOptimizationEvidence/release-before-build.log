@@ -1,0 +1,16 @@
+Building for production...
+[Pre-planning 1 / 239]
+[Constructing 300 / 505]
+[58 / 113] L0
+[62 / 115] L0
+[74 / 119]
+[80 / 119] L1
+[90 / 122]
+[91 / 123] SourceIssuer
+[101 / 125] SourceIssuer
+[107 / 125] DI
+[116 / 127] DomainFixtures
+[125 / 129] DomainProof-product
+[127 / 129] DomainProof-product
+[128 / 129] DomainProof-product
+Build complete! (12.24秒)

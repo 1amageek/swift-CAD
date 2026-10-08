@@ -1,0 +1,428 @@
+{
+  "rational": {
+    "before_median_us": 20.5907833,
+    "after_median_us": 20.5133916,
+    "before_range_us": [
+      20.1262916,
+      22.2364332
+    ],
+    "after_range_us": [
+      20.3011084,
+      20.9250166
+    ],
+    "paired_median_ratio": 0.9930602507723636,
+    "paired_range_ratio": [
+      0.9225891317857577,
+      1.0125437117287917
+    ],
+    "before_work": 459,
+    "after_work": 459,
+    "before_generated_bytes": 832,
+    "after_generated_bytes": 832,
+    "samples": [
+      {
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.589775,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.6784166,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 1.0043051271808459
+      },
+      {
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.37875,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.1262916,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 1.0125437117287917
+      },
+      {
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.4779834,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.5112584,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 1.0016249158596349
+      },
+      {
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.3011084,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.5543668,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 0.9876786085183612
+      },
+      {
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 21.1551834,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.9250166,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 0.9891200754137637
+      },
+      {
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.515091599999998,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 22.2364332,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 0.9225891317857577
+      },
+      {
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.5917916,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.530025,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 0.9970004261309636
+      },
+      {
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.3169582,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.6730418,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 0.9827754617126542
+      },
+      {
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.383358200000004,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.5116916,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 1.006295989048556
+      },
+      {
+        "after": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 20.5832334,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "before": {
+          "case": "rational",
+          "iterations": 5000,
+          "microseconds": 21.05445,
+          "work": 459,
+          "generated_bytes": 832,
+          "exact": true
+        },
+        "ratio": 0.9776191446463812
+      }
+    ]
+  },
+  "sqrt2": {
+    "before_median_us": 1159.7297090000002,
+    "after_median_us": 862.134959,
+    "before_range_us": [
+      1145.9793319999999,
+      1191.559
+    ],
+    "after_range_us": [
+      843.4664160000001,
+      885.3991659999999
+    ],
+    "paired_median_ratio": 0.7350657934297494,
+    "paired_range_ratio": [
+      0.7224854161648732,
+      0.7665013326755856
+    ],
+    "before_work": 4992,
+    "after_work": 3751,
+    "before_generated_bytes": 205836,
+    "after_generated_bytes": 142380,
+    "samples": [
+      {
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1148.995916,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 843.4885,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "ratio": 0.7341092237615925
+      },
+      {
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 844.71925,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1157.0295,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "ratio": 0.7300758105130422
+      },
+      {
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1145.9793319999999,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 843.4664160000001,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "ratio": 0.7360223630979064
+      },
+      {
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 846.4305840000001,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1158.643418,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "ratio": 0.7305358757063254
+      },
+      {
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1160.816,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 864.0530819999999,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "ratio": 0.74434973501399
+      },
+      {
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 863.385918,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1177.706,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "ratio": 0.7331081933861252
+      },
+      {
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1169.2395,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 867.445166,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "ratio": 0.7418883522152647
+      },
+      {
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 860.884,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1191.559,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "ratio": 0.7224854161648732
+      },
+      {
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1155.1175819999999,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 885.3991659999999,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "ratio": 0.7665013326755856
+      },
+      {
+        "after": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 873.6131660000001,
+          "work": 3751,
+          "generated_bytes": 142380,
+          "exact": true
+        },
+        "before": {
+          "case": "sqrt2",
+          "iterations": 500,
+          "microseconds": 1182.1985,
+          "work": 4992,
+          "generated_bytes": 205836,
+          "exact": true
+        },
+        "ratio": 0.7389733331585179
+      }
+    ]
+  }
+}
