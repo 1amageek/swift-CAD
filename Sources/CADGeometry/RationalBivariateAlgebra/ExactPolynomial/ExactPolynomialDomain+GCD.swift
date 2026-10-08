@@ -53,6 +53,18 @@ extension ExactPolynomialDomain: ExactPolynomialGCDProducing {
                 } else { try push(.prs(a, b, last, variable), &usage) }
             case .prs(let a, let b, let content, let variable):
                 if b.terms.isEmpty { last = try monic(multiplying(a, content, &usage), &usage); continue }
+                // With only slot zero active, coefficients form the exact field;
+                // Euclidean division and monic units avoid pseudo-remainder swell.
+                if variable == 0 {
+                    let first = try monic(a, &usage), second = try monic(b, &usage)
+                    let remainder = try divided(first, second, &usage).remainder
+                    if remainder.terms.isEmpty {
+                        last = try monic(multiplying(second, content, &usage), &usage)
+                    } else {
+                        try push(.prs(second, monic(remainder, &usage), content, variable), &usage)
+                    }
+                    continue
+                }
                 let remainder = try pseudoRemainder(a, b, variable, &usage)
                 if remainder.terms.isEmpty { try push(.prs(b, remainder, content, variable), &usage) }
                 else {

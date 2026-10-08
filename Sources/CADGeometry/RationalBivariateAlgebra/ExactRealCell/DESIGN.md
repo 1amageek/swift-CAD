@@ -43,6 +43,71 @@ CS/SSI. The seven requirements keep their separate completion conditions.
 | Later topology consumers | Closure, incidence and connected components | L3 symbolic whole-cell conditions and complete partition |
 | Later geometry/publication consumers | XYZ/TUV/UVUV correspondence, image/fiber dimension, contact classification and representatives | Original source bindings and algebraic/topological receipts |
 
+### Exact projection cut normalization
+
+Projection insertion uses the existing L1 monic normalization, restoring the
+original leading sign, before deduplicating cut laws. The resulting multiplier
+is positive, preserving existing derivative/Thom sign orientation as well as
+original source signs. A nonzero scalar multiple has exactly the same zero set; normalization
+does not remove any root or alter requested source equations or their signs.
+Derivative, coefficient and principal-subresultant witnesses retain the original
+arithmetic results. The normalized laws define root cuts; original laws still
+provide final predicate signs, and whole-cell sign queries use their exact
+constant quotient orientation. All normalization arithmetic, generated payload,
+work and cancellation use the same caller admission.
+
+Lifting constructs the univariate root union as a square-free least common
+multiple through public L1 GCD, differentiation and exact division. Each
+specialized source law, coefficient sign, active-law index and Thom condition
+remains retained. Only the auxiliary union polynomial removes repeated/shared
+factors: its distinct real zeros and their global order are unchanged. Prefix
+location reconstructs the same root union with the same admission, so its branch
+ordinals and retained cell identities match lifting. No requested source root
+multiplicity or source predicate is replaced by the auxiliary union's multiplicity.
+All required roots over the full real line remain in the stack, including
+neighbors needed to describe clipped sector boundaries.
+
+Before adjoining a nonlinear root, L3 selects a smaller-degree original
+specialized cut only after proving it vanishes at that complete union root.
+L2 then refines its defining-divisor proof while preserving original source,
+ordinal, multiplicity and isolation. The resulting coefficient field describes
+the identical selected root through a smaller exact defining law. Original
+root-stack coverage, source-cell handles and Thom conditions remain unchanged.
+
+If every active specialized cut law is linear, L3 computes its coefficient-field
+root by exact division, sorts and deduplicates using exact order, and consumes
+L2's complete sorted-candidate publication port. L2 independently proves all
+original roots, multiplicities and singleton identities. A nonlinear cut makes
+this strategy inapplicable before publication; failures after selecting it
+propagate without switching to generic isolation. All-root and selected-domain
+coverage, original source signs and per-prefix cells remain unchanged.
+
+Each lifting level keeps one query-local root domain and one immutable root-set
+slot for prefixes that retain the original coefficient-field level. L3 creates
+those prefixes solely by retaining the field or by adjoining a root (which
+strictly raises its level), so equal original levels prove the identical original
+field lineage. Cache reuse additionally requires exact equality of the auxiliary
+union polynomial in the same polynomial owner; approximate samples or hashes
+are never sufficient. Extended sibling fields use separate domains. A reused
+root set retains its complete full-real coverage and depth; comparisons, slot
+storage, result ceilings and cancellation stay admitted. New per-prefix source
+signs, coefficient signs, sections, sectors and cell visits remain generated.
+
+Point location may use its retained stack's root domain only after the query
+field's successful ancestor import and equal original field level prove that
+same lineage. Exact union equality and the query root ceiling are rechecked;
+otherwise it isolates the newly specialized union. This is reuse of a retained
+proof, with no failure fallback or budget reset.
+
+The weighted quadratic CS tangency is the regression witness: its unnormalized
+axis-one projection produced 23 laws and exhausted the existing 16,777,216 work
+allowance while isolating their union. Sign-preserving scalar normalization alone leaves
+a degree-17 auxiliary union and still exhausts that allowance; shared-factor
+removal addresses that measured isolation cost. Canonical scalar-multiple deduplication
+must preserve the original tuple and required source sign semantics under that
+same ceiling. The L3 sign-invariance and complete partition fixtures validate
+positive/negative scalar orientation, repeated roots and retained conditions.
+
 Projection, lifting and selection are responsibilities inside this one component,
 not new modules or public solver frameworks. Polynomial arithmetic belongs to L1;
 root algorithms and coefficient extension belong to L2. No legacy private exact
@@ -673,6 +738,33 @@ partition ordinal. Full production L6 public Native fixtures own the same-module
 regression: a one-cell selection at partition ordinal93 must not subscript93 in
 a one-element view. Independent target visibility previously hid this collision.
 
+## Caller Cell Visit Propagation
+
+L3 forwards every required L0 `visitCell(axis:depth:)` through its scoped
+invocation owner and borrowed admission to the same caller. The owner retains
+the maximum attained depth on the supplied value/coefficient axis after a
+successful visit. It neither remaps the caller depth nor creates a cell ceiling.
+Its fifth forwarding closure and scoped context are admitted before allocation.
+
+Decomposition visits the R^0 origin before materializing its record and each
+accepted in-domain branch before materializing its coordinates and record.
+These geometric-coordinate visits use the attained value depth. Excluded
+branches and proved empty boxes materialize no record and issue no L3 record
+visit. Nested L2 interval visits forward through the same L3 admission; their
+original axis and depth remain unchanged. Existing algorithmic work, storage,
+stored-cell and root-per-stack limits continue independently.
+
+The caller's cumulative visit ceiling is shared by both root intervals and
+L3 records across repeated decompositions. A rejected visit preserves consumed
+resources, propagates its typed scalar cause, and publishes no partial partition.
+Entry, causal callback and terminal cancellation checkpoints remain in force.
+Immutable partitions retain attained depth and never retain mutable admission.
+
+[Visit propagation fixtures](../../../../Tests/L3RealCellVerification/Sources/Fixtures/VisitAdmissionFixtures.swift)
+exercise origin, nested roots and accepted records, two decompositions under one
+caller, exact cumulative count and count-minus-one rejection with an independently
+sufficient stored-cell ceiling, and callback/depth/cancellation failure.
+
 ## Linear Section Isolation
 
 Before separating overlapping union-root intervals, L3 checks each specialized
@@ -715,3 +807,135 @@ verify positive/negative constant proportionality, source/projected cuts,
 ancestor and foreign-owner handling, auxiliary rejection, retained lifetime,
 independent admission failures and terminal cancellation. L4 and public Native
 integration own the upper constant-cut graph and unchanged caller-cap evidence.
+
+## Twenty-Requirement Convergence Contract
+
+This revised independent L0–L3 task completes the following L3 obligations.
+[L2](../ExactRealRoot/DESIGN.md) exclusively owns selected-root signs, order,
+refinement, field operations, transport and separating values. L3 contains no
+root bisection algorithm. Original charts, periodic/pole identity, incidence,
+closure and geometric image publication remain upper responsibilities.
+
+| Requirement | Public port / retained evidence | Owning implementation / behavioral fixture |
+|---|---|---|
+| L3-01 Original relation | bind, predicate / Source | Preparation / variable order, duplicate laws, domains, Boolean references |
+| L3-02 Complete projection | decompose, projection evidence / original coefficients, derivatives, reducta, PSC, positive normalization | Projection / source provenance and exact PSC identities |
+| L3-03 Degenerate specialization | stack evidence / effective degrees, coefficient signs, rank conditions | Lifting / degree drop, nullification, shared and multiple roots |
+| L3-04 Parent-wide branches | boundary and stack evidence / parent projection conditions and root correspondence | Lifting, Inspection / non-sample prefixes, changing root order split |
+| L3-05 Complete lifting | decompose, children / all sections/sectors and samples | Lifting via L2 separation / close roots, field transport, mixed dimensions |
+| L3-06 Complete box | Partition / disjoint full-cell cover and boundary cuts | Lifting / finite, infinite, endpoint, singleton, empty, R0 |
+| L3-07 Original signs | select, invariant / original law signs and predicate | Selection / false cells retained, complete empty exclusion, arbitrary finite Boolean |
+| L3-08 Definition and location | definition, point, prefixPoint, locate, locatePrefix, contains | Inspection, Query / every prefix length, distinct same-sign cells, clipped boundary |
+| L3-09 Evidence reuse | retained stack / exact union-law and prefix correspondence | Lifting, Query / new specialization for non-sample prefix, compatible owners |
+| L3-10 Resource and ownership | all ports / immutable owner, causal depths, independent limits | Scoped admission / last callback cancel, failure and later owner reuse |
+
+Each stack retains the proof chain: connected parent cylindrical cell; invariant
+signs of all required projection conditions over that parent; constant effective
+degrees and subresultant rank conditions; ordered delineable root branches;
+complete section/sector fiber partition; original-law signs on each child.
+The theorem assumptions are checked through retained coefficient/reductum/PSC
+provenance, not inferred from a single sample or Jacobian rank. Root-union
+multiplicity is never reported as the multiplicity of an incoming original law.
+Auxiliary derivative sample signs are not sector-wide sign invariants.
+
+Finite box boundaries are original cut laws, which makes sample-based box
+acceptance constant over each cell. False cells remain in the partition. R0 has
+one empty tuple for a nonempty domain; true selects it and false excludes it.
+Public prefixPoint admits zero through n coordinates using the same field,
+owner, depth and cancellation checks as point; point/locate still require n.
+Prefix-condition membership accepts exactly its prefix or a full point and
+checks the retained condition coordinate length. locatePrefix is raw partition
+location, not existential projection of a selection.
+
+New-prefix queries import through proven field lineage, specialize required
+original laws and validate parent-wide degree/rank and branch correspondence.
+They reuse retained roots only after exact same-owner specialized-law equality;
+same parent cell or similar coordinates alone never establishes reuse.
+All successful in-box queries locate exactly one full/prefix cell, while proven
+outside points return nil and missing/ambiguous branches fail invalidCoverage.
+
+The final stable snapshot verifies all requirements and cost fixtures on Native,
+ASAN and matching normal/Embedded WASM in the independent graph. Upper builds
+and historical success do not substitute for this contract.
+
+### S4 Issued Proof Boundary
+
+Projection retains public read-only witnesses for normalization, derivatives,
+coefficients, reducta and every indexed PSC, including duplicate normalization
+correspondence. Normalization records its exact nonzero scalar and checks the
+polynomial identity before reuse. For each lifting parent, every required lower
+coefficient/PSC condition is either an exact constant or associated with a cut
+law from the preceding level by normalization. Its stored sign is taken from
+that whole-parent cut invariant and checked against specialization. These
+conditions, connected cylindrical parent construction, complete reducta and full
+PSC families establish constant effective degree and common-root rank, hence
+ordered root-function delineability and stable original-law membership. Sample
+signs of auxiliary derivatives are not promoted to sector invariants.
+
+A stack retains effective degrees, indexed parent conditions, exact incoming-law
+membership and original multiplicity for every union root. Nullified laws have
+degree -1 and are zero on the whole parent fiber, rather than producing a root
+list. The union radical's multiplicity is never used as incoming multiplicity.
+Public projection/stack evidence views retain the partition owner and read its
+immutable indexed payloads; no self-retaining handle is stored in that owner.
+Boundary definitions expose incoming multiplicity and their parent stack proof.
+
+The query owner adds public prefixPoint(0...n), keeps point/locate at exactly n,
+and validates membership at the condition's prefix length. At a different prefix,
+`validateParentConditions` checks coefficients and every retained parent condition;
+`validateRootCorrespondence` then checks the new complete union's root count,
+original membership and multiplicity against the issued stack. Only identical
+specialized source laws within the same original field reuse a fixed root set.
+Both helpers belong to the proof/lifting owner and use the query's admission.
+Queries and publication do not infer branch identity from equal sample counts.
+Lifting obtains each finite sector sample from L2's separation receipt and retains
+its strict-order evidence, without interval contraction in L3.
+
+### S4 Independent Evidence
+
+The fixed Swift 6.4.0 Native graph passes 26 L3, 22 L2, 8 L1 and 12 L0 tests.
+Projection-proof fixtures inspect issued public normalization identities, indexed
+PSC correspondence, reductum degree removal, parent-condition bindings, radical
+union versus original multiplicity, incoming Thom signs and retained L2 sector
+separation. Prefix fixtures exercise all lengths, changing non-sample parabola,
+crossing and cusp fibers, whole-fiber nullification, exact parent membership,
+closed singleton boxes in five dimensions, R0, outside-domain exclusion,
+foreign fields/coordinate owners and terminal cancellation. Existing complete
+partition/false-selection, clipping, resource and immutable-reader fixtures pass.
+Source review checks that each nonconstant binding indexes a preceding cut law,
+auxiliary derivatives are not whole-sector sign invariants, and L3 contains no
+root-interval bisection. Required weighted input and final portable evidence
+were deferred at this S4 snapshot; final evidence is linked below.
+
+### Complete Small-Factor Root Union
+
+The mandatory recorded weighted input uses the existing exact W division,
+positive-square reduction and original-law remainder correspondence before L3.
+Its six laws and all three closed unit intervals remain retained. The independent
+fixture checks those exact identities under the same work16,777,216/depth32
+allowance; raw sign partition before that proven relation reduction is a different
+workload and is not substituted for this recorded input.
+
+For nonlinear root unions, L3 consumes its specialized cut laws as candidate
+factors of the retained union. Exact gcd and division partition the union into
+small disjoint factors. L2 independently validates full factorization, disjointness,
+source owners and original variable placement before issuing count evidence. L3
+then consumes the existing isolate(count) contract. The original union source,
+all roots, original ordinals and multiplicities are retained. Missing or overlapping
+factors and all resource/cancellation failures propagate; there is no solver retry.
+Above this root-isolation choice, projection conditions and all whole-parent
+branch correspondence proofs remain unchanged.
+
+### S5 Final Independent Evidence
+
+All twenty L2/L3 requirements are implemented and verified on the same source
+snapshot: Native70, ASAN70, normal WASI and Embedded WASI succeed with pinned
+Swift6.4.0 and matching SDKs. The mandatory recorded weighted input completes
+within work16,777,216/depth32, and the actual three-stage coefficient tower passes.
+Actual compiler inventories, source/log hashes, original reduction identities,
+review scope and ownership/platform limits are recorded in
+[ConvergenceEvidence](../../../../Tests/L3RealCellVerification/ConvergenceEvidence/VERIFICATION.md).
+
+Source-bound lower evidence certifies this component and its composed L0–L3
+graph. It does not certify L4 closure/incidence, geometric producers, upper
+publication or the seven upper requirements. No upper CAD build was performed.

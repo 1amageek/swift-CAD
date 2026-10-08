@@ -41,58 +41,84 @@ extension ExactRealRootDomain {
     public func isolate<A: ExactScalarAdmission & ~Copyable>(_ source: borrowing ExactRealRootSource<F>,
         in domain: ExactRealRootInterval<F.Value>, limits: ExactRealRootLimits, using admission: inout A
     ) throws(ExactRealRootFailure) -> ExactRealRootSet<F> {
-        try ExactRootAccess.run(&admission, inherited: context.depth) { a in
-            let count = try counted(copy source, domain, &a)
-            guard case .finite(let expected, let total) = count.classification else {
-                return ExactRealRootSet(count: count, roots: [], depth: a.depth)
-            }
-            guard expected <= limits.maximumRoots else { throw ExactRealRootFailure.resultLimit }
-            try ExactRootAccess.storage(expected, ExactRealRoot<F>.self, &a)
-            var result: [ExactRealRoot<F>] = []; result.reserveCapacity(expected)
-            if expected == 0 { return ExactRealRootSet(count: count, roots: result, depth: a.depth) }
-            let originalProof = try sturm(source.law, &a)
-            for entry in count.factors {
-                let initial = try finite(domain, proof: entry.proof, &a)
-                try ExactRootAccess.storage(1, ExactRealRootInterval<F.Value>.self, &a)
-                var pending = [initial]
-                while let cell = pending.popLast() {
-                    try a.consumeWork(1)
-                    let n = try roots(entry.proof, cell, &a)
-                    if n == 0 { continue }
-                    if n == 1 {
-                        var isolated = cell
-                        // The full source law certifies that other factors are excluded too.
-                        while try roots(originalProof, isolated, &a) != 1 {
-                            isolated = try contracted(entry.proof, isolated, axis: source.refinementAxis, &a)
-                        }
-                        let before = try interval(.negativeInfinity, isolated.lower, false, !isolated.includesLower, &a)
-                        let ordinal = try roots(originalProof, before, &a)
-                        guard result.count < expected else { throw ExactRealRootFailure.invalidEvidence }
-                        result.append(ExactRealRoot(source: copy source, multiplicity: entry.multiplicity, ordinal: ordinal,
-                            isolation: isolated, proof: entry.proof, depth: a.depth))
-                    } else {
-                        let cells = try split(cell, axis: source.refinementAxis, &a)
-                        try ExactRootAccess.storage(2, ExactRealRootInterval<F.Value>.self, &a)
-                        pending.append(cells.1); pending.append(cells.0)
+        let source = copy source
+        return try ExactRootAccess.run(&admission, inherited: context.depth) { a in
+            try isolated(counted(source, domain, &a), limits: limits, &a)
+        }
+    }
+    public func isolate<A: ExactScalarAdmission & ~Copyable>(_ count: borrowing ExactRealRootCount<F>,
+        limits: ExactRealRootLimits, using admission: inout A
+    ) throws(ExactRealRootFailure) -> ExactRealRootSet<F> {
+        let count = copy count
+        return try ExactRootAccess.run(&admission, inherited: count.depth) { a in
+            try ExactRootAccess.admit(context.depth, &a)
+            return try isolated(count, limits: limits, &a)
+        }
+    }
+    func factorRoots(_ count: ExactRealRootCount<F>, in domain: ExactRealRootInterval<F.Value>,
+        _ a: inout ExactRootBorrowedAdmission) throws -> Int {
+        var result = 0
+        for entry in count.factors {
+            try a.consumeWork(1)
+            result = try ExactRootAccess.add(result, roots(entry.proof, domain, &a))
+        }
+        return result
+    }
+    func isolated(_ count: ExactRealRootCount<F>, limits: ExactRealRootLimits,
+        _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootSet<F> {
+        let source = count.source, domain = count.domain
+        try require(source, &a); try ExactRootAccess.admit(count.depth, &a)
+        try ExactRootAccess.admit(domain.depth, &a)
+        if !domain.isEmpty { _ = try interval(domain.lower, domain.upper, domain.includesLower, domain.includesUpper, &a) }
+        for entry in count.factors { try ExactRootAccess.admit(entry.proof.depth, &a) }
+        guard case .finite(let expected, let total) = count.classification else {
+            return ExactRealRootSet(count: count, roots: [], depth: a.depth)
+        }
+        guard expected <= limits.maximumRoots else { throw ExactRealRootFailure.resultLimit }
+        try ExactRootAccess.storage(expected, ExactRealRoot<F>.self, &a)
+        var result: [ExactRealRoot<F>] = []; result.reserveCapacity(expected)
+        if expected == 0 { return ExactRealRootSet(count: count, roots: result, depth: a.depth) }
+        for entry in count.factors {
+            let initial = try finite(domain, proof: entry.proof, &a)
+            try ExactRootAccess.storage(1, ExactRealRootInterval<F.Value>.self, &a)
+            var pending = [initial]
+            while let cell = pending.popLast() {
+                try ExactRootAccess.visit(cell.depth, axis: source.refinementAxis, &a)
+                try a.consumeWork(1)
+                let n = try roots(entry.proof, cell, &a)
+                if n == 0 { continue }
+                if n == 1 {
+                    var isolated = cell
+                    // Retained disjoint square-free factors certify the entire original source.
+                    while try factorRoots(count, in: isolated, &a) != 1 {
+                        isolated = try contracted(entry.proof, isolated, axis: source.refinementAxis, &a)
                     }
+                    let before = try interval(.negativeInfinity, isolated.lower, false, !isolated.includesLower, &a)
+                    let ordinal = try factorRoots(count, in: before, &a)
+                    guard result.count < expected else { throw ExactRealRootFailure.invalidEvidence }
+                    result.append(.init(source: source, multiplicity: entry.multiplicity, ordinal: ordinal,
+                        isolation: isolated, proof: entry.proof, depth: a.depth))
+                } else {
+                    let cells = try split(cell, axis: source.refinementAxis, &a)
+                    try ExactRootAccess.storage(2, ExactRealRootInterval<F.Value>.self, &a)
+                    pending.append(cells.1); pending.append(cells.0)
                 }
             }
-            // Ordinals are globally certified by the full source, so sorting needs no approximate comparator.
-            try ExactRootAccess.storage(result.count, ExactRealRoot<F>.self, &a)
-            // This buffer has one owner; sort in place and admit its sorting workspace above.
-            try result.sort { l, r in try a.consumeWork(1); return l.ordinal < r.ordinal }
-            var observed = 0, previous: Int? = nil
-            for root in result {
-                try a.consumeWork(1)
-                guard previous == nil || root.ordinal > previous! else { throw ExactRealRootFailure.invalidEvidence }
-                observed = try ExactRootAccess.add(observed, root.multiplicity); previous = root.ordinal
-            }
-            guard result.count == expected, observed == total else { throw ExactRealRootFailure.invalidEvidence }
-            return ExactRealRootSet(count: count, roots: result, depth: a.depth)
         }
+        try ExactRootAccess.storage(result.count, ExactRealRoot<F>.self, &a)
+        try result.sort { l, r in try a.consumeWork(1); return l.ordinal < r.ordinal }
+        var observed = 0, previous: Int? = nil
+        for root in result {
+            try a.consumeWork(1)
+            guard previous == nil || root.ordinal > previous! else { throw ExactRealRootFailure.invalidEvidence }
+            observed = try ExactRootAccess.add(observed, root.multiplicity); previous = root.ordinal
+        }
+        guard result.count == expected, observed == total else { throw ExactRealRootFailure.invalidEvidence }
+        return ExactRealRootSet(count: count, roots: result, depth: a.depth)
     }
     func contracted(_ proof: ExactRootSturm<F>, _ cell: ExactRealRootInterval<F.Value>, axis: ExactScalarRootAxis,
         _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootInterval<F.Value> {
+        try ExactRootAccess.visit(cell.depth, axis: axis, &a)
         let pair = try split(cell, axis: axis, &a)
         let left = try roots(proof, pair.0, &a)
         if left == 1 { return pair.0 }

@@ -24,6 +24,7 @@ struct ExactScalarRationalAdmission<A: ExactScalarAdmission & ~Copyable>: Ration
         let mapped = try exactScalarCount(inherited.value, max(0, depth - original.value))
         guard mapped <= maximum.value else { throw ExactScalarFailure.resourceLimit(.valueDepth) }
         try ledger.pointee.admitDepth(value: mapped, coefficient: reached.pointee.coefficient)
+        try ledger.pointee.visitCell(axis: .value, depth: mapped)
         reached.pointee = .init(uncheckedValue: max(reached.pointee.value, mapped), coefficient: reached.pointee.coefficient)
         try ledger.pointee.checkpoint()
     }
@@ -32,6 +33,7 @@ struct ExactScalarRationalAdmission<A: ExactScalarAdmission & ~Copyable>: Ration
         let mapped = try exactScalarCount(inherited.coefficient, max(0, depth - original.coefficient))
         guard mapped <= maximum.coefficient else { throw ExactScalarFailure.resourceLimit(.coefficientDepth) }
         try ledger.pointee.admitDepth(value: reached.pointee.value, coefficient: mapped)
+        try ledger.pointee.visitCell(axis: .coefficient, depth: mapped)
         reached.pointee = .init(uncheckedValue: reached.pointee.value, coefficient: max(reached.pointee.coefficient, mapped))
         try ledger.pointee.checkpoint()
     }

@@ -18,6 +18,7 @@ extension ExactRealRootDomain {
         let root = copy root
         return try ExactRootAccess.run(&admission, inherited: context.depth) { a in
             try admitted(copy root, &a)
+            try ExactRootAccess.visit(root.isolation.depth, axis: root.source.refinementAxis, &a)
             guard case .finite(let lower) = root.isolation.lower,
                   case .finite(let upper) = root.isolation.upper else { throw ExactRealRootFailure.invalidEvidence }
             let lowOrder = try context.field.compare(value, lower, using: &a)
@@ -50,19 +51,6 @@ extension ExactRealRootDomain {
             return replaced(copy root, cell, &a)
         }
     }
-    func overlap(_ l: ExactRealRootInterval<F.Value>, _ r: ExactRealRootInterval<F.Value>,
-        _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootInterval<F.Value>? {
-        guard case .finite(let ll) = l.lower, case .finite(let lh) = l.upper,
-            case .finite(let rl) = r.lower, case .finite(let rh) = r.upper else { throw ExactRealRootFailure.invalidEvidence }
-        let lowOrder = try context.field.compare(ll, rl, using: &a)
-        let hiOrder = try context.field.compare(lh, rh, using: &a)
-        let lo = lowOrder == .less ? rl : ll, hi = hiOrder == .greater ? rh : lh
-        if try context.field.compare(lo, hi, using: &a) == .greater { return nil }
-        let il = lowOrder == .equal ? l.includesLower && r.includesLower : lowOrder == .less ? r.includesLower : l.includesLower
-        let iu = hiOrder == .equal ? l.includesUpper && r.includesUpper : hiOrder == .greater ? r.includesUpper : l.includesUpper
-        let common = try interval(.finite(lo), .finite(hi), il, iu, &a)
-        return common.isEmpty ? nil : common
-    }
     func disjointOrder(_ l: ExactRealRootInterval<F.Value>, _ r: ExactRealRootInterval<F.Value>,
         _ a: inout ExactRootBorrowedAdmission) throws -> ExactOrder? {
         guard case .finite(let ll) = l.lower, case .finite(let lh) = l.upper,
@@ -78,22 +66,40 @@ extension ExactRealRootDomain {
         let lhs = copy lhs, rhs = copy rhs
         return try ExactRootAccess.run(&admission, inherited: context.depth) { a in
             try admitted(copy lhs, &a); try admitted(copy rhs, &a)
-            if let order = try disjointOrder(lhs.isolation, rhs.isolation, &a) { return order }
-            let gcd = try context.univariate.greatestCommonDivisor(lhs.proof.polynomial, rhs.proof.polynomial, using: &a)
-            let common = try sturm(gcd, &a)
-            var l = lhs.isolation, r = rhs.isolation
-            if let shared = try overlap(l, r, &a), try roots(common, shared, &a) == 1 { return .equal }
-            while true {
-                guard case .finite(let ll) = l.lower, case .finite(let lh) = l.upper,
-                    case .finite(let rl) = r.lower, case .finite(let rh) = r.upper else { throw ExactRealRootFailure.invalidEvidence }
-                if let order = try disjointOrder(l, r, &a) { return order }
-                if try context.field.compare(ll, lh, using: &a) == .less {
-                    l = try contracted(lhs.proof, l, axis: lhs.source.refinementAxis, &a)
-                }
-                if try context.field.compare(rl, rh, using: &a) == .less {
-                    r = try contracted(rhs.proof, r, axis: rhs.source.refinementAxis, &a)
-                }
+            if lhs.source.variable == rhs.source.variable,
+                try polynomials.equals(lhs.source.original, rhs.source.original, using: &a) {
+                return lhs.ordinal == rhs.ordinal ? .equal : lhs.ordinal < rhs.ordinal ? .less : .greater
             }
+            if let order = try disjointOrder(lhs.isolation, rhs.isolation, &a) { return order }
+            guard case .finite(let lower) = rhs.isolation.lower,
+                case .finite(let upper) = rhs.isolation.upper else { throw ExactRealRootFailure.invalidEvidence }
+            let derivative = try context.univariate.differentiated(lhs.proof.polynomial, in: 0, using: &a)
+            let x = try context.univariate.variable(0, using: &a)
+            let lowLaw = try context.univariate.subtracting(x, context.univariate.constant(lower, using: &a), using: &a)
+            let lowSign = try tarskiSign(lowLaw, at: lhs, derivative: derivative, &a)
+            if lowSign == .negative { return .less }
+            if lowSign == .zero {
+                return try rhs.isolation.includesLower && zeroAt(rhs.proof, rhs.isolation.lower, &a) ? .equal : .less
+            }
+            let highLaw = try context.univariate.subtracting(x, context.univariate.constant(upper, using: &a), using: &a)
+            let highSign = try tarskiSign(highLaw, at: lhs, derivative: derivative, &a)
+            if highSign == .positive { return .greater }
+            if highSign == .zero {
+                return try rhs.isolation.includesUpper && zeroAt(rhs.proof, rhs.isolation.upper, &a) ? .equal : .greater
+            }
+            if try tarskiSign(rhs.proof.polynomial, at: lhs, derivative: derivative, &a) == .zero { return .equal }
+            var previous = ExactSign.zero, atLeft = 0
+            for polynomial in rhs.proof.chain {
+                try a.consumeWork(1)
+                let sign = try tarskiSign(polynomial, at: lhs, derivative: derivative, &a)
+                if sign == .zero { continue }
+                if previous != .zero && sign != previous { atLeft = try ExactRootAccess.add(atLeft, 1) }
+                previous = sign
+            }
+            var count = try variations(rhs.proof, rhs.isolation.lower, &a) - atLeft
+            if rhs.isolation.includesLower, try zeroAt(rhs.proof, rhs.isolation.lower, &a) { count += 1 }
+            guard count == 0 || count == 1 else { throw ExactRealRootFailure.invalidEvidence }
+            return count == 0 ? .less : .greater
         }
     }
     public func sign<A: ExactScalarAdmission & ~Copyable>(of polynomial: borrowing ExactRealRootSource<F>,
@@ -132,22 +138,8 @@ extension ExactRealRootDomain {
                 try context.field.compare(lo, hi, using: &a) == .equal {
                 return try context.field.sign(of: evaluated(polynomial.law, lo, &a), using: &a)
             }
-            let gcd = try context.univariate.greatestCommonDivisor(root.proof.polynomial, polynomial.law, using: &a)
-            if try roots(sturm(gcd, &a), root.isolation, &a) == 1 { return .zero }
-            let query = try sturm(polynomial.law, &a)
-            var cell = root.isolation
-            while true {
-                guard case .finite(let lo) = cell.lower, case .finite(let hi) = cell.upper else { throw ExactRealRootFailure.invalidEvidence }
-                if try context.field.compare(lo, hi, using: &a) == .equal {
-                    return try context.field.sign(of: evaluated(polynomial.law, lo, &a), using: &a)
-                }
-                // Excluded endpoint zeros still prevent using an endpoint sign as the root's sign.
-                let closed = try interval(.finite(lo), .finite(hi), true, true, &a)
-                if try roots(query, closed, &a) == 0 {
-                    return try context.field.sign(of: evaluated(polynomial.law, lo, &a), using: &a)
-                }
-                cell = try contracted(root.proof, cell, axis: root.source.refinementAxis, &a)
-            }
+            let derivative = try context.univariate.differentiated(root.proof.polynomial, in: 0, using: &a)
+            return try tarskiSign(polynomial.law, at: root, derivative: derivative, &a)
         }
     }
 }

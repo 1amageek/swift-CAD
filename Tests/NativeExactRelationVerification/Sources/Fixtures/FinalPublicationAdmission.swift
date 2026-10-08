@@ -15,6 +15,9 @@ struct FinalPublicationAdmission: ~Copyable, ExactScalarAdmission {
         storageCalls += 1
         if storageCalls == cancellingCall { ledger.cancel() }
     }
+    mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+        try ledger.visitCell(axis: axis, depth: depth)
+    }
     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
         try ledger.admitDepth(value:value,coefficient:coefficient)
     }

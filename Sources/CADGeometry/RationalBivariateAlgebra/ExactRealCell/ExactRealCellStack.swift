@@ -11,6 +11,10 @@ struct ExactRealCellStack<Base: ExactScalarArithmetic & ExactScalarOrdering & Ex
  let rootSet: ExactRealRootSet<Field>
  let specialized: [ExactRealRootSource<Field>]
  let coefficientSigns: [[ExactSign]]
+ let effectiveDegrees: [Int]
+ let parentConditionSigns: [ExactSign]
+ let rootMultiplicities: [[Int]]
+ let separations: [ExactRealRootSeparation<Field>]
  let activeLawIndices: [Int]
  let children: [Int]
 }

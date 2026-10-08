@@ -15,6 +15,9 @@ struct OrderedConstructionAdmission: ~Copyable, ExactScalarAdmission {
         if workCalls == cancellingCall { ledger.cancel() }
     }
     mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) { try ledger.retainStorage(bytes: bytes) }
+    mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+        try ledger.visitCell(axis: axis, depth: depth)
+    }
     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
         try ledger.admitDepth(value: value, coefficient: coefficient)
     }

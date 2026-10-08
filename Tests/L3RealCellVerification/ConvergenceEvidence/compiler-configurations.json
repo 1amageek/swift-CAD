@@ -1,0 +1,46 @@
+{
+  "native": {
+    "actual_task_store": ".build/l3-native/out/Intermediates.noindex/XCBuildData/cd7e785f844571d39f1fd637496f49d8.xcbuilddata/task-store.msgpack",
+    "sha256": "193d1e9d0f1340b7f74631e706eb57ba7c903f832c06cdc34c31ba0537685e17",
+    "verified_markers": {
+      "Onone": true,
+      "Embedded": false,
+      "WMO": false,
+      "ASAN": false,
+      "wasm32-unknown-wasip1": false
+    }
+  },
+  "asan": {
+    "actual_task_store": ".build/l3-asan/out/Intermediates.noindex/XCBuildData/2b0754d130dfb2b1ed3f52d55d69319f.xcbuilddata/task-store.msgpack",
+    "sha256": "86a085a6b48cca4b1792f38821092336a0413e95a9111752f94d9e407ee13604",
+    "verified_markers": {
+      "Onone": true,
+      "Embedded": false,
+      "WMO": false,
+      "ASAN": true,
+      "wasm32-unknown-wasip1": false
+    }
+  },
+  "wasm": {
+    "actual_task_store": ".build/l3-wasm/out/Intermediates.noindex/XCBuildData/a01ea6848208ee4eb1a15191b9af4f50.xcbuilddata/task-store.msgpack",
+    "sha256": "70befba90db5a038b9f759baa0c4f84521ab1192daa682b0e6609da888583aeb",
+    "verified_markers": {
+      "Onone": true,
+      "Embedded": false,
+      "WMO": false,
+      "ASAN": false,
+      "wasm32-unknown-wasip1": true
+    }
+  },
+  "embedded": {
+    "actual_task_store": ".build/l3-embedded/out/Intermediates.noindex/XCBuildData/10445a1c5e447b7ada78ac7284808a22.xcbuilddata/task-store.msgpack",
+    "sha256": "970a13de50c08e696e2ae1ff8c2d2707584f862c3f2bb68bbee88f963e2a4d62",
+    "verified_markers": {
+      "Onone": true,
+      "Embedded": true,
+      "WMO": true,
+      "ASAN": false,
+      "wasm32-unknown-wasip1": true
+    }
+  }
+}

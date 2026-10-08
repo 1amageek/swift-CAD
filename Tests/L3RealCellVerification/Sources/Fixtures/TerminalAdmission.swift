@@ -19,4 +19,8 @@ struct TerminalAdmission: ExactScalarAdmission {
     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
         guard value >= 0, coefficient >= 0 else { throw .invalidEvidence }
     }
+    mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+        try admitDepth(value: axis == .value ? depth : 0, coefficient: axis == .coefficient ? depth : 0)
+        try checkpoint()
+    }
 }

@@ -1,6 +1,8 @@
 import L0
 import L1
 import L2
+import L2Fixtures
+import L3Fixtures
 @testable import L3
 
 @main struct OptimizationBenchmark {
@@ -14,7 +16,19 @@ import L2
   }
   print("\(label) repetitions=\(repetitions) work=\(a.work) storage=\(a.storageBytes) elapsed=\(elapsed)")
  }
+ static func relations(_ repetitions: Int) throws {
+  let weighted = try ContinuousClock().measure {
+   for _ in 0..<repetitions { try WeightedOriginalFixtures.verify() }
+  }
+  let tower = try ContinuousClock().measure {
+   for _ in 0..<repetitions { try FieldFixtures.tower() }
+  }
+  print("L3.weighted repetitions=\(repetitions) elapsed=\(weighted)")
+  print("L2.tower repetitions=\(repetitions) elapsed=\(tower)")
+ }
  static func main() throws {
+  if CommandLine.arguments.contains("--relations") { try relations(3); return }
+  if CommandLine.arguments.contains("--profile") { try relations(8); return }
   var a = try ledger()
   let f = ExactRationalScalarDomain()
   let left = try f.canonical(sign: 1, numerator: [1,0,0,0,7], denominator: [3], using: &a)

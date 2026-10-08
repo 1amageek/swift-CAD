@@ -1,0 +1,34 @@
+{
+  "L2.tower": {
+    "after_median": 0.630633167,
+    "after_seconds": [
+      0.663755208,
+      0.628654666,
+      0.630633167
+    ],
+    "before_median": 1.573528875,
+    "before_seconds": [
+      1.573528875,
+      1.599913208,
+      1.552997292
+    ],
+    "reduction_percent": 59.922364500619665,
+    "repetitions_per_process": 3
+  },
+  "L3.weighted": {
+    "after_median": 6.047367458,
+    "after_seconds": [
+      6.047367458,
+      6.016637541,
+      6.0684865
+    ],
+    "before_median": 6.642807584,
+    "before_seconds": [
+      6.620089334,
+      6.802033875,
+      6.642807584
+    ],
+    "reduction_percent": 8.963681673306157,
+    "repetitions_per_process": 3
+  }
+}

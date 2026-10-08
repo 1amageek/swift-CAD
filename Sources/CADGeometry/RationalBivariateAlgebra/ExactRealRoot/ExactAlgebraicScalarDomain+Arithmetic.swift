@@ -16,7 +16,7 @@ extension ExactAlgebraicScalarDomain {
             case .base(let b): return Value(context: context, storage: .base(try context.base.negated(b, using: &a)), depth: a.depth)
             case .fraction(let n, let d):
                 guard let root = context.root else { throw ExactScalarFailure.invalidEvidence }
-                return try fraction(root.source.context.univariate.negated(n, using: &a), d, &a)
+                return try fraction(root.source.context.univariate.negated(n, using: &a), d, calculation: v.calculation, &a)
             }
         }
     }
@@ -32,20 +32,20 @@ extension ExactAlgebraicScalarDomain {
             default: value = try context.base.dividing(x, y, using: &a)
             }
             return Value(context: context, storage: .base(value), depth: a.depth)
-        case (.fraction(let ln, let ld), .fraction(let rn, let rd)):
+        case (.fraction(let ln, let ld), .fraction(let rn, _)):
             guard let root = context.root else { throw ExactScalarFailure.invalidEvidence }
             let p = root.source.context.univariate
+            let common = try commonCalculation(l, r, &a)
             if kind == 3 {
-                guard try polynomialSign(rn, &a) != .zero else { throw ExactScalarFailure.divisionByZero }
-                return try fraction(p.multiplying(ln, rd, using: &a), p.multiplying(ld, rn, using: &a), &a)
+                guard try polynomialSign(rn, at: r.calculation?.selectedRoot, &a) != .zero else { throw ExactScalarFailure.divisionByZero }
+                return try fraction(ln, rn, calculation: common, &a)
             }
             let n: ExactPolynomial<Self>
             if kind == 2 { n = try p.multiplying(ln, rn, using: &a) }
             else {
-                let left = try p.multiplying(ln, rd, using: &a), right = try p.multiplying(rn, ld, using: &a)
-                n = try kind == 0 ? p.adding(left, right, using: &a) : p.subtracting(left, right, using: &a)
+                n = try kind == 0 ? p.adding(ln, rn, using: &a) : p.subtracting(ln, rn, using: &a)
             }
-            return try fraction(n, p.multiplying(ld, rd, using: &a), &a)
+            return try fraction(n, ld, calculation: common, &a)
         default: throw ExactScalarFailure.invalidEvidence
         }
     }
@@ -77,10 +77,9 @@ extension ExactAlgebraicScalarDomain {
             switch v.storage {
             case .base(let b): return try context.base.sign(of: b, using: &a)
             case .fraction(let n, let d):
-                let ds = try polynomialSign(d, &a)
-                guard ds != .zero else { throw ExactScalarFailure.divisionByZero }
-                let ns = try polynomialSign(n, &a)
-                return ns == .zero ? .zero : ns == ds ? .positive : .negative
+                // The only storage issuer already proves d == 1, including local inverses.
+                try ExactRootAccess.admit(d.depth, &a)
+                return try polynomialSign(n, at: v.calculation?.selectedRoot, &a)
             }
         }
     }
@@ -88,7 +87,11 @@ extension ExactAlgebraicScalarDomain {
         using admission: inout A) throws(ExactScalarFailure) -> ExactOrder {
         let lhs = copy lhs, rhs = copy rhs
         return try scalarQuery(&admission) { a in
-            let difference = try operation(lhs, rhs, 1, &a)
+            let l = try admitted(lhs, &a), r = try admitted(rhs, &a)
+            if case .base(let x) = l.storage, case .base(let y) = r.storage {
+                return try context.base.compare(x, y, using: &a)
+            }
+            let difference = try operation(l, r, 1, &a)
             let sign = try self.sign(of: difference, using: &a)
             return sign == .zero ? .equal : sign == .negative ? .less : .greater
         }

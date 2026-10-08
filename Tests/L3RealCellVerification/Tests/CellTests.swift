@@ -129,3 +129,20 @@ import L3Fixtures
 
 @Test(.timeLimit(.minutes(1))) func issuedDefinitionsAndPrefixes() throws { try InspectionFixtures.run() }
 @Test(.timeLimit(.minutes(1))) func retainedProjectionCutSigns() throws { try SignInvariantFixtures.run() }
+
+@Test(.timeLimit(.minutes(1))) func cumulativeCallerCellVisits() throws { try VisitAdmissionFixtures.run() }
+
+@Test(.timeLimit(.minutes(1))) func borrowedVisitDepthPropagation() throws {
+ var admission = try CellFixtures.ledger()
+ try ExactCellAccess.run(&admission) { borrowed in
+  try borrowed.visitCell(axis: .value, depth: 7)
+  try borrowed.visitCell(axis: .coefficient, depth: 11)
+  #expect(borrowed.depth.value == 7 && borrowed.depth.coefficient == 11)
+ }
+ #expect(admission.valueDepth == 7 && admission.coefficientDepth == 11)
+}
+
+@Test(.timeLimit(.minutes(1))) func publicPrefixes() throws { try PrefixFixtures.verify() }
+@Test(.timeLimit(.minutes(1))) func originalProjectionProofs() throws { try ProjectionProofFixtures.verify() }
+
+@Test(.timeLimit(.minutes(1))) func weightedOriginalAlgebra() throws { try WeightedOriginalFixtures.verify() }

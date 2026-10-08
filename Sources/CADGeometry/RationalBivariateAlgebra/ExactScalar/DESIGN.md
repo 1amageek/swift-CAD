@@ -186,7 +186,7 @@ the actual (Power, ExactRationalCoefficient) payload and every generated term.
 Native's observed 40-byte stride is evidence for that target, not a hard-coded
 cross-target size. The same generic rule selects WASM's actual layout.
 
-ExactScalarAdmission remains unchanged. Bytes are its canonical storage unit.
+Bytes remain the canonical storage unit of ExactScalarAdmission.
 The legacy RationalAlgebraAdmitting entry remains source-compatible: the existing
 checked byte-to-word rounding and word-to-byte conversion are isolated at that
 compatibility boundary. Original work and storage accounting is not reset.
@@ -362,3 +362,22 @@ All paths retain entry/terminal checkpoints and the same caller admission. No
 large-integer algorithm, public protocol or approximate comparison changes.
 Differential fixtures compare against exact subtraction and cover signed/equal
 values, unequal denominators, work rejection and terminal cancellation.
+
+## Caller Cell Visits
+
+The required `visitCell(axis:depth:)` port carries one actual root-interval or
+accepted decomposition-cell visit to the same caller. It does not equate visits
+with allocations, stored cells, depth admissions or work callbacks. Its depth is
+already expressed on the caller's independent value/coefficient axis. The numeric
+bridge preserves the existing inherited-plus-local-delta mapping before forwarding
+every visit. L1/L2/L3 scoped wrappers forward it without resetting or remapping it.
+
+ExactScalarLedger checks cancellation and depth and introduces no new cell cap.
+Geometry's existing query allowance owns its cumulative cell ceiling and existing
+one-work-per-visit charge. No default protocol implementation discards visits.
+Every other algorithmic work/storage admission remains in force. Failures retain
+spent resources and original causes; publication still has a final checkpoint.
+
+Changed admission conformers must implement this requirement. Upper Native
+ordinary/callback entry migration depends on recorded visit counts and independent
+cell/depth/cancel rejection through the actual L0-L3 execution path.

@@ -9,5 +9,6 @@ protocol ExactCellInvocation: AnyObject {
     func checkpoint() throws(ExactScalarFailure)
     func consumeWork(_ units: Int) throws(ExactScalarFailure)
     func retainStorage(bytes: Int) throws(ExactScalarFailure)
+    func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure)
     func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure)
 }

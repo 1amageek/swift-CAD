@@ -1,0 +1,212 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 42 / 414]
+[Planning deferred tasks]
+[4 / 5] L1PolynomialTests-product
+[6 / 9] L2
+[13 / 16] L2Fixtures
+[20 / 23] L2
+[24 / 28] L2Fixtures
+[28 / 32] L2Tests-product
+[30 / 34] L2Tests-product
+[36 / 38] L2Tests-product
+[40 / 41] L3Tests-product
+[45 / 47] L3Proof-product
+[47 / 47] L3Proof-product
+[52 / 54] OptimizationBenchmark-product
+[54 / 54] OptimizationBenchmark-product
+Build complete! (3.10秒)
+Test Suite 'All tests' started at 2026-10-08 20:42:54.677.
+Test Suite 'All tests' passed at 2026-10-08 20:42:54.678.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-08 20:42:54.874.
+Test Suite 'All tests' passed at 2026-10-08 20:42:54.875.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-08 20:42:55.021.
+Test Suite 'All tests' passed at 2026-10-08 20:42:55.022.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+Test Suite 'All tests' started at 2026-10-08 20:42:55.170.
+Test Suite 'All tests' passed at 2026-10-08 20:42:55.171.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test weightedOriginalAlgebra() started.
+􀟈  Test nullification() started.
+􀟈  Test protocolRequirements() started.
+􀟈  Test retainedAndOutside() started.
+􀟈  Test issuedDefinitionsAndPrefixes() started.
+􀟈  Test publicPrefixes() started.
+􀟈  Test selectionAndLocation() started.
+􀟈  Test applicationRelations() started.
+􀟈  Test retainedProjectionCutSigns() started.
+􀟈  Test cumulativeCallerCellVisits() started.
+􀟈  Test singularities() started.
+􀟈  Test borrowedVisitDepthPropagation() started.
+􀟈  Test originalAlgebraicCoefficients() started.
+􀟈  Test concurrentImmutableReaders() started.
+􀟈  Test nullifiedQuery() started.
+􀟈  Test transportedCoordinates() started.
+􀟈  Test optimizedExactOperations() started.
+􀟈  Test originalProjectionProofs() started.
+􀟈  Test domainClipping() started.
+􀟈  Test algebraicQueries() started.
+􀟈  Test escapedOwnership() started.
+􀟈  Test sourceFailures() started.
+􀟈  Test checkedProjectionSizes() started.
+􀟈  Test sourceTraversal() started.
+􀟈  Test coefficientGroupingReference() started.
+􀟈  Test projectionAndSource() started.
+􀟈  Test resources() started.
+􁁛  Test protocolRequirements() passed after 0.348 seconds.
+􁁛  Test cumulativeCallerCellVisits() passed after 0.349 seconds.
+􁁛  Test optimizedExactOperations() passed after 0.349 seconds.
+􁁛  Test retainedAndOutside() passed after 0.350 seconds.
+􁁛  Test escapedOwnership() passed after 0.350 seconds.
+􁁛  Test domainClipping() passed after 0.350 seconds.
+􁁛  Test borrowedVisitDepthPropagation() passed after 0.351 seconds.
+􁁛  Test checkedProjectionSizes() passed after 0.351 seconds.
+􁁛  Test sourceFailures() passed after 0.351 seconds.
+􁁛  Test nullification() passed after 0.353 seconds.
+􁁛  Test coefficientGroupingReference() passed after 0.352 seconds.
+􁁛  Test nullifiedQuery() passed after 0.353 seconds.
+􁁛  Test projectionAndSource() passed after 0.353 seconds.
+􁁛  Test concurrentImmutableReaders() passed after 0.354 seconds.
+􁁛  Test originalAlgebraicCoefficients() passed after 0.465 seconds.
+􁁛  Test resources() passed after 0.556 seconds.
+􁁛  Test transportedCoordinates() passed after 0.607 seconds.
+PASS: public projection provenance, whole-parent bindings, original multiplicity and L2 sector separation evidence
+􁁛  Test originalProjectionProofs() passed after 0.980 seconds.
+􁁛  Test issuedDefinitionsAndPrefixes() passed after 1.038 seconds.
+􁁛  Test selectionAndLocation() passed after 1.460 seconds.
+􁁛  Test sourceTraversal() passed after 1.743 seconds.
+􁁛  Test algebraicQueries() passed after 2.265 seconds.
+􁁛  Test applicationRelations() passed after 2.499 seconds.
+􁁛  Test retainedProjectionCutSigns() passed after 2.524 seconds.
+􁁛  Test singularities() passed after 2.611 seconds.
+PASS: public prefixes, non-sample branches, nullification, lengths, field lineage, outside domains and dimensions zero/five
+􁁛  Test publicPrefixes() passed after 3.133 seconds.
+PASS weighted source-equivalent CS full box: cells=245, work=2037096/16777216, storage=83746622, depths=28/0
+􁁛  Test weightedOriginalAlgebra() passed after 7.645 seconds.
+􁁛  Test run with 27 tests in 0 suites passed after 7.646 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test localCalculationLaws() started.
+􀟈  Test exactCandidateRefinement() started.
+􀟈  Test rootTransport() started.
+􀟈  Test fieldFailures() started.
+􀟈  Test canonicalScalarExecution() started.
+􀟈  Test algebraicTower() started.
+􀟈  Test rationalRoots() started.
+􀟈  Test denominatorUnits() started.
+􀟈  Test cumulativeCellVisits() started.
+􀟈  Test rootDomains() started.
+􀟈  Test factoredCount() started.
+􀟈  Test exactQueries() started.
+􀟈  Test reducibleLaw() started.
+􀟈  Test finalCancellationAndStorage() started.
+􀟈  Test signedDecisions() started.
+􀟈  Test rootFailures() started.
+􀟈  Test concurrentImmutableRootReaders() started.
+􀟈  Test existingAlgebraicBase() started.
+􀟈  Test generalDegree() started.
+􀟈  Test definingDivisorRefinement() started.
+􀟈  Test exactCandidateCompletion() started.
+􀟈  Test retainedOwners() started.
+􀟈  Test rootSeparation() started.
+􀟈  Test countReuse() started.
+PASS: terminal cancellation, atomic publication and exact storage boundary
+PASS: canonical scalar/public root signs, field identities, exact work/storage, depth, owners and final cancellation
+PASS: higher degree, odd multiplicity and invalid input failures
+PASS: retained owners, original variable map and exact base import
+PASS: reducible root law and selected-root denominator decisions
+􁁛  Test rootFailures() passed after 0.212 seconds.
+􁁛  Test rationalRoots() passed after 0.213 seconds.
+􁁛  Test finalCancellationAndStorage() passed after 0.214 seconds.
+􁁛  Test canonicalScalarExecution() passed after 0.214 seconds.
+􁁛  Test generalDegree() passed after 0.215 seconds.
+􁁛  Test exactQueries() passed after 0.216 seconds.
+􁁛  Test retainedOwners() passed after 0.216 seconds.
+􁁛  Test rootDomains() passed after 0.217 seconds.
+􁁛  Test definingDivisorRefinement() passed after 0.217 seconds.
+􁁛  Test reducibleLaw() passed after 0.218 seconds.
+􁁛  Test concurrentImmutableRootReaders() passed after 0.218 seconds.
+􁁛  Test exactCandidateCompletion() passed after 0.235 seconds.
+PASS: denominator units preserve exact inverses and zero rejection within depth32
+􁁛  Test denominatorUnits() passed after 0.244 seconds.
+􁁛  Test exactCandidateRefinement() passed after 0.276 seconds.
+PASS: incompatible owners, extension ceiling and scalar failures
+􁁛  Test fieldFailures() passed after 0.281 seconds.
+􁁛  Test factoredCount() passed after 0.288 seconds.
+PASS: count reuse reduces admitted work/storage while preserving original global ordinal and multiplicity
+􁁛  Test countReuse() passed after 0.294 seconds.
+PASS: L2 isolate/refine cumulative visits N=26, both axes, exact ceiling, cause and final cancellation
+􁁛  Test cumulativeCellVisits() passed after 0.336 seconds.
+PASS: reducible local inverses, mixed immutable laws, original identity and uncancelled zero denominator
+􁁛  Test localCalculationLaws() passed after 0.452 seconds.
+PASS: signed remainder, near-root order without bisection, endpoint contributions and shared admission
+􁁛  Test signedDecisions() passed after 0.467 seconds.
+PASS: strict separation, singleton endpoints, original identities, union sectors, lifetime and atomic resource failures
+􁁛  Test rootSeparation() passed after 0.525 seconds.
+PASS: existing algebraic base coefficients and inherited coefficient depth
+􁁛  Test existingAlgebraicBase() passed after 0.546 seconds.
+PASS: runtime algebraic tower and retained ancestor embeddings
+􁁛  Test algebraicTower() passed after 0.961 seconds.
+PASS: explicit root transport preserves source, conjugate, endpoints, depth and lifetime; foreign owners and cancellation reject
+􁁛  Test rootTransport() passed after 1.495 seconds.
+􁁛  Test run with 24 tests in 0 suites passed after 1.495 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite L1PolynomialTests started.
+􀟈  Test primitiveFailuresAndResources() started.
+􀟈  Test primitiveAlgebraicAndLifetime() started.
+􀟈  Test rationalAlgebra() started.
+􀟈  Test algebraFailures() started.
+􀟈  Test primitiveRational() started.
+􀟈  Test zeroProductResourceAndDepthContract() started.
+􀟈  Test algebraicAlgebra() started.
+􀟈  Test taskCancellation() started.
+􁁛  Test taskCancellation() passed after 0.001 seconds.
+􁁛  Test primitiveFailuresAndResources() passed after 0.001 seconds.
+􁁛  Test primitiveRational() passed after 0.004 seconds.
+􁁛  Test algebraFailures() passed after 0.013 seconds.
+􁁛  Test primitiveAlgebraicAndLifetime() passed after 0.034 seconds.
+􁁛  Test rationalAlgebra() passed after 0.083 seconds.
+􁁛  Test zeroProductResourceAndDepthContract() passed after 0.107 seconds.
+􁁛  Test algebraicAlgebra() passed after 0.191 seconds.
+􁁛  Suite L1PolynomialTests passed after 0.191 seconds.
+􁁛  Test run with 8 tests in 1 suite passed after 0.192 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Suite CellVisitTests started.
+􀟈  Suite L0ScalarTests started.
+􀟈  Test visitCancellationIsObservedBeforeNumericPublication() started.
+􀟈  Test plainLedgerPreservesIndependentDepthAndRejectsInvalidVisit() started.
+􀟈  Test payloadSizingAndCubicSign() started.
+􀟈  Test fiberStorageAndOriginalIdentities() started.
+􀟈  Test unmappedFailureRetainsCauseAndSpentWork() started.
+􀟈  Test originalAlgebraicValuesAndLifetime() started.
+􀟈  Test failureResourcesAndCancellation() started.
+􀟈  Test nativeTaskCancellation() started.
+􀟈  Test monomialStorageRejectsBeforeConstruction() started.
+􀟈  Test numericVisitsPreserveCausalAxesAndOneCumulativeCounter() started.
+􀟈  Test exactRationalValuesAndOperations() started.
+􀟈  Test checkedWordConversionAndInheritedDepth() started.
+􁁛  Test plainLedgerPreservesIndependentDepthAndRejectsInvalidVisit() passed after 0.001 seconds.
+􁁛  Test nativeTaskCancellation() passed after 0.001 seconds.
+􁁛  Test unmappedFailureRetainsCauseAndSpentWork() passed after 0.001 seconds.
+􁁛  Test monomialStorageRejectsBeforeConstruction() passed after 0.001 seconds.
+􁁛  Test checkedWordConversionAndInheritedDepth() passed after 0.001 seconds.
+􁁛  Test visitCancellationIsObservedBeforeNumericPublication() passed after 0.001 seconds.
+􁁛  Test numericVisitsPreserveCausalAxesAndOneCumulativeCounter() passed after 0.001 seconds.
+􁁛  Suite CellVisitTests passed after 0.002 seconds.
+􁁛  Test failureResourcesAndCancellation() passed after 0.002 seconds.
+􁁛  Test exactRationalValuesAndOperations() passed after 0.008 seconds.
+􁁛  Test payloadSizingAndCubicSign() passed after 0.018 seconds.
+􁁛  Test originalAlgebraicValuesAndLifetime() passed after 0.022 seconds.
+􁁛  Test fiberStorageAndOriginalIdentities() passed after 0.093 seconds.
+􁁛  Suite L0ScalarTests passed after 0.093 seconds.
+􁁛  Test run with 12 tests in 2 suites passed after 0.093 seconds.

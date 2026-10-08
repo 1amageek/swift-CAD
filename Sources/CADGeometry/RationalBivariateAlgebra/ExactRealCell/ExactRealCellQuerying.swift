@@ -12,6 +12,8 @@ public protocol ExactRealCellQuerying<Base>: Sendable {
   using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellCondition<Base>
  func point<A: ExactScalarAdmission & ~Copyable>(field: ExactAlgebraicScalarDomain<Base>, coordinates: [ExactAlgebraicScalar<Base>],
   using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellSample<Base>
+ func prefixPoint<A: ExactScalarAdmission & ~Copyable>(field: ExactAlgebraicScalarDomain<Base>, coordinates: [ExactAlgebraicScalar<Base>],
+  using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellSample<Base>
  func locate<A: ExactScalarAdmission & ~Copyable>(_ point: borrowing ExactRealCellSample<Base>, in partition: borrowing ExactRealCellPartition<Base>,
   limits: ExactRealRootLimits, using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellID<Base>?
  func locatePrefix<A: ExactScalarAdmission & ~Copyable>(_ point: borrowing ExactRealCellSample<Base>, in partition: borrowing ExactRealCellPartition<Base>,

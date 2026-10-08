@@ -15,6 +15,7 @@ extension ExactRealCellDomain: ExactRealCellProducing {
    } }
    let levels = try projection(source,&a)
    guard limits.maximumStoredCells > 0 else { throw ExactRealCellFailure.cellLimit }
+   try a.visitCell(axis: .value, depth: a.depth.value)
    let origin = ExactRealCellSample(field:context.field,coordinates:[],depth:a.depth)
    try ExactCellAccess.storage(1,ExactRealCellRecord<Base>.self,&a)
    var records = [ExactRealCellRecord(sample:origin,parent:-1,branch:0,dimension:0,projectionSigns:[],signs:[],stack:-1)]
@@ -22,10 +23,24 @@ extension ExactRealCellDomain: ExactRealCellProducing {
    try ExactCellAccess.storage(1,Int.self,&a)
    var leaves = [0]
    for level in levels {
+    typealias RootDomain = ExactRealRootDomain<Field>
+    typealias RootSet = ExactRealRootSet<Field>
+    try ExactCellAccess.storage(1, (Polynomial, RootSet)?.self, &a)
+    var originalRootDomain: RootDomain? = nil
+    var previousOriginalRoots: (Polynomial, RootSet)? = nil
     var next: [Int] = []
     for parent in leaves {
      let prefix = records[parent].sample, field = prefix.field
-     let rootDomain = try ExactRealRootDomain(field:field,using:&a), p=rootDomain.polynomials
+     let usesOriginalField = field.extensionLevel == context.field.extensionLevel
+     let rootDomain: RootDomain
+     if usesOriginalField {
+      if let retained = originalRootDomain { rootDomain = retained }
+      else {
+       let created = try RootDomain(field:field,using:&a)
+       originalRootDomain = created; rootDomain = created
+      }
+     } else { rootDomain = try RootDomain(field:field,using:&a) }
+     let p=rootDomain.polynomials
      var specialized: [ExactRealRootSource<Field>] = [], signs: [[ExactSign]] = [], active: [Int] = []
      try ExactCellAccess.storage(level.laws.count,ExactRealRootSource<Field>.self,&a)
      try ExactCellAccess.storage(level.laws.count,[ExactSign].self,&a)
@@ -40,40 +55,35 @@ extension ExactRealCellDomain: ExactRealCellProducing {
       }; signs.append(coefficientSigns)
       if let degree = try p.degree(of:law,in:0,using:&a), degree > 0, index < level.cutLawCount {
        try ExactCellAccess.storage(1,Int.self,&a); active.append(index)
-       product=try p.multiplying(product,law,using:&a)
+       product=try adjoiningRootCuts(law,to:product,polynomials:p,using:&a)
       }
      }
      let union = try rootDomain.bind(product,using:&a)
-     let all = try rootDomain.domain(lower:.negativeInfinity,upper:.positiveInfinity,using:&a)
-     let rootSet = try rootDomain.isolate(union,in:all,limits:.init(maximumRoots:limits.maximumRootsPerStack),using:&a)
+     let rootSet: RootSet
+     if usesOriginalField, let previous = previousOriginalRoots,
+        try p.equals(product, previous.0, using:&a) {
+      try ExactCellAccess.admit(previous.1.depth, &a)
+      try a.checkpoint()
+      guard previous.1.roots.count <= limits.maximumRootsPerStack else { throw ExactRealRootFailure.resultLimit }
+      rootSet = previous.1
+     } else {
+      rootSet = try isolateRootUnion(union,laws:specialized,active:active,domain:rootDomain,limits:.init(maximumRoots:limits.maximumRootsPerStack),using:&a)
+      if usesOriginalField { previousOriginalRoots = (product, rootSet) }
+     }
      try ExactCellAccess.storage(rootSet.roots.count,ExactRealRoot<Field>.self,&a)
      var roots = rootSet.roots
+     try ExactCellAccess.storage(max(0, roots.count - 1), ExactRealRootSeparation<Field>.self, &a)
+     var separations: [ExactRealRootSeparation<Field>] = []
      if roots.count > 1 { for index in 1..<roots.count {
-      while true {
-       guard case .finite(let hi) = roots[index-1].isolation.upper, case .finite(let lo) = roots[index].isolation.lower else { throw ExactRealCellFailure.invalidCoverage }
-       if try field.compare(hi,lo,using:&a) == .less { break }
-       try ExactCellAccess.storage(2,Int.self,&a)
-       for slot in [index-1,index] {
-        guard case .finite(let l) = roots[slot].isolation.lower, case .finite(let h) = roots[slot].isolation.upper else { throw ExactRealCellFailure.invalidCoverage }
-        let width = try field.dividing(field.subtracting(h,l,using:&a),field.integer(2,using:&a),using:&a)
-        if try field.sign(of:width,using:&a) == .positive {
-         // Only overlapping isolations need this work. A linear law proves an
-         // exact value; L2 validates its inclusion and preserves union identity.
-         var linear: Field.Value? = nil
-         for law in specialized {
-          try a.consumeWork(1)
-          if try p.degree(of:law.original,in:0,using:&a) == 1 && rootDomain.sign(of:law,at:roots[slot],using:&a) == .zero {
-           var constant = try field.integer(0,using:&a), leading=constant
-           for term in law.original.terms { try a.consumeWork(1); if term.powers[0] == 0 { constant=term.coefficient } else { leading=term.coefficient } }
-           linear = try field.dividing(field.negated(constant,using:&a),leading,using:&a); break
-          }
-         }
-         if let linear { roots[slot] = try rootDomain.refine(roots[slot],toExactValue:linear,using:&a) }
-         else { roots[slot] = try rootDomain.refine(roots[slot],maximumWidth:width,using:&a) }
-        }
-       }
-      }
+      let separation = try rootDomain.separate(roots[index - 1], roots[index], using: &a)
+      roots[index - 1] = separation.left; roots[index] = separation.right
+      separations.append(separation)
      } }
+     let conditions = try parentConditions(level, parent: records[parent], &a)
+     let multiplicities = try originalMultiplicities(rootSet, specialized: specialized, cutLawCount: level.cutLawCount, &a)
+     try ExactCellAccess.storage(specialized.count, Int.self, &a)
+     var effectiveDegrees: [Int] = []; effectiveDegrees.reserveCapacity(specialized.count)
+     for law in specialized { effectiveDegrees.append(try p.degree(of: law.original, in: 0, using: &a) ?? -1) }
      let branches = try ExactCellAccess.add(ExactCellAccess.multiply(roots.count,2),1)
      try ExactCellAccess.storage(branches,Int.self,&a)
      var children = Array(repeating:-1,count:branches)
@@ -92,7 +102,22 @@ extension ExactRealCellDomain: ExactRealCellProducing {
         }
        }
        if let linear { value=linear } else {
-        let extensionValue = try field.adjoin(root,using:&a); childField=extensionValue.domain; value=extensionValue.generator
+        var definingRoot = root
+        var definingDegree = try p.degree(of: root.source.original, in: 0, using:&a) ?? 0
+        var definingLaw: ExactRealRootSource<Field>? = nil
+        for law in specialized {
+         try a.consumeWork(1)
+         if let degree = try p.degree(of: law.original, in:0, using:&a), degree > 1, degree < definingDegree,
+            try rootDomain.sign(of:law,at:root,using:&a) == .zero {
+          definingLaw = law; definingDegree = degree
+         }
+        }
+        if let definingLaw {
+         // The cut may contain repeated factors; the retained union is radical.
+         let divisor = try p.greatestCommonDivisor(root.source.original, definingLaw.original, using:&a)
+         definingRoot = try rootDomain.refine(root,usingDefiningDivisor:rootDomain.bind(divisor,using:&a),using:&a)
+        }
+        let extensionValue = try field.adjoin(definingRoot,using:&a); childField=extensionValue.domain; value=extensionValue.generator
        }
       } else {
        let one = try field.integer(1,using:&a)
@@ -101,15 +126,16 @@ extension ExactRealCellDomain: ExactRealCellProducing {
         guard case .finite(let lo) = roots[0].isolation.lower else { throw ExactRealCellFailure.invalidCoverage }
         value = try field.subtracting(lo,one,using:&a)
        } else if ordinal == roots.count {
-        guard case .finite(let hi) = roots[ordinal-1].isolation.upper else { throw ExactRealCellFailure.invalidCoverage }
-        value = try field.adding(hi,one,using:&a)
+        guard case .finite(let hi) = roots[ordinal - 1].isolation.upper else { throw ExactRealCellFailure.invalidCoverage }
+        value = try field.adding(hi, one, using: &a)
        } else {
-        guard case .finite(let hi) = roots[ordinal-1].isolation.upper, case .finite(let lo) = roots[ordinal].isolation.lower else { throw ExactRealCellFailure.invalidCoverage }
-        value = try field.dividing(field.adding(hi,lo,using:&a),field.integer(2,using:&a),using:&a)
+        guard separations.indices.contains(ordinal - 1) else { throw ExactRealCellFailure.invalidCoverage }
+        value = separations[ordinal - 1].value
        }
       }
       if try !inside(value,field:childField,domain:source.domains[level.axis],&a) { continue }
       guard records.count < limits.maximumStoredCells else { throw ExactRealCellFailure.cellLimit }
+      try a.visitCell(axis: .value, depth: a.depth.value)
       try ExactCellAccess.storage(ExactCellAccess.add(prefix.coordinates.count,1),Field.Value.self,&a)
       var coordinates: [Field.Value] = []; coordinates.reserveCapacity(prefix.coordinates.count+1)
       for earlier in prefix.coordinates { coordinates.append(try childField.importing(earlier,using:&a)) }; coordinates.append(value)
@@ -128,7 +154,7 @@ extension ExactRealCellDomain: ExactRealCellProducing {
      }
      try ExactCellAccess.storage(1,ExactRealCellStack<Base>.self,&a)
      records[parent].stack=stacks.count
-     stacks.append(.init(axis:level.axis,parent:parent,rootSet:rootSet,specialized:specialized,coefficientSigns:signs,activeLawIndices:active,children:children))
+     stacks.append(.init(axis:level.axis,parent:parent,rootSet:rootSet,specialized:specialized,coefficientSigns:signs,effectiveDegrees:effectiveDegrees,parentConditionSigns:conditions,rootMultiplicities:multiplicities,separations:separations,activeLawIndices:active,children:children))
     }; leaves=next
    }
    if source.variableCount == 0 {

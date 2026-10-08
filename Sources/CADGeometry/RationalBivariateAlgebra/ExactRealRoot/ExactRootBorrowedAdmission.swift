@@ -10,6 +10,9 @@ struct ExactRootBorrowedAdmission: ExactScalarAdmission {
     mutating func checkpoint() throws(ExactScalarFailure) { try owner.checkpoint() }
     mutating func consumeWork(_ units: Int) throws(ExactScalarFailure) { try owner.consumeWork(units) }
     mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) { try owner.retainStorage(bytes: bytes) }
+    mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+        try owner.visitCell(axis: axis, depth: depth)
+    }
     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
         try owner.admitDepth(value: value, coefficient: coefficient)
     }

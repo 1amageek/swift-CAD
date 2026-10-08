@@ -36,10 +36,21 @@ extension ExactRealCellDomain: ExactRealCellQuerying {
   using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellSample<Base> {
   try ExactCellAccess.run(&admission,inherited:context.depth) { a in
    guard coordinates.count == polynomials.variableCount else { throw ExactRealCellFailure.invalidVariable }
-   _ = try field.importing(context.field.integer(1,using:&a),using:&a)
-   for value in coordinates { _ = try field.sign(of:value,using:&a) }
-   return .init(field:field,coordinates:coordinates,depth:a.depth)
+   return try preparedPoint(field:field,coordinates:coordinates,&a)
   }
+ }
+ public func prefixPoint<A: ExactScalarAdmission & ~Copyable>(field: Field, coordinates: [Field.Value],
+  using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellSample<Base> {
+  try ExactCellAccess.run(&admission,inherited:context.depth) { a in
+   guard coordinates.count <= polynomials.variableCount else { throw ExactRealCellFailure.invalidVariable }
+   return try preparedPoint(field:field,coordinates:coordinates,&a)
+  }
+ }
+ func preparedPoint(field:Field,coordinates:[Field.Value],_ a:inout ExactCellBorrowedAdmission) throws -> ExactRealCellSample<Base> {
+  _ = try field.importing(context.field.integer(1,using:&a),using:&a)
+  for value in coordinates { _ = try field.sign(of:value,using:&a) }
+  // Retain the caller's COW array without rebuilding or importing its coordinates.
+  return .init(field:field,coordinates:coordinates,depth:a.depth)
  }
  public func locate<A: ExactScalarAdmission & ~Copyable>(_ point: borrowing ExactRealCellSample<Base>, in partition: borrowing ExactRealCellPartition<Base>,
   limits: ExactRealRootLimits, using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellID<Base>? {
@@ -75,21 +86,35 @@ extension ExactRealCellDomain: ExactRealCellQuerying {
    guard stack.parent == index,stack.axis == axis else { throw ExactRealCellFailure.invalidCoverage }
    try ExactCellAccess.storage(axis,Field.Value.self,&a)
    let prefix=ExactRealCellSample(field:field,coordinates:Array(point.coordinates.prefix(axis)),depth:point.depth)
-   let r=try ExactRealRootDomain(field:field,using:&a),p=r.polynomials
+   let originalField = field.extensionLevel == context.field.extensionLevel
+    && partition.owner.records[stack.parent].sample.field.extensionLevel == context.field.extensionLevel
+   let r = try originalField
+    ? ExactRealRootDomain(retaining: stack.rootSet.source, using:&a)
+    : ExactRealRootDomain(field:field,using:&a)
+   let p=r.polynomials
    var product=try p.constant(field.integer(1,using:&a),using:&a)
+   try validateParentConditions(level,stack:stack,prefix:prefix,&a)
+   try ExactCellAccess.storage(level.laws.count,ExactRealRootSource<Field>.self,&a)
+   var specialized:[ExactRealRootSource<Field>]=[]; specialized.reserveCapacity(level.laws.count)
    for lawIndex in level.laws.indices {
-    for degree in level.coefficients[lawIndex].indices {
-     let sign=try field.sign(of:evaluate(level.coefficients[lawIndex][degree],at:prefix,&a),using:&a)
-     guard sign == stack.coefficientSigns[lawIndex][degree] else { throw ExactRealCellFailure.invalidCoverage }
-    }
+    let law=try specialize(level.laws[lawIndex],prefix:prefix,axis:axis,into:p,&a)
+    specialized.append(try r.bind(law,using:&a))
    }
    for lawIndex in stack.activeLawIndices {
-    let law=try specialize(level.laws[lawIndex],prefix:prefix,axis:axis,into:p,&a)
-    product=try p.multiplying(product,law,using:&a)
+    guard specialized.indices.contains(lawIndex) else { throw ExactRealCellFailure.invalidCoverage }
+    product=try adjoiningRootCuts(specialized[lawIndex].original,to:product,polynomials:p,using:&a)
    }
-   let all=try r.domain(lower:.negativeInfinity,upper:.positiveInfinity,using:&a)
-   let set=try r.isolate(r.bind(product,using:&a),in:all,limits:limits,using:&a)
-   guard set.roots.count == stack.rootSet.roots.count else { throw ExactRealCellFailure.invalidCoverage }
+   let set: ExactRealRootSet<Field>
+   if originalField, try p.equals(product, stack.rootSet.source.original, using:&a) {
+    try ExactCellAccess.admit(stack.rootSet.depth, &a)
+    try a.checkpoint()
+    guard stack.rootSet.roots.count <= limits.maximumRoots else { throw ExactRealRootFailure.resultLimit }
+    set = stack.rootSet
+   } else {
+    let union=try r.bind(product,using:&a)
+    set=try isolateRootUnion(union,laws:specialized,active:stack.activeLawIndices,domain:r,limits:limits,using:&a)
+   }
+   try validateRootCorrespondence(set,specialized:specialized,stack:stack,&a)
    let delta=try r.bind(p.subtracting(p.variable(0,using:&a),p.constant(point.coordinates[axis],using:&a),using:&a),using:&a)
    var branch=try ExactCellAccess.multiply(set.roots.count,2)
    for root in set.roots {
@@ -106,8 +131,14 @@ extension ExactRealCellDomain: ExactRealCellQuerying {
   limits: ExactRealRootLimits, using admission: inout A) throws(ExactRealCellFailure) -> Bool {
   let point=copy point,condition=copy condition
   return try ExactCellAccess.run(&admission,inherited:condition.depth) { a in
-   guard let full=try located(point,partition:.init(owner:condition.cell.owner),limits:limits,&a) else { return false }
+   let partition=ExactRealCellPartition(owner:condition.cell.owner)
+   try validate(condition.cell,partition:partition,&a)
    let owner=condition.cell.owner, targetCount=owner.records[condition.cell.index].sample.coordinates.count
+   guard point.coordinates.count == targetCount || point.coordinates.count == partition.source.variableCount else {
+    throw ExactRealCellFailure.invalidVariable
+   }
+   guard let full=try located(point,partition:partition,limits:limits,
+    prefix:point.coordinates.count == targetCount,&a) else { return false }
    var index=full.index
    while owner.records[index].sample.coordinates.count > targetCount {
     try a.consumeWork(1); index=owner.records[index].parent

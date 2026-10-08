@@ -278,3 +278,23 @@ If the varying axes of the first input strictly precede all varying axes of the
 second (or vice versa), translated row streams have disjoint, ordered ranges.
 The admitted structural check permits direct ordered output without a heap or
 sort. This is complete preselection, not recovery from an exhausted algorithm.
+
+## Caller Cell Visit Forwarding
+
+The scoped ExactPolynomialAdmission forwards every L0 `visitCell(axis:depth:)`
+to the same caller and retains attained depth. It neither issues a second depth
+mapping nor resets the cumulative visit count. See [L0 authority](../ExactScalar/DESIGN.md#caller-cell-visits).
+
+### Univariate field GCD remainder control
+
+The GCD owner selects field Euclidean division when its active variable is zero.
+All other slots are then proved inactive by the existing active-variable check;
+coefficients belong to the admitted exact ordered field. Nonzero remainders and
+the next divisor are made monic using exact field units before recurrence. This
+preserves the unique monic GCD while avoiding unbounded pseudo-remainder unit
+magnitudes. Multivariate content and pseudo-remainder processing is unchanged.
+All arithmetic and payload remain on the same caller admission; failures do not
+switch algorithms or reset allowances. The weighted quadratic Native CS witness
+exhausted 16,777,216 work in L2 square-free decomposition of a degree-nine root
+union before any Sturm chain. That fixed input and the independent L1 GCD and
+L2 multiplicity fixtures must pass under the original limits.

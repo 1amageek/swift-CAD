@@ -22,6 +22,55 @@ parameter-domain seams or publication of CAD intersections. Those consumers use
 L2 evidence later. L2 completion cannot count as completion of the seven CAD
 requirements.
 
+### Positive Sturm unit normalization
+
+Sturm construction makes each nonzero chain member monic through L1, then
+restores its original leading sign. The exact multiplier is positive, so every
+finite/infinite variation sign, zero, root count and original multiplicity is
+unchanged. Recurrence uses those same normalized members; positive scaling of
+the dividend/divisor preserves the sign of the negative remainder. Original
+source law and defining root identity remain retained. Arithmetic, payload,
+refinement depth and cancellation use the same caller admission.
+
+The weighted quadratic Native CS regression reached square-free decomposition
+and both Sturm constructions after the L1 field-GCD repair, but exhausted its
+unchanged 16,777,216 work allowance evaluating the unnormalized rational chains.
+That input, complete L2 multiplicities/domains/signs and retained L3 definitions
+are the behavioral evidence for coefficient-size control, without changing
+root existence, merging roots or weakening the requested domain.
+
+### Complete sorted exact candidate publication
+
+`ExactRealRootProducing.isolate(_:fromSortedExactCandidates:limits:using:)`
+accepts strictly ordered coefficient-field values. Exact L1 division strips every
+power of each candidate's monic linear factor, proving its original multiplicity.
+A nonzero constant quotient proves complete splitting over the entire real line;
+no generic square-free decomposition or interval isolation is needed in that
+case. A remaining nonconstant quotient must have an exact zero-real-root count.
+Each root retains a singleton linear Sturm proof, the original source and its
+global ordinal. Incomplete, duplicated, unordered or extraneous candidates fail
+atomically. Zero source laws are rejected by this finite-candidate port.
+The source owner, full-real exclusion proof, independent root ceiling, causal
+root visits, retained depths and final cancellation are preserved. This port
+avoids repeating generic root isolation when exact values have already been
+proved; it does not infer existence from residuals or expose partially validated
+candidates. Exact division and any remaining exclusion proof consume the same
+caller admission; failure does not trigger another solver.
+
+### Retained defining-divisor refinement
+
+Root queries can refine a retained root's internal defining proof to an exact
+polynomial divisor. L1 exact division proves that the new law divides the
+existing square-free defining law; the new Sturm proof must count exactly one
+root inside the already retained isolation. That isolation already excludes
+all other original roots, so this proves the same selected original root.
+Source owner, global ordinal, original multiplicity and isolation are unchanged;
+attained depths, causal refinement visit and final cancellation are retained.
+A constant, unrelated or nondividing law fails explicitly. No root set is solved
+again. L3 uses this port before adjoining a nonlinear section when an original
+specialized cut of smaller degree vanishes at its complete union root, avoiding
+an unnecessarily high-degree coefficient representation without changing identity.
+
 ### Exact Candidate Refinement
 
 Root queries may refine an issued root to a supplied coefficient-field value
@@ -240,13 +289,24 @@ When a public L1 evaluation returns `ExactPolynomialEvaluation`, its depth
 receipt is admitted and retained with the result; extracting the bare scalar
 must not discard attained depth from the root evidence.
 
-Equality between roots of different laws uses their GCD and unique-root
-evidence in the common field. If roots are different, exact refinement separates
-their order. To sign q at a selected root of p, first prove zero or nonzero using
-GCD and root counting. For a nonzero value, refine the selected isolation until
-q has no zero in that bracket and evaluate its strict sign. A singleton uses
-exact evaluation. Every step retains the original root law and inherited depth;
-failure to establish the requested result propagates.
+General signs use Sturm–Tarski signed Euclidean remainder chains for the
+square-free retained defining law p and p' * (q mod p). Every negative remainder
+strictly descends degree; positive unit normalization preserves all variation
+signs. One-sided signs at finite endpoints are obtained from the first nonzero
+exact derivative, so open/closed root endpoints have explicit contributions.
+A uniquely selected root gives a Tarski sum in {-1, 0, 1}; any other value is
+invalid evidence. Constant, exact singleton and certified direct linear queries
+remain valid short paths. PSC values do not serve as signed remainder chains.
+
+Root equality/order first uses validated same-source global ordinals, then
+certified disjoint isolations. Overlapping different laws are decided by exact
+endpoint signs and Sturm variation counts with the selected root as a boundary;
+chain signs at that boundary use the same Sturm–Tarski query. General ordering
+and signs never wait for numeric isolations to separate. Width refinement and
+strict separating-value generation remain separate explicit L2 operations.
+Shared multi-sign evidence retains the same original root and all query sources,
+with one derivative preparation and the same admission. No caller can issue
+proof flags or manufacture source/selection evidence.
 
 ### Selected Roots as Coefficients
 
@@ -424,20 +484,47 @@ and final cumulative verification in PROGRESS.md close only this design's gaps.
 Root result and extension limits require explicit caller arguments until measured
 portable defaults can be justified; no implicit guessed ceiling is issued.
 
-The forwarding implementation uses a non-generic class with four scoped closures.
+The forwarding implementation uses a non-generic class with five scoped closures.
 This preserves macOS 14: erasing a class parameterized by noncopyable admission
 would otherwise require macOS 15 runtime support. Closure storage uses ordinary
 throwing functions internally; requirements map the preserved scalar failure to
-their typed signature. Class payload, header and the four captured pointer
+their typed signature. Class payload, header and the five captured pointer
 contexts are admitted before construction. Pointer lifetime and fixed kernel
 specialization are unchanged.
 
-Fraction normalization cancels the parent-field polynomial GCD only after the
-original selected-root denominator has been proved nonzero, then normalizes its
-leading coefficient through public L1 scaling. Already lower-degree expressions
-retain their buffers. Constant signs delegate to the parent field; linear signs
-compare their exact zero with the retained original Sturm root, without creating
-another root law. This bounds expression growth without relaxing admission.
+Fraction normalization first reduces numerator and denominator modulo the retained
+root's defining proof. This exact congruence preserves both values at that root,
+including denominator zeros. For a variable denominator, admitted extended
+Euclidean division through public L1 operations attempts an inverse modulo the
+same law. A constant final GCD and checked remainder identity d * inverse = 1
+prove the original denominator nonzero at every root of that law. The numerator
+is then reduced with the inverse and the denominator becomes one. No interval
+sign refinement is needed to re-prove this unit property.
+
+For a reducible law with a nonconstant denominator GCD, the selected-root sign
+must establish nonzero before removing the GCD from the calculation law. Exact
+unique-root evidence proves that the quotient retains the selected root. A checked
+modular inverse then gives a polynomial representation under that local law.
+The original immutable coefficient context is unchanged. Per-value calculation
+receipts retain both original and reduced root proofs. Operations combine local
+laws by their exact GCD and verify the same selected root before reduction;
+values without a local receipt use the original context law. Neither an
+operand's receipt nor another retained value is mutated. Constant signs delegate
+to the parent field. Typed failures never trigger another solver.
+
+Root transport is an explicit requirement on importing coefficient fields. It
+imports the original polynomial coefficients and finite endpoints through the
+field's self/ancestor embedding, reissues the source in the target polynomial
+owner, and verifies its selected interval contains exactly one root. It checks
+original ordinal and multiplicity, imports any reduced defining law, and retains
+both root owners in a read-only receipt. Input and isolation depths are admitted
+before any work and are included in the issued root. Siblings and unrelated
+coefficient owners are rejected by the embedding; there is no implicit compositum.
+
+The Native weighted tangency stack reaches depth33 inside fraction denominator
+sign refinement during exact coefficient subtraction. This normalization closes
+that concrete representation amplification; its public input retains depth32
+and work16,777,216. Reducible and zero-denominator fixtures remain mandatory.
 
 Public retaining initializers recover the identical root domain from an issued
 source, and the identical coefficient domain from a retained scalar. These
@@ -469,3 +556,193 @@ Non-singleton intervals keep the existing exact algorithm. Zero/constant/linear
 queries and all independent failure contracts retain their meaning. Verification
 compares public polynomial evaluation and includes zero, either sign, foreign
 owners, resource rejection and terminal cancellation.
+
+## Cumulative Interval Visits
+
+L2 consumes L0's required `visitCell(axis:depth:)` observation on the same caller
+admission. Isolation observes each pending interval before its Sturm count,
+including intervals proved empty. `contracted` observes the retained interval
+before each refinement split, covering width refinement and isolation against
+other source factors. General sign and root-order decisions use signed remainder
+queries without interval bisection. Exact-candidate
+refinement observes its retained isolation before proving candidate inclusion and
+singleton root count. The source's `refinementAxis` identifies value versus
+coefficient depth; the observed depth includes the interval and all already
+admitted causal evidence. Merely re-admitting a receipt or calculating a depth
+maximum does not create a visit.
+
+`ExactRootInvocation`, its immutable scoped forwarding closures, and the borrowed
+admission forward each event exactly once without changing its axis/depth, adding
+work, or creating a new counter. The enclosing caller owns any shared cumulative
+ceiling and any visit-related work charge. Existing L2 work charges, structural
+root limits, depth steps, source/ordinal/multiplicity and algorithms remain
+unchanged. Caller rejection and cancellation propagate atomically through the
+existing typed scalar failure. Storage admission includes the fifth closure and
+its captured pointer context before the scoped owner is constructed.
+
+[Cell visit fixtures](../../../../Tests/L2RealRootVerification/Sources/Fixtures/CellVisitFixtures.swift)
+exercise actual isolate plus refinement on one recorder: its measured cumulative
+count N succeeds at N and fails at N-1 with the caller's retained cause. Both
+refinement axes, exact-candidate refinement, inherited depths, terminal
+cancellation and the existing work/storage limits retain separate evidence.
+Geometry integration owns its allowance and public migration evidence; this port
+does not claim that stored root count bounds cumulative visits.
+
+## Twenty-Requirement Convergence Contract
+
+The revised task is independent L0–L3 implementation and verification. It does
+not change production package/module placement or add a dependency. Previous
+upper integration snapshots and evidence are preserved; they do not prove this
+revision. [L3](../ExactRealCell/DESIGN.md) consumes only the public ports below.
+
+| Requirement | Public port / retained evidence | Owning implementation / behavioral fixture |
+|---|---|---|
+| L2-01 Original source | bind / ExactRealRootSource | Domain / retainedOwners, selected variable |
+| L2-02 Exact domain | domain / ExactRealRootInterval | Domain / all endpoint and infinite cases |
+| L2-03 Complete roots | count, isolate(source), isolate(count) / Count, Set | Producing / zero, constant, multiplicity, complete exclusion |
+| L2-04 Original identity | compare, all refine / original source, ordinal, multiplicity | Query / same number under different laws, different conjugates |
+| L2-05 Exact decisions | sign, signs, compare / query evidence | Signed remainder / common factors, dropped degrees, endpoint roots |
+| L2-06 Selected-root field | scalar arithmetic / local calculation-law proof | Scalar arithmetic / reducible local inverses, zero denominator, mixed local laws |
+| L2-07 Extension and transport | adjoin, importing, transport / original and embedded root correspondence | Extending, Transport / ancestor transfer, sibling rejection, original ordinals |
+| L2-08 Refinement and separation | refine, separate / unchanged root and strict separation proof | Query, Separation / exact candidates, small defining factors, close roots |
+| L2-09 Evidence reuse | isolate(count), signs / immutable original owner | Producing, Signed remainder / new independent admission and limits |
+| L2-10 Lifetime and resources | all required ports / retained source, field lineage and depths | Scoped admission / input destruction, cancellation, storage, work, depth, readers |
+
+Count consumption validates issuer ownership, original domain, inherited depth
+and result ceiling; it does not repeat square-free factorization. Every root's
+global original ordinal still requires full-source evidence. Separation returns
+read-only refined left/right roots and a coefficient-field value with strict
+left < value < right proof, preserving all original identities. Explicit root
+transport validates self/ancestor coefficient embeddings, imports original and
+computational laws and endpoint conditions, and preserves original ordinal,
+multiplicity and attained depth in an immutable correspondence owner. Siblings
+and unrelated owners fail; no automatic compositum is introduced.
+
+For reducible calculation laws, denominator validation precedes cancellation.
+If gcd(m,D) is nonconstant and D is nonzero at the selected root, m/gcd(m,D)
+retains that root by exact unique-root evidence; its checked modular inverse
+produces a local calculation representation. Calculation proofs are immutable
+per value; operations establish a common selected-root law rather than changing
+the coefficient context or any other retained value. Source identity and selected
+conjugate always remain independent of the calculation law.
+
+Required cost fixtures retain the weighted CS algebra equations/domains and
+work16,777,216, storage and depth32 source limits, plus actual multistage
+coefficient fields. A resource failure is not completion of either required
+fixture. Fixed Swift6.4.0, matching normal/Embedded SDKs and ASAN run only the
+independent graph. Final evidence binds the exact compiled source snapshot.
+
+### S1 Independent Evidence
+
+Swift 6.4.0 Native L2 verification passes 18 behavioral tests, including the
+signed-decision fixture's roots separated by an exact least-subnormal coefficient,
+different original laws selecting the same root, open/closed endpoint contributions,
+batched zero/positive/negative queries, exact work/storage N and rejection at N-1,
+terminal cancellation and foreign issuer rejection. All operations use the same
+admission and preserve typed scalar or polynomial-wrapped scalar failures.
+Normal-WASM, Embedded and ASAN evidence for this revision remains pending S5.
+
+### S2 Independent Evidence
+
+The Swift 6.4.0 Native L2 graph passes 20 behavioral tests. Local-law fixtures
+prove two different degree-four calculation divisors under one original degree-six
+law combine into a degree-two common law without changing either input receipt.
+They reject the original zero denominator even with a zero numerator and retain
+owners after preparation locals are released. Transport fixtures exercise a real
+ancestor-to-child import at work16,777,216 and both depths32, three-variable
+original layout, opposite conjugates, reduced laws, repeated singleton roots,
+open endpoints, foreign polynomial owners, incompatible siblings, independent
+allowances, inherited-depth rejection and final cancellation. The existing actual
+three-stage coefficient tower also succeeds at work16,777,216 and both depths32.
+Source review confirms immutable owners and one scoped caller admission; no
+platform-specific stored state or synchronization branch was introduced.
+
+### S3 Construction Boundary
+
+#### Complete factored-count input
+
+`count(source,in:domain,factoredBy:using:)` accepts untrusted factor sources in
+the same root issuer and original variable. Each factor must have positive degree.
+Pairwise exact GCDs must be constant, and sequential exact division of the retained
+original law by every factor must leave a nonzero constant. These identities prove
+complete coverage and disjoint root membership; incomplete, overlapping, foreign
+or nonfactor hints fail without fallback. A nonzero constant source permits an
+empty factor list, while a zero source cannot satisfy this factorization contract.
+
+Each factor uses the existing square-free/count implementation under the same
+borrowed admission. Its complete Sturm factors and original multiplicities are
+combined in a count that retains the original source and requested domain. Existing
+count isolation consumes that evidence to issue original global ordinals and
+multiplicities without isolating a high-degree product. All hint, domain and proof
+depths, exact divisions/GCDs, payloads and terminal cancellation remain admitted.
+The mandatory weighted input owns the concrete regression: small verified cut
+factors must complete under its unchanged work and depth ceilings. Invalid hints,
+repeated factors, incomplete products and independent resource failures must reject.
+
+Count isolation consumes the retained square-free factor Sturm chains. The sum
+of their distinct counts certifies full-source exclusion and global ordinal, so
+no second full-source decomposition or Sturm construction is needed. All retained
+factor and domain depths are admitted. Exact-candidate count receipts use the
+same port: their linear factors and residual exclusion proof cover the original
+source. A new query pays its actual validation/refinement/output costs, while
+sharing existing factor payloads.
+
+`separate(left,right)` first proves strict order without bisection. It then owns
+the necessary interval refinement, retains both unchanged original identities,
+and issues a field value only after exact signs prove left < value < right.
+Equal/reversed roots reject. Refinement retains attained depths and uses the same
+caller admission; budget rejection never becomes a midpoint result. L3 consumes
+this receipt for bounded sectors and owns no root-bisection loop.
+
+### S3 Independent Evidence
+
+Swift 6.4.0 Native L2 passes 22 tests. A measured fresh isolation and retained-count
+isolation return the same original roots/ordinals/multiplicities; retained-count
+uses fewer admitted work units and generated storage bytes. Complete exact-candidate
+counts, constant exclusion, whole-domain zero, singleton selection, foreign owners,
+result caps, exact resource ceilings and final cancellation are exercised.
+Separation fixtures prove both strict inequalities through public sign queries for
+overlapping roots, exact endpoints and every adjacent pair of a complete union.
+Equality/reversed/foreign inputs reject; work/storage N-1 and depth limits reject
+without modifying retained evidence. Scoped source review checks factor-count sums,
+unchanged root source identities and only L2-owned interval contraction.
+
+### S5 Final Independent Evidence
+
+All twenty L2/L3 requirements are implemented and verified on the same source
+snapshot: Native70, ASAN70, normal WASI and Embedded WASI succeed with pinned
+Swift6.4.0 and matching SDKs. The mandatory recorded weighted input completes
+within work16,777,216/depth32, and the actual three-stage coefficient tower passes.
+Actual compiler inventories, source/log hashes, original reduction identities,
+review scope and ownership/platform limits are recorded in
+[ConvergenceEvidence](../../../../Tests/L3RealCellVerification/ConvergenceEvidence/VERIFICATION.md).
+
+Source-bound lower evidence certifies this component and its composed L0–L3
+graph. It does not certify L4 closure/incidence, geometric producers, upper
+publication or the seven upper requirements. No upper CAD build was performed.
+
+## Canonical Scalar Execution Optimization
+
+`fraction` is the sole issuer of fraction storage; negation, arithmetic and
+ancestor embedding return through that issuer. Its existing checked normalization
+proves a constant unit denominator. Copies retain the same immutable proof and
+owner. Arithmetic can therefore use polynomial numerators directly and reuse
+the unit denominator; division still validates the original divisor numerator
+and performs the existing checked modular inverse and local-law reconciliation.
+Sign needs only the numerator. No public constructor can issue an unnormalized
+fraction. This is an internal representation invariant, not a new public port.
+
+After original root and polynomial depths/ownership are admitted, zero and constant
+polynomial signs delegate to the retained parent coefficient field. Nonconstant
+polynomials keep the original selected-root sign algorithm. Base scalar comparison
+delegates to Base.compare after both scalar embeddings/depths are admitted.
+Public entry and terminal cancellation, same cumulative work/storage, original
+source/root/calculation receipts, reducible laws and zero denominator failure remain.
+Removed products/source bindings generate no payload and receive no storage charge.
+
+Verification compares optimized signs with independently bound public root-sign
+queries and arithmetic identities, including zero, either sign, inverses, ancestor
+embeddings, incompatible siblings, exact work/storage N and N-1, inherited depth
+and terminal cancellation. Existing full weighted and real three-stage fixtures
+measure cold-process batches at unchanged original ceilings. Native/ASAN and both
+matching WASM SDKs verify the composed lower graph; upper adoption remains separate.

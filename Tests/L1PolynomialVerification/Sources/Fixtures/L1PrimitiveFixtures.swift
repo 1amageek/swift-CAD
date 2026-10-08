@@ -135,12 +135,29 @@ public enum L1PrimitiveFixtures {
         let empty = try d.differentiated(p, in: 1, using: &a)
         check(empty.terms.isEmpty && empty.depth.coefficient >= p.depth.coefficient)
         check(try d.isZero(d.substituted(empty, with: [p,p], using: &a), using: &a))
+        // Comparing sqrt(2) with 3/2 requires actual coefficient-root refinement.
+        let unrefined = try scalarField(refine: false)
+        let unrefinedDomain = try ExactPolynomialDomain(field: unrefined, variableCount: 1, using: &a)
+        let unrefinedRoot = try unrefined.generator(using: &a)
+        let probe = try unrefinedDomain.constant(unrefinedRoot, using: &a)
+        let rational = try unrefined.binary64(exactly: 1.5, using: &a)
+        var visits = try CallbackAdmission()
+        _ = try unrefinedDomain.subtracting(probe,
+            unrefinedDomain.constant(rational, using: &visits), using: &visits)
+        check(visits.visitCalls > 0)
+        var stopped = try CallbackAdmission(); stopped.cancelVisit = 1
+        try rejected("cancelled") {
+            _ = try unrefinedDomain.subtracting(probe,
+                unrefinedDomain.constant(rational, using: &stopped), using: &stopped)
+        }
     }
     struct CallbackAdmission: ~Copyable, ExactScalarAdmission {
         var ledger: ExactScalarLedger
         var checkpoints = 0
         var workCalls = 0
         var storageCalls = 0
+        var visitCalls = 0
+        var cancelVisit: Int?
         var cancelCheckpoint: Int?
         var cancelWork: Int?
         var cancelStorage: Int?
@@ -157,6 +174,11 @@ public enum L1PrimitiveFixtures {
         mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
             storageCalls += 1; try ledger.retainStorage(bytes: bytes)
             if storageCalls == cancelStorage { ledger.cancel() }
+        }
+        mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+            try ledger.visitCell(axis: axis, depth: depth)
+            visitCalls += 1
+            if visitCalls == cancelVisit { ledger.cancel() }
         }
         mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
             try ledger.admitDepth(value: value, coefficient: coefficient)

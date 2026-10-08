@@ -1,0 +1,25 @@
+(node:13252) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+WASI linear memory: 1441792 bytes
+PASS: rational source bits and field operations
+PASS: retained algebraic source, order and lifetime
+PASS: independent limits, explicit failures and cancellation
+PASS: typed payload admission and cubic-root sign resource boundaries
+PASS: typed monomial and fiber storage, exact roots and retained identities
+PASS: signed remainder, near-root order without bisection, endpoint contributions and shared admission
+PASS: reducible local inverses, mixed immutable laws, original identity and uncancelled zero denominator
+PASS: explicit root transport preserves source, conjugate, endpoints, depth and lifetime; foreign owners and cancellation reject
+PASS: count reuse reduces admitted work/storage while preserving original global ordinal and multiplicity
+PASS: strict separation, singleton endpoints, original identities, union sectors, lifetime and atomic resource failures
+PASS: runtime algebraic tower and retained ancestor embeddings
+PASS: denominator units preserve exact inverses and zero rejection within depth32
+PASS: reducible root law and selected-root denominator decisions
+PASS: incompatible owners, extension ceiling and scalar failures
+PASS: terminal cancellation, atomic publication and exact storage boundary
+PASS: retained owners, original variable map and exact base import
+PASS: higher degree, odd multiplicity and invalid input failures
+PASS: existing algebraic base coefficients and inherited coefficient depth
+PASS weighted source-equivalent CS full box: cells=245, work=2382027/16777216, storage=52195146, depths=28/0
+PASS: public prefixes, non-sample branches, nullification, lengths, field lineage, outside domains and dimensions zero/five
+PASS: public projection provenance, whole-parent bindings, original multiplicity and L2 sector separation evidence
+PASS: combined L0-L3 exact arithmetic, polynomial algebra, roots, real cells and optimization regressions

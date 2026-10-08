@@ -7,6 +7,7 @@ import L2
 @Test(.timeLimit(.minutes(1))) func rootDomains() throws { try RootFixtures.domains() }
 @Test(.timeLimit(.minutes(1))) func exactQueries() throws { try RootFixtures.exactQueries() }
 @Test(.timeLimit(.minutes(1))) func exactCandidateRefinement() throws { try RootFixtures.exactCandidateRefinement() }
+@Test(.timeLimit(.minutes(1))) func cumulativeCellVisits() throws { try CellVisitFixtures.run() }
 @Test(.timeLimit(.minutes(1))) func rootFailures() throws { try RootFixtures.failures() }
 @Test(.timeLimit(.minutes(1))) func algebraicTower() throws { try FieldFixtures.tower() }
 @Test(.timeLimit(.minutes(1))) func reducibleLaw() throws { try FieldFixtures.reducible() }
@@ -35,3 +36,23 @@ import L2
         for try await result in group { try RootFixtures.require(result) }
     }
 }
+
+@Test(.timeLimit(.minutes(1))) func exactCandidateCompletion() throws { try RootFixtures.exactCandidateCompletion() }
+
+@Test(.timeLimit(.minutes(1))) func definingDivisorRefinement() throws { try RootFixtures.definingDivisorRefinement() }
+
+@Test(.timeLimit(.minutes(1))) func denominatorUnits() throws { try FieldFixtures.denominatorUnits() }
+
+@Test(.timeLimit(.minutes(1))) func signedDecisions() throws { try SignedDecisionFixtures.verify() }
+
+@Test(.timeLimit(.minutes(1))) func localCalculationLaws() throws { try LocalLawFixtures.verify() }
+
+@Test(.timeLimit(.minutes(1))) func rootTransport() throws { try TransportFixtures.verify() }
+
+@Test(.timeLimit(.minutes(1))) func countReuse() throws { try CountReuseFixtures.verify() }
+
+@Test(.timeLimit(.minutes(1))) func rootSeparation() throws { try SeparationFixtures.verify() }
+
+@Test(.timeLimit(.minutes(1))) func factoredCount() throws { try CountReuseFixtures.factored() }
+
+@Test(.timeLimit(.minutes(1))) func canonicalScalarExecution() throws { try CanonicalScalarFixtures.verify() }

@@ -14,6 +14,9 @@ public struct CheckpointAdmission: ~Copyable, ExactScalarAdmission {
  }
  public mutating func consumeWork(_ units: Int) throws(ExactScalarFailure) { try ledger.consumeWork(units); try checkpoint() }
  public mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) { try ledger.retainStorage(bytes:bytes); try checkpoint() }
+ public mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+  try ledger.visitCell(axis: axis, depth: depth); try checkpoint()
+ }
  public mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
   try ledger.admitDepth(value:value,coefficient:coefficient); try checkpoint()
  }

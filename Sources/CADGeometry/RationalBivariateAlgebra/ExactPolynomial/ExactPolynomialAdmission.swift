@@ -22,6 +22,12 @@ struct ExactPolynomialAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable,
     mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
         try checkpoint(); try caller.pointee.retainStorage(bytes: bytes); try checkpoint()
     }
+    mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+        try checkpoint(); try caller.pointee.visitCell(axis: axis, depth: depth)
+        if axis == .value { valueDepth = max(valueDepth, depth) }
+        else { coefficientDepth = max(coefficientDepth, depth) }
+        try checkpoint()
+    }
     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
         try checkpoint(); try caller.pointee.admitDepth(value: value, coefficient: coefficient)
         valueDepth = max(valueDepth, value); coefficientDepth = max(coefficientDepth, coefficient)

@@ -12,12 +12,19 @@ extension ExactRealRootDomain {
         let result = try context.univariate.evaluated(p, at: [x], using: &a)
         try ExactRootAccess.admit(result.depth, &a); return result.value
     }
+    func positiveUnitNormalized(_ law: ExactPolynomial<F>,
+        _ a: inout ExactRootBorrowedAdmission) throws -> ExactPolynomial<F> {
+        guard let leading = law.terms.first else { return law }
+        let monic = try context.univariate.normalized(law, using: &a)
+        return try context.field.sign(of: leading.coefficient, using: &a) == .negative
+            ? context.univariate.negated(monic, using: &a) : monic
+    }
     func sturm(_ law: ExactPolynomial<F>, _ a: inout ExactRootBorrowedAdmission) throws -> ExactRootSturm<F> {
         guard try degree(law, &a) != nil else { throw ExactRealRootFailure.invalidSource }
         let derivative = try context.univariate.differentiated(law, in: 0, using: &a)
         let repeated = try context.univariate.greatestCommonDivisor(law, derivative, using: &a)
-        let p = try context.univariate.dividedExactly(law, by: repeated, using: &a)
-        let d = try context.univariate.differentiated(p, in: 0, using: &a)
+        let p = try positiveUnitNormalized(context.univariate.dividedExactly(law, by: repeated, using: &a), &a)
+        let d = try positiveUnitNormalized(context.univariate.differentiated(p, in: 0, using: &a), &a)
         try ExactRootAccess.storage(1, ExactPolynomial<F>.self, &a)
         var chain = [p]
         if try degree(d, &a) != nil {
@@ -30,7 +37,7 @@ extension ExactRealRootDomain {
                 guard let oldDegree = try degree(second, &a), nextDegree < oldDegree else {
                     throw ExactRealRootFailure.invalidEvidence
                 }
-                let next = try context.univariate.negated(remainder, using: &a)
+                let next = try positiveUnitNormalized(context.univariate.negated(remainder, using: &a), &a)
                 try ExactRootAccess.storage(1, ExactPolynomial<F>.self, &a); chain.append(next)
                 first = second; second = next
             }

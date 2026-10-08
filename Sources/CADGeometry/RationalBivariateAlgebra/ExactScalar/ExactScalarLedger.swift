@@ -28,6 +28,10 @@ public struct ExactScalarLedger: ~Copyable, ExactScalarAdmission, Sendable {
         guard next.partialValue <= limits.storageBytes else { throw .resourceLimit(.storage) }
         storageBytes = next.partialValue
     }
+    public mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+        try admitDepth(value: axis == .value ? depth : valueDepth,
+            coefficient: axis == .coefficient ? depth : coefficientDepth)
+    }
     public mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
         try checkpoint()
         guard value >= 0, coefficient >= 0 else { throw .countOverflow }

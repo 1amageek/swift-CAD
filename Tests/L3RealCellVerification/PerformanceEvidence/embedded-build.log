@@ -1,0 +1,11 @@
+Building for debugging...
+[Pre-planning 1 / 268]
+[Constructing 1 / 556]
+[2 / 8] L2
+[7 / 13] L3
+[10 / 14] L3Fixtures
+[16 / 23] L2Fixtures
+[21 / 23] L3Proof-product
+[29 / 29] L3Proof-product
+/private/tmp/cad-l2-l3-convergence-20261008/Tests/L3RealCellVerification/Package.swift: L3Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+Build complete! (29.52秒)

@@ -6,6 +6,71 @@ public enum RootFixtures {
     public static func require(_ condition: Bool) throws {
         if !condition { throw ExactRealRootFailure.invalidEvidence }
     }
+    public static func definingDivisorRefinement() throws {
+        var a = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 50_000_000,
+            valueDepth: 100, coefficientDepth: 100))
+        let field = ExactRationalScalarDomain(), domain = try ExactRealRootDomain(field: field, using: &a)
+        let p = domain.polynomials, x = try p.variable(0, using: &a)
+        let quadratic = try p.subtracting(p.multiplying(x, x, using: &a), p.constant(field.integer(2, using: &a), using: &a), using: &a)
+        let linear = try p.subtracting(x, p.constant(field.integer(1, using: &a), using: &a), using: &a)
+        let source = try domain.bind(p.multiplying(quadratic, linear, using: &a), using: &a)
+        let all = try domain.domain(lower: .negativeInfinity, upper: .positiveInfinity, using: &a)
+        let root = try domain.isolate(source, in: all, limits: .init(maximumRoots: 3), using: &a).roots[2]
+        let refined = try domain.refine(root, usingDefiningDivisor: domain.bind(quadratic, using: &a), using: &a)
+        try require(refined.ordinal == root.ordinal && refined.multiplicity == root.multiplicity)
+        try require(p.equals(refined.source.original, root.source.original, using: &a))
+        try require(domain.compare(root, refined, using: &a) == .equal)
+        try require(domain.sign(of: source, at: refined, using: &a) == .zero)
+        do {
+            _ = try domain.refine(root, usingDefiningDivisor: domain.bind(linear, using: &a), using: &a)
+            throw ExactRealRootFailure.invalidSource
+        } catch ExactRealRootFailure.invalidEvidence { }
+        let unrelated = try p.subtracting(x, p.constant(field.integer(3, using: &a), using: &a), using: &a)
+        do {
+            _ = try domain.refine(root, usingDefiningDivisor: domain.bind(unrelated, using: &a), using: &a)
+            throw ExactRealRootFailure.invalidSource
+        } catch ExactRealRootFailure.invalidEvidence { }
+    }
+
+    public static func exactCandidateCompletion() throws {
+        var a = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 50_000_000,
+            valueDepth: 100, coefficientDepth: 100))
+        let field = ExactRationalScalarDomain(), domain = try ExactRealRootDomain(field: field, using: &a)
+        let p = domain.polynomials, x = try p.variable(0, using: &a)
+        let zero = try field.integer(0, using: &a), one = try field.integer(1, using: &a)
+        let factor = try p.subtracting(x, p.constant(one, using: &a), using: &a)
+        let source = try domain.bind(p.multiplying(x, p.multiplying(factor, factor, using: &a), using: &a), using: &a)
+        let result = try domain.isolate(source, fromSortedExactCandidates: [zero, one],
+            limits: .init(maximumRoots: 2), using: &a)
+        try require(result.classification == .finite(distinct: 2, totalMultiplicity: 3))
+        try require(result.roots.map { $0.ordinal } == [0, 1] && result.roots.map { $0.multiplicity } == [1, 2])
+        for root in result.roots {
+            try require(domain.sign(of: source, at: root, using: &a) == .zero)
+            guard case .finite(let lower) = root.isolation.lower, case .finite(let upper) = root.isolation.upper else {
+                throw ExactRealRootFailure.invalidEvidence
+            }
+            try require(field.compare(lower, upper, using: &a) == .equal)
+        }
+        for invalid in [[zero], [zero, zero], [one, zero], [zero, try field.integer(2, using: &a)]] {
+            do {
+                _ = try domain.isolate(source, fromSortedExactCandidates: invalid, limits: .init(maximumRoots: 2), using: &a)
+                throw ExactRealRootFailure.invalidSource
+            } catch ExactRealRootFailure.invalidEvidence { }
+        }
+        do {
+            _ = try domain.isolate(source, fromSortedExactCandidates: [zero, one], limits: .init(maximumRoots: 1), using: &a)
+            throw ExactRealRootFailure.invalidEvidence
+        } catch ExactRealRootFailure.resultLimit { }
+        let absent = try domain.bind(p.adding(p.multiplying(x, x, using: &a), p.constant(one, using: &a), using: &a), using: &a)
+        try require(domain.isolate(absent, fromSortedExactCandidates: [], limits: .init(maximumRoots: 0), using: &a).roots.isEmpty)
+        let mixed = try domain.bind(p.multiplying(absent.original,
+            p.multiplying(factor, factor, using: &a), using: &a), using: &a)
+        let mixedRoots = try domain.isolate(mixed, fromSortedExactCandidates: [one],
+            limits: .init(maximumRoots: 1), using: &a)
+        try require(mixedRoots.classification == .finite(distinct: 1, totalMultiplicity: 2))
+        try require(mixedRoots.roots[0].ordinal == 0 && mixedRoots.roots[0].multiplicity == 2)
+    }
+
     public static func rational() throws {
         var a = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 50_000_000,
             valueDepth: 100, coefficientDepth: 100))

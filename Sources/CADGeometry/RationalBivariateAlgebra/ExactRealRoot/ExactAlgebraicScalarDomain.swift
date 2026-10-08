@@ -100,47 +100,88 @@ public struct ExactAlgebraicScalarDomain<Base: ExactScalarArithmetic & ExactScal
             let d = try p.constant(parent.integer(1, using: &a), using: &a)
             value = try Self(context: child).fraction(n, d, &a)
         }
-        return Value(context: context, storage: value.storage, depth: a.depth)
+        return Value(context: context, storage: value.storage, depth: a.depth, calculation: value.calculation)
     }
     func polynomialSource(_ polynomial: ExactPolynomial<Self>, root: ExactRealRoot<Self>,
         _ a: inout ExactRootBorrowedAdmission) throws -> ExactRealRootSource<Self> {
-        _ = try root.source.context.univariate.isZero(polynomial, using: &a)
-        return ExactRealRootSource(context: root.source.context, original: polynomial, variable: 0,
-            refinementAxis: root.source.refinementAxis, law: polynomial, depth: a.depth)
+        return try ExactRealRootDomain<Self>(context: root.source.context).sourceForLaw(polynomial,
+            variable: root.source.variable, axis: root.source.refinementAxis, &a)
     }
-    func polynomialSign(_ polynomial: ExactPolynomial<Self>, _ a: inout ExactRootBorrowedAdmission) throws -> ExactSign {
-        guard let root = context.root else { throw ExactScalarFailure.invalidEvidence }
+
+    func polynomialSign(_ polynomial: ExactPolynomial<Self>, at selected: ExactRealRoot<Self>? = nil, _ a: inout ExactRootBorrowedAdmission) throws -> ExactSign {
+        guard let root = selected ?? context.root else { throw ExactScalarFailure.invalidEvidence }
+        try ExactRootAccess.admit(root.depth, &a)
+        let p = root.source.context.univariate
+        // Degree admits the issued polynomial owner and depth before the constant path.
+        let degree = try p.degree(of: polynomial, in: 0, using: &a)
+        guard let degree else { return .zero }
+        if degree == 0 {
+            return try root.source.context.field.sign(of: polynomial.terms[0].coefficient, using: &a)
+        }
         let source = try polynomialSource(polynomial, root: root, &a)
         return try ExactRealRootDomain<Self>(context: root.source.context).sign(of: source, at: root, using: &a)
     }
+    func calculation(_ selected: ExactRealRoot<Self>, _ a: inout ExactRootBorrowedAdmission) throws -> ExactAlgebraicCalculation<Base> {
+        guard let original = context.root else { throw ExactScalarFailure.invalidEvidence }
+        let defining = try polynomialSource(selected.proof.polynomial, root: original, &a)
+        try ExactRootAccess.owner((ExactRealRoot<Self>, ExactRealRoot<Self>, ExactRealRootSource<Self>, ExactScalarDepth).self, &a)
+        return .init(originalRoot: original, selectedRoot: selected, definingSource: defining, depth: a.depth)
+    }
+    func commonCalculation(_ lhs: Value, _ rhs: Value, _ a: inout ExactRootBorrowedAdmission) throws -> ExactAlgebraicCalculation<Base>? {
+        guard let l = lhs.calculation else { return rhs.calculation }
+        guard let r = rhs.calculation else { return l }
+        try ExactRootAccess.admit(l.depth, &a); try ExactRootAccess.admit(r.depth, &a)
+        if l.selectedRoot.proof === r.selectedRoot.proof { return l }
+        guard let original = context.root else { throw ExactScalarFailure.invalidEvidence }
+        let p = original.source.context.univariate
+        if try p.equals(l.selectedRoot.proof.polynomial, r.selectedRoot.proof.polynomial, using: &a) { return l }
+        let common = try p.greatestCommonDivisor(l.selectedRoot.proof.polynomial, r.selectedRoot.proof.polynomial, using: &a)
+        let source = try polynomialSource(common, root: original, &a)
+        let root = try ExactRealRootDomain<Self>(context: original.source.context).refine(original,
+            usingDefiningDivisor: source, using: &a)
+        return try calculation(root, &a)
+    }
     func fraction(_ numerator: ExactPolynomial<Self>, _ denominator: ExactPolynomial<Self>,
+        calculation inherited: ExactAlgebraicCalculation<Base>? = nil,
         _ a: inout ExactRootBorrowedAdmission) throws -> Value {
-        guard let root = context.root else { throw ExactScalarFailure.invalidEvidence }
-        let p = root.source.context.univariate
-        _ = try p.isZero(numerator, using: &a)
-        guard try polynomialSign(denominator, &a) != .zero else { throw ExactScalarFailure.divisionByZero }
-        // Selected-root nonzero evidence precedes exact reduction; a reducible law is valid.
-        guard let rootDegree = try p.degree(of: root.proof.polynomial, in: 0, using: &a) else {
+        guard let original = context.root else { throw ExactScalarFailure.invalidEvidence }
+        if let inherited { try ExactRootAccess.admit(inherited.depth, &a) }
+        var selected = inherited?.selectedRoot ?? original, receipt = inherited
+        let p = original.source.context.univariate
+        guard let degree = try p.degree(of: selected.proof.polynomial, in: 0, using: &a) else {
             throw ExactScalarFailure.invalidEvidence
         }
-        var n = try (p.degree(of: numerator, in: 0, using: &a) ?? -1) < rootDegree
-            ? numerator : p.divided(numerator, by: root.proof.polynomial, using: &a).remainder
-        var d = try (p.degree(of: denominator, in: 0, using: &a) ?? -1) < rootDegree
-            ? denominator : p.divided(denominator, by: root.proof.polynomial, using: &a).remainder
+        var n = try (p.degree(of: numerator, in: 0, using: &a) ?? -1) < degree
+            ? numerator : p.divided(numerator, by: selected.proof.polynomial, using: &a).remainder
+        var d = try (p.degree(of: denominator, in: 0, using: &a) ?? -1) < degree
+            ? denominator : p.divided(denominator, by: selected.proof.polynomial, using: &a).remainder
+        guard try !p.isZero(d, using: &a) else { throw ExactScalarFailure.divisionByZero }
         if let denominatorDegree = try p.degree(of: d, in: 0, using: &a), denominatorDegree > 0 {
-            let common = try p.greatestCommonDivisor(n, d, using: &a)
-            n = try p.dividedExactly(n, by: common, using: &a)
-            d = try p.dividedExactly(d, by: common, using: &a)
+            var inverse = try unitInverse(d, modulo: selected.proof.polynomial, &a)
+            if inverse == nil {
+                // Validate the uncancelled denominator before excluding conjugate factors.
+                guard try polynomialSign(d, at: selected, &a) != .zero else { throw ExactScalarFailure.divisionByZero }
+                let common = try p.greatestCommonDivisor(selected.proof.polynomial, d, using: &a)
+                let quotient = try p.dividedExactly(selected.proof.polynomial, by: common, using: &a)
+                let divisor = try polynomialSource(quotient, root: original, &a)
+                selected = try ExactRealRootDomain<Self>(context: original.source.context).refine(selected,
+                    usingDefiningDivisor: divisor, using: &a)
+                receipt = try calculation(selected, &a)
+                d = try p.divided(d, by: selected.proof.polynomial, using: &a).remainder
+                inverse = try unitInverse(d, modulo: selected.proof.polynomial, &a)
+            }
+            guard let inverse else { throw ExactScalarFailure.invalidEvidence }
+            n = try p.divided(p.multiplying(n, inverse, using: &a), by: selected.proof.polynomial, using: &a).remainder
+            guard let parent = context.parent else { throw ExactScalarFailure.invalidEvidence }
+            d = try p.constant(Self(context: parent).integer(1, using: &a), using: &a)
         }
         guard let leading = d.terms.first, let parentContext = context.parent else { throw ExactScalarFailure.invalidEvidence }
-        let parent = Self(context: parentContext)
-        let one = try parent.integer(1, using: &a)
+        let parent = Self(context: parentContext), one = try parent.integer(1, using: &a)
         if try parent.compare(leading.coefficient, one, using: &a) != .equal {
             let inverse = try parent.dividing(one, leading.coefficient, using: &a)
-            n = try p.scaled(n, by: inverse, using: &a)
-            d = try p.scaled(d, by: inverse, using: &a)
+            n = try p.scaled(n, by: inverse, using: &a); d = try p.scaled(d, by: inverse, using: &a)
         }
-        return Value(context: context, storage: .fraction(n, d), depth: a.depth)
+        return Value(context: context, storage: .fraction(n, d), depth: a.depth, calculation: receipt)
     }
     public func integer<I: BinaryInteger, A: ExactScalarAdmission & ~Copyable>(_ source: I,
         using admission: inout A) throws(ExactScalarFailure) -> Value {

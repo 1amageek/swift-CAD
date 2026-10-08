@@ -1,0 +1,54 @@
+{
+  "asan": {
+    "canonical_fixture_compiled": true,
+    "sha256": "cdc48c2059075ce42631086b6119dee11ab77c2eb054e68665c7594e42ba2141",
+    "task_store": ".build/l3-asan/out/Intermediates.noindex/XCBuildData/b6329bf3186595fcb339041f73df0121.xcbuilddata/task-store.msgpack",
+    "verified_markers": {
+      "-Onone": true,
+      "-sanitize=address": true,
+      "-whole-module-optimization": false,
+      "embedded-swift-sdk.json": false,
+      "swift-6.4.0-RELEASE.xctoolchain": true,
+      "wasm32-unknown-wasip1": false
+    }
+  },
+  "embedded": {
+    "canonical_fixture_compiled": true,
+    "sha256": "32af53ac333281f8cf44ab260ef2734d7ca454dcee5db76f675712d45890a069",
+    "task_store": ".build/l3-embedded/out/Intermediates.noindex/XCBuildData/eb8db778b8859962f627040c2e086795.xcbuilddata/task-store.msgpack",
+    "verified_markers": {
+      "-Onone": true,
+      "-sanitize=address": false,
+      "-whole-module-optimization": true,
+      "embedded-swift-sdk.json": true,
+      "swift-6.4.0-RELEASE.xctoolchain": true,
+      "wasm32-unknown-wasip1": true
+    }
+  },
+  "native": {
+    "canonical_fixture_compiled": true,
+    "sha256": "39c3c9c4a85e71b78d46d3bececd7aabcbde5a1bf0578a098f45ce60b1c372f7",
+    "task_store": ".build/l3-native/out/Intermediates.noindex/XCBuildData/1800117690ddfe3da0ff7a9877efbdff.xcbuilddata/task-store.msgpack",
+    "verified_markers": {
+      "-Onone": true,
+      "-sanitize=address": false,
+      "-whole-module-optimization": false,
+      "embedded-swift-sdk.json": false,
+      "swift-6.4.0-RELEASE.xctoolchain": true,
+      "wasm32-unknown-wasip1": false
+    }
+  },
+  "wasm": {
+    "canonical_fixture_compiled": true,
+    "sha256": "2c4b928236f3cdf3c5e87711b27387efd391117a6bebe7875987c8180d0a734a",
+    "task_store": ".build/l3-wasm/out/Intermediates.noindex/XCBuildData/0a246b6b3ebcfb3a738f62cdb936e0ad.xcbuilddata/task-store.msgpack",
+    "verified_markers": {
+      "-Onone": true,
+      "-sanitize=address": false,
+      "-whole-module-optimization": false,
+      "embedded-swift-sdk.json": false,
+      "swift-6.4.0-RELEASE.xctoolchain": true,
+      "wasm32-unknown-wasip1": true
+    }
+  }
+}

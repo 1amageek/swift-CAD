@@ -10,5 +10,6 @@ struct ExactRealCellProjectionLevel<Base: ExactScalarArithmetic & ExactScalarOrd
     let cutLawCount: Int
     let laws: [Polynomial]
     let coefficients: [[Polynomial]]
+    let bindings: [ExactRealCellProjectionBinding<Base>]
     let witnesses: [ExactRealCellProjectionWitness<Base>]
 }

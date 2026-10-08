@@ -1,0 +1,10 @@
+{
+  "scripts/run_wasi_smoke.mjs": {
+    "retained": "../ConvergenceEvidence/retained-run_wasi_smoke.mjs",
+    "sha256": "f5fc33f6db8d4fa7b160cf054d07e82a497484e4c8c2397916b26aed89fc7dc6"
+  },
+  "scripts/swift-test-timeout.sh": {
+    "retained": "../ConvergenceEvidence/retained-swift-test-timeout.sh",
+    "sha256": "b75109a63054e4d5679cbd2aa6563d18c7411da7d438e4a0902f5eda196d9fcf"
+  }
+}

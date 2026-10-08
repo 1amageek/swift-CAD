@@ -16,6 +16,10 @@ struct TerminalAdmission: ExactScalarAdmission {
         let sum = storage.addingReportingOverflow(bytes)
         guard bytes >= 0, !sum.overflow else { throw .countOverflow }; storage = sum.partialValue
     }
+    mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+        guard depth >= 0 else { throw .invalidEvidence }
+        try checkpoint()
+    }
     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
         guard value >= 0, coefficient >= 0 else { throw .invalidEvidence }
     }

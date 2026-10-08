@@ -62,6 +62,14 @@ flowchart LR
   connected source-parameter components, including positive-dimensional ones.
   The isolated representative count separately obeys maximumRootAttempts.
 
+Numerical CS and SSI publication compare each retained exact coordinate with
+both finite seed endpoints in the original coefficient field under the same
+caller admission. Proven equality collapses that coordinate to an exact
+singleton before bisection, preserving authored closed endpoints and exact
+hull corners. Approximate proximity never triggers this collapse. A failed
+containment or exact comparison propagates failure; no representative is
+snapped to an endpoint from residuals or tolerance.
+
 ## Runtime Flows
 Validate applicability -> prepare source/domain -> L5 -> L6 -> retain source-bound
 receipt -> numerical publication -> final cancellation -> return. The explicit exact-admission numerical overloads share the producer. Migration of
@@ -95,3 +103,50 @@ still use their original producers until retained legacy receipt consumers migra
 together with their public-path proofs. They are not claimed as L6-connected.
 The numerical residual is a certified upper bound; exact squared-distance checks
 prove it bounds representative mismatch and never establish contact existence.
+
+## Existing Caller Admission Migration
+
+Ordinary and callback entry composition uses an invocation-local adapter of the
+existing NativeCurveSurfacePointAllowance / SSI allowance. The L0 required cell
+visit port forwards value and coefficient visits to the same existing cumulative
+cell counter after lower causal-depth mapping. `admitDepth` checks depth only and
+does not consume cells. Checked bytes-to-UInt32-word rounding preserves the old
+storage policy. Source/decomposition/root/result caps remain independent.
+
+Applicability is decided before the first exact solve. Finite closed nonperiodic
+positive-weight single-span Native inputs use one L5/L6 relation; unsupported
+shape/domain cases retain their existing issuer. Failure after exact dispatch is
+propagated and never replays the legacy solver. Rich receipt consumers, including
+boundary clipping, must consume the new retained evidence before their route is
+claimed migrated. No old receipt is reconstructed by solving the same problem.
+
+The legacy entry has no separate L6 stored-cell, closure, attachment, strata,
+projection-span or scalar-extension-level option. Those structural fields are
+Int.max in the adapter rather than an invented additional ceiling. This does not
+remove any existing caller ceiling: actual L2/L3 visits, work, allocation bytes
+and both independent depths still reach that same finite original allowance.
+Publisher candidate/component/root limits retain their previous meanings. Explicit
+exact-ledger overloads continue to honor every caller-specified lower structural
+limit. This internal mapping is not an increase to any existing public option.
+
+Default supported single-span results retain `originalExactGeometricRelation`;
+older optional Native receipt properties remain available for their unchanged
+multi-span/periodic producers. The L6 receipt is the complete original parameter,
+image and fiber authority, including empty results. Legacy receipt consumers
+require a separate compatible L6 consumption route; no recreated legacy solve is
+used to populate optional properties. Migration tests must cover that consumption.
+
+## Current Lower Contract Integration
+
+Compose main326af519 consumers with verified lower69cd4c4f contracts. The public
+Geometry allowance owns cumulative actual visits; its bridge forwards L0.visitCell
+without a reset or new ceiling. Weighted CS (work16777216/depth32) and folded SSI
+(work80000000/depth32) must complete through existing entries and retain L5 guard/
+square reduction and L6 correspondence. Reuse saved b7cc13e4 CS/SSI migration
+source after review and actual stable public proof. Diagnostic and boundary
+changes are not imported. Failure after applicability cannot replay another solver.
+
+NativeExactRelationVerification owns actual full Core/Geometry Native/ASAN/matching
+WASI/Embedded execution. Lower evidence is reused by exact source input hashes;
+changed callers and upper assembly are verified separately. Project PROGRESS.md
+owns this integration; no whole-seven or full87 completion is inferred.

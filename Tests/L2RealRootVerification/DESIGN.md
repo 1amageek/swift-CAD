@@ -37,3 +37,12 @@ Use Swift 6.4.0, matching WASM SDKs and dedicated build paths with guarded
 commands. Run Native tests, ASAN and both portable proofs. Record source hashes,
 compiler inventories and actual behavior. Changes to a fixture or affected
 production source invalidate only dependent evidence.
+
+## Canonical Scalar Performance Regression
+
+[CanonicalScalarFixtures](Sources/Fixtures/CanonicalScalarFixtures.swift) checks
+constant and polynomial scalar signs against independently bound public root-sign
+queries, base comparison, canonical arithmetic identities, zero divisor, sibling
+rejection, exact work/storage N and N-1, inherited coefficient depth and terminal
+cancellation. Existing reducible local laws and actual multistage tower remain
+mandatory. Composed lower verification owns Native/ASAN and both WASI proofs.

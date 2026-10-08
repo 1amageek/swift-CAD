@@ -75,6 +75,23 @@ extension ExactRealCellDomain: ExactRealCellDescribing, ExactRealCellTraversing 
    let specialized = try r.bind(specialize(law, prefix: prefix, axis: axis, into: r.polynomials, &a), using: &a)
    if try r.sign(of: specialized, at: root, using: &a) == .zero { support = index; break }
   }
+  guard stack.rootMultiplicities.indices.contains(incoming),
+   stack.rootMultiplicities[incoming].indices.contains(ordinal) else { throw ExactRealCellFailure.invalidCoverage }
+  let incomingMultiplicity = stack.rootMultiplicities[incoming][ordinal]
+  guard incomingMultiplicity > 0,
+   let incomingDegree = try polynomials.degree(of: level.laws[incoming], in: axis, using: &a) else {
+   throw ExactRealCellFailure.invalidCoverage
+  }
+  try ExactCellAccess.storage(ExactCellAccess.add(incomingDegree, 1), ExactSign.self, &a)
+  var incomingSigns: [ExactSign] = [], incomingDerivative = level.laws[incoming]
+  incomingSigns.reserveCapacity(incomingDegree + 1)
+  for order in 0...incomingDegree {
+   let specialized = try r.bind(specialize(incomingDerivative, prefix: prefix, axis: axis, into: r.polynomials, &a), using: &a)
+   incomingSigns.append(try r.sign(of: specialized, at: root, using: &a))
+   if order < incomingDegree { incomingDerivative = try polynomials.differentiated(incomingDerivative, in: axis, using: &a) }
+  }
+  guard incomingSigns.first == .zero,
+   incomingSigns.firstIndex(where: { $0 != .zero }) == incomingMultiplicity else { throw ExactRealCellFailure.invalidCoverage }
   let polynomial = level.laws[support ?? incoming]
   guard let degree = try polynomials.degree(of: polynomial, in: axis, using: &a), degree > 0 else { throw ExactRealCellFailure.invalidCoverage }
   try ExactCellAccess.storage(ExactCellAccess.add(degree, 1), ExactSign.self, &a)
@@ -88,7 +105,7 @@ extension ExactRealCellDomain: ExactRealCellDescribing, ExactRealCellTraversing 
   }
   guard signs.first == .zero else { throw ExactRealCellFailure.invalidCoverage }
   return .init(parent: parent, axis: axis, rootOrdinal: ordinal, incomingLawIndex: incoming,
-   incomingLaw: level.laws[incoming], polynomial: polynomial, derivativeSigns: signs, depth: a.depth)
+   incomingLaw: level.laws[incoming], incomingMultiplicity: incomingMultiplicity, incomingDerivativeSigns: incomingSigns, polynomial: polynomial, derivativeSigns: signs, depth: a.depth)
  }
  public func definition<A: ExactScalarAdmission & ~Copyable>(of cell: ExactRealCellID<Base>, in partition: borrowing ExactRealCellPartition<Base>, using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellDefinition<Base> {
   let partition = copy partition

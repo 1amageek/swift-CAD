@@ -12,11 +12,11 @@ enum ExactCellAccess {
             try admission.checkpoint()
             let depth = try inherited ?? ExactScalarDepth(value: 0, coefficient: 0)
             try admission.admitDepth(value: depth.value, coefficient: depth.coefficient)
-            // Class payload/header plus four scoped closure contexts, each retaining one pointer.
+            // Class payload/header plus five scoped closure contexts, each retaining one pointer.
             let closure = MemoryLayout<() throws -> Void>.stride
             let pointer = MemoryLayout<UnsafeRawPointer>.stride
-            let bytes = try add(add(multiply(4, closure), MemoryLayout<ExactScalarDepth>.stride),
-                add(multiply(2, pointer), multiply(4, multiply(3, pointer))))
+            let bytes = try add(add(multiply(5, closure), MemoryLayout<ExactScalarDepth>.stride),
+                add(multiply(2, pointer), multiply(5, multiply(3, pointer))))
             try admission.retainStorage(bytes: bytes)
             let result = try withUnsafeMutablePointer(to: &admission) { pointer in
                 var usage = ExactCellBorrowedAdmission(owner: ExactCellInvocationOwner(caller: pointer, depth: depth))

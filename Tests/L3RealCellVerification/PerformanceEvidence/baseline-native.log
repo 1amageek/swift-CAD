@@ -1,0 +1,27 @@
+SAMPLE 1
+PASS weighted source-equivalent CS full box: cells=245, work=2409963/16777216, storage=103174098, depths=28/0
+PASS weighted source-equivalent CS full box: cells=245, work=2409963/16777216, storage=103174098, depths=28/0
+PASS weighted source-equivalent CS full box: cells=245, work=2409963/16777216, storage=103174098, depths=28/0
+PASS: runtime algebraic tower and retained ancestor embeddings
+PASS: runtime algebraic tower and retained ancestor embeddings
+PASS: runtime algebraic tower and retained ancestor embeddings
+L3.weighted repetitions=3 elapsed=6.620089334 seconds
+L2.tower repetitions=3 elapsed=1.573528875 seconds
+SAMPLE 2
+PASS weighted source-equivalent CS full box: cells=245, work=2409963/16777216, storage=103174098, depths=28/0
+PASS weighted source-equivalent CS full box: cells=245, work=2409963/16777216, storage=103174098, depths=28/0
+PASS weighted source-equivalent CS full box: cells=245, work=2409963/16777216, storage=103174098, depths=28/0
+PASS: runtime algebraic tower and retained ancestor embeddings
+PASS: runtime algebraic tower and retained ancestor embeddings
+PASS: runtime algebraic tower and retained ancestor embeddings
+L3.weighted repetitions=3 elapsed=6.802033875 seconds
+L2.tower repetitions=3 elapsed=1.599913208 seconds
+SAMPLE 3
+PASS weighted source-equivalent CS full box: cells=245, work=2409963/16777216, storage=103174098, depths=28/0
+PASS weighted source-equivalent CS full box: cells=245, work=2409963/16777216, storage=103174098, depths=28/0
+PASS weighted source-equivalent CS full box: cells=245, work=2409963/16777216, storage=103174098, depths=28/0
+PASS: runtime algebraic tower and retained ancestor embeddings
+PASS: runtime algebraic tower and retained ancestor embeddings
+PASS: runtime algebraic tower and retained ancestor embeddings
+L3.weighted repetitions=3 elapsed=6.642807584 seconds
+L2.tower repetitions=3 elapsed=1.552997292 seconds
