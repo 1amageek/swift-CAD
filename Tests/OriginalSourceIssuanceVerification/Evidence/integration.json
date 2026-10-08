@@ -1,0 +1,17 @@
+{
+  "mainBase": "68d9a626",
+  "implementation": "3eacab1b",
+  "proofInputsReused": 107,
+  "lowerInputsUnchanged": 88,
+  "ownedTestFileReused": 1,
+  "sourceOrBuildManifestConflicts": 0,
+  "existingProductionSourcesChanged": 0,
+  "upperBuildPerformed": false,
+  "progressPreserved": [
+    "DI.D",
+    "CSOPT.S",
+    "CSOPT.INT"
+  ],
+  "requirementCount": "1/7",
+  "verification": "Reuse stable four-lane source/log/artifact evidence. New law API has no migrated upper consumer."
+}

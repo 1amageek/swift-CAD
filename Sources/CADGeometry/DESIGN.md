@@ -95,7 +95,7 @@ measurement policy.
 
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
-| [Original Source Issuance](OriginalSourceIssuance/DESIGN.md) | child | Proposed source binding and exact local-law issuance contracts | Separates original provenance/laws from domain coverage and relation solving | Design only; existing family contracts remain authoritative until migration, and unresolved primitive semantics remain gated |
+| [Original Source Issuance](OriginalSourceIssuance/DESIGN.md) | child | Source-provider binding and exact Native selected-span local-law contracts | Independently verified using only L0/L1 and source-provider ports | Existing geometry adapters and all-family/domain migration remain open; unresolved primitive semantics remain gated |
 | [NativeExactRelations](NativeExactRelations/DESIGN.md) | child | Explicit source-bound Native exactParameterRelation using L0-L5 | Connects complete parameter topology to existing intersectors | Single-span finite nonperiodic scope; existing XYZ publication remains separate |
 | [BSplineCurveCommonBasis](BSplineCurveCommonBasis/DESIGN.md) | child | Caller-paid original common-basis preparation | Supplies shared immutable connector images | Retain original curve laws and the same cumulative allowance |
 | [SurfaceProjectionAdmission](SurfaceProjectionAdmission/DESIGN.md) | child | Whole-domain original closest-point projection with caller admission | Owns finite support inverse query coverage | Numerical witnesses carry original residual upper bounds |
