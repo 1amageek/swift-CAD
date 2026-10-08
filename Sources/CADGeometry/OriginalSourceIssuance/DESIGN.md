@@ -188,11 +188,12 @@ work starts. Once issuance starts, resource exhaustion, cancellation, invalid
 binding or unresolved evidence aborts; no other issuer is silently retried.
 Unsupported required representation remains an explicit incomplete family.
 
-The legacy nil-U/direct analytic plane authority is recorded as unresolved in
-PROGRESS I7R.SA.CP. This design neither selects stored-normal authority nor
-evaluation-basis authority for that unresolved path. Only already-resolved family
-semantics may authorize successful issuance. The common ownership and local-law
-contracts are independent of that choice; affected plane migration remains gated.
+The user fixed legacy nil-U/direct analytic plane authority to stored N and origin
+(PROGRESS I7R.SA.CP). Exact normalization and basis evidence must connect evaluation
+and UV to that original equation; frozen rounded U/V is not source authority.
+OriginalPlaneBasisIssuing and its coordinate queries implement the independent
+proof boundary. Actual legacy evaluators and public contact adapters still require
+migration; this remaining implementation is not an unresolved authority decision.
 
 ## Runtime Flows
 
