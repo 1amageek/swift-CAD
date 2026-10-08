@@ -1,0 +1,236 @@
+warning: 'nativeexactrelationverification': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalPointRelationProof/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalRealRelationProof/DESIGN.md
+warning: 'nativeexactrelationverification': found 79 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+warning: 'nativeexactrelationverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/FailureContract/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+Building for debugging...
+[Pre-planning 1 / 270]
+[Planning deferred tasks]
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/Modules/NativeExactPreparationProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/CADIntersectionPortabilityEntry.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/CADIntersectionPortabilityEntry.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/Modules/NativeExactProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/CADIntersectionPortabilitySmoke Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/Modules/NativeExactProof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/CADIntersectionPortabilitySmoke Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/Modules/NativeExactProof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/Modules/NativeExactPreparationProof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/CADIntersectionPortabilitySmoke-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/Modules/NativeExactProof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/Modules/NativeExactPreparationProof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/NativeExactProof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/Modules/NativeExactPreparationProof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/CADIntersectionPortabilitySmoke.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/NativeExactProof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/NativeExactPreparationProof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/NativeExactProof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/NativeExactProof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/NativeExactPreparationProof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/CADIntersectionPortabilitySmoke.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/NativeExactProof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/NativeExactPreparationProof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/NativeExactProof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/CADIntersectionPortabilitySmoke_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/NativeExactPreparationProof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/Modules/CADIntersectionPortabilitySmoke.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactProof-p.build/Objects-normal/wasm32/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/NativeExactPreparationProof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Products/Debug-webassembly-wasm32/NativeExactProof.wasm' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/Modules/CADIntersectionPortabilitySmoke.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/NativeExactPreparationProof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/Modules/CADIntersectionPortabilitySmoke.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/NativeExactPreparationProof-p.build/Objects-normal/wasm32/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/Modules/CADIntersectionPortabilitySmoke.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Products/Debug-webassembly-wasm32/NativeExactPreparationProof.wasm' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/OriginalPointRelationAllowance.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/OriginalPointRelationAllowance.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/OriginalPointRelationProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/OriginalPointRelationProof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/OriginalRealRelationAllowance.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/OriginalRealRelationAllowance.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/OriginalRealRelationProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Intermediates.noindex/NativeExactRelationVerification.build/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke-p.build/Objects-normal/wasm32/OriginalRealRelationProof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-public-integration-20261008/.build/native-exact-wasm/out/Products/Debug-webassembly-wasm32/CADIntersectionPortabilitySmoke.wasm' is located outside of the allowed root paths.
+
+[13 / 31] CADGeometry
+[15 / 33] CADGeometry
+/private/tmp/cad-lower-public-main-integration-20261008/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:336:5: warning: 'internal' modifier conflicts with extension's default access of 'private'
+334 | 
+335 | private extension SurfaceParameterCurve {
+336 |     internal func thirdOrderDifferential(
+    |     `- warning: 'internal' modifier conflicts with extension's default access of 'private'
+337 |         atNormalizedFraction fraction: Double,
+338 |         on supportSurface: Surface3D,
+
+/private/tmp/cad-lower-public-main-integration-20261008/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:49:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+47 |             let argument = SurfaceIntervalJet.parameterU(box.u)
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+   |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+
+/private/tmp/cad-lower-public-main-integration-20261008/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:50:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+   |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+52 |             let cycle = cosine ? [cos, -sine, -cos, sine] : [sine, cos, -sine, -cos]
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[15 / 34] CADGeometry
+[21 / 38] CADIntersectionPortabilitySmoke-product
+[25 / 46] NativeExactFixtures
+[26 / 46] CADIntersectionPortabilitySmoke-product
+[29 / 46] CADIntersectionPortabilitySmoke-product
+[29 / 46] NativeExactFixtures
+[33 / 48] CADIntersectionPortabilitySmoke-product
+[36 / 50] NativeExactProof-product
+[45 / 58] NativeExactPreparationProof-product
+[51 / 60] NativeExactPreparationProof-product
+[55 / 61] CADGeometry
+[55 / 61]
+[56 / 61] CADGeometry
+/private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Package.swift: CADIntersectionPortabilitySmoke-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+/private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Package.swift: NativeExactPreparationProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[61 / 61] CADIntersectionPortabilitySmoke-product
+/private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Package.swift: NativeExactProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+/private/tmp/cad-lower-public-main-integration-20261008/Tests/NativeExactRelationVerification/Package.swift: NativeExactGeometricProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[61 / 61] NativeExactGeometricProof-product
+Build complete! (15.48秒)

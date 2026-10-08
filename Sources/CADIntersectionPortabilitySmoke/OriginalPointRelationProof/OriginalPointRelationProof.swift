@@ -56,6 +56,53 @@ enum OriginalPointRelationProof {
         throw ProofError.incorrectPublication
     }
 
+    private static func verifyNativePoint(_ owner: NativeExactGeometricRelation,
+        independentOwner: NativeExactGeometricRelation, parameters: [Double]) throws {
+        let relation = owner.parameterRelation.relation
+        try require(relation.components.count == 1 && relation.selection.cells.count == 1
+            && owner.geometry.strata.count == 1 && !owner.hasPositiveDimensionalSolutions)
+        let handle = try owner.geometry.identifier(at: 0)
+        let cell = try owner.geometry.sourceCell(of: handle)
+        try require(cell == relation.selection.cells[0] && cell.dimension == 0)
+        do {
+            _ = try independentOwner.geometry.sourceCell(of: handle)
+            throw ProofError.incorrectPublication
+        } catch ExactGeometricRelationFailure.foreignHandle { }
+        var admission = ExactScalarLedger(limits: try .init(work: 80_000_000,
+            storageBytes: 1_073_741_824, valueDepth: 32, coefficientDepth: 32))
+        let cells = try ExactRealCellDomain<ExactRationalScalarDomain>(
+            retaining: relation.original.predicate.source, using: &admission)
+        let sample = try cells.sample(of: cell, in: relation.selection.partition, using: &admission)
+        try require(sample.coordinates.count == parameters.count)
+        for axis in parameters.indices {
+            let expected = try sample.field.binary64(exactly: parameters[axis], using: &admission)
+            try require(try sample.field.compare(sample.coordinates[axis], expected,
+                using: &admission) == .equal)
+        }
+    }
+
+    private static func verifyNativeExclusion(_ owner: NativeExactGeometricRelation,
+        parameterCount: Int) throws {
+        let relation = owner.parameterRelation.relation
+        try require(owner.geometry.isEmpty && relation.selection.cells.isEmpty
+            && relation.components.count == 0 && !owner.hasPositiveDimensionalSolutions)
+        let domains = relation.original.predicate.source.domains
+        try require(domains.count == parameterCount
+            && relation.original.first.parameterCount + relation.original.second.parameterCount == parameterCount)
+        var admission = ExactScalarLedger(limits: try .init(work: 80_000_000,
+            storageBytes: 1_073_741_824, valueDepth: 32, coefficientDepth: 32))
+        let field = owner.parameterRelation.coefficientField
+        let zero = try field.integer(0, using: &admission), one = try field.integer(1, using: &admission)
+        for domain in domains {
+            guard case .finite(let lower) = domain.lower, case .finite(let upper) = domain.upper else {
+                throw ProofError.incorrectPublication
+            }
+            try require(!domain.isEmpty && domain.includesLower && domain.includesUpper)
+            try require(try field.compare(lower, zero, using: &admission) == .equal)
+            try require(try field.compare(upper, one, using: &admission) == .equal)
+        }
+    }
+
     static nonisolated func run() throws {
         try planeDerivativeValueProof()
         try ruledPublicProof()
@@ -70,24 +117,20 @@ enum OriginalPointRelationProof {
         try require(ordinary.points == admitted.points && ordinary.points.count == 1)
         try require(ordinary.points[0].point == Point3D(x: 0.5,y: 0.5,z: 0))
         try require(ordinary.points[0].curveParameter == 0.5 && ordinary.points[0].surfaceU == 0.5
-            && ordinary.points[0].surfaceV == 0.5 && ordinary.originalNativePoints?.count == 1)
-        guard let curveReceipt = ordinary.originalNativePoints else { throw ProofError.incorrectPublication }
-        var originalUsage = OriginalRelationUsage(consumeWork: { _ in }, retainStorage: { _ in },
-            visitCell: { _ in }, visitCoefficientCell: { _ in })
-        let half = try ExactRationalCoefficient.originalDouble(0.5, usage: &originalUsage)
-        let curveHandle = try curveReceipt.point(at: 0)
-        try require(curveReceipt.owns(curveHandle))
-        for axis in 0..<3 {
-            try require(try curveHandle.compareParameter(axis: axis, to: half, in: curveReceipt,
-                maximumAlgebraicDepth: 32, usage: &originalUsage) == .zero)
+            && ordinary.points[0].surfaceV == 0.5)
+        guard let curveReceipt = ordinary.originalExactGeometricRelation,
+            let admittedCurveReceipt = admitted.originalExactGeometricRelation else {
+            throw ProofError.incorrectPublication
         }
+        try verifyNativePoint(curveReceipt, independentOwner: admittedCurveReceipt, parameters: [0.5, 0.5, 0.5])
         try require(allowance.counts.work > 0 && allowance.counts.storage > 0)
         try require(try discrete.intersections(curve: c, surface: p,
             options: .init(), tolerance: tolerance) == ordinary.points)
         let empty = try cs.intersectionResult(curve: .bSpline(curve(z0: 1,z1: 2)),
             surface: p, options: .init(), tolerance: tolerance)
-        try require(empty.points.isEmpty && empty.originalNativePoints?.count == 0
-            && empty.originalNativePoints?.effectiveDomains?.count == 3)
+        guard let emptyReceipt = empty.originalExactGeometricRelation else { throw ProofError.incorrectPublication }
+        try require(empty.points.isEmpty)
+        try verifyNativeExclusion(emptyReceipt, parameterCount: 3)
         try expectFailure(.nonDiscreteIntersection) {
             _ = try discrete.intersections(curve: .bSpline(.init(degree: 1, knots: [0,0,1,1], controlPoints: [
                     .init(x: 0,y: 0.5,z: 0), .init(x: 1,y: 0.5,z: 0)])),
@@ -103,27 +146,24 @@ enum OriginalPointRelationProof {
         let normal = try ssi.intersectionResult(first: p,second: second,options: .init(),tolerance: tolerance)
         let ssiAllowance = OriginalPointRelationAllowance()
         let selected = try admittedSSI(ssi,first: p,second: second,allowance: ssiAllowance)
-        try require(normal.intersections == selected.intersections && normal.intersections.count == 1
-            && normal.originalNativePoints?.count == 1)
+        try require(normal.intersections == selected.intersections && normal.intersections.count == 1)
         guard case .point(let point) = normal.intersections[0] else { throw ProofError.incorrectPublication }
         try require(point.point == .origin && point.firstSurfaceParameter.u == 0
             && point.firstSurfaceParameter.v == 0 && point.secondSurfaceParameter.u == 0
             && point.secondSurfaceParameter.v == 0)
-        guard let surfaceReceipt = normal.originalNativePoints, let surfaceHandle = point.originalNativePoint else {
+        guard let surfaceReceipt = normal.originalExactGeometricRelation,
+            let selectedReceipt = selected.originalExactGeometricRelation else {
             throw ProofError.incorrectPublication
         }
-        try require(surfaceReceipt.owns(surfaceHandle))
-        for axis in 0..<4 {
-            try require(try surfaceHandle.compareParameter(axis: axis, to: .zero, in: surfaceReceipt,
-                maximumAlgebraicDepth: 32, usage: &originalUsage) == .zero)
-        }
+        try verifyNativePoint(surfaceReceipt, independentOwner: selectedReceipt, parameters: [0, 0, 0, 0])
         try require(ssiAllowance.counts.work > 0 && ssiAllowance.counts.storage > 0)
         try require(try ssi.intersections(first: p,second: second,options: .init(),
             tolerance: tolerance) == normal.intersections)
         let absent = try ssi.intersectionResult(first: .bSpline(plane(z: -1)),second: second,
             options: .init(),tolerance: tolerance)
-        try require(absent.intersections.isEmpty && absent.originalNativePoints?.count == 0
-            && absent.originalNativePoints?.effectiveDomains?.count == 4)
+        guard let absentReceipt = absent.originalExactGeometricRelation else { throw ProofError.incorrectPublication }
+        try require(absent.intersections.isEmpty)
+        try verifyNativeExclusion(absentReceipt, parameterCount: 4)
         try expectFailure(.nonDiscreteIntersection) {
             _ = try ssi.intersections(first: p,second: p,options: .init(),tolerance: tolerance)
         }
@@ -137,7 +177,9 @@ enum OriginalPointRelationProof {
         try require(decodedCurve == c && decodedSurface == p)
         let decodedResult = try cs.intersectionResult(curve: decodedCurve, surface: decodedSurface,
             options: .init(), tolerance: tolerance)
-        try require(decodedResult.points == ordinary.points && decodedResult.originalNativePoints?.count == 1)
+        guard let decodedReceipt = decodedResult.originalExactGeometricRelation else { throw ProofError.incorrectPublication }
+        try require(decodedResult.points == ordinary.points)
+        try verifyNativePoint(decodedReceipt, independentOwner: curveReceipt, parameters: [0.5, 0.5, 0.5])
         print("PORTABLE_NATIVE_CODEC_PUBLIC_SOURCE_ROUNDTRIP_OK")
 #endif
     }

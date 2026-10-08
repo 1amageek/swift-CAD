@@ -22,6 +22,7 @@ insufficient. Geometry algorithms remain production-owned.
 | [Original Affine CS Points](../../CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md) | depends on | Exact affine source word and complete original UV tuples | Checks common public witness and retained source | Native detailed cases remain their own proof |
 | [Original Polynomial CS Points](../../CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md) | depends on | Complete isolated original tuple receipts and atomic non-discrete refusal | Supplies unchanged ruled source authority | Native-only detailed cases are reused; this executable checks target public capabilities |
 | [Native SSI Points](../../CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md) | depends on | Original tuple publication | Supplies surface/surface receipts | Empty success requires full coverage |
+| [Native Exact Geometric Relations](../../CADGeometry/NativeExactGeometricRelations/DESIGN.md) | depends on | Single-span L6 source/parameter owner and complete exclusion | Supplies migrated Native CS/SSI receipts | Legacy Native optional receipts are nil on this family; parameter equality and owner identity still require actual queries |
 | [Original Plane Derivatives](../../CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md) | depends on | Immutable generated source and native decoding allowance | Exercises common indirect storage | Copying must preserve source semantics and lifetime |
 
 ## Architecture
@@ -41,6 +42,11 @@ fixtures must fail atomically through the discrete publication requirement.
 Rich relation publication owns its separate contract and may support such
 coverage without changing the discrete requirement. Independent zero work and zero storage allowances
 must fail before publication. Cancellation inside admitted work must propagate.
+Migrated Native points retain L6 evidence: their handle must resolve to the retained
+selected cell, reject an independently solved owner's handle and expose the exact
+literal parameters. Empty L6 selections retain the complete closed unit domains.
+The verification uses an explicit bounded ledger for these retained-owner queries;
+it does not re-solve the original intersection or accept receipt presence alone.
 The weighted nonunit-domain Native curve/ruled fixture must pass all four rich/discrete
 ordinary/admitted protocol requirements. Its exact tuple owner survives input mutation
 and release; two UV preimages at one XYZ remain distinct. A finite no-root domain

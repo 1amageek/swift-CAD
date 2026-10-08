@@ -202,6 +202,44 @@ public enum L6PublicCurveSurfaceFixtures {
         print("PASS migrated CS distinct UV, rational weights, singleton and independent caller failures")
     }
 
+    public static func verifyCandidateLimits(onlyAdmitted: Bool? = nil) throws {
+        let curve = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [
+            .init(x: 0, y: 0, z: 0), .init(x: 1, y: 0, z: 0)])
+        let surface = BSplineSurface3D(uDegree: 1, vDegree: 2,
+            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 0, 1, 1, 1], controlPoints: [
+                [.init(x: 0, y: 0.1875, z: 0), .init(x: 1, y: 0.1875, z: 0)],
+                [.init(x: 0, y: -0.3125, z: 0), .init(x: 1, y: -0.3125, z: 0)],
+                [.init(x: 0, y: 0.1875, z: 0), .init(x: 1, y: 0.1875, z: 0)]])
+        for admitted in [false, true] where onlyAdmitted == nil || onlyAdmitted == admitted {
+            for ceiling in [1, 5] {
+                try resource {
+                    _ = try rich(curve, surface, options: .init(maximumCandidateCount: ceiling),
+                        caller: admitted ? Caller() : nil)
+                }
+            }
+            let result = try rich(curve, surface, options: .init(maximumCandidateCount: 6),
+                caller: admitted ? Caller() : nil)
+            guard let owner = result.originalExactGeometricRelation else {
+                throw NativeExactFixtures.Failure.invalidEvidence
+            }
+            try NativeExactFixtures.require(result.points.isEmpty && result.hasPositiveDimensionalSolutions
+                && owner.parameterRelation.relation.components.count == 2
+                && owner.parameterRelation.relation.selection.cells.count == 6)
+            var ledger = try NativeExactFixtures.ledger()
+            for v in [1, 3] {
+                try NativeExactFixtures.member([(1, 2), (1, 2), (v, 4)],
+                    owner.parameterRelation, expected: true, &ledger)
+            }
+            try NativeExactFixtures.member([(1, 2), (1, 2), (1, 2)],
+                owner.parameterRelation, expected: false, &ledger)
+            try nonDiscrete {
+                _ = try discrete(curve, surface, options: .init(maximumCandidateCount: 6),
+                    caller: admitted ? Caller() : nil)
+            }
+            print("PASS migrated CS complete selected-cell/component ceilings and both overlap branches admitted=\(admitted)")
+        }
+    }
+
     public static func verifyApplicability() throws {
         let curve = NativeExactFixtures.curve([-1, 1]), plane = NativeExactFixtures.plane()
         for mode in 0..<3 {

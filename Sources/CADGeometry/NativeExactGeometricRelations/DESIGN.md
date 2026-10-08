@@ -61,6 +61,11 @@ flowchart LR
 - SSI publication preserves the existing maximumSeedCount ceiling for all
   connected source-parameter components, including positive-dimensional ones.
   The isolated representative count separately obeys maximumRootAttempts.
+- CS publication preserves maximumCandidateCount for all selected solution cells,
+  connected source-parameter components and isolated representatives. Positive
+  components count even when the numerical points array is empty. The shared
+  publisher checks the retained L5 selection before numerical materialization;
+  ordinary, callback-admitted and explicit exact-admission entries share this check.
 
 Numerical CS and SSI publication compare each retained exact coordinate with
 both finite seed endpoints in the original coefficient field under the same
@@ -72,9 +77,11 @@ snapped to an endpoint from residuals or tolerance.
 
 ## Runtime Flows
 Validate applicability -> prepare source/domain -> L5 -> L6 -> retain source-bound
-receipt -> numerical publication -> final cancellation -> return. The explicit exact-admission numerical overloads share the producer. Migration of
-legacy ordinary/callback-admitted/prepared receipt consumers remains unconverted; resource exhaustion never selects another
-solver. Exact geometric public operations accept explicit lower limits/admission.
+receipt -> numerical publication -> final cancellation -> return. Ordinary,
+callback-admitted and explicit exact-admission numerical entries share the producer
+for the supported single-span family. SSI prepared entries use that same dispatch.
+Other families retain their existing producers; resource exhaustion never selects
+another solver. Exact geometric operations accept explicit lower limits/admission.
 
 ## State, Ownership, and Lifecycle
 All published evidence and source snapshots are immutable Sendable values. Solver
@@ -97,10 +104,10 @@ once and recheck only concrete findings. Source/domain expansion has its own tes
 
 ## Public Migration Boundary
 
-The added BSpline caller-ledger intersectionResult/intersections requirements use
-one L5/L6 relation. Existing Curve3D/Surface3D ordinary and callback-admitted queries
-still use their original producers until retained legacy receipt consumers migrate
-together with their public-path proofs. They are not claimed as L6-connected.
+BSpline caller-ledger and existing Curve3D/Surface3D ordinary/callback-admitted
+intersectionResult/intersections requirements use one L5/L6 relation for the
+finite closed nonperiodic positive-weight single-span Native family. Multi-span
+and periodic inputs retain their original producers and are not L6-migrated.
 The numerical residual is a certified upper bound; exact squared-distance checks
 prove it bounds representative mismatch and never establish contact existence.
 
@@ -125,6 +132,8 @@ projection-span or scalar-extension-level option. Those structural fields are
 Int.max in the adapter rather than an invented additional ceiling. This does not
 remove any existing caller ceiling: actual L2/L3 visits, work, allocation bytes
 and both independent depths still reach that same finite original allowance.
+The complete CS selected-cell/component ceiling is checked after exact resolution
+and before numerical publication; the unchanged finite allowance bounds construction.
 Publisher candidate/component/root limits retain their previous meanings. Explicit
 exact-ledger overloads continue to honor every caller-specified lower structural
 limit. This internal mapping is not an increase to any existing public option.

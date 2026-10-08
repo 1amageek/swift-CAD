@@ -8,6 +8,9 @@ func l5SquareReductionContracts() throws { try L5SquareReductionFixtures.verify(
 func l6CurveSurfacePublicPublication() throws { try L6CurveSurfaceFixtures.verify() }
 
 @Test(.timeLimit(.minutes(2)))
+func l6CurveSurfaceCompleteCandidateLimits() throws { try L6PublicCurveSurfaceFixtures.verifyCandidateLimits() }
+
+@Test(.timeLimit(.minutes(2)))
 func l6SurfaceSurfacePublicPoints() throws { try L6SurfaceSurfaceFixtures.verifyPoints() }
 
 @Test(.timeLimit(.minutes(2)))

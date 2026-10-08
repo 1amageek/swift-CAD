@@ -32,6 +32,10 @@ struct NativeExactCurveSurfacePointProducer {
                 maximumPolynomialDegree: options.maximumPolynomialDegree,
                 maximumExtensionLevel: maximumExtensionLevel, limits: limits, using: &admission)
             let relation = receipt.parameterRelation.relation
+            guard relation.selection.cells.count <= options.maximumCandidateCount,
+                relation.components.count <= options.maximumCandidateCount else {
+                throw exhausted(tolerance)
+            }
             let cells = try Cells(retaining: relation.original.predicate.source, using: &admission)
             var count = 0
             for members in relation.components.memberRanges {

@@ -83,3 +83,15 @@ succeeds for the former and explicitly refuses the latter; the latter also
 succeeds under the original depth32 admission. This tests actual causal depth
 without prescribing extra subdivision. Current four-lane composition receipts
 are [PublicIntegrationEvidence](PublicIntegrationEvidence/VERIFICATION.md).
+
+### Public review corrections
+
+Candidate-limit fixtures retain both continuous branches of the authored unit-domain
+CS relation and test ceilings1/5/6 through ordinary and admitted entries. Separate
+candidate-ordinary/candidate-admitted process groups bound ASAN/WASI execution;
+selection changes scheduling only, not inputs, cumulative query allowances or
+assertions. Full Native test execution additionally retains all existing fixtures.
+The existing CADIntersectionPortabilitySmoke source checks retained L6 handles,
+exact parameters, foreign-owner refusal and complete unit-domain exclusion.
+Its Embedded link follows the [portability recipe](../../Sources/CADIntersectionPortabilitySmoke/DESIGN.md)
+with the matching SDK's Unicode tables, while reusing this package's full-module cache.
