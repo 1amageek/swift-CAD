@@ -1,0 +1,4 @@
+(node:65308) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS actual normalized original-word line: positive exact sqrt(1/2), full laws, same original field owner, source/field/depth/budget/cancel failures
+PASS actual rational original-word weighted tensor retains all four original laws, both parameter transports and product denominator

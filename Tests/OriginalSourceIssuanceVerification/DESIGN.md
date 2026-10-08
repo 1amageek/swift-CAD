@@ -38,11 +38,15 @@ No build of upper CADGeometry or another production target is authorized here.
 
 The original foundation evidence remains at [VERIFICATION](Evidence/VERIFICATION.md).
 [Fixtures](Sources/Fixtures/SourceFixtures.swift) and [tests](Tests/SourceTests.swift)
-now share ten behavior groups: original Native laws, selected/tensor spans,
+now share twelve behavior groups: original Native laws, selected/tensor spans,
 periodic laws, primitive images, ownership, typed failures, resources, exact
-physical-angle arithmetic/ordering, angle resources and cone images. The
+physical-angle arithmetic/ordering, angle resources, cone images, heterogeneous ruled laws and spatial action. The
 [adapter proof](Sources/GeometryProof/GeometryProof.swift) uses actual Native and
 analytic inputs, existing validators/basis authority and the same issuer laws.
+The [spatial proof](Sources/SpatialGeometryProof/SpatialGeometryProof.swift) also
+uses the current original-word provider, retained exact normalized frame and
+actual line/tensor child laws. Its import-only source overlays use one cached
+lower nominal identity without new root isolation.
 Its script verifies cached runtime artifact hashes and source-provider premises
 before linking. It records every reused object and every compiled adapter.
 The verification-only dual admission conformance reconciles cached and separately

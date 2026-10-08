@@ -240,6 +240,29 @@ law and identity authored parameter transport. Its actual provider accepts the
 existing raw and analytic line representations without normalizing directions.
 A finite selected chart is not whole unbounded-domain coverage.
 
+### Spatial operation-word composition
+
+The spatial issuer consumes an owned child rational receipt in the caller-selected
+exact field. Its source port exposes twelve already-exact coefficients and a
+retained child binding. The parent chart selection retains the full child receipt.
+The result has H'[row]=sum(M[row,column]*H[column]) and W'=W. Original child support,
+all parameter transport and denominator guards remain unchanged. Checked imports
+prove coefficient-field compatibility; incompatible owners fail explicitly. The
+issuer has no root isolation, rounded transform, solver or domain-cover operation.
+
+Actual curve/surface operation-word providers retain the existing authored image
+and prepared word. Rational words import original rational coefficients into an
+explicit rational context. Normalized words reuse the existing immutable normalized
+frame context and exact field elements. The provider uses the existing L0 numeric
+admission bridge for coefficient reads, preserves attained depths, and binds the
+exact field by retaining an existing coefficient. It never constructs a second
+selected root or uses coefficient enclosures as source values. Word validation
+uses the provider-injected current caller tolerance; the original image's transformed
+child tolerance never substitutes for the word's normalization policy. Child validation
+remains an injected capability; source depth is one plus the retained child's
+source depth. Both actual provider paths are independently compiled against the
+validated geometry module; no upper target build is required by this boundary.
+
 ### Receipt content and evidence
 
 | Retained value | Owner and invariant |
