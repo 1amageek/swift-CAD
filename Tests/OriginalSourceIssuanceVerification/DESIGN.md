@@ -7,7 +7,9 @@ No children. Compile actual linked issuer sources independently of upper CAD.
 ## Responsibilities and Boundaries
 Own the source inventory gate, exact behavioral fixtures, timeout-bounded runtime
 and evidence for the [issuer contract](../../Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md).
-Actual geometry-provider conformance and whole-seven acceptance are separate.
+The separate adapter proof compiles only concrete source providers/readers and
+the existing AnalyticBasis source against validated cached geometry modules.
+Whole-seven acceptance and CS/SSI consumer migration are outside this proof.
 
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -33,4 +35,29 @@ Separate bounded build from runtime; tests/proofs have a maximum120s timeout.
 Native/ASAN and normal/Embedded compile/link/runtime are independent lane evidence.
 No build of upper CADGeometry or another production target is authorized here.
 
-Stable four-lane behavior, compiled-input boundary and scoped review are recorded in [VERIFICATION](Evidence/VERIFICATION.md). [fixtures](Sources/Fixtures/SourceFixtures.swift) own the five exact behavior groups; [tests](Tests/SourceTests.swift) and the proof executable run those same groups. The injected NativeProvider verifies primitive snapshot assumptions; production Geometry provider migration is not established.
+The original foundation evidence remains at [VERIFICATION](Evidence/VERIFICATION.md).
+[Fixtures](Sources/Fixtures/SourceFixtures.swift) and [tests](Tests/SourceTests.swift)
+now share ten behavior groups: original Native laws, selected/tensor spans,
+periodic laws, primitive images, ownership, typed failures, resources, exact
+physical-angle arithmetic/ordering, angle resources and cone images. The
+[adapter proof](Sources/GeometryProof/GeometryProof.swift) uses actual Native and
+analytic inputs, existing validators/basis authority and the same issuer laws.
+Its script verifies cached runtime artifact hashes and source-provider premises
+before linking. It records every reused object and every compiled adapter.
+The verification-only dual admission conformance reconciles cached and separately
+compiled module identities; it forwards the identical scoped noncopyable L0
+borrow. Production has one legacy admission protocol and needs no such shim.
+
+| State | Native / ASAN | WASM / Embedded | Ownership and access |
+|---|---|---|---|
+| Source/angle/polynomial owners | Immutable Sendable owners | Identical declarations | Read-only retained COW payloads; no mutation entry |
+| Caller admission | Exclusive inout ~Copyable ledger | Identical declarations | Query-local, never retained or shared |
+| Sign refinement | Invocation-local mutable value | Identical declarations | Cannot escape its exclusive call; no shared cache |
+
+There is no target-specific synchronization or Sendable branch in issuer sources.
+Changes to cached validators, gauge/basis authority or compiler inputs invalidate
+the affected adapter evidence. Root-solving, full requested-domain coverage and
+existing CS/SSI public consumer behavior are not inferred from these tests.
+
+The Native/primitive/physical-angle extension is recorded in
+[NativeImageEvidence](NativeImageEvidence/VERIFICATION.md).

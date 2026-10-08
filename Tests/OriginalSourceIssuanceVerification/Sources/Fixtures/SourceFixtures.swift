@@ -18,11 +18,11 @@ public enum SourceFixtures {
             weights: degree == 1 ? [1,2] : degree == 2 ? [1,2,1] : [1,2,3,4], periodic: [false])
     }
     static func issue<A: ExactScalarAdmission & ~Copyable>(_ input: NativeInput,
-        spans: [Int]? = nil, depth: Int = 4, using admission: inout A) throws -> Receipt {
+        spans: [Int]? = nil, cycles: [Int]? = nil, depth: Int = 4, using admission: inout A) throws -> Receipt {
         let limits = try OriginalSourceIssuanceLimits(remainingSourceDepth: depth)
         let binding = try DefaultOriginalSourceBindingIssuer(provider: NativeProvider())
             .bind(input, limits: limits, using: &admission)
-        let selection = try binding.chart(OriginalBSplineChartSelection(spans: spans ?? input.degrees),
+        let selection = try binding.chart(OriginalBSplineChartSelection(spans: spans ?? input.degrees, cycles: cycles),
             limits: limits, using: &admission)
         return try DefaultOriginalBSplineChartIssuer<NativeSnapshot, Field>().issue(
             source: binding, chart: selection, field: Field(), limits: limits, using: &admission)
@@ -210,7 +210,9 @@ public enum SourceFixtures {
     }
 
     public static func runAll() throws {
-        try exactLaws(); try selectedSpansAndTensor(); try ownership(); try failures(); try resources()
+        try exactLaws(); try selectedSpansAndTensor(); try periodicLaws(); try implicitImages()
+        try ownership(); try failures(); try resources()
+        try physicalAngleCoefficients(); try physicalAngleResources(); try coneImages()
         print("ORIGINAL_SOURCE_ISSUANCE_PROOF_OK")
     }
 }

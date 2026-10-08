@@ -2,9 +2,11 @@
 
 ## Purpose and Scope
 
-Parent: [CADGeometry](../DESIGN.md). No children or new SwiftPM targets. This
+Parent: [CADGeometry](../DESIGN.md). Child:
+[Original Physical Angle Coefficients](OriginalPhysicalAngle/DESIGN.md).
+No new SwiftPM targets. This
 component owns common source-issuance contracts inside CADGeometry. The binding
-and exact nonperiodic Native selected-span implementation is independently
+and exact Native selected-span/periodic local-law implementation is independently
 verified through source-provider ports. Existing geometry adapters and other
 family components retain their implementations until separately verified migration.
 
@@ -48,6 +50,7 @@ second definition of a sphere, plane, ruled surface or operation word.
 | [Source Validation](../OriginalGeometrySourceValidation/DESIGN.md) | coordinates with | Existing concrete validation policy through source-provider conformance | Providers retain family authority | Not an independent issuer build dependency; validation alone is not law equivalence |
 | [L0](../RationalBivariateAlgebra/ExactScalar/DESIGN.md) | depends on | Exact import, ordering, arithmetic and exclusive admission | Coefficient and resource authority | Binary64 values and canonical primitive roles have distinct meanings |
 | [L1](../RationalBivariateAlgebra/ExactPolynomial/DESIGN.md) | depends on | Exact polynomials and admitted operations | Rational/polynomial local representation | No new polynomial engine |
+| [Physical Angle](OriginalPhysicalAngle/DESIGN.md) | child | Exact ordered physical-radian coefficients | Authored cone angles retain genuine sin/cos | Its scalar field is not rational or algebraic; consumers must select its capability explicitly |
 | [L2](../RationalBivariateAlgebra/ExactRealRoot/DESIGN.md) | conditional dependency | Existing selected algebraic coefficient field and transport | Needed only by genuinely algebraic coefficients | No geometric root solve; no silent field extension |
 | [Native Exact Relations](../NativeExactRelations/DESIGN.md) | coordinates with | Current Native preparation and coefficient transport | First consuming migration | Its resolver currently also clips domains and resolves relations |
 | [Ruled Sources](../OriginalRuledIntersectionSources/DESIGN.md) | coordinates with | Original boundary laws and ruled composition | Existing exact source producer | Pair-equation adapters move to the relation owner when migrated |
@@ -91,17 +94,62 @@ it does not create another source owner or run the solver.
 
 ### Native Swift protocol boundaries
 
-Binding, snapshotting and rational-chart operations are implemented protocol
-requirements with separate concrete implementations. Implicit image issuance
-remains a proposed capability without a callable declaration. Use associated types and generic static dispatch; production hot paths
+Binding, snapshotting, rational-chart and implicit-image operations are protocol
+requirements with separate concrete implementations. Use associated types and generic static dispatch; production hot paths
 do not erase coefficient fields or law types into `Any` or callback closures.
+
+### Physical-radian cone image
+
+`OriginalAnalyticConeSnapshotProvider` retains the actual cone, apex, original
+binary frame from `analyticOrthonormalBasis`, and physical halfAngle. Its local
+image capability explicitly requires `ExactPhysicalAngleCoefficients` for that
+same angle. In local coordinates q the exact law is
+`cos(a)^2*(qx^2+qy^2)-sin(a)^2*qz^2=0`, including the apex. The original
+`AnalyticSurface3D.vDomain` is unbounded, so both nappes belong to the full image;
+a one-sided branch guard would incorrectly remove original negative-v points.
+This receipt supplies image membership and preserves no claim of full UV fibers.
+Angle/cosine/sine positivity is checked exactly and the original frame determinant
+is retained as a nonzero guard. A different angle owner is rejected.
+
+### Native geometry providers
+
+`OriginalBSplineCurveSnapshotProvider` and
+`OriginalBSplineSurfaceSnapshotProvider` bind the actual CADGeometry value types.
+They call the existing bounded family validator with a nonescaping callback to
+the same admission. Validation failures are preserved; source depth is zero for
+these primitive leaves. The immutable binding shares the original Swift COW
+arrays. Reader conformances access controls directly, including V rows with U
+columns for surfaces; no flattened control-net allocation is introduced.
+
+These four adapter files are excluded from the primitive verification module.
+Their isolated verification imports already-built geometry modules and compiles
+only the adapters and proof. This is a distinct evidence scope: the existing
+geometry validator is reused, not rebuilt, and no CS/SSI resolver is executed.
+The original module identity, validator source hashes and link inputs must be
+recorded before treating cached-module evidence as valid.
+
+### Periodic local laws
+
+`OriginalBSplineChartSelection` optionally carries one integer cycle per axis.
+Omission means cycle zero. A nonperiodic axis rejects a nonzero cycle. On a
+periodic axis the issuer proves that the authored binary64 wrapping period equals
+the exact endpoint difference, every cyclic knot difference equals that period,
+and the repeated controls and weights agree exactly. Approximate periodic
+validation from a geometry provider does not replace these checks.
+
+The basis variable is `authoredParameter - cycle * originalPeriod`. Support is
+the exact translated knot interval, and the receipt's parameter transport stays
+the identity in authored coordinates. All arithmetic uses the caller's field and
+admission. The source issuer does not enumerate cycles, choose representatives,
+or identify seam parameters. Domain owners retain those responsibilities and any
+additional binary64 representability requirements of their own public domains.
 
 | Protocol / status | Inputs | Successful output | Required guarantee |
 |---|---|---|---|
 | `OriginalSourceSnapshotting` (implemented) | Borrowed original input, provider-owned validation policy, source limits, same admission | `OriginalSourceSnapshot<Source>` | Validated immutable retained source and inherited source depth |
 | `OriginalSourceBindingIssuing` (implemented) | Borrowed concrete source input, injected snapshot provider, source limits, same admission | `OriginalSourceBinding<Source>` | Original immutable snapshot, declared family authority, retained descendant owners and established source depth |
 | `OriginalRationalChartIssuing` (implemented Native capability) | Binding, source-specific chart, caller exact coefficient field, same admission | `OriginalRationalChartReceipt<Source, Selection, Field>` | Exact X/Y/Z/W law, all guards, whole local support and original parameter transport |
-| `OriginalImplicitImageIssuing` (proposed) | Binding, source-specific support, caller exact coefficient field, same admission | `OriginalImplicitImageReceipt<Field>` | Exact original image predicate including every required branch/denominator guard; explicitly no complete UV correspondence |
+| `OriginalImplicitImageIssuing` (implemented image capability) | Binding, source-specific support, caller exact coefficient field, same admission | `OriginalImplicitImageReceipt<Source, Selection, Field>` | Exact original image predicate including every required branch/denominator guard; explicitly no complete UV correspondence |
 
 All receipts have read-only public contracts and issuer-controlled construction.
 Binding identity and proof ownership are not externally constructible flags.
@@ -147,6 +195,18 @@ a participating curve or another surface into that predicate belongs to the
 relation compiler; the issuer never acquires that second source.
 Do not introduce a universal arbitrary-expression solver or symbolic scalar
 type to declare every family supported.
+
+The concrete primitive image issuer supports full sphere, cylinder and ring-torus
+images. The reading port supplies the family-owned original binary affine frame,
+center and separately authored radii. The issuer imports every scalar before
+matrix inversion or radius products. Sphere uses its canonical identity image
+frame; cylinder and torus retain the actual original chart frame, including its
+nonorthogonality. The exact determinant must be nonzero. The cylinder equation is
+the circle equation in the exact inverse frame; the torus equation is its raw
+quartic, with `majorRadius > minorRadius > 0` proved in the caller's field. This
+last condition excludes the extraneous squared branch for the supported ring
+torus. Restricted angular subsets require another capability and are not supplied
+by a full-image selection. No receipt from this port claims source UV fibers.
 
 ### Receipt content and evidence
 
