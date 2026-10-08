@@ -1,0 +1,7 @@
+(node:89959) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS actual weighted nonunit Coons complete HXYZW, signed traversal, exact corners, owned sources, depth/work/storage/cancel: reversed=false
+PASS actual weighted nonunit Coons complete HXYZW, signed traversal, exact corners, owned sources, depth/work/storage/cancel: reversed=true
+PASS actual sealed algebraic traversal, ancestor coefficient embedding, original endpoint XYZ and signed exact support: reversed=false
+PASS actual sealed algebraic traversal, ancestor coefficient embedding, original endpoint XYZ and signed exact support: reversed=true
+PASS actual four algebraic Coons boundaries retain eight endpoint owners in one field, exact repeated-root corners and complete HXYZW

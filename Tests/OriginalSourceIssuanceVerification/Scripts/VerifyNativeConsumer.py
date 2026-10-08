@@ -51,6 +51,8 @@ if digest(old_proof) != expected: raise RuntimeError('Geometry cache does not ma
 prefixes = ['Sources/CADCore/', 'Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/',
     'Sources/CADGeometry/OriginalAffineOperationWord/', 'Sources/CADGeometry/OriginalAffineImage/',
     'Sources/CADGeometry/PeriodicBSpline/', 'Sources/CADGeometry/ParameterImage/',
+    'Sources/CADGeometry/OriginalRootSpan/', 'Sources/CADGeometry/OriginalCoons/',
+    'Sources/CADGeometry/OriginalCoonsIntersectionSources/',
     'Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/',
     'Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/',
     'Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/']
@@ -83,7 +85,12 @@ def overlays(paths, prefix):
             raise RuntimeError('Overlay changed production source')
         result.append(target)
     return result
-issued = overlays(originals, '@testable import CADGeometry\n')
+# Compile the additive retained-root port against the cached lower nominal types.
+# Every pre-existing cached lower input remains unchanged; this source-only overlay
+# contains the actual current extension and introduces no upper-target build.
+retained_root = root / 'Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalExactScalarDomain+RetainedRoot.swift'
+issued = overlays([*originals, retained_root], '@testable import CADGeometry\n')
+source_hashes = {str(p.relative_to(root)): digest(p) for p in [*originals, retained_root]}
 run(common + ['-emit-library', '-static', '-emit-module', '-module-name', 'SourceIssuerCached',
     *map(str, issued), '-emit-module-path', str(output / 'SourceIssuerCached.swiftmodule'),
     '-o', str(output / 'libSourceIssuerCached.a')])
@@ -96,6 +103,9 @@ consumers = [consumer / name for name in names]
 if args.source_only: consumers = []
 prepared = overlays(consumers, 'import CADGeometry\nimport SourceIssuerCached\n')
 proof = args.proof.resolve() if args.proof else root / 'Tests/OriginalSourceIssuanceVerification/Sources/NativeConsumerProof/NativeConsumerProof.swift'
+proof_input = output / 'ProofInput.swift'
+proof_input.write_bytes(proof.read_bytes())
+source_hashes.update({str(p.relative_to(root)): digest(p) for p in [*consumers, proof]})
 def archive_object_hashes(path):
     hashes = []
     with path.open('rb') as archive:
@@ -144,14 +154,17 @@ if args.lane == 'embedded':
         raise RuntimeError('Changed Embedded Unicode runtime')
     link_extra = [str(unicode_library)]
 artifact = output / ('NativeConsumerProof.wasm' if wasm else 'NativeConsumerProof')
-run(common + ['-parse-as-library', '-I', str(output), *map(str, prepared), str(proof),
+run(common + ['-parse-as-library', '-I', str(output), *map(str, prepared), str(proof_input),
     str(output / 'libSourceIssuerCached.a'), *map(str, archives), *link_extra, '-o', str(artifact)])
 run(['/usr/local/bin/node', str(root / 'Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs'), str(artifact)]
     if wasm else [str(artifact)])
 changed_lower = {name: {'validated': value, 'current': digest(root / name)}
     for name, value in receipt['source_sha256'].items()
     if '/ExactRealRoot/' in name and digest(root / name) != value}
-manifest = {'compiledSources': {str(p.relative_to(root)): digest(p) for p in originals + consumers + [proof]},
+for name, expected_hash in source_hashes.items():
+    if digest(root / name) != expected_hash:
+        raise RuntimeError('Source changed during verification: ' + name)
+manifest = {'compiledSources': source_hashes,
     'cachedInputs': {str(p): digest(p) for p in objects}, 'cachedArchives': archive_hashes, 'commands': commands,
     'toolchain': subprocess.check_output([str(swiftc), '--version'], text=True).strip(),
     'artifactSHA256': digest(artifact), 'lane': args.lane, 'cachedProviderPremises': premises,

@@ -342,9 +342,17 @@ binary64 bits. Algebraic endpoints bind their existing sealed root in one explic
 parent coefficient field using the additive L0 retained-root extension contract.
 A Coons provider prepares all endpoint coefficients into one ancestor chain
 before issuing child charts; prior values import through that chain. Original
-endpoint/source equality is checked directly when sharing an already-prepared
-coefficient. Neither representative bounds nor interval corner caches are source
+endpoint coefficients stay paired with their actual directed source in the
+prepared binding. Neither representative bounds nor interval corner caches are source
 coefficients, and root isolation is never repeated by the provider.
+
+Within one endpoint preparation, identical sealed rational root laws/selectors
+reuse their already-imported coefficient. Equality requires original polynomial
+equality, exact isolation endpoints, both open flags and isolation depth; every
+comparison uses the same admission. The actual boundary owners remain distinct.
+The lookup borrows prior traversal definitions and coefficient indices without
+another registry allocation. Hashes, XYZ or estimated endpoints never decide
+reuse. Different selectors take the retained-root port rather than guessed reuse.
 
 The traversal chart issuer keeps child-local variables and all position/transport
 guards. It proves affine child correspondence t=a*s+b and clips selected support
@@ -514,12 +522,16 @@ unchanged lower evidence is reused by source hash.
 ## Independent Implementation Boundary
 
 The verification package at Tests/OriginalSourceIssuanceVerification owns an
-independent SwiftPM graph: unchanged linked L0 and L1 production sources, the
+independent SwiftPM graph: validated linked L0 and L1 production sources, the
 issuer directory, independent fixtures and one proof executable. It must build
 its contract target and inspect actual compiler inputs before adding the issuer
 implementation. CADCore, CADGeometry as a whole, L3-L6, domain cover, relation
 compilers and public intersectors are outside that graph. No external dependency
-is added. Optional L2 coefficient tests may add only the existing L2 sources.
+is added. The additive retained-root constructor is owned and verified at L0;
+all pre-existing lower inputs remain unchanged. Actual traversal/Coons adapters
+are additionally compiled as source-only overlays against immutable validated
+geometry modules; this does not build the complete geometry target or a solver.
+Optional L2 coefficient tests may add only the existing L2 sources.
 
 Existing geometry source types and validation implementations are supplied by
 static source-provider protocols. OriginalSourceSnapshotting creates an immutable

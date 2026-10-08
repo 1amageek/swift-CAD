@@ -25,3 +25,5 @@ import SourceIssuerFixtures
 @Test(.timeLimit(.minutes(1))) func endpointDecisionDepths() throws { try SourceFixtures.endpointDecisionDepths() }
 
 @Test(.timeLimit(.minutes(1))) func retainedRootExtensions() throws { try SourceFixtures.retainedRootExtensions() }
+
+@Test(.timeLimit(.minutes(1))) func directedTraversalLaws() throws { try SourceFixtures.directedTraversalLaws() }
