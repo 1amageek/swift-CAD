@@ -8,8 +8,11 @@ public struct ExactRealCellView<Base: ExactScalarArithmetic & ExactScalarOrderin
  public typealias Index = Int
  public typealias Element = ExactRealCellID<Base>
  let owner: ExactRealCellPartitionStorage<Base>
- let indices: [Int]
+ private let cellOrdinals: [Int]
+ init(owner: ExactRealCellPartitionStorage<Base>, indices: [Int]) {
+  self.owner = owner; cellOrdinals = indices
+ }
  public var startIndex: Int { 0 }
- public var endIndex: Int { indices.count }
- public subscript(position: Int) -> Element { .init(owner:owner,index:indices[position]) }
+ public var endIndex: Int { cellOrdinals.count }
+ public subscript(position: Int) -> Element { .init(owner:owner,index:cellOrdinals[position]) }
 }

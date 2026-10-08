@@ -1,0 +1,7 @@
+PASS L5 exact square identities, retained reductions and rejected hypotheses
+PASS L6 SSI image/fiber case 0 work=4095863
+PASS L6 SSI image/fiber case 1 work=5626730
+PASS L6 SSI image/fiber case 2 work=606727
+PASS L6 SSI image/fiber case 3 work=3494714
+PASS L6 SSI distinct folded UV fibers work=20333735
+PASS full production Native L6 geometric publication ssi-images

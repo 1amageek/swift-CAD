@@ -1,0 +1,38 @@
+Building for debugging...
+[2 / 6] L4
+[7 / 11] L6
+[11 / 14] L4
+[14 / 18] L6
+[17 / 17] L6Proof-product
+[18 / 20] L6Tests-product
+[19 / 21] L6Tests-product
+[24 / 26] L6Tests-product
+[26 / 26] L6Tests-product
+Build complete! (2.00秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test releasedInputsAndForeignHandles() started.
+􀟈  Test independentLimitsAndTerminalCancellation() started.
+􀟈  Test case passing 1 argument mode → 4 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􁁛  Test releasedInputsAndForeignHandles() passed after 31.141 seconds.
+PASS: L6 resolve exact admission work=1365 storage=71701; limits/cancel/final-empty/foreign/station
+􁁛  Test independentLimitsAndTerminalCancellation() passed after 35.256 seconds.
+􁁛  Test curveStrataAndCompleteStationFibers(mode:) with 7 test cases passed after 41.032 seconds.
+􁁛  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) with 7 test cases passed after 54.177 seconds.
+􁁛  Test run with 4 tests in 0 suites passed after 54.177 seconds.

@@ -1799,3 +1799,9 @@ scalar failures follow this documented Geometry normalization. Cancellation rema
 or result substitution. The new explicit Native exactParameterRelation interfaces
 preserve the L0-L5 typed causes instead. The original portability smoke checks
 legacy source/algebra resource failures as well as successful original tuples.
+
+## Native Exact Geometric Composition
+
+[NativeExactGeometricRelations](NativeExactGeometricRelations/DESIGN.md) owns the
+source-bound L5/L6 geometric receipt and public CS/SSI assembly. Its component
+contract preserves source preparation and the existing numerical failure boundary.

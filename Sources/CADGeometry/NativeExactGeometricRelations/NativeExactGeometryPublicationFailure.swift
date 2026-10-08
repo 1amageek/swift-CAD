@@ -1,0 +1,111 @@
+import CADCore
+
+/// Converts nested exact causes once at the existing numerical Geometry boundary.
+enum NativeExactGeometryPublicationFailure {
+    static func published(_ error: any Error, tolerance: ModelingTolerance) -> any Error {
+        if error is CancellationError { return error }
+        if let error = error as? KernelError { return error }
+        if let error = error as? ExactScalarFailure {
+            if case .resourceLimit(let resource) = error {
+                let name: String
+                switch resource {
+                case .work: name = "work"
+                case .storage: name = "storage"
+                case .valueDepth: name = "value depth"
+                case .coefficientDepth: name = "coefficient depth"
+                }
+                return KernelError(phase: .geometry, code: .resourceLimitExceeded, tolerance: tolerance,
+                    message: "Original exact geometric publication exhausted caller " + name + ".")
+            }
+            if case .admissionRejected(let cause) = error { return published(cause, tolerance: tolerance) }
+            return GeometryExactScalarFailure.published(error)
+        }
+        if let error = error as? NativeExactGeometricRelationFailure {
+            switch error {
+            case .parameter(let cause): return published(cause, tolerance: tolerance)
+            case .geometric(let cause): return published(cause, tolerance: tolerance)
+            case .publication(let cause): return published(cause, tolerance: tolerance)
+            }
+        }
+        if let error = error as? NativeExactRelationFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .root(let cause): return published(cause, tolerance: tolerance)
+            case .cell(let cause): return published(cause, tolerance: tolerance)
+            case .relation(let cause): return published(cause, tolerance: tolerance)
+            case .geometry(let cause): return published(cause, tolerance: tolerance)
+            case .invalidDomain: return failure(.invalidInput, tolerance)
+            case .invalidDegree: return failure(.resourceLimitExceeded, tolerance)
+            case .unsupportedCoverage: return failure(.intersectionFailure, tolerance)
+            }
+        }
+        if let error = error as? ExactGeometricRelationFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .polynomial(let cause): return published(cause, tolerance: tolerance)
+            case .cell(let cause): return published(cause, tolerance: tolerance)
+            case .topology(let cause): return published(cause, tolerance: tolerance)
+            case .parameter(let cause): return published(cause, tolerance: tolerance)
+            case .operationRejected(let cause): return published(cause, tolerance: tolerance)
+            case .countOverflow, .resultLimit: return failure(.resourceLimitExceeded, tolerance)
+            default: return failure(.intersectionFailure, tolerance)
+            }
+        }
+        if let error = error as? ExactParametricRelationFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .polynomial(let cause): return published(cause, tolerance: tolerance)
+            case .cell(let cause): return published(cause, tolerance: tolerance)
+            case .topology(let cause): return published(cause, tolerance: tolerance)
+            case .operationRejected(let cause): return published(cause, tolerance: tolerance)
+            case .countOverflow: return failure(.resourceLimitExceeded, tolerance)
+            default: return failure(.intersectionFailure, tolerance)
+            }
+        }
+        if let error = error as? ExactRealTopologyFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .polynomial(let cause): return published(cause, tolerance: tolerance)
+            case .cell(let cause): return published(cause, tolerance: tolerance)
+            case .root(let cause): return published(cause, tolerance: tolerance)
+            case .operationRejected(let cause): return published(cause, tolerance: tolerance)
+            case .countOverflow, .generatedCellLimit, .closureLimit, .attachmentLimit, .componentLimit:
+                return failure(.resourceLimitExceeded, tolerance)
+            default: return failure(.intersectionFailure, tolerance)
+            }
+        }
+        if let error = error as? ExactRealCellFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .polynomial(let cause): return published(cause, tolerance: tolerance)
+            case .root(let cause): return published(cause, tolerance: tolerance)
+            case .operationRejected(let cause): return published(cause, tolerance: tolerance)
+            case .countOverflow, .cellLimit: return failure(.resourceLimitExceeded, tolerance)
+            default: return failure(.intersectionFailure, tolerance)
+            }
+        }
+        if let error = error as? ExactRealRootFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .polynomial(let cause): return published(cause, tolerance: tolerance)
+            case .operationRejected(let cause): return published(cause, tolerance: tolerance)
+            case .countOverflow, .resultLimit, .extensionLevelLimit: return failure(.resourceLimitExceeded, tolerance)
+            default: return failure(.intersectionFailure, tolerance)
+            }
+        }
+        if let error = error as? ExactPolynomialFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .operationRejected(let cause): return published(cause, tolerance: tolerance)
+            case .countOverflow, .exponentOverflow: return failure(.resourceLimitExceeded, tolerance)
+            default: return failure(.intersectionFailure, tolerance)
+            }
+        }
+        return error
+    }
+
+    private static func failure(_ code: KernelErrorCode, _ tolerance: ModelingTolerance) -> KernelError {
+        .init(phase: .geometry, code: code, tolerance: tolerance,
+            message: "The original exact geometric query could not complete its required publication.")
+    }
+}

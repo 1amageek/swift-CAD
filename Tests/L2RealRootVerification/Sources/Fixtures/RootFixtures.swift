@@ -126,4 +126,42 @@ public enum RootFixtures {
             }
         }
     }
+
+    public static func exactCandidateRefinement() throws {
+        var a = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 50_000_000,
+            valueDepth: 32, coefficientDepth: 32))
+        let f = ExactRationalScalarDomain(), d = try ExactRealRootDomain(field: f, using: &a)
+        let p = d.polynomials, x = try p.variable(0, using: &a)
+        let zero = try f.integer(0, using: &a), one = try f.integer(1, using: &a)
+        let tiny = try f.binary64(exactly: Double.leastNonzeroMagnitude, using: &a)
+        let factor = try p.subtracting(x, p.constant(tiny, using: &a), using: &a)
+        let source = try d.bind(p.multiplying(x, p.multiplying(factor, factor, using: &a), using: &a), using: &a)
+        let all = try d.domain(lower: .negativeInfinity, upper: .positiveInfinity, using: &a)
+        let roots = try d.isolate(source, in: all, limits: .init(maximumRoots: 2), using: &a).roots
+        try require(roots.count == 2)
+        for index in roots.indices {
+            let value = index == 0 ? zero : tiny
+            let refined = try d.refine(roots[index], toExactValue: value, using: &a)
+            try require(refined.ordinal == roots[index].ordinal && refined.multiplicity == roots[index].multiplicity)
+            guard case .finite(let lo) = refined.isolation.lower, case .finite(let hi) = refined.isolation.upper else {
+                throw ExactRealRootFailure.invalidEvidence
+            }
+            try require(f.compare(lo, value, using: &a) == .equal && f.compare(hi, value, using: &a) == .equal)
+            try require(d.compare(refined, roots[index], using: &a) == .equal)
+        }
+        let half = try f.dividing(one, f.integer(2, using: &a), using: &a)
+        for candidate in [half, one, try f.negated(one, using: &a)] {
+            var rejected = false
+            do { _ = try d.refine(roots[1], toExactValue: candidate, using: &a) }
+            catch ExactRealRootFailure.invalidEvidence { rejected = true }
+            try require(rejected)
+        }
+        var cancelled = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 50_000_000,
+            valueDepth: 32, coefficientDepth: 32))
+        cancelled.cancel()
+        var rejectedCancellation = false
+        do { _ = try d.refine(roots[1], toExactValue: tiny, using: &cancelled) }
+        catch ExactRealRootFailure.scalar(.cancelled) { rejectedCancellation = true }
+        try require(rejectedCancellation)
+    }
 }

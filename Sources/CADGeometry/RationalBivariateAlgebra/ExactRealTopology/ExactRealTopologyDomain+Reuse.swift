@@ -17,7 +17,7 @@ extension ExactRealTopologyDomain {
   }
   return true
  }
- func invariantAtoms<A: ExactScalarAdmission & ~Copyable>(_ definition: ExactRealCellDefinition<Base>, atoms: [Polynomial], instructions: [ExactRealCellInstruction], quantifiers: [Bool], counts: inout ExactTopologyCounts, _ a: inout A) throws -> [ExactRealTopologySignInvariant<Base>]? {
+ func invariantAtoms<A: ExactScalarAdmission & ~Copyable>(_ definition: ExactRealCellDefinition<Base>, atoms: [Polynomial], instructions: [ExactRealCellInstruction], quantifiers: [Bool], counts: inout ExactTopologyCounts, sourceSigns: Bool = false, projectionSigns: Bool = false, _ a: inout A) throws -> [ExactRealTopologySignInvariant<Base>]? {
   if !quantifiers.isEmpty { return nil }
   let f = definition.coefficientField, n = definition.coordinateCount
   let p = try ExactPolynomialDomain(field:f,variableCount:n,using:&a)
@@ -26,6 +26,19 @@ extension ExactRealTopologyDomain {
   for rawIndex in atoms.indices {
    let raw = atoms[rawIndex]
    let law = try p.importing(raw,using:&a)
+   if sourceSigns, let certificate = try sourceSignInvariant(law, definition: definition, p: p, counts: &counts, &a) {
+    certificates.append(certificate); continue
+   }
+   if projectionSigns {
+    let provider = try Cells(retaining: definition.partition.source, using: &a)
+    if let proof = try provider.signInvariant(for: law, in: definition.partition, using: &a) {
+     try counts.retain(proof.depth, &a)
+     certificates.append(.init(polynomial: law, incomingLaw: nil,
+      quotient: nil, remainder: nil, assumptions: [], reductions: [],
+      axis: proof.axis, constant: nil, projectionInvariant: proof))
+     continue
+    }
+   }
    var axis: Int? = nil
    for term in law.terms {
     var degree = 0
@@ -38,6 +51,17 @@ extension ExactRealTopologyDomain {
    guard let axis else {
     let sign = try f.sign(of:law.terms.first?.coefficient ?? f.integer(0,using:&a),using:&a)
     certificates.append(.init(polynomial:law,incomingLaw:nil,quotient:nil,remainder:nil,assumptions:[],reductions:[],axis:nil,constant:sign)); continue
+   }
+   if projectionSigns {
+    let provider = try Cells(retaining: definition.partition.source, using: &a)
+    let square = try p.multiplying(law, law, using: &a)
+    if let proof = try provider.signInvariant(for: square, in: definition.partition, using: &a) {
+     try counts.retain(square.depth, &a); try counts.retain(proof.depth, &a)
+     certificates.append(.init(polynomial: law, incomingLaw: nil,
+      quotient: nil, remainder: nil, assumptions: [], reductions: [],
+      axis: axis, constant: nil, projectionInvariant: proof, projectionProvesSquare: true))
+     continue
+    }
    }
    var certificate: ExactRealTopologySignInvariant<Base>? = nil
    let step = definition.steps[axis]
@@ -77,5 +101,30 @@ extension ExactRealTopologyDomain {
    guard let certificate else { return nil }; certificates.append(certificate)
   }
   return certificates
+ }
+ func sourceSignInvariant<A: ExactScalarAdmission & ~Copyable>(_ law: Polynomial,
+  definition: ExactRealCellDefinition<Base>, p: ExactPolynomialDomain<Field>,
+  counts: inout ExactTopologyCounts, _ a: inout A) throws -> ExactRealTopologySignInvariant<Base>? {
+  if try p.isZero(law, using: &a) { return nil }
+  let original = definition.partition.source.polynomials
+  for index in original.indices {
+   try a.consumeWork(1)
+   let incoming = try p.importing(original[index], using: &a)
+   let division = try p.divided(incoming, by: law, using: &a)
+   if try !p.isZero(division.remainder, using: &a) { continue }
+   guard division.quotient.termCount == 1 else { continue }
+   let term = division.quotient.terms[0]
+   var constant = true
+   for power in term.powers { try a.consumeWork(1); if power != 0 { constant = false } }
+   if !constant { continue }
+   let sign = try definition.coefficientField.sign(of: term.coefficient, using: &a)
+   guard sign != .zero else { continue }
+   try counts.retain(incoming.depth, &a); try counts.retain(division.quotient.depth, &a)
+   try counts.retain(division.remainder.depth, &a)
+   return .init(polynomial: law, incomingLaw: incoming, quotient: division.quotient,
+    remainder: division.remainder, assumptions: [], reductions: [], axis: nil,
+    constant: nil, sourceLawIndex: index, sourceLawOrientation: sign)
+  }
+  return nil
  }
 }

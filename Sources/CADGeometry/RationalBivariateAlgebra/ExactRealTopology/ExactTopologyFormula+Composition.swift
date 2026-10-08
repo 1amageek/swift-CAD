@@ -21,6 +21,12 @@ extension ExactTopologyFormula {
   instructions.append(item)
  }
  mutating func atom<A: ExactScalarAdmission & ~Copyable>(_ law: Polynomial, _ relation: ExactRealCellSignRelation, _ a: inout A) throws {
+  for index in atoms.indices {
+   try a.consumeWork(1)
+   if try polynomials.equals(law, atoms[index], using: &a) {
+    try instruction(.sign(polynomial:index,relation:relation),&a); return
+   }
+  }
   try ExactTopologyAccess.storage(ExactTopologyAccess.add(atoms.count,1),Polynomial.self,&a)
   let index = atoms.count; atoms.append(law)
   try instruction(.sign(polynomial:index,relation:relation),&a)
@@ -58,6 +64,24 @@ extension ExactTopologyFormula {
   guard sign != .zero else { throw ExactRealTopologyFailure.invalidDefinition }
   return sign
  }
+ /// A unique polynomial root in this coordinate exists continuously for every prefix.
+ func polynomialLeading<A: ExactScalarAdmission & ~Copyable>(_ root: ExactRealCellBoundaryRoot<Base>, _ a: inout A) throws -> ExactSign? {
+  var leading: Field.Value? = nil
+  for term in root.polynomial.terms {
+   try a.consumeWork(1)
+   if term.powers[root.axis] > 1 { return nil }
+   for slot in term.powers.indices {
+    try a.consumeWork(1)
+    if slot > root.axis && term.powers[slot] != 0 { return nil }
+    if term.powers[root.axis] == 1 && slot != root.axis && term.powers[slot] != 0 { return nil }
+   }
+   if term.powers[root.axis] == 1 { leading = term.coefficient }
+  }
+  guard let leading else { return nil }
+  let sign = try field.sign(of: leading, using: &a)
+  guard sign != .zero else { throw ExactRealTopologyFailure.invalidDefinition }
+  return sign
+ }
  static func relation(_ sign: ExactSign, weak: Bool) -> ExactRealCellSignRelation {
   switch sign {
   case .zero: return .equal
@@ -77,7 +101,7 @@ extension ExactTopologyFormula {
   }
  }
  mutating func cell<A: ExactScalarAdmission & ~Copyable>(_ definition: ExactRealCellDefinition<Base>, map: [Int],
-  witness: inout Int, weak: Bool, through: Int? = nil, factors: [ExactRealTopologyFactor<Base>] = [], _ a: inout A) throws {
+  witness: inout Int, weak: Bool, through: Int? = nil, factors: [ExactRealTopologyFactor<Base>] = [], sectorOrderByThom: Bool = false, strictSections: Bool = false, _ a: inout A) throws {
   let count = through ?? definition.coordinateCount
   guard count >= 0, count <= definition.coordinateCount, map.count == definition.partition.source.variableCount else { throw ExactRealTopologyFailure.invalidFormula }
   try instruction(.literal(true),&a)
@@ -87,18 +111,21 @@ extension ExactTopologyFormula {
    if let section = step.section {
     if let certificate = try factor(section,in:factors,&a) {
      try atom(remap(certificate.factor,map,&a),.equal,&a); try instruction(.and,&a)
-    } else if try affineLeading(section,&a) != nil {
+    } else if try polynomialLeading(section,&a) != nil {
      try atom(remap(section.polynomial,map,&a),.equal,&a); try instruction(.and,&a)
-    } else { try signature(section,map:map,weak:weak,&a) }
+    } else { try signature(section,map:map,weak:strictSections ? false : weak,&a) }
    } else {
     for isLower in [true,false] {
      guard let root = isLower ? step.lower : step.upper else { continue }
      if let certificate = try factor(root,in:factors,&a) {
       let sign: ExactSign = isLower ? certificate.leading : (certificate.leading == .positive ? .negative:.positive)
       try atom(remap(certificate.factor,map,&a),Self.relation(sign,weak:weak),&a); try instruction(.and,&a)
-     } else if let leading = try affineLeading(root,&a) {
+     } else if let leading = try polynomialLeading(root,&a) {
       let sign: ExactSign = isLower ? leading : (leading == .positive ? .negative : .positive)
       try atom(remap(root.polynomial,map,&a),Self.relation(sign,weak:weak),&a); try instruction(.and,&a)
+     } else if sectorOrderByThom {
+      try orderedBoundary(root, map: map, lower: isLower, weak: weak, &a)
+      try instruction(.and, &a)
      } else {
       let slot = witness; witness = try ExactTopologyAccess.add(witness,1)
       guard slot < polynomials.variableCount else { throw ExactRealTopologyFailure.invalidFormula }

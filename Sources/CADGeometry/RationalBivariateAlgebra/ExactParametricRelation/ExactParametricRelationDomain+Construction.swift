@@ -87,21 +87,33 @@ extension ExactParametricRelationDomain: ExactParametricRelationConstructing {
                 laws.append(equation)
             }
             laws.append(left[3]); laws.append(right[3])
+            var squareProof: ExactParametricSquareReduction<Base>? = nil
+            for index in 0..<3 {
+                let equation = laws[index]
+                if let proof = try squareReduction(equation: equation, index: index,
+                    laws: &laws, polynomials: polynomials, field: field, using: &admission) {
+                    squareProof = proof; break
+                }
+            }
             try storage(n, ExactRealRootInterval<Field.Value>.self, &admission)
             var domains: [ExactRealRootInterval<Field.Value>] = []; domains.reserveCapacity(n)
             for domain in first.original.domains { try admission.consumeWork(1); domains.append(domain) }
             for domain in second.original.domains { try admission.consumeWork(1); domains.append(domain) }
             let source = try cells.bind(polynomials: laws, domains: domains, using: &admission)
-            try storage(9, ExactRealCellInstruction.self, &admission)
-            var instructions: [ExactRealCellInstruction] = []; instructions.reserveCapacity(9)
-            for index in 0..<5 {
+            let size = laws.count.multipliedReportingOverflow(by: 2)
+            guard !size.overflow, size.partialValue > 0 else { throw ExactParametricRelationFailure.countOverflow }
+            let instructionCount = size.partialValue - 1
+            try storage(instructionCount, ExactRealCellInstruction.self, &admission)
+            var instructions: [ExactRealCellInstruction] = []; instructions.reserveCapacity(instructionCount)
+            for index in laws.indices {
                 try admission.consumeWork(1)
-                instructions.append(.sign(polynomial: index, relation: index < 3 ? .equal : .notEqual))
+                instructions.append(.sign(polynomial: index, relation: index == 3 || index == 4 ? .notEqual : .equal))
                 if index > 0 { instructions.append(.and) }
             }
             let predicate = try cells.predicate(instructions: instructions, for: source, using: &admission)
             try storage(1, ExactParametricRelationSource<Base>.self, &admission)
-            let result = ExactParametricRelationSource(kind: kind, first: copy first, second: copy second, rawEquations: raw, guardDivisions: divisions, predicate: predicate)
+            let result = ExactParametricRelationSource(kind: kind, first: copy first, second: copy second,
+                rawEquations: raw, guardDivisions: divisions, predicate: predicate, squareReduction: squareProof)
             try admission.checkpoint()
             return result
         } catch { throw .init(error) }

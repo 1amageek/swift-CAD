@@ -1,0 +1,23 @@
+Building for debugging...
+[1 / 6] L4
+[2 / 6] L4
+[11 / 15] L6
+[17 / 20] L4
+[20 / 22] L4
+[25 / 36] L4
+[28 / 36] L4
+[33 / 36] L4
+[36 / 37] L4
+[40 / 42] L6Tests-product
+[41 / 43] L6Tests-product
+[45 / 45] L6Tests-product
+Build complete! (2.05秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test graphRestrictionAtCollapsedStation() started.
+􀢄  Test graphRestrictionAtCollapsedStation() recorded an issue at GeometryTests.swift:101:2: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.storage))))))
+􀢄  Test graphRestrictionAtCollapsedStation() failed after 20.604 seconds with 1 issue.
+􀢄  Test run with 1 test in 0 suites failed after 20.604 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L6Tests (Swift Testing)

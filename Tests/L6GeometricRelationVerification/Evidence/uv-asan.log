@@ -1,0 +1,10 @@
+Building for debugging...
+[Pre-planning 1 / 268]
+[Constructing 31 / 577]
+[11 / 30] L6
+[17 / 34] L6Fixtures
+[28 / 33] L6Fixtures
+[30 / 35] L6UVProof-product
+[33 / 35] L6UVProof-product
+Build complete! (1.24秒)
+PASS: CS reciprocal UV and both SSI UV stations retain separate exact roots

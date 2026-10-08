@@ -13,13 +13,16 @@ public struct ExactParametricRelationSource<Base: ExactScalarArithmetic & ExactS
     public let second: ExactParametricMap<Base>
     public let rawEquations: [ExactPolynomial<ExactAlgebraicScalarDomain<Base>>]
     public let guardDivisions: [ExactParametricGuardDivision<Base>]
+    public let squareReduction: ExactParametricSquareReduction<Base>?
     public let predicate: ExactRealCellPredicate<Base>
     public var firstParameters: Range<Int> { 0..<first.parameterCount }
     public var secondParameters: Range<Int> { first.parameterCount..<predicate.source.variableCount }
     init(kind: ExactParametricRelationKind, first: ExactParametricMap<Base>, second: ExactParametricMap<Base>,
          rawEquations: [ExactPolynomial<ExactAlgebraicScalarDomain<Base>>],
-         guardDivisions: [ExactParametricGuardDivision<Base>], predicate: ExactRealCellPredicate<Base>) {
+         guardDivisions: [ExactParametricGuardDivision<Base>], predicate: ExactRealCellPredicate<Base>,
+         squareReduction: ExactParametricSquareReduction<Base>? = nil) {
         self.rawEquations = rawEquations; self.guardDivisions = guardDivisions
+        self.squareReduction = squareReduction
         self.kind = kind; self.first = first; self.second = second; self.predicate = predicate
     }
 }

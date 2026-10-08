@@ -1,0 +1,66 @@
+Building for debugging...
+[3 / 5] L6Fixtures
+[6 / 6] L6Fixtures
+[9 / 9] L6Tests-product
+Build complete! (0.65秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+phase L5 start cs=true mode=3 work=513 storage=30240
+phase L5 start cs=false mode=1 work=591 storage=34296
+phase L5 start cs=false mode=2 work=453 storage=27320
+phase L5 start cs=true mode=5 work=479 storage=29144
+phase L5 start cs=true mode=1 work=522 storage=31272
+phase L5 start cs=true mode=4 work=573 storage=33080
+phase L5 start cs=false mode=3 work=617 storage=35304
+phase L5 start cs=true mode=0 work=479 storage=29144
+phase L5 start cs=true mode=2 work=483 storage=29144
+phase L5 start cs=false mode=4 work=522 storage=30808
+phase L5 start cs=false mode=5 work=624 storage=36136
+phase L5 start cs=false mode=0 work=586 storage=34296
+phase L5 start cs=true mode=6 work=864 storage=43336
+phase L5 end cs=true mode=3 work=201052 storage=8908603
+phase L6 end cs=true mode=3 work=203221 storage=9019294
+phase L5 end cs=true mode=5 work=277219 storage=11961151
+phase L6 end cs=true mode=5 work=277221 storage=11962087
+phase L5 end cs=true mode=1 work=430954 storage=18505661
+phase L6 end cs=true mode=1 work=431589 storage=18545254
+phase L5 end cs=true mode=2 work=436282 storage=18764787
+phase L6 end cs=true mode=2 work=437645 storage=18836488
+phase L5 end cs=true mode=6 work=467705 storage=20096782
+phase L6 end cs=true mode=6 work=473022 storage=20372007
+phase L5 end cs=true mode=0 work=473518 storage=20438452
+phase L6 end cs=true mode=0 work=474331 storage=20483805
+phase L5 end cs=false mode=4 work=1773604 storage=81935611
+phase L5 end cs=false mode=5 work=2267623 storage=98762477
+phase L6 end cs=false mode=5 work=2267625 storage=98763413
+phase L5 end cs=false mode=0 work=2237060 storage=96457966
+phase L6 end cs=false mode=0 work=2237395 storage=96472014
+phase L5 end cs=false mode=1 work=2632226 storage=112765904
+phase L6 end cs=false mode=1 work=2633140 storage=112779760
+phase L5 end cs=false mode=2 work=3646650 storage=214970026
+phase L6 end cs=false mode=2 work=3653584 storage=214977130
+phase L5 end cs=false mode=3 work=9429639 storage=366378265
+􀢄  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) recorded an issue with 1 argument mode → 4 at GeometryTests.swift:49:2: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.storage))))))
+􀢄  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) recorded an issue with 1 argument mode → 3 at GeometryTests.swift:49:2: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.storage))))))
+􀢄  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) with 6 test cases failed after 58.071 seconds with 2 issues.
+􀢄  Test curveStrataAndCompleteStationFibers(mode:) recorded an issue with 1 argument mode → 4 at GeometryTests.swift:12:2: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.work)))))
+􀢄  Test curveStrataAndCompleteStationFibers(mode:) with 7 test cases failed after 58.590 seconds with 1 issue.
+􀢄  Test run with 2 tests in 0 suites failed after 58.590 seconds with 3 issues.
+Note: Some test targets reported failures:
+  - L6Tests (Swift Testing)

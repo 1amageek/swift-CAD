@@ -1,0 +1,19 @@
+Building for debugging...
+[Pre-planning 1 / 327]
+[Planning deferred tasks]
+[11 / 38] L6
+[17 / 42] L6Fixtures
+[30 / 45] L6Proof-product
+[35 / 47]
+[37 / 49] L6Proof-product
+[46 / 55] L6Tests-product
+[49 / 55] AllIncludingTests
+[53 / 55] L6Tests-product
+Build complete! (1.75秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test reciprocalUVStations() started.
+PASS: CS reciprocal UV and both SSI UV stations retain separate exact roots
+􁁛  Test reciprocalUVStations() passed after 28.684 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 28.684 seconds.

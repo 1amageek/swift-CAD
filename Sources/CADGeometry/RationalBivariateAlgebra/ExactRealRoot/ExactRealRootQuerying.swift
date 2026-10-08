@@ -9,6 +9,8 @@ public protocol ExactRealRootQuerying: Sendable {
         _ rhs: borrowing ExactRealRoot<Field>, using admission: inout A) throws(ExactRealRootFailure) -> ExactOrder
     func refine<A: ExactScalarAdmission & ~Copyable>(_ root: borrowing ExactRealRoot<Field>,
         maximumWidth: Field.Value, using admission: inout A) throws(ExactRealRootFailure) -> ExactRealRoot<Field>
+    func refine<A: ExactScalarAdmission & ~Copyable>(_ root: borrowing ExactRealRoot<Field>,
+        toExactValue: Field.Value, using admission: inout A) throws(ExactRealRootFailure) -> ExactRealRoot<Field>
     func sign<A: ExactScalarAdmission & ~Copyable>(of polynomial: borrowing ExactRealRootSource<Field>,
         at root: borrowing ExactRealRoot<Field>, using admission: inout A) throws(ExactRealRootFailure) -> ExactSign
 }

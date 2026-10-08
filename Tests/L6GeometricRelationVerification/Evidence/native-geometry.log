@@ -1,0 +1,52 @@
+Building for debugging...
+[1 / 32] L6
+[7 / 47] L6
+[17 / 47] L6
+[23 / 48] L6
+[31 / 48] L6
+[37 / 48] L6Tests-product
+[41 / 52] L6Tests-product
+[45 / 51] L6Tests-product
+[47 / 51] L6Tests-product
+Build complete! (1.32秒)
+Test Suite 'All tests' started at 2026-10-08 11:10:58.464.
+Test Suite 'All tests' passed at 2026-10-08 11:10:58.465.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() started.
+􀟈  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() started.
+􀟈  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() started.
+􀟈  Test curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test releasedInputsAndForeignHandles() started.
+􀟈  Test rejectsInvalidCoordinateProjectionBeforePublication() started.
+􀟈  Test case passing 1 argument mode → 0 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test transportsDifferentRootsAfterCoordinateReordering() started.
+􀟈  Test case passing 1 argument mode → 2 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to curveStrataAndCompleteStationFibers(mode:) started.
+􁁛  Test rejectsInvalidCoordinateProjectionBeforePublication() passed after 30.867 seconds.
+􁁛  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() passed after 32.093 seconds.
+􁁛  Test releasedInputsAndForeignHandles() passed after 32.093 seconds.
+􁁛  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() passed after 40.475 seconds.
+􁁛  Test transportsDifferentRootsAfterCoordinateReordering() passed after 44.376 seconds.
+􀢄  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) recorded an issue with 1 argument mode → 4 at GeometryTests.swift:49:2: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.storage))))))
+􀢄  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) recorded an issue with 1 argument mode → 3 at GeometryTests.swift:49:2: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.storage))))))
+􀢄  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) with 6 test cases failed after 73.392 seconds with 2 issues.
+􀢄  Test curveStrataAndCompleteStationFibers(mode:) recorded an issue with 1 argument mode → 4 at GeometryTests.swift:12:2: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.work)))))
+􀢄  Test curveStrataAndCompleteStationFibers(mode:) with 7 test cases failed after 78.104 seconds with 1 issue.
+􁁛  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() passed after 82.040 seconds.
+􀢄  Test run with 8 tests in 0 suites failed after 82.040 seconds with 3 issues.
+Note: Some test targets reported failures:
+  - L6Tests (Swift Testing)

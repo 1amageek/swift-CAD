@@ -104,6 +104,33 @@ Concurrent immutable readers use independent query admissions.
 
 ## Verification and Change Impact
 
+### Certified diagonal quadratic zero reduction
+
+The compiler owns an exact real-zero-set reduction for a diagonal quadratic
+equality. It applies only when exact coefficient arithmetic proves
+`s * F = sum(a[i] * q[i]^2)`, where `s` is 1 or -1, every `a[i]` is strictly
+positive and each `q[i]` is a monic affine coordinate polynomial. Completion of
+squares must leave exactly zero remainder. Cross terms, an unpaired linear term,
+mixed coefficient signs or a nonzero remainder make this reduction inapplicable;
+they continue through the original compilation path before resolution begins.
+Thus `F == 0` is equivalent to every `q[i] == 0` over the original ordered field.
+
+The immutable source retains the original equation, orientation, positive weights,
+factors, reconstructed identity and all subsequent division receipts. Each compiled
+law, including both denominator guards, is reduced by the factors using exact
+polynomial division; its remainder is substituted only in conjunction with all
+factor equalities. The raw authored equations, maps, domains and guard identities
+remain retained. No root or branch is removed by a numerical decision. Identity
+and sign validation, all temporary buffers, divisions and publication use the same
+admission. A failure aborts without retry or budget reset.
+
+The concrete production regression is Native SSI between `Z = 0` and the authored
+Bezier surface with homogeneous `Z = (3u - 1)^2 + (3v - 2)^2`, with constant and
+nonconstant positive weights. The previous full projection exceeds 80 million work
+before selection. The reduced system must retain its sole original tuple, all UV
+correspondence and denominator conditions under that same cap. Existing folded,
+continuous, empty and mixed relations exercise the inapplicable/general path.
+
 The isolated verification package compiles production L0-L5 only, pinned Swift
 6.4.0 and matching ordinary/Embedded WASM SDKs. Unchanged lower evidence is reused.
 Required behavior: weighted CS isolated and repeated roots, endpoints, multiple UV

@@ -42,3 +42,18 @@ separate preparation group. Measure fresh-process wall time and admitted counter
 per target; admitted bytes are not allocation counts, peak RSS or copied bytes.
 Historical connection evidence remains untouched in Evidence/. Optimization
 evidence lives in PreparationEvidence/, with current compiler inventories.
+
+## Exact Geometric Publication Verification
+
+The NativeExactGeometricProof executable and L6PublicationTests compile full
+production Core/Geometry. Source-bound L6 CS/SSI numerical overloads, complete
+positive image/fiber receipts, empty exclusion, exact station queries, independent
+limits and final publication cancellation are checked by shared fixtures. Legacy
+ordinary/callback query migration is a separate gate, not inferred from these
+explicit caller-ledger proofs. Same fixtures execute in both matching WASI SDKs.
+The proof runner admits separate CS, SSI point, SSI image/fiber, SSI domain and
+SSI failure process groups under the existing 120-second guard. Each group calls
+the identical shared fixtures and retains each query's original cumulative limits.
+The process selector is explicit CLI input on Native/normal WASM and a fixed WASI
+environment value on Embedded. Unknown groups fail instead of reporting success.
+No selector, environment dependency or shared state is added to production code.

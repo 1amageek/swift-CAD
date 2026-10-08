@@ -18,15 +18,16 @@ extension ExactRealTopologyDomain: ExactRealClosureProducing, ExactRealTopologyQ
   return true
  }
  func boundedGraph<A: ExactScalarAdmission & ~Copyable>(_ definition: ExactRealCellDefinition<Base>, limits: ExactRealTopologyLimits,
-  counts: inout ExactTopologyCounts, _ a: inout A) throws -> ExactRealTopologyRegion<Base>? {
+  factors: [ExactRealTopologyFactor<Base>] = [], counts: inout ExactTopologyCounts, _ a: inout A) throws -> ExactRealTopologyRegion<Base>? {
   let n = definition.coordinateCount
   var base = 0
   for step in definition.steps { try a.consumeWork(1); if step.section == nil { base = step.axis + 1 } }
-  guard base < n, try affine(definition,through:base,&a) else { return nil }
+  guard base < n, try affine(definition,through:base,factors:factors,&a) else { return nil }
+  let helper = try formula(field:definition.coefficientField,free:n,quantifiers:[],&a)
   for axis in base..<n {
    try a.consumeWork(1)
    guard let section = definition.steps[axis].section else { return nil }
-   let law = section.polynomial
+   let law = try helper.factor(section,in:factors,&a)?.factor ?? section.polynomial
    var degree = 0
    for term in law.terms { try a.consumeWork(1); degree = max(degree,term.powers[axis]) }
    guard degree > 0 else { return nil }
@@ -44,12 +45,13 @@ extension ExactRealTopologyDomain: ExactRealClosureProducing, ExactRealTopologyQ
   // Weak-base guards occur in the same complete decomposition as the weak graph.
   var f = try formula(field:definition.coefficientField,free:n,quantifiers:[],&a)
   let slots = try map(n,&a); var witness = n
-  try f.cell(definition,map:slots,witness:&witness,weak:true,through:base,&a)
+  try f.cell(definition,map:slots,witness:&witness,weak:true,through:base,factors:factors,&a)
   let baseProgram = f.instructions
   try ExactTopologyAccess.storage(baseProgram.count,ExactRealCellInstruction.self,&a)
-  try f.cell(definition,map:slots,witness:&witness,weak:true,&a); try f.instruction(.and,&a)
+  try f.cell(definition,map:slots,witness:&witness,weak:true,factors:factors,&a); try f.instruction(.and,&a)
   guard witness == n else { throw ExactRealTopologyFailure.invalidFormula }
-  let region = try reduce(f,limits:limits,counts:&counts,&a)
+  let restrictedDomains = try closedBox(definition.partition.source, &a) ? definition.partition.source.domains : nil
+  let region = try reduce(f,limits:limits,counts:&counts,domains:restrictedDomains,&a)
   // Every full child is visited. One section-only solution over every weak-base
   // prefix proves fiber uniqueness; no favorable representative grants it.
   for prefix in region.decisions {
@@ -100,7 +102,9 @@ extension ExactRealTopologyDomain: ExactRealClosureProducing, ExactRealTopologyQ
    if try closedBox(partition.source,&a), let certificate = try invariantAtoms(definition,atoms:f.atoms,instructions:f.instructions,quantifiers:f.quantifiers,counts:&counts,&a) {
     region = try affineRegion(definition,formula:f,certificate:certificate,counts:&counts,retainedCover:retainedCover,&a)
    } else { region = try reduce(f,limits:limits,counts:&counts,&a) }
-  } else if strategy == .automatic, let graph = try boundedGraph(definition,limits:limits,counts:&counts,&a) {
+  } else if strategy == .automatic, let graph = try retainedPolynomialGraph(definition,factors:factors,counts:&counts,cover:retainedCover,&a) {
+   proof = .polynomialGraph; region = graph; applicability = graph
+  } else if strategy == .automatic, let graph = try boundedGraph(definition,limits:limits,factors:factors,counts:&counts,&a) {
    proof = .boundedSectionGraph; region = graph; applicability = graph
   } else if strategy == .automatic, let graph = try polynomialGraph(definition,limits:limits,counts:&counts,&a) {
    proof = .polynomialGraph; region = graph; applicability = graph

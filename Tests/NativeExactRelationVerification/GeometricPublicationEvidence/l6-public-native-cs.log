@@ -1,0 +1,17 @@
+PASS L5 exact square identities, retained reductions and rejected hypotheses
+PASS L6 public CS point/classification/coverage case 0
+PASS L6 public CS point/classification/coverage case 1
+PASS L6 public CS point/classification/coverage case 2
+PASS L6 public CS point/classification/coverage case 3
+PASS L6 public CS point/classification/coverage case 4
+PASS L6 public CS distinct UV tuples
+START L6 public CS representative refinement weighted=false
+PASS L6 public CS representative refinement weighted=false
+START L6 public CS representative refinement weighted=true
+PASS L6 public CS representative refinement weighted=true
+PASS L6 public CS rational and algebraic representative refinement
+PASS L6 public CS smallest-subnormal singleton representatives
+PASS L6 public CS mixed components and point-only failure
+PASS L6 public CS caller admission work/storage/cancellation
+PASS L6 public CS final point/empty cancellation
+PASS full production Native L6 geometric publication cs

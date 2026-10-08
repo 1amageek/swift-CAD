@@ -1,0 +1,43 @@
+Building for debugging...
+[Computing dependencies]
+Build complete! (1.06秒)
+Test Suite 'All tests' started at 2026-10-08 13:41:07.271.
+Test Suite 'All tests' passed at 2026-10-08 13:41:07.276.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.005) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test generalDegree() started.
+􀟈  Test rationalRoots() started.
+􀟈  Test concurrentImmutableRootReaders() started.
+􀟈  Test retainedOwners() started.
+􀟈  Test algebraicTower() started.
+􀟈  Test fieldFailures() started.
+􀟈  Test exactCandidateRefinement() started.
+􀟈  Test finalCancellationAndStorage() started.
+􀟈  Test rootFailures() started.
+􀟈  Test exactQueries() started.
+􀟈  Test existingAlgebraicBase() started.
+􀟈  Test reducibleLaw() started.
+􀟈  Test rootDomains() started.
+PASS: higher degree, odd multiplicity and invalid input failures
+PASS: terminal cancellation, atomic publication and exact storage boundary
+PASS: retained owners, original variable map and exact base import
+􁁛  Test generalDegree() passed after 0.043 seconds.
+􁁛  Test finalCancellationAndStorage() passed after 0.044 seconds.
+􁁛  Test rationalRoots() passed after 0.044 seconds.
+􁁛  Test retainedOwners() passed after 0.044 seconds.
+􁁛  Test rootFailures() passed after 0.045 seconds.
+􁁛  Test concurrentImmutableRootReaders() passed after 0.050 seconds.
+􁁛  Test exactQueries() passed after 0.110 seconds.
+􁁛  Test rootDomains() passed after 0.127 seconds.
+􁁛  Test reducibleLaw() passed after 0.208 seconds.
+PASS: reducible root law and selected-root denominator decisions
+􁁛  Test exactCandidateRefinement() passed after 0.266 seconds.
+PASS: incompatible owners, extension ceiling and scalar failures
+􁁛  Test fieldFailures() passed after 0.320 seconds.
+PASS: existing algebraic base coefficients and inherited coefficient depth
+􁁛  Test existingAlgebraicBase() passed after 0.475 seconds.
+􁁛  Test algebraicTower() passed after 1.952 seconds.
+PASS: runtime algebraic tower and retained ancestor embeddings
+􁁛  Test run with 13 tests in 0 suites passed after 1.953 seconds.

@@ -56,7 +56,21 @@ extension ExactRealCellDomain: ExactRealCellProducing {
        for slot in [index-1,index] {
         guard case .finite(let l) = roots[slot].isolation.lower, case .finite(let h) = roots[slot].isolation.upper else { throw ExactRealCellFailure.invalidCoverage }
         let width = try field.dividing(field.subtracting(h,l,using:&a),field.integer(2,using:&a),using:&a)
-        if try field.sign(of:width,using:&a) == .positive { roots[slot] = try rootDomain.refine(roots[slot],maximumWidth:width,using:&a) }
+        if try field.sign(of:width,using:&a) == .positive {
+         // Only overlapping isolations need this work. A linear law proves an
+         // exact value; L2 validates its inclusion and preserves union identity.
+         var linear: Field.Value? = nil
+         for law in specialized {
+          try a.consumeWork(1)
+          if try p.degree(of:law.original,in:0,using:&a) == 1 && rootDomain.sign(of:law,at:roots[slot],using:&a) == .zero {
+           var constant = try field.integer(0,using:&a), leading=constant
+           for term in law.original.terms { try a.consumeWork(1); if term.powers[0] == 0 { constant=term.coefficient } else { leading=term.coefficient } }
+           linear = try field.dividing(field.negated(constant,using:&a),leading,using:&a); break
+          }
+         }
+         if let linear { roots[slot] = try rootDomain.refine(roots[slot],toExactValue:linear,using:&a) }
+         else { roots[slot] = try rootDomain.refine(roots[slot],maximumWidth:width,using:&a) }
+        }
        }
       }
      } }

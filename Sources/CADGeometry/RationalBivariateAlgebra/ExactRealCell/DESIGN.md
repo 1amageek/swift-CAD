@@ -662,3 +662,56 @@ The same borrowed admission flows through L1 without a budget reset.
 [HeapPSCVerification](../../../../Tests/HeapPSCVerification/DESIGN.md) compares
 projection witness values and full lower topology; Native integration verifies
 source-to-public success, absence, limits and retained correspondence.
+
+## Collection Position and Cell Identity
+
+ExactRealCellView stores partition cell ordinals separately from Collection indices.
+Its public indices always denote positions 0..<count, including when upper layers
+compile in the same production module. No internal stored property shadows that
+standard-library requirement. Subscript maps one view position to its retained
+partition ordinal. Full production L6 public Native fixtures own the same-module
+regression: a one-cell selection at partition ordinal93 must not subscript93 in
+a one-element view. Independent target visibility previously hid this collision.
+
+## Linear Section Isolation
+
+Before separating overlapping union-root intervals, L3 checks each specialized
+linear law at each retained root. A proved zero supplies its exact coefficient-
+field value, which is passed to the L2 exact-candidate refinement contract.
+L2 verifies isolation inclusion and unique-root evidence. Original union laws,
+complete root count, ordinals, multiplicities and projection witnesses remain
+unchanged; arbitrary close nonlinear roots continue through width refinement.
+This avoids repeated bisection between zero and a requested subnormal singleton.
+Same-module SSI publication and L2 invalid-candidate fixtures verify the path
+under the existing work/storage/depth/cancellation admission.
+
+## Retained Projection Cut Sign Invariants
+
+`ExactRealCellDescribing.signInvariant(for:in:using:)` issues an immutable
+`ExactRealCellSignInvariant` only for an exact nonzero constant multiple of a
+retained projection cut law (`lawIndex < level.cutLawCount`). The receipt owns
+the partition, requested polynomial, matched projection law, exact constant
+quotient and zero remainder, axis/law index, quotient orientation and cumulative
+depth. Public L1 division and equality establish the complete polynomial
+identity before issuance. A missing match returns nil, never an assumed zero.
+
+`ExactRealCellQuerying.sign(of:at:using:)` validates the issuer domain and identical
+partition owner, requires the cell to attain the receipt's axis, and reads the
+retained ancestor's projection sign, adjusted by the nonzero quotient orientation.
+The cut-law lifting contract establishes that sign on the whole cell; neither a
+new decomposition nor sample evaluation or root solving is performed.
+
+Auxiliary derivative laws outside `cutLawCount` carry sample-only sector signs
+and cannot issue this receipt. In particular, the sole sector of the source
+`x^2 + 1` has sample zero, while its auxiliary derivative `2x` changes sign.
+Coefficient and principal-subresultant laws projected into lower cut levels
+remain eligible. Empty partitions issue no receipt. All owner validation, exact
+division, storage, inherited depth and final checkpoints use the caller's same
+admission. The receipt has no public initializer or mutable state.
+
+L4 consumes this port through its public protocol requirements when composing
+retained polynomial graphs. [L3 sign invariant fixtures](../../../../Tests/L3RealCellVerification/Sources/Fixtures/SignInvariantFixtures.swift)
+verify positive/negative constant proportionality, source/projected cuts,
+ancestor and foreign-owner handling, auxiliary rejection, retained lifetime,
+independent admission failures and terminal cancellation. L4 and public Native
+integration own the upper constant-cut graph and unchanged caller-cap evidence.

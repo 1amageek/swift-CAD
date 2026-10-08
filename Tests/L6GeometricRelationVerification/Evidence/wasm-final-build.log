@@ -1,0 +1,5 @@
+Building for debugging...
+[3 / 5] L6Proof-product
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Package.swift: L6Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[6 / 6] L6Proof-product
+Build complete! (1.18秒)

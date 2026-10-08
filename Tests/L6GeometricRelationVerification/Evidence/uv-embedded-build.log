@@ -1,0 +1,9 @@
+Building for debugging...
+[Pre-planning 1 / 268]
+[Creating build graph]
+[9 / 22] L6
+[16 / 25] L6Fixtures
+[23 / 25] L6UVProof-product
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Package.swift: L6UVProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[25 / 25] L6UVProof-product
+Build complete! (7.42秒)

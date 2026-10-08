@@ -37,6 +37,7 @@ import L2Fixtures
   try OriginalCoefficientFixtures.run()
   try ProtocolFixtures.run()
   try InspectionFixtures.run()
+  try SignInvariantFixtures.run()
   try OptimizationFixtures.run()
   print("PASS: combined L0-L3 exact arithmetic, polynomial algebra, roots, real cells and optimization regressions")
  }

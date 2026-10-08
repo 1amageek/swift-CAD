@@ -94,3 +94,8 @@ preceding combined verification also covers projection, native CS and its
 singular-field and tangency callers. These results cover this component's finite
 isolated-point contract and do not complete positive-dimensional or general SSI.
 Root dispatch integration must execute the same producer on every eligible route.
+
+## Exact Geometric Receipt
+
+Source-bound L0-L6 publication additionally retains originalExactGeometricRelation. The intersections array remains isolated numerical representatives; the complete exact receipt retains positive image/fiber strata and both original UV domains. Existing producers are preserved.
+See [NativeExactGeometricRelations](../NativeExactGeometricRelations/DESIGN.md).

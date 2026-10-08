@@ -1,0 +1,28 @@
+Building for debugging...
+[Pre-planning 1 / 240]
+[Planning deferred tasks]
+[3 / 6] L4
+[4 / 7] L4
+[11 / 14] L5
+[23 / 36] L4
+[28 / 36] L4
+[32 / 36] L4
+[34 / 37] L5
+[40 / 43] L5
+[44 / 46] L6Tests-product
+[46 / 48] L6Tests-product
+[52 / 53] L6Tests-product
+Build complete! (2.50秒)
+Test Suite 'All tests' started at 2026-10-08 11:02:16.443.
+Test Suite 'All tests' passed at 2026-10-08 11:02:16.443.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test rejectsInvalidCoordinateProjectionBeforePublication() started.
+􀟈  Test transportsDifferentRootsAfterCoordinateReordering() started.
+􀟈  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() started.
+􁁛  Test rejectsInvalidCoordinateProjectionBeforePublication() passed after 0.060 seconds.
+􁁛  Test transportsDifferentRootsAfterCoordinateReordering() passed after 2.543 seconds.
+􁁛  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() passed after 4.387 seconds.
+􁁛  Test run with 3 tests in 0 suites passed after 4.387 seconds.

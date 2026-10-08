@@ -22,8 +22,8 @@ extension ExactRealTopologyDomain {
   for step in definition.steps {
    try a.consumeWork(1)
    if step.section != nil { continue }
-   if let lower = step.lower, try f.factor(lower,in:factors,&a) == nil && f.affineLeading(lower,&a) == nil { count = try ExactTopologyAccess.add(count,1) }
-   if let upper = step.upper, try f.factor(upper,in:factors,&a) == nil && f.affineLeading(upper,&a) == nil { count = try ExactTopologyAccess.add(count,1) }
+   if let lower = step.lower, try f.factor(lower,in:factors,&a) == nil && f.polynomialLeading(lower,&a) == nil { count = try ExactTopologyAccess.add(count,1) }
+   if let upper = step.upper, try f.factor(upper,in:factors,&a) == nil && f.polynomialLeading(upper,&a) == nil { count = try ExactTopologyAccess.add(count,1) }
   }
   return count
  }

@@ -22,6 +22,23 @@ parameter-domain seams or publication of CAD intersections. Those consumers use
 L2 evidence later. L2 completion cannot count as completion of the seven CAD
 requirements.
 
+### Exact Candidate Refinement
+
+Root queries may refine an issued root to a supplied coefficient-field value
+only after proving that the value is inside the original isolation, respects its
+open endpoints, and is the unique root of the retained defining proof in the
+new singleton interval. This retains the original source, ordinal, multiplicity,
+proof and inherited depth. An approximate candidate or another root is rejected.
+The operation uses the same admission and does not reset refinement depth.
+
+L3 uses this contract when a specialized linear law proves the selected root's
+exact value. In the production SSI singleton at `Double.leastNonzeroMagnitude`,
+the previous L3 path repeatedly bisected overlapping isolations for zero and
+that value, exceeding depth32 before applying the requested domain. Exact
+candidate refinement separates those roots without weakening that limit or
+changing the complete root set. Public SSI selection and root-query rejection
+fixtures verify this change; existing width refinement remains unchanged.
+
 Placement is a component directory in the existing CADGeometry target, not a new
 production package or module. An isolated verification graph may compile this
 component against independently compiled L0 and L1. No higher CAD target is

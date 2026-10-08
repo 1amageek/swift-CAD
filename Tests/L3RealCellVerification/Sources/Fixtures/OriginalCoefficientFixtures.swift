@@ -42,11 +42,24 @@ public enum OriginalCoefficientFixtures {
         let source=try d.bind(polynomials:[p.subtracting(p.variable(0,using:&a),p.constant(coefficient,using:&a),using:&a)],domains:[all],using:&a)
         let result=try d.decompose(source,limits:.init(maximumStoredCells:30,maximumRootsPerStack:10),using:&a)
         try CellFixtures.require(result.depth.coefficient >= original.isolation.isolationDepth && result.depth.coefficient > 0)
+        guard let invariant = try d.signInvariant(for: source.polynomials[0], in: result, using: &a) else {
+            throw ExactRealCellFailure.invalidCoverage
+        }
+        try CellFixtures.require(invariant.depth.coefficient >= result.depth.coefficient)
         for cell in result.cells {
             let sample=try d.sample(of:cell,in:result,using:&a)
             try CellFixtures.require(try d.locate(sample,in:result,limits:.init(maximumRoots:10),using:&a) == cell)
+            try CellFixtures.require(try d.sign(of: invariant, at: cell, using: &a) == cell.signs[0])
         }
         var shallow=ExactScalarLedger(limits:try .init(work:10_000_000,storageBytes:30_000_000,valueDepth:100,coefficientDepth:result.depth.coefficient-1))
         do { _ = try d.sample(of:result.cells.first!,in:result,using:&shallow); throw ExactRealCellFailure.invalidCoverage } catch ExactRealCellFailure.scalar(.resourceLimit(.coefficientDepth)) { }
+        var shallowInvariant = ExactScalarLedger(limits: try .init(work: 10_000_000, storageBytes: 30_000_000,
+            valueDepth: 100, coefficientDepth: invariant.depth.coefficient - 1))
+        do { _ = try d.sign(of: invariant, at: result.cells.first!, using: &shallowInvariant); throw ExactRealCellFailure.invalidCoverage }
+        catch ExactRealCellFailure.scalar(.resourceLimit(.coefficientDepth)) { }
+        var shallowIssue = ExactScalarLedger(limits: try .init(work: 10_000_000, storageBytes: 30_000_000,
+            valueDepth: 100, coefficientDepth: result.depth.coefficient - 1))
+        do { _ = try d.signInvariant(for: source.polynomials[0], in: result, using: &shallowIssue); throw ExactRealCellFailure.invalidCoverage }
+        catch ExactRealCellFailure.scalar(.resourceLimit(.coefficientDepth)) { }
     }
 }

@@ -26,7 +26,10 @@ extension ExactRealTopologyDomain: ExactRealIncidenceProducing {
   try f.cell(target.definition,map:map(target.definition.coordinateCount,&a),witness:&witness,weak:false,factors:target.factors,&a)
   try f.instruction(.and,&a)
   guard witness == f.polynomials.variableCount else { throw ExactRealTopologyFailure.invalidFormula }
-  return try reduce(f,limits:limits,counts:&counts,&a)
+  // Intersection is restricted by the strict target, so its original domain
+  // may bound a quantifier-free reduction without discarding any attachment.
+  let targetDomains = f.quantifiers.isEmpty ? target.definition.partition.source.domains : nil
+  return try reduce(f,limits:limits,counts:&counts,domains:targetDomains,&a)
  }
  func appendAttachment<A: ExactScalarAdmission & ~Copyable>(source: ExactRealCellID<Base>, target: ExactRealCellID<Base>,
   closure: ExactRealClosure<Base>, region: ExactRealTopologyRegion<Base>, piece: ExactRealCellID<Base>,
@@ -46,6 +49,9 @@ extension ExactRealTopologyDomain: ExactRealIncidenceProducing {
    let provider = try Cells(retaining:partition.source,using:&admission)
    // The retained selection validates source ownership even when it is empty.
    _ = try provider.coefficientField(of:selection.predicate.source,using:&admission)
+   if strategy == .automatic, let refined = try affineFactorIncidence(selection, limits: limits, counts: &counts, &admission) {
+    try admission.checkpoint(); return refined
+   }
    let cover = try self.cover(partition,&admission)
    try ExactTopologyAccess.storage(n,Int.self,&admission)
    var targets: [Int] = []; targets.reserveCapacity(n)
@@ -99,7 +105,7 @@ extension ExactRealTopologyDomain: ExactRealIncidenceProducing {
       wholeTarget = closures[i].region.included[targets[j]]
      } else if let certificate = certificates[i] {
       let sample = try provider.sample(of:cells[j],in:partition,using:&admission)
-      wholeTarget = try certifiedTruth(closures[i].region.instructions,certificate:certificate,sample:sample,counts:&counts,&admission)
+      wholeTarget = try certifiedTruth(closures[i].region.instructions,certificate:certificate,sample:sample,counts:&counts,sourceSigns:cells[j].signs,target:cells[j],&admission)
       try counts.retain(sample.depth,&admission)
      } else { wholeTarget = nil }
      if let included = wholeTarget {

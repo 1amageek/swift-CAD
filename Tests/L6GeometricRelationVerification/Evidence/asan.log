@@ -1,0 +1,69 @@
+Building for debugging...
+[Pre-planning 1 / 268]
+[Planning deferred tasks]
+[65 / 136] L0
+[70 / 153] L0
+[79 / 153] L0
+[80 / 153] L0
+[82 / 153] L1
+[84 / 153] L0
+[86 / 153] L0
+[87 / 153] L0
+[88 / 153] L0
+[91 / 154] L1
+[94 / 169] L1
+[104 / 169] L1
+[105 / 169] L2
+[109 / 169] L1
+[111 / 169] L1
+[112 / 169] L1
+[117 / 185] L2
+[121 / 185] L2
+[128 / 185] L2
+[130 / 185] L3
+[133 / 185] L2
+[135 / 185]
+[142 / 201] L3
+[151 / 201] L3
+[155 / 201] L3
+[158 / 201] L3
+[159 / 201] L3
+[160 / 201] L3
+[162 / 202] L3
+[166 / 217] L4
+[170 / 217] L4
+[178 / 217] L5
+[180 / 217] L4
+[184 / 217] L4
+[184 / 217] L3
+[189 / 230] L5
+[199 / 230] L6
+[203 / 230] L5
+[205 / 230] L4
+[211 / 246] L6
+[215 / 246] L6
+[223 / 246] L6Fixtures
+[227 / 246] L6
+[228 / 246] L6
+[229 / 246] L5
+[235 / 251] L6Fixtures
+[243 / 251]
+[248 / 254] L6
+[252 / 254] L6Proof-product
+Build complete! (8.99秒)
+PASS: cs=true mode=0 strata=1 incrementalWork=815 incrementalStorage=45353 queryWork=483491
+PASS: cs=true mode=1 strata=1 incrementalWork=637 incrementalStorage=39593 queryWork=456291
+PASS: cs=true mode=2 strata=5 incrementalWork=1365 incrementalStorage=71701 queryWork=430374
+PASS: cs=true mode=3 strata=6 incrementalWork=2173 incrementalStorage=110691 queryWork=217581
+PASS: cs=true mode=4 strata=9 incrementalWork=1866 incrementalStorage=82055 queryWork=980139
+PASS: cs=true mode=5 strata=0 incrementalWork=2 incrementalStorage=936 queryWork=0
+PASS: cs=true mode=6 strata=5 incrementalWork=5319 incrementalStorage=275225 queryWork=469667
+PASS: cs=false mode=0 strata=5 incrementalWork=514 incrementalStorage=21800 queryWork=2290501
+PASS: cs=false mode=1 strata=25 incrementalWork=1089 incrementalStorage=21608 queryWork=2363748
+PASS: cs=false mode=2 strata=81 incrementalWork=7055 incrementalStorage=8144 queryWork=2793464
+PASS: cs=false mode=3 strata=45 incrementalWork=2359 incrementalStorage=16328 queryWork=6152565
+PASS: cs=false mode=4 strata=45 incrementalWork=2717 incrementalStorage=19136 queryWork=880435
+PASS: cs=false mode=5 strata=0 incrementalWork=2 incrementalStorage=936 queryWork=0
+PASS: cs=false mode=6 strata=5 incrementalWork=5520603 incrementalStorage=258353123 queryWork=2130419
+PASS: L6 resolve exact admission work=1365 storage=71701; limits/cancel/final-empty/foreign/station
+PASS: independent exact geometric relation composition

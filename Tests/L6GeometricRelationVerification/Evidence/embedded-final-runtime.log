@@ -1,0 +1,18 @@
+(node:74255) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS: cs=true mode=0 strata=1 incrementalWork=812 incrementalStorage=22681 queryWork=480078
+PASS: cs=true mode=1 strata=1 incrementalWork=634 incrementalStorage=19801 queryWork=452783
+PASS: cs=true mode=2 strata=5 incrementalWork=1362 incrementalStorage=35893 queryWork=427459
+PASS: cs=true mode=3 strata=6 incrementalWork=2169 incrementalStorage=55415 queryWork=216476
+PASS: cs=true mode=4 strata=9 incrementalWork=1863 incrementalStorage=41207 queryWork=973263
+PASS: cs=true mode=5 strata=0 incrementalWork=2 incrementalStorage=468 queryWork=0
+PASS: cs=true mode=6 strata=5 incrementalWork=5310 incrementalStorage=137713 queryWork=466150
+PASS: cs=false mode=0 strata=5 incrementalWork=502 incrementalStorage=10900 queryWork=2271220
+PASS: cs=false mode=1 strata=25 incrementalWork=1078 incrementalStorage=10804 queryWork=2346123
+PASS: cs=false mode=2 strata=81 incrementalWork=7055 incrementalStorage=4072 queryWork=2790100
+PASS: cs=false mode=3 strata=45 incrementalWork=2352 incrementalStorage=8164 queryWork=6080708
+PASS: cs=false mode=4 strata=45 incrementalWork=2708 incrementalStorage=9568 queryWork=873785
+PASS: cs=false mode=5 strata=0 incrementalWork=2 incrementalStorage=468 queryWork=0
+PASS: cs=false mode=6 strata=5 incrementalWork=5466633 incrementalStorage=129484843 queryWork=2112449
+PASS: L6 resolve exact admission work=1362 storage=35893; limits/cancel/final-empty/foreign/station
+PASS: independent exact geometric relation composition

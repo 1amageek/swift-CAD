@@ -1,0 +1,93 @@
+Building for debugging...
+[1 / 5] L4
+[2 / 6] L4
+[10 / 14] L6
+[20 / 22] L4
+[24 / 26] L4
+[26 / 27] L4
+[33 / 36] L6
+[35 / 37] L6
+[41 / 43] L6Tests-product
+[42 / 44] L6Tests-product
+[46 / 48] L6Tests-product
+[48 / 48] L6Tests-product
+Build complete! (2.69秒)
+Test Suite 'All tests' started at 2026-10-08 11:20:53.024.
+Test Suite 'All tests' passed at 2026-10-08 11:20:53.025.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test releasedInputsAndForeignHandles() started.
+􀟈  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() started.
+􀟈  Test rejectsInvalidCoordinateProjectionBeforePublication() started.
+􀟈  Test curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() started.
+􀟈  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() started.
+􀟈  Test transportsDifferentRootsAfterCoordinateReordering() started.
+􀟈  Test case passing 1 argument mode → 0 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to curveStrataAndCompleteStationFibers(mode:) started.
+phase L5 start cs=false mode=2 work=453 storage=27320
+phase L5 start cs=true mode=0 work=479 storage=29144
+phase L5 start cs=false mode=4 work=522 storage=30808
+phase L5 start cs=true mode=2 work=483 storage=29144
+phase L5 start cs=true mode=2 work=483 storage=29144
+phase L5 start cs=true mode=1 work=522 storage=31272
+phase L5 start cs=false mode=0 work=586 storage=34296
+phase L5 start cs=false mode=1 work=591 storage=34296
+phase L5 start cs=false mode=3 work=617 storage=35304
+phase L5 start cs=true mode=4 work=573 storage=33080
+phase L5 end cs=true mode=1 work=430954 storage=18505661
+phase L6 end cs=true mode=1 work=431589 storage=18545254
+phase L5 end cs=true mode=2 work=436282 storage=18764787
+phase L6 end cs=true mode=2 work=437645 storage=18836488
+phase L5 end cs=true mode=2 work=436282 storage=18764787
+phase L6 end cs=true mode=2 work=437645 storage=18836488
+phase L5 end cs=true mode=0 work=473518 storage=20438452
+phase L6 end cs=true mode=0 work=474331 storage=20483805
+phase L5 start cs=true mode=6 work=864 storage=43336
+phase L5 start cs=false mode=5 work=624 storage=36136
+phase L5 end cs=true mode=6 work=467705 storage=20096782
+phase L6 end cs=true mode=6 work=473022 storage=20372007
+phase L5 start cs=true mode=5 work=479 storage=29144
+phase L5 start cs=true mode=3 work=513 storage=30240
+􁁛  Test rejectsInvalidCoordinateProjectionBeforePublication() passed after 31.050 seconds.
+􁁛  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() passed after 31.050 seconds.
+􁁛  Test transportsDifferentRootsAfterCoordinateReordering() passed after 31.050 seconds.
+􁁛  Test releasedInputsAndForeignHandles() passed after 31.050 seconds.
+phase L5 end cs=true mode=3 work=201052 storage=8908603
+phase L6 end cs=true mode=3 work=203221 storage=9019294
+phase L5 end cs=true mode=5 work=277219 storage=11961151
+phase L6 end cs=true mode=5 work=277221 storage=11962087
+phase L5 end cs=false mode=4 work=1773604 storage=81935611
+phase L6 end cs=false mode=4 work=1776321 storage=81954747
+􁁛  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() passed after 36.013 seconds.
+phase L5 end cs=false mode=0 work=2237060 storage=96457966
+phase L6 end cs=false mode=0 work=2237574 storage=96479766
+phase L5 end cs=false mode=1 work=2632226 storage=112765904
+phase L6 end cs=false mode=1 work=2633315 storage=112787512
+phase L5 end cs=false mode=2 work=3646650 storage=214970026
+phase L6 end cs=false mode=2 work=3653705 storage=214978170
+phase L5 end cs=false mode=5 work=2267623 storage=98762477
+phase L6 end cs=false mode=5 work=2267625 storage=98763413
+phase L5 end cs=false mode=3 work=9431359 storage=366430105
+phase L6 end cs=false mode=3 work=9433718 storage=366446433
+􁁛  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) with 6 test cases passed after 57.299 seconds.
+􀢄  Test curveStrataAndCompleteStationFibers(mode:) recorded an issue with 1 argument mode → 4 at GeometryTests.swift:12:2: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.storage))))))
+􀢄  Test curveStrataAndCompleteStationFibers(mode:) with 7 test cases failed after 64.146 seconds with 1 issue.
+􁁛  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() passed after 75.367 seconds.
+􀢄  Test run with 8 tests in 0 suites failed after 75.367 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L6Tests (Swift Testing)

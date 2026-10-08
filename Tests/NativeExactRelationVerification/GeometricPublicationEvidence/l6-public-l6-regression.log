@@ -1,0 +1,296 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 327]
+[Planning deferred tasks]
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/L6UVProof.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/L6UVProof.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/DerivedSources/test_entry_point.swift' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/L6Tests.xctest.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/L6Tests.xctest.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/GeometryTests.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/GeometryTests.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/DerivedSources/Entitlements.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/GeneratedModuleMaps/L6Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/L6Proof.xcent' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/GeneratedModuleMaps/L6Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/L6Proof.xcent.der' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/L6Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/GeometricFailureFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/L6UVProof_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/GeometricFailureFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6UVProof-p.build/Objects-normal/arm64/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/GeometryFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6UVProof' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/GeometryFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof-dependency-scan.dia' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/L6Fixtures_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/PublicationAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/PublicationAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/UVFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests_dependency_info.dat' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Fixtures-t.build/Objects-normal/arm64/UVFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/L6Proof_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/L6Tests_lto.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Fixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Fixtures.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/PullbackTests.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Fixtures.swiftmodule/arm64-apple-macos.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Proof-p.build/Objects-normal/arm64/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/PullbackTests.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Fixtures.swiftmodule/arm64-apple-macos.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/test_entry_point.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Proof' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/Objects-normal/arm64/test_entry_point.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Fixtures.swiftmodule/arm64-apple-macos.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug/L6Tests-p.build/empty-L6Tests.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.swiftmodule/arm64-apple-macos.abi.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.swiftmodule/arm64-apple-macos.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.swiftmodule/arm64-apple-macos.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.xctest' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.xctest/Contents' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.xctest/Contents/Info.plist' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.xctest/Contents/MacOS' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.xctest/Contents/MacOS/L6Tests' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l6-native-build-20261008/out/Products/Debug/L6Tests.xctest/_CodeSignature' is located outside of the allowed root paths.
+
+[29 / 80] L2
+[32 / 83] L2
+[35 / 87] L2
+[41 / 90] L3
+[45 / 98] L3
+[46 / 98] L3
+[48 / 101] L3
+[56 / 104] L4
+[59 / 104] L3
+[63 / 119] L4
+[65 / 119] L4
+[74 / 122] L4
+[77 / 125] L4
+[79 / 137] L5
+[81 / 137] L5
+[82 / 137] L5
+[87 / 137] L5
+[92 / 140] L5
+[95 / 155] L6
+[97 / 155] L6
+[102 / 155] L6
+[104 / 155] L6Fixtures
+[107 / 155] L6
+[109 / 155] L6
+[110 / 155] L6
+[117 / 155] L2
+[118 / 156] L6Fixtures
+[122 / 161] L6Fixtures
+[135 / 161] L6Proof-product
+[142 / 165] L6UVProof-product
+[150 / 166] L6Tests-product
+[153 / 166] L6Proof-product
+[155 / 166] L6UVProof-product
+[158 / 188] L6Proof-product
+[163 / 190]
+[166 / 190]
+[167 / 190]
+[170 / 190]
+[173 / 190]
+[174 / 190]
+[175 / 190]
+[179 / 190] L6Tests-product
+[184 / 190] L6Tests-product
+[186 / 190] L6Tests-product
+Build complete! (8.08秒)
+Test Suite 'All tests' started at 2026-10-08 14:14:16.634.
+Test Suite 'All tests' passed at 2026-10-08 14:14:16.636.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test rejectsInvalidCoordinateProjectionBeforePublication() started.
+􀟈  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() started.
+􀟈  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() started.
+􀟈  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test independentLimitsAndTerminalCancellation() started.
+􀟈  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() started.
+􀟈  Test reciprocalUVStations() started.
+􀟈  Test case passing 1 argument mode → 0 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test releasedInputsAndForeignHandles() started.
+􀟈  Test case passing 1 argument mode → 4 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test transportsDifferentRootsAfterCoordinateReordering() started.
+􀟈  Test case passing 1 argument mode → 3 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to curveStrataAndCompleteStationFibers(mode:) started.
+PASS: L6 resolve exact admission work=1365 storage=71805; limits/cancel/final-empty/foreign/station
+􁁛  Test rejectsInvalidCoordinateProjectionBeforePublication() passed after 26.491 seconds.
+􁁛  Test independentLimitsAndTerminalCancellation() passed after 28.217 seconds.
+􁁛  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() passed after 28.217 seconds.
+􁁛  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() passed after 28.788 seconds.
+􁁛  Test releasedInputsAndForeignHandles() passed after 31.646 seconds.
+􁁛  Test transportsDifferentRootsAfterCoordinateReordering() passed after 32.904 seconds.
+􁁛  Test curveStrataAndCompleteStationFibers(mode:) with 7 test cases passed after 35.462 seconds.
+􁁛  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) with 7 test cases passed after 81.294 seconds.
+􁁛  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() passed after 100.435 seconds.
+PASS: CS reciprocal UV and both SSI UV stations retain separate exact roots
+􁁛  Test reciprocalUVStations() passed after 106.797 seconds.
+􁁛  Test run with 10 tests in 0 suites passed after 106.798 seconds.

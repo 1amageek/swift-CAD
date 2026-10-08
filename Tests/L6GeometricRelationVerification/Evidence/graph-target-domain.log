@@ -1,0 +1,15 @@
+Building for debugging...
+[1 / 5] L4
+[2 / 6] L4
+[6 / 9] L4
+[9 / 9] L6Proof-product
+[10 / 10] L6Tests-product
+Build complete! (1.00秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test graphDiagnostic() started.
+graph fixture before L5 work=591 storage=35728
+graph fixture after L5 work=2117527 storage=100942242
+􁁛  Test graphDiagnostic() passed after 6.059 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 6.059 seconds.

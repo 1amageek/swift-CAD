@@ -5,12 +5,17 @@ public struct SurfaceSurfaceIntersectionResult: Sendable {
     public let originalNativeRelations: OriginalNativeSurfaceSurfaceRelations?
     public let originalNativePoints: OriginalNativeSurfaceSurfacePoints?
 
+    /// Complete source-bound L0-L6 strata; includes positive-dimensional images.
+    public let originalExactGeometricRelation: NativeExactGeometricRelation?
+
     init(intersections: [SurfaceSurfaceIntersection],
         originalNativePoints: OriginalNativeSurfaceSurfacePoints? = nil,
-        originalNativeRelations: OriginalNativeSurfaceSurfaceRelations? = nil) {
+        originalNativeRelations: OriginalNativeSurfaceSurfaceRelations? = nil,
+        originalExactGeometricRelation: NativeExactGeometricRelation? = nil) {
         self.intersections = intersections
         self.originalNativePoints = originalNativePoints
         self.originalNativeRelations = originalNativeRelations
+        self.originalExactGeometricRelation = originalExactGeometricRelation
     }
 
 }

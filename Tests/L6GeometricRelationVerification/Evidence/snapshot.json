@@ -1,0 +1,1240 @@
+{
+  "baseCommit": "857750a2f0b9356fc31e9c20ada62dbc20f86749",
+  "compiler": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0",
+  "sdks": [
+    "swift-6.4.0-RELEASE_wasm",
+    "swift-6.4.0-RELEASE_wasm-embedded"
+  ],
+  "node": "v24.19.0",
+  "sourceScope": "production L0-L6",
+  "sources": [
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactAlgebraicFiberPolynomial.swift",
+      "sha256": "db7e21cb62bfe9e0fe42ee875a9d23a8b6824c0b5556635cfdb6fb00f96f70a0"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactAlgebraicFiberRootIsolator.swift",
+      "sha256": "c3d3c23794e102e44f1c7f4e8c09c3320341ca8dd1c285dbdc96e7a2e284793a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactAlgebraicFiberSturmSequence.swift",
+      "sha256": "0533afe2a08e3c3eb21837d63a8e28eea7ee106f3eea378433f7bf3e557adfde"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactAlgebraicFieldElement.swift",
+      "sha256": "a9fde061b2656b26d8564e10f41f9751954c102c39e5b53a6b5607dd1e88ebaf"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactAlgebraicPairAuthority+Fiber.swift",
+      "sha256": "9453b1d9650bd7cc3e4543ec64b00ee18755043b925d8dffcadecd2ee0ecdefc"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactAlgebraicPairAuthority.swift",
+      "sha256": "5cff1997630f74d1ba12cc4f42f74b95e662d4522fdd90f2125dbe66606b454d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactAlgebraicRealRoot.swift",
+      "sha256": "b963af364a50eb679c958836a438d2ca912f37d0193f36f732bcd448104af1a3"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactBivariateDivision.swift",
+      "sha256": "36a143801cb6190f0250b65032ca50c395f0bff108d1516c937a836a7f7de2ca"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactBivariateEvaluation.swift",
+      "sha256": "5092254e8a6fa8f34c04dadbabe2df4509af9ffd537f718c831f91e30f1e44df"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactBivariateGCD.swift",
+      "sha256": "ab85adc24e8e9b2895b141505b629e36c6f892ea186037fe5de7099958db5964"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactBivariateGCDProducing.swift",
+      "sha256": "dd367e304de5c73ff011bba27f49ff13509c36e4985e50d0859ebf1908a9264d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactBivariateMonomial.swift",
+      "sha256": "156e063b152a9ad54bb955e334961b7ff4b23aafea277ebd329a5ed41afa1973"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactBivariatePolynomial+Composition.swift",
+      "sha256": "cc75e22b4bc398e95dfdafcfa415369dfb27d0c9dbd29156bdd767706474e27a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactBivariatePolynomial.swift",
+      "sha256": "1a574cf6217c08f466b66fe307b9b5d916f77d04cc85894373b1d1887f2025c9"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactNaturalMagnitude.swift",
+      "sha256": "54013a1a4e5516c406e23760847126c72b454e841e21e793fee84a099e7e1d33"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactOrder.swift",
+      "sha256": "1482984efb2b7c42fc62619236916952824e728213840b67e4357bb2309cc47a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactRationalCoefficient+Hashable.swift",
+      "sha256": "69b0bb4ee9653f1c714256f79eff6b0dc69ecd3d98b7d5f0b9ed2b856aec0175"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactRationalCoefficient.swift",
+      "sha256": "dbd14ed506223d61d5b5b796bfb557b46bcb8093309c770be6656fe4e192d347"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactRationalScalarDomain.swift",
+      "sha256": "2969745132c5fcef4b6adbcc9c5c1e3103f0a1428ef89f1c2875594c2692d7f9"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactResource.swift",
+      "sha256": "a87ef5f9cc2422b3938b9cb89729588472f11fc108e34ae610ea0b17720b17c3"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarAdmission.swift",
+      "sha256": "ddc1840b52caa33293bec905b46e9d7c6c734c9f4281f3ec626ce5566090987e"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarArithmetic.swift",
+      "sha256": "9c5935f33eb1703bbf90f10cce48aab751a31cdae87fee0a657ca1ac43472e4a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarCount.swift",
+      "sha256": "6a7b330ee79975e24fc7b644df47a3da86bfb0ec4d29f4ea4fcb1811d0bbf1c4"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarDepth.swift",
+      "sha256": "8b5f9c158f17c09fd4b33cb93abdca303d4d144f6389072b3a3c89791a1fd290"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarFailure.swift",
+      "sha256": "5807d10b42086c438be8b5c7d718745a30e56589f7841e0df1acd7fce61ce332"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarImporting.swift",
+      "sha256": "609563955ede797ebdb84118c83de16fa92c56828989c9d8a8db60bf69e16d2a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarLedger.swift",
+      "sha256": "4b5ed1236e4131a672a28d36c83c5ade9c3de23a6c5e0718e18eb36429bd86e2"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarLimits.swift",
+      "sha256": "1d7759d1b93d9e3a12796d33e991633075e6500615ebafb3fe1dbd37c434f9eb"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarNumericAccess.swift",
+      "sha256": "76f2a76585a41ae74cf0cb2283594dee02627d29d69b9b738f63dd27b23b7a6f"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarOrdering.swift",
+      "sha256": "4999994a401a83cc4962c17db2c0cb4cb7f42f5e82ebe0e6b86a5bc2419005c1"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarPayloadBytes.swift",
+      "sha256": "e04c10719301a6c3fb9da38e36555fbc3023dcbdc6a161f1c2d7fe31080a16d3"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarRationalAdmission.swift",
+      "sha256": "e7f405d06d94555876374b5d8a9174081d302752d76f560f2222aa20864b84fd"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactScalarRootAxis.swift",
+      "sha256": "3611a7ae863ca8d6bb7fed34f757fbdd4be29ce53116a538e2f657265d246ffa"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactSign.swift",
+      "sha256": "7548d058f17697dc9d10c88002e4baefa1d24c35977e237b0c7f1942311b5d33"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactUnivariateRootIsolator.swift",
+      "sha256": "48f9c4489a28834904a90ae93320a3a7e019b131140d358c1c0161a1ea99c1f6"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/ExactUnivariateSturmSequence.swift",
+      "sha256": "a0cc1aa8c093ee431ff23c3c4856eec7e7a07600edbd2c00134591901e77e5dc"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalExactScalar.swift",
+      "sha256": "69d010d417ab227b168cebbd67c6ff84046cd2945c00b453509abc057e04f7b4"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalExactScalarDomain.swift",
+      "sha256": "9668cc27d29048a2177e4daa3e380468184fdc6ee86d8f7c068b4db67bb65d36"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalRationalPolynomialRange.swift",
+      "sha256": "69ef082e91278d7c977108d86da74be307f09d60c5c15503cca7f3db1e3e3658"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalScalarRootDomainAdmission.swift",
+      "sha256": "b9d88c31dd6c0ec45575e5d64efcbdef97f600c3565187146fa019f9599b7ceb"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalSingularFieldContext.swift",
+      "sha256": "1c024c4f21c758a196190e13c41ddd3e35448bb400954bd260631cebbb755ad9"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalSingularFieldElement.swift",
+      "sha256": "bdd4d52bc196739db4f0938d67dc2496b116a9194bc6419dfdf6d68436cf0566"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalSingularFieldPolynomial.swift",
+      "sha256": "0d2b3d5335f01fb0e020f7c23cb3ecff29eaad5c6e23d514668035b46f06cd52"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalSingularFieldRoot+RationalRefinement.swift",
+      "sha256": "c9d9d957e0a76ffa768aed3e8164e45806f7e9e6aa7aab163a5c7aa0c85a6637"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalSingularFieldRoot.swift",
+      "sha256": "e190d5c9d65f88b59ad8e06c9375811a622192d326b00f765c184dbd83a21dd7"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/OriginalSingularFieldSturm.swift",
+      "sha256": "6015c4e88a9a0a718e2211c2b5781a777141f85242e29edf35fbc3c029541a68"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/RationalAlgebraAdmitting.swift",
+      "sha256": "0cdeccffde311bc1896716c064a6325ec89166ed074d10798e87f4210270d426"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/RationalAlgebraStorage.swift",
+      "sha256": "382853be35b6fd1b97055dfd90f998f5a0063503931960a7a51031dff0b447ea"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/RationalCoefficientDepthAdmission.swift",
+      "sha256": "22e7e69f4db70061126883ca83f37b2b5385108585380fa9d6b2fedcf301fb68"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomial.swift",
+      "sha256": "664abeead2e6841bc5f862c0287c0030cc709e7e63c2200f55d929eac3d4ed5e"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialAccess.swift",
+      "sha256": "06bb22458d88801f4318332a2bc5fc185e4f8d897ce9a746687cf8779d80458b"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialAdmission.swift",
+      "sha256": "4bb24e666da3595f59a742bd0624c78fa28a862f5a248deb24884f443f7e3101"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialArithmetic.swift",
+      "sha256": "92c6a03d1dc9d3b1d3fde7b0c00cbf9cd4aaff9b970bccd9f179cf14a3d200d7"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialCalculus.swift",
+      "sha256": "e09146e9df47016a786297a2b16d472838ba05ef04e1228073c8d5d82b67cc46"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialConstructing.swift",
+      "sha256": "a36f8801cdc1a539f3216a175f45e580cbde90eb77dc5c50904659c703161230"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialContext.swift",
+      "sha256": "03d889ede404f448f4b2ecc58dde4e4b28813a32428139f387c5e44caab87b46"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDeciding.swift",
+      "sha256": "bda5c8a29a80aa49f1c6df37cc74030a694283239bce9ee7ffe004a3b6a2b14f"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDegreeCoefficient.swift",
+      "sha256": "c0f0a802506f93ee3b6700e43ccad2338c11d1a78f3ec79c492b405156fd8d7a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDividing.swift",
+      "sha256": "8d1be54ea921c5c2e094e640c3b4e2fbfbaa7f682ed1d8073027a3c4e562f6e7"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDivision.swift",
+      "sha256": "33fe84b265c8ee8e0afd60f411328bb32eec382d1ef5c46971e01af556b1ce1d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+Arithmetic.swift",
+      "sha256": "9fcba2aee6d8cf4bd16e9533107323ccce153fd019f37ab83396997e924c0c44"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+Calculus.swift",
+      "sha256": "da3cd5249d31ca6b58242e7818792040ab51e619b05df68fd25193f91876dcfb"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+Coefficients.swift",
+      "sha256": "16b1eaba757108dc0256624fe640623aa005a28ad43ce9e396720acc23cb8ed9"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+Division.swift",
+      "sha256": "f75d53d02154688ce30ebb095edc64707406dbd29a291057a94bc1cf620f546e"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+GCD.swift",
+      "sha256": "5f060dfc86a1db42ce7fe4801176973be6007596e52af2672c7ad3c900a8a302"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+HeapProduct.swift",
+      "sha256": "8f3f45667367e8a332f7297ac58da4158c1ba82d4f0d5ef354d9d60a7c250b10"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+OrderedConstruction.swift",
+      "sha256": "2b58b08d049b42400a780165699fa9c293b6837d60ce64a15ec816522d0b1ee2"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+PrincipalDeterminant.swift",
+      "sha256": "583faeafdb10822dc21d2254df9c8a20ba7244bf5ab3e5cdf0c2db0f15dc3ff2"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+Resultant.swift",
+      "sha256": "12f9a1636bf52741081c42651b00988623103df662114a409f21f98586f2ab0b"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+SeparatedProduct.swift",
+      "sha256": "7e2eddb8d1023ba76b241c5345bbd6ca866877dfb9a8fa69e7dc7b3570f54c38"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+SquareFree.swift",
+      "sha256": "95bc2f21195190047976864f7cf43d6dc6491e6dcd4373ecfb2addd9c0aef227"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain+Subresultants.swift",
+      "sha256": "089d289a2df8a5c4a7990251582353fe18237f69104a03dfc355f659b5a1b3d4"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialDomain.swift",
+      "sha256": "06862af17c79e955a8dc4da83f6a5b2788e13cfba12dedc1be1b17aa9fe22c52"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialEliminating.swift",
+      "sha256": "1f776f997cd8f85ac8e426e7cc69ffd15d7eaad836fecb55886f75867cefe1e9"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialEvaluation.swift",
+      "sha256": "37a77c3d412cfda572b5d72e39ffd33469ad7d648befc84b2e1f65fb44b1a5c4"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialFailure.swift",
+      "sha256": "269078a7091855e238d4c45911b03b27a27f8bf5139cdb8af69433140b1a8d7f"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialGCDProducing.swift",
+      "sha256": "f561ffcc642e4f78f37d465efc92509ab3762af1a3d7aea4a55837c59534248b"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialGCDTask.swift",
+      "sha256": "b072ee5ccd9da3a164e258d60f1c38fea0f1ec0573b6c343591984b8d693f31b"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialImporting.swift",
+      "sha256": "9e90ec81eb6548119924a17343df074c173affc9b46caf5851e7a2bd5d86691c"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialOrderedConstructing.swift",
+      "sha256": "463e05dae14d5412537ba830d8c81993d84d99e251db4252dc28800c192d1b0a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialProductIndex.swift",
+      "sha256": "f2162eb13afa78e298d3f4c3c4ab760e1e3aa59368a35fbd7cb4700bf0f3ee76"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialSquareFreeDecomposition.swift",
+      "sha256": "db878d9d9274a4a39c3df7f39b643c133fffed90b8fdace17ec5b0ae1c7ec0f7"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialSquareFreeFactor.swift",
+      "sha256": "b0c372e78ca5226c3fa0a3e8bad6eb0d598264370e68ac137b3d41cfed541673"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialSquareFreeProducing.swift",
+      "sha256": "3b15c7efb27f5628ef6909dffde40b72acc23ee244f22acdbcee44fd8de8cd40"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialSubresultantAlgorithm.swift",
+      "sha256": "44a801815e2660f6e70f62c28786b72a6cae690efbda065a2f7c8513aa92f4e6"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialSubresultantProducing.swift",
+      "sha256": "1cf9734041c7f232b96093de7103a1d03e2351e0988ffa2c33342e7c19217737"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPolynomialTerm.swift",
+      "sha256": "67f3fd51714ea6ac7a32e76e6aba9b343b7b3bfc1eaeab41bd10532ff9d333b1"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/ExactPrincipalSubresultantSequence.swift",
+      "sha256": "983d377eb970855f47add8b0e0f9e64fda5c7e87676b9b46788b3d5e465aeacb"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactAlgebraicContext.swift",
+      "sha256": "8f78e64b1e1f5fd3cdf52a37bf1422008e721ece343032fc40796511022c2c12"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactAlgebraicEmbedding.swift",
+      "sha256": "8d1dae7f9820fb02d6f852d6cca09485dbbf5e19a116aa1303ea0cc0384a1b4c"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactAlgebraicExtending.swift",
+      "sha256": "f1829951f33a79429bb84f4848fd015c968c2f6a91e118765376ebc90553ea0e"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactAlgebraicExtension.swift",
+      "sha256": "1a17a433f5e9de9fe0c5dc9fe33a49d6c034664d343dee1c2db7196dfa27d669"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactAlgebraicScalar.swift",
+      "sha256": "524c5db098c9821577f22239c57adf6da1ba25a62c7663758252ebb95d68114d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactAlgebraicScalarDomain+Arithmetic.swift",
+      "sha256": "0ea4bb6b589c75eb6a63a53632a3f956f777ff657a04c7c24c85efbaba7fb074"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactAlgebraicScalarDomain.swift",
+      "sha256": "4548de9b42746d0ede0358d87900f0c71d06398d2e31bc5ad4e146ae7f57751d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactAlgebraicStorage.swift",
+      "sha256": "151efbe21a2d20bca1fc604f04b1aff354fed8073e118be8e03f8a99fd5e90e3"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRoot.swift",
+      "sha256": "6200a4d724e80058df4a73329bbfbd28004a364caa120365903ece3fb65d1fa2"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootBound.swift",
+      "sha256": "aa02e910408f608d917402024c86a33280884f78686257e13e922c63ffdf70d2"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootClassification.swift",
+      "sha256": "96a52b4d8f2e8450b47cf0da4daf414c57c3fdda93b5f5fdefdcc13da6d02bee"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootContext.swift",
+      "sha256": "7451cddb936d904ead3b0eabcd746176bc859d87c3bb87c459cb6095e2eb0872"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootCount.swift",
+      "sha256": "b9c1f98965882dadf26989bd9a1dc3c37c6949fc8ef6de4f73ef884d25dea4f3"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootDomain+Producing.swift",
+      "sha256": "f261dbd751c0f1154dd7af03e55183a0cef2bc2acd52e0b6e86e5773a8471d9c"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootDomain+Query.swift",
+      "sha256": "7ce220d75157c1344e7497c4e3fa690acf95be2d55f8b0ba184afa246a1d7064"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootDomain+Sturm.swift",
+      "sha256": "165d846a335372a774e059368a4854fdc74c4b59368e95847044f6c9ea1c1d47"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootDomain.swift",
+      "sha256": "6bdb230436011df9cde9c7667fa22131d1c1848ef8adfbe56c745ee301187385"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootFailure.swift",
+      "sha256": "e64722366c86861909751cd697fdf299ff700f2552da64a5cc9d6a9109790eba"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootInterval.swift",
+      "sha256": "8569eef4ba74110384a9e5a79c6b5e301abdea0ef02ea15223f2a5de8c3a9e97"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootLimits.swift",
+      "sha256": "8ef55719748c3a334403df9ec8165cccbcaaa6e80262c2e42fa510097cf745f1"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootPreparing.swift",
+      "sha256": "6b2acd853c4c48345f1d9acb68ce7d01f6372bf417072fc4d6cd525d122c6a4a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootProducing.swift",
+      "sha256": "b315c30b7488b53d062f4ef4814a6015cfc00cb93a7143491182aca811fb2d1c"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootQuerying.swift",
+      "sha256": "52136a3ef0cd25c1e83fd5d5b99ccc329eadcc24385dfffe8235898a172f7820"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootSet.swift",
+      "sha256": "57ad11829f3ac0372327c8c52496699076a3e595ebabc0921e889d492fe7080a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootSource.swift",
+      "sha256": "2bd68bb8402c85083c116d965fa01195e98fbc696076d4b5717e51dbcaea7be6"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRootAccess.swift",
+      "sha256": "19c9f1e319d0418092d0a1d97d4dfcb04634ef8469a69f9ba8b0c25c77841896"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRootBorrowedAdmission.swift",
+      "sha256": "c19986494da84fe89cac84848ffb89da25e8bd8a90b762cd7f5aadbf2f61b03d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRootInvocation.swift",
+      "sha256": "9f6c131f4fc97d52500cf8a776c366af0f92842cf88129e6ed48bf40d46473ab"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRootInvocationOwner.swift",
+      "sha256": "57d98e0030c1ecf1a926efd91c4fd8afe59d6fdcfe274867c293b77ec1daec61"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRootSturm.swift",
+      "sha256": "76303de4017f2d6a8a40f0297fc3263d61c134eef4372a98f31d84f0070724db"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactCellAccess.swift",
+      "sha256": "3086175efb62dc88d58f473d80ee6ad227c464aaf8e9da1e30db02a11ce10a77"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactCellBorrowedAdmission.swift",
+      "sha256": "1aab55f1b335293962b01990eab0ebbe003c07a3ef8ae99e29f6c912811a72c4"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactCellInvocation.swift",
+      "sha256": "f9fdfbe4eed17203675fd5891acb30ddd5947f00930e164935f7b741c17577f9"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactCellInvocationOwner.swift",
+      "sha256": "6f2e5d1a7163c3f67505ff153ae527e5cd4dcd5164a333c6ce0c8600dfe34971"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellBoundaryRoot.swift",
+      "sha256": "d76a1a49705c4538f21bfa1df5441f7332a227d55dfaaab624940a7126720ada"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellCondition.swift",
+      "sha256": "de88ad37e2791242edb68aa9086ae5af932156b65cd66bbb90c3270768eeeb8d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellContext.swift",
+      "sha256": "e8678870a320ba1aab9b1e535a565f9c8def02f6fcd788cb3409bc83f5ca872a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDefinition.swift",
+      "sha256": "ff004f9983412f0eb89a8eccb344cfddaa3d033095180622a6dc5c787703f7cc"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDefinitionStep.swift",
+      "sha256": "0bd603b8411185b44ca17f8d6ecb19dc38d87fee294e1bd68fd1d2cfe0c035e4"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDescribing.swift",
+      "sha256": "090897eaa25dec9e98f5f8aa624ee3e8676423d580b32d65ceb2d6d3b0709b2f"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDomain+Inspection.swift",
+      "sha256": "95f79d5ff18098ad7ecaa4479e1e918dc3b01ffcd6b14bcd4995f0fa325d2eaf"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDomain+Lifting.swift",
+      "sha256": "7ab18cc5f0b478ce27e2879d521d68b8640eeffc20b28cf1e14b17051e4e00ea"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDomain+Projection.swift",
+      "sha256": "18568b7a5a155ef3b1c9e1d79462ba9d804b9b3444c463de3e004ecdb1adc07a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDomain+Query.swift",
+      "sha256": "7499a4d204d62ff770971cf41839b56a1070411e62d27fb0fd8e57bcfa5c4880"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDomain+Selection.swift",
+      "sha256": "dd825787db984b2793a3c016cad0011481885aa1ed8ab4b60943a09fb1e38c94"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDomain+Specialization.swift",
+      "sha256": "84d48db78502cec674e265cabffc0882cfe0185e911320bc884556ea7d952318"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDomain.swift",
+      "sha256": "ba08e0a19a0ed617428ff38a932f5c4fdc48c841fbab157e2600385d9a201d84"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellFailure.swift",
+      "sha256": "7ceb8e52cecda77d1a6615ea08d4acf823eca9e597ed6d1879f8082c66f292a4"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellID.swift",
+      "sha256": "925c73c916a361dacbc5fa41cec101594d3570a07cf4e6d596b45019751626cc"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellInstruction.swift",
+      "sha256": "9f1df2cc70ab6daff34ced0120df77b806c483a356dd210a4d55667a2ef10f1e"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellKind.swift",
+      "sha256": "80c3e719746b32e84652dc66293aa22a3bc331b9056d1b4eaf4e8053c5f4ef2d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellLimits.swift",
+      "sha256": "1314f735ec7a7949af83a47c706692eac28ba7c6127ae02923b2a2d140bfb231"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellPartition.swift",
+      "sha256": "de4c0da51db489ccdf3b2f392f636b1ee4fc3f4fc8cd7904e6f33b368f607deb"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellPartitionStorage.swift",
+      "sha256": "c560465bbc7896a08d0e301c435eac9b441055ca367582d9d302fe4f40cafbdb"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellPredicate.swift",
+      "sha256": "09809fe227b2d001e5a0e4398caffd2fc665ce5d48f049fae5cdeb64a7167fed"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellPreparing.swift",
+      "sha256": "80eba84b67b501fa1e92a9ce39bfd0113a304e86f39d42b255410502c7184b3d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellProducing.swift",
+      "sha256": "ee773da867aed8a67fc9a03672bddb53e849ac243c9f6f6f6ef694e78ed80ac7"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellProjectionLevel.swift",
+      "sha256": "c5e489f542db49018203a6edcf60013619c7adea5309dfde16f8d0113fe542e0"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellProjectionWitness.swift",
+      "sha256": "0f0156d0d3a6942a7be5e2202badc8c6c157714558fd33a8983b0a79e0d32855"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellQuerying.swift",
+      "sha256": "25934d2ee66acca6600988db86a932426bc0d122bd1c9c9a8fddc19336d7aed7"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellRecord.swift",
+      "sha256": "a41416392cbb4a2355acdf96c2d34051c3d0812072cb8fb09028f7cb1dfd9257"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellSample.swift",
+      "sha256": "9b6f4d411838083a9d5ede2d407ef619be949389341b541dc8f8b0b7679f94b1"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellSelecting.swift",
+      "sha256": "6ee2247a4dc3dfd7058cd36a5e263ce4d10867f4f4621d0506e36bd80bc9c6a2"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellSelection.swift",
+      "sha256": "d80dcde410d25a01854c164ef0b1c1366b72252ef580e3e8bdffe8616b0357fc"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellSignRelation.swift",
+      "sha256": "fff9d39f54b060025a91ec58724d3bafc13a3719eaf483aee151ac0e1518e909"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellSource.swift",
+      "sha256": "6ee32c426952e73b5f969a5675b1a2f3c7ce2f37d8a8f2076db37d99129bb98c"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellSourceStorage.swift",
+      "sha256": "7be4dbb544d172289fbd937c6ac8b70c64cd2482600b1917789711f2fe281846"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellStack.swift",
+      "sha256": "8db8e8c226d9f8ee2af3fefc90582fcf2570b072bf57731dc07b604c0aa2dd98"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellTraversing.swift",
+      "sha256": "ffb102ebad2fbf5acde5dab3302a4311f979f547f2acbb95edb03e3caee0f65d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellView.swift",
+      "sha256": "14659f8897555d25874103363dc7e862e31076282aa985b8a0acca14842fb0d3"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealAttachment.swift",
+      "sha256": "b2039f9bfcb972b03378c51eb05382ff34f1f2c6de391193cc386482482277d1"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealCellPullback.swift",
+      "sha256": "63d9515944978113a6579d7ff301d60854d5f021d97854ea4d54d60daf83ffbd"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealCellPullbackResolving.swift",
+      "sha256": "b9214896d46930de243dda611f7b1e0a6ddc11a417eb11c0a3fe62d91f069c54"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealClosure.swift",
+      "sha256": "a9e305e528369d666ee2536066b32e5811cc39fb68e7d5cda8f21d91098af040"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealClosureProducing.swift",
+      "sha256": "1b3b10c161d5725c4db2cf88a5dfb9f77be7b872b015c5d8ee76d771438c46f0"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealClosureProof.swift",
+      "sha256": "a055b5871832c547a5e3b1ce8a133f6a619af209cf244ebfe6992e1e49570c6e"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealClosureStrategy.swift",
+      "sha256": "b3b3cd49d63f05dff9ed0fd4ac0d10d92d4e0215fa7ac3d151c511099c18917b"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealComponents.swift",
+      "sha256": "35f45b50f3060bc21044a4893e882789f760dce7fd4173b5f4496fd71b3794ce"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealComponentsProducing.swift",
+      "sha256": "28bbe5e8d2e22dd4878fa77afde3a06dfaf69d53079c554c125e693d76265c15"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealIncidence.swift",
+      "sha256": "995b1fdf282e08d471799a47d682607fe3d1794a83d3283c64c90bf0c9bbc023"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealIncidencePair.swift",
+      "sha256": "3139407df82e6341f196e23125c009b9dc431e257454ba534790f29f1924a882"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealIncidenceProducing.swift",
+      "sha256": "826dfd616a264162ee795c21a8486c6418bf1e5352c38c904b2d7a5d85ff29eb"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopology.swift",
+      "sha256": "00a43470518955c2cfa7c7018ba6a438358e74ac76f0bbd67ee1fa727d4cf279"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+AffineIncidence.swift",
+      "sha256": "be0434d4fbc59f552042b3f0e3d3758252c86546fe0ac720c258d7f2902db857"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Closure.swift",
+      "sha256": "81873685fe393bbc80ce5a501e62c3095453a0b6c9fbe9b2e34f2f72c74e694b"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Components.swift",
+      "sha256": "8704a7bcca7d7dc6731b3a70acb93dcfdbb6ddeb698b96333b21ee13afc0df39"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Elimination.swift",
+      "sha256": "44272efdf686d360d7affed927971c147c3b6da591e0eba1f666f19eeeba1197"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+FactorCancellation.swift",
+      "sha256": "917fe6a827664672d0413c73ef2fb02ba4cdda5a8aff4bc8546ac531f87f0573"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Factors.swift",
+      "sha256": "bbea8182f7d856aeac1293fb0f539cd3f156cdc052fe5bd4fc1f9dda23a630a5"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Formula.swift",
+      "sha256": "536ee3d5c6c4f7ec255df416144a7eb466f6df5584bc6f90d315251d93cd0fa3"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Incidence.swift",
+      "sha256": "486e784ffe88d6d1e2e4ac881493fd366bb3e1f2919713b1b4328104b2c136ae"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+PolynomialGraph.swift",
+      "sha256": "de792c6ca8ad2c6f5ee5bacbd461a5c6035e121251380096161a80bee4b28d99"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Pullback.swift",
+      "sha256": "d27dfac6b9186130c5ba07ba53b883a7333be8ccb61550bdc8ae2506f3e73a18"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reduction.swift",
+      "sha256": "f5499fcd7581498bfca08321085a6c5688869026013916bf156f94e02dcbe246"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+RetainedClosure.swift",
+      "sha256": "44b295edcc73d797cdb370013b4c9f0e994eb26a7b20d11040b78e88e85d2b50"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain+Reuse.swift",
+      "sha256": "712a3073f4ee4c5fe0164ba5d7684deec514be92bae81b8757445f14550e7ff8"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyDomain.swift",
+      "sha256": "3109faa8704391b90ac20cfb6731235cff8c5acf7a804d2ba41247a74ef31c33"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyElimination.swift",
+      "sha256": "655f46e23dfaacd67a5d19497cd8ea2baa91f1534866fd4557d2cf567a1857c9"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyFactor.swift",
+      "sha256": "c7547fa12222d9a641e2dd1f840f5894eb427a6dac373f851ce1207785c3b2a6"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyFailure.swift",
+      "sha256": "7b04d7ecf6d31b8a52adcc9cc66d451523fb91e8d474e863436e50735590f717"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyLimits.swift",
+      "sha256": "ac2da06772335ec9a29663d49abba09d7cd6bed71ee529dca15ee4bf1da6f6a3"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyQuerying.swift",
+      "sha256": "acf0c265eab93c6b0916732369240d678e56d6008eab2be62dafe92faaa9cb9b"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyReduction.swift",
+      "sha256": "a71d5707df54ae52ec651000dd3e199a8948fd218569f1d52ddf343467fa9035"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologyRegion.swift",
+      "sha256": "3dabd51071190c1baf01d1d1a54c0ddf3fab45384e5b21c7a1d45cdffa393a19"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactRealTopologySignInvariant.swift",
+      "sha256": "6c43b19953544fa6aa005c788111726aa465b56dc5a8e98e013b2288cb5673b9"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyAccess.swift",
+      "sha256": "9117a191735c6f073618b300473d277786958599d5764d90c74d44a343452793"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyCounts.swift",
+      "sha256": "9bfe3d326b8e6e92e72efb4acb9fb2228ac8b50c03a943499148c28462b8375d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyDecision.swift",
+      "sha256": "1d274e8eb7fb3634768290f70350956b44bd1de8f0eb8da7bf574fbaad5194a3"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula+BoundaryOrder.swift",
+      "sha256": "578aae07c3405073ed0268758afd5f34bab8a4e814cd58f6772927a8f4ae666a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula+Composition.swift",
+      "sha256": "7f0333568e7eb20bff462f19c6fcd6bcaa7feec0debe88c0d5aa8cd575d52e59"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/ExactTopologyFormula.swift",
+      "sha256": "09e7487fc6bc501883118c71d5264c14f14ed7aae58c577a557f42f6c9e42c8e"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricGuardDivision.swift",
+      "sha256": "b200f81ef256dc831dac9ff6731ac7a8bc97e5ed57c263c642e89278b8c2f2e2"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricMap.swift",
+      "sha256": "02384a96af00eedbf1ee44789c3d261f5c296ff3d57a3f113b3903847e162ea8"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricRelation.swift",
+      "sha256": "1a74b7953bbc760ccd0d8e85a5554647a9e85fdb0e86236c878e27cbd125e54d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricRelationConstructing.swift",
+      "sha256": "83d1dda220beaaec863091feaeb3bc71b6c83c7ff0aaa5cd08a11097b80dde4a"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricRelationDomain+Construction.swift",
+      "sha256": "2cd3f891e505121087d7e7fc0486a11e05615c008c25d1cc43ccadf8ace3386f"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricRelationDomain+Resolution.swift",
+      "sha256": "840c2f068c9bbcb5c697448c90ddc40d0efa4b56fccf28057657440ddae46593"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricRelationDomain.swift",
+      "sha256": "5d7abce45700bfff46ae1ffc97db1ccdd846cb9b31cd7c76749ffa8700df808c"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricRelationFailure.swift",
+      "sha256": "ccce4b3ca875cadc1201c3e75478a7919dab4c9f4a5eaa047ebc7c5a368168fb"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricRelationKind.swift",
+      "sha256": "2379b1ec876ca1b7a634766dd556f88635f16eee34c560b89e351d64b13a8c52"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricRelationResolving.swift",
+      "sha256": "497f0f0e94b71a9863b6106f6fd5923c1d135793414963985010f2ddc55b9fdd"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/ExactParametricRelationSource.swift",
+      "sha256": "0dbc6cbc03c9ba6e8f2e1cfda260f9c9f15cfb3ae758564f4a1be1ec788e037c"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DefaultExactGeometricRelationResolver+Coverage.swift",
+      "sha256": "d7e5ef078d4822869d9245fa0989b6343c936ae2438f31d380e2c3a6285374bd"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DefaultExactGeometricRelationResolver+Maps.swift",
+      "sha256": "eff938afbf0116838e5d863ab4be2cb6450af19d4c3058f03935d408f4a84ffc"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DefaultExactGeometricRelationResolver+Queries.swift",
+      "sha256": "3ae2856fcf7cb299a22986bd36c85f1257af7c6f20a75df739d08c82251ea307"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DefaultExactGeometricRelationResolver.swift",
+      "sha256": "6ede48cfabdb28469833f4b6ff3f8dfca28af106ddba8abcb1a1b317560cfa42"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactCurveParameterBoundary.swift",
+      "sha256": "3a65dc1f407253ca49ca84b1348e88f1b5f9e68474b964781c14a5521a529a70"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactCurveParameterSpan.swift",
+      "sha256": "da922d110249559c9770b3927093a8f657472231d328556d59b8f4ff77506b11"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricEvidenceKind.swift",
+      "sha256": "bad0d2e43f995fddd6e73ddf9c092642940808de8edef2031b27d663d9fa4cf1"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricFiber.swift",
+      "sha256": "960e002f2c2fc7a26c2252b3586d236de7a315bcf9bed3d659164f819319b9c1"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricRelation.swift",
+      "sha256": "384e8391c8fbe35dd208a33c96e6892a9a6162056835e6bc6b709c56e0bacc7d"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricRelationFailure.swift",
+      "sha256": "096d1cf1b6bb84dffd1aed0aed11a298c212f58df12e59d9be5bb3d6f15c5e66"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricRelationLimits.swift",
+      "sha256": "e80cc05d65391ac44644716cea239e95410d20cf88fefe9f41be2c920106e95b"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricRelationQuerying.swift",
+      "sha256": "8b8fc10cf1c68157a1d299e10c9ee219bc12ee593b4f4a431755a40b720b7815"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricRelationResolving.swift",
+      "sha256": "10a7384268479f9dd39d84460021884b7a4088bc506b4adbfa835a689bd25fb0"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricRelationStorage.swift",
+      "sha256": "5de3743161b1128ff0dbba5209f405b7bfd24e6c0eba5a3d9d02ff41c2a7707c"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricStation.swift",
+      "sha256": "ecc5873074ea2d3c57095c3716e81dd34b8a4189e4e15ecbf84c798f994e2a2b"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricStratumID.swift",
+      "sha256": "19e88bbcf1469c3daebeb163b5abeae53da8f1321e9846a8f879c304b3e50997"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricStratumRecord.swift",
+      "sha256": "732904df7bf7b7f48a9b9400b81547b140ae9d5cf4abc4b69f636d441194e955"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricStratumView.swift",
+      "sha256": "a4bae91088e257590c202d014944193d70c729de1bd7c93512b5c6412dc4a8b7"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometryAccess.swift",
+      "sha256": "8f0cbd3dfd837b6302bc6388469f3fa12fd30429642664f83cb31876c665d85c"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactUV.swift",
+      "sha256": "74a44532babfe1a78d8b060a5fb446321e8ba52c9460b799f1b707aaf5c5b0c8"
+    },
+    {
+      "path": "Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactXYZ.swift",
+      "sha256": "b103379e650a3d6a800087efa613abc8ccfe0b629e09c59aac7d202c926af3e2"
+    }
+  ],
+  "compilerInputs": {
+    "native": [
+      {
+        "module": "L0",
+        "count": 49,
+        "listSHA256": "c0f464dd76a38af5fc9eb10d2a49eda252d8a59b3819c27135978b0c97589d62"
+      },
+      {
+        "module": "L1",
+        "count": 39,
+        "listSHA256": "8db58c42aadb2953d176ebeaa938f590ada9a1279cc05eeb621f6ac060e85232"
+      },
+      {
+        "module": "L2",
+        "count": 30,
+        "listSHA256": "f4525f54bea115d92af02b0bb8988ae1d3fd1ddc6c0fdec89fd118f4a643cc09"
+      },
+      {
+        "module": "L3",
+        "count": 40,
+        "listSHA256": "57c525bc7a5b19d34c488d62b786b5a8d055690aa319c04c020b903ac25091dd"
+      },
+      {
+        "module": "L4",
+        "count": 41,
+        "listSHA256": "9ddf683f5a22772386007ff72a69890c592178c9aa4abea5a07d98028db847fb"
+      },
+      {
+        "module": "L5",
+        "count": 11,
+        "listSHA256": "094db6b79d1b569c94acae4bd6009e51f64e8e53193450de97f52293832545cd"
+      },
+      {
+        "module": "L6",
+        "count": 21,
+        "listSHA256": "8dfa8c818697afd239035516d73f024c285c83ee8d1567360e043761e2bb0ce9"
+      }
+    ],
+    "asan": [
+      {
+        "module": "L0",
+        "count": 49,
+        "listSHA256": "c0f464dd76a38af5fc9eb10d2a49eda252d8a59b3819c27135978b0c97589d62"
+      },
+      {
+        "module": "L1",
+        "count": 39,
+        "listSHA256": "8db58c42aadb2953d176ebeaa938f590ada9a1279cc05eeb621f6ac060e85232"
+      },
+      {
+        "module": "L2",
+        "count": 30,
+        "listSHA256": "f4525f54bea115d92af02b0bb8988ae1d3fd1ddc6c0fdec89fd118f4a643cc09"
+      },
+      {
+        "module": "L3",
+        "count": 40,
+        "listSHA256": "57c525bc7a5b19d34c488d62b786b5a8d055690aa319c04c020b903ac25091dd"
+      },
+      {
+        "module": "L4",
+        "count": 41,
+        "listSHA256": "9ddf683f5a22772386007ff72a69890c592178c9aa4abea5a07d98028db847fb"
+      },
+      {
+        "module": "L5",
+        "count": 11,
+        "listSHA256": "094db6b79d1b569c94acae4bd6009e51f64e8e53193450de97f52293832545cd"
+      },
+      {
+        "module": "L6",
+        "count": 21,
+        "listSHA256": "8dfa8c818697afd239035516d73f024c285c83ee8d1567360e043761e2bb0ce9"
+      }
+    ],
+    "wasm": [
+      {
+        "module": "L0",
+        "count": 49,
+        "listSHA256": "c0f464dd76a38af5fc9eb10d2a49eda252d8a59b3819c27135978b0c97589d62"
+      },
+      {
+        "module": "L1",
+        "count": 39,
+        "listSHA256": "8db58c42aadb2953d176ebeaa938f590ada9a1279cc05eeb621f6ac060e85232"
+      },
+      {
+        "module": "L2",
+        "count": 30,
+        "listSHA256": "f4525f54bea115d92af02b0bb8988ae1d3fd1ddc6c0fdec89fd118f4a643cc09"
+      },
+      {
+        "module": "L3",
+        "count": 40,
+        "listSHA256": "57c525bc7a5b19d34c488d62b786b5a8d055690aa319c04c020b903ac25091dd"
+      },
+      {
+        "module": "L4",
+        "count": 41,
+        "listSHA256": "9ddf683f5a22772386007ff72a69890c592178c9aa4abea5a07d98028db847fb"
+      },
+      {
+        "module": "L5",
+        "count": 11,
+        "listSHA256": "094db6b79d1b569c94acae4bd6009e51f64e8e53193450de97f52293832545cd"
+      },
+      {
+        "module": "L6",
+        "count": 21,
+        "listSHA256": "8dfa8c818697afd239035516d73f024c285c83ee8d1567360e043761e2bb0ce9"
+      }
+    ],
+    "embedded": [
+      {
+        "module": "L0",
+        "count": 49,
+        "listSHA256": "c0f464dd76a38af5fc9eb10d2a49eda252d8a59b3819c27135978b0c97589d62"
+      },
+      {
+        "module": "L1",
+        "count": 39,
+        "listSHA256": "8db58c42aadb2953d176ebeaa938f590ada9a1279cc05eeb621f6ac060e85232"
+      },
+      {
+        "module": "L2",
+        "count": 30,
+        "listSHA256": "f4525f54bea115d92af02b0bb8988ae1d3fd1ddc6c0fdec89fd118f4a643cc09"
+      },
+      {
+        "module": "L3",
+        "count": 40,
+        "listSHA256": "57c525bc7a5b19d34c488d62b786b5a8d055690aa319c04c020b903ac25091dd"
+      },
+      {
+        "module": "L4",
+        "count": 41,
+        "listSHA256": "9ddf683f5a22772386007ff72a69890c592178c9aa4abea5a07d98028db847fb"
+      },
+      {
+        "module": "L5",
+        "count": 11,
+        "listSHA256": "094db6b79d1b569c94acae4bd6009e51f64e8e53193450de97f52293832545cd"
+      },
+      {
+        "module": "L6",
+        "count": 21,
+        "listSHA256": "8dfa8c818697afd239035516d73f024c285c83ee8d1567360e043761e2bb0ce9"
+      }
+    ]
+  },
+  "artifacts": {
+    "wasm/L6Proof.wasm": {
+      "path": "/private/tmp/cad-l6-wasm-build-20261008/out/Products/Debug-webassembly-wasm32/L6Proof.wasm",
+      "bytes": 13529165,
+      "sha256": "cb445da4057fc62a4d43e2d59bc444d2a60d5807ac4a84d61ba0ac4a8bfe1ef8"
+    },
+    "wasm/L6UVProof.wasm": {
+      "path": "/private/tmp/cad-l6-wasm-build-20261008/out/Products/Debug-webassembly-wasm32/L6UVProof.wasm",
+      "bytes": 13535624,
+      "sha256": "67d05068ec4692ac508cab91a247e9a77934a36b0112355371b73d2db5f9af86"
+    },
+    "embedded/L6Proof.wasm": {
+      "path": "/private/tmp/cad-l6-embedded-build-20261008/out/Products/Debug-webassembly-wasm32/L6Proof.wasm",
+      "bytes": 6458626,
+      "sha256": "f837cb3fa3c97ac0a82300476cb13a01443b4c0ae45048a6b6772588c058f960"
+    },
+    "embedded/L6UVProof.wasm": {
+      "path": "/private/tmp/cad-l6-embedded-build-20261008/out/Products/Debug-webassembly-wasm32/L6UVProof.wasm",
+      "bytes": 5320566,
+      "sha256": "ea9724bfb59007955c00bdc5b68d70dace6f0fcbb952c0e6ac89283c4b2c7b91"
+    }
+  },
+  "evidence": [
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/asan.log",
+      "sha256": "43cb4be268dcefde528d7f3fce5ac8a6ca9f0f12d2c8fd8a1f8dc88a0b0239c3"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/cs-mixed-intern.log",
+      "sha256": "f74233dc8104a97fbf3d7def0fbd10d9cfc7ca400c2603c61b130ff6013f9017"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/cs-mixed-refinement.log",
+      "sha256": "fb8d01084866aabd8dbf75431b6f3baeed3cc51f99ede92a93da2a4e92251f16"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/cs-mixed-trace.log",
+      "sha256": "3e1ee93db25fdb3cc385947c91b4ac2bbbdf24f8fabcf8f9913fc7136a82285f"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/embedded-build.log",
+      "sha256": "75396b193989fb4511d9671160f12598f16f5092954e82a03497f1da14049aa6"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/embedded-final-build.log",
+      "sha256": "26af5092bf1d8e069562a95bfefb1ff290fd737bc4bb53fd3a8e8adfb0253688"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/embedded-final-runtime.log",
+      "sha256": "3f427163a864f83e0ff405e70ff2519c359ed44863d6fee3daaee0d485238db4"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/embedded-isolation-build.log",
+      "sha256": "0f5f795df3230fc5e6fb323e5108e9d756f08a31dbe99e6996dfe279a8cb2bfb"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/embedded-runtime.log",
+      "sha256": "25b281ca1e63e87808c0a7e110b23bf12455598322ebe51e9b37127f7cf3cb6a"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/graph-factor.log",
+      "sha256": "14265393766d30b837a1b22238197d7db7df444a1a83ecfda26f90217194793a"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/graph-native.log",
+      "sha256": "dbffa6e5facd3408f2453fe961d99ff987de4e138b29f1834651b4d2ea4faf69"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/graph-phase.log",
+      "sha256": "a8d34528cb58f984493ed9be0b47ea629f7f1044595c50f68fa94bdcadb8e831"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/graph-restricted.log",
+      "sha256": "e750af9a62d41e32ef1cb9cde4770bd7ac4dd543c18911de1ab9d1345726786e"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/graph-target-domain.log",
+      "sha256": "21f72faa9d87476aff5774276e439b5b19053bcbfccbaa86715f7c44b2ed2fa3"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/l4-regression.log",
+      "sha256": "a7aed909891e412f33c38c38b4ee92f20079f0d4d91d5b12b1014854491c4f65"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/native-core-compile.log",
+      "sha256": "119742cee65e6ca1188b7e0095b85c8e4971c5079b72a84481587de568611741"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/native-final.log",
+      "sha256": "596c373527299691b29464062a30803a8833a90d54d70efde6bb6c2e8138fc90"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/native-geometry.log",
+      "sha256": "90a6401088a926c34cbb27fe8ee366c32abbab5341dcac44e4a8b36216bfa5c5"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/native-optimized.log",
+      "sha256": "56e60230a25192bd721e624701bbdcfc71ed4672cac9aa34efa894ae90154001"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/native-pullback-shared-witness-red.log",
+      "sha256": "96b01c456918d0d2e22dcd6f3548ef7cb1600dc02c26872ee502ffcad2708944"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/native-pullback.log",
+      "sha256": "77f69470f8f8e6b9c82823fc495d0c93d59ee7737b337b8c278b3c4476c90d17"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/native-review-confirmation.log",
+      "sha256": "a0e965f6fd6dc754673c4f8f9856f78ee6cbdf341e2b32f0d278f6b4b89fe1a6"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/phase-trace.log",
+      "sha256": "55452a2176947c55cc7e2c53c8a5acdb3813bb326b9719295ab65929c34fd4c1"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/uv-asan.log",
+      "sha256": "83fa37e3aaa9d6e55a838dc33bea00d20f5182c81cc1e92fed522a531286cae1"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/uv-embedded-build.log",
+      "sha256": "6fb77fdbe555a383b611f2807978f191868f82e784bfe9893304e1ce8f8e9b11"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/uv-embedded-runtime.log",
+      "sha256": "628c0d9c6714b3698644ba825d61cc445068181b7cb1d4453bbb51370e28dae2"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/uv-native.log",
+      "sha256": "ae40dbb6395feb7604bcf620da0c2e5cdea5b9bfec53dac853a8cc7cd58a0d9b"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/uv-wasm-build.log",
+      "sha256": "3eaf982a11fa1bde4009f89992021f404092972813f367e64942ddce58b18901"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/uv-wasm-runtime.log",
+      "sha256": "12e2095570ffabb991ab0333459c09f12956697f98f485442fc1655c13322862"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/wasm-build.log",
+      "sha256": "05021796c67bcd3a9654a413d489671c7cbd8d99c8008aa59bd9c0f098da13cd"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/wasm-final-build.log",
+      "sha256": "e15940871ed5b5e1854b3c49bdf4487a5e3acbf6f1882d78182aad1f2d2aa0d9"
+    },
+    {
+      "path": "Tests/L6GeometricRelationVerification/Evidence/wasm-runtime.log",
+      "sha256": "a6ad411301c1ae36e46b7024793c53976ed5d33630ce2c406bd5acf9f840a33e"
+    }
+  ],
+  "coverageStrategy": "Full stable suite plus affected-path confirmations; unchanged lower/path evidence is reused.",
+  "implementationCommit": "b26fa47c91e9cdc5386fba3afce8f177f5c83b44"
+}

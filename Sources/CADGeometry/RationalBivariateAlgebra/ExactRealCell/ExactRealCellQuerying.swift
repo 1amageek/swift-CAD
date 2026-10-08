@@ -18,4 +18,6 @@ public protocol ExactRealCellQuerying<Base>: Sendable {
   limits: ExactRealRootLimits, using admission: inout A) throws(ExactRealCellFailure) -> ExactRealCellID<Base>?
  func contains<A: ExactScalarAdmission & ~Copyable>(_ point: borrowing ExactRealCellSample<Base>, in condition: borrowing ExactRealCellCondition<Base>,
   limits: ExactRealRootLimits, using admission: inout A) throws(ExactRealCellFailure) -> Bool
+ func sign<A: ExactScalarAdmission & ~Copyable>(of invariant: borrowing ExactRealCellSignInvariant<Base>,
+  at cell: ExactRealCellID<Base>, using admission: inout A) throws(ExactRealCellFailure) -> ExactSign
 }

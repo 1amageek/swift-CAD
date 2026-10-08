@@ -1,0 +1,27 @@
+Building for debugging...
+[Computing dependencies]
+Build complete! (0.52秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test partialIncidence() started.
+􀟈  Test graphClosure() started.
+􀟈  Test countLimitsAndCancellation() started.
+􀟈  Test differentialStrategiesAndPorts() started.
+􀟈  Test partialTarget() started.
+PASS: cumulative counts, mid/terminal cancellation, empty selection and recovery
+􁁛  Test countLimitsAndCancellation() passed after 0.061 seconds.
+PASS: bounded section graph work=102283 storage=4710867
+􁁛  Test graphClosure() passed after 0.211 seconds.
+PASS: partial nullified target work=587818 storage=27014991
+􁁛  Test partialTarget() passed after 1.083 seconds.
+􁁛  Test differentialStrategiesAndPorts() passed after 1.215 seconds.
+PASS: partial directed incidence pieces=3 work=985371 storage=44460869
+􁁛  Test partialIncidence() passed after 1.563 seconds.
+􁁛  Test run with 5 tests in 0 suites passed after 1.563 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test retainedProjectionCutSigns() started.
+􁁛  Test retainedProjectionCutSigns() passed after 1.442 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 1.442 seconds.

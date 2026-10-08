@@ -68,3 +68,5 @@ import L3
  #expect(throws: ExactRealTopologyFailure.self) { _ = try ExactTopologyAccess.multiply(Int.max,2) }
  #expect(throws: ExactRealTopologyFailure.self) { _ = try ExactRealTopologyLimits(maximumGeneratedCells:-1,maximumRootsPerStack:0,maximumClosures:0,maximumAttachmentPieces:0,maximumComponents:0) }
 }
+
+@Test(.timeLimit(.minutes(1))) func constantCutGraphClosures() throws { try ConstantCutGraphFixtures.run() }

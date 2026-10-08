@@ -1,0 +1,35 @@
+Building for debugging...
+[Computing dependencies]
+[1 / 5] L3Fixtures
+[6 / 9] L3Fixtures
+[9 / 10] L3Tests-product
+[13 / 17] L4
+[21 / 23] L4Fixtures
+[28 / 42] L4
+[33 / 42] L4
+[36 / 42] L4
+[39 / 42] L4
+[42 / 45] L4Fixtures
+[45 / 48] L4Tests-product
+[47 / 48] L4Tests-product
+[50 / 58]
+[52 / 58]
+[53 / 58]
+[54 / 58] L4Tests-product
+[61 / 61] L4Proof-product
+[66 / 66] LayerBenchmark-product
+[72 / 72] L4Proof-product
+Build complete! (3.41秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test constantCutGraphClosures() started.
+PASS: constant-cut polynomial closures preserve both roots work=889710 storage=36125878
+􁁛  Test constantCutGraphClosures() passed after 0.938 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.938 seconds.
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test originalAlgebraicCoefficients() started.
+􁁛  Test originalAlgebraicCoefficients() passed after 0.197 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.197 seconds.

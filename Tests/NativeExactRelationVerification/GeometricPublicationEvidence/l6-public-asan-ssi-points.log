@@ -1,0 +1,4 @@
+PASS L5 exact square identities, retained reductions and rejected hypotheses
+PASS L6 SSI weighted=false exact point and retained source work=3516738
+PASS L6 SSI weighted=true exact point and retained source work=3678951
+PASS full production Native L6 geometric publication ssi-points

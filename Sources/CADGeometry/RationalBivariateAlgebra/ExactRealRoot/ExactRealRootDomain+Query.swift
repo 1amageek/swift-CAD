@@ -14,6 +14,27 @@ extension ExactRealRootDomain {
             isolation: cell, proof: root.proof, depth: a.depth)
     }
     public func refine<A: ExactScalarAdmission & ~Copyable>(_ root: borrowing ExactRealRoot<F>,
+        toExactValue value: F.Value, using admission: inout A) throws(ExactRealRootFailure) -> ExactRealRoot<F> {
+        let root = copy root
+        return try ExactRootAccess.run(&admission, inherited: context.depth) { a in
+            try admitted(copy root, &a)
+            guard case .finite(let lower) = root.isolation.lower,
+                  case .finite(let upper) = root.isolation.upper else { throw ExactRealRootFailure.invalidEvidence }
+            let lowOrder = try context.field.compare(value, lower, using: &a)
+            let highOrder = try context.field.compare(value, upper, using: &a)
+            guard lowOrder != .less, highOrder != .greater,
+                  lowOrder != .equal || root.isolation.includesLower,
+                  highOrder != .equal || root.isolation.includesUpper else {
+                throw ExactRealRootFailure.invalidEvidence
+            }
+            let singleton = try interval(.finite(value), .finite(value), true, true, &a)
+            guard try roots(root.proof, singleton, &a) == 1 else { throw ExactRealRootFailure.invalidEvidence }
+            let refined = replaced(copy root, singleton, &a)
+            try a.checkpoint()
+            return refined
+        }
+    }
+    public func refine<A: ExactScalarAdmission & ~Copyable>(_ root: borrowing ExactRealRoot<F>,
         maximumWidth: F.Value, using admission: inout A) throws(ExactRealRootFailure) -> ExactRealRoot<F> {
         let root = copy root
         return try ExactRootAccess.run(&admission, inherited: context.depth) { a in

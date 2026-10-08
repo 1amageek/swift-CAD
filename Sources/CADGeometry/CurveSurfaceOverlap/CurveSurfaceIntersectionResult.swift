@@ -18,8 +18,12 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete original Coons tuples and exact closed-domain coverage.
     public let originalCoonsPoints: OriginalCoonsCurveSurfacePoints?
 
+    /// Source-bound L0-L6 image/fiber evidence; nil for other producers.
+    public let originalExactGeometricRelation: NativeExactGeometricRelation?
+
     public var hasPositiveDimensionalSolutions: Bool {
         !overlaps.isEmpty || originalNativeRelations?.hasPositiveDimensionalSolutions == true
+            || originalExactGeometricRelation?.hasPositiveDimensionalSolutions == true
     }
 
     init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap],
@@ -27,7 +31,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalNativeRelations: OriginalNativeCurveSurfaceRelation? = nil,
         originalPolynomialPoints: OriginalPolynomialCurveSurfacePoints? = nil,
         originalAffinePoints: OriginalAffineCurveSurfacePoints? = nil,
-        originalCoonsPoints: OriginalCoonsCurveSurfacePoints? = nil) {
+        originalCoonsPoints: OriginalCoonsCurveSurfacePoints? = nil,
+        originalExactGeometricRelation: NativeExactGeometricRelation? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
@@ -35,5 +40,6 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalPolynomialPoints = originalPolynomialPoints
         self.originalAffinePoints = originalAffinePoints
         self.originalCoonsPoints = originalCoonsPoints
+        self.originalExactGeometricRelation = originalExactGeometricRelation
     }
 }

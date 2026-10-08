@@ -1,0 +1,8 @@
+(node:28476) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+warning: data race detected: actor-isolated function at NativeExactGeometricProof/Proof.swift:13 was not called on the same actor
+
+PASS L5 exact square identities, retained reductions and rejected hypotheses
+PASS L6 SSI weighted=false exact point and retained source work=3497772
+PASS L6 SSI weighted=true exact point and retained source work=3659992
+PASS full production Native L6 geometric publication ssi-points

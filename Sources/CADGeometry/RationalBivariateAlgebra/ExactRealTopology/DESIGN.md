@@ -407,6 +407,60 @@ shared cache would change this design and require an explicit isolation owner.
 
 ## Verification and Change Impact
 
+### Retained continuous polynomial section graphs
+
+Automatic closure may reuse the original complete partition when the base cell
+has certified affine or univariate constant-coordinate boundaries, the source box is closed, and every suffix
+coordinate is a section of a polynomial linear in that coordinate with a nonzero
+constant leading coefficient and dependence only on earlier coordinates. These
+sections are unique continuous polynomial functions on the closed base. The graph
+map and its projection are inverse continuous maps, so closure is exactly the
+graph over the weak base, intersected with the original closed coordinate domains.
+This criterion does not admit higher-degree suffix roots, variable leading
+coefficients, sector suffixes or open source boxes.
+
+Nonlinear graph atoms may use an original source sign only after exact polynomial
+division proves the source law is a nonzero constant multiple of that atom. The
+retained sign-invariance receipt records its source-law index, constant orientation,
+quotient and zero remainder. Whole-cell labels consume the original partition's
+issued signs; a representative sample cannot replace this certificate. Affine
+atoms keep their existing proof and evaluation path. All eligibility visits,
+identity checks, cover labels and pair/attachment storage use the same admission.
+
+A univariate boundary polynomial depends only on its own coordinate, so its
+issued algebraic root is a constant boundary. Together with certified affine
+bounds, these define a convex base cell. Weak sector bounds describe its closure;
+fixed nonlinear sections retain their strict Thom signatures so distinct roots
+are never merged. Quantifier-free Thom ordering uses the original L3 boundary
+receipt and no approximate root station.
+
+A nonlinear closure atom may also consume an L3 sign-invariance receipt issued
+only for a nonzero constant multiple of a projected cut law. Auxiliary derivative
+signs stored only at a sample are ineligible. L4 retains this immutable proof and
+asks L3 for its sign at each original cell. The L3 receipt owns its differently
+oriented polynomial identity; L4 leaves its legacy incoming-law division fields
+nil for this proof instead of duplicating or reversing that identity. It does not inspect solver arrays or
+promote sample signs to whole-cell truth. If an atom has neither this proof nor
+an existing affine/source-law proof, reuse declines before any closure solve.
+An affine atom may additionally use a projected cut sign for its exact square.
+A zero square proves the atom is identically zero; a positive square proves it
+never vanishes on the connected original cell. Continuity then proves constant
+sign, which its exact sample may read. The square identity and L3 receipt are
+retained; a sample alone still never certifies sign invariance. A negative square
+or any non-affine use of this path is rejected.
+
+The selected folded SSI counterexample restricts the second U domain to
+[1/4,1], producing two disjoint original U branches. Its previous closure work
+exhausts the unchanged 80M ceiling. Public validation must retain both components,
+prove exact membership on both branches, reject a component cap of one and accept
+a cap of two without replaying the relation solver.
+
+The production counterexample is folded Native SSI `U2 = U1^2, V2 = V1`, with
+original first domain `[-1,1]^2` and second domain `[0,1]^2`. Its previous topology
+resolution exhausts 1 GiB of cumulative storage. The retained-graph path must
+preserve complete closures/incidence and both original UV branches within the same
+work/storage limits, with explicit fiber queries independently checked afterward.
+
 The owner is [Tests/L4TopologyVerification](../../../../Tests/L4TopologyVerification/DESIGN.md), with source links to the
 actual L0-L4 files, dedicated build paths and an external timeout.
 Native/ASAN, ordinary WASM and Embedded each execute
@@ -476,3 +530,75 @@ incidence. Performance measurements separate that diagnostic work from the
 actual partition/selection/incidence/components path. Proof-route requirements
 and the general solver are outside this performance change; no new completion
 claim for the seven CAD requirements is made.
+
+## Source Cell Pullback Contract
+
+L6 consumes a complete source selection through an injective coordinate-slot map.
+The target is an original polynomial predicate and its exact domains; accepting the
+predicate before decomposition avoids a redundant target solve. This is an additive
+contract, not a change to existing closure/incidence semantics. Source cell definitions
+come only from L3 public definition. Existing L4 cell formula construction transports
+root identities and quantifies sector boundary witnesses. One common decomposition
+resolves all source-cell labels; a sample alone never establishes a label.
+
+The immutable pullback retains source selection, target predicate, original slot map,
+quantified region and one source-cell ordinal for every included free-coordinate cell.
+Excluded cells retain -1. Both domains enter the exact predicate. Auxiliary quantified
+root-selection coordinates never contribute to returned free-cell dimension.
+
+All source definitions, label instructions, common atoms and label decisions consume
+the same caller work/storage/depth ledger. Generated-cell limits accumulate over the
+operation; cancellation is checked before publication. Invalid maps, foreign fields,
+ambiguous labels and resource/cancellation failures reject the whole receipt.
+
+Used by [L6](../ExactGeometricRelation/DESIGN.md). Verified by the isolated
+[L6 verification package](../../../../Tests/L6GeometricRelationVerification/DESIGN.md),
+including changed root ordinals, positive and negative branches, strict boundaries,
+empty source/target, quantified sectors, lifetime and independent admission failures.
+
+Pullback sector inequalities use the exact order of realizable Thom sign vectors
+(Perrucci/Roy, arXiv:1609.02879, Notation3/Proposition4). This removes boundary
+witness variables before the common decomposition. The original root polynomial,
+full derivative signs and source parent remain retained. Existing closure calls
+keep their unchanged quantified boundary path by default. The rejected witness
+implementation exhausted the unchanged80M work limit on two simple quadratic
+sectors; the acceptance test preserves this input and ceiling.
+
+L6 integration counterexample: `t=u`, `v*(u-1/2)=0` on a closed box needs
+the coordinate factor `v` in addition to `v +/- t` factors. Exact division and
+complete issued Thom-signature matching use the same existing factor receipt.
+No sampled residual or leading-coefficient limit establishes this identity.
+Pullback reduction may restrict decomposition to the original target box; default
+closure reduction remains ambient. The target source retains that coverage scope.
+
+Formula atom insertion interns exactly equal original polynomials before projection.
+Existing instruction ordinals remain stable; later clauses reuse the issued atom
+ordinal. All equality checks and allocation are admitted. This removes repeated
+box/equality laws in mixed-component closure/target intersections, without changing
+sign predicates, domains or whole-target constancy requirements.
+
+Mixed-cell incidence fast path: on a closed source box, if every selected cell
+is exactly affine (including retained globally affine factors), one complete
+refinement contains all weak source-cell and strict target-cell clauses. Exact
+sign truth on each refined cell proves every closure/target intersection. Partial
+attachments are retained as refined cells; an interior point of an unsplit target
+is never promoted to whole-target truth. Eligibility is established before solving;
+resource failure never triggers another solver. Ordinary original-cover reuse remains
+the path when no affine factor requires refinement.
+
+Bounded reduction substitutes exactly equal included finite endpoints before
+projection and retains a domainRestriction reduction witness for each coordinate.
+Atom ordinals/instructions remain unchanged. This equivalence applies on the retained
+box only; it is not a global equality. Bounded-section closure uses original domains
+only when that source box is closed, so all ambient limits remain in the box.
+This is necessary for a collapsed graph on a singleton parameter slice; it avoids
+projecting nonexistent variation without loosening any coverage requirement.
+
+Bounded-section graph eligibility and formula construction consume the same
+retained affine-factor receipts as affine closure. A known coordinate factor
+must not be discarded before the constant-leading graph proof. The factor law
+is used for uniqueness and closure checks and remains retained in the closure.
+
+Quantifier-free closure/strict-target intersections reduce on the target's original
+domain. Every possible attachment belongs to that strict target, including singleton
+coordinates. Quantified intersections retain their existing ambient witness domains.
