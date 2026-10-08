@@ -476,3 +476,75 @@ incidence. Performance measurements separate that diagnostic work from the
 actual partition/selection/incidence/components path. Proof-route requirements
 and the general solver are outside this performance change; no new completion
 claim for the seven CAD requirements is made.
+
+## Source Cell Pullback Contract
+
+L6 consumes a complete source selection through an injective coordinate-slot map.
+The target is an original polynomial predicate and its exact domains; accepting the
+predicate before decomposition avoids a redundant target solve. This is an additive
+contract, not a change to existing closure/incidence semantics. Source cell definitions
+come only from L3 public definition. Existing L4 cell formula construction transports
+root identities and quantifies sector boundary witnesses. One common decomposition
+resolves all source-cell labels; a sample alone never establishes a label.
+
+The immutable pullback retains source selection, target predicate, original slot map,
+quantified region and one source-cell ordinal for every included free-coordinate cell.
+Excluded cells retain -1. Both domains enter the exact predicate. Auxiliary quantified
+root-selection coordinates never contribute to returned free-cell dimension.
+
+All source definitions, label instructions, common atoms and label decisions consume
+the same caller work/storage/depth ledger. Generated-cell limits accumulate over the
+operation; cancellation is checked before publication. Invalid maps, foreign fields,
+ambiguous labels and resource/cancellation failures reject the whole receipt.
+
+Used by [L6](../ExactGeometricRelation/DESIGN.md). Verified by the isolated
+[L6 verification package](../../../../Tests/L6GeometricRelationVerification/DESIGN.md),
+including changed root ordinals, positive and negative branches, strict boundaries,
+empty source/target, quantified sectors, lifetime and independent admission failures.
+
+Pullback sector inequalities use the exact order of realizable Thom sign vectors
+(Perrucci/Roy, arXiv:1609.02879, Notation3/Proposition4). This removes boundary
+witness variables before the common decomposition. The original root polynomial,
+full derivative signs and source parent remain retained. Existing closure calls
+keep their unchanged quantified boundary path by default. The rejected witness
+implementation exhausted the unchanged80M work limit on two simple quadratic
+sectors; the acceptance test preserves this input and ceiling.
+
+L6 integration counterexample: `t=u`, `v*(u-1/2)=0` on a closed box needs
+the coordinate factor `v` in addition to `v +/- t` factors. Exact division and
+complete issued Thom-signature matching use the same existing factor receipt.
+No sampled residual or leading-coefficient limit establishes this identity.
+Pullback reduction may restrict decomposition to the original target box; default
+closure reduction remains ambient. The target source retains that coverage scope.
+
+Formula atom insertion interns exactly equal original polynomials before projection.
+Existing instruction ordinals remain stable; later clauses reuse the issued atom
+ordinal. All equality checks and allocation are admitted. This removes repeated
+box/equality laws in mixed-component closure/target intersections, without changing
+sign predicates, domains or whole-target constancy requirements.
+
+Mixed-cell incidence fast path: on a closed source box, if every selected cell
+is exactly affine (including retained globally affine factors), one complete
+refinement contains all weak source-cell and strict target-cell clauses. Exact
+sign truth on each refined cell proves every closure/target intersection. Partial
+attachments are retained as refined cells; an interior point of an unsplit target
+is never promoted to whole-target truth. Eligibility is established before solving;
+resource failure never triggers another solver. Ordinary original-cover reuse remains
+the path when no affine factor requires refinement.
+
+Bounded reduction substitutes exactly equal included finite endpoints before
+projection and retains a domainRestriction reduction witness for each coordinate.
+Atom ordinals/instructions remain unchanged. This equivalence applies on the retained
+box only; it is not a global equality. Bounded-section closure uses original domains
+only when that source box is closed, so all ambient limits remain in the box.
+This is necessary for a collapsed graph on a singleton parameter slice; it avoids
+projecting nonexistent variation without loosening any coverage requirement.
+
+Bounded-section graph eligibility and formula construction consume the same
+retained affine-factor receipts as affine closure. A known coordinate factor
+must not be discarded before the constant-leading graph proof. The factor law
+is used for uniqueness and closure checks and remains retained in the closure.
+
+Quantifier-free closure/strict-target intersections reduce on the target's original
+domain. Every possible attachment belongs to that strict target, including singleton
+coordinates. Quantified intersections retain their existing ambient witness domains.

@@ -1,0 +1,53 @@
+Building for debugging...
+[Pre-planning 1 / 268]
+[Planning deferred tasks]
+[56 / 116] L0
+[59 / 130] L0
+[64 / 130] L0
+[68 / 130] L0
+[70 / 130] L0
+[71 / 130] L0
+[73 / 130] L0
+[75 / 130] L0
+[76 / 130] L0
+[77 / 131]
+[81 / 147] L1
+[90 / 147] L1
+[92 / 147] L1
+[96 / 147] L1
+[97 / 147] L1
+[104 / 164] L2
+[112 / 164] L2
+[116 / 164] L2
+[118 / 164] L2
+[120 / 164] L2
+[124 / 165]
+[127 / 181] L3
+[130 / 181] L3
+[137 / 181] L3
+[139 / 181] L4
+[143 / 181] L3
+[145 / 181] L2
+[150 / 197] L4
+[154 / 198] L4
+[158 / 198] L4
+[160 / 198] L5
+[164 / 198] L4
+[166 / 198] L4
+[168 / 198] L4
+[173 / 211] L5
+[183 / 212] L5
+[187 / 212] L5
+[194 / 214]
+[198 / 229] L6
+[200 / 229] L6
+[207 / 229] L6
+[210 / 229] L6Fixtures
+[215 / 229] L6
+[218 / 234] L6Fixtures
+[221 / 235] L6Fixtures
+[232 / 239] L6Fixtures
+[238 / 240] L6Proof-product
+[240 / 240] L6Proof-product
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Package.swift: L6Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+Build complete! (9.33秒)

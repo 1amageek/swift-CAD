@@ -1,0 +1,48 @@
+Building for debugging...
+[1 / 5] L6Fixtures
+[6 / 9] L6Fixtures
+[9 / 9] L6Proof-product
+[11 / 13] L6Tests-product
+[16 / 18] L6Tests-product
+[18 / 18] L6Tests-product
+Build complete! (1.27秒)
+Test Suite 'All tests' started at 2026-10-08 11:37:02.048.
+Test Suite 'All tests' passed at 2026-10-08 11:37:02.048.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test rejectsInvalidCoordinateProjectionBeforePublication() started.
+􀟈  Test releasedInputsAndForeignHandles() started.
+􀟈  Test independentLimitsAndTerminalCancellation() started.
+􀟈  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() started.
+􀟈  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() started.
+􀟈  Test curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() started.
+􀟈  Test transportsDifferentRootsAfterCoordinateReordering() started.
+􀟈  Test case passing 1 argument mode → 1 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to curveStrataAndCompleteStationFibers(mode:) started.
+PASS: L6 resolve exact admission work=1363 storage=71701; limits/cancel/final-empty/foreign/station
+􁁛  Test rejectsInvalidCoordinateProjectionBeforePublication() passed after 35.955 seconds.
+􁁛  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() passed after 35.956 seconds.
+􁁛  Test releasedInputsAndForeignHandles() passed after 35.956 seconds.
+􁁛  Test independentLimitsAndTerminalCancellation() passed after 35.956 seconds.
+􁁛  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() passed after 37.205 seconds.
+􁁛  Test transportsDifferentRootsAfterCoordinateReordering() passed after 45.605 seconds.
+􁁛  Test curveStrataAndCompleteStationFibers(mode:) with 7 test cases passed after 50.837 seconds.
+􁁛  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) with 7 test cases passed after 64.988 seconds.
+􁁛  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() passed after 80.053 seconds.
+􁁛  Test run with 9 tests in 0 suites passed after 80.053 seconds.

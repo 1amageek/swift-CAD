@@ -1,0 +1,31 @@
+Building for debugging...
+[Pre-planning 1 / 240]
+[Planning deferred tasks]
+[3 / 7] L4
+[4 / 8] L4
+[11 / 15] L5
+[21 / 26] L4
+[25 / 31] L4
+[26 / 31] L4
+[28 / 31] L4
+[34 / 38] L5
+[38 / 40] L6Tests-product
+[40 / 42] L6Tests-product
+[42 / 43] L6Tests-product
+Build complete! (2.40秒)
+Test Suite 'All tests' started at 2026-10-08 10:57:57.348.
+Test Suite 'All tests' passed at 2026-10-08 10:57:57.349.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test rejectsInvalidCoordinateProjectionBeforePublication() started.
+􀟈  Test quantifiedSectorWitnessesDoNotIncreaseFreeDimensions() started.
+􀟈  Test transportsDifferentRootsAfterCoordinateReordering() started.
+􁁛  Test rejectsInvalidCoordinateProjectionBeforePublication() passed after 0.073 seconds.
+􁁛  Test transportsDifferentRootsAfterCoordinateReordering() passed after 2.425 seconds.
+􀢄  Test quantifiedSectorWitnessesDoNotIncreaseFreeDimensions() recorded an issue at PullbackTests.swift:63:2: Caught error: .cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.work)))))
+􀢄  Test quantifiedSectorWitnessesDoNotIncreaseFreeDimensions() failed after 30.539 seconds with 1 issue.
+􀢄  Test run with 3 tests in 0 suites failed after 30.539 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L6Tests (Swift Testing)

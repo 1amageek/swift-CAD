@@ -1,0 +1,21 @@
+Building for debugging...
+[1 / 5] L4
+[2 / 6] L4
+[10 / 14] L6
+[17 / 19] L6Proof-product
+[19 / 21] L4
+[22 / 24] L4
+[28 / 28] L6Proof-product
+[31 / 33] L6Tests-product
+[35 / 35] L6Tests-product
+Build complete! (1.55秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test graphDiagnostic() started.
+graph fixture before L5 work=591 storage=35728
+􀢄  Test graphDiagnostic() recorded an issue at GeometryTests.swift:105:2: Caught error: .topology(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.root(L2.ExactRealRootFailure.polynomial(L1.ExactPolynomialFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.storage))))))
+􀢄  Test graphDiagnostic() failed after 20.666 seconds with 1 issue.
+􀢄  Test run with 1 test in 0 suites failed after 20.666 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L6Tests (Swift Testing)

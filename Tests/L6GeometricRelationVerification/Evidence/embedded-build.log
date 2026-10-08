@@ -1,0 +1,159 @@
+Building for debugging...
+[Pre-planning 1 / 268]
+[Planning deferred tasks]
+[58 / 116] L0
+[67 / 118] L1
+[76 / 120] L2
+[85 / 122] L3
+[94 / 124] L4
+[103 / 126] L5
+[112 / 128] L6
+[121 / 130] L6Fixtures
+error: SwiftCompile normal wasm32 failed with a nonzero exit code. Command line:     cd /private/tmp/cad-exact-geometric-l6-20261008/Tests
+    
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:11:21: error: generic struct 'ExactParametricRelation' cannot be used in an embedded function not marked '@export(interface)' because 'L5' was not imported by this file
+ 9 |             for mode in 0...6 {
+10 |                 var a = try G.ledger()
+11 |                 let raw = try G.original(cs: cs, mode: mode, &a)
+   |                     `- error: generic struct 'ExactParametricRelation' cannot be used in an embedded function not marked '@export(interface)' because 'L5' was not imported by this file
+12 |                 let beforeWork = a.work, beforeBytes = a.storageBytes
+13 |                 let r = try G.geometry.resolve(raw, limits: G.limits(), using: &a)
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:13:40: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellDescribing' here; 'L3' was not imported by this file
+11 |                 let raw = try G.original(cs: cs, mode: mode, &a)
+12 |                 let beforeWork = a.work, beforeBytes = a.storageBytes
+13 |                 let r = try G.geometry.resolve(raw, limits: G.limits(), using: &a)
+   |                                        `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellDescribing' here; 'L3' was not imported by this file
+14 |                 try GeometricFailureFixtures.require(r.isEmpty == (mode == 5))
+15 |                 if cs && (mode == 2 || mode == 4 || mode == 6) {
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:13:40: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellProducing' here; 'L3' was not imported by this file
+11 |                 let raw = try G.original(cs: cs, mode: mode, &a)
+12 |                 let beforeWork = a.work, beforeBytes = a.storageBytes
+13 |                 let r = try G.geometry.resolve(raw, limits: G.limits(), using: &a)
+   |                                        `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellProducing' here; 'L3' was not imported by this file
+14 |                 try GeometricFailureFixtures.require(r.isEmpty == (mode == 5))
+15 |                 if cs && (mode == 2 || mode == 4 || mode == 6) {
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:13:40: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellQuerying' here; 'L3' was not imported by this file
+11 |                 let raw = try G.original(cs: cs, mode: mode, &a)
+12 |                 let beforeWork = a.work, beforeBytes = a.storageBytes
+13 |                 let r = try G.geometry.resolve(raw, limits: G.limits(), using: &a)
+   |                                        `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellQuerying' here; 'L3' was not imported by this file
+14 |                 try GeometricFailureFixtures.require(r.isEmpty == (mode == 5))
+15 |                 if cs && (mode == 2 || mode == 4 || mode == 6) {
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:13:40: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellSelecting' here; 'L3' was not imported by this file
+11 |                 let raw = try G.original(cs: cs, mode: mode, &a)
+12 |                 let beforeWork = a.work, beforeBytes = a.storageBytes
+13 |                 let r = try G.geometry.resolve(raw, limits: G.limits(), using: &a)
+   |                                        `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellSelecting' here; 'L3' was not imported by this file
+14 |                 try GeometricFailureFixtures.require(r.isEmpty == (mode == 5))
+15 |                 if cs && (mode == 2 || mode == 4 || mode == 6) {
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:13:40: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellTraversing' here; 'L3' was not imported by this file
+11 |                 let raw = try G.original(cs: cs, mode: mode, &a)
+12 |                 let beforeWork = a.work, beforeBytes = a.storageBytes
+13 |                 let r = try G.geometry.resolve(raw, limits: G.limits(), using: &a)
+   |                                        `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellTraversing' here; 'L3' was not imported by this file
+14 |                 try GeometricFailureFixtures.require(r.isEmpty == (mode == 5))
+15 |                 if cs && (mode == 2 || mode == 4 || mode == 6) {
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:13:40: error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealCellPullbackResolving' here; 'L4' was not imported by this file
+11 |                 let raw = try G.original(cs: cs, mode: mode, &a)
+12 |                 let beforeWork = a.work, beforeBytes = a.storageBytes
+13 |                 let r = try G.geometry.resolve(raw, limits: G.limits(), using: &a)
+   |                                        `- error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealCellPullbackResolving' here; 'L4' was not imported by this file
+14 |                 try GeometricFailureFixtures.require(r.isEmpty == (mode == 5))
+15 |                 if cs && (mode == 2 || mode == 4 || mode == 6) {
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:13:40: error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealComponentsProducing' here; 'L4' was not imported by this file
+11 |                 let raw = try G.original(cs: cs, mode: mode, &a)
+12 |                 let beforeWork = a.work, beforeBytes = a.storageBytes
+13 |                 let r = try G.geometry.resolve(raw, limits: G.limits(), using: &a)
+   |                                        `- error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealComponentsProducing' here; 'L4' was not imported by this file
+14 |                 try GeometricFailureFixtures.require(r.isEmpty == (mode == 5))
+15 |                 if cs && (mode == 2 || mode == 4 || mode == 6) {
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:13:40: error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealIncidenceProducing' here; 'L4' was not imported by this file
+11 |                 let raw = try G.original(cs: cs, mode: mode, &a)
+12 |                 let beforeWork = a.work, beforeBytes = a.storageBytes
+13 |                 let r = try G.geometry.resolve(raw, limits: G.limits(), using: &a)
+   |                                        `- error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealIncidenceProducing' here; 'L4' was not imported by this file
+14 |                 try GeometricFailureFixtures.require(r.isEmpty == (mode == 5))
+15 |                 if cs && (mode == 2 || mode == 4 || mode == 6) {
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:25:48: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellDescribing' here; 'L3' was not imported by this file
+23 |                 if !r.isEmpty {
+24 |                     let point = try G.xyz(r, cs || mode != 3 ? 0 : 1, 0, 0, &query)
+25 |                     let fiber = try G.geometry.fiber(at: .xyz(point), in: r, limits: G.limits(), using: &query)
+   |                                                `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellDescribing' here; 'L3' was not imported by this file
+26 |                     try GeometricFailureFixtures.require(!fiber.isEmpty)
+27 |                     if !cs && mode == 3 { try GeometricFailureFixtures.require(fiber.components.count == 4) }
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:25:48: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellProducing' here; 'L3' was not imported by this file
+23 |                 if !r.isEmpty {
+24 |                     let point = try G.xyz(r, cs || mode != 3 ? 0 : 1, 0, 0, &query)
+25 |                     let fiber = try G.geometry.fiber(at: .xyz(point), in: r, limits: G.limits(), using: &query)
+   |                                                `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellProducing' here; 'L3' was not imported by this file
+26 |                     try GeometricFailureFixtures.require(!fiber.isEmpty)
+27 |                     if !cs && mode == 3 { try GeometricFailureFixtures.require(fiber.components.count == 4) }
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:25:48: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellQuerying' here; 'L3' was not imported by this file
+23 |                 if !r.isEmpty {
+24 |                     let point = try G.xyz(r, cs || mode != 3 ? 0 : 1, 0, 0, &query)
+25 |                     let fiber = try G.geometry.fiber(at: .xyz(point), in: r, limits: G.limits(), using: &query)
+   |                                                `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellQuerying' here; 'L3' was not imported by this file
+26 |                     try GeometricFailureFixtures.require(!fiber.isEmpty)
+27 |                     if !cs && mode == 3 { try GeometricFailureFixtures.require(fiber.components.count == 4) }
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:25:48: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellSelecting' here; 'L3' was not imported by this file
+23 |                 if !r.isEmpty {
+24 |                     let point = try G.xyz(r, cs || mode != 3 ? 0 : 1, 0, 0, &query)
+25 |                     let fiber = try G.geometry.fiber(at: .xyz(point), in: r, limits: G.limits(), using: &query)
+   |                                                `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellSelecting' here; 'L3' was not imported by this file
+26 |                     try GeometricFailureFixtures.require(!fiber.isEmpty)
+27 |                     if !cs && mode == 3 { try GeometricFailureFixtures.require(fiber.components.count == 4) }
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:25:48: error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellTraversing' here; 'L3' was not imported by this file
+23 |                 if !r.isEmpty {
+24 |                     let point = try G.xyz(r, cs || mode != 3 ? 0 : 1, 0, 0, &query)
+25 |                     let fiber = try G.geometry.fiber(at: .xyz(point), in: r, limits: G.limits(), using: &query)
+   |                                                `- error: cannot use conformance of 'ExactRealCellDomain<Base>' to 'ExactRealCellTraversing' here; 'L3' was not imported by this file
+26 |                     try GeometricFailureFixtures.require(!fiber.isEmpty)
+27 |                     if !cs && mode == 3 { try GeometricFailureFixtures.require(fiber.components.count == 4) }
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:25:48: error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealCellPullbackResolving' here; 'L4' was not imported by this file
+23 |                 if !r.isEmpty {
+24 |                     let point = try G.xyz(r, cs || mode != 3 ? 0 : 1, 0, 0, &query)
+25 |                     let fiber = try G.geometry.fiber(at: .xyz(point), in: r, limits: G.limits(), using: &query)
+   |                                                `- error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealCellPullbackResolving' here; 'L4' was not imported by this file
+26 |                     try GeometricFailureFixtures.require(!fiber.isEmpty)
+27 |                     if !cs && mode == 3 { try GeometricFailureFixtures.require(fiber.components.count == 4) }
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:25:48: error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealComponentsProducing' here; 'L4' was not imported by this file
+23 |                 if !r.isEmpty {
+24 |                     let point = try G.xyz(r, cs || mode != 3 ? 0 : 1, 0, 0, &query)
+25 |                     let fiber = try G.geometry.fiber(at: .xyz(point), in: r, limits: G.limits(), using: &query)
+   |                                                `- error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealComponentsProducing' here; 'L4' was not imported by this file
+26 |                     try GeometricFailureFixtures.require(!fiber.isEmpty)
+27 |                     if !cs && mode == 3 { try GeometricFailureFixtures.require(fiber.components.count == 4) }
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:25:48: error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealIncidenceProducing' here; 'L4' was not imported by this file
+23 |                 if !r.isEmpty {
+24 |                     let point = try G.xyz(r, cs || mode != 3 ? 0 : 1, 0, 0, &query)
+25 |                     let fiber = try G.geometry.fiber(at: .xyz(point), in: r, limits: G.limits(), using: &query)
+   |                                                `- error: cannot use conformance of 'ExactRealTopologyDomain<Base, Cells>' to 'ExactRealIncidenceProducing' here; 'L4' was not imported by this file
+26 |                     try GeometricFailureFixtures.require(!fiber.isEmpty)
+27 |                     if !cs && mode == 3 { try GeometricFailureFixtures.require(fiber.components.count == 4) }
+
+/private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift:27:97: error: property 'count' cannot be used in an embedded function not marked '@export(interface)' because 'L4' was not imported by this file
+25 |                     let fiber = try G.geometry.fiber(at: .xyz(point), in: r, limits: G.limits(), using: &query)
+26 |                     try GeometricFailureFixtures.require(!fiber.isEmpty)
+27 |                     if !cs && mode == 3 { try GeometricFailureFixtures.require(fiber.components.count == 4) }
+   |                                                                                                 `- error: property 'count' cannot be used in an embedded function not marked '@export(interface)' because 'L4' was not imported by this file
+28 |                     if #available(macOS 26, *) {
+29 |                         try GeometricFailureFixtures.require(r.withStrata { $0.count } == r.strata.count)
+Failed frontend command:
+/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-frontend -frontend -c /private/tmp/cad-exact-geometric-l6-20261008/Tests/L6GeometricRelationVerification/Sources/Proof/Proof.swift -emit-module-path /private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/Objects-normal/wasm32/Modules/L6Proof.swiftmodule -emit-module-doc-path /private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/Objects-normal/wasm32/Modules/L6Proof.swiftdoc -emit-module-source-info-path /private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/Objects-normal/wasm32/Modules/L6Proof.swiftsourceinfo -emit-dependencies-path /private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/Objects-normal/wasm32/L6Proof-primary.d -emit-const-values-path /private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/Objects-normal/wasm32/L6Proof-primary.swiftconstvalues -serialize-diagnostics-path /private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/Objects-normal/wasm32/L6Proof-primary.dia -target wasm32-unknown-wasip1 -disable-objc-interop -sdk /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -sysroot /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk -I /private/tmp/cad-l6-embedded-build-20261008/out/Products/Debug-webassembly-wasm32 -module-cache-path /private/tmp/cad-l6-embedded-build-20261008/out/ModuleCache.noindex -no-color-diagnostics -Xcc -fno-color-diagnostics -enable-testing -g -debug-info-format\=dwarf -dwarf-version\=4 -swift-version 6 -Onone -D SWIFT_PACKAGE -D DEBUG -D Xcode -serialize-debugging-options -enable-experimental-feature Embedded -enable-experimental-feature DebugDescriptionMacro -empty-abi-descriptor -external-plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/testing\#/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift-plugin-server -validate-clang-modules-once -clang-build-session-file /private/tmp/cad-l6-embedded-build-20261008/out/ModuleCache.noindex/Session.modulevalidation -Xcc -working-directory -Xcc /private/tmp/cad-exact-geometric-l6-20261008/Tests -resource-dir /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift -use-static-resource-dir -enable-anonymous-context-mangled-names -file-compilation-dir /private/tmp/cad-exact-geometric-l6-20261008/Tests -Xcc -resource-dir -Xcc /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/clang -Xcc -D_LIBCPP_HARDENING_MODE\=_LIBCPP_HARDENING_MODE_DEBUG -Xcc -fmodules-prune-interval\=86400 -Xcc -fmodules-prune-after\=345600 -Xcc -I/private/tmp/cad-l6-embedded-build-20261008/out/Products/Debug-webassembly-wasm32/include -Xcc -I/private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/DerivedSources-normal/wasm32 -Xcc -I/private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/DerivedSources/wasm32 -Xcc -I/private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/DerivedSources -Xcc -DSWIFT_PACKAGE -Xcc -DDEBUG\=1 -no-auto-bridging-header-chaining -module-name L6Proof -package-name l6geometricrelationverification -const-gather-protocols-file /private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/Objects-normal/wasm32/L6Proof_const_extract_protocols.json -in-process-plugin-server-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/libSwiftInProcPluginServer.dylib -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins -plugin-path /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/local/lib/swift/host/plugins -parse-as-library -num-threads 14 -o /private/tmp/cad-l6-embedded-build-20261008/out/Intermediates.noindex/L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/Objects-normal/wasm32/Proof.o -index-unit-output-path /L6GeometricRelationVerification.build/Debug-webassembly-wasm32/L6Proof-p.build/Objects-normal/wasm32/Proof.o -index-store-path /private/tmp/cad-l6-embedded-build-20261008/out -index-system-modules
+error: Build failed

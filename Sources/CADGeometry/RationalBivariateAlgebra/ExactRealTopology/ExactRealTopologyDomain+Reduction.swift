@@ -26,7 +26,7 @@ extension ExactRealTopologyDomain {
   guard stack.count == 1 else { throw ExactRealTopologyFailure.invalidFormula }; return stack[0]
  }
  func reduce<A: ExactScalarAdmission & ~Copyable>(_ formula: ExactTopologyFormula<Base>, limits: ExactRealTopologyLimits,
-  counts: inout ExactTopologyCounts, _ a: inout A) throws -> ExactRealTopologyRegion<Base> {
+  counts: inout ExactTopologyCounts, domains: [ExactRealRootInterval<Field.Value>]? = nil, _ a: inout A) throws -> ExactRealTopologyRegion<Base> {
   for atom in formula.atoms { try a.consumeWork(1); try counts.retain(atom.depth,&a) }
   for proof in formula.eliminations {
    try counts.retain(proof.replacement.depth,&a)
@@ -42,10 +42,36 @@ extension ExactRealTopologyDomain {
   try ExactTopologyAccess.storage(formula.atoms.count,Polynomial.self,&a)
   var atoms: [Polynomial] = []; atoms.reserveCapacity(formula.atoms.count)
   for atom in formula.atoms { try a.consumeWork(1); atoms.append(try cells.polynomials.importing(atom,using:&a)) }
+  var reductions = formula.reductions
+  if let domains {
+   guard domains.count == n else { throw ExactRealTopologyFailure.invalidDefinition }
+   for axis in domains.indices {
+    let domain = domains[axis]
+    guard !domain.isEmpty, domain.includesLower, domain.includesUpper,
+     case .finite(let lower) = domain.lower, case .finite(let upper) = domain.upper,
+     try formula.field.compare(lower, upper, using: &a) == .equal else { continue }
+    try ExactTopologyAccess.storage(n, Polynomial.self, &a)
+    var replacements: [Polynomial] = []; replacements.reserveCapacity(n)
+    for i in 0..<n {
+     replacements.append(i == axis ? try cells.polynomials.constant(lower, using: &a) : try cells.polynomials.variable(i, using: &a))
+    }
+    let original = atoms
+    try ExactTopologyAccess.storage(atoms.count, Polynomial.self, &a)
+    var derived: [Polynomial] = []; derived.reserveCapacity(atoms.count)
+    for atom in atoms {
+     let law = try cells.polynomials.substituted(atom, with: replacements, using: &a)
+     try counts.retain(law.depth, &a); derived.append(law)
+    }
+    try ExactTopologyAccess.storage(try ExactTopologyAccess.add(reductions.count, 1), ExactRealTopologyReduction<Base>.self, &a)
+    reductions.append(.init(variable: axis, originalAtoms: original, originalInstructions: formula.instructions,
+     derivedAtoms: derived, derivedInstructions: formula.instructions, domainRestriction: domain))
+    atoms = derived
+   }
+  }
   let roots = try ExactRealRootDomain(field:formula.field,using:&a)
   let line = try roots.domain(lower:.negativeInfinity,upper:.positiveInfinity,using:&a)
   try ExactTopologyAccess.storage(n,ExactRealRootInterval<Field.Value>.self,&a)
-  let source = try cells.bind(polynomials:atoms,domains:Array(repeating:line,count:n),using:&a)
+  let source = try cells.bind(polynomials:atoms,domains:domains ?? Array(repeating:line,count:n),using:&a)
   guard counts.generated <= limits.maximumGeneratedCells else { throw ExactRealTopologyFailure.generatedCellLimit }
   let remaining = limits.maximumGeneratedCells - counts.generated
   let partition: ExactRealCellPartition<Base>
@@ -93,7 +119,7 @@ extension ExactRealTopologyDomain {
    if (node.cell.axis ?? -1) + 1 == formula.freeCount { regions.append(node.cell); included.append(node.truth) }
   }
   guard !regions.isEmpty else { throw ExactRealTopologyFailure.invalidCoverage }
-  return .init(partition:partition,coordinateCount:formula.freeCount,cells:regions,included:included,excludesExterior:false,formulaAtoms:atoms,signInvariants:[],certifiedTarget:nil,reductions:formula.reductions,eliminations:formula.eliminations,depth:counts.depth,
+  return .init(partition:partition,coordinateCount:formula.freeCount,cells:regions,included:included,excludesExterior:false,formulaAtoms:atoms,signInvariants:[],certifiedTarget:nil,reductions:reductions,eliminations:formula.eliminations,depth:counts.depth,
    decisions:nodes,quantifiers:formula.quantifiers,instructions:formula.instructions)
  }
 }

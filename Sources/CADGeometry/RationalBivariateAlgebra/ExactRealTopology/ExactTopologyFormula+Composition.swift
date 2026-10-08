@@ -21,6 +21,12 @@ extension ExactTopologyFormula {
   instructions.append(item)
  }
  mutating func atom<A: ExactScalarAdmission & ~Copyable>(_ law: Polynomial, _ relation: ExactRealCellSignRelation, _ a: inout A) throws {
+  for index in atoms.indices {
+   try a.consumeWork(1)
+   if try polynomials.equals(law, atoms[index], using: &a) {
+    try instruction(.sign(polynomial:index,relation:relation),&a); return
+   }
+  }
   try ExactTopologyAccess.storage(ExactTopologyAccess.add(atoms.count,1),Polynomial.self,&a)
   let index = atoms.count; atoms.append(law)
   try instruction(.sign(polynomial:index,relation:relation),&a)
@@ -77,7 +83,7 @@ extension ExactTopologyFormula {
   }
  }
  mutating func cell<A: ExactScalarAdmission & ~Copyable>(_ definition: ExactRealCellDefinition<Base>, map: [Int],
-  witness: inout Int, weak: Bool, through: Int? = nil, factors: [ExactRealTopologyFactor<Base>] = [], _ a: inout A) throws {
+  witness: inout Int, weak: Bool, through: Int? = nil, factors: [ExactRealTopologyFactor<Base>] = [], sectorOrderByThom: Bool = false, _ a: inout A) throws {
   let count = through ?? definition.coordinateCount
   guard count >= 0, count <= definition.coordinateCount, map.count == definition.partition.source.variableCount else { throw ExactRealTopologyFailure.invalidFormula }
   try instruction(.literal(true),&a)
@@ -99,6 +105,9 @@ extension ExactTopologyFormula {
      } else if let leading = try affineLeading(root,&a) {
       let sign: ExactSign = isLower ? leading : (leading == .positive ? .negative : .positive)
       try atom(remap(root.polynomial,map,&a),Self.relation(sign,weak:weak),&a); try instruction(.and,&a)
+     } else if sectorOrderByThom {
+      try orderedBoundary(root, map: map, lower: isLower, weak: weak, &a)
+      try instruction(.and, &a)
      } else {
       let slot = witness; witness = try ExactTopologyAccess.add(witness,1)
       guard slot < polynomials.variableCount else { throw ExactRealTopologyFailure.invalidFormula }
