@@ -120,9 +120,17 @@ struct NativeExactSurfaceSurfacePublisher {
         for index in bounds.indices {
             let lower = try field.binary64(exactly: bounds[index].lower, using: &admission)
             let upper = try field.binary64(exactly: bounds[index].upper, using: &admission)
-            guard try field.compare(originals[index], lower, using: &admission) != .less,
-                  try field.compare(originals[index], upper, using: &admission) != .greater else {
+            let lowerOrder = try field.compare(originals[index], lower, using: &admission)
+            let upperOrder = try field.compare(originals[index], upper, using: &admission)
+            guard lowerOrder != .less, upperOrder != .greater else {
                 throw ExactGeometricRelationFailure.invalidCoverage
+            }
+            // Source equality to a closed endpoint retains that exact dyadic value;
+            // bisection must not replace it with an interior approximation.
+            if lowerOrder == .equal {
+                bounds[index] = try .init(lower: bounds[index].lower, upper: bounds[index].lower)
+            } else if upperOrder == .equal {
+                bounds[index] = try .init(lower: bounds[index].upper, upper: bounds[index].upper)
             }
         }
         let distance = try coefficientField.binary64(exactly: tolerance.distance, using: &admission)

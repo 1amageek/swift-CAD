@@ -17,6 +17,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
         maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: first, second: second,
+        options: options, tolerance: tolerance, admission: admission) { return exact.intersections }
       if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
         options: options, tolerance: tolerance, admission: admission) { return native.intersections }
       if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: first, second: second,
@@ -41,6 +43,9 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
       let admission = try SurfaceSurfaceQueryAdmission(maximumSpanCount: maximumSpanCount,
         maximumSubdivisionDepth: maximumSubdivisionDepth, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: first, second: second,
+        firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance,
+        admission: admission) { return exact.intersections }
       if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
         firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance,
         admission: admission) { return native.intersections }
@@ -92,6 +97,8 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
     tolerance: ModelingTolerance
   ) throws -> [SurfaceSurfaceIntersection] {
     return try GeometryExactScalarFailure.withPublication {
+      if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: first, second: second,
+        options: options, tolerance: tolerance) { return exact.intersections }
       if let native = try NativeSurfaceSurfacePointProducer().resolve(first: first, second: second,
         options: options, tolerance: tolerance) { return native.intersections }
       if let native = try NativeMultiChartSurfaceSurfaceRelationProducer().resolve(first: first, second: second,

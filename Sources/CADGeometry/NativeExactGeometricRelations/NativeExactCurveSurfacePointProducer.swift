@@ -27,7 +27,8 @@ struct NativeExactCurveSurfacePointProducer {
                 v: options.surfaceVRange ?? v)
             let receipt = try DefaultCurveSurfaceIntersector().exactGeometricRelation(
                 curve: curve, surface: surface, curveRange: options.curveRange,
-                surfaceDomain: requested, tolerance: tolerance,
+                surfaceDomain: options.surfaceURange == nil && options.surfaceVRange == nil ? nil : requested,
+                tolerance: tolerance,
                 maximumPolynomialDegree: options.maximumPolynomialDegree,
                 maximumExtensionLevel: maximumExtensionLevel, limits: limits, using: &admission)
             let relation = receipt.parameterRelation.relation
@@ -113,12 +114,17 @@ struct NativeExactCurveSurfacePointProducer {
         }
         // Positive authored weights and the closed Bezier basis prove the XYZ hull seed.
         for index in bounds.indices {
-            guard try field.compare(exact[index], field.binary64(exactly: bounds[index].lower,
-                using: &admission), using: &admission) != .less,
-                try field.compare(exact[index], field.binary64(exactly: bounds[index].upper,
-                using: &admission), using: &admission) != .greater else {
+            let lowerOrder = try field.compare(exact[index], field.binary64(exactly: bounds[index].lower,
+                using: &admission), using: &admission)
+            let upperOrder = try field.compare(exact[index], field.binary64(exactly: bounds[index].upper,
+                using: &admission), using: &admission)
+            guard lowerOrder != .less, upperOrder != .greater else {
                 throw ExactGeometricRelationFailure.invalidCoverage
             }
+            // Source equality to a closed endpoint retains that exact dyadic value;
+            // bisection must not replace it with an interior approximation.
+            if lowerOrder == .equal { bounds[index] = try .init(lower: bounds[index].lower, upper: bounds[index].lower) }
+            else if upperOrder == .equal { bounds[index] = try .init(lower: bounds[index].upper, upper: bounds[index].upper) }
         }
         let distance = try coefficientField.binary64(exactly: tolerance.distance, using: &admission)
         let squared = try coefficientField.multiplying(distance, distance, using: &admission)

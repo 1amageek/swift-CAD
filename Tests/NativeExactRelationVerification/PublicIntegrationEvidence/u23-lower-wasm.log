@@ -1,0 +1,1239 @@
+Building for debugging...
+[Computing dependencies]
+[Constructing description]
+[Pre-planning 1 / 268]
+[Planning deferred tasks]
+[6 / 74] L3Proof-product
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/L3Proof Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/L3Proof Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/L3Proof-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/L3Proof.LinkFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/L3Proof.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/L3Proof_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/Modules/L3Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/Modules/L3Proof.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/Modules/L3Proof.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/Modules/L3Proof.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/Proof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Proof-p.build/Objects-normal/wasm32/Proof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3Proof.wasm' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L3Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L3Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/L3Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/CellFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/CellFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/FailureFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/FailureFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/InspectionFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/InspectionFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/L3Fixtures Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/L3Fixtures Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/L3Fixtures-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/L3Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/L3Fixtures.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/L3Fixtures_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/Modules/L3Fixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/Modules/L3Fixtures.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/Modules/L3Fixtures.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/Modules/L3Fixtures.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/OptimizationFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/OptimizationFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/OriginalCoefficientFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/OriginalCoefficientFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/PrefixFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/PrefixFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/ProjectionProofFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/ProjectionProofFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/ProtocolFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/ProtocolFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/QueryFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/QueryFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/SignInvariantFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/SignInvariantFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/TerminalAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/TerminalAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/VisitAdmissionFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/VisitAdmissionFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/WeightedOriginalFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3Fixtures-t.build/Objects-normal/wasm32/WeightedOriginalFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3Fixtures.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3Fixtures.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3Fixtures.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3Fixtures.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L3-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L3.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/L3.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactCellAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactCellAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactCellBorrowedAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactCellBorrowedAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactCellInvocation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactCellInvocation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactCellInvocationOwner.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactCellInvocationOwner.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellBoundaryRoot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellBoundaryRoot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellCondition.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellCondition.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDefinition.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDefinition.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDefinitionStep.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDefinitionStep.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDescribing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDescribing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+BranchProof.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+BranchProof.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Inspection.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Inspection.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Lifting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Lifting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Projection.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Projection.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+ProofViews.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+ProofViews.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Query.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Query.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+RootUnion.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+RootUnion.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Selection.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Selection.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+SignInvariant.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+SignInvariant.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Specialization.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain+Specialization.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellID.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellID.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellInstruction.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellInstruction.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellKind.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellKind.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellLimits.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellLimits.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellPartition.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellPartition.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellPartitionStorage.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellPartitionStorage.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellPredicate.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellPredicate.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellPreparing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellPreparing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProjectionBinding.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProjectionBinding.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProjectionEvidence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProjectionEvidence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProjectionLevel.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProjectionLevel.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProjectionWitness.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellProjectionWitness.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellQuerying.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellQuerying.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellRecord.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellRecord.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSample.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSample.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSelecting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSelecting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSelection.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSelection.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSignInvariant.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSignInvariant.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSignRelation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSignRelation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSourceStorage.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellSourceStorage.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellStack.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellStack.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellStackEvidence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellStackEvidence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellTraversing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellTraversing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellView.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/ExactRealCellView.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/L3_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/Modules/L3.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/Modules/L3.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/Modules/L3.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L3-t.build/Objects-normal/wasm32/Modules/L3.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L3.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L2Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L2Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/L2Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/CanonicalScalarFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/CanonicalScalarFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/CellVisitFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/CellVisitFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/CountReuseFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/CountReuseFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/EdgeFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/EdgeFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/FieldFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/FieldFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/L2Fixtures Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/L2Fixtures Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/L2Fixtures-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/L2Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/L2Fixtures.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/L2Fixtures_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/LocalLawFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/LocalLawFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/Modules/L2Fixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/Modules/L2Fixtures.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/Modules/L2Fixtures.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/Modules/L2Fixtures.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/OriginalBaseFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/OriginalBaseFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/RootFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/RootFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/SeparationFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/SeparationFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/SignedDecisionFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/SignedDecisionFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/TerminalAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/TerminalAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/TransportFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2Fixtures-t.build/Objects-normal/wasm32/TransportFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L2Fixtures.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L2Fixtures.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L2Fixtures.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L2Fixtures.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L2-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L2.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/L2.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicCalculation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicCalculation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L1Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L1Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicEmbedding.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicEmbedding.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/L1Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicExtending.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1AlgebraFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicExtending.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1AlgebraFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicExtension.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1Fixtures Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicExtension.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1Fixtures Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalar.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1Fixtures-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalar.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain+Arithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1Fixtures.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain+Arithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1Fixtures_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain+UnitInverse.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1PrimitiveFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain+UnitInverse.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1PrimitiveFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicScalarDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1ZeroProductFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicStorage.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/L1ZeroProductFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactAlgebraicStorage.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/Modules/L1Fixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRoot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/Modules/L1Fixtures.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRoot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/Modules/L1Fixtures.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootBound.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootBound.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1Fixtures-t.build/Objects-normal/wasm32/Modules/L1Fixtures.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootClassification.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L1Fixtures.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootClassification.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L1Fixtures.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L1Fixtures.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L1Fixtures.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootCount.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootCount.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+DefiningDivisor.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+DefiningDivisor.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+ExactCandidates.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+ExactCandidates.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+FactoredCount.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+FactoredCount.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+LawSource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+LawSource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Producing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Producing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Query.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Query.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Separation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Separation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+SignedRemainder.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+SignedRemainder.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Sturm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Sturm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Transport.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain+Transport.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootInterval.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootInterval.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootLimits.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootLimits.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootPreparing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootPreparing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootQuerying.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootQuerying.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSeparation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSeparation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSet.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSet.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSigns.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSigns.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootSource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootTransport.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootTransport.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootTransporting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRealRootTransporting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootBorrowedAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootBorrowedAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootInvocation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootInvocation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootInvocationOwner.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootInvocationOwner.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootSturm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/ExactRootSturm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/L2_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/Modules/L2.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/Modules/L2.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/Modules/L2.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L2-t.build/Objects-normal/wasm32/Modules/L2.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L2.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L2.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L2.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L2.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L1-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L1.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/L1.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialArithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialArithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialCalculus.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialCalculus.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialConstructing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialConstructing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDeciding.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDeciding.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDegreeCoefficient.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDegreeCoefficient.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDividing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDividing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDivision.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L0Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDivision.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L0Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/L0Fixtures.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Arithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0FiberStorageFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Arithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0FiberStorageFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Calculus.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0Fixtures Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Calculus.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0Fixtures Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Coefficients.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0Fixtures-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Coefficients.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0Fixtures-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Division.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0Fixtures.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Division.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0Fixtures_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+GCD.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0PayloadFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+GCD.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0PayloadFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+HeapProduct.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0ScalarFixtures+Goldens.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+HeapProduct.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0ScalarFixtures+Goldens.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+OrderedConstruction.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0ScalarFixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+OrderedConstruction.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/L0ScalarFixtures.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+PrincipalDeterminant.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/Modules/L0Fixtures.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+PrincipalDeterminant.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/Modules/L0Fixtures.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Resultant.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/Modules/L0Fixtures.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Resultant.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0Fixtures-t.build/Objects-normal/wasm32/Modules/L0Fixtures.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+SeparatedProduct.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L0Fixtures.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+SeparatedProduct.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L0Fixtures.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L0Fixtures.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+SquareFree.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L0Fixtures.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+SquareFree.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Subresultants.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain+Subresultants.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialEliminating.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialEliminating.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialEvaluation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialEvaluation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialGCDProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialGCDProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialGCDTask.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialGCDTask.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialImporting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialImporting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialOrderedConstructing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialOrderedConstructing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialProductIndex.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialProductIndex.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeDecomposition.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeDecomposition.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeFactor.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeFactor.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSquareFreeProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSubresultantAlgorithm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSubresultantAlgorithm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSubresultantProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialSubresultantProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialTerm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPolynomialTerm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPrincipalSubresultantSequence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/ExactPrincipalSubresultantSequence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/L1_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/Modules/L1.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/Modules/L1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/Modules/L1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L1-t.build/Objects-normal/wasm32/Modules/L1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L1.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L1.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L1.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L1.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L0-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/GeneratedModuleMaps-webassembly-wasm32/L0.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/L0.modulemap' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberPolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberPolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberRootIsolator.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberRootIsolator.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberSturmSequence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFiberSturmSequence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFieldElement.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicFieldElement.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicPairAuthority+Fiber.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicPairAuthority+Fiber.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicPairAuthority.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicPairAuthority.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicRealRoot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactAlgebraicRealRoot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateDivision.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateDivision.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateEvaluation.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateEvaluation.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateGCD.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateGCD.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateGCDProducing.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateGCDProducing.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateMonomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariateMonomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariatePolynomial+Composition.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariatePolynomial+Composition.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariatePolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactBivariatePolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactNaturalMagnitude.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactNaturalMagnitude.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactOrder.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactOrder.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalCoefficient+Hashable.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalCoefficient+Hashable.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalCoefficient.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalCoefficient.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalScalarDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactRationalScalarDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactResource.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactResource.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarArithmetic.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarArithmetic.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarCount.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarCount.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarDepth.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarDepth.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarFailure.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarFailure.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarImporting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarImporting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarLedger.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarLedger.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarLimits.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarLimits.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarNumericAccess.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarNumericAccess.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarOrdering.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarOrdering.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarPayloadBytes.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarPayloadBytes.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarRationalAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarRationalAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarRootAxis.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactScalarRootAxis.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactSign.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactSign.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactUnivariateRootIsolator.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactUnivariateRootIsolator.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactUnivariateSturmSequence.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/ExactUnivariateSturmSequence.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0 Swift Compilation Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0 Swift Compilation Requirements Finished' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0-OutputFileMap.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0-Swift.h' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0.SwiftFileList' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/L0_const_extract_protocols.json' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/Modules/L0.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/Modules/L0.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/Modules/L0.swiftmodule' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/Modules/L0.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalExactScalar.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalExactScalar.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalExactScalarDomain.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalExactScalarDomain.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalRationalPolynomialRange.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalRationalPolynomialRange.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalScalarRootDomainAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalScalarRootDomainAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldContext.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldContext.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldElement.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldElement.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldPolynomial.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldPolynomial.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldRoot+RationalRefinement.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldRoot+RationalRefinement.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldRoot.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldRoot.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldSturm.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/OriginalSingularFieldSturm.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalAlgebraAdmitting.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalAlgebraAdmitting.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalAlgebraStorage.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalAlgebraStorage.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalCoefficientDepthAdmission.o' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Intermediates.noindex/L3RealCellVerification.build/Debug-webassembly-wasm32/L0-t.build/Objects-normal/wasm32/RationalCoefficientDepthAdmission.swiftconstvalues' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L0.objlib' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L0.swiftmodule/Project/wasm32-unknown-wasip1.swiftsourceinfo' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L0.swiftmodule/wasm32-unknown-wasip1.swiftdoc' is located outside of the allowed root paths.
+
+warning: Stale file '/private/tmp/cad-l2-l3-convergence-20261008/.build/l3-wasm/out/Products/Debug-webassembly-wasm32/L0.swiftmodule/wasm32-unknown-wasip1.swiftmodule' is located outside of the allowed root paths.
+
+[34 / 114] L1Fixtures
+[56 / 115] L0
+[59 / 130] L0
+[61 / 130] L0
+[63 / 130] L0
+[67 / 130] L0
+[68 / 130] L1
+[69 / 130] L1
+[71 / 130] L0
+[72 / 130] L0
+[73 / 130] L0
+[75 / 130] L0
+[76 / 130] L0
+[78 / 132] L0Fixtures
+[80 / 152] L0Fixtures
+[81 / 153] L1
+[85 / 153] L1
+[94 / 153] L1
+[95 / 153] L1
+[96 / 153] L1
+[97 / 153] L2
+[100 / 153] L1
+[102 / 153] L1
+[103 / 153] L1
+[104 / 153] L1
+[105 / 153] L0Fixtures
+[106 / 153] L0Fixtures
+[107 / 154] L1
+[108 / 154] L0Fixtures
+[111 / 154] L0
+[111 / 154]
+[115 / 161] L1Fixtures
+[116 / 176] L2
+[118 / 176] L1Fixtures
+[130 / 176] L2
+[131 / 176] L2
+[132 / 176] L2
+[133 / 176] L2
+[135 / 176] L3
+[137 / 176] L2
+[138 / 176] L2
+[139 / 176] L2
+[140 / 176] L2
+[141 / 176] L2
+[143 / 177] L2
+[144 / 177] L1Fixtures
+[145 / 177] L2
+[149 / 178] L0
+[151 / 193] L3
+[152 / 194] L3
+[154 / 194] L3
+[156 / 194] L3
+[161 / 194] L3
+[162 / 194] L3Fixtures
+[163 / 194] L3Fixtures
+[165 / 194] L3
+[167 / 194] L3
+[169 / 194] L3
+[170 / 194] L1Fixtures
+[170 / 194] L0
+[175 / 211] L2Fixtures
+[177 / 224] L2Fixtures
+[178 / 224] L3Fixtures
+[189 / 224] L3Fixtures
+[190 / 224] L3Fixtures
+[192 / 224] L3Fixtures
+[194 / 224] L3Fixtures
+[195 / 224] L3Fixtures
+[196 / 224] L3Fixtures
+[197 / 224] L3Fixtures
+[199 / 224] L3Fixtures
+[202 / 224] L2Fixtures
+[204 / 225] L2Fixtures
+[205 / 225] L3Fixtures
+[206 / 225] L2Fixtures
+[207 / 225] L3Proof-product
+[209 / 226] L3Proof-product
+[211 / 228] L3Proof-product
+[212 / 228] L3Proof-product
+[213 / 228] L3Proof-product
+[214 / 229] L3Proof-product
+[217 / 229] L3Proof-product
+[219 / 229] L2Fixtures
+[220 / 229] L2Fixtures
+[220 / 229] L0
+[223 / 229] L2
+[226 / 229] L2Fixtures
+[227 / 230] L2Fixtures
+[230 / 230] L3Proof-product
+/private/tmp/cad-lower-public-main-integration-20261008/Tests/L3RealCellVerification/Package.swift: L3Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+Build complete! (34.02秒)

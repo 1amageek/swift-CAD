@@ -21,6 +21,8 @@ struct CurveSurfaceOverlapResolver {
 
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
                  tolerance: ModelingTolerance, intersector: DefaultCurveSurfaceIntersector) throws -> CurveSurfaceIntersectionResult {
+        if let exact = try NativeExactPublicCurveSurfaceProducer().resolve(curve: curve, surface: surface,
+            options: options, tolerance: tolerance, retainingRelations: true) { return exact }
         if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
             options: options, tolerance: tolerance, retainingRelations: true) { return native }
         if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
@@ -186,6 +188,8 @@ struct CurveSurfaceOverlapResolver {
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, intersector: DefaultCurveSurfaceIntersector,
         invocation: CurveSurfaceQueryInvocation) throws -> CurveSurfaceIntersectionResult {
+        if let exact = try NativeExactPublicCurveSurfaceProducer().resolve(curve: curve, surface: surface,
+            options: options, tolerance: tolerance, invocation: invocation, retainingRelations: true) { return exact }
         if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
             options: options, tolerance: tolerance, invocation: invocation, retainingRelations: true) { return native }
         if let original = try OriginalPolynomialCurveSurfacePointProducer().resolve(curve: curve, surface: surface,

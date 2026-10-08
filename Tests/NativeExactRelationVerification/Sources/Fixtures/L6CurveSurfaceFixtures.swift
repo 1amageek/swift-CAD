@@ -82,13 +82,7 @@ public enum L6CurveSurfaceFixtures {
         print("PASS L6 public CS smallest-subnormal singleton representatives")
 
         // One isolated tuple and one continuous tuple component share their XYZ image.
-        let mixedSurface = BSplineSurface3D(uDegree: 1, vDegree: 2,
-            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 0, 1, 1, 1], controlPoints: [
-                [.init(x: 0, y: 0, z: 0), .init(x: 1, y: 0, z: 0)],
-                [.init(x: 0, y: -0.25, z: -0.25), .init(x: 1, y: 0.25, z: -0.25)],
-                [.init(x: 0, y: -0.5, z: 0.5), .init(x: 1, y: 0.5, z: 0.5)]])
-        let planarCurve = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [
-            .init(x: 0, y: 0, z: 0), .init(x: 1, y: 0, z: 0)])
+        let (planarCurve, mixedSurface) = mixedSources()
         let mixed = try query(planarCurve, mixedSurface)
         try NativeExactFixtures.require(mixed.points.count == 1 && mixed.hasPositiveDimensionalSolutions)
         try NativeExactFixtures.require(mixed.originalExactGeometricRelation?.hasPositiveDimensionalImage == true)
@@ -133,5 +127,33 @@ public enum L6CurveSurfaceFixtures {
             try NativeExactFixtures.require(cancelled.storageCalls == measured.storageCalls)
         }
         print("PASS L6 public CS final point/empty cancellation")
+    }
+    private static func mixedSources() -> (BSplineCurve3D, BSplineSurface3D) {
+        let mixedSurface = BSplineSurface3D(uDegree: 1, vDegree: 2,
+            uKnots: [0, 0, 1, 1], vKnots: [0, 0, 0, 1, 1, 1], controlPoints: [
+                [.init(x: 0, y: 0, z: 0), .init(x: 1, y: 0, z: 0)],
+                [.init(x: 0, y: -0.25, z: -0.25), .init(x: 1, y: 0.25, z: -0.25)],
+                [.init(x: 0, y: -0.5, z: 0.5), .init(x: 1, y: 0.5, z: 0.5)]])
+        let planarCurve = BSplineCurve3D(degree: 1, knots: [0, 0, 1, 1], controlPoints: [
+            .init(x: 0, y: 0, z: 0), .init(x: 1, y: 0, z: 0)])
+        return (planarCurve, mixedSurface)
+    }
+
+    public static func verifyMixedRelation() throws {
+        let (curve, surface) = mixedSources()
+        var admission = try NativeExactFixtures.ledger()
+        do {
+            let parameters = try DefaultNativeExactRelationResolver().exactParameterRelation(
+                curve: curve, surface: surface, tolerance: .standard, maximumPolynomialDegree: 3,
+                maximumExtensionLevel: 10, cellLimits: limits().cells,
+                topologyLimits: limits().topology, using: &admission)
+            print("PASS mixed original L5 relation work=\(admission.work)")
+            _ = try DefaultNativeExactGeometricRelationResolver().resolve(parameters,
+                limits: limits(), using: &admission)
+            print("PASS mixed original L6 relation work=\(admission.work)")
+        } catch let error as NativeExactRelationFailure {
+            print("FAILED mixed relation work=\(admission.work), depth=\(admission.valueDepth)/\(admission.coefficientDepth): \(error)")
+            throw error
+        }
     }
 }

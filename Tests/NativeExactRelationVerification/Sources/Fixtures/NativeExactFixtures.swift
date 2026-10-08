@@ -7,7 +7,12 @@ public enum NativeExactFixtures {
     typealias Cells = ExactRealCellDomain<Base>
     typealias RelationDomain = ExactParametricRelationDomain<Base, Cells, ExactRealTopology<Base>>
     enum Failure: Error { case invalidEvidence }
-    static func require(_ condition: Bool) throws { if !condition { throw Failure.invalidEvidence } }
+    static func require(_ condition: Bool, file: String = #fileID, line: Int = #line) throws {
+        if !condition {
+            print("FAILED proof assertion at \(file):\(line)")
+            throw Failure.invalidEvidence
+        }
+    }
     static func ledger(work: Int = 80_000_000, bytes: Int = 1_073_741_824, depth: Int = 32) throws -> ExactScalarLedger {
         .init(limits: try .init(work: work, storageBytes: bytes, valueDepth: depth, coefficientDepth: depth))
     }

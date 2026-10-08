@@ -14,8 +14,9 @@ extension DefaultCurveSurfaceIntersector: NativeExactCurveSurfaceGeometricResolv
                 maximumPolynomialDegree: maximumPolynomialDegree,
                 maximumExtensionLevel: maximumExtensionLevel, cellLimits: limits.cells,
                 topologyLimits: limits.topology, using: &admission)
-            return try DefaultNativeExactGeometricRelationResolver().resolve(parameters,
+            let result = try DefaultNativeExactGeometricRelationResolver().resolve(parameters,
                 limits: limits, using: &admission)
+            return result
         } catch { throw .preserving(error) }
     }
 }

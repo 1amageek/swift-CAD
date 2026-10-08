@@ -150,3 +150,12 @@ NativeExactRelationVerification owns actual full Core/Geometry Native/ASAN/match
 WASI/Embedded execution. Lower evidence is reused by exact source input hashes;
 changed callers and upper assembly are verified separately. Project PROGRESS.md
 owns this integration; no whole-seven or full87 completion is inferred.
+
+### Authored Request Retention
+
+When neither surface axis is explicitly selected, CS passes the original absent
+surface-domain request to the Native source issuer. If either axis is explicitly
+selected, the complete box uses that axis and the unchanged native bound for the
+other axis. The source issuer owns the effective intersection with native domains.
+A numerical publisher must not rewrite an absent request into an explicit box.
+Weighted public proof checks the retained original request and raw-equation TUV.

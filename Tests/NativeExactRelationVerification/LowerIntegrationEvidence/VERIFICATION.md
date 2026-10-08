@@ -14,3 +14,13 @@ necessary conformer additions; no open lower finding remains. Upper compile,
 public migration and stopped weighted/folded queries are separate pending stages.
 Preserved b7cc13e4 boundary/diagnostic changes are excluded. Source correspondence
 is source-mapping.json and actual composed Native run is lower-native.log.
+
+## Subsequent composed regression repair
+
+The224-input equality statement above describes commit443cc49c. Later mixed CS
+exposed a factor-relative refinement mismatch. Three L2/L3 production inputs
+and one L2 fixture changed; source-mapping.json records both hashes. Current
+Native71, ASAN71, both WASI lower proofs and consuming public paths supersede
+prior evidence for those affected contracts. Historical performance evidence
+remains historical; no new performance generalization is made. See
+[Public integration](../PublicIntegrationEvidence/VERIFICATION.md).

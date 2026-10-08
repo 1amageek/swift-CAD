@@ -113,9 +113,9 @@ extension ExactRealCellDomain: ExactRealCellProducing {
          }
         }
         if let definingLaw {
-         // The cut may contain repeated factors; the retained union is radical.
-         let divisor = try p.greatestCommonDivisor(root.source.original, definingLaw.original, using:&a)
-         definingRoot = try rootDomain.refine(root,usingDefiningDivisor:rootDomain.bind(divisor,using:&a),using:&a)
+         // L2 owns the selected computational factor, which may be smaller than
+         // the full union. It proves the factor-relative common defining law.
+         definingRoot = try rootDomain.refine(root,usingVanishingLaw:definingLaw,using:&a)
         }
         let extensionValue = try field.adjoin(definingRoot,using:&a); childField=extensionValue.domain; value=extensionValue.generator
        }

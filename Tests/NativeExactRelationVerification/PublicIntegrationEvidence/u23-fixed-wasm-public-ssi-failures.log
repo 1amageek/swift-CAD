@@ -1,0 +1,8 @@
+(node:27005) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS L5 exact square identities, retained reductions and rejected hypotheses
+PASS migrated SSI admitted original caller causes and independent cell/source/depth limits
+PASS migrated SSI domains original caller causes and independent cell/source/depth limits
+PASS migrated SSI prepared original caller causes and independent cell/source/depth limits
+PASS migrated SSI final point/empty callback cancellation
+PASS full production Native L6 geometric publication public-ssi-failures

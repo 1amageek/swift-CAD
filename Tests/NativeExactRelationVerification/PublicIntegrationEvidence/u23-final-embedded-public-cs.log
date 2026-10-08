@@ -1,0 +1,8 @@
+(node:27131) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS L5 exact square identities, retained reductions and rejected hypotheses
+PASS migrated CS rich/discrete caller=false, retained lifetime, empty and positive owner
+PASS migrated CS rich/discrete caller=true, retained lifetime, empty and positive owner
+PASS migrated CS nonclamped source, uncharged family decline and original multi-span fallback
+PASS migrated CS distinct UV, rational weights, singleton and independent caller failures
+PASS full production Native L6 geometric publication public-cs

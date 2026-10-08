@@ -1,0 +1,2 @@
+PASS L5 exact square identities, retained reductions and rejected hypotheses
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: NativeExactFixtures.NativeExactFixtures.Failure.invalidEvidence

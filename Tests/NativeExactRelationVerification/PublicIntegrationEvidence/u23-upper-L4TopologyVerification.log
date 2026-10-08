@@ -1,0 +1,256 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 501]
+[Planning deferred tasks]
+[57 / 295] L2
+[90 / 295] L1PolynomialTests-product
+[127 / 296] L0
+[129 / 313]
+[132 / 313] L0
+[135 / 313] L0
+[140 / 313] L0
+[142 / 313] L1
+[143 / 313] L0
+[145 / 313] L0
+[146 / 313] L0
+[147 / 313] L0
+[148 / 313] L0
+[150 / 313] L0
+[151 / 314]
+[153 / 330] L0Fixtures
+[155 / 335] L0Fixtures
+[156 / 335] L1
+[170 / 335] L1
+[171 / 335] L1
+[172 / 335] L1
+[173 / 335] L1
+[174 / 335] L2
+[175 / 335] L2
+[177 / 335] L1
+[178 / 335] L1
+[180 / 335] L1
+[182 / 335] L0Fixtures
+[184 / 335] L0ScalarTests-product
+[185 / 335] L0Fixtures
+[187 / 335] L0
+[190 / 336]
+[192 / 352] L1Fixtures
+[193 / 356] L2
+[194 / 356] L1Fixtures
+[208 / 356] L2
+[209 / 356] L2
+[210 / 356] L2
+[211 / 356] L2
+[213 / 356] L2
+[214 / 356] L2
+[215 / 356] L3
+[216 / 356] L3
+[218 / 356] L2
+[219 / 356] L2
+[221 / 356] L1Fixtures
+[223 / 356] L1PolynomialTests-product
+[227 / 358] L2Fixtures
+[228 / 374] L2Fixtures
+[230 / 386] L3
+[233 / 386] L2Fixtures
+[239 / 386] L3
+[240 / 386] L3
+[247 / 386] L3
+[248 / 386] L3
+[250 / 386] L3
+[251 / 386] L3
+[254 / 386] L3
+[255 / 386] L3
+[256 / 386] L2Fixtures
+[257 / 386] L2Fixtures
+[258 / 386] L2Fixtures
+[259 / 386] L2Fixtures
+[260 / 386] L2Tests-product
+[261 / 386] L2Fixtures
+[264 / 386] L2Fixtures
+[265 / 386] L2Fixtures
+[266 / 386] L2Fixtures
+[268 / 386] L2Fixtures
+[269 / 386] L1PolynomialTests-product
+[271 / 387] L4
+[273 / 402] L2Fixtures
+[275 / 402] L4
+[284 / 402] L4
+[285 / 402] LayerBenchmark-product
+[286 / 402] LayerBenchmark-product
+[288 / 402] L4
+[289 / 402] L4
+[290 / 402] L4
+[291 / 402] L4
+[292 / 402] L4
+[293 / 402] L4
+[298 / 403]
+[300 / 417] L3Fixtures
+[302 / 417] L3Fixtures
+[306 / 417] L3Fixtures
+[312 / 417] L3Fixtures
+[313 / 417] L3Tests-product
+[316 / 417] L3Fixtures
+[317 / 417] L3Fixtures
+[318 / 417] L3Fixtures
+[319 / 417] L3Fixtures
+[324 / 419]
+[327 / 427] LayerBenchmark-product
+[335 / 427] LayerBenchmark-product
+[337 / 427] LayerBenchmark-product
+[339 / 427] L4Fixtures
+[340 / 427] L4Tests-product
+[345 / 427] L1
+[350 / 428] L1Fixtures
+[352 / 430] L2
+[356 / 430] L3
+[362 / 432]
+[364 / 461]
+[368 / 461] L2Fixtures
+[372 / 461]
+[375 / 461]
+[375 / 461] LayerBenchmark-product
+[378 / 461]
+[380 / 461]
+[385 / 463] L2Tests-product
+[386 / 463]
+[387 / 466] L2Tests-product
+[393 / 469]
+[395 / 470]
+[397 / 470]
+[398 / 476]
+[401 / 476]
+[402 / 476]
+[404 / 476] L4Tests-product
+[417 / 476] L0ScalarTests-product
+[429 / 476] L4Tests-product
+[431 / 476] L4Tests-product
+[438 / 476] L3Tests-product
+[438 / 476] L4Tests-product
+[439 / 476] L3Tests-product
+[441 / 476] L2Tests-product
+[444 / 476] L3Tests-product
+[446 / 476] L4Tests-product
+[448 / 476] L1PolynomialTests-product
+[450 / 476] L2Tests-product
+[453 / 476] L0ScalarTests-product
+[453 / 476] L1PolynomialTests-product
+[458 / 476] L1PolynomialTests-product
+[463 / 476] L4Tests-product
+[469 / 476] L1PolynomialTests-product
+[470 / 476] L0ScalarTests-product
+[472 / 476] L0ScalarTests-product
+Build complete! (54.60秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test partialIncidence() started.
+􀟈  Test orderedProductOptimization() started.
+􀟈  Test retainedAlgebraicField() started.
+􀟈  Test eliminationAdmissionRepair() started.
+􀟈  Test countLimitsAndCancellation() started.
+􀟈  Test singletonSignOptimization() started.
+􀟈  Test retainedPairOptimization() started.
+􀟈  Test affineClosures() started.
+􀟈  Test differentialStrategiesAndPorts() started.
+􀟈  Test concurrentRetainedReaders() started.
+􀟈  Test quantifiedClosure() started.
+􀟈  Test connectivity() started.
+􀟈  Test factorAdmissionRepair() started.
+􀟈  Test partialTarget() started.
+􀟈  Test folded() started.
+􀟈  Test zeroAndFailures() started.
+􀟈  Test singularComponents() started.
+􀟈  Test graphClosure() started.
+􀟈  Test constantCutGraphClosures() started.
+􀟈  Test checkedCountOverflow() started.
+􀟈  Test closeDistinctPoints() started.
+PHASE: folded source bound work=187 storage=16288
+PASS: zero-arity closure and exact admission boundaries
+PASS: connectivity case=0 components=2 work=2843 storage=210562
+􁁛  Test checkedCountOverflow() passed after 0.339 seconds.
+PASS: affine ambient closures work=13603 storage=922570
+PASS: cumulative counts, mid/terminal cancellation, empty selection and recovery
+􁁛  Test orderedProductOptimization() passed after 0.590 seconds.
+􁁛  Test eliminationAdmissionRepair() passed after 0.590 seconds.
+􁁛  Test zeroAndFailures() passed after 0.589 seconds.
+􁁛  Test singletonSignOptimization() passed after 0.590 seconds.
+􁁛  Test affineClosures() passed after 0.590 seconds.
+􁁛  Test factorAdmissionRepair() passed after 0.590 seconds.
+􁁛  Test countLimitsAndCancellation() passed after 0.590 seconds.
+􁁛  Test concurrentRetainedReaders() passed after 0.590 seconds.
+PASS: retained algebraic field, extension policy and inherited depth
+􁁛  Test retainedAlgebraicField() passed after 0.764 seconds.
+PASS: connectivity case=1 components=1 work=53904 storage=3504972
+PASS: close distinct exact points remain separate
+􁁛  Test closeDistinctPoints() passed after 1.101 seconds.
+PASS: bounded section graph work=83581 storage=4632602
+􁁛  Test graphClosure() passed after 1.497 seconds.
+PASS: connectivity case=2 components=4 work=44438 storage=2882059
+􁁛  Test connectivity() passed after 1.709 seconds.
+PASS: quantified closure work=107259 storage=5886495
+􁁛  Test quantifiedClosure() passed after 1.732 seconds.
+􁁛  Test retainedPairOptimization() passed after 2.213 seconds.
+PASS: partial nullified target work=222548 storage=12548414
+􁁛  Test partialTarget() passed after 2.493 seconds.
+􁁛  Test differentialStrategiesAndPorts() passed after 2.535 seconds.
+PASS: singular case=0 components=1 work=289841 storage=15563062
+PASS: partial directed incidence pieces=3 work=374116 storage=20970571
+􁁛  Test partialIncidence() passed after 3.015 seconds.
+PASS: constant-cut polynomial closures preserve both roots work=371359 storage=18878257
+􁁛  Test constantCutGraphClosures() passed after 3.043 seconds.
+PASS: singular case=1 components=1 work=816810 storage=41235003
+PASS: singular case=2 components=1 work=33190 storage=1936939
+PASS: singular case=3 components=2 work=365886 storage=12303478
+􁁛  Test singularComponents() passed after 5.933 seconds.
+PHASE: folded partition work=1831487 storage=87506633 cells=525
+PHASE: folded selected cells=45
+PHASE: folded closure proof=point work=17905 storage=994294
+PHASE: folded closure proof=point work=17772 storage=989678
+PHASE: folded closure proof=affine work=52881 storage=2392042
+PHASE: folded closure proof=affine work=52752 storage=2387426
+PHASE: folded closure proof=point work=17485 storage=988566
+PHASE: folded closure proof=point work=17356 storage=983950
+PHASE: folded closure proof=affine work=52775 storage=2391558
+PHASE: folded closure proof=affine work=52646 storage=2386942
+PHASE: folded closure proof=point work=18207 storage=1010594
+PHASE: folded closure proof=point work=18074 storage=1005978
+PHASE: folded closure proof=affine work=269142 storage=10966226
+PHASE: folded closure proof=affine work=267263 storage=10865014
+PHASE: folded closure proof=affine work=286065 storage=11601933
+PHASE: folded closure proof=affine work=284199 storage=11500733
+PHASE: folded closure proof=affine work=282367 storage=11427811
+PHASE: folded closure proof=affine work=280501 storage=11326611
+PHASE: folded closure proof=affine work=286267 storage=11611965
+PHASE: folded closure proof=affine work=284401 storage=11510765
+PHASE: folded closure proof=affine work=273931 storage=11149318
+PHASE: folded closure proof=affine work=272052 storage=11048106
+PHASE: folded closure proof=point work=17609 storage=991615
+PHASE: folded closure proof=affine work=55429 storage=2505930
+PHASE: folded closure proof=point work=17227 storage=987279
+PHASE: folded closure proof=affine work=55388 storage=2507662
+PHASE: folded closure proof=point work=17947 storage=1007915
+PHASE: folded closure proof=affine work=267580 storage=10912466
+PHASE: folded closure proof=affine work=264353 storage=10764006
+PHASE: folded closure proof=affine work=284501 storage=11548173
+PHASE: folded closure proof=affine work=281278 storage=11399713
+PHASE: folded closure proof=affine work=280805 storage=11374051
+PHASE: folded closure proof=affine work=277582 storage=11225591
+PHASE: folded closure proof=affine work=284703 storage=11558205
+PHASE: folded closure proof=affine work=281480 storage=11409745
+PHASE: folded closure proof=affine work=272369 storage=11095558
+PHASE: folded closure proof=affine work=269142 storage=10947098
+PHASE: folded closure proof=point work=18432 storage=1001702
+PHASE: folded closure proof=point work=18299 storage=997086
+PHASE: folded closure proof=affine work=53238 storage=2394394
+PHASE: folded closure proof=affine work=53109 storage=2389778
+PHASE: folded closure proof=point work=18012 storage=995974
+PHASE: folded closure proof=point work=17883 storage=991358
+PHASE: folded closure proof=affine work=53132 storage=2393910
+PHASE: folded closure proof=affine work=53003 storage=2389294
+PHASE: folded closure proof=point work=18734 storage=1018002
+PHASE: folded closure proof=point work=18601 storage=1013386
+PHASE: folded incidence start
+PASS: folded sheets members=45 pieces=108 work=8653020 storage=255911233
+􁁛  Test folded() passed after 38.541 seconds.
+􁁛  Test run with 21 tests in 0 suites passed after 38.542 seconds.

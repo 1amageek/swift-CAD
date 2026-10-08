@@ -3,10 +3,10 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     public let points: [CurveSurfaceIntersection]
     public let overlaps: [CurveSurfaceOverlap]
 
-    /// Exact isolated-component tuples and original chart coverage; nil for legacy source families.
+    /// Legacy Native isolated tuples and chart coverage; nil when the L6 receipt owns the result.
     public let originalNativePoints: OriginalNativeCurveSurfacePoints?
 
-    /// Complete original native cells and incidence, including multivalued UV relations.
+    /// Legacy Native cells and incidence; migrated results retain originalExactGeometricRelation instead.
     public let originalNativeRelations: OriginalNativeCurveSurfaceRelation?
 
     /// Complete isolated original polynomial-source tuples and closed-domain coverage.

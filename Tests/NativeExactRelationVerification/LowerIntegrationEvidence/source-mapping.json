@@ -234,5 +234,42 @@
     "OriginalBoundaryClipping",
     "CADKernel boundary migration",
     "CADTopology verification target"
-  ]
+  ],
+  "public_migration_files": [
+    "Sources/CADGeometry/NativeExactGeometricRelations/DefaultCurveSurfaceIntersector+CurveSurfaceGeometry.swift",
+    "Sources/CADGeometry/NativeExactGeometricRelations/NativeExactCurveSurfacePointProducer.swift",
+    "Sources/CADGeometry/NativeExactGeometricRelations/NativeExactPublicAdmission.swift",
+    "Sources/CADGeometry/NativeExactGeometricRelations/NativeExactPublicCurveSurfaceProducer.swift",
+    "Sources/CADGeometry/NativeExactGeometricRelations/NativeExactPublicLimits.swift",
+    "Sources/CADGeometry/NativeExactGeometricRelations/NativeExactPublicSurfaceSurfaceProducer.swift",
+    "Sources/CADGeometry/NativeExactGeometricRelations/NativeExactSurfaceSurfacePublisher.swift",
+    "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift",
+    "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceOverlapResolver.swift",
+    "Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift",
+    "Sources/CADGeometry/DefaultSurfaceSurfaceIntersector.swift",
+    "Sources/CADGeometry/DefaultSurfaceSurfaceIntersector+Result.swift",
+    "Sources/CADGeometry/SurfaceSurfaceQueryAdmission/PreparedOriginalSurfaceIntersectionPair.swift",
+    "Tests/NativeExactRelationVerification/Sources/Fixtures/L6PublicCurveSurfaceFixtures.swift",
+    "Tests/NativeExactRelationVerification/Sources/Fixtures/L6PublicSurfaceSurfaceFixtures.swift",
+    "Tests/NativeExactRelationVerification/Sources/GeometricProof/Proof.swift"
+  ],
+  "integration_regression_changes": {
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDomain+Lifting.swift": {
+      "verified_import": "cd6065f0e31d91bc5fe59c482571b023689b2c317a5044756e288acb7690f258",
+      "composed_current": "0bf0879a2ffd93c8812c40e4347bd197ef8d1856f76fc37b900fa77385673d99"
+    },
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootDomain+DefiningDivisor.swift": {
+      "verified_import": "5d71ee957e54876ae5b008359e0607ea715dafb0385b20da5c4e9737796a6c05",
+      "composed_current": "673ccf9bb853135ee5ab2b3cd1ef5eed3cc6da9eae697adb6768f999a13f0fac"
+    },
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRealRootQuerying.swift": {
+      "verified_import": "89936f5df18811fa44744d93494115b78ef460d747602a9a8f08fb753773f987",
+      "composed_current": "0b9e198682d9c4f90eaf21f9e71469be2f9b8d5d3e5689f685abd147ef2965fe"
+    },
+    "Tests/L2RealRootVerification/Sources/Fixtures/RootFixtures.swift": {
+      "verified_import": "bc42336219592540358b8d68e35f5a53d7dd1996f86d8fa3bef9804a43b2b553",
+      "composed_current": "a449d25dd66cf824839bd5f7efbff463460e309eb754b8e6e0565f648243f74c"
+    }
+  },
+  "current_verification": "../PublicIntegrationEvidence/VERIFICATION.md"
 }

@@ -25,6 +25,28 @@ public enum RootFixtures {
             _ = try domain.refine(root, usingDefiningDivisor: domain.bind(linear, using: &a), using: &a)
             throw ExactRealRootFailure.invalidSource
         } catch ExactRealRootFailure.invalidEvidence { }
+        // Factored isolation retains a smaller computational factor than the
+        // original union. A vanishing cut can also contain another factor.
+        let other = try p.subtracting(p.multiplying(x, x, using: &a),
+            p.constant(field.integer(3, using: &a), using: &a), using: &a)
+        let union = try domain.bind(p.multiplying(quadratic, other, using: &a), using: &a)
+        let count = try domain.count(union, in: all,
+            factoredBy: [domain.bind(quadratic, using: &a), domain.bind(other, using: &a)], using: &a)
+        let selected = try domain.isolate(count, limits: .init(maximumRoots: 4), using: &a).roots[2]
+        let cut = try domain.bind(p.multiplying(quadratic, linear, using: &a), using: &a)
+        let factorRefined = try domain.refine(selected, usingVanishingLaw: cut, using: &a)
+        try require(factorRefined.ordinal == selected.ordinal && factorRefined.multiplicity == selected.multiplicity)
+        try require(p.equals(factorRefined.source.original, union.original, using: &a))
+        try require(domain.compare(selected, factorRefined, using: &a) == .equal)
+        try require(domain.sign(of: cut, at: factorRefined, using: &a) == .zero)
+        do {
+            _ = try domain.refine(selected, usingDefiningDivisor: cut, using: &a)
+            throw ExactRealRootFailure.invalidSource
+        } catch ExactRealRootFailure.invalidEvidence { }
+        do {
+            _ = try domain.refine(selected, usingVanishingLaw: domain.bind(other, using: &a), using: &a)
+            throw ExactRealRootFailure.invalidSource
+        } catch ExactRealRootFailure.invalidEvidence { }
         let unrelated = try p.subtracting(x, p.constant(field.integer(3, using: &a), using: &a), using: &a)
         do {
             _ = try domain.refine(root, usingDefiningDivisor: domain.bind(unrelated, using: &a), using: &a)

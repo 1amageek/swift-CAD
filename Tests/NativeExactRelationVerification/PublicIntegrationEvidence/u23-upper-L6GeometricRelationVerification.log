@@ -1,0 +1,135 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 327]
+[Planning deferred tasks]
+[53 / 171] L4
+[79 / 172] L0
+[84 / 189] L0
+[86 / 189] L0
+[92 / 189] L0
+[94 / 189] L0
+[97 / 189] L0
+[98 / 189] L0
+[99 / 189] L0
+[100 / 189] L0
+[101 / 189] L0
+[102 / 189]
+[103 / 190]
+[105 / 205] L1
+[107 / 205] L1
+[114 / 205] L1
+[115 / 205] L2
+[118 / 205] L1
+[119 / 205] L1
+[120 / 205] L1
+[121 / 205] L1
+[124 / 205] L1
+[127 / 206]
+[132 / 221] L2
+[133 / 221] L2
+[141 / 221] L2
+[142 / 221] L3
+[145 / 221] L2
+[146 / 221] L2
+[148 / 221] L2
+[149 / 221] L2
+[150 / 221] L2
+[151 / 222]
+[153 / 237] L3
+[154 / 237] L3
+[156 / 237] L3
+[162 / 237] L3
+[164 / 237] L4
+[167 / 237] L3
+[169 / 237] L3
+[170 / 237] L3
+[172 / 237] L3
+[175 / 238]
+[177 / 253] L4
+[177 / 253] L3
+[186 / 253] L4
+[188 / 253] L4
+[190 / 253] L5
+[193 / 253] L4
+[194 / 253] L4
+[196 / 253] L4
+[200 / 269] L5
+[204 / 269] L5
+[212 / 269] L6
+[215 / 269] L5
+[218 / 269] L5
+[219 / 269] L5
+[224 / 270] L4
+[228 / 285] L6
+[229 / 285] L6
+[238 / 285] L6
+[240 / 285] L6
+[244 / 285] L6
+[246 / 285] L6
+[246 / 285] L5
+[249 / 291] L6Fixtures
+[257 / 291] L6Fixtures
+[264 / 291] L6Tests-product
+[270 / 295] L6UVProof-product
+[273 / 297] L6Proof-product
+[277 / 297] L6Fixtures
+[281 / 297]
+[286 / 298] L6Proof-product
+[287 / 298] L6Tests-product
+[291 / 324]
+[294 / 324]
+[297 / 324]
+[299 / 324]
+[301 / 324]
+[304 / 324]
+[307 / 324]
+[308 / 324]
+[309 / 324]
+[312 / 324] L6Tests-product
+[314 / 324] L6Tests-product
+[318 / 324] L6Tests-product
+[320 / 324] L6Tests-product
+Build complete! (19.71秒)
+Test Suite 'All tests' started at 2026-10-08 21:28:27.539.
+Test Suite 'All tests' passed at 2026-10-08 21:28:27.540.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test independentLimitsAndTerminalCancellation() started.
+􀟈  Test reciprocalUVStations() started.
+􀟈  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() started.
+􀟈  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() started.
+􀟈  Test rejectsInvalidCoordinateProjectionBeforePublication() started.
+􀟈  Test releasedInputsAndForeignHandles() started.
+􀟈  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() started.
+􀟈  Test transportsDifferentRootsAfterCoordinateReordering() started.
+􀟈  Test case passing 1 argument mode → 0 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 1 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 2 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 0 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 4 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 3 to surfaceStrataKeepImagesAndFibersSeparate(mode:) started.
+􀟈  Test case passing 1 argument mode → 5 to curveStrataAndCompleteStationFibers(mode:) started.
+􀟈  Test case passing 1 argument mode → 6 to curveStrataAndCompleteStationFibers(mode:) started.
+PASS: L6 resolve exact admission work=1513 storage=99557; limits/cancel/final-empty/foreign/station
+􁁛  Test rejectsInvalidCoordinateProjectionBeforePublication() passed after 15.015 seconds.
+􁁛  Test thomOrderHandlesRepeatedRootsAndNegativeLeadingSigns() passed after 15.015 seconds.
+􁁛  Test transportedRootIdentityRetainsChangingMultiplicityAtEndpoint() passed after 15.015 seconds.
+􁁛  Test releasedInputsAndForeignHandles() passed after 15.015 seconds.
+􁁛  Test transportsDifferentRootsAfterCoordinateReordering() passed after 15.015 seconds.
+􁁛  Test independentLimitsAndTerminalCancellation() passed after 15.015 seconds.
+􁁛  Test thomBoundaryOrderAvoidsWitnessDimensionInflation() passed after 22.852 seconds.
+􁁛  Test curveStrataAndCompleteStationFibers(mode:) with 7 test cases passed after 29.372 seconds.
+􁁛  Test surfaceStrataKeepImagesAndFibersSeparate(mode:) with 7 test cases passed after 39.414 seconds.
+PASS: CS reciprocal UV and both SSI UV stations retain separate exact roots
+􁁛  Test reciprocalUVStations() passed after 42.565 seconds.
+􁁛  Test run with 10 tests in 0 suites passed after 42.565 seconds.

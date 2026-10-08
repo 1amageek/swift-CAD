@@ -57,3 +57,29 @@ the identical shared fixtures and retains each query's original cumulative limit
 The process selector is explicit CLI input on Native/normal WASM and a fixed WASI
 environment value on Embedded. Unknown groups fail instead of reporting success.
 No selector, environment dependency or shared state is added to production code.
+
+## Current Lower and Public Composition
+
+Compile full production Core/Geometry from main326af519 with verified lower69cd4c4f.
+The preserved b7cc13e4 public CS/SSI migration is reviewed and executed here; its
+unrelated boundary targets and diagnostic source changes are excluded. Groups
+public-cs, public-cs-weighted, public-ssi-* exercise original ordinary/admitted/
+domain/prepared/discrete entries with strong receipts, full exclusion, exact
+multivalued fibers and independent budget/depth/cancellation. Group selection
+changes scheduling only and retains every original caller allowance. Runtime
+guards remain120 seconds. Existing lower proof is reused by exact input hashes;
+changed upper paths require composed execution and final source-bound evidence.
+
+The committed Scripts/run_wasi_group.mjs retains the existing WASI group runner
+and validates its two arguments. It forwards the same group as both argv and
+CAD_PROOF_GROUP for ordinary and Embedded entry selection. Nonzero WASI exits
+fail the host process. Runtime proof logs own its behavioral verification.
+
+### Composed refinement-depth regression
+
+Public SSI failure fixtures distinguish rational sections requiring no root
+refinement from the irrational u^2-1/2 section requiring refinement. Depth0
+succeeds for the former and explicitly refuses the latter; the latter also
+succeeds under the original depth32 admission. This tests actual causal depth
+without prescribing extra subdivision. Current four-lane composition receipts
+are [PublicIntegrationEvidence](PublicIntegrationEvidence/VERIFICATION.md).

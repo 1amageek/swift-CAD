@@ -48,6 +48,10 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
     // the session represents the entire required self-contact domain.
     public func intersections(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
         options: SurfaceSurfaceIntersectionOptions) throws -> [SurfaceSurfaceIntersection] {
+        if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: firstSurface,second: secondSurface,
+            firstBox: firstBox,secondBox: secondBox,options: options,tolerance: tolerance,admission: admission) {
+            return exact.intersections
+        }
         if let native = try NativeSurfaceSurfacePointProducer().resolve(first: firstSurface,second: secondSurface,
             firstBox: firstBox,secondBox: secondBox,options: options,tolerance: tolerance,admission: admission) {
             return native.intersections
@@ -64,6 +68,10 @@ public struct PreparedOriginalSurfaceIntersectionPair: OriginalSurfacePairInters
 
     public func intersectionResult(firstBox: SurfaceParameterBox, secondBox: SurfaceParameterBox,
         options: SurfaceSurfaceIntersectionOptions) throws -> SurfaceSurfaceIntersectionResult {
+        if let exact = try NativeExactPublicSurfaceSurfaceProducer().resolve(first: firstSurface, second: secondSurface,
+            firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, includeRelations: true, admission: admission) {
+            return exact
+        }
         if let native = try NativeSurfaceSurfacePointProducer().resolve(first: firstSurface, second: secondSurface,
             firstBox: firstBox, secondBox: secondBox, options: options, tolerance: tolerance, includeRelations: true, admission: admission) {
             return native

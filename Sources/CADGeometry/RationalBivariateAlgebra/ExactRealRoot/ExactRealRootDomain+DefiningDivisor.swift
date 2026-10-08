@@ -5,6 +5,28 @@ import L1
 
 extension ExactRealRootDomain {
     public func refine<A: ExactScalarAdmission & ~Copyable>(_ root: borrowing ExactRealRoot<F>,
+        usingVanishingLaw law: borrowing ExactRealRootSource<F>, using admission: inout A
+    ) throws(ExactRealRootFailure) -> ExactRealRoot<F> {
+        let root = copy root, law = copy law
+        return try ExactRootAccess.run(&admission, inherited: context.depth) { a in
+            try admitted(root, &a); try require(law, &a)
+            guard law.variable == root.source.variable else { throw ExactRealRootFailure.invalidVariable }
+            try ExactRootAccess.visit(root.isolation.depth, axis: root.source.refinementAxis, &a)
+            let divisor = try context.univariate.greatestCommonDivisor(
+                root.proof.polynomial, law.law, using: &a)
+            guard let degree = try degree(divisor, &a), degree > 0 else {
+                throw ExactRealRootFailure.invalidEvidence
+            }
+            let proof = try sturm(divisor, &a)
+            guard try roots(proof, root.isolation, &a) == 1 else {
+                throw ExactRealRootFailure.invalidEvidence
+            }
+            return .init(source: root.source, multiplicity: root.multiplicity, ordinal: root.ordinal,
+                isolation: root.isolation, proof: proof, depth: a.depth)
+        }
+    }
+
+    public func refine<A: ExactScalarAdmission & ~Copyable>(_ root: borrowing ExactRealRoot<F>,
         usingDefiningDivisor divisor: borrowing ExactRealRootSource<F>, using admission: inout A
     ) throws(ExactRealRootFailure) -> ExactRealRoot<F> {
         let root = copy root, divisor = copy divisor

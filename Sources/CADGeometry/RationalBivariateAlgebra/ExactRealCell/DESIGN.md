@@ -939,3 +939,12 @@ review scope and ownership/platform limits are recorded in
 Source-bound lower evidence certifies this component and its composed L0–L3
 graph. It does not certify L4 closure/incidence, geometric producers, upper
 publication or the seven upper requirements. No upper CAD build was performed.
+
+### Consumed factor-relative refinement contract
+
+Nonlinear lifting consumes L2 `refine(usingVanishingLaw:)` for a lower-degree
+original cut proved to vanish at a selected union root. L2 alone determines its
+GCD with the retained computational factor and proves root correspondence. L3
+does not assume a divisor of the full union also divides each retained factor.
+Original laws, multiplicities, global root order, full-domain coverage and caller
+admission remain unchanged. Mixed CS is the concrete integration regression.

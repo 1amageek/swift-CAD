@@ -71,6 +71,24 @@ again. L3 uses this port before adjoining a nonlinear section when an original
 specialized cut of smaller degree vanishes at its complete union root, avoiding
 an unnecessarily high-degree coefficient representation without changing identity.
 
+### Refinement by an original vanishing law
+
+`refine(usingVanishingLaw:)` consumes an original cut without assuming that it
+is a divisor of the selected root's retained computational factor. L2 computes
+the exact GCD with that factor, requires positive degree and exactly one root
+in the retained isolation, and constructs the replacement Sturm proof. The
+original source, ordinal, multiplicity and isolation remain unchanged. Invalid
+or nonvanishing cuts fail explicitly. All GCD, proof and final checkpoint work
+uses the same admission. The strict `usingDefiningDivisor` port is unchanged.
+
+The composed mixed CS fixture exposes a concrete integration defect: L3 formerly
+computed a divisor against the whole union, which need not divide the smaller
+factor retained by factored isolation. L3 now delegates factor-relative
+refinement through this port; it does not inspect L2 internal factor storage.
+The regression includes a factored union and a vanishing cut that also contains
+another union factor. Existing L2 rejection and L3 full-coverage tests remain
+required, together with mixed CS and folded SSI publication.
+
 ### Exact Candidate Refinement
 
 Root queries may refine an issued root to a supplied coefficient-field value
