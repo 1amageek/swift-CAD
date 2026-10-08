@@ -1,0 +1,26 @@
+Building for debugging...
+[3 / 7] DomainFixtures
+[10 / 13] DomainFixtures
+[11 / 13] DomainTests-product
+[13 / 15] DomainTests-product
+[19 / 20] DomainTests-product
+[24 / 26] DomainProof-product
+[26 / 26] DomainProof-product
+Build complete! (1.64秒)
+Test Suite 'All tests' started at 2026-10-08 23:28:48.173.
+Test Suite 'All tests' passed at 2026-10-08 23:28:48.174.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test immutableReadersAndTaskCancellation() started.
+􀟈  Test allEndpointSectors() started.
+􀟈  Test productsAndRetainedOwners() started.
+􀟈  Test canonicalDisconnectedUnboundedSets() started.
+􀟈  Test explicitFailuresAndAdmission() started.
+􁁛  Test immutableReadersAndTaskCancellation() passed after 0.001 seconds.
+􁁛  Test explicitFailuresAndAdmission() passed after 0.001 seconds.
+􁁛  Test productsAndRetainedOwners() passed after 0.001 seconds.
+􁁛  Test canonicalDisconnectedUnboundedSets() passed after 0.001 seconds.
+􁁛  Test allEndpointSectors() passed after 0.073 seconds.
+􁁛  Test run with 5 tests in 0 suites passed after 0.074 seconds.

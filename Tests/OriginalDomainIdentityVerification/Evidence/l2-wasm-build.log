@@ -1,0 +1,28 @@
+Building for debugging...
+[1 / 5] L2
+[2 / 6] L2
+[8 / 12] L2Fixtures
+[14 / 16] L2Proof-product
+[18 / 34] L2Fixtures
+[19 / 34] L2Fixtures
+[20 / 34] L2Fixtures
+[21 / 34] L2Fixtures
+[23 / 34] L2Fixtures
+[24 / 34] L2Fixtures
+[25 / 34] L2Fixtures
+[26 / 34] L2Fixtures
+[28 / 34] L2
+[29 / 48] L2
+[31 / 49] L2Fixtures
+[32 / 49] L2
+[35 / 49] L2
+[36 / 49] L2
+[37 / 49] L2
+[39 / 49] L2
+[40 / 49] L2
+[42 / 49] L2
+[44 / 50] L2
+[45 / 50] L2
+/private/tmp/cad-domain-identity-design-20261008/Tests/L2RealRootVerification/Package.swift: L2Proof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[50 / 50] L2Proof-product
+Build complete! (4.89秒)
