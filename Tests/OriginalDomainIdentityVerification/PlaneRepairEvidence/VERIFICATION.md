@@ -38,3 +38,8 @@ validation, immutable ownership and typed failure propagation. No open scoped fi
 DI.4 remaining consumers/source families and seven/full87 acceptance remain open.
 The old CompletionEvidence remains pinned to 0b52e18c. This evidence independently
 binds the repaired production inputs, actual compiler lists, proof products and logs.
+
+Compiler inventories include three SwiftPM-generated test-entry sources. Their
+absolute original-cache paths and hashes are retained separately in receipt.json;
+they are not rebased as tracked sources when checking another worktree. The 239
+source/test/config inputs are checked against the integration root.

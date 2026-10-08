@@ -30,7 +30,7 @@
   },
   "scope": "Stored-N plane reference-axis repair only",
   "evidence_hashes": {
-    "VERIFICATION.md": "32386abe9f84028a62216bbccdb6508c43e77546a250826f6d47c394309d7b38",
+    "VERIFICATION.md": "f933d4eba09b650f3010a9820ba86d623c9e0de11ae49029e4e44ae5ec001c62",
     "asan-tests.log": "675b70a571eed10efe697dd26d751e74448749ce255d90fa6eead61d36cec9ab",
     "compiler-inputs.json": "ef5d5a992b9929e668a9c96b8068fddf3a8c78aba0eb1b352ede551bf2a51436",
     "embedded-build.log": "38d47fe27a5da0ea6541bbce19e12ef84f2a2fd44d4ce78d0b659f6b25c1b546",
@@ -39,9 +39,14 @@
     "native-runtime.log": "3bd42694675ac6d7e4101cdb3bc84e6605d27ea199f0edf6d356e85cc34c4c38",
     "native-tests.log": "237cf5f469b615e72b1299b05a43e1e96631dd1e0a2b4f3c4e3bdf8b5d91f508",
     "red.log": "fdca1bd0d28a8602ed11b1e66f6170746c8a103b5e8ea5d9baaf2713843bfcd1",
-    "source-hashes.json": "09b05832c2b7dcc458900880bf55f2a3fd00fa1f0d0bc1338104345715631041",
+    "source-hashes.json": "06643e40d9bf09aa5e4180f934b5819caca61572d88d39d18c0bf76c358e8bc8",
     "source-tests.log": "67ba3c5363d1c5491e031fec0164d2fd2e1d06ab5ebba0c700cfe36453abc797",
     "wasm-build.log": "3d6b80ba9abb6f719176605b58ea313ab113a7162a219b60e1e6f9652ae71837",
     "wasm-runtime.log": "fb0191f5fc79497ae31419d62328439f91f32b8ecca62026118633700ee7a08b"
+  },
+  "generated_inputs": {
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-native/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-source-native/out/Intermediates.noindex/OriginalSourceIssuanceVerification.build/Debug/SourceIssuerTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51"
   }
 }
