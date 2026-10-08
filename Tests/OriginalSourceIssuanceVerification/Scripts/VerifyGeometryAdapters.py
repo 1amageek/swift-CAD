@@ -5,12 +5,14 @@ import argparse
 import hashlib
 import json
 import subprocess
+from collections import Counter
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--lane', choices=['native', 'asan', 'wasm', 'embedded'], default='native')
 parser.add_argument('--geometry-cache', type=Path, required=True)
 parser.add_argument('--issuer-cache', type=Path, required=True)
 parser.add_argument('--output', type=Path, required=True)
+parser.add_argument('--reuse-archives', type=Path, help='Reuse archives after checking every object payload')
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[3]
 swiftc = Path('/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc')
@@ -49,7 +51,9 @@ prefixes = ['Sources/CADCore/', 'Sources/CADGeometry/RationalBivariateAlgebra/Ex
     'Sources/CADGeometry/OriginalAffineOperationWord/', 'Sources/CADGeometry/OriginalAffineImage/',
     'Sources/CADGeometry/PeriodicBSpline/']
 exact = ['Sources/CADGeometry/BSplineCurve3D.swift', 'Sources/CADGeometry/BSplineSurface3D.swift',
-    'Sources/CADGeometry/AnalyticSurface3D.swift', 'Sources/CADGeometry/AnalyticBasis.swift']
+    'Sources/CADGeometry/AnalyticSurface3D.swift', 'Sources/CADGeometry/AnalyticBasis.swift',
+    'Sources/CADGeometry/RuledSurface3D.swift', 'Sources/CADGeometry/GeometryPrimitives.swift',
+    'Sources/CADGeometry/Curve3D.swift', 'Sources/CADGeometry/AnalyticCurve3D.swift']
 premises = {name: expected_hash for name, expected_hash in receipt['source_sha256'].items()
     if name in exact or any(name.startswith(prefix) for prefix in prefixes)}
 for name, expected_hash in premises.items():
@@ -58,7 +62,10 @@ for name, expected_hash in premises.items():
 names = ['BSplineCurve3D+OriginalSourceReading.swift', 'BSplineSurface3D+OriginalSourceReading.swift',
          'OriginalBSplineCurveSnapshotProvider.swift', 'OriginalBSplineSurfaceSnapshotProvider.swift',
          'OriginalAnalyticPrimitiveSnapshot.swift', 'OriginalAnalyticPrimitiveSnapshotProvider.swift',
-         'OriginalAnalyticConeSnapshot.swift', 'OriginalAnalyticConeSnapshotProvider.swift']
+         'OriginalAnalyticConeSnapshot.swift', 'OriginalAnalyticConeSnapshotProvider.swift',
+         'OriginalNativeCurveFamilySnapshotProvider.swift', 'OriginalLinearCurveSnapshot.swift',
+         'OriginalLinearCurveSnapshotProvider.swift', 'OriginalRuledSurfaceSnapshot.swift',
+         'OriginalRuledSurfaceSnapshotProvider.swift']
 sources = [root / 'Sources/CADGeometry/OriginalSourceIssuance' / name for name in names]
 sources.append(root / 'Tests/OriginalSourceIssuanceVerification/Sources/GeometryProof/CachedAdmissionConformance.swift')
 sources.append(root / 'Sources/CADGeometry/AnalyticBasis.swift')
@@ -68,15 +75,39 @@ def run(command):
     commands.append(command)
     result = subprocess.run(command, timeout=120)
     if result.returncode:
-        raise SystemExit(result.returncode)
+        raise RuntimeError(f'Command failed with exit {result.returncode}: {command[0]} ({len(command)} arguments)')
 run(common + ['-emit-library', '-static', '-emit-module', '-module-name', 'SourceGeometryAdapters',
     '-D', 'ORIGINAL_SOURCE_GEOMETRY_ADAPTER_VERIFICATION', *map(str, sources),
     '-emit-module-path', str(output / 'SourceGeometryAdapters.swiftmodule'),
     '-o', str(output / 'libSourceGeometryAdapters.a')])
 # Object names are never inferred from declarations: use the existing build's
 # complete module object inventories, excluding executable and test objects.
+def archive_object_hashes(path):
+    hashes = []
+    with path.open('rb') as archive:
+        if archive.read(8) != b'!<arch>\n':
+            raise RuntimeError('Invalid archive: ' + str(path))
+        while True:
+            header = archive.read(60)
+            if not header: break
+            if len(header) != 60 or header[58:60] != b'`\n':
+                raise RuntimeError('Invalid archive member: ' + str(path))
+            name = header[:16].decode().strip()
+            size = int(header[48:58])
+            payload = archive.read(size)
+            if len(payload) != size: raise RuntimeError('Truncated archive: ' + str(path))
+            if size % 2: archive.read(1)
+            if name.startswith('#1/'):
+                length = int(name[3:])
+                name = payload[:length].rstrip(b'\0').decode()
+                payload = payload[length:]
+            if name in ('/', '//', '/SYM64/') or name.startswith('__.SYMDEF'): continue
+            hashes.append(hashlib.sha256(payload).hexdigest())
+    return Counter(hashes)
+
 objects = []
 archives = []
+archive_hashes = {}
 for cache, modules in [(geometry, ['CADCore', 'CADGeometry', 'HashTreeCollections', 'InternalCollectionsUtilities']),
                        (issuer, ['L0', 'L1', 'SourceIssuer'])]:
     for module in modules:
@@ -88,11 +119,17 @@ for cache, modules in [(geometry, ['CADCore', 'CADGeometry', 'HashTreeCollection
         if not found:
             raise RuntimeError(f'Missing cached object inventory: {module}')
         objects.extend(found)
-        archive = output / f'libCached{module}.a'
-        archive.unlink(missing_ok=True)
-        archiver = str(swiftc.parent / 'llvm-ar') if wasm else 'ar'
-        run([archiver, '-rcs', str(archive), *map(str, found)])
+        if args.reuse_archives and cache == geometry:
+            archive = args.reuse_archives.resolve() / f'libCached{module}.a'
+            if archive_object_hashes(archive) != Counter(digest(p) for p in found):
+                raise RuntimeError('Archive payload differs from cached object inventory: ' + module)
+        else:
+            archive = output / f'libCached{module}.a'
+            archive.unlink(missing_ok=True)
+            archiver = str(swiftc.parent / 'llvm-ar') if wasm else 'ar'
+            run([archiver, '-rcs', str(archive), *map(str, found)])
         archives.append(archive)
+        archive_hashes[str(archive)] = digest(archive)
 link_extra = []
 if args.lane == 'embedded':
     unicode_library = Path(receipt['unicode_library']['path'])
@@ -107,7 +144,7 @@ if wasm:
 else: run([str(artifact)])
 def digest(path): return hashlib.sha256(path.read_bytes()).hexdigest()
 manifest = {'compiledSources': {str(p.relative_to(root)): digest(p) for p in sources + [proof]},
-    'cachedInputs': {str(p): digest(p) for p in objects}, 'commands': commands,
+    'cachedInputs': {str(p): digest(p) for p in objects}, 'cachedArchives': archive_hashes, 'commands': commands,
     'toolchain': subprocess.check_output([str(swiftc), '--version'], text=True).strip(),
     'artifactSHA256': digest(artifact), 'lane': args.lane, 'cachedProviderPremises': premises,
     'cachedRuntimeReceipt': digest(receipt_path), 'cachedRuntimeArtifact': digest(old_proof),

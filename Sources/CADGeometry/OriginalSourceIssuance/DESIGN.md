@@ -208,6 +208,38 @@ last condition excludes the extraneous squared branch for the supported ring
 torus. Restricted angular subsets require another capability and are not supplied
 by a full-image selection. No receipt from this port claims source UV fibers.
 
+### Ruled composition
+
+The common ruled issuer consumes two already-issued rational curve charts from
+its parent's own retained boundary bindings. The parent chart selection stores
+both complete child receipts; therefore original child owners, coefficient laws,
+support, chart selections and parameter correspondence survive with the result.
+No erased law, extra owner box, root solve or mutable receipt extension is needed.
+The pure reading port has separate first/second source types, so a Native boundary
+and a line (or any other certified rational boundary) may compose together.
+
+| Owner | Input / retained state | Guarantee |
+|---|---|---|
+| Ruled snapshot provider | Actual ruled value, injected boundary snapshot providers | Child bindings come directly from actual start/end values; source depth is one plus maximum child depth |
+| Ruled chart selection | Two complete child receipts | Retains original chart and coefficient proof owners without copying polynomial payloads |
+| Ruled chart issuer | Parent binding, owned selection, same field/admission | Exact common-U law with original product W; no tolerance equality or cancellation |
+
+Both child transports must equal the authored U coordinate, checked by exact
+polynomial cross multiplication. U support is the exact intersection of the
+original parent U domain and both selected child supports. V is [0,1]. The
+formula is Hxyz=(1-v)*Axyz*WB+v*Bxyz*WA and W=WA*WB. Denominator guards remain in
+W and both child receipts; no factor is deleted. Empty support fails invalidChart
+rather than claiming an empty query result. Child source limits, scalar depths,
+all remap/output buffers, entry/final cancellation and foreign binding failure
+are checked on the same admission. This capability is generic over the declared
+exact field and both boundary sources. Remaining family issuers and public
+ruled CS/SSI migration remain separate unfinished obligations.
+
+The finite linear chart issuer uses the exact original origin + direction*t
+law and identity authored parameter transport. Its actual provider accepts the
+existing raw and analytic line representations without normalizing directions.
+A finite selected chart is not whole unbounded-domain coverage.
+
 ### Receipt content and evidence
 
 | Retained value | Owner and invariant |
@@ -395,8 +427,8 @@ remains in place until its separately verified consuming adapter is migrated.
 The initial Native representation uses one/two original native parameters,
 finite closed span support and identity parameter transport. It retains all raw
 source knots, positive weights and controls, with W!=0 explicit. Native periodic
-transports and other family constructors remain explicit unsupported capabilities
-in this implementation; they are not considered whole-family completion. Future
+transports are now issued under the exact checks in the Periodic local laws
+section. Remaining family constructors are not considered whole-family completion. Future
 issuers use the same source-binding and rational-chart contracts rather than
 changing the meaning of this finite Native receipt.
 
@@ -416,8 +448,8 @@ positive degree, control count greater than degree, finite nondecreasing knots,
 count+degree+1 knots, nonempty native interval, finite XYZ controls, positive
 finite weights and checked tensor layout. Interior knot multiplicity is at most
 degree; this positional continuity makes both endpoints of a selected positive
-span valid for its closed local law. Periodic sources require separately issued
-original transport and are rejected here. A provider must establish these
+span valid for its closed local law. Periodic sources additionally require the exact original transport checks in
+the Periodic local laws section. A provider must establish these
 assumptions before returning its snapshot; `Sendable` is not that proof.
 
 For selected span k, seed N[k,0]=1 and other basis values=0 on its interior.

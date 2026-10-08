@@ -212,7 +212,7 @@ public enum SourceFixtures {
     public static func runAll() throws {
         try exactLaws(); try selectedSpansAndTensor(); try periodicLaws(); try implicitImages()
         try ownership(); try failures(); try resources()
-        try physicalAngleCoefficients(); try physicalAngleResources(); try coneImages()
+        try physicalAngleCoefficients(); try physicalAngleResources(); try coneImages(); try ruledLaws()
         print("ORIGINAL_SOURCE_ISSUANCE_PROOF_OK")
     }
 }

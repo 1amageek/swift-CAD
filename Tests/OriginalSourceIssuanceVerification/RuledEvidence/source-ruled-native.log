@@ -1,0 +1,71 @@
+COMMAND: ['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--build-path', '.build/source-complete-native', '--jobs', '2']
+Building for debugging...
+[Computing dependencies]
+[Provisioning 5 / 7]
+[Using on-disk description]
+[1 / 5] SourceIssuerFixtures
+[2 / 6] SourceIssuerFixtures
+[4 / 6] SourceIssuerFixtures
+[4 / 9] SourceIssuerFixtures
+[5 / 7] SourceIssuerFixtures
+[5 / 7] SourceIssuerTests-product
+[5 / 8] L0
+[5 / 8] L1
+[5 / 7] SourceIssuer
+[5 / 8] SourceIssuer
+[5 / 8] SourceIssuerFixtures
+[6 / 9] SourceIssuerFixtures
+[8 / 10] SourceIssuerFixtures
+[8 / 11] SourceIssuerTests-product
+[9 / 10] SourceIssuerTests-product
+[10 / 11] SourceIssuerTests-product
+[11 / 11] SourceIssuerTests-product
+[12 / 12] SourceIssuerProof-product
+[13 / 13] SourceIssuerProof-product
+[14 / 14] SourceIssuerProof-product
+Build complete! (33.68秒)
+Test Suite 'All tests' started at 2026-10-09 02:19:18.629.
+Test Suite 'All tests' passed at 2026-10-09 02:19:18.643.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.014) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test physicalAngleResources() started.
+􀟈  Test originalPeriodicLaws() started.
+􀟈  Test heterogeneousRuledLaws() started.
+􀟈  Test originalCumulativeResources() started.
+􀟈  Test originalExactLaws() started.
+􀟈  Test originalImplicitImages() started.
+􀟈  Test originalTypedFailures() started.
+􀟈  Test originalOwnership() started.
+􀟈  Test originalSelectedSpansAndTensor() started.
+􀟈  Test coneImages() started.
+􀟈  Test physicalAngleCoefficients() started.
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+PASS invalid source/chart, unsupported periodic and independently inherited source-depth refusal
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+􁁛  Test originalOwnership() passed after 0.025 seconds.
+􁁛  Test originalSelectedSpansAndTensor() passed after 0.025 seconds.
+􁁛  Test originalExactLaws() passed after 0.031 seconds.
+􁁛  Test heterogeneousRuledLaws() passed after 0.035 seconds.
+􁁛  Test originalTypedFailures() passed after 0.035 seconds.
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+PASS heterogeneous Native/line ruled whole laws, product W, exact support, retained child owners and atomic budgets/cancel/depth
+PASS complete sphere/cylinder/torus image equations, original sheared frames, source lifetime and failures
+􁁛  Test originalImplicitImages() passed after 0.038 seconds.
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4357 storageAdmissions=165
+􁁛  Test originalCumulativeResources() passed after 0.048 seconds.
+􁁛  Test originalPeriodicLaws() passed after 0.060 seconds.
+PASS periodic exact knot/control law, two axes, negative cycles, seam owners, transport and failures
+PASS physical-angle exact cumulative work/storage, entry/final cancellation and independent coefficient depth
+MEASURE physical-angle work=20985 generatedBytes=22041
+􁁛  Test physicalAngleResources() passed after 0.165 seconds.
+PASS physical-radian exact identities, near-binary64 sign separation, range doubling, lifetime and typed failures
+􁁛  Test physicalAngleCoefficients() passed after 0.700 seconds.
+PASS exact physical-angle cone image, sheared original frame, both nappes/apex, excluded point, ownership and atomic failures
+MEASURE cone work=59788 generatedBytes=123905
+􁁛  Test coneImages() passed after 2.910 seconds.
+􁁛  Test run with 11 tests in 0 suites passed after 2.910 seconds.
+
+EXIT: 0; SECONDS: 59.814

@@ -13,3 +13,5 @@ import SourceIssuerFixtures
 @Test(.timeLimit(.minutes(1))) func physicalAngleResources() throws { try SourceFixtures.physicalAngleResources() }
 
 @Test(.timeLimit(.minutes(1))) func coneImages() throws { try SourceFixtures.coneImages() }
+
+@Test(.timeLimit(.minutes(1))) func heterogeneousRuledLaws() throws { try SourceFixtures.ruledLaws() }

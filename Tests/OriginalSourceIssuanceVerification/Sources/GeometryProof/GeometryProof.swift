@@ -2,6 +2,10 @@ import CADCore
 import struct CADGeometry.BSplineCurve3D
 import struct CADGeometry.BSplineSurface3D
 import enum CADGeometry.AnalyticSurface3D
+import enum CADGeometry.Curve3D
+import enum CADGeometry.AnalyticCurve3D
+import struct CADGeometry.RuledSurface3D
+import struct CADGeometry.Line3D
 import L0
 import L1
 import SourceIssuer
@@ -75,6 +79,64 @@ struct GeometryProof {
         try actualPeriodicSources()
         try analyticImages()
         try coneImage()
+        try ruledSources()
+    }
+
+    static func ruledSources() throws {
+        var a = try ledger()
+        let limits = try OriginalSourceIssuanceLimits(remainingSourceDepth:1)
+        var native = BSplineCurve3D(degree:1,knots:[0,0,1,1],
+            controlPoints:[.init(x:0,y:0,z:0),.init(x:1,y:0,z:0)],weights:[1,2])
+        let raw = RuledSurface3D(startBoundary:.bSpline(native),
+            endBoundary:.analytic(.line(origin:.init(x:0,y:1,z:1),direction:.unitX)))
+        let provider = DefaultOriginalSourceBindingIssuer(provider:OriginalRuledSurfaceSnapshotProvider(
+            first:OriginalNativeCurveFamilySnapshotProvider(tolerance:.standard),
+            second:OriginalLinearCurveSnapshotProvider(tolerance:.standard),tolerance:.standard))
+        let parent = try provider.bind(raw,limits:limits,using:&a)
+        let source = parent.original
+        let childLimits = try OriginalSourceIssuanceLimits(remainingSourceDepth:0)
+        let firstChart = try source.firstBoundary.chart(OriginalBSplineChartSelection(spans:[1]),limits:childLimits,using:&a)
+        let first = try DefaultOriginalBSplineChartIssuer<BSplineCurve3D,ExactRationalScalarDomain>()
+            .issue(source:source.firstBoundary,chart:firstChart,field:.init(),limits:childLimits,using:&a)
+        let secondChart = try source.secondBoundary.chart(OriginalLinearChartSelection(lower:0.25,upper:0.75),limits:childLimits,using:&a)
+        let second = try DefaultOriginalLinearChartIssuer<OriginalLinearCurveSnapshot,ExactRationalScalarDomain>()
+            .issue(source:source.secondBoundary,chart:secondChart,field:.init(),limits:childLimits,using:&a)
+        let chart = try parent.chart(OriginalRuledChartSelection(first:first,second:second),limits:limits,using:&a)
+        let result = try DefaultOriginalRuledChartIssuer<OriginalRuledSurfaceSnapshot<BSplineCurve3D,OriginalLinearCurveSnapshot>,
+            OriginalBSplineChartSelection,OriginalLinearChartSelection,ExactRationalScalarDomain>()
+            .issue(source:parent,chart:chart,field:.init(),limits:limits,using:&a)
+        let r = result.polynomials, f = result.field
+        let u = try r.variable(0,using:&a), v = try r.variable(1,using:&a)
+        let one = try r.constant(f.integer(1,using:&a),using:&a)
+        let uv = try r.multiplying(u,v,using:&a)
+        let u2v = try r.multiplying(r.multiplying(u,u,using:&a),v,using:&a)
+        let x = try r.adding(r.subtracting(r.scaled(u,by:f.integer(2,using:&a),using:&a),uv,using:&a),u2v,using:&a)
+        let yz = try r.adding(v,uv,using:&a), w = try r.adding(one,u,using:&a)
+        for (axis,law) in [(0,x),(1,yz),(2,yz),(3,w)] {
+            try require(try r.equals(result.homogeneous[axis],law,using:&a))
+        }
+        native.controlPoints[1].x = 99; native.weights[1] = 99
+        try require(result.source.original.firstBoundary.original.weights == [1,2])
+        try require(result.chart.selection.first.source.original.controlPoints[1].x == 1)
+        try require(parent.sourceDepth == 1)
+        do { _ = try provider.bind(raw,limits:childLimits,using:&a); throw Failure.incorrectEvidence }
+        catch OriginalSourceIssuanceFailure.sourceDepthLimit {}
+        let invalid = RuledSurface3D(startBoundary:raw.startBoundary,endBoundary:raw.endBoundary,uDomain:.closed(-1,1))
+        do { _ = try provider.bind(invalid,limits:limits,using:&a); throw Failure.incorrectEvidence }
+        catch OriginalSourceIssuanceFailure.invalidSource {}
+        let direct = Curve3D.line(Line3D(origin:.init(x:0,y:0,z:0),direction:.unitX))
+        _ = try DefaultOriginalSourceBindingIssuer(provider:OriginalLinearCurveSnapshotProvider(tolerance:.standard))
+            .bind(direct,limits:childLimits,using:&a)
+        var work = try ledger(work:1)
+        do { _ = try provider.bind(raw,limits:limits,using:&work); throw Failure.incorrectEvidence }
+        catch OriginalSourceIssuanceFailure.scalar(.resourceLimit(.work)) {}
+        var storage = try ledger(storage:0)
+        do { _ = try provider.bind(raw,limits:limits,using:&storage); throw Failure.incorrectEvidence }
+        catch OriginalSourceIssuanceFailure.scalar(.resourceLimit(.storage)) {}
+        var cancel = try ledger(); cancel.cancel()
+        do { _ = try provider.bind(raw,limits:limits,using:&cancel); throw Failure.incorrectEvidence }
+        catch OriginalSourceIssuanceFailure.scalar(.cancelled) {}
+        print("PASS actual heterogeneous ruled source, both line representations, complete law, descendant ownership and source-depth/domain/budget/cancel failure")
     }
 
     static func analyticImages() throws {
