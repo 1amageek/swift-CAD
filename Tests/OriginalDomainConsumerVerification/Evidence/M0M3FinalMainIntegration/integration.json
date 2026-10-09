@@ -1,0 +1,28 @@
+{
+  "main_before_delivery": "71e58b4f",
+  "compiled_and_matched_snapshot": "a6799f0fb35d92890e29beadb0d0a411fa48518a",
+  "production_input_count": 1695,
+  "unchanged_lower_proofs": {
+    "native": {
+      "unchanged_inputs": 344,
+      "receipt_sha256": "5afabfc7d1dff9b119d2e21b349f213d6c5574be196dca0c72aaabc14928bd9b"
+    },
+    "asan": {
+      "unchanged_inputs": 344,
+      "receipt_sha256": "7d5f4729dd5fef27d74bd5e07b1a889ce7dc4979b6f68f7c0dbfa98ac71987f0"
+    },
+    "wasm": {
+      "unchanged_inputs": 344,
+      "receipt_sha256": "599fc91c61a70bf84773ea5c03b3c9ea8544dd6c831c9b9c17cc98ef826ecf6b"
+    },
+    "embedded": {
+      "unchanged_inputs": 344,
+      "receipt_sha256": "cc3dbe4637c047816f1ad71a3b1fdd688f855ab3d4fc2c74ca6c0f04212a07ec"
+    }
+  },
+  "artifacts": {
+    "NativeDomainFamilyProof": "f13b55549d65a376e3852cdc4f939face6c064ef0b8f4df399c43683d8959889",
+    "NativePrimitiveSourceProof": "0aa76ad79af9814f74fef673ba36fd7da4cedb97043efd27f3a3fba6e465d5b1"
+  },
+  "scope": "Latest main after plane-torus private-code retirement; actual full Geometry incremental compile and public Native runtimes in receipt.json, byte-identical source verified in separate integration worktree. No duplicate runtime of the identical final snapshot."
+}
