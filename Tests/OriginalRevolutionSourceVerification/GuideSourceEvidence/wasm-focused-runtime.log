@@ -1,0 +1,7 @@
+COMMAND: ['/usr/local/bin/node', 'Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs', '.build/di-m4-revolution-wasm/wasm32-unknown-wasip1/debug/GuideIssuerProof.wasm']
+(node:30971) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS M4 retained guide original laws, exact non-dyadic stations, both join incidents, full coverage and atomic failures
+ORIGINAL_GUIDE_ISSUANCE_PROOF_OK
+
+EXIT: 0; SECONDS: 0.689

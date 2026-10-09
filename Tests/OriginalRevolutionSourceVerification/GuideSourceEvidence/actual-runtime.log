@@ -1,0 +1,4 @@
+COMMAND: ['.build/di-m4-revolution-actual/debug/OriginalGuideSourceProof']
+PASS M4 actual original guide constructor, retained traversals, exact 1/3 station, aggregate law/point correspondence, both joins and explicit failures
+
+EXIT: 0; SECONDS: 1.465

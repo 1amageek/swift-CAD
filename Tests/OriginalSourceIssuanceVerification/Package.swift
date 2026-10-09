@@ -23,9 +23,12 @@ let package = Package(name: "OriginalSourceIssuanceVerification", platforms: [.m
         "OriginalTraversalEndpointBinding.swift", "OriginalTraversalSpanSnapshotProvider.swift",
         "OriginalCoonsSurfaceSnapshot.swift", "OriginalCoonsSurfaceSnapshotProvider.swift",
         "OriginalRevolutionSnapshot.swift", "OriginalRevolutionSnapshotProvider.swift",
-        "OriginalOffsetSnapshot.swift", "OriginalOffsetSnapshotProvider.swift"],
+        "OriginalOffsetSnapshot.swift", "OriginalOffsetSnapshotProvider.swift",
+        "OriginalGuideSnapshot.swift", "OriginalGuideSnapshotProvider.swift"],
         swiftSettings: [.define("ORIGINAL_SOURCE_ISOLATED_VERIFICATION")]),
     .target(name: "SourceIssuerFixtures", dependencies: ["L0", "L1", "SourceIssuer"], path: "Sources/Fixtures"),
     .executableTarget(name: "SourceIssuerProof", dependencies: ["SourceIssuerFixtures"], path: "Sources/Proof"),
+    .target(name: "GuideIssuerFixtures", dependencies: ["L0", "L1", "SourceIssuer"], path: "Sources/GuideFixtures"),
+    .executableTarget(name: "GuideIssuerProof", dependencies: ["GuideIssuerFixtures"], path: "Sources/GuideProof"),
     .testTarget(name: "SourceIssuerTests", dependencies: ["SourceIssuerFixtures"], path: "Tests")
 ])

@@ -90,3 +90,10 @@ The Native preparation handoff is recorded in
 overlays compile current consumer sources against one validated cached lower
 identity. Current DI0 interval composition remains a final integration obligation;
 no cached L2 solver execution is used as evidence for that newer implementation.
+
+The focused `GuideIssuerProof` target compiles symlinks to the same
+[guide fixture](Sources/Fixtures/GuideFixtures.swift), Native provider and exclusive
+admission used by the aggregate proof. A small fixture namespace and executable
+entry isolate that behavior from unrelated whole-module fixture compilation.
+[Guide source evidence](../OriginalRevolutionSourceVerification/GuideSourceEvidence/VERIFICATION.md)
+records the bounded aggregate Embedded timeout and the focused portable result.

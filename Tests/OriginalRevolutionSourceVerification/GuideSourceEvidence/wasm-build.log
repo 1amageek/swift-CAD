@@ -1,0 +1,41 @@
+COMMAND: ['swift', 'build', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--scratch-path', '.build/di-m4-revolution-wasm', '--build-system', 'native', '--swift-sdk', 'swift-6.4.0-RELEASE_wasm', '--product', 'SourceIssuerProof', '-j', '2', '-Xlinker', '-z', '-Xlinker', 'stack-size=67108864']
+[0/1] Planning build
+Building for debugging...
+[0/10] Write sources
+[2/10] Write swift-version-7EE3F01B468E1A0A.txt
+[4/12] Compiling SourceIssuer DefaultOriginalFiniteGuideChartPreparer.swift
+[5/12] Compiling SourceIssuer OriginalFiniteGuideChartFamily.swift
+[6/12] Compiling SourceIssuer OriginalFiniteGuideChartPreparing.swift
+[7/14] Emitting module SourceIssuer
+[8/14] Compiling SourceIssuer OriginalGuideChartReceipt.swift
+[9/14] Compiling SourceIssuer OriginalGuideSourceReading.swift
+[10/15] Wrapping AST for SourceIssuer for debugging
+[12/25] Emitting module SourceIssuerFixtures
+[13/33] Compiling SourceIssuerFixtures RuledFixtures.swift
+[14/33] Compiling SourceIssuerFixtures SourceFixtures+Cone.swift
+[15/33] Compiling SourceIssuerFixtures SourceFixtures+Implicit.swift
+[16/33] Compiling SourceIssuerFixtures SourceFixtures+Periodic.swift
+[17/33] Compiling SourceIssuerFixtures SourceFixtures+PhysicalAngle.swift
+[18/33] Compiling SourceIssuerFixtures SourceFixtures.swift
+[19/33] Compiling SourceIssuerFixtures SpatialFixtures.swift
+[20/33] Compiling SourceIssuerFixtures TraversalFixtures.swift
+[21/33] Compiling SourceIssuerFixtures CoonsFixtures.swift
+[22/33] Compiling SourceIssuerFixtures EndpointDepthFixtures.swift
+[23/33] Compiling SourceIssuerFixtures FiniteFamilyFixtures.swift
+[24/33] Compiling SourceIssuerFixtures FiniteNativeFamilyFixtures.swift
+[25/33] Compiling SourceIssuerFixtures GuideFixtures.swift
+[26/33] Compiling SourceIssuerFixtures NativeSource.swift
+[27/33] Compiling SourceIssuerFixtures OffsetFixtures.swift
+[28/33] Compiling SourceIssuerFixtures ParameterImageFixtures.swift
+[29/33] Compiling SourceIssuerFixtures RevolutionFixtures.swift
+[30/35] Compiling SourceIssuerFixtures RetainedRootFixtures.swift
+[31/35] Compiling SourceIssuerFixtures ScalarTransportFixtures.swift
+[32/36] Wrapping AST for SourceIssuerFixtures for debugging
+[34/38] Compiling SourceIssuerProof Proof.swift
+[35/38] Emitting module SourceIssuerProof
+[36/38] Write Objects.LinkFileList
+[37/38] Linking SourceIssuerProof.wasm
+Build of product 'SourceIssuerProof' complete! (38.57s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+
+EXIT: 0; SECONDS: 40.299

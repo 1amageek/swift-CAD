@@ -1101,3 +1101,42 @@ query admissions; actual provider fixtures run both success and failure. The
 first typed capability is finite nonperiodic Native child support, not all offset
 children or the entire M4 producer scope. Changes affect SourceIssuer tests and
 the actual Geometry source-handoff proof; DI alone owns predicate coverage intake.
+
+### M4 retained guide station composition
+
+Guide issuance retains the original chain constructor's immutable C0 join/partition
+authority, every original directed traversal and exact normalized rational station.
+The existing traversal producer supplies child position laws. A guide chart leaves
+those position/denominator laws in the child's local variable and composes only
+its authored parameter correspondence: `T=a+(b-a)*t_child`. It retains original
+segment ordinal and traversal index, so both closed incidents at a join stay distinct.
+A sealed finite family proves every normalized traversal interval is covered before
+exposing whole `[0,1]` support. Missing traversal/chart coverage, changed provenance,
+invalid exact stations, limits and cancellation are explicit failures.
+
+```text
+original guide chain constructor -> retained C0 joins + exact stations
+existing traversal law ----------------------|
+                            exact aggregate correspondence
+                                             -> sealed whole guide family
+```
+
+Snapshotting imports authored rational stations directly into the final retained
+exact child field; no binary64 station roundtrip is permitted. This source capability
+claims original position/support/correspondence. The existing guide higher-derivative
+publication gap remains separate; position supply does not authorize smooth joins.
+
+The first concrete composition capability is finite rational child charts with an
+exact affine normalized traversal map; reversed maps retain their direction.
+Uncancelled original homogeneous and parameter denominators remain present, and
+consumers keep their inherited child guards. It is not a new position producer.
+Behavioral evidence is owned by
+[GuideFixtures](../../../Tests/OriginalSourceIssuanceVerification/Sources/Fixtures/GuideFixtures.swift)
+and the [actual guide proof](../../../Tests/OriginalRevolutionSourceVerification/Sources/GuideProof/Proof.swift).
+Their [receipt](../../../Tests/OriginalRevolutionSourceVerification/GuideSourceEvidence/VERIFICATION.md)
+binds the immutable compiled inputs and portable products.
+
+The portable guide proof uses the same fixture and admission files through a
+focused verification target when the unrelated aggregate fixture WMO compile
+exceeds its 120-second bound. This reduces verification work without changing
+source semantics or the fixture being executed.
