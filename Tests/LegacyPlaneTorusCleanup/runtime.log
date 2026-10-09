@@ -1,0 +1,17 @@
+PASS axial circles reversed=false
+PASS axial circles reversed=true
+PASS axial tangent reversed=false
+PASS axial tangent reversed=true
+PASS axial empty reversed=false
+PASS axial empty reversed=true
+PASS meridional circles reversed=false
+PASS meridional circles reversed=true
+PASS support point reversed=false
+PASS support point reversed=true
+PASS radial empty reversed=false
+PASS radial empty reversed=true
+PASS general certified section reversed=false
+PASS general certified section reversed=true
+PASS delegated resource failure reversed=false
+PASS delegated resource failure reversed=true
+LEGACY_PLANE_TORUS_CLEANUP_OK 14 successful comparisons and 2 explicit failure comparisons

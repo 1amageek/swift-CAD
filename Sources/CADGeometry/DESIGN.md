@@ -1818,3 +1818,15 @@ The [source-issued composition handoff](OriginalSourceIssuance/DESIGN.md#composi
 fixes the planned ruled, Coons and transform consumer migration. Existing source,
 domain, algebra and publication components keep their authority; this is not a
 new production module or whole-seven completion claim.
+
+## Plane-Torus Private Tracing Retirement
+
+The existing plane-torus dispatcher retains its analytic axial/meridional/support
+branches and delegates general sections to AnalyticAnalyticSurfaceIntersector.
+The old private trigonometric tracing configuration, boundary-angle subdivision
+and its exclusive helper types have no path from that dispatcher. They are removed
+without changing the live function bodies, source representations, options, errors,
+verifier or platform imports. No public intersection solver is retired by this change.
+[Cleanup verification](../../Tests/LegacyPlaneTorusCleanup/VERIFICATION.md) owns
+reference/retained-body checks and differential behavior against one immutable
+Geometry dependency snapshot; it does not claim a fresh full-module build.
