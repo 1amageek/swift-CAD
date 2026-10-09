@@ -7,7 +7,7 @@ let package = Package(name: "OriginalDomainIdentityVerification", platforms: [.m
     .target(name: "DI0", dependencies: ["L0"], path: "Sources/DI0", exclude: ["DESIGN.md"],
         swiftSettings: [.define("EXACT_DOMAIN_ISOLATED_VERIFICATION")]),
     .target(name: "L1", dependencies: ["L0"], path: "Sources/L1", exclude: ["DESIGN.md"], swiftSettings: [.define("L1_ISOLATED_VERIFICATION")]),
-    .target(name: "L2", dependencies: ["L0", "L1", "DI0"], path: "Sources/L2", exclude: ["DESIGN.md"], swiftSettings: [.define("L2_ISOLATED_VERIFICATION")]),
+    .target(name: "L2", dependencies: ["L0", "L1", "DI0"], path: "Sources/L2", exclude: ["DESIGN.md", "DefaultExactOriginalScalarTransporter.swift", "ExactOriginalScalarTransferReceipt.swift", "ExactOriginalScalarTransferring.swift", "OriginalCoordinateTransportState.swift", "OriginalCoordinateTransportState+Roots.swift"], swiftSettings: [.define("L2_ISOLATED_VERIFICATION")]),
     .target(name: "SourceIssuer", dependencies: ["L0", "L1"], path: "Sources/SourceIssuer", exclude: ["DESIGN.md", "OriginalPhysicalAngle/DESIGN.md",
         "BSplineCurve3D+OriginalSourceReading.swift", "BSplineSurface3D+OriginalSourceReading.swift",
         "OriginalBSplineCurveSnapshotProvider.swift", "OriginalBSplineSurfaceSnapshotProvider.swift",

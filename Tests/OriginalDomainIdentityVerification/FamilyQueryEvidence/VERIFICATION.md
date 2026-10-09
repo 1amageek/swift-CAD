@@ -20,3 +20,16 @@ storage/isolation/Sendable branch, pointer escape or shared mutable state. Exist
 public defaults delegate through typed generic composition ports. M2/M3 and full
 DI/7/87 completion remain open. This receipt deliberately records actual compiled
 files and excludes concurrently developed M2/M3 files not in this snapshot.
+
+
+## Concurrent main composition
+
+Main advanced to69e0fcb4 with independently verified source/coordinate handoff
+while M1 was closing. Mergeae807ef9 preserves both changes. The independent
+integration target executes all19 Native tests on that composed snapshot.
+Its isolated L2 target excludes the five new source-coordinate-transfer files,
+whose same-module internal access is verified by the owning source-handoff proof;
+these are not used by M1. No production source visibility is changed. The fresh
+integration compiler inventory is bound by main-integration.json. Existing M1
+ordinary/Embedded runtime evidence and the owning main handoff evidence remain
+separate; this Native composition does not claim new asynchronous WASM behavior.
