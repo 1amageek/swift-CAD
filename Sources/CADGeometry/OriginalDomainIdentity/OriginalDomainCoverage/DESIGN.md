@@ -444,3 +444,31 @@ interior singular exclusion at nonzero and zero offset, owning knot faces,
 positive/negative/wrong q, exact empty/singleton clipping, immutable lifetime,
 independent resource bounds and final cancellation on success and exclusion.
 All state is immutable let or exclusive query-local inout on every target.
+
+## Sealed guide station domain composition
+
+OriginalGuideDomainIssuing consumes the source-owned OriginalFiniteGuideChartFamily.
+The source issuer owns complete normalized partition, exact C0 join authority,
+all child laws/guards, local support and exact aggregate station correspondence.
+DI creates a source-bound authored-scalar frame, clips the requested selection,
+and verifies the supplied affine correspondence from retained rational transport.
+It uses existing OriginalParameterTransporting and OriginalDomainCoverIssuing
+for map restriction/inverse and whole-request coverage; no coefficient producer,
+root search or independent source continuity proof is introduced.
+
+Each occurrence retains the whole sealed family, original template index and exact
+selected local-to-aggregate map. The cover preserves every original closed join
+side, including reversed child parameterizations. It exposes nonperiodic finite
+family witness requirements; nonzero cycles fail. Empty requests require complete
+source/selection proof. Member/incident/selectedMembers admit the retained source
+proof and depths under the same caller ledger and perform final cancellation.
+All owners/maps/laws are immutable and shared by COW; generated maps, indexes and
+result payloads are admitted once when generated. No shared mutable state, global
+cache, target-specific synchronization or unchecked ownership is added.
+
+Verification is owned by GuideDomainFixtures in the independent DI graph and the
+actual GuideProof source-to-domain handoff. Test exact non-binary station, reversed
+weighted child, both closed join sides, disconnected/open/singleton/empty requests,
+retained lifetime, foreign source, inherited scalar-owner checks, malformed tuple/template/cycle, independent
+work/storage/chart/source/depth and final success/exclusion cancellation. Generic
+non-rational traversal/derivative identity coverage remains outside this capability.

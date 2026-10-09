@@ -24,6 +24,8 @@ let package = Package(name: "OriginalDomainIdentityVerification", platforms: [.m
         "OriginalParameterImageSurfaceSnapshotProvider.swift", "OriginalTraversalSpanSnapshot.swift",
         "OriginalTraversalEndpointBinding.swift", "OriginalTraversalSpanSnapshotProvider.swift",
         "OriginalOffsetSnapshot.swift", "OriginalOffsetSnapshotProvider.swift",
+        "OriginalGuideSnapshot.swift", "OriginalGuideSnapshotProvider.swift",
+        "OriginalBoundaryCorrectionSnapshot.swift", "OriginalBoundaryCorrectionSnapshotProvider.swift",
         "OriginalRevolutionSnapshot.swift", "OriginalRevolutionSnapshotProvider.swift",
         "OriginalCoonsSurfaceSnapshot.swift", "OriginalCoonsSurfaceSnapshotProvider.swift"], swiftSettings: [.define("ORIGINAL_SOURCE_ISOLATED_VERIFICATION")]),
     .target(name: "DI", dependencies: ["L0", "L1", "DI0", "SourceIssuer"], path: "Sources/DI", exclude: ["DESIGN.md", "ExactParameterDomain", "OriginalParameterTransport/DESIGN.md", "OriginalDomainCoverage/DESIGN.md", "OriginalParameterIdentity/DESIGN.md"], swiftSettings: [.define("ORIGINAL_DOMAIN_ISOLATED_VERIFICATION")]),

@@ -60,6 +60,25 @@ struct OriginalGuideSourceProof {
                 law.polynomials.evaluated(law.homogeneous[3],at:[local],using:&a).value,using:&a)
             try require(final.compare(x,one,using:&a) == .equal)
         }
+        let domainLimits=try OriginalDomainIdentityLimits(source:limits,maximumTransportDepth:16,maximumCharts:4,maximumFamilies:1,maximumIdentityProofs:8)
+        let domains=DefaultOriginalGuideDomainIssuer<OriginalGuideSnapshot<BSplineCurve3D>,Selection,OriginalExactScalarDomain>()
+        let frame=try domains.frame(family:family,limits:domainLimits,using:&a)
+        let join=try ExactParameterInterval.checked(field:final,lower:.finite(third),upper:.finite(third),depth:.init(value:0,coefficient:0),using:&a)
+        let request=try frame.selection(intervals:[[join]],limits:domainLimits,using:&a)
+        let cover=try domains.issue(request:request,family:family,limits:domainLimits,using:&a)
+        let sides=try cover.incident(at:[third],limits:domainLimits,using:&a)
+        try require(sides.count==2)
+        for side in sides {
+            let transporter=DefaultOriginalParameterTransporter<OriginalGuideSnapshot<BSplineCurve3D>,OriginalExactScalarDomain>()
+            let inverse=try transporter.inverse(side.transport,limits:domainLimits,using:&a)
+            let local=try transporter.forward([third],through:inverse,limits:domainLimits,using:&a)
+            try require(final.compare(local[0],one,using:&a) == .equal)
+            try require(side.law.originalSegmentOrdinal == (side.template==0 ? 3:7))
+        }
+        let empty=try frame.selection(intervals:[[]],limits:domainLimits,using:&a)
+        let absent=try domains.issue(request:empty,family:family,limits:domainLimits,using:&a)
+        try require(absent.effective.isEmpty)
+        try require(absent.selectedMembers(limits:domainLimits,using:&a).isEmpty)
         do { _ = try provider.snapshot(shape,limits:.init(remainingSourceDepth:1),using:&a);throw ExactScalarFailure.invalidEvidence }
         catch OriginalSourceIssuanceFailure.sourceDepthLimit {}
         let bad=ModelingTolerance(distance:2*ModelingTolerance.standard.distance,angle:ModelingTolerance.standard.angle,relative:ModelingTolerance.standard.relative)

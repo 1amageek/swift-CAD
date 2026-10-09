@@ -53,3 +53,6 @@ import DomainFixtures
 
 @Test(.timeLimit(.minutes(1))) func scopedRevolutionPeriodIdentities() throws { try RevolutionIdentityFixtures.scopedPeriodAndClipping() }
 @Test(.timeLimit(.minutes(1))) func scopedRevolutionIdentityFailures() throws { try RevolutionIdentityFixtures.identityFailures() }
+
+@Test func completeGuideSourceDomainCorrespondence() throws { try GuideDomainFixtures.fullSourceCorrespondence() }
+@Test func guideDomainAdmissionFailures() throws { try GuideDomainFixtures.admissionAndFailures() }

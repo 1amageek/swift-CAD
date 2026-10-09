@@ -1,0 +1,162 @@
+warning: 'originalrevolutionsourceverification': found 86 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/ExactParameterDomain/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalSourceIssuance/OriginalPhysicalAngle/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+warning: 'originalrevolutionsourceverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/FailureContract/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+Building for debugging...
+[Computing dependencies]
+[Constructing description]
+[Pre-planning 1 / 153]
+[Planning deferred tasks]
+[Starting]
+[2 / 26] OriginalGuideSourceProof-product
+[8 / 24] CADGeometry
+[9 / 24] CADGeometry
+[9 / 25] CADGeometry
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:336:5: warning: 'internal' modifier conflicts with extension's default access of 'private'
+334 | 
+335 | private extension SurfaceParameterCurve {
+336 |     internal func thirdOrderDifferential(
+    |     `- warning: 'internal' modifier conflicts with extension's default access of 'private'
+337 |         atNormalizedFraction fraction: Double,
+338 |         on supportSurface: Surface3D,
+
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:49:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+47 |             let argument = SurfaceIntervalJet.parameterU(box.u)
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+   |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:50:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+   |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+52 |             let cycle = cosine ? [cos, -sine, -cos, sine] : [sine, cos, -sine, -cos]
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[11 / 39] CADGeometry
+[12 / 39] CADGeometry
+[14 / 38] CADGeometry
+[18 / 38] CADGeometry
+[19 / 38] OriginalGuideSourceProof-product
+[20 / 38] OriginalGuideSourceProof-product
+[22 / 38] CADGeometry
+[23 / 38] CADGeometry
+[24 / 38] CADGeometry
+[25 / 38] CADGeometry
+[26 / 38] CADGeometry
+[27 / 38] CADGeometry
+[28 / 38] CADGeometry
+[29 / 38] CADGeometry
+[29 / 38]
+[30 / 38] CADGeometry
+[32 / 38] CADGeometry
+[33 / 38] OriginalGuideSourceProof-product
+[34 / 39]
+[36 / 41] OriginalGuideSourceProof-product
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification/Sources/GuideProof/Proof.swift:44:47: warning: immutable value 'zero' was never used; consider replacing with '_' or removing it [#NoUsage]
+42 |             source:source,traversals:children,field:final,maximumCharts:2,limits:limits,using:&a)
+43 |         try family.admitProof(limits:limits,using:&a)
+44 |         let one=try final.integer(1,using:&a),zero=try final.integer(0,using:&a)
+   |                                               `- warning: immutable value 'zero' was never used; consider replacing with '_' or removing it [#NoUsage]
+45 |         let third=try final.dividing(one,final.integer(3,using:&a),using:&a)
+46 |         try require(final.compare(family.laws[0].aggregateSupport.upper,third,using:&a) == .equal)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[39 / 41] OriginalGuideSourceProof-product
+[40 / 41] OriginalGuideSourceProof-product
+Build complete! (56.84秒)
