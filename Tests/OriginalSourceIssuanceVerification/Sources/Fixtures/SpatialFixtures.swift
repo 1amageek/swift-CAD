@@ -96,6 +96,45 @@ extension SourceFixtures {
         do { _ = try operation.issue(source: parent, chart: chart, field: other, limits: limits, using: &a)
             throw Failure.incorrectEvidence }
         catch OriginalSourceIssuanceFailure.polynomial(.scalar(.incompatibleDomain)) {}
+        try transportedSpatialCoefficients()
         print("PASS original spatial homogeneous action, exact rational/transcendental coefficients, W/support/transport retention and atomic failures")
+    }
+
+    static func transportedSpatialCoefficients() throws {
+        var a = try TraceAdmission()
+        let raw = try retainedRootBinding(try selectedRoot(2), using: &a)
+        let alpha = try raw.generator(using: &a)
+        let z = try raw.integer(0, using: &a), o = try raw.integer(1, using: &a)
+        let original = [alpha,z,z,o, z,o,z,z, z,z,o,z]
+        let destination = try OriginalExactScalarDomain(maximumValueDepth: 32,
+            maximumCoefficientDepth: 32, using: &a)
+        let transfer = try DefaultOriginalScalarTransporter().transfer(original, into: destination, using: &a)
+        let f = transfer.field, limits = try OriginalSourceIssuanceLimits(remainingSourceDepth: 1)
+        let childSource = try DefaultOriginalSourceBindingIssuer(provider: NativeProvider()).bind(input(), limits: limits, using: &a)
+        let childChart = try childSource.chart(OriginalBSplineChartSelection(spans: [1]), limits: limits, using: &a)
+        let child = try DefaultOriginalBSplineChartIssuer<NativeSnapshot, OriginalExactScalarDomain>().issue(
+            source: childSource, chart: childChart, field: f, limits: limits, using: &a)
+        let source = try DefaultOriginalSourceBindingIssuer(provider: SpatialProvider<OriginalExactScalar>()).bind(
+            SpatialInput(originalChild: childSource, coefficients: original), limits: limits, using: &a)
+        let chart = try source.chart(OriginalSpatialChartSelection(child: child), limits: limits, using: &a)
+        let issuer = DefaultOriginalSpatialChartIssuer<SpatialInput<OriginalExactScalar>, OriginalBSplineChartSelection, OriginalExactScalarDomain>()
+        do {
+            _ = try issuer.issue(source: source, chart: chart, field: f, limits: limits, using: &a)
+            throw Failure.incorrectEvidence
+        } catch OriginalSourceIssuanceFailure.scalar(.incompatibleDomain) {}
+        let result = try issuer.issue(source: source, chart: chart, field: f,
+            coefficients: OriginalTransportedSourceCoefficientImporter(transfer: transfer), limits: limits, using: &a)
+        try require(source.owns(result.chart) && childSource.owns(result.chart.selection.child.chart))
+        let r = result.polynomials
+        let expected = try r.adding(r.scaled(r.importing(child.homogeneous[0], using: &a),
+            by: transfer.values[0], using: &a), r.importing(child.denominator, using: &a), using: &a)
+        try require(try r.equals(result.homogeneous[0], expected, using: &a))
+        let unrelated = try retainedRootBinding(try selectedRoot(3), using: &a)
+        let wrongTransfer = try DefaultOriginalScalarTransporter().transfer([unrelated.generator(using: &a)], into: destination, using: &a)
+        do {
+            _ = try issuer.issue(source: source, chart: chart, field: f,
+                coefficients: OriginalTransportedSourceCoefficientImporter(transfer: wrongTransfer), limits: limits, using: &a)
+            throw Failure.incorrectEvidence
+        } catch OriginalSourceIssuanceFailure.scalar(.incompatibleDomain) {}
     }
 }

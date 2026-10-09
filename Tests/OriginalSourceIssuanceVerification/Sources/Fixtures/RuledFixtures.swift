@@ -50,6 +50,7 @@ extension SourceFixtures {
             .issue(source:parent,chart:chart,field:.init(),limits:limits,using:&admission)
     }
     public static func ruledLaws() throws {
+        try finiteFamilyCharts()
         var a = try TraceAdmission()
         let receipt = try ruledReceipt(using:&a), r = receipt.polynomials, f = receipt.field
         let u = try r.variable(0,using:&a), v = try r.variable(1,using:&a)

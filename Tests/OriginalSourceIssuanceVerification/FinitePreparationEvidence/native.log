@@ -1,0 +1,21 @@
+COMMAND: ['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--build-path', '.build/handoff-native', '--jobs', '2', '--filter', 'heterogeneousRuledLaws']
+Building for debugging...
+[Computing dependencies]
+[1 / 5] SourceIssuerFixtures
+[2 / 6] SourceIssuerFixtures
+[6 / 9] SourceIssuerFixtures
+[8 / 10] SourceIssuerFixtures
+[9 / 10] SourceIssuerTests-product
+[12 / 12] SourceIssuerProof-product
+Build complete! (1.94秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test heterogeneousRuledLaws() started.
+PASS complete weighted two-span Native preparation and all 16 Coons chart owners, cross-span corner witnesses and exact limits
+PASS finite ruled/Coons/spatial/parameter/traversal chart composition, reversed exact corners, full laws and atomic limits
+PASS heterogeneous Native/line ruled whole laws, product W, exact support, retained child owners and atomic budgets/cancel/depth
+􁁛  Test heterogeneousRuledLaws() passed after 0.054 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.054 seconds.
+
+EXIT: 0; SECONDS: 3.562

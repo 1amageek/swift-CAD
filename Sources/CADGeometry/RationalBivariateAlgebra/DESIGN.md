@@ -1141,3 +1141,10 @@ only the homogeneous law. Differential fixtures compare both issuers on weighted
 nonclamped sources, with degree-zero input rejected by existing source validation; old geometric publication remains unchanged.
 See [Native consumption](../NativeExactRelations/DESIGN.md) and
 [behavioral owner](../../../Tests/NativeExactRelationVerification/DESIGN.md).
+
+
+### Explicit Retained Scalar Transport
+
+The [L0 transfer contract](ExactScalar/DESIGN.md#explicit-original-scalar-transport)
+owns checked original field transport. Existing monotone-endpoint convenience
+delegates to this same algorithm; scalar values use its explicit transfer receipt.

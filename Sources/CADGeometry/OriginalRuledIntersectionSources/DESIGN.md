@@ -44,3 +44,11 @@ Invalid coordinates/weights/domains propagate typed native errors. Unsupported b
 ## Verification and Change Impact
 
 [OriginalRuledIntersectionSourceTests](../../../Tests/CADGeometryTests/OriginalRuledIntersectionSourceTests.swift) owns exact varying-weight/nonunit-domain composition, boundary/singleton membership, immutable lifetime, CS/SSI ring equations and denominator predicates, native invalid and unsupported failures, independent source-depth/work/storage ceilings, and entry/final callback cancellation. Focused tests run against complete stable Native Core/Geometry, using the existing warm proof cache. Shared CS/SSI/public composition remains a root-owned integration checkpoint and is not counted as whole procedural or seven-domain acceptance.
+
+
+## Planned Composition Consumer Migration
+
+Status: design only; current implementation guarantees above remain unchanged.
+Ruled intersection preparation will consume issued common-U laws and full finite covers; legacy boundary preparation remains authoritative until its replacement passes the public gate.
+The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
+owns coefficient transport, complete-cover, publication and migration acceptance.

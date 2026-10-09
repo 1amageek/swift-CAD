@@ -1,0 +1,38 @@
+COMMAND: ['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--build-path', '.build/handoff-asan', '--jobs', '2', '--sanitize', 'address', '--filter', 'heterogeneousRuledLaws']
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 182]
+[Planning deferred tasks]
+[3 / 6] SourceIssuerFixtures
+[4 / 7] SourceIssuerFixtures
+[11 / 15] SourceIssuerFixtures
+[14 / 28] SourceIssuerFixtures
+[15 / 28] SourceIssuerFixtures
+[16 / 28] SourceIssuerFixtures
+[17 / 28] SourceIssuerFixtures
+[18 / 28] SourceIssuerFixtures
+[19 / 28] SourceIssuerFixtures
+[21 / 28] SourceIssuerFixtures
+[22 / 28] SourceIssuerFixtures
+[23 / 28] SourceIssuerFixtures
+[24 / 28] SourceIssuerFixtures
+[26 / 28] SourceIssuerFixtures
+[28 / 30] SourceIssuerTests-product
+[30 / 32] SourceIssuerTests-product
+[34 / 35] SourceIssuerTests-product
+[36 / 36] SourceIssuerTests-product
+[37 / 39] SourceIssuerProof-product
+[39 / 41] SourceIssuerProof-product
+[41 / 41] SourceIssuerProof-product
+Build complete! (9.34秒)
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test heterogeneousRuledLaws() started.
+PASS complete weighted two-span Native preparation and all 16 Coons chart owners, cross-span corner witnesses and exact limits
+PASS finite ruled/Coons/spatial/parameter/traversal chart composition, reversed exact corners, full laws and atomic limits
+PASS heterogeneous Native/line ruled whole laws, product W, exact support, retained child owners and atomic budgets/cancel/depth
+􁁛  Test heterogeneousRuledLaws() passed after 0.229 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.230 seconds.
+
+EXIT: 0; SECONDS: 12.097

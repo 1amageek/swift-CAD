@@ -27,3 +27,5 @@ import SourceIssuerFixtures
 @Test(.timeLimit(.minutes(1))) func retainedRootExtensions() throws { try SourceFixtures.retainedRootExtensions() }
 
 @Test(.timeLimit(.minutes(1))) func directedTraversalLaws() throws { try SourceFixtures.directedTraversalLaws() }
+
+@Test(.timeLimit(.minutes(1))) func explicitScalarTransport() throws { try SourceFixtures.scalarTransport() }
