@@ -1,0 +1,26 @@
+COMMAND: ['swift', 'build', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--scratch-path', '.build/di-m4-revolution-asan', '--build-system', 'native', '--sanitize', 'address', '--product', 'RetainedCurveIssuerProof', '-j', '1']
+[0/1] Planning build
+Building for debugging...
+[0/6] Write RetainedCurveIssuerProof-entitlement.plist
+[1/8] Write swift-version-7EE3F01B468E1A0A.txt
+[2/8] Write sources
+[5/9] Emitting module SourceIssuer
+[6/13] Compiling SourceIssuer DefaultOriginalFiniteRetainedCurveChartPreparer.swift
+[7/13] Compiling SourceIssuer OriginalFiniteRetainedCurveChartPreparing.swift
+[8/13] Compiling SourceIssuer OriginalFiniteRetainedCurveCharts.swift
+[9/13] Compiling SourceIssuer OriginalRetainedCurveSourceReading.swift
+[9/13] Write sources
+[11/14] Emitting module RetainedCurveIssuerFixtures
+[12/18] Compiling RetainedCurveIssuerFixtures FixtureRoot.swift
+[13/18] Compiling RetainedCurveIssuerFixtures NativeSource.swift
+[14/18] Compiling RetainedCurveIssuerFixtures RetainedCurveFixtures.swift
+[15/18] Compiling RetainedCurveIssuerFixtures TraceAdmission.swift
+[16/19] Emitting module RetainedCurveIssuerProof
+[17/20] Compiling RetainedCurveIssuerProof Proof.swift
+[17/20] Write Objects.LinkFileList
+[18/20] Linking RetainedCurveIssuerProof
+[19/20] Applying RetainedCurveIssuerProof
+Build of product 'RetainedCurveIssuerProof' complete! (2.79s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+
+EXIT: 0; SECONDS: 3.237

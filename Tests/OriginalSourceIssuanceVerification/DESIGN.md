@@ -102,3 +102,8 @@ The focused `RetainedSurfaceIssuerProof` uses the same retained position/coverag
 fixture as Native tests. It proves exact source-square coverage, each closed cell
 side and atomic budget/cancellation failures independently of actual Geometry.
 The actual boundary-correction source proof owns the original atlas handoff.
+
+The focused `RetainedCurveIssuerProof` executes the same original curve law/
+coverage fixture as Native tests, retaining inherited decision depth and all
+closed original cell sides. The separate actual plane-derivative proof checks
+the existing producer and constructor path, original constraints and queries.

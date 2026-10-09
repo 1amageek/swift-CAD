@@ -1,0 +1,5 @@
+COMMAND: ['.build/di-m4-revolution-asan/debug/RetainedCurveIssuerProof']
+PASS M4 retained original curve law, complete exact cells, inherited decision depth and atomic failures
+ORIGINAL_RETAINED_CURVE_PROOF_OK
+
+EXIT: 0; SECONDS: 0.502

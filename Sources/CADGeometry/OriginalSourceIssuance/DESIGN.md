@@ -1171,3 +1171,28 @@ box or stripped normal cannot prove this assumption. Guarded original domains
 use a separate predicate contract, rather than conform to this rectangle port.
 The preparer's denominator check rejects corrupted zero laws and does not replace
 the original producer's whole-cell denominator authority.
+
+### M4 Retained Rational Derivative Curve Intake
+
+The plane-derivative curve provider retains its actual constructor, source root
+span and support-plane derivative constraints. It calls the existing original
+rational piece producer once, imports its generated Hermite position coefficients
+exactly, and retains all authored normalized cells. A sealed finite curve family
+checks exact complete `[0,1]` coverage before publishing identity correspondence.
+It consumes original closed-cell/nonzero-denominator authority, not interval
+endpoint/projection caches. Every original cell side remains retained. Source,
+depth, caller chart/work/storage limits and cancellation remain explicit failure;
+non-rational derivative source supply and derivative surfaces remain separate.
+The capability grants position/support/correspondence, not new differential join
+continuity. Existing point/derivative query tolerance admission is unchanged.
+
+```text
+original source + original plane constraints -> existing rational Hermite pieces
+                                           -> exact import -> sealed curve family
+```
+
+Behavioral evidence is owned by the
+[retained curve fixtures](../../../Tests/OriginalSourceIssuanceVerification/Sources/Fixtures/RetainedCurveFixtures.swift)
+and the [actual curve proof](../../../Tests/OriginalRevolutionSourceVerification/Sources/DerivativeCurveProof/Proof.swift).
+Their [receipt](../../../Tests/OriginalRevolutionSourceVerification/DerivativeCurveSourceEvidence/VERIFICATION.md)
+binds the compiled source inputs and portable artifacts.

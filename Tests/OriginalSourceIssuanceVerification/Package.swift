@@ -25,7 +25,8 @@ let package = Package(name: "OriginalSourceIssuanceVerification", platforms: [.m
         "OriginalRevolutionSnapshot.swift", "OriginalRevolutionSnapshotProvider.swift",
         "OriginalOffsetSnapshot.swift", "OriginalOffsetSnapshotProvider.swift",
         "OriginalGuideSnapshot.swift", "OriginalGuideSnapshotProvider.swift",
-        "OriginalBoundaryCorrectionSnapshot.swift", "OriginalBoundaryCorrectionSnapshotProvider.swift"],
+        "OriginalBoundaryCorrectionSnapshot.swift", "OriginalBoundaryCorrectionSnapshotProvider.swift",
+        "OriginalPlaneDerivativeCurveSnapshot.swift", "OriginalPlaneDerivativeCurveSnapshotProvider.swift"],
         swiftSettings: [.define("ORIGINAL_SOURCE_ISOLATED_VERIFICATION")]),
     .target(name: "SourceIssuerFixtures", dependencies: ["L0", "L1", "SourceIssuer"], path: "Sources/Fixtures"),
     .executableTarget(name: "SourceIssuerProof", dependencies: ["SourceIssuerFixtures"], path: "Sources/Proof"),
@@ -33,5 +34,7 @@ let package = Package(name: "OriginalSourceIssuanceVerification", platforms: [.m
     .executableTarget(name: "GuideIssuerProof", dependencies: ["GuideIssuerFixtures"], path: "Sources/GuideProof"),
     .target(name: "RetainedSurfaceIssuerFixtures", dependencies: ["L0", "L1", "SourceIssuer"], path: "Sources/RetainedSurfaceFixtures"),
     .executableTarget(name: "RetainedSurfaceIssuerProof", dependencies: ["RetainedSurfaceIssuerFixtures"], path: "Sources/RetainedSurfaceProof"),
+    .target(name: "RetainedCurveIssuerFixtures", dependencies: ["L0", "L1", "SourceIssuer"], path: "Sources/RetainedCurveFixtures"),
+    .executableTarget(name: "RetainedCurveIssuerProof", dependencies: ["RetainedCurveIssuerFixtures"], path: "Sources/RetainedCurveProof"),
     .testTarget(name: "SourceIssuerTests", dependencies: ["SourceIssuerFixtures"], path: "Tests")
 ])

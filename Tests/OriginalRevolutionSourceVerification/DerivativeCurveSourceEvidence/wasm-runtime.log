@@ -1,0 +1,7 @@
+COMMAND: ['/usr/local/bin/node', 'Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs', '.build/di-m4-revolution-wasm/wasm32-unknown-wasip1/debug/RetainedCurveIssuerProof.wasm']
+(node:46582) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS M4 retained original curve law, complete exact cells, inherited decision depth and atomic failures
+ORIGINAL_RETAINED_CURVE_PROOF_OK
+
+EXIT: 0; SECONDS: 0.078

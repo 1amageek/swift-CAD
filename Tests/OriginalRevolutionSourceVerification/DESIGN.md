@@ -46,3 +46,9 @@ The separate `OriginalBoundaryCorrectionSourceProof` executes retained existing
 correction XYZ/D, nonzero/zero correction, public point/derivative correspondence,
 unchanged Coons differential interaction and explicit source admission failure.
 The source-square algebra/coverage fixture is independently portable.
+
+The separate `OriginalDerivativeCurveSourceProof` executes the original plane-
+derivative constructor, raw support-plane constraints, existing rational Hermite
+producer and point/derivative correspondence with explicit source/storage failure.
+This rational curve handoff does not prove derivative surface or non-rational
+source capability.

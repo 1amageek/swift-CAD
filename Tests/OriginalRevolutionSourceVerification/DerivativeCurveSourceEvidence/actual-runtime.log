@@ -1,0 +1,4 @@
+COMMAND: ['.build/di-m4-revolution-actual/debug/OriginalDerivativeCurveSourceProof']
+PASS M4 actual retained plane-derivative original Hermite position, raw-N constraints, point/derivative correspondence and source/storage failures
+
+EXIT: 0; SECONDS: 1.141
