@@ -688,7 +688,8 @@ does not establish migration of legacy Plane3D evaluation or full CS/SSI paths.
 ## Composition Consumer Handoff Design
 
 Status: design fixed against main `5de88ec1`; scalar/coordinate transfer is verified.
-Finite source/domain/map binding is being implemented; public consumer migration remains open.
+Finite source/domain/map binding and exact original TUV extraction are verified;
+public consumer migration remains open.
 This section owns the target handoff for `OSI.ALL.C.W.K.C.M`. The independently
 completed issuer and its verification boundary remain unchanged. The consumer task
 also closes the composition portion of `DIA.4.I`; boundary and self-query consumers

@@ -6,9 +6,11 @@ import hashlib
 import json
 import subprocess
 from VerificationInputs import copy_input, require_unchanged_inputs
+from RebuiltLowerCache import checked
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--lane', choices=['native', 'asan', 'wasm', 'embedded'], default='native')
+parser.add_argument('--lower-products', type=Path)
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[3]
 output = root / ('.build/handoff-coordinate-' + args.lane)
@@ -16,20 +18,28 @@ output.mkdir(parents=True, exist_ok=True)
 wasm = args.lane in ('wasm', 'embedded')
 configuration = 'Debug-webassembly-wasm32' if wasm else 'Debug'
 current = root / ('.build/handoff-' + args.lane) / 'out/Products' / configuration
-cache = Path('/private/tmp/cad-domain-identity-completion-20261008/.build') / ('di-plane-opt-' + args.lane) / 'out/Products' / configuration
-evidence = root / 'Tests/OriginalDomainIdentityVerification/PlaneOptimizationEvidence'
-receipt = json.loads((evidence / 'receipt.json').read_text())
-
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
-product = receipt['products'][args.lane]
-if digest(Path(product['path'])) != product['sha256']:
-    raise RuntimeError('Changed cached L2 runtime artifact')
-for name, expected in json.loads((evidence / 'source-hashes.json').read_text()).items():
-    if '/ExactRealRoot/' in name and not name.endswith('DESIGN.md'):
-        if digest(root / name) != expected:
-            raise RuntimeError('Changed cached L2 implementation: ' + name)
+if args.lower_products:
+    cache = args.lower_products.resolve()
+    rebuilt = checked(root, cache)
+    l2_object = cache / 'L2.o'
+    if not l2_object.is_file(): l2_object = next(iter(sorted((cache / 'L2.objlib').glob('*.o'))))
+    product = {'path': str(l2_object), 'sha256': digest(l2_object),
+        'scope': rebuilt['scope']}
+else:
+    cache = Path('/private/tmp/cad-domain-identity-completion-20261008/.build') / ('di-plane-opt-' + args.lane) / 'out/Products' / configuration
+    evidence = root / 'Tests/OriginalDomainIdentityVerification/PlaneOptimizationEvidence'
+    receipt = json.loads((evidence / 'receipt.json').read_text())
+
+    product = receipt['products'][args.lane]
+    if digest(Path(product['path'])) != product['sha256']:
+        raise RuntimeError('Changed cached L2 runtime artifact')
+    for name, expected in json.loads((evidence / 'source-hashes.json').read_text()).items():
+        if '/ExactRealRoot/' in name and not name.endswith('DESIGN.md'):
+            if digest(root / name) != expected:
+                raise RuntimeError('Changed cached L2 implementation: ' + name)
 swift = Path('/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc')
 if wasm:
     sdk_base = Path('/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1')
@@ -86,5 +96,5 @@ for path, expected in object_hashes.items():
     if digest(Path(path)) != expected:
         raise RuntimeError('Changed module object during bridge verification: ' + path)
 (output / 'receipt.json').write_text(json.dumps({'inputs': hashes, 'commands': commands,
-    'cachedL2Proof': product, 'lane': args.lane, 'artifact': digest(artifact),
+    'lowerPremise': product, 'lane': args.lane, 'artifact': digest(artifact),
     'objects': object_hashes}, indent=2) + '\n')

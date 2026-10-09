@@ -145,7 +145,42 @@ lower modules and unchanged geometry DTOs without an upper-target build.
 
 ## Planned Composition Consumer Migration
 
-Status: design only; current implementation guarantees above remain unchanged.
-Generic internal composition will consume family source/domain receipts. Existing rational Native public types remain unchanged; algebraic families use their retained original scalar Base.
+Status: finite source/domain map binding, complete pair aggregation and exact original
+TUV extraction are implemented. Existing public family receipt migration remains open.
+Generic internal composition consumes family source/domain receipts. Existing rational Native public types remain unchanged; algebraic families use their retained original scalar Base.
 The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
 owns coefficient transport, complete-cover, publication and migration acceptance.
+
+
+### Complete Issued-Pair Resolution
+
+`OriginalIssuedRelationResolving` owns aggregation of every selected map pair.
+It calls the existing L5 compiler/resolver once per pair under the same admission;
+it retains both complete covers and all pair receipts. Discrete mode rejects any
+positive-dimensional or mixed result before output. Pair and isolated-cell ceilings
+are checked with overflow-safe counts. Empty output retains full domain exclusion
+or all solved pair exclusions. A failed pair invalidates publication; no alternate
+solver is invoked. Exact tuple reconciliation and public numerical/receipt assembly
+remain owned by the consuming publisher, and are not established by this aggregate.
+
+The isolated CS tuple port consumes the retained aggregate without resolving any
+pair again. It samples only certified zero-dimensional cells, evaluates each issued
+source parameter correspondence in the retained selected-root field, and transports
+one flat batch of original T/U/V values into the L0 original field. Exact tuple
+ordering coalesces only identical original T/U/V triples and retains every chart/cell
+incidence. In-place heap ordering allocates no implicit sorting scratch; comparisons
+and heap visits consume the same admission. Distinct UV fibers remain distinct. The immutable point owner retains the
+complete relation and scalar transfer; numerical XYZ/classification and existing
+public family receipts remain responsibilities of the consuming publisher.
+
+Tuple extraction forwards the caller admission through the existing scoped proof
+tracker, admits retained effective-domain/component/source-law proof depth, and stores both reached
+depth axes on its immutable result. Later parameter access inherits this depth even
+when an original coordinate simplifies to a depth-zero rational scalar.
+
+The independent consumer proof executes weighted issued-map construction, complete
+domain exclusion, mixed-result rejection, selected algebraic T, native seam
+reconciliation and distinct UV at one XYZ. Exact work/storage and both depth axes,
+result ceilings and cancellation are exercised on the tuple consumer. These tests
+prove the issued contract; they do not establish existing public CS dispatch or
+family receipt compatibility.

@@ -1,4 +1,13 @@
-#if NATIVE_DOMAIN_ISOLATED_VERIFICATION
+#if SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION
+import L0
+import L1
+import L2
+import L3
+import L4
+import L5
+import SourceIssuer
+import DI
+#elseif NATIVE_DOMAIN_ISOLATED_VERIFICATION
 import struct CADGeometry.ScalarInterval
 import struct CADGeometry.BSplineCurve3D
 import struct CADGeometry.BSplineSurface3D
@@ -17,7 +26,7 @@ import DI
 import SourceGeometryAdapters
 #endif
 public enum NativeExactRelationFailure: Error {
-    case unsupportedCoverage, invalidDomain, invalidDegree
+    case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
     case scalar(ExactScalarFailure)
     case root(ExactRealRootFailure)
     case cell(ExactRealCellFailure)
