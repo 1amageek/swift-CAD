@@ -1,0 +1,40 @@
+{
+  "compiled_snapshot_commit": "f4cb18b129de54901d03e994cab6d5f5fd62d3fc",
+  "composed_main": "a87b7853",
+  "exact_production_input_count": 1695,
+  "unchanged_lower_receipts": {
+    "native": {
+      "retained_input_count": 344,
+      "receipt_sha256": "5afabfc7d1dff9b119d2e21b349f213d6c5574be196dca0c72aaabc14928bd9b"
+    },
+    "asan": {
+      "retained_input_count": 344,
+      "receipt_sha256": "7d5f4729dd5fef27d74bd5e07b1a889ce7dc4979b6f68f7c0dbfa98ac71987f0"
+    },
+    "wasm": {
+      "retained_input_count": 344,
+      "receipt_sha256": "599fc91c61a70bf84773ea5c03b3c9ea8544dd6c831c9b9c17cc98ef826ecf6b"
+    },
+    "embedded": {
+      "retained_input_count": 344,
+      "receipt_sha256": "cc3dbe4637c047816f1ad71a3b1fdd688f855ab3d4fc2c74ca6c0f04212a07ec"
+    }
+  },
+  "runs": [
+    {
+      "artifact": "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/out/Products/Debug/NativeDomainFamilyProof",
+      "sha256": "51b4f834663c99ed43ea0e0d051591810bd63094625a37885e6cbd64687fd62e",
+      "working_directory": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+      "elapsed_seconds": 6.009521958010737,
+      "exit_code": 0
+    },
+    {
+      "artifact": "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/out/Products/Debug/NativePrimitiveSourceProof",
+      "sha256": "acde40c0486584326b57936ad537b22034cd2141ed58025daa9556a6baaebf56",
+      "working_directory": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+      "elapsed_seconds": 0.11515349999535829,
+      "exit_code": 0
+    }
+  ],
+  "scope": "M0-M3 latest-main composition; full Geometry compile and Native public behavior; lower target proofs reused only after all their inputs match."
+}

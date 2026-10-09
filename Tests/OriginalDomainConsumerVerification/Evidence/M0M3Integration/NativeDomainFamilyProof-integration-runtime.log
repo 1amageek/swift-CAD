@@ -1,0 +1,18 @@
+PASS M2 Native CS mode=0 pieces=4 work=346461 bytes=19282171
+PASS M2 Native CS mode=1 pieces=4 work=146407 bytes=8045207
+PASS M2 Native CS mode=2 pieces=4 work=242141 bytes=13376103
+PASS M2 Native CS mode=3 pieces=4 work=372033 bytes=20383503
+PASS M2 Native CS mode=4 pieces=0 work=9190 bytes=556247
+PASS M2 Native CS mode=5 pieces=0 work=9102 bytes=550647
+PASS M2 Native CS mode=6 pieces=4 work=380334 bytes=21016001
+PASS M2 disconnected chart-local selection
+PASS M2 independent periodic axes (true, false) owners=4
+PASS M2 independent periodic axes (false, true) owners=4
+PASS M2 independent periodic axes (true, true) owners=8
+PASS M2 periodic SSI full UVUV seam/lift owners=16
+PASS M2 Native SSI separation=false chart-side owners=4 work=268950
+PASS M2 Native SSI separation=true chart-side owners=4 work=188299
+PASS M2 unchanged folded SSI limits cells=45 attachments=108
+PASS M2 caller work/storage/depth/cell/component/cancel and unbounded failure
+PASS M2 nested publication failures retain cancellation, resource and domain meaning
+PASS M2 complete Native domain family consumers
