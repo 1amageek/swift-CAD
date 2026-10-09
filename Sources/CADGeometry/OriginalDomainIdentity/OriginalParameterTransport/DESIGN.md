@@ -68,6 +68,24 @@ A nonlinear conic station map requires the original producer's two-way correspon
 not atan of a sample or fitted controls. Extensions to such maps retain typed symbolic
 expressions and verified source proofs; they cannot fall through an affine facade.
 
+### Responsibility of a transport implementation
+
+The family/source issuer supplies coordinate semantics and the authored map word.
+OriginalParameterTransporting verifies the supported affine/permutation/period-lift
+word, selection pullback, inverse and causal depth. Its implementation does not
+inspect a shape enum or prove G(q+P)=G(q). The identity issuer consumes the latter
+source theorem separately. Composition roots inject the transport capability;
+current Default calls do not establish completed injection migration.
+
+Keep the existing inverse-bearing transport contract narrow. Nonlinear source
+correspondence must retain its source-issued exact relation and complete support;
+noninjective maps have all original preimages, not an invented inverse. That new
+capability must be specified/verified with its source owner and relation consumer
+before use. It is not implemented by adding a callback or by weakening the current
+affine inverse guarantee. Source-coordinate evaluation, structural identity and
+geometric fiber solving remain three distinct operations. The outstanding family
+dependencies are recorded in [coverage](../OriginalDomainCoverage/DESIGN.md#required-source-family-obligations).
+
 ## State, Ownership, and Lifecycle
 
 Map words and exact scalar payloads are immutable retained values. Coordinate roles

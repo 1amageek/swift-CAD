@@ -2,7 +2,7 @@
 
 ## Purpose and Scope
 
-Proposed child of [Original Domain Identity](../DESIGN.md), without children.
+Child of [Original Domain Identity](../DESIGN.md), without children.
 Own complete source/request coverage by charts or certified chart families.
 Chart coverage is parameter coverage; it does not assert solution existence or
 source-map injectivity. Shape producers remain responsible for authored laws.
@@ -40,11 +40,114 @@ flowchart TD
 
 ## Contracts and Invariants
 
-Proposed OriginalDomainCoverIssuing constructs a cover. OriginalDomainCoverQuerying
-exposes source binding, support/request/effective sets, chart/family views, incident
-owner queries and verification receipts. All operations are protocol requirements,
-with separate implementations and explicit generic admissions. No root/XYZ API is
-part of these protocols. Source-law references are retained opaque issuer tokens.
+OriginalDomainCoverIssuing constructs a finite declared-frame cover.
+OriginalDomainCoverQuerying exposes support/request/effective sets, a finite chart
+view and incident indices. It does not expose symbolic family operations. Source
+provenance is retained through its frames/transports. Specialized Native/sphere
+issuers establish source support independently of the caller's declared frame.
+No root/XYZ API is part of these protocols. Source-law references retain issuer
+authority rather than unchecked callbacks.
+
+### Protocol capabilities and implementation selection
+
+| Contract | Status | Responsibility and implementation |
+|---|---|---|
+| OriginalDomainCoverIssuing / Querying | Implemented | Verify/read finite frame-relative coverage; DefaultOriginalDomainCoverIssuer does not inspect shapes |
+| OriginalBSplineDomainIssuing | Implemented | DefaultOriginalBSplineDomainIssuer derives Native support/spans/periods through OriginalBSplineSourceReading and uses common DI verification |
+| OriginalIntrinsicSphereDomainIssuing | Implemented | DefaultOriginalIntrinsicSphereDomainIssuer derives canonical intrinsic support and retains its certified longitude period |
+| OriginalDomainBoundRationalChartIssuing | Implemented Native capability | DefaultOriginalDomainBoundBSplineChartIssuer combines the same source law, selected occurrence and local selection; it proves no intersection |
+| OriginalChartFamilyQuerying | Designed, not declared/implemented | A separate generic reading capability for integer-indexed Native/sphere covers; no flattening or replacement owner |
+
+The new family-query protocol is required because OriginalDomainCoverQuerying's
+finite `charts` view cannot describe an unbounded set of occurrences. It is an
+interface on retained covers, not another execution layer or a type-erased wrapper.
+Use Source/Field associated types and an associated Occurrence type so different
+source-issued chart keys remain statically typed. Its protocol requirements expose
+the retained source, support/request/effective selection, finite template count,
+integer-family rank, member lookup by template and exact cycle vector, and all
+incident occurrences at an exact tuple. All fallible queries take the explicit
+generic admission and DI limits. An occurrence retains its template owner, exact
+unreduced cycles, selected image and original correspondence. A zero-rank cover
+may implement the same query capability; this does not turn an infinite family
+into a finite `charts` view.
+
+The following declaration is a design contract, not an existing source symbol:
+
+```swift
+public protocol OriginalChartFamilyQuerying: Sendable {
+    associatedtype Source: Sendable
+    associatedtype Field: ExactScalarArithmetic & ExactScalarOrdering
+    associatedtype Occurrence: Sendable
+    var source: OriginalSourceBinding<Source> { get }
+    var support: OriginalParameterSelection<Source, Field> { get }
+    var request: OriginalParameterSelection<Source, Field> { get }
+    var effective: OriginalParameterSelection<Source, Field> { get }
+    var templateCount: Int { get }
+    var integerFamilyRank: Int { get }
+    func member<A: ExactScalarAdmission & ~Copyable>(
+        template: Int, cycles: borrowing [OriginalParameterCycle],
+        limits: OriginalDomainIdentityLimits, using admission: inout A
+    ) throws(OriginalDomainIdentityFailure) -> Occurrence
+    func incident<A: ExactScalarAdmission & ~Copyable>(
+        at tuple: borrowing [Field.Value], limits: OriginalDomainIdentityLimits,
+        using admission: inout A
+    ) throws(OriginalDomainIdentityFailure) -> [Occurrence]
+}
+```
+
+The cycle vector has authored parameter arity, with exact zero on nonperiodic
+axes; family rank counts only independently certified periodic axes. Member lookup
+may return a valid occurrence with empty selected image. Incident lookup returns
+every selected incident side, or no occurrences only after effective-membership
+exclusion. Both operations reject foreign scalars/indices and obey retained depths.
+The family-specific law issuer consumes that typed occurrence/cover with the same
+Source and Field, so the query protocol need not erase different chart-key types.
+No operation exposes an iterator that promises to finish over all integer cycles.
+
+Family-query conformance verifies template/index ownership and complete family
+authority. It cannot publish a new proof by adding an extension to an arbitrary
+array. Native member/incident algorithms already exist; sphere incident queries
+exist, while explicit template/member query conformance remains to be implemented.
+The same fixture body must exercise both the concrete and generic requirement
+calls, including Embedded witness behavior, before this capability is completed.
+
+Specialized issuers receive the smallest required generic protocol dependencies
+from their composition root: transport, cover verification, source-period/local-law
+issuance as applicable. Match source and coefficient owners through associated-type
+constraints and runtime binding checks. Current direct Default construction is
+preserved until that injection migration is verified. Common DI does not select
+shape enums, request a stronger coefficient field or import a hidden solver.
+
+### Required source-family obligations
+
+The following rows specify domain responsibilities, not newly completed source
+formulas. A missing source law/correspondence remains an explicit upstream
+implementation dependency under the unchanged full-family acceptance.
+
+| Source capability | Specialized issuer must establish | Evidence handed to common DI | Current DI scope |
+|---|---|---|---|
+| Native curve/tensor B-spline | Every positive span, exact support, one-sided knot owners, independent cyclic axes | Original chart keys, complete fundamental cover and source-period receipts | Foundation implemented; public multi-span/periodic composition pending |
+| Intrinsic sphere | Full two-coordinate support, longitude lifts, exact latitude boundaries | Canonical period/pole authority and all selected longitudes | Foundation implemented; general public consumers pending |
+| Line / stored-N plane | Entire unbounded support and exact authored coordinate meaning | Original line law or exact plane-basis owner, support and chart correspondence | Plane basis/coordinate operations exist; full domain/public wiring pending |
+| Physical-angle conics / analytic surfaces | Actual angular domains, all seams/branches, original UV and genuine periods | Exact phase/chart correspondence, period/collapse evidence | Image-only source receipts do not establish this capability |
+| Spatial operation words | Unchanged parameter support through the retained spatial action | Descendant cover, original word owner and mapped local law | Domain composition pending; spatial action does not itself authorize new parameter identity |
+| Affine parameter images / directed traversal | Pullback of the original descendant support, axis roles, reversal and all lifts | Original exact gain/offset word and verified descendant correspondence | Source laws exist in bounded capabilities; complete domain composition pending |
+| Nonlinear / singular parameter images | Full supported correspondence, including every preimage and guard | Source-issued relational correspondence; never a guessed inverse | Pending beyond current affine transport; inverse refusal must not discard the required relation |
+| Ruled / Coons / revolution / remaining procedural | Original construction domains, descendant restrictions and declared boundaries | Owned child charts/laws/maps and any genuine seam/collapse theorem | Pending complete DI issuance; derivative/normal work remains outside DI |
+| Implicit / certified / lift / join / guide | The actual authored parameterization and supported relation to descendants | Original chart authority and full parameter correspondence | Pending where only image membership is issued |
+
+For non-Cartesian restrictions, preserve the separately certified boundary/relation
+predicate owner and its exact chart correspondence. DI's interval-product kernel
+does not replace it by a bounding box. Pullback/selection must be discharged by
+the owner of that restriction before a consumer claims complete restricted coverage.
+Until the necessary correspondence capability exists, the required path fails
+explicitly and remains incomplete; this is not an alternate approximation policy.
+
+Finite/source-family issuers publish only after whole coverage, owner compatibility
+and final cancellation checks. Source-issued local guards are retained when domain
+selection is combined with a law; parameter coverage never implies denominator
+validity or root exclusion. Converting an implicit image receipt into a complete
+parameter cover is prohibited without an independent full correspondence proof.
 
 For finite covers, mapped selected charts have union exactly equal to the effective
 selection, and each is a subset of the authored support. An exact endpoint event

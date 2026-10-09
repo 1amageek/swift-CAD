@@ -7,9 +7,11 @@ bounded input is finite, nonperiodic, positive-weight, source-valid, with exactl
 one positive knot span per axis. No new production package or module is added.
 
 ## Responsibilities and Boundaries
-This component owns source extraction, exact coefficient transport and closed
-native/request domain intersection. SourceIssuer owns original homogeneous laws; DomainIdentity owns whole support,
-request intersection and chart correspondence. The adapter consumes their receipts. L5 owns equations and complete parameter topology. Public
+This component owns source/domain protocol composition, checked exact coefficient
+transport to L5 and retained query publication. SourceIssuer owns original
+homogeneous laws; DomainIdentity owns whole support, request intersection and
+chart correspondence. This consumer uses their receipts and does not clip the
+same domains again. L5 owns equations and complete parameter topology. Public
 `exactParameterRelation` requirements and the existing default intersectors return
 a source-bound receipt; this explicit query accepts an L0 admission and lower
 limits. Existing `intersectionResult` XYZ representatives, classification and
@@ -25,6 +27,8 @@ its roots. Unsupported source coverage is a typed failure, never a fallback.
 | [L0](../RationalBivariateAlgebra/ExactScalar/DESIGN.md) | depends on | Scoped numeric admission, exact import | One exclusive caller ledger | Checked words-to-bytes |
 | [L1](../RationalBivariateAlgebra/ExactPolynomial/DESIGN.md) | depends on | Checked ordered construction | Retain final canonical terms | Strict descending slot order and exact nonzero validation |
 | [L5](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md) | depends on | Compile, resolve and tuple membership | Complete parameter relation | Preserve denominator guards and all UV |
+| [Domain and Identity](../OriginalDomainIdentity/DESIGN.md) | depends on | Source-verified covers and selected domain-bound laws | Retains original request/support and correspondence | Current preparation is nonperiodic single-span; full-family and generic injection migration remain open |
+| [Source Issuance](../OriginalSourceIssuance/DESIGN.md) | depends on | Validated source binding and original local laws | Shares one source authority with DI | Image-only capabilities do not establish all UV |
 | [Verification](../../../Tests/NativeExactRelationVerification/DESIGN.md) | test owner | Full production Core/Geometry | Public Native and WASI routes | No subset build as integration evidence |
 
 ## Architecture
@@ -75,6 +79,28 @@ All published owners and Sendable contracts are identical across targets.
 NativeExactRelationFailure preserves scalar, root, cell, L5 and original geometry
 causes, plus explicit unsupported coverage and invalid request/degree failures.
 No caught error is interpreted as empty, absence or applicability fallback.
+
+### Protocol composition destination
+
+The existing public intersector remains the composition root. It supplies matching
+source/domain/law protocol conformers to generic preparation, preserving default
+public behavior. The preparation implementation consumes the selected cover and
+law; it neither reads knots to rederive whole coverage nor creates another binding.
+Checked ring import remains its responsibility because the L5 ring has a distinct
+owner. Consumer-specific degree/capability checks remain at this boundary.
+
+At main5de88ec1 the helpers instantiate concrete Default issuers and enforce
+nonperiodic single-span capability before preparation. The protocol injection and
+broader cover-consumption changes described here are planned, not implemented.
+On migration, a supported capability must be selected before solving; an admitted
+failure aborts atomically. A finite-only consumer rejects a required symbolic
+family rather than materializing a guessed window. Family-aware compilation and
+publication must preserve every selected chart/lift and complete exclusion.
+
+Only the existing exactParameterRelation path is currently DI-composed. Do not
+infer that legacy intersectionResult, boundary clipping, self-contact or L6 image
+publication consume DI receipts. Their required contracts and evidence are listed
+in the [DI consumer matrix](../OriginalDomainIdentity/DESIGN.md#di4-consumer-acceptance-and-migration-boundary).
 
 ## Verification and Change Impact
 Compile all production CADCore/CADGeometry sources together and execute public

@@ -63,6 +63,29 @@ match. Current completion evidence is separate from the historical DI0 evidence.
 Changed source contracts also run their owning independent SourceIssuer suite.
 Actual public consumer changes require their own trace and behavioral evidence.
 
+## Protocol Composition Acceptance
+
+This design-only update reuses retained behavioral evidence for unchanged code.
+The following tests are requirements for the subsequent implementation; they have
+not been added or executed by this documentation task.
+
+| Owning boundary | Refuting behavior | Required successful behavior |
+|---|---|---|
+| Specialized source-domain issuer | A forged/narrowed frame, missing span or missing source-period theorem cannot certify full source coverage | Complete source-derived support and all incident chart sides |
+| Generic dependency composition | Foreign source/field/receipt owners, wrong capability or stricter caller depth refuse before publication | Same exact receipts and failure causes as the default route, one exclusive admission |
+| Finite cover versus family query | Infinite family cannot masquerade as finite charts; missing template/cycle fails | Generic member/incident calls preserve huge negative cycles, both seam sides and independent tensor periods |
+| Source law/domain handoff | Image-only law, dropped denominator guard or foreign chart cannot supply full correspondence | One binding owns the law/cover; selected local domain is exact; no repeated solving |
+| Identity consumption | Self-crossing equal XYZ and unknown structural relation do not exclude contact pairs | Only scoped proved relations are excluded; original tuples and one-sided germs survive |
+| Failure/lifetime | Budget/cancel/owner release never produces partial or unproved empty success | COW source mutation does not change retained proofs; later queries inherit depths |
+
+Run independent Native/ASAN and ordinary/Embedded proof lanes for changed DI or
+source-law contracts. Actual public relation, boundary, self-contact and XYZ
+composition tests are owned by those consumers, using the applicable
+[family obligations](../../Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#required-source-family-obligations)
+and [consumer matrix](../../Sources/CADGeometry/OriginalDomainIdentity/DESIGN.md#di4-consumer-acceptance-and-migration-boundary).
+Reuse prior evidence only while its source/target premises remain unchanged.
+Document review and valid links do not establish those planned runtime guarantees.
+
 ## Stored-N Plane Regression
 
 PlaneFixtures.scaledNormalsAndUV verifies the actual source binding and public

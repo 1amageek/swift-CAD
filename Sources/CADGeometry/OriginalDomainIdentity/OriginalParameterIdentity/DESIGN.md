@@ -37,9 +37,11 @@ flowchart LR
 
 ## Contracts and Invariants
 
-Proposed OriginalParameterIdentityIssuing and OriginalParameterIdentityQuerying expose
-required issue, restrict, compare-source-role and supported-compose operations over
-opaque immutable receipts. There is no public unchecked certificate initializer.
+OriginalParameterIdentityIssuing exposes authored-coordinate construction and
+OriginalParameterIdentityQuerying exposes decide/restricted/symmetric/compose over
+immutable receipts. Rational, Native-periodic and intrinsic-sphere proof operations
+are separate refining protocols, not requirements on every source. There is no
+public unchecked certificate initializer.
 A protocol conformer cannot authorize identity by returning true; supported proof
 constructors validate the retained source theorem and exact domains. New proof kinds
 need a checked implementation and behavioral evidence before public consumption.
@@ -136,3 +138,27 @@ substituted law and residuals. Composition retains the maximum source depth of
 all parent evidence, including intermediate roles absent from the final endpoints.
 Reuse admits retained scalar words/period/pole values and polynomial evidence.
 These constraints are independent of source-coordinate scope restriction.
+
+## Protocol Composition and Consumer Responsibility
+
+The concrete identity issuer implements only its supported theorem protocols.
+Source issuance owns authored period/pole laws; this component also owns exact
+whole-scope rational boundary/collapse verification using those retained local
+laws. Topology supplies a boundary declaration as a candidate, never proof of
+coincidence. Thus the source owner need not pre-prove every selected rational
+boundary theorem, while no consumer may invent one from endpoint samples.
+
+A consumer's composition root injects the relevant issuing/querying capability.
+Identity receipts are optional annotations for geometric correspondence; required
+structural exclusions need an actual supported proof. For self-contact, construct
+the complete original source product, restrict each supported identity to the
+requested pair scope, and subtract only its proved relation. Return unresolved
+pairs to the relation compiler. Coverage, equal XYZ or a failed identity query
+cannot justify exclusion. For XYZ results and boundary consumers, keep the original
+tuple/chart/lift handles even when a proved quotient is useful for topology.
+
+No consumer inspects the private Proof buffers or reruns their polynomial checks.
+Read decisions through protocol requirements. Separate exact-law proof ownership
+from any consumer-specific use; tests of the issuer do not establish self-contact
+or boundary/publication migration. The latter acceptance is owned by the
+[parent consumer matrix](../DESIGN.md#di4-consumer-acceptance-and-migration-boundary).
