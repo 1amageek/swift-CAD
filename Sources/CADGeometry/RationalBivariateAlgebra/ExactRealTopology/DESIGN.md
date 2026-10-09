@@ -615,3 +615,31 @@ and entry cancellation, and does not reset any caller resource. Empty selection
 with zero closure capacity remains admissible. Successful queries follow the
 existing algorithms unchanged. Native public CS is a consumer of this preflight;
 its candidate-to-capacity policy belongs to its own component design.
+
+## Existential prefix projection (B0-B2)
+
+ExactRealProjectionProducing owns projection of a complete L3 selection onto its
+first k coordinates (zero through full arity), not UV meaning or source geometry.
+The caller arranges free coordinates before auxiliary coordinates. For every free
+tuple, projected membership is equivalent to existence of a selected lifted tuple.
+Original CAD cylindricity proves each selected leaf covers its complete prefix.
+The implementation groups original selected leaves by their prefix, serializes
+those issued prefix definitions with existing exact Thom boundary comparisons,
+drops only proved-zero suffix powers, and decomposes the resulting free-coordinate
+formula. No numerical sample establishes membership or lift correspondence.
+
+The result retains the original complete selection, the projected complete selection,
+projected incidence/components and all original leaf ordinals for each selected
+projected cell. Witness queries return owner-backed indexed views, not one chosen
+lift. Auxiliary dimension is never added to projected dimension. Empty projection
+retains complete exclusion; k=0 represents quantified satisfiability as a point or
+empty set. Closures are computed after projection; projecting original closures is
+not valid when witnesses escape to infinity. Input component labels are not reused.
+
+Existing L3/L4 algorithms and APIs are unchanged. A new lower-dimensional partition
+is generated only to construct the required projected topology; the original lifted
+problem is not re-solved. Operation-generated-cell allowance is deducted before
+closure/incidence, while work/storage/depth/cancel use one cumulative admission.
+All outputs are immutable; invalid prefix/owner, unresolved, limits and terminal
+cancel reject the whole operation. Fixtures belong to L4TopologyVerification.
+L5 consumes this contract through its topology protocol dependency.

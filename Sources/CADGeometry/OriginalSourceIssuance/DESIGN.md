@@ -1196,3 +1196,30 @@ Behavioral evidence is owned by the
 and the [actual curve proof](../../../Tests/OriginalRevolutionSourceVerification/Sources/DerivativeCurveProof/Proof.swift).
 Their [receipt](../../../Tests/OriginalRevolutionSourceVerification/DerivativeCurveSourceEvidence/VERIFICATION.md)
 binds the compiled source inputs and portable artifacts.
+
+## Original parametric graph contract (B0-B1)
+
+Source issuance owns checked variable roles and immutable local position graphs,
+not solver decomposition or pairwise intersection. OriginalParametricGraphIssuing
+consumes an existing sealed rational or offset law, never an intersection partner.
+The graph retains that typed receipt as Evidence, its source binding, coefficient
+ring, homogeneous XYZ/W, exact conjunctive polynomial sign guards, closed local
+enclosure and source-owned upper-side flags, rational authored correspondence and
+inherited proof depth. No public unchecked graph initializer is exposed.
+
+For a valid local parameter there exists an admissible auxiliary witness; every
+admissible witness represents the same authoritative source position. This theorem
+is inherited from the sealed producer, not inferred from an arbitrary polynomial
+or protocol conformance. A rational graph has no auxiliaries. Offset retains UV
+and q separately, q squared minus normalSquared equal zero, q positive, original
+denominator and correspondence denominator exclusions and canonical owning sides.
+Enclosures do not certify material membership. Reuse shares immutable payload; new
+guards/layouts allocate through the same admission, retaining original proof depth.
+
+The public checked layout partitions every solver coordinate exactly once into
+ordered local parameters and auxiliaries. Authored coordinates remain the retained
+correspondence capability, not an assumed inverse. Field import and unsupported
+representation failures propagate; physical-angle or XYZ-only implicit evidence
+is not admitted by these constructors. Tests live in OriginalSourceIssuanceVerification.
+The L5 contract is [ExactParametricRelation](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md);
+conversion and DI request selection remain B3.

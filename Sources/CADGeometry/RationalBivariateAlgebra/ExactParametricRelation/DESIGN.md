@@ -139,3 +139,28 @@ folded SSI topology, released-input lifetime, invalid map/kind/field, exact reso
 boundaries and cancellation including terminal publication. One stable review and
 finding-specific correction suffice. No whole seven-requirement completion is
 claimed; upper producer extraction and geometric publication remain separate.
+
+## Auxiliary-aware mathematical graph input (B0-B2)
+
+Additive graph input separates canonical local parameter count from solver arity.
+It consumes a checked L3 polynomial predicate whose first four laws are XYZ/W;
+remaining laws and instructions express the original graph guards. L5 establishes
+mathematical consistency/field compatibility, not authored geometry. Source receipt
+conversion and DI requested-domain selection remain B3. Existing rational-map APIs
+and result types keep their current behavior.
+
+CS requires one and two local parameters; SSI requires two and two, independently
+of each graph's auxiliary count. Combined order is all first/second parameters,
+then first/second auxiliaries. The same injective placement remaps every original
+polynomial, predicate instruction and domain. XYZ equality, both W exclusions and
+both original predicates are conjoined. Coefficient-family checks run even for empty
+or zero graphs. Original maps/predicates/layouts remain retained immutable owners.
+
+Resolution decomposes/selects the full lifted relation once, then consumes L4's
+existential prefix projection. It does not connect the auxiliary space and publish
+those components. The output exposes projected parameter topology and the retained
+complete lifted correspondence; geometric image/fiber dimensions remain L6. A
+Topology conformer must explicitly provide the new projection requirement. Work,
+storage, depths, cell allowances and final cancel remain checked and cumulative.
+Tests belong to L5ParametricRelationVerification; ordinary compatibility, guarded
+offset equations, multiple/free witnesses and failure propagation are behavioral.
