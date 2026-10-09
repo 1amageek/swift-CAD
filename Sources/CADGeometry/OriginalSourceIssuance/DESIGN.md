@@ -687,7 +687,8 @@ does not establish migration of legacy Plane3D evaluation or full CS/SSI paths.
 
 ## Composition Consumer Handoff Design
 
-Status: design fixed against main `5de88ec1`; consumer migration is not implemented.
+Status: design fixed against main `5de88ec1`; scalar/coordinate transfer is verified.
+Finite source/domain/map binding is being implemented; public consumer migration remains open.
 This section owns the target handoff for `OSI.ALL.C.W.K.C.M`. The independently
 completed issuer and its verification boundary remain unchanged. The consumer task
 also closes the composition portion of `DIA.4.I`; boundary and self-query consumers
@@ -806,6 +807,32 @@ below, which existing same-type `importing` cannot express.
    blocks the migration milestone; a new result type alone is not completion.
 
 ### Domain, Composition and Complete Publication
+
+The consumer's explicit coefficient importer supplies the checked scalar transport
+receipt to spatial/traversal issuers. Ordinary issuance retains strict field import.
+This port maps only coefficients read from the retained original snapshot; it does
+not replace that snapshot or its child/source binding owners. The preparation owner
+retains the immutable transfer receipt with its issued laws. Generic chart/law
+receipt layout and existing lower cached consumers remain unchanged. No issuer
+performs a root search to create a replacement snapshot.
+
+`OriginalFiniteBSplineChartPreparing` enumerates every positive nonperiodic native
+span, including tensor products. Full support comes directly from validated native
+knots at degree/control-count ordinals, independently of the emitted law union.
+It retains the same original binding for every chart and passes the same admission
+to the existing issuer. Caller chart ceilings, checked counts, depth and cancellation
+remain mandatory. The existing periodic capability remains separate. A bounded
+preparation cannot be reported as a periodic or unlimited-source cover.
+
+The finite ruled preparer enumerates all compatible closed boundary-span pairs,
+including zero-width joins. It validates child owners before composition, counts
+output before reserving storage, and propagates a typed `chartLimit` when the caller
+ceiling is exceeded. Coons similarly counts all normalized U/V combinations, using retained start/end
+witnesses from their original charts. Spatial and parameter-image preparation
+transform every child chart once. Traversal clips all child charts through exact
+affine station correspondence and preserves reversed/algebraic endpoints.
+Authoritative parent support is still provided independently
+to the domain issuer; emitting laws is not by itself a complete-cover proof.
 
 Ruled uses authored common U and linear V. Coons uses original normalized U/V;
 its boundary native station is `a + (b-a)q` in the retained exact endpoint field.

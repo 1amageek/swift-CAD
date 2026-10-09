@@ -6,13 +6,21 @@ import L1
 /// Applies an authored spatial action without rebuilding child source laws.
 public struct DefaultOriginalSpatialChartIssuer<Source: OriginalSpatialSourceReading,
     ChildSelection: Sendable, Field: ExactScalarArithmetic & ExactScalarOrdering & ExactScalarImporting>:
-    OriginalRationalChartIssuing where Field.Source == Field.Value, Source.Coefficient == Field.Source {
+    OriginalCoefficientBoundChartIssuing where Field.Source == Field.Value, Source.Coefficient == Field.Source {
     public typealias Selection = OriginalSpatialChartSelection<Source.Child, ChildSelection, Field>
     public init() {}
     public func issue<A: ExactScalarAdmission & ~Copyable>(source: borrowing OriginalSourceBinding<Source>,
         chart: borrowing OriginalSourceChart<Source, Selection>, field: borrowing Field,
         limits: OriginalSourceIssuanceLimits, using admission: inout A
     ) throws(OriginalSourceIssuanceFailure) -> OriginalRationalChartReceipt<Source, Selection, Field> {
+        try issue(source: source, chart: chart, field: field,
+            coefficients: DefaultOriginalSourceCoefficientImporter<Field>(), limits: limits, using: &admission)
+    }
+    public func issue<C: OriginalSourceCoefficientImporting, A: ExactScalarAdmission & ~Copyable>(
+        source: borrowing OriginalSourceBinding<Source>, chart: borrowing OriginalSourceChart<Source, Selection>,
+        field: borrowing Field, coefficients: borrowing C, limits: OriginalSourceIssuanceLimits,
+        using admission: inout A
+    ) throws(OriginalSourceIssuanceFailure) -> OriginalRationalChartReceipt<Source, Selection, Field> where C.Field == Field {
         do {
             try admission.checkpoint(); try admission.consumeWork(1); try source.require(limits)
             guard source.owns(chart), source.original.originalChild.owns(chart.selection.child.chart) else {
@@ -41,7 +49,7 @@ public struct DefaultOriginalSpatialChartIssuer<Source: OriginalSpatialSourceRea
                 var sum = try ring.zero(using: &admission)
                 for column in 0..<4 {
                     try admission.consumeWork(1)
-                    let coefficient = try field.importing(source.original.spatialCoefficient(row: row, column: column), using: &admission)
+                    let coefficient = try coefficients.importing(source.original.spatialCoefficient(row: row, column: column), into: field, using: &admission)
                     sum = try ring.adding(sum, ring.scaled(h[column], by: coefficient, using: &admission), using: &admission)
                 }
                 output.append(sum)
