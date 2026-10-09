@@ -1,0 +1,88 @@
+COMMAND: ['swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--scratch-path', '.build/di-m4-offset-source', '--build-system', 'native', '-j', '1']
+Building for debugging...
+[0/9] Write swift-version-7EE3F01B468E1A0A.txt
+[1/9] Write sources
+[3/11] Emitting module SourceIssuer
+[4/11] Compiling SourceIssuer OriginalRetainedSurfaceSourceReading.swift
+Build complete! (3.28s)
+Test Suite 'All tests' started at 2026-10-09 14:41:40.982.
+Test Suite 'All tests' passed at 2026-10-09 14:41:40.984.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.003) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test coneImages() started.
+􀟈  Test retainedRootExtensions() started.
+􀟈  Test originalCumulativeResources() started.
+􀟈  Test explicitScalarTransport() started.
+􀟈  Test heterogeneousRuledLaws() started.
+􀟈  Test originalPeriodicLaws() started.
+􀟈  Test originalSelectedSpansAndTensor() started.
+􀟈  Test originalGuideStationSupply() started.
+􀟈  Test originalImplicitImages() started.
+􀟈  Test originalRetainedSurfaceSupply() started.
+􀟈  Test spatialLaws() started.
+􀟈  Test coonsLaws() started.
+􀟈  Test originalRevolutionSupply() started.
+􀟈  Test originalOwnership() started.
+􀟈  Test parameterImageLaws() started.
+􀟈  Test endpointDecisionDepths() started.
+􀟈  Test physicalAngleCoefficients() started.
+􀟈  Test physicalAngleResources() started.
+􀟈  Test directedTraversalLaws() started.
+􀟈  Test originalGuardedOffsetSupply() started.
+􀟈  Test originalTypedFailures() started.
+􀟈  Test originalExactLaws() started.
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+PASS endpoint decision-only value/coefficient depths survive otherwise depth-zero rational laws
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+PASS periodic exact knot/control law, two axes, negative cycles, seam owners, transport and failures
+PASS signed/nested original parameter transport, nonunit denominators, child-local support, swap/spatial action, provenance and atomic failures
+PASS M4 retained guide original laws, exact non-dyadic stations, both join incidents, full coverage and atomic failures
+PASS M4 retained surface position laws, exact whole-square coverage, closed sides and atomic failures
+PASS invalid source/chart, unproved periodic law and independently inherited source-depth refusal
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4389 storageAdmissions=165
+􁁛  Test originalOwnership() passed after 0.067 seconds.
+􁁛  Test endpointDecisionDepths() passed after 0.067 seconds.
+􁁛  Test originalSelectedSpansAndTensor() passed after 0.067 seconds.
+􁁛  Test originalPeriodicLaws() passed after 0.067 seconds.
+􁁛  Test parameterImageLaws() passed after 0.067 seconds.
+􁁛  Test originalGuideStationSupply() passed after 0.067 seconds.
+􁁛  Test originalRetainedSurfaceSupply() passed after 0.067 seconds.
+􁁛  Test originalTypedFailures() passed after 0.068 seconds.
+􁁛  Test originalCumulativeResources() passed after 0.068 seconds.
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+􁁛  Test originalExactLaws() passed after 0.078 seconds.
+PASS exact directed traversal clipping, retained position/guard laws, signed original endpoints and atomic provenance/depth/budgets/cancel
+􁁛  Test directedTraversalLaws() passed after 0.092 seconds.
+PASS original spatial homogeneous action, exact rational/transcendental coefficients, W/support/transport retention and atomic failures
+􁁛  Test spatialLaws() passed after 0.095 seconds.
+PASS complete sphere/cylinder/torus image equations, original sheared frames, source lifetime and failures
+􁁛  Test originalImplicitImages() passed after 0.095 seconds.
+PASS M4 original revolution exact weighted/reversed generator law, intrinsic period, normalized raw axis, full child support/correspondence and independent failure/cancel
+􁁛  Test originalRevolutionSupply() passed after 0.097 seconds.
+PASS physical-angle exact cumulative work/storage, entry/final cancellation and independent coefficient depth
+MEASURE physical-angle work=20985 generatedBytes=22041
+􁁛  Test physicalAngleResources() passed after 0.222 seconds.
+PASS heterogeneous Coons full lawwarning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+s, signed correspondence, uncancelled W, exact corners, other-span endpoint owners and atomic failures
+􁁛  Test coonsLaws() passed after 0.247 seconds.
+PASS explicit retained scalar transport, exact values, foreign import rejection, lifetime and atomic budgets/depth/cancel
+􁁛  Test explicitScalarTransport() passed after 0.272 seconds.
+PASS M4 guarded Native offset exact original normal, signed branches, non-Cartesian singular fiber, sealed coverage and atomic failures
+􁁛  Test originalGuardedOffsetSupply() passed after 0.310 seconds.
+PASS complete weighted two-span Native preparation and all 16 Coons chart owners, cross-span corner witnesses and exact limits
+PASS finite ruled/Coons/spatial/parameter/traversal chart composition, reversed exact corners, full laws and atomic limits
+PASS heterogeneous Native/line ruled whole laws, product W, exact support, retained child owners and atomic budgets/cancel/depth
+􁁛  Test heterogeneousRuledLaws() passed after 0.548 seconds.
+PASS retained two-root extension, dependent reducible root, original selectors, ancestor import, lifetime and independent atomic limits/cancel/depth
+􁁛  Test retainedRootExtensions() passed after 0.555 seconds.
+PASS physical-radian exact identities, near-binary64 sign separation, range doubling, lifetime and typed failures
+􁁛  Test physicalAngleCoefficients() passed after 1.030 seconds.
+PASS exact physical-angle cone image, sheared original frame, both nappes/apex, excluded point, ownership and atomic failures
+MEASURE cone work=59788 generatedBytes=123905
+􁁛  Test coneImages() passed after 2.877 seconds.
+􁁛  Test run with 22 tests in 0 suites passed after 2.878 seconds.
+
+EXIT: 0; SECONDS: 7.616

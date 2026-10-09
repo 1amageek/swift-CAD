@@ -1,0 +1,5 @@
+COMMAND: ['.build/di-m4-revolution-asan/debug/RetainedSurfaceIssuerProof']
+PASS M4 retained surface position laws, exact whole-square coverage, closed sides and atomic failures
+ORIGINAL_RETAINED_SURFACE_PROOF_OK
+
+EXIT: 0; SECONDS: 0.607

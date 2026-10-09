@@ -7,6 +7,7 @@ struct OriginalCoonsRationalDifferentialAtlas: Sendable {
         let upperU: ExactRationalCoefficient
         let lowerV: ExactRationalCoefficient
         let upperV: ExactRationalCoefficient
+        let homogeneous: [ExactBivariatePolynomial]
         let tangentU: [ExactBivariatePolynomial]
         let tangentV: [ExactBivariatePolynomial]
         let normal: [ExactBivariatePolynomial]
@@ -42,7 +43,7 @@ struct OriginalCoonsRationalDifferentialAtlas: Sendable {
             let owners = try prepared.originalNativeSpans(over: square, tolerance: tolerance,
                 maximumSpanCount: maximumSpanCount, consumeWork: { try usage.consumeExactWork(1) },
                 consumeStorage: { try storage($0) })
-            try usage.retainExactStorage(owners.count)
+            try RationalAlgebraStorage.retain(owners.count, of: Cell.self, usage: &usage)
             var cells: [Cell] = []
             cells.reserveCapacity(owners.count)
             for owner in owners {
@@ -72,7 +73,7 @@ struct OriginalCoonsRationalDifferentialAtlas: Sendable {
                     upperU: .originalDouble(owner.uBounds.upper, usage: &usage),
                     lowerV: .originalDouble(owner.vBounds.lower, usage: &usage),
                     upperV: .originalDouble(owner.vBounds.upper, usage: &usage),
-                    tangentU: first, tangentV: second, normal: normal))
+                    homogeneous: original.homogeneous, tangentU: first, tangentV: second, normal: normal))
             }
             guard !cells.isEmpty else {
                 throw GeometryConversionError.invalidInput("Original native atlas has no selected source cell.")
@@ -116,7 +117,7 @@ struct OriginalCoonsRationalDifferentialAtlas: Sendable {
                     .subtracting(first[j].multiplied(by: second[i], usage: &usage), usage: &usage))
             }
             result.append(Cell(lowerU: cell.lowerU, upperU: cell.upperU, lowerV: cell.lowerV, upperV: cell.upperV,
-                tangentU: first, tangentV: second, normal: normal))
+                homogeneous: position, tangentU: first, tangentV: second, normal: normal))
         }
         guard !result.isEmpty else {
             throw GeometryConversionError.invalidInput("Original Coons rational atlas has no positive source cells.")

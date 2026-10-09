@@ -135,3 +135,15 @@ endpoints, failure/cancellation/storage and public Loft embedding/pair contact.
 No source packet, type declaration or build alone establishes these behaviors.
 
 The retained native Taylor query accepts an optional explicit set of required mixed partials for the plane-derivative child. Only that set carries join-continuity authority; unused formal coefficients remain owner-wise enclosures. Omission retains the existing complete total-order guarantee.
+
+### Retained Original Position Handoff
+
+Each rational differential cell also retains the already-produced original
+homogeneous position `[X,Y,Z,D]` before derivative stripping. This immutable COW
+payload shares the original coefficient owners; retaining a cell admits its
+concrete enlarged slot, and correction assembly admits the four position array
+slots before publication. Differential tangent/normal computations are unchanged.
+[SourceIssuer](../../OriginalSourceIssuance/DESIGN.md) consumes those retained laws
+through exact rational coefficient import; it does not reconstruct correction.
+Behavioral verification compares nonzero correction, zero-correction Native and
+Coons interactions, position correspondence, explicit refusal and budget failure.

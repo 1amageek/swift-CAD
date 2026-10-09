@@ -134,8 +134,10 @@ struct OriginalBoundaryCorrectedRationalAtlas {
                         try RationalAlgebraStorage.retain(doubled.partialValue - cellCapacity, of: Atlas.Cell.self, usage: &usage)
                         cellCapacity = doubled.partialValue; cells.reserveCapacity(cellCapacity)
                     }
+                    try RationalAlgebraStorage.retain(4, of: ExactBivariatePolynomial.self, usage: &usage)
+                    let homogeneous = [position[0], position[1], position[2], denominator]
                     cells.append(Atlas.Cell(lowerU: loU, upperU: hiU, lowerV: loV, upperV: hiV,
-                        tangentU: first, tangentV: second, normal: normal))
+                        homogeneous: homogeneous, tangentU: first, tangentV: second, normal: normal))
                 } }
             } }
         }

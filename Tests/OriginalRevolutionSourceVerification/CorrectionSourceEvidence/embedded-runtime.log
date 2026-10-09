@@ -1,0 +1,7 @@
+COMMAND: ['/usr/local/bin/node', 'Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs', '.build/di-m4-revolution-embedded/wasm32-unknown-wasip1/debug/RetainedSurfaceIssuerProof.wasm']
+(node:39640) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS M4 retained surface position laws, exact whole-square coverage, closed sides and atomic failures
+ORIGINAL_RETAINED_SURFACE_PROOF_OK
+
+EXIT: 0; SECONDS: 0.240

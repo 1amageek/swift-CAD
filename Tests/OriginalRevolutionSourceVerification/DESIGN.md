@@ -41,3 +41,8 @@ Build/link/run with fixed Swift6.4.0 release, four compiler jobs and an outer
 120-second timeout per command. Record all production source inputs and artifact
 hashes. Changes to source law, traversal endpoint imports, normalized axis or
 actual evaluator invalidate the relevant evidence.
+
+The separate `OriginalBoundaryCorrectionSourceProof` executes retained existing
+correction XYZ/D, nonzero/zero correction, public point/derivative correspondence,
+unchanged Coons differential interaction and explicit source admission failure.
+The source-square algebra/coverage fixture is independently portable.

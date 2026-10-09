@@ -216,6 +216,7 @@ public enum SourceFixtures {
         try revolutionLaws()
         try offsetLaws()
         try guideLaws()
+        try retainedSurfaceLaws()
         print("ORIGINAL_SOURCE_ISSUANCE_PROOF_OK")
     }
 }

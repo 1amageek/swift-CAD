@@ -1,0 +1,4 @@
+COMMAND: ['.build/di-m4-revolution-actual/debug/OriginalBoundaryCorrectionSourceProof']
+PASS M4 actual retained correction XYZ/D, nonzero and zero corrections, original point/derivative, Coons differential interaction and explicit source failures
+
+EXIT: 0; SECONDS: 1.381

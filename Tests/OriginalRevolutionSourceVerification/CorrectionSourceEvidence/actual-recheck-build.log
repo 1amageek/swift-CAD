@@ -1,0 +1,109 @@
+COMMAND: ['swift', 'build', '--package-path', 'Tests/OriginalRevolutionSourceVerification', '--scratch-path', '.build/di-m4-revolution-actual', '--build-system', 'native', '-j', '1', '--product', 'OriginalBoundaryCorrectionSourceProof']
+warning: 'originalrevolutionsourceverification': found 86 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/ExactParameterDomain/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalSourceIssuance/OriginalPhysicalAngle/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+warning: 'originalrevolutionsourceverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/FailureContract/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+    /private/tmp/cad-di-m4-source-support-20261009/Tests/OriginalRevolutionSourceVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+[0/1] Planning build
+Building for debugging...
+[0/3] Write swift-version-7EE3F01B468E1A0A.txt
+[1/4] Write sources
+[3/5] Emitting module OriginalBoundaryCorrectionSourceProof
+[4/6] Compiling OriginalBoundaryCorrectionSourceProof Proof.swift
+[4/7] Write Objects.LinkFileList
+[5/7] Linking OriginalBoundaryCorrectionSourceProof
+[6/7] Applying OriginalBoundaryCorrectionSourceProof
+Build of product 'OriginalBoundaryCorrectionSourceProof' complete! (14.47s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+
+EXIT: 0; SECONDS: 15.490

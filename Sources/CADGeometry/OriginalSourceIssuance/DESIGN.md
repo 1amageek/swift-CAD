@@ -1140,3 +1140,34 @@ The portable guide proof uses the same fixture and admission files through a
 focused verification target when the unrelated aggregate fixture WMO compile
 exceeds its 120-second bound. This reduces verification work without changing
 source semantics or the fixture being executed.
+
+### M4 Retained Rational Surface Atlas Intake
+
+A retained surface source provides immutable original rational homogeneous cells
+and exact closed authored bounds. The concrete boundary-correction provider calls
+the existing correction atlas once, preserves its original shape/C0 authority,
+and imports the retained coefficients exactly into the caller field. It creates
+no second positional producer and changes no numerical query admission.
+The finite preparer retains every cell, checks complete exact coverage of `[0,1]^2`
+before publishing a sealed family, and exposes identity authored UV correspondence.
+Missing coverage, changed provenance, unavailable rational authority, chart limits,
+source depth, work/storage and cancellation propagate explicit failure. Original
+uncancelled denominators remain in each receipt; differential stripped fields are
+never substituted for position law. The current concrete provider is rational
+boundary correction, with general angular/algebraic correction still separate.
+
+```text
+original correction atlas -> retained exact XYZ/D + closed cell bounds
+                          -> exact coefficient import -> whole sealed family
+unchanged stripped tangent/normal ---------> existing differential consumers
+```
+
+The retained surface reading contract guarantees every closed cell belongs to the
+original position domain with a nonzero denominator throughout. The concrete
+correction atlas inherits that guarantee from validated positive-weight native
+laws and complete original rational traversals; its denominator is their
+uncancelled product. A polynomial descriptor, nonzero polynomial test, bounding
+box or stripped normal cannot prove this assumption. Guarded original domains
+use a separate predicate contract, rather than conform to this rectangle port.
+The preparer's denominator check rejects corrupted zero laws and does not replace
+the original producer's whole-cell denominator authority.

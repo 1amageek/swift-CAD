@@ -335,3 +335,14 @@ Contact consumers bind one polynomial piece to the exact aggregate owner
 bounds before composing the original U/V law; multiple source pieces cannot be
 merged into an invented single polynomial. Algebraic endpoints remain outside
 this rational-only capability.
+
+### Retained Original Position Handoff
+
+The common rational differential atlas retains each original homogeneous position
+cell before stripping its tangent fields. Cell slots admit their actual enlarged
+payload; immutable coefficient owners are shared by COW. The
+[boundary correction child](BoundaryCorrection/DESIGN.md#retained-original-position-handoff)
+owns its correction assembly and position retention. The existing differential
+field contract is unchanged, while SourceIssuer consumes the retained law through
+exact import. Coons and Native initializer paths retain their original position
+arrays directly, without recomputing their laws.

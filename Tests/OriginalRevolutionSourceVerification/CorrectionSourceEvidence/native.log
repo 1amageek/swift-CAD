@@ -1,0 +1,69 @@
+COMMAND: ['swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--scratch-path', '.build/di-m4-offset-source', '--build-system', 'native', '-j', '2', '--filter', 'originalRetainedSurfaceSupply']
+Building for debugging...
+[0/13] Write sources
+[3/15] Write swift-version-7EE3F01B468E1A0A.txt
+[5/17] Compiling SourceIssuer DefaultOriginalFiniteRetainedSurfaceChartPreparer.swift
+[6/17] Emitting module SourceIssuer
+[7/18] Compiling SourceIssuer OriginalRetainedSurfaceSourceReading.swift
+[8/20] Compiling SourceIssuer OriginalFiniteRetainedSurfaceChartPreparing.swift
+[9/20] Compiling SourceIssuer OriginalFiniteRetainedSurfaceCharts.swift
+[10/32] Emitting module RetainedSurfaceIssuerFixtures
+[11/33] Compiling RetainedSurfaceIssuerFixtures TraceAdmission.swift
+[12/33] Compiling RetainedSurfaceIssuerFixtures RetainedSurfaceFixtures.swift
+[13/34] Compiling RetainedSurfaceIssuerFixtures FixtureRoot.swift
+[14/37] Emitting module GuideIssuerFixtures
+[15/37] Compiling GuideIssuerFixtures GuideFixtureRoot.swift
+[16/37] Compiling GuideIssuerFixtures GuideFixtures.swift
+[17/39] Compiling GuideIssuerFixtures NativeSource.swift
+[18/39] Compiling GuideIssuerFixtures TraceAdmission.swift
+[19/41] Compiling RetainedSurfaceIssuerProof Proof.swift
+[20/41] Emitting module RetainedSurfaceIssuerProof
+[21/43] Emitting module GuideIssuerProof
+[22/43] Compiling GuideIssuerProof Proof.swift
+[22/43] Write Objects.LinkFileList
+[23/43] Linking RetainedSurfaceIssuerProof
+[24/43] Write Objects.LinkFileList
+[25/43] Applying RetainedSurfaceIssuerProof
+[26/43] Linking GuideIssuerProof
+[27/43] Applying GuideIssuerProof
+[33/43] Compiling SourceIssuerFixtures GuideFixtures.swift
+[34/43] Compiling SourceIssuerFixtures NativeSource.swift
+[35/43] Compiling SourceIssuerFixtures OffsetFixtures.swift
+[36/43] Compiling SourceIssuerFixtures ParameterImageFixtures.swift
+[37/43] Compiling SourceIssuerFixtures RetainedSurfaceFixtures.swift
+[38/43] Emitting module SourceIssuerFixtures
+[39/53] Compiling SourceIssuerFixtures RetainedRootFixtures.swift
+[40/54] Compiling SourceIssuerFixtures ScalarTransportFixtures.swift
+[41/54] Compiling SourceIssuerFixtures RevolutionFixtures.swift
+[42/54] Compiling SourceIssuerFixtures RuledFixtures.swift
+[43/54] Compiling SourceIssuerFixtures SourceFixtures+Cone.swift
+[44/54] Compiling SourceIssuerFixtures SourceFixtures+Implicit.swift
+[45/54] Compiling SourceIssuerFixtures SourceFixtures+Periodic.swift
+[46/54] Compiling SourceIssuerFixtures SourceFixtures+PhysicalAngle.swift
+[47/54] Compiling SourceIssuerFixtures SourceFixtures.swift
+[48/54] Compiling SourceIssuerFixtures SpatialFixtures.swift
+[49/54] Compiling SourceIssuerFixtures TraversalFixtures.swift
+[50/60] Emitting module SourceIssuerProof
+[51/60] Compiling SourceIssuerProof Proof.swift
+[51/60] Write Objects.LinkFileList
+[52/60] Linking SourceIssuerProof
+[53/60] Applying SourceIssuerProof
+[55/60] Emitting module SourceIssuerTests
+[56/60] Compiling SourceIssuerTests GuideTests.swift
+[57/60] Compiling SourceIssuerTests OffsetTests.swift
+[58/60] Compiling SourceIssuerTests RetainedSurfaceTests.swift
+[59/62] Compiling SourceIssuerTests RevolutionTests.swift
+[60/62] Compiling SourceIssuerTests SourceTests.swift
+[60/62] Write Objects.LinkFileList
+[61/62] Linking OriginalSourceIssuanceVerificationPackageTests
+Build complete! (53.58s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test originalRetainedSurfaceSupply() started.
+PASS M4 retained surface position laws, exact whole-square coverage, closed sides and atomic failures
+􁁛  Test originalRetainedSurfaceSupply() passed after 0.003 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.004 seconds.
+
+EXIT: 0; SECONDS: 56.494

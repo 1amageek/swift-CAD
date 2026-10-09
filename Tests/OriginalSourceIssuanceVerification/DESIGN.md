@@ -97,3 +97,8 @@ admission used by the aggregate proof. A small fixture namespace and executable
 entry isolate that behavior from unrelated whole-module fixture compilation.
 [Guide source evidence](../OriginalRevolutionSourceVerification/GuideSourceEvidence/VERIFICATION.md)
 records the bounded aggregate Embedded timeout and the focused portable result.
+
+The focused `RetainedSurfaceIssuerProof` uses the same retained position/coverage
+fixture as Native tests. It proves exact source-square coverage, each closed cell
+side and atomic budget/cancellation failures independently of actual Geometry.
+The actual boundary-correction source proof owns the original atlas handoff.
