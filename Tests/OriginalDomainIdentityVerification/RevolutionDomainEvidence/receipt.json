@@ -375,8 +375,7 @@
     "Tests/OriginalDomainIdentityVerification/Sources/Probe/Probe.swift": "d071f3ec6229c71c0683dde33e01691aff189b7d37339fc2c9e59b6c0808c368",
     "Tests/OriginalDomainIdentityVerification/Sources/Proof/Proof.swift": "a15606267a1200f6d04af30c924d4c0be4143d82108c9710e2c51f975956a0b1",
     "Tests/OriginalDomainIdentityVerification/Tests/DomainTests.swift": "db79a7d002bf36b5554d587f063741dd57d361de4ae77148ff632b2e0a37a3e4",
-    "Tests/OriginalSourceIssuanceVerification/Sources/Fixtures/NativeSource.swift": "f5ac9c64f8c68e10ec6d1b657e111bcfd7c58f9bfadaffcfac6687746005af02",
-    ".build/di-m2m3-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51"
+    "Tests/OriginalSourceIssuanceVerification/Sources/Fixtures/NativeSource.swift": "f5ac9c64f8c68e10ec6d1b657e111bcfd7c58f9bfadaffcfac6687746005af02"
   },
   "native_tests": 32,
   "asan_tests": 32,
@@ -2414,5 +2413,8 @@
     "tests": 32
   },
   "compiler_sha256": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
-  "production_inputs_note": "Recorded retained compiler source file lists and package graph premises; products and actual execution are limited to OriginalRevolutionSourceProof. Cached unrelated products are not acceptance evidence."
+  "production_inputs_note": "Recorded retained compiler source file lists and package graph premises; products and actual execution are limited to OriginalRevolutionSourceProof. Cached unrelated products are not acceptance evidence.",
+  "generated_input_sha256": {
+    ".build/di-m2m3-asan/out/Intermediates.noindex/OriginalDomainIdentityVerification.build/Debug/DomainTests-p.build/DerivedSources/test_entry_point.swift": "7eba94b97a5454ac6bad83d7354eeef272610d96830aa07a06b607adf191af51"
+  }
 }
