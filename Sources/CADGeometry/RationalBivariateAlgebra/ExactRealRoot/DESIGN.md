@@ -818,3 +818,9 @@ L2 value owner and attained depths; no geometric equations are solved again.
 An invocation-local table shares transferred owners. This addition changes no
 existing root-solving, field-import or selected-root contract. Its proof compiles
 only the new bridge against immutable cached L2 modules; it does not rebuild L2.
+The first base-context transfer admits its internal one-value source array before
+materialization, using checked typed payload bytes on the same caller admission.
+The L0 receipt shares that backing; reusing a mapped base context creates no new
+source array and receives no repeated payload admission. CoordinateProof verifies
+the first base transfer stops at this admission when only the output array fits,
+without deriving the expected limit from an execution-measured ledger total.

@@ -5,11 +5,46 @@ import OriginalCoordinateTransfer
 
 enum ProofFailure: Error { case incorrect; case check(Int) }
 func require(_ value: Bool, line: Int = #line) throws { guard value else { throw ProofFailure.check(line) } }
+/// Observes the two owned array admissions before lower scalar transport starts.
+struct CoordinateStorageAdmission: ExactScalarAdmission, ~Copyable {
+    var ledger: ExactScalarLedger
+    var storageCalls = 0
+    var secondPayload = 0
+    var workAtSecondPayload = 0
+    mutating func checkpoint() throws(ExactScalarFailure) { try ledger.checkpoint() }
+    mutating func consumeWork(_ units: Int) throws(ExactScalarFailure) { try ledger.consumeWork(units) }
+    mutating func retainStorage(bytes: Int) throws(ExactScalarFailure) {
+        storageCalls += 1
+        if storageCalls == 2 {
+            secondPayload = bytes
+            workAtSecondPayload = ledger.work
+        }
+        try ledger.retainStorage(bytes: bytes)
+    }
+    mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+        try ledger.visitCell(axis: axis, depth: depth)
+    }
+    mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
+        try ledger.admitDepth(value: value, coefficient: coefficient)
+    }
+}
+
 @main struct CoordinateProof {
     static func main() throws {
         var a = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 134_217_728, valueDepth: 32, coefficientDepth: 32))
         let base = try OriginalExactScalarDomain(maximumValueDepth: 32, maximumCoefficientDepth: 32, using: &a)
         let field = try ExactAlgebraicScalarDomain.base(field: base, maximumExtensionLevel: 4, using: &a)
+        let integer = try field.integer(7, using: &a)
+        let payload = MemoryLayout<OriginalExactScalar>.stride
+        var storageGate = CoordinateStorageAdmission(ledger: .init(limits: try .init(
+            work: 20_000_000, storageBytes: 2 * payload - 1, valueDepth: 32, coefficientDepth: 32)))
+        do {
+            _ = try DefaultExactOriginalScalarTransporter().transfer([integer], into: base, using: &storageGate)
+            throw ProofFailure.incorrect
+        } catch ExactScalarFailure.resourceLimit(.storage) {}
+        try require(storageGate.storageCalls == 2 && storageGate.secondPayload == payload &&
+            storageGate.workAtSecondPayload == 1 && storageGate.ledger.storageBytes == payload)
+        print("COORDINATE_SOURCE_STORAGE_OK pre-admission rejects before lower transport")
         let roots = try ExactRealRootDomain(field: field, using: &a), p = roots.polynomials
         let x = try p.variable(0, using: &a)
         let law = try p.subtracting(p.multiplying(x, x, using: &a), p.constant(field.integer(2, using: &a), using: &a), using: &a)

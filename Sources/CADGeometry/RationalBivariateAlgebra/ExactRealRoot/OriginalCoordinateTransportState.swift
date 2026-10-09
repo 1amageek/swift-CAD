@@ -35,6 +35,7 @@ struct OriginalCoordinateTransportState {
                     return try field.importing(mapped, using: &a)
                 }
             }
+            try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalExactScalar.self))
             let receipt = try DefaultOriginalScalarTransporter().transfer([value], into: field, using: &a)
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalScalarTransferReceipt.self))
             bases.append(receipt)
