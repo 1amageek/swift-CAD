@@ -265,6 +265,101 @@ boundary/self/image handoffs from the specific lower capabilities they consume.
 These may be separate implementation work items after file ownership is fixed;
 this documentation task does not start those implementations or close DI.4.
 
+### Complete implementation milestones
+
+The executable schedule is owned by project [PROGRESS.md](../../../PROGRESS.md)
+under the existing DIA.4/DIA.INT IDs. The following milestones cover the entire
+responsibility design, not only OriginalChartFamilyQuerying or the Native route.
+Existing DI0-DI3 evidence remains a lower premise. No implementation is started
+by this plan, and no whole-seven/87 completion is implied by DI completion.
+
+| Milestone / progress ID | Complete deliverable | Required predecessors | Exit evidence |
+|---|---|---|---|
+| M0 / DIA.4.I.M0 | Freeze concrete family x domain x identity x consumer acceptance, missing source-capability work, protocol relationships and file owners | Verified DI0-DI3 and responsibility design | Every mandatory family has an owned producer/consumer path and success/failure fixture; nonlinear/singular correspondence and symbolic public-output contracts are specified before their implementation |
+| M1 / DIA.4.I.M1 | Implement family-query protocol and Native/intrinsic conformances; inject common protocol dependencies and preserve public defaults | M0 | Concrete/generic results match; no field/owner erasure, proof bypass, new owner/cache or admission reset; independent Native/ASAN/ordinary/Embedded execution |
+| M2 / DIA.4.I.M2 | Complete finite Native CS/SSI DI consumption for all spans, finite periodic selections and exact request sets | M1 and existing Native law/identity contracts | Actual public requests cover open/closed/singleton/disconnected/excluded selections, all chart sides and independent cycles; complete parameter relations and retained original correspondence |
+| M3 / DIA.4.I.M3 | Complete linear/plane and angular/analytic source-domain issuance | M1 plus the particular source laws required by each branch | Unbounded line/plane support, stored-N evaluation/UV correspondence, original conic/analytic UV, genuine angular periods, poles/seams and all branches; image-only equations do not close the milestone |
+| M4 / DIA.4.I.M4 | Complete operation-word, parameter-image, procedural and implicit/certified/lift/join/guide domain composition | M1 plus each branch's actual child-law/correspondence capability | Whole descendant support pullback, all preimages/guards/lifts and construction boundaries; nonlinear/singular maps preserve relational correspondence rather than claim an inverse |
+| M5 / DIA.4.I.M5 | Complete structural identity issuance for the covered source families | M3/M4; unchanged Native/intrinsic proofs are reused | Source-scoped join/seam/pole/shared-boundary proofs, exact restriction/composition and one-sided roles; equal XYZ at distinct nonstructural tuples stays distinct |
+| M6 / DIA.4.I.M6 | Connect boundary and self-contact consumers through the fixed typed DI ports | M2; supported DI3 identity proofs permit early work | Boundary retains certified material predicates/raw-cell ownership; self-contact excludes only proved structural pairs; generic wiring is independent of unfinished source-family bodies |
+| M7 / DIA.4.I.M7 | Finish general CS/SSI/XYZ publication and exercise every applicable family/consumer combination, including M6 consumers | M2-M6 | Public success/exclusion, complete XYZ/UV/fiber correspondence and symbolic periodic-family results; required cases cannot finish as unsupported; immutable prepared reuse and explicit later-query admission |
+| M8 / DIA.4.V and DIA.INT | Close stable final acceptance and latest-main integration | All implementation milestones | One scoped aggregate review, finding confirmation, changed-boundary Native/ASAN/ordinary/Embedded runtime evidence, source/artifact hashes and latest-main composition; no remaining required matrix cell |
+
+```mermaid
+flowchart TD
+ M0[M0: acceptance and missing-capability closure] --> M1[M1: shared protocols and injection]
+ M1 --> M2[M2: complete finite Native public composition]
+ M1 --> M3[M3: linear and analytic domain issuers]
+ M1 --> M4[M4: composite and remaining source-domain issuers]
+ M2 --> B[M6 boundary consuming body]
+ M2 --> S[M6 self-contact consuming body]
+ M3 --> M5[M5: full source-scoped identity]
+ M4 --> M5
+ M2 --> M7[M7: complete public family and consumer matrix]
+ M5 --> M7
+ B --> M7
+ S --> M7
+ M7 --> M8[M8: final acceptance and latest-main integration]
+ classDef common fill:#e3f2fd,stroke:#1565c0;
+ classDef family fill:#e8f5e9,stroke:#2e7d32;
+ classDef consumer fill:#fff3e0,stroke:#ef6c00;
+ class M0,M1 common;
+ class M3,M4,M5 family;
+ class M2,B,S,M7,M8 consumer;
+```
+
+Arrows are milestone-level prerequisites, not permission to edit shared files in
+parallel. PROGRESS contains the source-delivery/file-owner serialization within
+M3/M4. The verified word/image/traversal branch of M4 can start from M1 and its
+existing source receipts before the unrelated M3 source branches finish.
+
+M0 is a closure of the identified capability gaps, not a redesign of L0-L5.
+Record an actual retained source input and required proof for every missing source
+capability. Reuse the OSI.ALL owner/commits for existing source work instead of
+starting a duplicate source issuer. Any necessary missing proof is a named
+dependency/repair under that owner; the receiving DI branch cannot count it as
+unsupported completion or wait for the unrelated whole OSI.ALL aggregate.
+
+### Ownership, parallel work and convergence
+
+| Owner role | Owned implementation/files | Coordination boundary |
+|---|---|---|
+| Common DI owner | Existing ExactParameterDomain/OriginalParameterTransport/OriginalDomainCoverage/OriginalParameterIdentity protocol and shared receipt files | Sole writer for shared contracts, family-query declaration and admission/failure helpers |
+| Source authority owner | Required OriginalSourceIssuance/family law/provider changes, including saved-N plane and physical-angle correspondence | Reuse existing OSI.ALL work; shared source files change serially and are delivered as verified receipts |
+| Linear domain owner | Dedicated line/plane domain issuer files in OriginalDomainCoverage and their focused tests | Consumes frozen common/source ports; source-provider edits return to source owner |
+| Angular domain owner | Dedicated conic/analytic domain issuer files and focused tests | Preserves physical versus intrinsic semantics; common/source edits return to their owners |
+| Composite domain owner | Dedicated word/image/procedural/descendant domain issuer files | Owns only domain composition; new source-law capabilities remain with source owner |
+| Relation/publication owner | NativeExactRelations, applicable CurveSurfaceOverlap/NativeRelation, NativeSurfaceSurfaceRelations, L6/public composition and result handoff | Sole writer for shared public entries/results; reuses existing solving rather than another engine |
+| Boundary owner | Geometry and Kernel OriginalBoundaryClipping files and owning tests | Owns material selection/refinement and source-side correspondence, not source semantics |
+| Self-contact owner | OriginalSurfaceEmbedding and affected self-contact consuming files/tests | Owns structural exclusion use, not identity issuance |
+| Integration owner | Snapshot manifests, dedicated build/integration paths and Git integration | Returns implementation findings to the relevant writer |
+
+Roles describe planned ownership, not dispatched agents. M0 fixes exact filenames
+and test-resource owners before simultaneous edits. Linear/angular issuer bodies
+and boundary/self consumer bodies may share a source snapshot only when their
+owned files and build resources are disjoint. Shared protocol/result/source changes
+are serial owner deliveries; an independently mutable snapshot uses a separate
+worktree/task, not the same PROGRESS parallel group. Preserve Claude changes,
+uncommitted work and valid evidence. Consumer ports can be implemented from proven
+Native contracts before every producer body is complete; full matrix acceptance
+still waits for the actual required source receipts.
+
+Each leaf closes implementation, focused success/failure validation, one scoped
+review, finding confirmation and a coherent commit. Validate affected composition
+against latest main/Claude commits in an independent integration worktree and merge
+each verified coherent unit; do not defer all merges until M8. M8 owns cumulative
+interaction evidence and remaining required target coverage, not a repeat of every
+unchanged lower test. Build caches/evidence may be reused only with matching input,
+toolchain/SDK/backend premises. Every test/runtime command has a timeout.
+
+Maintain work/storage/source/value/coefficient/transport/count limits, numerical
+tolerances, caller cancellation and owner lifetimes. Do not increase a budget,
+omit a mandatory source family or change phase semantics to finish a milestone.
+When an actual required route fails, report the input, broken contract, owning
+repair and affected milestone. Report completed milestones/main-integrated units
+and remaining matrix cells; foundational edits or expected failures are not DI4
+completion. No fixed delivery-time claim precedes a representative measurement.
+
 ### Staged acceptance with the full destination retained
 
 | ID | Responsibility closed | Required independent evidence |
