@@ -290,8 +290,11 @@ requests only and enumerates their complete finite chart occurrences.
 | Angular issuance | Dedicated conic/analytic issuing protocols and implementations in OriginalDomainCoverage; dedicated angular fixtures in domain verification |
 | Integration | PROGRESS.md, exact input/artifact receipts and independent latest-main worktree; no simultaneous edits of implementation owners' files |
 
-The implementation task currently has one writer on an isolated worktree. File
-owners describe responsibility boundaries, not concurrently dispatched agents.
+The implementation task uses one isolated implementation worktree and a separate
+main-integration worktree. Each source file has one writer: Native consumer and
+source-family work proceed concurrently in disjoint files, while shared contracts
+remain with the common DI owner. Production compilation starts after both source
+owners freeze their shared module snapshot.
 Independent Native, ASAN, ordinary WASM and Embedded scratch paths never mutate
 the same build directory. Each milestone records actual behavioral evidence and
 its commit before it is marked complete. The matrix itself is not evidence that
@@ -314,3 +317,18 @@ binding fails even when original values are equal. Generic query tests exercise
 zero-rank and independent families, arbitrary-size signed cycles, seam/pole
 incidence, malformed cycles and terminal cancellation. Both source and transport
 failures propagate through the existing typed failure contracts.
+
+## Finite selected-family query
+
+OriginalFiniteChartFamilyQuerying refines the symbolic query with an explicitly
+finite selection operation. Native selectedMembers enumerates each original
+positive-span template and the exact integer-cycle ranges whose closed template
+can meet an effective request interval. Rational integer ranges are canonicalized
+before traversal so disconnected requests do not duplicate an occurrence. The
+actual selected image filters strict endpoints and excluded cells, preserving
+both selected seam sides. Independent periodic axes form the complete product;
+no fixed-width cycle conversion or binary64 estimate is used. Unbounded periodic
+selection fails unsupportedSourceProof, while a bounded nonperiodic native support
+can clip an unbounded request. Count/storage/work/depth/cancel admission remains
+one cumulative caller query. Publication occurs only after all templates finish;
+result limits and any unresolved arithmetic invalidate the entire returned array.

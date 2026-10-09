@@ -28,3 +28,5 @@ import DomainFixtures
 @Test(.timeLimit(.minutes(1))) func selectedRootSharedDivisorRetainsLocalInverseLaws() throws { try RepeatedDivisionFixtures.localInverse() }
 
 @Test(.timeLimit(.minutes(1))) func chartFamilyWitnessesAndInjection() throws { try FamilyQueryFixtures.witnessesAndInjection() }
+
+@Test(.timeLimit(.minutes(1))) func finiteOriginalChartSelections() throws { try FiniteFamilyQueryFixtures.completeSelection() }
