@@ -1,0 +1,63 @@
+Building for debugging...
+[Computing dependencies]
+[1 / 5] DI
+[2 / 6] DI
+[6 / 10] DomainFixtures
+[7 / 11] DomainFixtures
+[14 / 18] DI
+[16 / 19] DI
+[17 / 21] DomainFixtures
+[20 / 22] DomainTests-product
+[22 / 24] DomainTests-product
+[26 / 27] DomainTests-product
+[28 / 28] DomainTests-product
+[31 / 33] DomainProof-product
+[33 / 35] DomainProof-product
+[36 / 37] DomainProof-product
+[38 / 38] DomainProof-product
+Build complete! (8.69秒)
+Test Suite 'All tests' started at 2026-10-09 10:51:08.073.
+Test Suite 'All tests' passed at 2026-10-09 10:51:08.076.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.003) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test rationalSharedDivisorPreservesCostAndFailures() started.
+􀟈  Test originalStoredNormalPlaneBasisAndUV() started.
+􀟈  Test intrinsicPolesAndPhysicalMeaningRefusal() started.
+􀟈  Test chartFamilyWitnessesAndInjection() started.
+􀟈  Test completeSourceDomainChartHandoff() started.
+􀟈  Test sourceAffineCorrespondence() started.
+􀟈  Test completeIntegerFamiliesAndTensorOwners() started.
+􀟈  Test sourceCollapsedSubsetsAndOneSidedBoundaries() started.
+􀟈  Test exactPeriodicLiftsAndRefusal() started.
+􀟈  Test scaledStoredNormalsAndExactPlaneUV() started.
+􀟈  Test verifyEntireDeclaredBoundary() started.
+􀟈  Test explicitFailuresAndAdmission() started.
+􀟈  Test selectedRootSharedDivisorRetainsLocalInverseLaws() started.
+􀟈  Test canonicalDisconnectedUnboundedSets() started.
+􀟈  Test immutableReadersAndTaskCancellation() started.
+􀟈  Test productsAndRetainedOwners() started.
+􀟈  Test completeFiniteCoversAndHoles() started.
+􀟈  Test allEndpointSectors() started.
+􀟈  Test scopedIdentityAndExactPeriodOrbits() started.
+􁁛  Test rationalSharedDivisorPreservesCostAndFailures() passed after 0.019 seconds.
+􁁛  Test sourceAffineCorrespondence() passed after 0.018 seconds.
+􁁛  Test explicitFailuresAndAdmission() passed after 0.018 seconds.
+􁁛  Test exactPeriodicLiftsAndRefusal() passed after 0.019 seconds.
+􁁛  Test productsAndRetainedOwners() passed after 0.018 seconds.
+􁁛  Test completeSourceDomainChartHandoff() passed after 0.019 seconds.
+􁁛  Test canonicalDisconnectedUnboundedSets() passed after 0.019 seconds.
+􁁛  Test immutableReadersAndTaskCancellation() passed after 0.019 seconds.
+􁁛  Test sourceCollapsedSubsetsAndOneSidedBoundaries() passed after 0.022 seconds.
+􁁛  Test completeFiniteCoversAndHoles() passed after 0.023 seconds.
+􁁛  Test scopedIdentityAndExactPeriodOrbits() passed after 0.025 seconds.
+􁁛  Test intrinsicPolesAndPhysicalMeaningRefusal() passed after 0.034 seconds.
+􁁛  Test verifyEntireDeclaredBoundary() passed after 0.034 seconds.
+􁁛  Test scaledStoredNormalsAndExactPlaneUV() passed after 0.040 seconds.
+􁁛  Test completeIntegerFamiliesAndTensorOwners() passed after 0.063 seconds.
+􁁛  Test chartFamilyWitnessesAndInjection() passed after 0.074 seconds.
+􁁛  Test originalStoredNormalPlaneBasisAndUV() passed after 0.091 seconds.
+􁁛  Test allEndpointSectors() passed after 0.240 seconds.
+􁁛  Test selectedRootSharedDivisorRetainsLocalInverseLaws() passed after 0.260 seconds.
+􁁛  Test run with 19 tests in 0 suites passed after 0.261 seconds.

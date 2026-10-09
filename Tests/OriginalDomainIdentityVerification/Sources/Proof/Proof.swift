@@ -1,6 +1,7 @@
 import DomainFixtures
 @main struct DomainProof {
     static func main() throws {
+        try FamilyQueryFixtures.witnessesAndInjection()
         try DomainFixtures.runAll()
         try TransportFixtures.affineAndComposition()
         try TransportFixtures.periodsAndRefusal()

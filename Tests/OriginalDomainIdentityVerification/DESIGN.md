@@ -111,3 +111,15 @@ The four target proofs call the same fixtures; Native ASAN checks the unchanged
 scoped invocation bridge. Performance compares identical prepared source/field,
 issuer checks and exact results with bounded alternating execution; setup and
 root generation are excluded and Debug/Release evidence is distinguished.
+
+
+## M1 family-query verification
+
+FamilyQueryFixtures calls member/incident through OriginalChartFamilyQuerying's
+witness requirements, as well as the concrete receipts. Native and sphere tests
+retain exact arbitrary-size negative cycles, all seam sides and the two-coordinate
+pole domain. Nonperiodic nonzero cycles, malformed vectors, missing templates,
+work exhaustion, foreign injected period owners and final cancellation fail
+explicitly. Rejected injected period/chart issuers prove that source errors are
+not replaced by default construction. The same portable fixture body runs in
+DomainProof on ordinary/Embedded WASM; Native and ASAN use DomainTests.

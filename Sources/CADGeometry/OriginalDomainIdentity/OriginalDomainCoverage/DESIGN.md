@@ -56,7 +56,7 @@ authority rather than unchecked callbacks.
 | OriginalBSplineDomainIssuing | Implemented | DefaultOriginalBSplineDomainIssuer derives Native support/spans/periods through OriginalBSplineSourceReading and uses common DI verification |
 | OriginalIntrinsicSphereDomainIssuing | Implemented | DefaultOriginalIntrinsicSphereDomainIssuer derives canonical intrinsic support and retains its certified longitude period |
 | OriginalDomainBoundRationalChartIssuing | Implemented Native capability | DefaultOriginalDomainBoundBSplineChartIssuer combines the same source law, selected occurrence and local selection; it proves no intersection |
-| OriginalChartFamilyQuerying | Designed, not declared/implemented | A separate generic reading capability for integer-indexed Native/sphere covers; no flattening or replacement owner |
+| OriginalChartFamilyQuerying | Implemented at M1 | Generic requirement dispatch for integer-indexed Native/sphere covers, retained support and explicit member/incident; no flattening or replacement owner |
 
 The new family-query protocol is required because OriginalDomainCoverQuerying's
 finite `charts` view cannot describe an unbounded set of occurrences. It is an
@@ -281,3 +281,21 @@ Independent Native, ASAN, ordinary WASM and Embedded scratch paths never mutate
 the same build directory. Each milestone records actual behavioral evidence and
 its commit before it is marked complete. The matrix itself is not evidence that
 any missing source law is implemented.
+
+## M1 implemented composition
+
+Native and intrinsic sphere covers conform to OriginalChartFamilyQuerying.
+The default Native issuer delegates to overloads accepting period, parameter
+transport and cover-issuance protocols. Bound-chart issuance separately accepts
+the rational source-law and transport protocols. Intrinsic issuance accepts its
+source-law and transport protocols. All associated Source, Field and chart
+Selection types must match statically. Defaults preserve existing call sites;
+there is no existential erasure, global cache, mutable owner or new ledger.
+
+Injected source receipts are checked for the retained source/chart owner and
+original coordinate role before composing a result. Native period endpoints and
+period length must match the authoritative knot interval; a receipt from another
+binding fails even when original values are equal. Generic query tests exercise
+zero-rank and independent families, arbitrary-size signed cycles, seam/pole
+incidence, malformed cycles and terminal cancellation. Both source and transport
+failures propagate through the existing typed failure contracts.
