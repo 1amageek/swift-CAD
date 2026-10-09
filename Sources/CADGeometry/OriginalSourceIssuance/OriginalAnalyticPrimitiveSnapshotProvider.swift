@@ -48,10 +48,9 @@ public struct OriginalAnalyticPrimitiveSnapshotProvider: OriginalSourceSnapshott
                         major:radius,minor:0)
                 }.value
             case .plane:
-                // FIXME(INCOMPLETE_IMPLEMENTATION): Direct plane issuance is gated
-                // by the recorded saved-normal/evaluation-frame authority conflict.
-                // This provider must not issue a plane until that choice is resolved.
-                throw OriginalSourceIssuanceFailure.unresolvedAuthority
+                // N+origin planes use OriginalPlaneSnapshotProvider and the exact
+                // normalized basis capability, rather than this implicit-image port.
+                throw OriginalSourceIssuanceFailure.unsupportedRepresentation
             case .cone:
                 // Physical-angle cones use OriginalAnalyticConeSnapshotProvider and
                 // DefaultOriginalConeImageIssuer with their explicit coefficient capability.

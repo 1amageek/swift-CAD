@@ -176,7 +176,7 @@ public extension AnalyticSurface3D {
         }
         switch self {
         case let .plane(origin, normal):
-            let basis = try analyticOrthonormalBasis(
+            let basis = try OriginalStoredPlaneBasis.basis(
                 normal,
                 tolerance: tolerance
             )

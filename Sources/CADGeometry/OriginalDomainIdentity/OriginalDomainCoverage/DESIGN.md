@@ -300,6 +300,21 @@ the same build directory. Each milestone records actual behavioral evidence and
 its commit before it is marked complete. The matrix itself is not evidence that
 any missing source law is implemented.
 
+### M3 primitive issuer implementation boundary
+
+Dedicated linear and plane covers retain the source-owned whole law/basis and
+one identity-coordinate occurrence, with rank zero and full real support. Their
+issuer reconstructs source support, verifies the supplied frame's full support
+and coordinate meaning, and clips only the requested selection. Empty requests
+produce empty incident sets without losing source coverage authority. Dedicated
+analytic covers retain the complete polynomial symbolic-coordinate law, genuine
+source periods, and collapse receipts. Their cartesian family has one closed
+fundamental interval per periodic axis and unchanged nonperiodic source support;
+member and incident use exact cycle displacement and return all seam combinations.
+At a collapsed fiber the full original coordinate tuples remain represented.
+Physical parameter wrappers do not pass this intrinsic issuing port.
+
+
 ## M1 implemented composition
 
 Native and intrinsic sphere covers conform to OriginalChartFamilyQuerying.

@@ -34,9 +34,46 @@ enum NativeExactGeometryPublicationFailure {
             case .cell(let cause): return published(cause, tolerance: tolerance)
             case .relation(let cause): return published(cause, tolerance: tolerance)
             case .geometry(let cause): return published(cause, tolerance: tolerance)
+            case .domain(let cause): return published(cause, tolerance: tolerance)
+            case .source(let cause): return published(cause, tolerance: tolerance)
+            case .nonDiscreteIntersection: return failure(.nonDiscreteIntersection, tolerance)
+            case .resultLimit: return failure(.resourceLimitExceeded, tolerance)
             case .invalidDomain: return failure(.invalidInput, tolerance)
             case .invalidDegree: return failure(.resourceLimitExceeded, tolerance)
             case .unsupportedCoverage: return failure(.intersectionFailure, tolerance)
+            }
+        }
+        if let error = error as? OriginalDomainIdentityFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .domain(let cause): return published(cause, tolerance: tolerance)
+            case .polynomial(let cause): return published(cause, tolerance: tolerance)
+            case .source(let cause): return published(cause, tolerance: tolerance)
+            case .operationRejected(let cause): return published(cause, tolerance: tolerance)
+            case .sourceDepthLimit, .transportDepthLimit, .chartLimit, .familyLimit, .identityLimit, .countOverflow:
+                return failure(.resourceLimitExceeded, tolerance)
+            case .unsupportedSourceProof: return failure(.unsupportedCapability, tolerance)
+            case .incompleteCoverage: return failure(.intersectionFailure, tolerance)
+            default: return failure(.invalidInput, tolerance)
+            }
+        }
+        if let error = error as? OriginalSourceIssuanceFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .polynomial(let cause): return published(cause, tolerance: tolerance)
+            case .sourceRejected(let cause): return published(cause, tolerance: tolerance)
+            case .sourceDepthLimit, .chartLimit, .countOverflow: return failure(.resourceLimitExceeded, tolerance)
+            case .unsupportedRepresentation, .unsupportedCoefficientField: return failure(.unsupportedCapability, tolerance)
+            case .unresolvedAuthority: return failure(.intersectionFailure, tolerance)
+            default: return failure(.invalidInput, tolerance)
+            }
+        }
+        if let error = error as? ExactParameterDomainFailure {
+            switch error {
+            case .scalar(let cause): return published(cause, tolerance: tolerance)
+            case .operationRejected(let cause): return published(cause, tolerance: tolerance)
+            case .countOverflow: return failure(.resourceLimitExceeded, tolerance)
+            default: return failure(.invalidInput, tolerance)
             }
         }
         if let error = error as? ExactGeometricRelationFailure {

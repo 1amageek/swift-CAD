@@ -208,8 +208,8 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
         try tolerance.validate()
         switch self {
         case let .plane(origin, normal):
-            try origin.validate()
-            try normal.validateUnitLength(tolerance: tolerance)
+            try origin.validate(); try normal.validate()
+            guard normal.x != 0 || normal.y != 0 || normal.z != 0 else { throw GeometryError.invalidVectorLength(0) }
         case let .cylinder(origin, axis, radius):
             try origin.validate()
             try axis.validateUnitLength(tolerance: tolerance)
@@ -251,12 +251,12 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
         let angularScale = CanonicalSphereAngularPhase.scaleBounds.midpoint
         switch self {
         case let .plane(origin, normal):
-            let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
+            let basis = try OriginalStoredPlaneBasis.basis(normal,tolerance:tolerance)
             return DifferentialGeometry(
                 position: origin + basis.u * u + basis.v * v,
                 tangentU: basis.u,
                 tangentV: basis.v,
-                normal: normal,
+                normal: basis.u.cross(basis.v),
                 minimumPrincipalDirection: basis.u,
                 maximumPrincipalDirection: basis.v
             )
@@ -340,7 +340,7 @@ public enum AnalyticSurface3D: Equatable, Hashable, Sendable {
         }
         switch self {
         case let .plane(origin, normal):
-            let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
+            let basis = try OriginalStoredPlaneBasis.basis(normal,tolerance:tolerance)
             return origin + basis.u * u + basis.v * v
         case let .cylinder(origin, axis, radius):
             let basis = try analyticOrthonormalBasis(axis, tolerance: tolerance)

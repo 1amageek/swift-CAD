@@ -13,7 +13,7 @@ public struct DefaultOriginalPlaneBasisIssuer<S: OriginalPlaneSourceReading,F: E
             try a.checkpoint(); try a.consumeWork(2); try source.require(limits)
             let x = abs(source.original.normalCoordinate(in:0))
             let y = abs(source.original.normalCoordinate(in:1))
-            let axis = x <= y ? 0 : 1
+            let axis = OriginalStoredPlaneAxis.reference(x:x,y:y)
             try a.checkpoint(); return axis
         } catch { throw .init(preserving:error) }
     }

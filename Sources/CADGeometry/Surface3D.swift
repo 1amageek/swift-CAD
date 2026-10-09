@@ -238,7 +238,7 @@ public enum Surface3D: Sendable, Hashable {
                 secondDerivativeUU: .zero,
                 secondDerivativeUV: .zero,
                 secondDerivativeVV: .zero,
-                normal: plane.normal,
+                normal: plane.uDirection == nil ? basisU.cross(basisV) : plane.normal,
                 normalCurvatureU: 0.0,
                 normalCurvatureV: 0.0,
                 meanCurvature: 0.0,
@@ -468,7 +468,7 @@ public enum Surface3D: Sendable, Hashable {
     ) throws -> (u: Double, v: Double) {
         switch surface {
         case let .plane(origin, normal):
-            let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
+            let basis = try OriginalStoredPlaneBasis.basis(normal,tolerance:tolerance)
             let offset = point - origin
             return (offset.dot(basis.u), offset.dot(basis.v))
         case let .cylinder(origin, axis, _):

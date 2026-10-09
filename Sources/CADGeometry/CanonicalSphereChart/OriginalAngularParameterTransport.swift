@@ -90,3 +90,39 @@ public enum OriginalAngularParameterTransport: Hashable, Sendable {
         return (result.value, original.gain)
     }
 }
+
+extension OriginalAngularParameterTransport {
+    /// The authored sphere latitude branch is checked in its original coordinate
+    /// meaning. Certified containment failure never becomes a clipped latitude.
+    package func requireSphereLatitude(over range: ScalarInterval,consumeWork: () throws -> Void,
+        consumeStorage: ((Int) throws -> Void)? = nil) throws {
+        guard range.lower.isFinite,range.upper.isFinite,range.lower <= range.upper else {
+            throw GeometryConversionError.invalidInput("Original latitude query requires finite ordered endpoints.")
+        }
+        if isIntrinsic {
+            guard range.lower >= -Double.pi * 0.5,range.upper <= Double.pi * 0.5 else {
+                throw GeometryConversionError.invalidInput("Original intrinsic latitude exceeds its closed source support.")
+            }
+            return
+        }
+        let phase: OutwardScalarInterval
+        if case .physicalRadianArc(let start,_,_) = self {
+            phase = try withoutActuallyEscaping(consumeWork) { work in
+                var usage = OriginalGeometryValidationAdmission(consumeWork:{ _ in try work() },consumeStorage:consumeStorage)
+                guard range.lower >= 0,range.upper <= 1 else {
+                    throw GeometryConversionError.invalidInput("Original normalized latitude exceeds its authored unit interval.")
+                }
+                // Preserve full turns when checking the latitude branch, even at
+                // an endpoint whose harmonic image is unchanged by those turns.
+                return try start.outwardInterval(usage:&usage) + arcGain(usage:&usage) * .init(lower:range.lower,upper:range.upper)
+            }
+        } else { phase = try phaseAndGain(over:range,consumeWork:consumeWork,consumeStorage:consumeStorage).phase }
+        let halfPi = CanonicalSphereAngularPhase.piBounds * .exact(0.5)
+        guard phase.lower >= -halfPi.lower,phase.upper <= halfPi.lower else {
+            if phase.upper < -halfPi.upper || phase.lower > halfPi.upper {
+                throw GeometryConversionError.invalidInput("Original physical latitude exceeds its mathematical pole endpoints.")
+            }
+            throw GeometryConversionError.resourceLimitExceeded("Original physical latitude support is not separated from a pole endpoint.")
+        }
+    }
+}

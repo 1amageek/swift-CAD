@@ -609,7 +609,7 @@ private extension AnalyticSurface3D {
         let cosineV = try SurfaceTaylorScalarJet.cosineOfParameterV(v, order: order)
         switch self {
         case let .plane(origin, normal):
-            let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
+            let basis = try OriginalStoredPlaneBasis.basis(normal,tolerance:tolerance)
             let originJet = try SurfaceTaylorVectorJet.constant(origin, order: order)
             let uDirection = try SurfaceTaylorVectorJet.constant(basis.u, order: order)
             let vDirection = try SurfaceTaylorVectorJet.constant(basis.v, order: order)

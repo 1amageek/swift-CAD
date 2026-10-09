@@ -138,7 +138,7 @@ public struct DefaultSurfaceDifferentialEncloser: SurfaceDifferentialEnclosing, 
   ) throws -> SurfaceIntervalVectorJet {
     switch surface {
     case .plane(let origin, let normal):
-      let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
+      let basis = try OriginalStoredPlaneBasis.basis(normal,tolerance:tolerance)
       return affinePlane(
         origin: origin,
         basisU: basis.u,

@@ -2,10 +2,11 @@ import CADCore
 
 /// World coefficients of an original periodic primitive, before harmonic arithmetic.
 package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
-    package enum Kind: Sendable, Equatable { case cylinder, sphere, torus }
+    package enum Kind: Sendable, Equatable { case cylinder, cone, sphere, torus }
     private let kind: Kind
     private let majorRadius: Double
     private let minorRadius: Double
+    private let coneHalfAngle: Double
     private let gaugeWord: PreparedOriginalAffineOperationWord
     private let uTransport: OriginalAngularParameterTransport
     private let vTransport: OriginalAngularParameterTransport
@@ -22,9 +23,9 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
     /// Original basis and dimensions, with exact cofactor source authority.
     package var originalNormalGauge: (kind: Kind, firstDirection: Vector3D,
         secondDirection: Vector3D, axisDirection: Vector3D, majorRadius: Double,
-        minorRadius: Double, uTransport: OriginalAngularParameterTransport,
+        minorRadius: Double, coneHalfAngle: Double, uTransport: OriginalAngularParameterTransport,
         vTransport: OriginalAngularParameterTransport, word: PreparedOriginalAffineOperationWord) {
-        (kind, firstDirection, secondDirection, axisDirection, majorRadius, minorRadius,
+        (kind, firstDirection, secondDirection, axisDirection, majorRadius, minorRadius, coneHalfAngle,
             uTransport, vTransport, gaugeWord)
     }
 
@@ -38,7 +39,7 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             if case .procedural(.originalAngularTransport(let angular)) = image.source { base = angular.source }
             else { base = image.source }
             switch base {
-            case .cylinder, .analytic(.cylinder), .analytic(.sphere), .analytic(.torus):
+            case .cylinder, .analytic(.cylinder), .analytic(.cone), .analytic(.sphere), .analytic(.torus):
                 let count = word.source.factors.count.addingReportingOverflow(1)
                 guard !count.overflow else {
                     throw GeometryConversionError.resourceLimitExceeded("Original harmonic image factor count overflows.")
@@ -61,28 +62,36 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
         } else { primitive = source; uTransport = .intrinsic; vTransport = .intrinsic }
         try uTransport.validate(usage: &usage); try vTransport.validate(usage: &usage)
         let kind: Kind, origin: Point3D, axis: Vector3D, first: Vector3D, second: Vector3D
-        let major: Double, minor: Double
+        let major: Double, minor: Double, halfAngle: Double
         switch primitive {
         case .cylinder(let value):
             try value.origin.validate(); try value.axis.validateUnitLength(tolerance: tolerance)
             let basis = try circleOrthonormalBasis(value.axis, tolerance: tolerance)
             kind = .cylinder; origin = value.origin; axis = value.axis
-            first = basis.0; second = basis.1; major = value.radius; minor = 0
+            first = basis.0; second = basis.1; major = value.radius; minor = 0; halfAngle = 0
         case .analytic(.cylinder(let point, let normal, let radius)):
             try point.validate(); try normal.validateUnitLength(tolerance: tolerance)
             let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
             kind = .cylinder; origin = point; axis = normal
-            first = basis.u; second = basis.v; major = radius; minor = 0
+            first = basis.u; second = basis.v; major = radius; minor = 0; halfAngle = 0
+        case .analytic(.cone(let point,let normal,let angle)):
+            try point.validate(); try normal.validateUnitLength(tolerance:tolerance)
+            guard angle.isFinite,angle > 0,angle < Double.pi * 0.5,vTransport.isIntrinsic else {
+                throw GeometryConversionError.invalidInput("Original cone requires a physical acute half-angle and unchanged scalar V.")
+            }
+            let basis = try analyticOrthonormalBasis(normal,tolerance:tolerance)
+            kind = .cone; origin = point; axis = normal; first = basis.u; second = basis.v
+            major = 1; minor = 0; halfAngle = angle
         case .analytic(.sphere(let point, let radius)):
             try point.validate()
             let basis = try analyticOrthonormalBasis(.unitZ, tolerance: tolerance)
             kind = .sphere; origin = point; axis = .unitZ
-            first = basis.u; second = basis.v; major = 0; minor = radius
+            first = basis.u; second = basis.v; major = 0; minor = radius; halfAngle = 0
         case .analytic(.torus(let point, let normal, let outer, let tube)):
             try point.validate(); try normal.validateUnitLength(tolerance: tolerance)
             let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
             kind = .torus; origin = point; axis = normal
-            first = basis.u; second = basis.v; major = outer; minor = tube
+            first = basis.u; second = basis.v; major = outer; minor = tube; halfAngle = 0
         default: return nil
         }
         try usage.consumeExactWork(1)
@@ -95,14 +104,14 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             try RationalAlgebraStorage.retain(count, of: Vector3D.self, usage: &usage)
             try RationalAlgebraStorage.retain(count, of: Double.self, usage: &usage)
         }
-        if admitPhysicalMetric, kind != .sphere {
+        if admitPhysicalMetric, kind != .sphere && kind != .cone {
             try reserveAxes(2)
             guard try word.minimumImageLengthIsGreaterThan(originalAxes: [first, second],
                 originalLengths: [major, major], physicalThreshold: tolerance.distance, usage: &usage) else {
                 throw GeometryError.invalidRadius(major)
             }
         }
-        if admitPhysicalMetric, kind != .cylinder {
+        if admitPhysicalMetric, kind != .cylinder && kind != .cone {
             try reserveAxes(3)
             guard try word.minimumImageLengthIsGreaterThan(originalAxes: [first, second, axis],
                 originalLengths: [minor, minor, minor], physicalThreshold: tolerance.distance, usage: &usage) else {
@@ -130,17 +139,17 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             isPosition: true, usage: &usage)
         let largeC = kind == .sphere ? zero : try vector(first, major)
         let largeS = kind == .sphere ? zero : try vector(second, major)
-        let smallC = kind == .cylinder ? zero : try vector(first, minor)
-        let smallS = kind == .cylinder ? zero : try vector(second, minor)
-        let axial = try vector(axis, kind == .cylinder ? 1 : minor)
+        let smallC = kind == .cylinder || kind == .cone ? zero : try vector(first, minor)
+        let smallS = kind == .cylinder || kind == .cone ? zero : try vector(second, minor)
+        let axial = try vector(axis, kind == .cylinder || kind == .cone ? 1 : minor)
         try RationalAlgebraStorage.retain(1, of: Self.self, usage: &usage)
-        return .init(kind: kind, majorRadius: major, minorRadius: minor, gaugeWord: word, uTransport: uTransport, vTransport: vTransport, center: bounds(point), majorCosine: largeC, majorSine: largeS,
+        return .init(kind: kind, majorRadius: major, minorRadius: minor, coneHalfAngle:halfAngle, gaugeWord: word, uTransport: uTransport, vTransport: vTransport, center: bounds(point), majorCosine: largeC, majorSine: largeS,
             minorCosine: smallC, minorSine: smallS, axial: axial,
             firstDirection: first, secondDirection: second, axisDirection: axis)
     }
 
     package func replacingTransports(u: OriginalAngularParameterTransport, v: OriginalAngularParameterTransport) -> Self {
-        .init(kind: kind, majorRadius: majorRadius, minorRadius: minorRadius, gaugeWord: gaugeWord, uTransport: u, vTransport: v, center: center, majorCosine: majorCosine, majorSine: majorSine,
+        .init(kind: kind, majorRadius: majorRadius, minorRadius: minorRadius, coneHalfAngle:coneHalfAngle, gaugeWord: gaugeWord, uTransport: u, vTransport: v, center: center, majorCosine: majorCosine, majorSine: majorSine,
             minorCosine: minorCosine, minorSine: minorSine, axial: axial, firstDirection: firstDirection,
             secondDirection: secondDirection, axisDirection: axisDirection)
     }
@@ -164,16 +173,18 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
         let radial = first * cu + second * su
         let field: IntervalVector3DBounds
         if kind == .sphere {
-            guard vTransport.isIntrinsic, box.v.lower >= -Double.pi * 0.5, box.v.upper <= Double.pi * 0.5 else {
-                throw GeometryConversionError.invalidInput("Original sphere normal exceeds its closed latitude domain.")
-            }
+            try vTransport.requireSphereLatitude(over:box.v,consumeWork:{ try usage.consumeExactWork(1) })
             let cv = try vTransport.harmonic(over: box.v, cosine: true, consumeWork: { try usage.consumeExactWork(1) }).value
             let sv = try vTransport.harmonic(over: box.v, cosine: false, consumeWork: { try usage.consumeExactWork(1) }).value
             field = radial * cv + axis * sv
         } else {
             let tangent = first * (-su) + second * cu
             if kind == .cylinder { field = tangent.cross(axis) }
-            else {
+            else if kind == .cone {
+                let slope = try physicalConeSlope(consumeWork:{ try usage.consumeExactWork(1) })
+                field = tangent.cross(radial * slope.sine + axis * slope.cosine)
+                    * .init(lower:box.v.lower,upper:box.v.upper)
+            } else {
                 let cv = try vTransport.harmonic(over: box.v, cosine: true, consumeWork: { try usage.consumeExactWork(1) }).value
                 let sv = try vTransport.harmonic(over: box.v, cosine: false, consumeWork: { try usage.consumeExactWork(1) }).value
                 field = tangent.cross(radial * (-sv) + axis * cv)
@@ -195,9 +206,7 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             throw GeometryConversionError.invalidInput("Original harmonic world query needs finite parameter bounds.")
         }
         if kind == .sphere {
-            guard vTransport.isIntrinsic, box.v.lower >= -Double.pi * 0.5, box.v.upper <= Double.pi * 0.5 else {
-                throw GeometryConversionError.invalidInput("Original sphere latitude exceeds its canonical closed domain.")
-            }
+            try vTransport.requireSphereLatitude(over:box.v,consumeWork:consumeWork,consumeStorage:consumeStorage)
         }
         func harmonic(_ range: ScalarInterval, alongU: Bool, cosine: Bool) throws -> SurfaceAreaIntervalTaylorScalarJet {
             let transport = alongU ? uTransport : vTransport
@@ -226,13 +235,24 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
         }
         let cu = try harmonic(box.u, alongU: true, cosine: true)
         let su = try harmonic(box.u, alongU: true, cosine: false)
-        let cv = kind == .cylinder ? nil : try harmonic(box.v, alongU: false, cosine: true)
-        let sv = kind == .cylinder ? nil : try harmonic(box.v, alongU: false, cosine: false)
+        let cv = kind == .cylinder || kind == .cone ? nil : try harmonic(box.v, alongU: false, cosine: true)
+        let sv = kind == .cylinder || kind == .cone ? nil : try harmonic(box.v, alongU: false, cosine: false)
         func field(_ point: OutwardScalarInterval, _ largeC: OutwardScalarInterval,
             _ largeS: OutwardScalarInterval, _ smallC: OutwardScalarInterval,
             _ smallS: OutwardScalarInterval, _ axis: OutwardScalarInterval) throws -> SurfaceAreaIntervalTaylorScalarJet {
             var result = try SurfaceAreaIntervalTaylorScalarJet.constant(point, order: order,
                 tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
+            if kind == .cone {
+                let slope = try physicalConeSlope(consumeWork:consumeWork)
+                var height = try SurfaceAreaIntervalTaylorScalarJet(order:order,axis:.v,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage)
+                try height.set(.init(lower:box.v.lower,upper:box.v.upper),0,0)
+                if order > 0 { try height.set(.exact(1),0,1) }
+                let radial = try cu.scaled(by:largeC,consumeWork:consumeWork,consumeStorage:consumeStorage)
+                    .adding(su.scaled(by:largeS,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
+                    .scaled(by:slope.sine,consumeWork:consumeWork,consumeStorage:consumeStorage)
+                    .adding(SurfaceAreaIntervalTaylorScalarJet.constant(axis * slope.cosine,order:order,tolerance:tolerance,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
+                return try result.adding(radial.multiplied(by:height,consumeWork:consumeWork,consumeStorage:consumeStorage),consumeWork:consumeWork,consumeStorage:consumeStorage)
+            }
             if kind != .sphere {
                 let radial = try cu.scaled(by: largeC, consumeWork: consumeWork, consumeStorage: consumeStorage)
                     .adding(su.scaled(by: largeS, consumeWork: consumeWork, consumeStorage: consumeStorage),
@@ -261,4 +281,12 @@ package struct OriginalAffineWordHarmonicSurfaceCoefficients: Sendable {
             y: field(center.y, majorCosine.y, majorSine.y, minorCosine.y, minorSine.y, axial.y),
             z: field(center.z, majorCosine.z, majorSine.z, minorCosine.z, minorSine.z, axial.z))
     }
+    private func physicalConeSlope(consumeWork: () throws -> Void) throws -> (sine: OutwardScalarInterval,cosine: OutwardScalarInterval) {
+        let argument = SurfaceIntervalJet(value:.exact(coneHalfAngle),derivativeU:.exact(0),derivativeV:.exact(0),
+            secondDerivativeUU:.exact(0),secondDerivativeUV:.exact(0),secondDerivativeVV:.exact(0),
+            thirdDerivativeUUU:.exact(0),thirdDerivativeUUV:.exact(0),thirdDerivativeUVV:.exact(0),thirdDerivativeVVV:.exact(0))
+        return try (SurfaceIntervalJet.sine(of:argument,consumeWork:consumeWork).value,
+            SurfaceIntervalJet.cosine(of:argument,consumeWork:consumeWork).value)
+    }
+
 }

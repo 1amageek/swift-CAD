@@ -122,3 +122,14 @@ same effective word. A changed gain, offset or axis permutation does not enter
 this spatial-only adapter. The normal-gauge receipt exposes the original binary
 chart basis, raw dimensions, symbolic phase descriptors and effective word;
 interval world coefficients never become exact algebraic source coefficients.
+
+The same harmonic surface coefficient producer supports original cone longitude.
+It retains the physical half-angle independently and multiplies its certified
+sine/cosine by the authored scalar V jet before spatial action. Both nappes and
+the apex position remain in the original law. Cone normal gauges retain V sign
+and vanish at the apex; regular normal queries do not manufacture an apex normal.
+Physical sphere latitude admission delegates to the retained original angular
+transport. Exact support/period/fiber authority belongs to
+[OriginalSourceIssuance](../OriginalSourceIssuance/DESIGN.md); numerical enclosures
+never substitute for those exact source values. General cone silhouette relation
+consumption remains an explicit M7 capability refusal.

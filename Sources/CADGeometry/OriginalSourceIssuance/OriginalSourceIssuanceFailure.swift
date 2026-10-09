@@ -4,7 +4,7 @@ import L1
 #endif
 
 public enum OriginalSourceIssuanceFailure: Error {
-    case invalidSource, invalidChart, foreignBinding, unsupportedRepresentation
+    case invalidSource, invalidChart, foreignBinding, unsupportedRepresentation, unsupportedCoefficientField
     case unresolvedAuthority, sourceDepthLimit, chartLimit, countOverflow
     case scalar(ExactScalarFailure)
     case polynomial(ExactPolynomialFailure)

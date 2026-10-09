@@ -21,6 +21,7 @@ struct PlaneSphereSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
+        try plane.requireLegacyUnitNormal(tolerance: tolerance)
         let signedDistance = (sphere.center - plane.origin).dot(plane.normal)
         let distance = abs(signedDistance)
         guard distance <= sphere.radius + tolerance.distance else { return [] }

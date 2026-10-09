@@ -118,7 +118,7 @@ struct AnalyticSurfaceBSplineBuilder {
         boundedBy points: [Point3D],
         tolerance: ModelingTolerance
     ) throws -> BSplineSurface3D {
-        let basis = try analyticOrthonormalBasis(plane.normal, tolerance: tolerance)
+        let basis = try OriginalStoredPlaneBasis.basis(plane.normal,tolerance:tolerance)
         let parameters = points.map { point in
             let offset = point - plane.origin
             return Point2D(x: offset.dot(basis.u), y: offset.dot(basis.v))

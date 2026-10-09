@@ -1,0 +1,123 @@
+Building for debugging...
+[Pre-planning 1 / 298]
+[Finalizing plan]
+[73 / 158] L0
+[78 / 175] L0
+[86 / 175] L0
+[88 / 175] L0
+[91 / 175] L0
+[93 / 175] L0
+[96 / 175] L0
+[96 / 175] DI0
+[102 / 205] L1
+[117 / 205] SourceIssuer
+[120 / 205] L1
+[122 / 205] L1
+[125 / 205] L1
+[126 / 205] L1
+[128 / 205] L1
+[132 / 205] DI0
+[136 / 205] L2
+[140 / 205] DI0
+[146 / 207] L2
+[149 / 237] SourceIssuer
+[150 / 237] SourceIssuer
+[165 / 237] SourceIssuer
+[168 / 237] SourceIssuer
+[169 / 237] SourceIssuer
+[170 / 237] SourceIssuer
+[172 / 237] SourceIssuer
+[174 / 237] SourceIssuer
+[175 / 237] L2
+[177 / 237] L2
+[180 / 237] L2
+[183 / 237] L2
+[185 / 237] L2
+[187 / 237] L2
+[189 / 237] L2
+[193 / 240] DomainDependencyProbe-product
+[196 / 240] L1
+[201 / 256] L2
+[202 / 256] DI
+[205 / 256] DI
+[212 / 256] DI
+[214 / 256] DI
+[216 / 256] DI
+[217 / 256] DI
+[218 / 256] DI
+[221 / 256] DI
+[222 / 256] DI
+[224 / 272] DomainFixtures
+[228 / 272] DomainFixtures
+[234 / 272] DomainFixtures
+[236 / 272] DomainFixtures
+[239 / 272] DomainFixtures
+[242 / 272] DomainFixtures
+[244 / 272] DomainFixtures
+[252 / 272]
+[260 / 276] DomainProof-product
+[263 / 276]
+[269 / 301]
+[274 / 301]
+[279 / 301]
+[282 / 301]
+[285 / 301]
+[287 / 301]
+[290 / 301] DomainTests-product
+[297 / 301] DomainTests-product
+Build complete! (11.81秒)
+Test Suite 'All tests' started at 2026-10-09 11:18:57.709.
+Test Suite 'All tests' passed at 2026-10-09 11:18:57.710.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test finiteOriginalChartSelections() started.
+􀟈  Test explicitFailuresAndAdmission() started.
+􀟈  Test wholeOriginalAnalyticDomains() started.
+􀟈  Test completeSourceDomainChartHandoff() started.
+􀟈  Test canonicalDisconnectedUnboundedSets() started.
+􀟈  Test intrinsicPolesAndPhysicalMeaningRefusal() started.
+􀟈  Test sourceCollapsedSubsetsAndOneSidedBoundaries() started.
+􀟈  Test immutableReadersAndTaskCancellation() started.
+􀟈  Test completeFiniteCoversAndHoles() started.
+􀟈  Test verifyEntireDeclaredBoundary() started.
+􀟈  Test chartFamilyWitnessesAndInjection() started.
+􀟈  Test originalPhysicalAngularDomains() started.
+􀟈  Test scaledStoredNormalsAndExactPlaneUV() started.
+􀟈  Test completeIntegerFamiliesAndTensorOwners() started.
+􀟈  Test scopedIdentityAndExactPeriodOrbits() started.
+􀟈  Test rationalSharedDivisorPreservesCostAndFailures() started.
+􀟈  Test sourceAffineCorrespondence() started.
+􀟈  Test exactPeriodicLiftsAndRefusal() started.
+􀟈  Test originalStoredNormalPlaneBasisAndUV() started.
+􀟈  Test selectedRootSharedDivisorRetainsLocalInverseLaws() started.
+􀟈  Test wholeOriginalLineAndPlaneDomains() started.
+􀟈  Test productsAndRetainedOwners() started.
+􀟈  Test mathematicalPiDomain() started.
+􀟈  Test allEndpointSectors() started.
+􁁛  Test canonicalDisconnectedUnboundedSets() passed after 0.026 seconds.
+􁁛  Test rationalSharedDivisorPreservesCostAndFailures() passed after 0.026 seconds.
+􁁛  Test exactPeriodicLiftsAndRefusal() passed after 0.026 seconds.
+􁁛  Test productsAndRetainedOwners() passed after 0.026 seconds.
+􁁛  Test scopedIdentityAndExactPeriodOrbits() passed after 0.026 seconds.
+􁁛  Test sourceAffineCorrespondence() passed after 0.026 seconds.
+􁁛  Test completeSourceDomainChartHandoff() passed after 0.026 seconds.
+􁁛  Test explicitFailuresAndAdmission() passed after 0.026 seconds.
+􁁛  Test sourceCollapsedSubsetsAndOneSidedBoundaries() passed after 0.026 seconds.
+􁁛  Test completeFiniteCoversAndHoles() passed after 0.026 seconds.
+􁁛  Test immutableReadersAndTaskCancellation() passed after 0.026 seconds.
+􁁛  Test intrinsicPolesAndPhysicalMeaningRefusal() passed after 0.039 seconds.
+􁁛  Test wholeOriginalLineAndPlaneDomains() passed after 0.039 seconds.
+􁁛  Test verifyEntireDeclaredBoundary() passed after 0.043 seconds.
+􁁛  Test scaledStoredNormalsAndExactPlaneUV() passed after 0.049 seconds.
+􁁛  Test completeIntegerFamiliesAndTensorOwners() passed after 0.069 seconds.
+􁁛  Test chartFamilyWitnessesAndInjection() passed after 0.095 seconds.
+􁁛  Test originalStoredNormalPlaneBasisAndUV() passed after 0.104 seconds.
+􁁛  Test finiteOriginalChartSelections() passed after 0.109 seconds.
+􁁛  Test wholeOriginalAnalyticDomains() passed after 0.119 seconds.
+􁁛  Test allEndpointSectors() passed after 0.127 seconds.
+􁁛  Test selectedRootSharedDivisorRetainsLocalInverseLaws() passed after 0.148 seconds.
+􁁛  Test mathematicalPiDomain() passed after 0.203 seconds.
+􁁛  Test originalPhysicalAngularDomains() passed after 0.275 seconds.
+􁁛  Test run with 24 tests in 0 suites passed after 0.275 seconds.

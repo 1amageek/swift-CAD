@@ -89,8 +89,11 @@ scratch and exclusive inout admissions are invocation-local. No shared mutable c
 unsafe pointer, target-specific ownership weakening or new synchronization is added.
 
 ## Failure, Concurrency, and Constraints
-Typed geometric failures preserve L0-L6 causes. KernelError conversion is owned by
-the public geometry boundary. No increased degree, work, storage, depth or result
+Typed geometric failures preserve L0-L6 and source/domain issuance causes. The
+public geometry boundary recursively normalizes nested cancellation and resource
+causes; non-discrete intersections retain their own code, malformed source/domain
+inputs retain invalidInput, and unsupported source capabilities remain explicit.
+KernelError conversion is owned by this boundary. No increased degree, work, storage, depth or result
 limits, tolerance-based source equality, hidden exploration window or budget reset.
 
 ## Verification and Change Impact

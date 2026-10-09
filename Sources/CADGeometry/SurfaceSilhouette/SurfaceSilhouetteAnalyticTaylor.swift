@@ -52,7 +52,7 @@ struct SurfaceSilhouetteAnalyticTaylor {
         case let .analytic(value):
             switch value {
             case let .plane(origin, normal):
-                let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
+                let basis = try OriginalStoredPlaneBasis.basis(normal,tolerance:tolerance)
                 return try position(origin)
                     .adding(vector(basis.u).multiplied(by: parameter(box.u, alongU: true), consumeWork: consumeWork, consumeStorage: consumeStorage), consumeWork: consumeWork, consumeStorage: consumeStorage)
                     .adding(vector(basis.v).multiplied(by: parameter(box.v, alongU: false), consumeWork: consumeWork, consumeStorage: consumeStorage), consumeWork: consumeWork, consumeStorage: consumeStorage)

@@ -9,21 +9,18 @@ public struct OriginalAngularTransportSurface3D: Hashable, Sendable {
     package let coefficients: OriginalAffineWordHarmonicSurfaceCoefficients
 
     // FIXME(INCOMPLETE_IMPLEMENTATION): Authored physical-radian surface charts
-    // consume direct cylinder/sphere/torus harmonic sources. Physical latitude
-    // boundary carriers, cone slope law and general inverse/image charts must be
-    // connected before declaring the complete foreign angular domain admitted.
+    // consume direct cylinder/sphere/torus harmonic sources. Source DI now retains exact physical latitude boundaries and cone slope
+    // laws. General inverse/image relation consumers still require migration before
+    // full foreign angular relation consumption can be declared complete.
     public init<B: RationalAlgebraAdmitting>(source: Surface3D, uTransport: OriginalAngularParameterTransport,
         vTransport: OriginalAngularParameterTransport, tolerance: ModelingTolerance, usage: inout B) throws {
         try tolerance.validate(); try uTransport.validate(usage: &usage); try vTransport.validate(usage: &usage)
         self.source = source; self.uTransport = uTransport; self.vTransport = vTransport
         if case .cylinder = source, !vTransport.isIntrinsic { throw GeometryConversionError.invalidInput("Cylinder height is not an angular coordinate.") }
+        if case .analytic(.cone) = source, !vTransport.isIntrinsic { throw GeometryConversionError.invalidInput("Cone V is an original scalar coordinate.") }
         if case .analytic(.cylinder) = source, !vTransport.isIntrinsic { throw GeometryConversionError.invalidInput("Cylinder height is not an angular coordinate.") }
-        if case .analytic(.sphere) = source, !vTransport.isIntrinsic {
-            // FIXME(INCOMPLETE_IMPLEMENTATION): Foreign physical latitude
-            // requires retained non-binary closed pole endpoints before this
-            // source can publish its whole domain; intrinsic latitude remains valid.
-            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
-                message: "Physical-radian sphere latitude needs its original pole endpoint carrier.")
+        if case .analytic(.sphere) = source,vTransport.isNormalizedArc {
+            try vTransport.requireSphereLatitude(over:.init(lower:0,upper:1),consumeWork:{ try usage.consumeExactWork(1) })
         }
         let identity = try OriginalAffineOperationWord(operation: .forward(try AffineTransform3D(basisX: .unitX, basisY: .unitY, basisZ: .unitZ, translation: .zero)), tolerance: tolerance,
             maximumDepth: 0, usage: &usage).prepared(usage: &usage)

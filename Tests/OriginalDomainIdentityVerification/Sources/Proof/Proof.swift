@@ -3,6 +3,10 @@ import DomainFixtures
     static func main() throws {
         try FamilyQueryFixtures.witnessesAndInjection()
         try FiniteFamilyQueryFixtures.completeSelection()
+        try PiDomainFixtures.exactPiAndFailures()
+        try PrimitiveDomainFixtures.wholeLineAndPlane()
+        try AnalyticDomainFixtures.intrinsicWholeDomains()
+        try AnalyticDomainFixtures.physicalPhasePeriodsAndPoles()
         try DomainFixtures.runAll()
         try TransportFixtures.affineAndComposition()
         try TransportFixtures.periodsAndRefusal()

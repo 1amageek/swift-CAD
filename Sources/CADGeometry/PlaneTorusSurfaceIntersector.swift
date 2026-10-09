@@ -126,6 +126,7 @@ struct PlaneTorusSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
+        try plane.requireLegacyUnitNormal(tolerance: tolerance)
         let axisProjection = plane.normal.dot(torus.axis)
         let radialNormal = plane.normal - torus.axis * axisProjection
         let radialNormalLength = radialNormal.length

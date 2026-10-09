@@ -125,3 +125,12 @@ exact closed traversal. This chart is distinct from the untrimmed intrinsic
 primitive basis and does not grant a binary physical-radian period witness.
 
 Numerical canonical harmonic candidates are the midpoint of the original symbolic-phase harmonic enclosure. Exact quarter-turn values are identities of that continuous phase law. Reduced-label libm evaluation alone is not the public candidate producer. The valueBounds port retains the actual outward error for caller proof; legacy numerical facades use the same law with no new private allowance.
+
+Physical sphere latitude uses the inverse image of mathematical `[-pi/2,pi/2]`.
+The exact source support and collapsed fibers are owned by
+[OriginalSourceIssuance](../OriginalSourceIssuance/DESIGN.md). Numerical point and
+jet requests admit their complete phase interval against certified pi bounds;
+outside support or an unresolved boundary propagates failure. Normalized arcs
+include all retained integral turns when checking whole latitude support. Cone
+longitude transports retain scalar V and the separately authored physical slope;
+the shared harmonic coefficient producer owns their evaluation.

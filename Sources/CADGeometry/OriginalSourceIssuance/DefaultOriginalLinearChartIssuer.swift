@@ -16,21 +16,19 @@ public struct DefaultOriginalLinearChartIssuer<Source: OriginalLinearSourceReadi
             guard source.owns(chart) else { throw OriginalSourceIssuanceFailure.foreignBinding }
             guard chart.selection.lower.isFinite, chart.selection.upper.isFinite,
                 chart.selection.lower <= chart.selection.upper else { throw OriginalSourceIssuanceFailure.invalidChart }
+            let whole = try DefaultOriginalWholeLinearLawIssuer<Source,Field>().issue(source:source,field:field,limits:limits,using:&admission)
             let ring = try ExactPolynomialDomain(field: copy field, variableCount: 1, using: &admission)
             let t = try ring.variable(0, using: &admission)
             let one = try ring.constant(field.integer(1, using: &admission), using: &admission)
             try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: ExactPolynomial<Field>.self))
             var laws: [ExactPolynomial<Field>] = []; laws.reserveCapacity(4)
-            var nonzeroDirection = false
             for axis in 0..<3 {
                 try admission.consumeWork(2)
-                let origin = try field.binary64(exactly: source.original.originCoordinate(in: axis), using: &admission)
-                let direction = try field.binary64(exactly: source.original.directionCoordinate(in: axis), using: &admission)
-                if try field.sign(of: direction, using: &admission) != .zero { nonzeroDirection = true }
+                let origin = whole.origin[axis]
+                let direction = whole.direction[axis]
                 laws.append(try ring.adding(ring.constant(origin, using: &admission),
                     ring.scaled(t, by: direction, using: &admission), using: &admission))
             }
-            guard nonzeroDirection else { throw OriginalSourceIssuanceFailure.invalidSource }
             laws.append(one)
             try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalSourceParameterInterval<Field.Value>.self))
             let support = [OriginalSourceParameterInterval(lower:

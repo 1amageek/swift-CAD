@@ -924,3 +924,85 @@ Design completeness means these boundaries and gates are fixed. Implementation
 completeness requires every row above, without counting unsupported issuer families
 or whole-seven requirements as completed. `DIA.4.I` remains open for its other
 boundary/self consumers after this composition handoff completes.
+
+### Whole primitive coordinate laws (DI M3)
+
+The whole linear law imports original origin/direction once, rejects an exactly
+zero direction, and represents `O + D*t` on all real authored t. Its domain is
+unbounded and is independent of the older finite rational chart selection.
+`OriginalLinearSourceReading` is the authority for this generic coordinate-law
+capability and permits every finite nonzero original direction, including a
+nonunit direction with its original parameter scale. This is a whole `O+D*t`
+position law, not a shape descriptor. The existing `Line3D` and
+`AnalyticCurve3D.line` representations separately require unit directions;
+`OriginalLinearCurveSnapshotProvider` retains their actual validation contract
+and therefore rejects a nonunit `Curve3D` input. M3 neither widens that legacy
+representation nor treats a rejected Geometry input as a successful source.
+Independent generic-source fixtures prove nonunit scale, while the production
+Geometry fixtures prove the two valid unit-direction representation handoffs.
+Stored-N plane providers accept raw/analytic N+origin planes with no explicit U
+axis. The exact basis receipt owns the whole normalized plane law. The numeric
+plane basis and inverse projection use the same smaller-component reference-axis
+rule; numeric candidates are not reused as exact source coefficients. An explicit
+Plane3D.uDirection retains its own authored authority and is not admitted by the
+N-only provider.
+
+The analytic coordinate capability stores a polynomial in *defined symbolic
+coordinate leaves*, with each leaf tied to an original source axis: authored t,
+intrinsic sine/cosine, hyperbolic sine/cosine, or physical sine/cosine of the
+retained cone half-angle. This is an explicit complete original parametric law,
+not an implicit image predicate. The immutable source provider copies the actual
+family's frame and defining values; the issuer imports them before arithmetic,
+checks frame determinant and radius/focal positivity, and retains all original
+branches. Hyperbola means its original cosh/sinh branch; cone v ranges over all
+real numbers, and v=0 retains every U. Sphere closed latitude boundaries retain
+all longitude representatives. Intrinsic periods are the exact binary label
+period used by CanonicalSphereAngularPhase, never mathematical physical 2*pi.
+
+| Law | Symbolic pullback into retained affine frame | Whole support |
+|---|---|---|
+| Circle/ellipse | `(a*cos_I(t),b*sin_I(t),0)` | real t |
+| Hyperbola | `(a*cosh(t),b*sinh(t),0)` | real t, original positive transverse branch |
+| Parabola | `(t*t/(4*f),t,0)` | real t |
+| Cylinder | `(r*cos_I(u),r*sin_I(u),v)` | real U,V |
+| Cone | `(v*sin(a)*cos_I(u),v*sin(a)*sin_I(u),v*cos(a))` | real U,V, both nappes and apex fiber |
+| Sphere | `(r*cos_I(v)*cos_I(u),r*cos_I(v)*sin_I(u),r*sin_I(v))` | real U, closed intrinsic latitude |
+| Torus | `((R+r*cos_I(v))*cos_I(u),(R+r*cos_I(v))*sin_I(u),r*sin_I(v))` | real U,V |
+
+Physical angular wrappers use the separately selected `OriginalPiGenerating`
+capability described below. Original rational gain/offset and normalized arc
+endpoints/turns remain retained; exact periods are `2*pi/abs(gain)` and sphere
+latitude endpoints are the inverse images of exact `±pi/2`. The intrinsic-only
+field explicitly refuses physical sources. Normalized physical arcs own `[0,1]`
+and family members first clip the inverse translation to actual source support.
+This avoids manufacturing an out-of-support image before the exact restriction.
+
+The production snapshot ports retain the actual `Curve3D`/`Surface3D`, copy their
+original parameter frame, and issue this law without a separate image producer.
+The existing harmonic surface producer also evaluates physical cone longitude
+with the original physical half-angle and scalar V; physical sphere latitude is
+admitted over its actual phase support. Numerical latitude endpoint uncertainty
+fails explicitly rather than clipping to a binary approximation of a pole.
+Legacy numerical analytic SSI solvers keep their unit-normal precondition at
+their consumer boundaries; scaled N is valid source/evaluation authority, but
+cannot silently enter their unit-distance formulas.
+
+### Exact physical-period coefficient carrier
+
+M3's physical angular support requires mathematical pi, not the dyadic intrinsic
+label Double.pi. OriginalPiGenerating extends the existing L0 arithmetic,
+ordering and import ports with an exact pi generator. OriginalPiScalarDomain is
+the source-level ordered field Q(pi): immutable rational polynomials in pi retain
+one owner and a nonzero polynomial denominator. Transcendence of mathematical pi
+makes formal polynomial zero equivalent to exact scalar zero, so no unresolved
+ordering becomes zero. Sign is certified by exact rational interval evaluation
+and successively tighter Machin enclosures pi=16*atan(1/5)-4*atan(1/239); alternating
+series remainder bounds include the mathematical value. Refinement uses the same
+caller work/storage/depth/cancel admission and explicitly fails on exhaustion.
+There is no floating candidate, new L0-L5 engine, shared mutable refinement or
+cache. Exact imports between pi owners check and transfer rational coefficients
+into the receiving polynomial owner, retaining source values for their lifetime.
+Physical periods and pole endpoints can therefore carry 2*pi/gain and pi/(2*gain)
+without claiming a binary64 endpoint is exact. Dedicated behavioral fixtures own
+zero/cancellation, rational separation of pi, arithmetic, reciprocal, owner import,
+period cancellation and explicit independent resource failures.

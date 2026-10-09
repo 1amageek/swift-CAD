@@ -21,6 +21,7 @@ struct PlaneConeSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
+        try plane.requireLegacyUnitNormal(tolerance: tolerance)
         let basis = try analyticOrthonormalBasis(plane.normal, tolerance: tolerance)
         let cosineSquared = pow(cos(cone.halfAngle), 2.0)
         let originOffset = plane.origin - cone.apex

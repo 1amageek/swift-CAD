@@ -10,6 +10,8 @@ struct PlanePlaneSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
+        try first.requireLegacyUnitNormal(tolerance: tolerance)
+        try second.requireLegacyUnitNormal(tolerance: tolerance)
         let cross = first.normal.cross(second.normal)
         if cross.length <= tolerance.angle {
             let residual = abs((second.origin - first.origin).dot(first.normal))

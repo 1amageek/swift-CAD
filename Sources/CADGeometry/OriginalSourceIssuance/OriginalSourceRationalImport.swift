@@ -1,4 +1,7 @@
-import CADCore
+#if ORIGINAL_SOURCE_ISOLATED_VERIFICATION
+import L0
+import L1
+#endif
 
 /// Exact canonical rational transfer into a caller-selected coefficient field.
 enum OriginalSourceRationalImport {

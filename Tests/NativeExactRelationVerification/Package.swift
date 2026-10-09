@@ -1,7 +1,12 @@
 // swift-tools-version: 6.4
 import PackageDescription
+import Foundation
+let collectionDependency: Package.Dependency = {
+    if let path = ProcessInfo.processInfo.environment["CAD_COLLECTIONS_PATH"] { return .package(path: path) }
+    return .package(url: "https://github.com/apple/swift-collections", exact: "1.5.1")
+}()
 let package = Package(name: "NativeExactRelationVerification", platforms: [.macOS(.v15), .custom("wasi", versionString: "0")], dependencies: [
- .package(path: "/Users/1amageek/.codex/worktrees/occt-parity/swift-CAD/.build/checkouts/swift-collections")
+ collectionDependency
 ], targets: [
  .target(name: "CADCore", dependencies: [.product(name: "HashTreeCollections", package: "swift-collections")]),
  .target(name: "CADGeometry", dependencies: ["CADCore"]),
@@ -14,5 +19,7 @@ let package = Package(name: "NativeExactRelationVerification", platforms: [.macO
  .unsafeFlags(["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"], .when(platforms: [.custom("wasi")]))]),
  .executableTarget(name: "CADIntersectionPortabilitySmoke", dependencies: ["CADCore", "CADGeometry"],
  linkerSettings: [.unsafeFlags(["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"], .when(platforms: [.custom("wasi")]))]),
+ .target(name:"NativePrimitiveSourceFixtures",dependencies:["CADCore","CADGeometry"],path:"Sources/M3Fixtures"),
+ .executableTarget(name:"NativePrimitiveSourceProof",dependencies:["NativePrimitiveSourceFixtures"],path:"Sources/M3Proof"),
  .testTarget(name: "NativeExactTests", dependencies: ["NativeExactFixtures"], path: "Tests")
 ])

@@ -1,0 +1,14 @@
+Building for debugging...
+[Planning 239 / 239]
+[Starting]
+[53 / 104] L0
+[65 / 108]
+[71 / 108] L1
+[83 / 112] L1
+[89 / 112] SourceIssuer
+[98 / 114] DI
+[107 / 116] DomainFixtures
+[116 / 118] DomainProof-product
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalDomainIdentityVerification/Package.swift: DomainProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[118 / 118] DomainProof-product
+Build complete! (14.30秒)

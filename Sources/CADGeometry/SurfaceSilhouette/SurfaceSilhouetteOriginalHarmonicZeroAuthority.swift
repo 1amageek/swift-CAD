@@ -10,6 +10,14 @@ struct SurfaceSilhouetteOriginalHarmonicZeroAuthority: Sendable {
         usage: inout SurfaceSilhouetteUsage) throws {
         self.original = original
         let source = original.originalNormalGauge
+        // FIXME(INCOMPLETE_IMPLEMENTATION): The new original physical cone source
+        // retains its full UV law. This silhouette consumer cannot yet compile
+        // the required physical half-angle coefficient field into its exact zero
+        // relation and must refuse rather than treating a cone as a torus.
+        guard source.kind != .cone else {
+            throw KernelError(phase:.geometry,code:.unsupportedCapability,tolerance:nil,
+                message:"Original transported cone silhouette requires its physical slope coefficient field.")
+        }
         var admission = SurfaceSilhouetteAlgebraicAdmission(usage: usage)
         defer { usage = admission.usage }
         let frame = try source.word.originalNormalizedFrame(usage: &admission)
@@ -94,7 +102,7 @@ struct SurfaceSilhouetteOriginalHarmonicZeroAuthority: Sendable {
         try RationalAlgebraStorage.retain(count, of: Element.self, usage: &scoped)
         var values: [Element] = []; values.reserveCapacity(count)
         switch source.kind {
-        case .cylinder, .torus:
+        case .cylinder, .cone, .torus:
             values.append(try projected(cross(second, axis, usage: &scoped), usage: &scoped))
             let secondCoefficient = try projected(cross(first, axis, usage: &scoped), usage: &scoped)
             values.append(try secondCoefficient.negated(maximumDepth: depth, usage: &scoped))

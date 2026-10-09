@@ -30,3 +30,8 @@ import DomainFixtures
 @Test(.timeLimit(.minutes(1))) func chartFamilyWitnessesAndInjection() throws { try FamilyQueryFixtures.witnessesAndInjection() }
 
 @Test(.timeLimit(.minutes(1))) func finiteOriginalChartSelections() throws { try FiniteFamilyQueryFixtures.completeSelection() }
+@Test(.timeLimit(.minutes(1))) func mathematicalPiDomain() throws { try PiDomainFixtures.exactPiAndFailures() }
+@Test(.timeLimit(.minutes(1))) func wholeOriginalLineAndPlaneDomains() throws { try PrimitiveDomainFixtures.wholeLineAndPlane() }
+@Test(.timeLimit(.minutes(1))) func wholeOriginalAnalyticDomains() throws { try AnalyticDomainFixtures.intrinsicWholeDomains() }
+
+@Test(.timeLimit(.minutes(1))) func originalPhysicalAngularDomains() throws { try AnalyticDomainFixtures.physicalPhasePeriodsAndPoles() }

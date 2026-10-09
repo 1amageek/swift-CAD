@@ -21,6 +21,7 @@ struct BoundedPlaneConeSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection]? {
+        try plane.requireLegacyUnitNormal(tolerance: tolerance)
         let planeSurface = Self.planeSurface(firstSurface, secondSurface: secondSurface)
         let coneSurface = firstSurface == planeSurface ? secondSurface : firstSurface
         let containsApex = abs((cone.apex - plane.origin).dot(plane.normal))

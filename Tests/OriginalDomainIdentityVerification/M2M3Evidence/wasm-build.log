@@ -1,0 +1,61 @@
+Building for debugging...
+[Planning 235 / 239]
+[Starting]
+[54 / 118] L0
+[57 / 118] L0
+[63 / 118] L0
+[65 / 118] L0
+[67 / 118] L0
+[69 / 118] L0
+[71 / 118] L0
+[74 / 134] L1
+[75 / 135] L1
+[83 / 135] L1
+[85 / 135] SourceIssuer
+[90 / 135] L1
+[91 / 135] L1
+[92 / 135] L1
+[100 / 150] DI0
+[108 / 150] DI0
+[112 / 150] DI0
+[114 / 150] DI0
+[117 / 151]
+[120 / 167] SourceIssuer
+[122 / 167] SourceIssuer
+[127 / 167] SourceIssuer
+[129 / 167] SourceIssuer
+[130 / 167] SourceIssuer
+[133 / 167] SourceIssuer
+[135 / 167] SourceIssuer
+[136 / 167] SourceIssuer
+[137 / 167] SourceIssuer
+[138 / 167] DI
+[143 / 184] SourceIssuer
+[152 / 184] L2
+[153 / 184] L2
+[157 / 184] L2
+[160 / 184] L2
+[161 / 184] L2
+[162 / 184] L2
+[163 / 185] DI
+[165 / 201] DI
+[176 / 201] DI
+[178 / 201] DI
+[179 / 201] DI
+[180 / 201] DI
+[182 / 201] DI
+[185 / 201] DI
+[186 / 201] DI
+[187 / 201]
+[191 / 218] DomainFixtures
+[193 / 218] DomainFixtures
+[201 / 218] DomainFixtures
+[202 / 218] DomainFixtures
+[204 / 218] DomainFixtures
+[205 / 218] DomainProof-product
+[208 / 218] DomainFixtures
+[211 / 218]
+[219 / 222]
+[223 / 223] DomainProof-product
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalDomainIdentityVerification/Package.swift: DomainProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+Build complete! (10.55秒)

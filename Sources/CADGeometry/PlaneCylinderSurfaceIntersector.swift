@@ -21,6 +21,7 @@ struct PlaneCylinderSurfaceIntersector {
         secondSurface: Surface3D,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
+        try plane.requireLegacyUnitNormal(tolerance: tolerance)
         let axialProjection = plane.normal.dot(cylinder.axis)
         if abs(axialProjection) <= tolerance.angle {
             return try axialLines(

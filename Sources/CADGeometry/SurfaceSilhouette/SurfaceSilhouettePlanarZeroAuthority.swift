@@ -35,7 +35,7 @@ struct SurfaceSilhouettePlanarZeroAuthority {
                 v = try exact(basis.v, usage: &usage)
             }
         case let .analytic(.plane(_, normal)):
-            let basis = try analyticOrthonormalBasis(normal, tolerance: tolerance)
+            let basis = try OriginalStoredPlaneBasis.basis(normal,tolerance:tolerance)
             u = try exact(basis.u, usage: &usage)
             v = try exact(basis.v, usage: &usage)
         case .cylinder, .analytic, .bSpline, .procedural: return nil

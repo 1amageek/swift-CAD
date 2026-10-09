@@ -4,6 +4,17 @@ enum CanonicalAnalyticSurface: Sendable {
     struct Plane: Sendable {
         let origin: Point3D
         let normal: Vector3D
+
+        /// Legacy numerical solvers own a unit-normal precondition; source
+        /// coordinate issuance and plane evaluation accept any nonzero normal.
+        func requireLegacyUnitNormal(tolerance: ModelingTolerance) throws {
+            do { try normal.validateUnitLength(tolerance: tolerance) }
+            catch {
+                throw KernelError(phase: .geometry, code: .unsupportedCapability,
+                    tolerance: tolerance,
+                    message: "This analytic intersection solver requires a unit plane normal.")
+            }
+        }
     }
 
     struct Cylinder: Sendable {
