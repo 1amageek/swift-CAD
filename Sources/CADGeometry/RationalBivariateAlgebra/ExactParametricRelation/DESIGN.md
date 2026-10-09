@@ -153,7 +153,18 @@ CS requires one and two local parameters; SSI requires two and two, independentl
 of each graph's auxiliary count. Combined order is all first/second parameters,
 then first/second auxiliaries. The same injective placement remaps every original
 polynomial, predicate instruction and domain. XYZ equality, both W exclusions and
-both original predicates are conjoined. Coefficient-family checks run even for empty
+both original predicates are conjoined. The existing nonzero-denominator exact
+division optimization applies here too: raw XYZ equations and division identities
+are retained, and no guard is discarded. XYZ position expressions do not themselves
+request sign invariance: only atoms referenced by original predicate instructions,
+W guards and the three reduced equalities enter the solver source. Flat conjunctive
+input predicates may additionally supply an equality G=0. The existing polynomial
+division of W*E by G proves W*E=G*Q+R; under the retained W!=0 and G=0, E=0 iff R=0.
+Only a strict total-degree decrease is accepted, with the equation, nonzero guard,
+equality guard, dividend and division retained. OR/NOT predicates do not enable
+this optimization. No new root or decomposition engine is introduced. Original graphs
+and coordinate placements remain retained; law-index maps mark omitted position
+laws as -1 and preserve every referenced predicate atom. Coefficient-family checks run even for empty
 or zero graphs. Original maps/predicates/layouts remain retained immutable owners.
 
 Resolution decomposes/selects the full lifted relation once, then consumes L4's
@@ -162,5 +173,11 @@ those components. The output exposes projected parameter topology and the retain
 complete lifted correspondence; geometric image/fiber dimensions remain L6. A
 Topology conformer must explicitly provide the new projection requirement. Work,
 storage, depths, cell allowances and final cancel remain checked and cumulative.
+A graph source retains the maximum depth of both original predicates, raw equations,
+and every retained division/remainder proof, even when normalized laws are zero.
+Resolution admits that depth before consuming the normalized L3 source. The result
+retains the maximum of source and projected-proof depths; admitProof rechecks it
+before reusing this L5 theorem. L4's exposed projection is its mathematical theorem,
+not permission to bypass the enclosing graph theorem's admission.
 Tests belong to L5ParametricRelationVerification; ordinary compatibility, guarded
 offset equations, multiple/free witnesses and failure propagation are behavioral.

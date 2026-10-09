@@ -641,5 +641,8 @@ is generated only to construct the required projected topology; the original lif
 problem is not re-solved. Operation-generated-cell allowance is deducted before
 closure/incidence, while work/storage/depth/cancel use one cumulative admission.
 All outputs are immutable; invalid prefix/owner, unresolved, limits and terminal
-cancel reject the whole operation. Fixtures belong to L4TopologyVerification.
+cancel reject the whole operation. When the retained prefix is the full coordinate space, identity projection shares
+the original selection and only constructs its topology and identity lift views;
+it does not repeat cell decomposition. Fixtures belong to L4TopologyVerification,
+and the L5 verification package links the same fixture source for cumulative execution.
 L5 consumes this contract through its topology protocol dependency.

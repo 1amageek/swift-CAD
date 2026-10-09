@@ -1219,7 +1219,9 @@ guards/layouts allocate through the same admission, retaining original proof dep
 The public checked layout partitions every solver coordinate exactly once into
 ordered local parameters and auxiliaries. Authored coordinates remain the retained
 correspondence capability, not an assumed inverse. Field import and unsupported
-representation failures propagate; physical-angle or XYZ-only implicit evidence
-is not admitted by these constructors. Tests live in OriginalSourceIssuanceVerification.
+representation failures propagate. Issuance does not certify L2 coefficient
+adaptation: physical-angle coefficients require a separate compatibility proof.
+XYZ-only implicit evidence does not supply the missing UV theorem. Tests live
+in OriginalSourceIssuanceVerification.
 The L5 contract is [ExactParametricRelation](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md);
 conversion and DI request selection remain B3.
