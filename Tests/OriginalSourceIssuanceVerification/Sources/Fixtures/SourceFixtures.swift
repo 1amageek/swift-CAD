@@ -213,6 +213,7 @@ public enum SourceFixtures {
         try exactLaws(); try selectedSpansAndTensor(); try periodicLaws(); try implicitImages()
         try ownership(); try failures(); try resources()
         try physicalAngleCoefficients(); try physicalAngleResources(); try coneImages(); try ruledLaws(); try spatialLaws(); try parameterImageLaws(); try coonsLaws(); try endpointDecisionDepths(); try retainedRootExtensions(); try directedTraversalLaws(); try scalarTransport()
+        try revolutionLaws()
         print("ORIGINAL_SOURCE_ISSUANCE_PROOF_OK")
     }
 }

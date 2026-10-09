@@ -1,0 +1,37 @@
+COMMAND: ['swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--scratch-path', '.build/di-m4-revolution-asan', '--build-system', 'native', '-j', '4', '--sanitize', 'address', '--filter', 'originalRevolutionSupply']
+Building for debugging...
+[0/7] Write sources
+[1/7] Write swift-version-7EE3F01B468E1A0A.txt
+[3/9] Emitting module SourceIssuer
+[4/9] Compiling SourceIssuer DefaultOriginalFiniteRevolutionLawPreparer.swift
+[5/22] Compiling SourceIssuerFixtures SourceFixtures+Cone.swift
+[6/22] Compiling SourceIssuerFixtures SourceFixtures+Implicit.swift
+[7/22] Compiling SourceIssuerFixtures SourceFixtures+Periodic.swift
+[8/22] Compiling SourceIssuerFixtures SourceFixtures+PhysicalAngle.swift
+[9/22] Emitting module SourceIssuerFixtures
+[10/25] Compiling SourceIssuerFixtures NativeSource.swift
+[11/25] Compiling SourceIssuerFixtures ParameterImageFixtures.swift
+[12/25] Compiling SourceIssuerFixtures RevolutionFixtures.swift
+[13/25] Compiling SourceIssuerFixtures RuledFixtures.swift
+[14/25] Compiling SourceIssuerFixtures CoonsFixtures.swift
+[15/25] Compiling SourceIssuerFixtures EndpointDepthFixtures.swift
+[16/25] Compiling SourceIssuerFixtures FiniteFamilyFixtures.swift
+[17/25] Compiling SourceIssuerFixtures FiniteNativeFamilyFixtures.swift
+[18/25] Compiling SourceIssuerFixtures SourceFixtures.swift
+[19/25] Compiling SourceIssuerFixtures SpatialFixtures.swift
+[20/25] Compiling SourceIssuerFixtures TraversalFixtures.swift
+[20/25] Write Objects.LinkFileList
+[22/25] Linking SourceIssuerProof
+[23/25] Linking OriginalSourceIssuanceVerificationPackageTests
+[24/25] Applying SourceIssuerProof
+Build complete! (4.26s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test originalRevolutionSupply() started.
+PASS M4 original revolution exact weighted/reversed generator law, intrinsic period, normalized raw axis, full child support/correspondence and independent failure/cancel
+􁁛  Test originalRevolutionSupply() passed after 0.017 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.018 seconds.
+
+EXIT: 0; SECONDS: 5.204

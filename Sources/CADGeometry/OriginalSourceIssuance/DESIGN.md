@@ -54,6 +54,8 @@ second definition of a sphere, plane, ruled surface or operation word.
 | [L2](../RationalBivariateAlgebra/ExactRealRoot/DESIGN.md) | conditional dependency | Existing selected algebraic coefficient field and transport | Needed only by genuinely algebraic coefficients | No geometric root solve; no silent field extension |
 | [Native Exact Relations](../NativeExactRelations/DESIGN.md) | coordinates with | Current Native preparation and coefficient transport | First consuming migration | DI owns source/request clipping; the consumer compiles and resolves the relation from retained source/domain receipts |
 | [Domain and Identity](../OriginalDomainIdentity/DESIGN.md) | used by | Retained binding, local support/transport and source period/pole authority | Specialized DI issuer implementations derive whole requested coverage | Source issuance never depends on DI; a local law or implicit image alone is not a complete source-domain cover |
+| [Original Revolution](../OriginalRevolution/DESIGN.md) | coordinates with | Original normalized generator and intrinsic Rodrigues law | Retains actual construction authority | Axis collapse is a valid position fiber, not regularity |
+| [Actual Revolution Verification](../../../Tests/OriginalRevolutionSourceVerification/DESIGN.md) | test owner | Actual construction/provider/point/derivative handoff | Compares retained source law against Geometry evaluation | Native evidence; independent law verification covers portable targets |
 | [Ruled Sources](../OriginalRuledIntersectionSources/DESIGN.md) | coordinates with | Original boundary laws and ruled composition | Existing exact source producer | Pair-equation adapters move to the relation owner when migrated |
 | [Coons Sources](../OriginalCoonsIntersectionSources/DESIGN.md) | coordinates with | Original boundary maps, corners and shared position formula | Existing exact source producer | Retain current corner and construction authority |
 | [Affine Sources](../OriginalAffineIntersectionSources/DESIGN.md) | coordinates with | Original word coefficients and homogeneous action | Existing exact source producer | Normalized words require their genuine coefficient field |
@@ -1012,3 +1014,53 @@ Physical periods and pole endpoints can therefore carry 2*pi/gain and pi/(2*gain
 without claiming a binary64 endpoint is exact. Dedicated behavioral fixtures own
 zero/cancellation, rational separation of pi, arithmetic, reciprocal, owner import,
 period cancellation and explicit independent resource failures.
+
+### M4 retained rational revolution supply
+
+The first M4 source capability composes an existing rational generator chart with
+`OriginalRevolutionSurface3D`'s original normalized directed generator and intrinsic
+angular law. The actual provider retains that construction and delegates generator
+binding to the existing traversal snapshot provider. The generic source port owns
+axis/origin bits, the authored closed U interval and the normalized generator owner.
+
+```text
+OriginalRevolutionSurface3D -> injected traversal/child snapshot
+                                       |
+retained original rational child law ---+-> checked exact Rodrigues pullback
+                                              |
+                         symbolic position / denominator / exact support
+                         child-local correspondence / intrinsic period
+                                              |
+                                  DI composition owner (separate intake)
+```
+
+The issuing port accepts the caller's exact positive axis length, checks its square
+against the sum of the original axis-component squares, and normalizes only in the
+chosen exact field. The generator's proved affine local-to-normalized parameter
+correspondence is inverted algebraically and substituted into its retained law.
+For `k=N/|N|`, `r=g(v)-O`, the exact law is
+`O+k*(k dot r)+(r-k*(k dot r))*cos_I(u)+(k cross r)*sin_I(u)`.
+Its polynomial leaves are the defined original intrinsic cosine/sine of U and
+original scalar V, not free image variables. The homogeneous denominator remains
+an explicit inherited position guard. The squared radial numerator is retained
+for later fiber/normal consumers; no regularity or parameter injectivity is implied.
+
+Each receipt covers the authored U interval times the exact intersection of its
+normalized generator chart range with `[0,1]`. A finite preparation port preserves
+all chart sides and checks that supplied generator charts cover the entire normalized
+interval before returning a sealed `OriginalFiniteRevolutionLawFamily`. Its internal
+initializer is available only to source issuance; the family retains every law,
+authoritative full U times `[0,1]`, source period, field and decision proof depth.
+Callers may inspect its immutable laws but cannot forge a smaller whole family.
+Re-admission checks the source, inherited decision depth and every retained law. A gap, foreign owner, incorrect
+axis length, unsupported nonlinear child correspondence, budget/depth/cancellation
+or chart-limit failure propagates explicitly. The typed rational-child capability
+is not a claim that non-rational generators or other M4 families are complete.
+No old construction/evaluator, domain guard, tolerance or source limit is replaced.
+
+The independent source verification owns exact weighted/reversed generator laws,
+axis normalization, support coverage, complete child correspondence, ownership,
+independent resource limits and cancellation. The actual-provider verification
+runs the original Geometry construction and confirms its numerical point/derivative
+handoff against the exact source law. DI receives the retained law/support/guard
+and generator bindings; DI contract changes require its separate owner approval.

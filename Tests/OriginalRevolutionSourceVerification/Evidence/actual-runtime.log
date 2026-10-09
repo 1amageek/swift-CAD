@@ -1,0 +1,4 @@
+COMMAND: ['.build/di-m4-revolution-actual/debug/OriginalRevolutionSourceProof']
+PASS M4 actual revolution retained weighted reversed generator, original raw axis, exact source law and public point/derivative/pole/depth/tolerance handoff
+
+EXIT: 0; SECONDS: 0.725
