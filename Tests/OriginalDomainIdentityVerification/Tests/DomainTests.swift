@@ -35,3 +35,6 @@ import DomainFixtures
 @Test(.timeLimit(.minutes(1))) func wholeOriginalAnalyticDomains() throws { try AnalyticDomainFixtures.intrinsicWholeDomains() }
 
 @Test(.timeLimit(.minutes(1))) func originalPhysicalAngularDomains() throws { try AnalyticDomainFixtures.physicalPhasePeriodsAndPoles() }
+
+@Test(.timeLimit(.minutes(1))) func composedSourceFamilies() throws { try ComposedDomainFixtures.completeFamilies() }
+@Test(.timeLimit(.minutes(1))) func composedSourcePullbackFailures() throws { try ComposedDomainFixtures.completePullbackAndFailures() }

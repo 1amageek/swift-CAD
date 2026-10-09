@@ -1,6 +1,8 @@
 import DomainFixtures
 @main struct DomainProof {
     static func main() throws {
+        try ComposedDomainFixtures.completeFamilies()
+        try ComposedDomainFixtures.completePullbackAndFailures()
         try FamilyQueryFixtures.witnessesAndInjection()
         try FiniteFamilyQueryFixtures.completeSelection()
         try PiDomainFixtures.exactPiAndFailures()

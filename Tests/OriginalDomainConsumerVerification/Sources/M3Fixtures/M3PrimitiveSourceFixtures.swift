@@ -16,6 +16,7 @@ public enum M3PrimitiveSourceFixtures {
         try .init(source:.init(remainingSourceDepth:2),maximumTransportDepth:16,maximumCharts:64,maximumFamilies:2,maximumIdentityProofs:0)
     }
     public static func verify() throws {
+        try M4AffineSourceFixtures.verify()
         try lines()
         try planes()
         try scaledPlaneConsumers()

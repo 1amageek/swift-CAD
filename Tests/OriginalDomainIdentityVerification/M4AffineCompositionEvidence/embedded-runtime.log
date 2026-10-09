@@ -1,0 +1,5 @@
+(node:1419) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS M4 affine source-domain composition: reversed/nested image, spatial word, directed traversal, infinite lifts and closed seams
+PASS M4 exact source pullback: uncovered scope refuses, singleton/empty succeed, foreign/zero/depth/work/storage/cancel fail
+PASS DI0-DI3 Native/intrinsic foundation: exact endpoint-sector algebra, canonical unions, unbounded sets, products, lifetime, owner/order refusal, budgets and terminal cancel

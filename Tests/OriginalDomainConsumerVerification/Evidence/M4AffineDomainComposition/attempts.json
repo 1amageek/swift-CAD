@@ -1,0 +1,138 @@
+[
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeDomainFamilyProof"
+    ],
+    "elapsed_seconds": 16.51731004100293,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativePrimitiveSourceProof"
+    ],
+    "elapsed_seconds": 2.387764875020366,
+    "exit_code": 1
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeDomainFamilyProof"
+    ],
+    "elapsed_seconds": 1.5267581660300493,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativePrimitiveSourceProof"
+    ],
+    "elapsed_seconds": 2.4061979170073755,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/out/Products/Debug/NativeDomainFamilyProof"
+    ],
+    "elapsed_seconds": 7.196674458042253,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/out/Products/Debug/NativePrimitiveSourceProof"
+    ],
+    "elapsed_seconds": 0.6732194579672068,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeDomainFamilyProof"
+    ],
+    "elapsed_seconds": 17.134173333994113,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativePrimitiveSourceProof"
+    ],
+    "elapsed_seconds": 2.6580071250209585,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/out/Products/Debug/NativeDomainFamilyProof"
+    ],
+    "elapsed_seconds": 7.7198529170127586,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/out/Products/Debug/NativePrimitiveSourceProof"
+    ],
+    "elapsed_seconds": 0.7246492499834858,
+    "exit_code": 0
+  }
+]

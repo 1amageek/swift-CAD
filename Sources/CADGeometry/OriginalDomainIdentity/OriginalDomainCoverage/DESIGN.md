@@ -347,3 +347,34 @@ selection fails unsupportedSourceProof, while a bounded nonperiodic native suppo
 can clip an unbounded request. Count/storage/work/depth/cancel admission remains
 one cumulative caller query. Publication occurs only after all templates finish;
 result limits and any unresolved arithmetic invalidate the entire returned array.
+
+### M4 affine child-domain composition
+
+`OriginalAffineChildDomainIssuing` prepares an immutable
+`OriginalAffineChildDomainCover` from a retained source command and an existing
+child `OriginalChartFamilyQuerying` contract. The parameter-image, spatial-action
+and directed-traversal implementations exclusively read their source-owner
+protocol. The parent support is the exact affine image of child support; traversal
+first intersects that support with the authored directed endpoint interval.
+Requests are intersected with support, then pulled back. Every selected preimage
+must be covered by the child's effective selection or preparation fails with
+`incompleteCoverage`. No root solving, coefficient regeneration or arbitrary
+caller-supplied support certificate is involved.
+
+The cover retains the child family, original parent binding, source depth and a
+checked affine correspondence. An occurrence retains the child's occurrence and
+this parent correspondence restricted to the selected request. Consumers must
+intersect the child's occurrence scope with the correspondence's local scope;
+the correspondence alone is not the individual chart's support. Member cycles
+use original parent axis roles; permutation and gain sign map them to the
+child-family cycles without narrowing their integer magnitude. Incident transforms original parent tuples and preserves every child incident,
+including both closed seam sides. No XYZ deduplication is performed. A composed
+occurrence is not interchangeable with a source law or a geometric solution.
+
+All storage and work use the caller admission; source and correspondence depth
+are re-admitted on queries. New output owner/index payloads are admitted while
+existing immutable family storage is shared. Zero gains, repeated axes, foreign
+child bindings, uncovered pullbacks, invalid roles, exhausted limits and cancel
+remain failures. Nonlinear correspondence and non-Cartesian material restrictions
+remain M4.P responsibilities, not affine fallback cases. Verification owner:
+`Tests/OriginalDomainIdentityVerification/Sources/Fixtures/ComposedDomainFixtures.swift`.

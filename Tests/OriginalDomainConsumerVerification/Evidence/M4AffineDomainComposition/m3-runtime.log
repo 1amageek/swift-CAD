@@ -1,0 +1,4 @@
+PASS M4 actual weighted curve/image surface swapped axes, spatial action, exact gains and reversed root-span domain handoff
+PASS M3 scaled-N numerical dispatch refuses before false coincidence; source UV remains valid
+PASS M3 exact physical source periods and actual point/derivative domain checks
+PASS M3 actual primitive sources, stored-N UV, original physical wrappers

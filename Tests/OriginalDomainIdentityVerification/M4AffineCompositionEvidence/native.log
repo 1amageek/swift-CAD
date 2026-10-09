@@ -1,0 +1,88 @@
+Building for debugging...
+[Computing dependencies]
+[Pre-planning 1 / 298]
+[Planning deferred tasks]
+[1 / 5] L0
+[3 / 7] L1
+[6 / 11] L2
+[7 / 11] L2
+[9 / 13] SourceIssuer
+[11 / 15] DI
+[12 / 16] DI
+[17 / 21] DomainFixtures
+[18 / 22] DomainFixtures
+[26 / 29] SourceIssuer
+[28 / 32] DI
+[30 / 33] DI
+[31 / 35] DomainFixtures
+[35 / 38] DomainTests-product
+[37 / 38] DomainTests-product
+[38 / 41] DomainTests-product
+[43 / 45] DomainDependencyProbe-product
+[45 / 45] DomainDependencyProbe-product
+[48 / 49] DomainProof-product
+[49 / 49] DomainProof-product
+[50 / 52] DomainProof-product
+[55 / 55] DomainDependencyProbe-product
+Build complete! (7.19秒)
+Test Suite 'All tests' started at 2026-10-09 13:03:43.888.
+Test Suite 'All tests' passed at 2026-10-09 13:03:43.891.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.004) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test exactPeriodicLiftsAndRefusal() started.
+􀟈  Test rationalSharedDivisorPreservesCostAndFailures() started.
+􀟈  Test completeIntegerFamiliesAndTensorOwners() started.
+􀟈  Test sourceCollapsedSubsetsAndOneSidedBoundaries() started.
+􀟈  Test composedSourcePullbackFailures() started.
+􀟈  Test originalPhysicalAngularDomains() started.
+􀟈  Test originalStoredNormalPlaneBasisAndUV() started.
+􀟈  Test explicitFailuresAndAdmission() started.
+􀟈  Test completeFiniteCoversAndHoles() started.
+􀟈  Test wholeOriginalAnalyticDomains() started.
+􀟈  Test productsAndRetainedOwners() started.
+􀟈  Test wholeOriginalLineAndPlaneDomains() started.
+􀟈  Test intrinsicPolesAndPhysicalMeaningRefusal() started.
+􀟈  Test allEndpointSectors() started.
+􀟈  Test finiteOriginalChartSelections() started.
+􀟈  Test chartFamilyWitnessesAndInjection() started.
+􀟈  Test completeSourceDomainChartHandoff() started.
+􀟈  Test selectedRootSharedDivisorRetainsLocalInverseLaws() started.
+􀟈  Test scaledStoredNormalsAndExactPlaneUV() started.
+􀟈  Test scopedIdentityAndExactPeriodOrbits() started.
+􀟈  Test immutableReadersAndTaskCancellation() started.
+􀟈  Test composedSourceFamilies() started.
+􀟈  Test verifyEntireDeclaredBoundary() started.
+􀟈  Test sourceAffineCorrespondence() started.
+􀟈  Test mathematicalPiDomain() started.
+􀟈  Test canonicalDisconnectedUnboundedSets() started.
+PASS M4 exact source pullback: uncovered scope refuses, singleton/empty succeed, foreign/zero/depth/work/storage/cancel fail
+􁁛  Test explicitFailuresAndAdmission() passed after 0.079 seconds.
+􁁛  Test productsAndRetainedOwners() passed after 0.079 seconds.
+􁁛  Test exactPeriodicLiftsAndRefusal() passed after 0.079 seconds.
+􁁛  Test wholeOriginalLineAndPlaneDomains() passed after 0.079 seconds.
+􁁛  Test scopedIdentityAndExactPeriodOrbits() passed after 0.079 seconds.
+􁁛  Test rationalSharedDivisorPreservesCostAndFailures() passed after 0.079 seconds.
+􁁛  Test completeSourceDomainChartHandoff() passed after 0.079 seconds.
+􁁛  Test intrinsicPolesAndPhysicalMeaningRefusal() passed after 0.079 seconds.
+􁁛  Test completeFiniteCoversAndHoles() passed after 0.079 seconds.
+􁁛  Test composedSourcePullbackFailures() passed after 0.079 seconds.
+􁁛  Test sourceCollapsedSubsetsAndOneSidedBoundaries() passed after 0.079 seconds.
+􁁛  Test canonicalDisconnectedUnboundedSets() passed after 0.075 seconds.
+􁁛  Test immutableReadersAndTaskCancellation() passed after 0.079 seconds.
+􁁛  Test sourceAffineCorrespondence() passed after 0.081 seconds.
+PASS M4 affine source-domain composition: reversed/nested image, spatial word, directed traversal, infinite lifts and closed seams
+􁁛  Test composedSourceFamilies() passed after 0.097 seconds.
+􁁛  Test verifyEntireDeclaredBoundary() passed after 0.106 seconds.
+􁁛  Test scaledStoredNormalsAndExactPlaneUV() passed after 0.112 seconds.
+􁁛  Test completeIntegerFamiliesAndTensorOwners() passed after 0.157 seconds.
+􁁛  Test allEndpointSectors() passed after 0.205 seconds.
+􁁛  Test chartFamilyWitnessesAndInjection() passed after 0.210 seconds.
+􁁛  Test originalStoredNormalPlaneBasisAndUV() passed after 0.220 seconds.
+􁁛  Test finiteOriginalChartSelections() passed after 0.225 seconds.
+􁁛  Test wholeOriginalAnalyticDomains() passed after 0.257 seconds.
+􁁛  Test selectedRootSharedDivisorRetainsLocalInverseLaws() passed after 0.329 seconds.
+􁁛  Test mathematicalPiDomain() passed after 0.463 seconds.
+􁁛  Test originalPhysicalAngularDomains() passed after 0.717 seconds.
+􁁛  Test run with 26 tests in 0 suites passed after 0.717 seconds.
