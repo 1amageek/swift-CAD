@@ -44,3 +44,6 @@ import DomainFixtures
 
 @Test(.timeLimit(.minutes(1))) func analyticScopedPeriodsAndFibers() throws { try AnalyticIdentityFixtures.intrinsicPeriodsAndFibers() }
 @Test(.timeLimit(.minutes(1))) func analyticPhysicalPeriodClippingAndFailures() throws { try AnalyticIdentityFixtures.physicalClippingAndFailures() }
+
+@Test(.timeLimit(.minutes(1))) func wholeRevolutionDomainFamiliesAndGuards() throws { try RevolutionDomainFixtures.completeFamiliesAndGuards() }
+@Test(.timeLimit(.minutes(1))) func wholeRevolutionDomainRefusal() throws { try RevolutionDomainFixtures.admissionAndRefusal() }

@@ -56,6 +56,28 @@ struct OriginalRevolutionSourceProof {
         let wrong=OriginalRevolutionSnapshotProvider(child:OriginalNativeCurveFamilySnapshotProvider(tolerance:badTolerance),field:initial,tolerance:badTolerance)
         do { _ = try wrong.snapshot(shape,limits:limits,using:&a);throw ExactScalarFailure.invalidEvidence }
         catch OriginalSourceIssuanceFailure.sourceRejected {}
+        let domainLimits = try OriginalDomainIdentityLimits(source:limits,maximumTransportDepth:16,
+            maximumCharts:4,maximumFamilies:1,maximumIdentityProofs:8)
+        let domainIssuer = DefaultOriginalRevolutionDomainIssuer<OriginalRevolutionSnapshot<BSplineCurve3D>,
+            OriginalTraversalChartSelection<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>,OriginalExactScalarDomain>()
+        let domainFrame = try domainIssuer.frame(family:receipts,limits:domainLimits,using:&a)
+        let domainCover = try domainIssuer.issue(request:domainFrame.fullSelection(limits:domainLimits,using:&a),
+            family:receipts,limits:domainLimits,using:&a)
+        let occurrences = try domainCover.incident(at:[zero,quarter],limits:domainLimits,using:&a)
+        try require(occurrences.count == 2)
+        for occurrence in occurrences {
+            try require(occurrence.transport.image.contains([zero,quarter],limits:domainLimits,using:&a))
+            let childLocal = try occurrence.law.parameterPolynomials.evaluated(
+                occurrence.law.generatorChartParameter.numerators[0],at:[zero,quarter],using:&a).value
+            try require(f.compare(childLocal,f.dividing(f.integer(3,using:&a),f.integer(4,using:&a),using:&a),using:&a) == .equal)
+        }
+        let poleOccurrences = try domainCover.incident(at:[zero,one],limits:domainLimits,using:&a)
+        try require(poleOccurrences.count == 2)
+        for occurrence in poleOccurrences {
+            try require(f.sign(of:occurrence.law.polynomials.evaluated(occurrence.law.radialSquaredNumerator,
+                at:[one,zero,one],using:&a).value,using:&a) == .zero)
+        }
+        print("PASS M4 actual revolution DI cover: exact source/provider/family handoff, all seam sides and collapsed original UV preserved")
         print("PASS M4 actual revolution retained weighted reversed generator, original raw axis, exact source law and public point/derivative/pole/depth/tolerance handoff")
     }
 }

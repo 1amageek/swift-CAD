@@ -378,3 +378,34 @@ child bindings, uncovered pullbacks, invalid roles, exhausted limits and cancel
 remain failures. Nonlinear correspondence and non-Cartesian material restrictions
 remain M4.P responsibilities, not affine fallback cases. Verification owner:
 `Tests/OriginalDomainIdentityVerification/Sources/Fixtures/ComposedDomainFixtures.swift`.
+
+## Sealed finite revolution family consumption
+
+OriginalRevolutionDomainIssuing consumes the source-owned
+OriginalFiniteRevolutionLawFamily. The source producer owns whole normalized generator
+coverage, original U bounds, exact normalized axis, homogeneous Rodrigues law,
+denominator/radial guards and intrinsic period; see
+[source issuance](../../OriginalSourceIssuance/DESIGN.md). DI never reconstructs that
+shape or accepts a caller-edited receipt array as proof of complete support.
+
+OriginalRevolutionDomainCover retains that family, full authoritative support,
+requested/effective selection and every chart side. Occurrences retain the original
+family/template index and a checked local-to-authored transport. Template angular
+support is the source fundamental period and V support is the original chart range.
+Only U can carry an integer lift. Before a map enters bounded authored support, its
+exact pullback is intersected with the selected request and template. Empty and
+singleton supports keep endpoint inclusion and original two-parameter arity.
+
+Incident queries use exact integer reduction and retain both closed angular seam
+sides and every generator knot side. Different parameters/XYZ are never deduplicated.
+No root solver, trigonometric sample or new generator coefficient preparation occurs.
+The family and all laws are admitted once per top-level query; internal occurrence
+construction uses that admitted immutable witness and the same caller budget.
+Source/scalar depth, chart/family count, generated storage/work and terminal cancel
+apply on every query. The guard remains attached to the retained source law; this
+domain cover does not claim an evaluated XYZ intersection or erase collapsed UV.
+
+Independent RevolutionDomainFixtures and actual production revolution handoff own
+M4.P.R evidence. Generic/non-rational generators, remaining procedural/non-Cartesian
+covers and full M4/M5/M6 acceptance remain separate open obligations. New cover state
+is immutable on every target, with no conditional ownership or shared mutable cache.
