@@ -1,0 +1,118 @@
+{
+  "inputs": {
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactOriginalScalarTransferring.swift": "cb779e00e4b65f89350ee83474c2ce3efa30fe0d2213e5dfdbb9009e1d1b9806",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactOriginalScalarTransferReceipt.swift": "9830a2337c4cdb3b3f5e29c4d83aadac7d9543261c4cd9916495cf409944cf26",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DefaultExactOriginalScalarTransporter.swift": "988b8fd598fff3c315a3272a3115905ac3d3cc4a221d484f6ea427690c632180",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/OriginalCoordinateTransportState.swift": "dbfb5f5c8abdd3530b9f208b61cd9045f7427a1c6380d0ba3b53740d159329a7",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/OriginalCoordinateTransportState+Roots.swift": "ac279ca486a66ad996921580b94fa766b313004b3a752facc75d4ebe4df7c36d",
+    "Tests/OriginalSourceIssuanceVerification/Sources/CoordinateProof/Proof.swift": "ed7ec560767c720320dd25b81e7f0c2925bcc5def8536740a2e8d27d597cecd6"
+  },
+  "commands": [
+    [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-sanitize=address",
+      "-Xlinker",
+      "-dead_strip",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "originalsourceissuanceverification",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-asan/out/Products/Debug",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-asan/out/Products/Debug",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan",
+      "-parse-as-library",
+      "-emit-library",
+      "-static",
+      "-emit-module",
+      "-module-name",
+      "OriginalCoordinateTransfer",
+      "-D",
+      "ORIGINAL_COORDINATE_ISOLATED_VERIFICATION",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/ExactOriginalScalarTransferring.swift",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/ExactOriginalScalarTransferReceipt.swift",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/DefaultExactOriginalScalarTransporter.swift",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/OriginalCoordinateTransportState.swift",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/OriginalCoordinateTransportState+Roots.swift",
+      "-emit-module-path",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/OriginalCoordinateTransfer.swiftmodule",
+      "-o",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libOriginalCoordinateTransfer.a"
+    ],
+    [
+      "ar",
+      "-rcs",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libL0.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-asan/out/Products/Debug/L0.o"
+    ],
+    [
+      "ar",
+      "-rcs",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libL1.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-asan/out/Products/Debug/L1.o"
+    ],
+    [
+      "ar",
+      "-rcs",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libDI0.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-asan/out/Products/Debug/DI0.o"
+    ],
+    [
+      "ar",
+      "-rcs",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libL2.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-asan/out/Products/Debug/L2.o"
+    ],
+    [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-sanitize=address",
+      "-Xlinker",
+      "-dead_strip",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "originalsourceissuanceverification",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-asan/out/Products/Debug",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-asan/out/Products/Debug",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan",
+      "-parse-as-library",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/Proof.swift",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libOriginalCoordinateTransfer.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libL0.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libL1.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libDI0.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/libL2.a",
+      "-o",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/CoordinateProof"
+    ],
+    [
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-asan/CoordinateProof"
+    ]
+  ],
+  "lowerPremise": {
+    "path": "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-asan/out/Products/Debug/L2.o",
+    "sha256": "6c981116aa4a17f12ecdc1423f606007f6fa6695b6de5bc5d8302dad70fb52a2",
+    "scope": "Compiled independent L0-L5 and exact domains. Runtime behavior is verified by the consuming proof separately."
+  },
+  "lane": "asan",
+  "artifact": "f685863f55012cdaa591da816bf090c08e64cd5e81215ddf86f24fc2e0e5a6fe",
+  "objects": {
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-asan/out/Products/Debug/L0.o": "12d28eec14bcb15660b6c4f7d9ad69ef294aef09c2c61af6a16981c9420d2b24",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-asan/out/Products/Debug/L1.o": "2506756ac1a4b35b3869e8c6ba7117ed925c6753168a4015c828550db23c0b59",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-asan/out/Products/Debug/DI0.o": "378b3f9e672765ae508bb99db40dd6461c2fb6bdd63ee8695dc2927feeea53e1",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-asan/out/Products/Debug/L2.o": "6c981116aa4a17f12ecdc1423f606007f6fa6695b6de5bc5d8302dad70fb52a2"
+  }
+}

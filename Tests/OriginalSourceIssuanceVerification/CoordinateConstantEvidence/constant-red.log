@@ -1,0 +1,9 @@
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: L0.ExactScalarFailure.resourceLimit(L0.ExactResource.work)
+Traceback (most recent call last):
+  File "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/Tests/OriginalSourceIssuanceVerification/Scripts/VerifyCoordinateTransfer.py", line 93, in <module>
+    run(['/usr/local/bin/node', str(root / 'Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs'), str(artifact)] if wasm else [str(artifact)])
+  File "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/Tests/OriginalSourceIssuanceVerification/Scripts/VerifyCoordinateTransfer.py", line 69, in run
+    subprocess.run(command, check=True, timeout=120)
+  File "/Library/Frameworks/Python.framework/Versions/3.12/lib/python3.12/subprocess.py", line 571, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/CoordinateProof']' died with <Signals.SIGTRAP: 5>.

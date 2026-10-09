@@ -1,0 +1,36 @@
+RUN 1 seconds 6.007
+PERF isolated 0.39878275 seconds work 306662 bytes 9524686
+PERF originalPoints 0.000492083 seconds work 361 bytes 17416
+PERF algebraicRelation 0.917831167 seconds work 726354 bytes 18647454
+PERF algebraicPoints 0.041946167 seconds work 47305 bytes 1199744
+PERF seamRelation 0.353030167 seconds work 363695 bytes 11126574
+PERF seamPoints 0.000630583 seconds work 1008 bytes 34556
+PERF foldedRelation 1.490993375 seconds work 1390179 bytes 34182056
+PERF foldedPoints 0.099474041 seconds work 129609 bytes 2863624
+PERF completeEmpty 6.4458e-05 seconds work 29 bytes 3008
+PERF emptyPoints 1.375e-05 seconds work 1 bytes 568
+PERF mixed 0.558226583 seconds work 704536 bytes 21338890
+RUN 2 seconds 4.082
+PERF isolated 0.216081458 seconds work 306662 bytes 9524686
+PERF originalPoints 0.00026825 seconds work 361 bytes 17416
+PERF algebraicRelation 0.583656375 seconds work 726354 bytes 18647454
+PERF algebraicPoints 0.0291995 seconds work 47305 bytes 1199744
+PERF seamRelation 0.248400792 seconds work 363695 bytes 11126574
+PERF seamPoints 0.000487292 seconds work 1008 bytes 34556
+PERF foldedRelation 1.107551833 seconds work 1390179 bytes 34182056
+PERF foldedPoints 0.069115917 seconds work 129609 bytes 2863624
+PERF completeEmpty 4.2625e-05 seconds work 29 bytes 3008
+PERF emptyPoints 9.042e-06 seconds work 1 bytes 568
+PERF mixed 0.479941666 seconds work 704536 bytes 21338890
+RUN 3 seconds 4.132
+PERF isolated 0.211883667 seconds work 306662 bytes 9524686
+PERF originalPoints 0.000271334 seconds work 361 bytes 17416
+PERF algebraicRelation 0.585815 seconds work 726354 bytes 18647454
+PERF algebraicPoints 0.030137 seconds work 47305 bytes 1199744
+PERF seamRelation 0.252162958 seconds work 363695 bytes 11126574
+PERF seamPoints 0.000544292 seconds work 1008 bytes 34556
+PERF foldedRelation 1.116408375 seconds work 1390179 bytes 34182056
+PERF foldedPoints 0.070654125 seconds work 129609 bytes 2863624
+PERF completeEmpty 4.1167e-05 seconds work 29 bytes 3008
+PERF emptyPoints 7.917e-06 seconds work 1 bytes 568
+PERF mixed 0.492825292 seconds work 704536 bytes 21338890

@@ -818,3 +818,25 @@ L2 value owner and attained depths; no geometric equations are solved again.
 An invocation-local table shares transferred owners. This addition changes no
 existing root-solving, field-import or selected-root contract. Its proof compiles
 only the new bridge against immutable cached L2 modules; it does not rebuild L2.
+The first base-context transfer admits its internal one-value source array before
+materialization, using checked typed payload bytes on the same caller admission.
+The L0 receipt shares that backing; reusing a mapped base context creates no new
+source array and receives no repeated payload admission. CoordinateProof verifies
+the first base transfer stops at this admission when only the output array fits,
+without deriving the expected limit from an execution-measured ledger total.
+
+A fraction evaluates its retained sparse polynomials before requesting a generator.
+Exponent-zero terms use only their exact parent coefficients; zero polynomials
+require no generator. A positive exponent requests the original context generator
+once, shared by numerator and denominator. Parent coefficients that themselves
+depend on a root still use the existing checked recursive transfer. This uses the
+issued canonical term powers, never numerical residuals or proximity. The returned
+value explicitly retains the maxima of source, context, calculation and produced
+value depths on both axes, even when its output field omits an unused extension.
+The transfer receipt retains the full original L2 source tower after caller inputs
+leave scope. Denominator division, destination depth policy, storage admission,
+entry/final cancellation and original selectors on necessary roots remain checked.
+Constant, zero, reduced rational and parent-dependent values are verified alongside
+unchanged nonconstant/nested-root fixtures and complete Native TUV composition.
+Performance compares identical source values and result guarantees with the same
+cached lower artifacts; work/storage reduction does not relax any caller limit.

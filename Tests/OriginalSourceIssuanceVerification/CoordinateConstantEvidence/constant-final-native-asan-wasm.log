@@ -1,0 +1,20 @@
+LANE native
+COORDINATE_SOURCE_STORAGE_OK pre-admission rejects before lower transport
+CONSTANT_BOUNDED work=53 bytes=536
+CONSTANT_TRANSFER_OK zero, rational, reduced-square, both retained depths, destination policy, released source and atomic failures
+PASS retained L2 selected root, fractions, repeated owner, original arithmetic and exact work boundary
+COORDINATE_TRANSFER_OK work=6157 bytes=130672
+LANE asan
+COORDINATE_SOURCE_STORAGE_OK pre-admission rejects before lower transport
+CONSTANT_BOUNDED work=53 bytes=536
+CONSTANT_TRANSFER_OK zero, rational, reduced-square, both retained depths, destination policy, released source and atomic failures
+PASS retained L2 selected root, fractions, repeated owner, original arithmetic and exact work boundary
+COORDINATE_TRANSFER_OK work=6157 bytes=130672
+LANE wasm
+(node:65277) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+COORDINATE_SOURCE_STORAGE_OK pre-admission rejects before lower transport
+CONSTANT_BOUNDED work=53 bytes=268
+CONSTANT_TRANSFER_OK zero, rational, reduced-square, both retained depths, destination policy, released source and atomic failures
+PASS retained L2 selected root, fractions, repeated owner, original arithmetic and exact work boundary
+COORDINATE_TRANSFER_OK work=6144 bytes=65584

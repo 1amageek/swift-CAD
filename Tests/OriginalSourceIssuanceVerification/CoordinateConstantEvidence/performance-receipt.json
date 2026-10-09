@@ -1,0 +1,300 @@
+{
+  "baselineCommit": "4226a1f79b397f111cefe1f338a61ab97341b7ba",
+  "baselineBridgeSha256": "dbfb5f5c8abdd3530b9f208b61cd9045f7427a1c6380d0ba3b53740d159329a7",
+  "changedBridgeSha256": "cb27b796018cfbec7c77f3edbf5acabe97791a1de794332d87e3b2b6e241a4f4",
+  "benchmarkInputs": {
+    "ScalarPerformance.swift": "fa3d5f9e46c48eaca4e2e54d03ba117c521170fc7ba39ccacf372d0b04cc9da0",
+    "stage-timing.patch": "0caf70782d5e16519e60a957649d0ced4d99deebafa50cb3ad15c21140b030b4",
+    "Tests/OriginalSourceIssuanceVerification/Sources/DomainProof/Proof.swift": "e4a7b5227cd5201c37ae15ecb5a59be79e8168138caec2079e70a2aa9f9d660c"
+  },
+  "afterLinkedProducts": {
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libOriginalCoordinateTransfer.a": "4ff04e66abd9167b1741c63176199bca5311370426cc5c88e7027aefd72cc2c8",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libL0.a": "b9b07346e694e85c46f1e259749284d3ed016026fbc2a2b0be34d1e7844260dc",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libL1.a": "37c0335bcf402555269dbece97fb038257b576a014b5dfdf32fb8c44d090c7ba",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libDI0.a": "f4bb7ce99905124499a15a7a6a272f58ec246b134f90782d4f9d8db032f2d1f0",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libL2.a": "c350e7afbe5a0932996cad50f748f9c35e46adc727a6a6bba1aeb6116cc9f0f2",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libIssuedMaps.a": "ef40a1764ae5d17e1b92dafdcc6cce6c9ac3b7825e4dcda5bfe6b3968a4a0fe3",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-domain-native/libDI.a": "a3bc39b5bd6fb58f042ebf490fd95682613e27632989450a311312b7c222b61b",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL0.a": "9826ba8c8e81d028caef753a8c2ec017ac13a41d6613f1857cb5a4dd5b72824d",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL1.a": "88dfadd7d6fce3369a40ecf96d9e4bcd2580bc00eec6ca5a7c002c0b401be06e",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libSourceIssuer.a": "32c11412b84542a5e275bd361d0bb0e901447b6e1608c806b2d94de5ef291031",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libDI0.a": "513f26c033dd6818754874c19caa9b14b682a55d05d0ff897557f48528fd54d2",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL2.a": "9f09d47e05119e07dab31b6d5e51c17a1ae60c86a58a405b1efe00905fad2589",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL3.a": "f82db5b17b4631cff3e121ed9baaedbdc35d3ac7c2a2ad3cb05b68c3f120f526",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL4.a": "db3c15b9c67c860346578f6a76d479a51bf173b95c176b44ac0adeedb4e5ff7b",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL5.a": "acf217438ff07c4c443f2612b3aae9ef43823fe36c76f4606e586ac8bdf66190"
+  },
+  "commands": {
+    "scalarCompile": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "originalsourceissuanceverification",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-native/out/Products/Debug",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-native/out/Products/Debug",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native",
+      "-parse-as-library",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/performance-check/ScalarPerformance.swift",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libOriginalCoordinateTransfer.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libL0.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libL1.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libDI0.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libL2.a",
+      "-o",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/performance-check/ScalarPerformance"
+    ],
+    "stagesCompile": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "originalsourceissuanceverification",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-domain-native",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-native/out/Products/Debug",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-native/out/Products/Debug",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-lower-native/out/Products/Debug",
+      "-parse-as-library",
+      "-D",
+      "SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/performance-check/StageProof.swift",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/NativeSource.swift",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libIssuedMaps.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-coordinate-native/libOriginalCoordinateTransfer.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-domain-native/libDI.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL0.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL1.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libSourceIssuer.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libDI0.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL2.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL3.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL4.a",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/handoff-map-native/libL5.a",
+      "-o",
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/performance-check/StageProof"
+    ],
+    "scalarRuntime": [
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/performance-check/ScalarPerformance"
+    ],
+    "stagesRuntime": [
+      "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/performance-check/StageProof"
+    ],
+    "timeoutSeconds": {
+      "compile": 30,
+      "runtime": 60
+    }
+  },
+  "measurements": {
+    "baseConstant": {
+      "before": {
+        "medianMilliseconds": 0.004667,
+        "work": 13,
+        "admittedStorageBytes": 536
+      },
+      "after": {
+        "medianMilliseconds": 0.00475,
+        "work": 13,
+        "admittedStorageBytes": 536
+      }
+    },
+    "rootWrappedConstant": {
+      "before": {
+        "medianMilliseconds": 2.807125,
+        "work": 5652,
+        "admittedStorageBytes": 129608
+      },
+      "after": {
+        "medianMilliseconds": 0.012709,
+        "work": 53,
+        "admittedStorageBytes": 536
+      }
+    },
+    "mixed3": {
+      "before": {
+        "medianMilliseconds": 3.0035000000000003,
+        "work": 5983,
+        "admittedStorageBytes": 130224
+      },
+      "after": {
+        "medianMilliseconds": 2.737083,
+        "work": 5873,
+        "admittedStorageBytes": 130192
+      }
+    },
+    "mixed12": {
+      "before": {
+        "medianMilliseconds": 3.267709,
+        "work": 7625,
+        "admittedStorageBytes": 133040
+      },
+      "after": {
+        "medianMilliseconds": 2.8125,
+        "work": 7119,
+        "admittedStorageBytes": 132896
+      }
+    },
+    "mixed48": {
+      "before": {
+        "medianMilliseconds": 4.487625,
+        "work": 13970,
+        "admittedStorageBytes": 144200
+      },
+      "after": {
+        "medianMilliseconds": 3.8239170000000002,
+        "work": 11934,
+        "admittedStorageBytes": 143624
+      }
+    },
+    "isolated": {
+      "before": {
+        "medianMilliseconds": 216.081458,
+        "work": 306662,
+        "admittedStorageBytes": 9524686
+      },
+      "after": {
+        "medianMilliseconds": 200.222375,
+        "work": 306662,
+        "admittedStorageBytes": 9524686
+      }
+    },
+    "originalPoints": {
+      "before": {
+        "medianMilliseconds": 0.27133399999999996,
+        "work": 361,
+        "admittedStorageBytes": 17416
+      },
+      "after": {
+        "medianMilliseconds": 0.26025000000000004,
+        "work": 361,
+        "admittedStorageBytes": 17416
+      }
+    },
+    "algebraicRelation": {
+      "before": {
+        "medianMilliseconds": 585.8149999999999,
+        "work": 726354,
+        "admittedStorageBytes": 18647454
+      },
+      "after": {
+        "medianMilliseconds": 551.117292,
+        "work": 726354,
+        "admittedStorageBytes": 18647454
+      }
+    },
+    "algebraicPoints": {
+      "before": {
+        "medianMilliseconds": 30.137,
+        "work": 47305,
+        "admittedStorageBytes": 1199744
+      },
+      "after": {
+        "medianMilliseconds": 26.759042,
+        "work": 47165,
+        "admittedStorageBytes": 1199704
+      }
+    },
+    "seamRelation": {
+      "before": {
+        "medianMilliseconds": 252.162958,
+        "work": 363695,
+        "admittedStorageBytes": 11126574
+      },
+      "after": {
+        "medianMilliseconds": 235.991083,
+        "work": 363695,
+        "admittedStorageBytes": 11126574
+      }
+    },
+    "seamPoints": {
+      "before": {
+        "medianMilliseconds": 0.544292,
+        "work": 1008,
+        "admittedStorageBytes": 34556
+      },
+      "after": {
+        "medianMilliseconds": 0.5224160000000001,
+        "work": 1008,
+        "admittedStorageBytes": 34556
+      }
+    },
+    "foldedRelation": {
+      "before": {
+        "medianMilliseconds": 1116.408375,
+        "work": 1390179,
+        "admittedStorageBytes": 34182056
+      },
+      "after": {
+        "medianMilliseconds": 1049.83275,
+        "work": 1390179,
+        "admittedStorageBytes": 34182056
+      }
+    },
+    "foldedPoints": {
+      "before": {
+        "medianMilliseconds": 70.654125,
+        "work": 129609,
+        "admittedStorageBytes": 2863624
+      },
+      "after": {
+        "medianMilliseconds": 67.48162500000001,
+        "work": 129130,
+        "admittedStorageBytes": 2863504
+      }
+    },
+    "completeEmpty": {
+      "before": {
+        "medianMilliseconds": 0.042624999999999996,
+        "work": 29,
+        "admittedStorageBytes": 3008
+      },
+      "after": {
+        "medianMilliseconds": 0.037625,
+        "work": 29,
+        "admittedStorageBytes": 3008
+      }
+    },
+    "emptyPoints": {
+      "before": {
+        "medianMilliseconds": 0.009042000000000001,
+        "work": 1,
+        "admittedStorageBytes": 568
+      },
+      "after": {
+        "medianMilliseconds": 0.007917,
+        "work": 1,
+        "admittedStorageBytes": 568
+      }
+    },
+    "mixed": {
+      "before": {
+        "medianMilliseconds": 492.82529200000005,
+        "work": 704536,
+        "admittedStorageBytes": 21338890
+      },
+      "after": {
+        "medianMilliseconds": 451.5905,
+        "work": 704536,
+        "admittedStorageBytes": 21338890
+      }
+    }
+  }
+}

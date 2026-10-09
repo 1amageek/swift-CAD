@@ -1,0 +1,25 @@
+CONSTANT baseConstant 0 6.4167e-05 seconds work 13 bytes 536
+CONSTANT baseConstant 1 6.292e-06 seconds work 13 bytes 536
+CONSTANT baseConstant 2 4.75e-06 seconds work 13 bytes 536
+CONSTANT baseConstant 3 4.458e-06 seconds work 13 bytes 536
+CONSTANT baseConstant 4 4.208e-06 seconds work 13 bytes 536
+CONSTANT rootWrappedConstant 0 2.2417e-05 seconds work 53 bytes 536
+CONSTANT rootWrappedConstant 1 1.3416e-05 seconds work 53 bytes 536
+CONSTANT rootWrappedConstant 2 1.2709e-05 seconds work 53 bytes 536
+CONSTANT rootWrappedConstant 3 1.2417e-05 seconds work 53 bytes 536
+CONSTANT rootWrappedConstant 4 1.2333e-05 seconds work 53 bytes 536
+SCALAR 3 0 0.002737083 seconds work 5873 bytes 130192 sameOwnerFinal 2.917e-06 seconds finalWork 14 finalBytes 352
+SCALAR 3 1 0.002860959 seconds work 5873 bytes 130192 sameOwnerFinal 3.125e-06 seconds finalWork 14 finalBytes 352
+SCALAR 3 2 0.003049208 seconds work 5873 bytes 130192 sameOwnerFinal 2.666e-06 seconds finalWork 14 finalBytes 352
+SCALAR 3 3 0.002596666 seconds work 5873 bytes 130192 sameOwnerFinal 2.625e-06 seconds finalWork 14 finalBytes 352
+SCALAR 3 4 0.002668125 seconds work 5873 bytes 130192 sameOwnerFinal 2.708e-06 seconds finalWork 14 finalBytes 352
+SCALAR 12 0 0.003013125 seconds work 7119 bytes 132896 sameOwnerFinal 7.166e-06 seconds finalWork 50 finalBytes 1216
+SCALAR 12 1 0.002805417 seconds work 7119 bytes 132896 sameOwnerFinal 6.917e-06 seconds finalWork 50 finalBytes 1216
+SCALAR 12 2 0.0028125 seconds work 7119 bytes 132896 sameOwnerFinal 7.083e-06 seconds finalWork 50 finalBytes 1216
+SCALAR 12 3 0.002814542 seconds work 7119 bytes 132896 sameOwnerFinal 7.166e-06 seconds finalWork 50 finalBytes 1216
+SCALAR 12 4 0.002809625 seconds work 7119 bytes 132896 sameOwnerFinal 7.209e-06 seconds finalWork 50 finalBytes 1216
+SCALAR 48 0 0.003639542 seconds work 11934 bytes 143624 sameOwnerFinal 2.3041e-05 seconds finalWork 194 finalBytes 4672
+SCALAR 48 1 0.003823917 seconds work 11934 bytes 143624 sameOwnerFinal 2.6417e-05 seconds finalWork 194 finalBytes 4672
+SCALAR 48 2 0.004362959 seconds work 11934 bytes 143624 sameOwnerFinal 2.5042e-05 seconds finalWork 194 finalBytes 4672
+SCALAR 48 3 0.00378825 seconds work 11934 bytes 143624 sameOwnerFinal 2.5334e-05 seconds finalWork 194 finalBytes 4672
+SCALAR 48 4 0.004188875 seconds work 11934 bytes 143624 sameOwnerFinal 2.4459e-05 seconds finalWork 194 finalBytes 4672
