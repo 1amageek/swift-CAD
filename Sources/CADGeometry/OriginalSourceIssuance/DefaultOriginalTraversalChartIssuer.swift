@@ -5,7 +5,7 @@ import L1
 
 /// Keeps child-local laws and clips through proved affine authored correspondence.
 public struct DefaultOriginalTraversalChartIssuer<Source: OriginalTraversalSourceReading,
-    ChildSelection: Sendable, Field: ExactScalarArithmetic & ExactScalarOrdering & ExactScalarImporting>: OriginalRationalChartIssuing
+    ChildSelection: Sendable, Field: ExactScalarArithmetic & ExactScalarOrdering & ExactScalarImporting>: OriginalCoefficientBoundChartIssuing
     where Field.Source == Field.Value, Source.Coefficient == Field.Value {
     public typealias Selection = OriginalTraversalChartSelection<Source.Child, ChildSelection, Field>
     public init() {}
@@ -13,17 +13,26 @@ public struct DefaultOriginalTraversalChartIssuer<Source: OriginalTraversalSourc
         chart: borrowing OriginalSourceChart<Source, Selection>, field: borrowing Field,
         limits: OriginalSourceIssuanceLimits, using admission: inout A
     ) throws(OriginalSourceIssuanceFailure) -> OriginalRationalChartReceipt<Source, Selection, Field> {
+        try issue(source: source, chart: chart, field: field,
+            coefficients: DefaultOriginalSourceCoefficientImporter<Field>(), limits: limits, using: &admission)
+    }
+    public func issue<C: OriginalSourceCoefficientImporting, A: ExactScalarAdmission & ~Copyable>(
+        source: borrowing OriginalSourceBinding<Source>, chart: borrowing OriginalSourceChart<Source, Selection>,
+        field: borrowing Field, coefficients: borrowing C, limits: OriginalSourceIssuanceLimits,
+        using admission: inout A
+    ) throws(OriginalSourceIssuanceFailure) -> OriginalRationalChartReceipt<Source, Selection, Field> where C.Field == Field {
+        let coefficients = copy coefficients
         let source = copy source, chart = copy chart, field = copy field
         do {
             return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { usage in
-                try Self.compose(source: source, chart: chart, field: field, limits: limits, using: &usage)
+                try Self.compose(source: source, chart: chart, field: field, coefficients: coefficients, limits: limits, using: &usage)
             }
         } catch { throw .init(preserving: error) }
     }
-    private static func compose<A: ExactScalarAdmission & ~Copyable>(
+    private static func compose<C: OriginalSourceCoefficientImporting, A: ExactScalarAdmission & ~Copyable>(
         source: borrowing OriginalSourceBinding<Source>, chart: borrowing OriginalSourceChart<Source, Selection>,
-        field: borrowing Field, limits: OriginalSourceIssuanceLimits, using admission: inout OriginalSourceProofAdmission<A>
-    ) throws -> OriginalRationalChartReceipt<Source, Selection, Field> {
+        field: borrowing Field, coefficients: borrowing C, limits: OriginalSourceIssuanceLimits, using admission: inout OriginalSourceProofAdmission<A>
+    ) throws -> OriginalRationalChartReceipt<Source, Selection, Field> where C.Field == Field {
         try admission.checkpoint(); try admission.consumeWork(1); try source.require(limits)
         guard source.owns(chart), source.original.originalChild.owns(chart.selection.child.chart) else {
             throw OriginalSourceIssuanceFailure.foreignBinding
@@ -36,8 +45,8 @@ public struct DefaultOriginalTraversalChartIssuer<Source: OriginalTraversalSourc
             child.parameterTransport.numerators.count == 1, child.parameterTransport.denominators.count == 1 else {
             throw OriginalSourceIssuanceFailure.invalidChart
         }
-        let start = try field.importing(source.original.originalStart, using: &admission)
-        let end = try field.importing(source.original.originalEnd, using: &admission)
+        let start = try coefficients.importing(source.original.originalStart, into: field, using: &admission)
+        let end = try coefficients.importing(source.original.originalEnd, into: field, using: &admission)
         let extent = try field.subtracting(end, start, using: &admission)
         guard try field.sign(of: extent, using: &admission) != .zero else { throw OriginalSourceIssuanceFailure.invalidSource }
         let r = try ExactPolynomialDomain(field: copy field, variableCount: 1, using: &admission)

@@ -1810,3 +1810,11 @@ legacy source/algebra resource failures as well as successful original tuples.
 [NativeExactGeometricRelations](NativeExactGeometricRelations/DESIGN.md) owns the
 source-bound L5/L6 geometric receipt and public CS/SSI assembly. Its component
 contract preserves source preparation and the existing numerical failure boundary.
+
+
+### Composition Consumer Handoff
+
+The [source-issued composition handoff](OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
+fixes the planned ruled, Coons and transform consumer migration. Existing source,
+domain, algebra and publication components keep their authority; this is not a
+new production module or whole-seven completion claim.

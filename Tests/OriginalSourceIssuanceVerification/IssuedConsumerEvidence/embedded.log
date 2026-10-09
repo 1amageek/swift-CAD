@@ -1,0 +1,8 @@
+COMMAND: ['python3', 'Tests/OriginalSourceIssuanceVerification/Scripts/VerifyIssuedMaps.py', '--lane', 'embedded', '--lower-products', '.build/handoff-lower-embedded/out/Products/Debug-webassembly-wasm32']
+(node:43135) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ORIGINAL_ISSUED_TUV_OK retained algebraic T, two native seam incidences, distinct UV at one XYZ, exact sorting, retained proof depths, atomic budget/cancel failures and complete point owners
+ISSUED_RELATION_PROOF_OK complete isolated Native CS through L5, exact TUV, complete exclusion, mixed positive/isolated atomic rejection and exact work/storage/pair/result limits
+ISSUED_DOMAIN_PROOF_OK full two-span cover, both closed seam owners, exact inverse selection, missing template rejection, complete exclusion and budgets/cancel
+
+EXIT: 0; SECONDS: 57.958

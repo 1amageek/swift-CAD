@@ -1,0 +1,50 @@
+COMMAND: ['/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift', 'build', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--build-path', '.build/handoff-wasm', '--swift-sdk', 'swift-6.4.0-RELEASE_wasm', '--jobs', '2', '--product', 'SourceIssuerProof']
+Building for debugging...
+[Pre-planning 1 / 152]
+[Planning deferred tasks]
+[3 / 7] L0
+[4 / 8] L0
+[10 / 14] L1
+[13 / 17] SourceIssuer
+[16 / 20] SourceIssuerFixtures
+[23 / 25] SourceIssuerProof-product
+[27 / 81] SourceIssuerFixtures
+[27 / 81] SourceIssuer
+[29 / 81] SourceIssuerFixtures
+[31 / 81] SourceIssuerFixtures
+[33 / 81] SourceIssuerFixtures
+[35 / 81] SourceIssuerFixtures
+[36 / 81] SourceIssuerFixtures
+[37 / 81] SourceIssuerFixtures
+[38 / 81] SourceIssuerFixtures
+[40 / 81] SourceIssuerFixtures
+[41 / 81] SourceIssuer
+[43 / 82] SourceIssuerFixtures
+[45 / 82] SourceIssuer
+[49 / 82] SourceIssuer
+[50 / 82] SourceIssuer
+[51 / 82] SourceIssuer
+[53 / 82] SourceIssuer
+[55 / 82] L1
+[56 / 82] L1
+[57 / 82] L1
+[58 / 82] L1
+[59 / 83] SourceIssuer
+[60 / 83] L1
+[63 / 83] L1
+[65 / 83] L1
+[66 / 83] L1
+[68 / 83] L1
+[70 / 83] L1
+[71 / 83] L0
+[73 / 84] L1
+[74 / 84] L0
+[78 / 85] L0
+[79 / 85] L0
+[81 / 86] L0
+[84 / 86] SourceIssuer
+/private/tmp/cad-source-consumer-handoff-design-20261009/Tests/OriginalSourceIssuanceVerification/Package.swift: SourceIssuerProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[86 / 86] SourceIssuerProof-product
+Build complete! (9.87秒)
+
+EXIT: 0; SECONDS: 10.883

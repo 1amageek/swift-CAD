@@ -1,0 +1,117 @@
+{
+  "inputs": {
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactOriginalScalarTransferring.swift": "cb779e00e4b65f89350ee83474c2ce3efa30fe0d2213e5dfdbb9009e1d1b9806",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactOriginalScalarTransferReceipt.swift": "9830a2337c4cdb3b3f5e29c4d83aadac7d9543261c4cd9916495cf409944cf26",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DefaultExactOriginalScalarTransporter.swift": "988b8fd598fff3c315a3272a3115905ac3d3cc4a221d484f6ea427690c632180",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/OriginalCoordinateTransportState.swift": "d46c7276e68f50b0ef03d7f83bb615466a7e1bbf129c7a829d32bce60ccceddd",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/OriginalCoordinateTransportState+Roots.swift": "ac279ca486a66ad996921580b94fa766b313004b3a752facc75d4ebe4df7c36d",
+    "Tests/OriginalSourceIssuanceVerification/Sources/CoordinateProof/Proof.swift": "ac2e71f264e69ce42f3f23dbccd785da168ac3317b8fcdfb9ae1a8e99f0a4597"
+  },
+  "commands": [
+    [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-sanitize=address",
+      "-Xlinker",
+      "-dead_strip",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "originalsourceissuanceverification",
+      "-I",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-asan/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan",
+      "-parse-as-library",
+      "-emit-library",
+      "-static",
+      "-emit-module",
+      "-module-name",
+      "OriginalCoordinateTransfer",
+      "-D",
+      "ORIGINAL_COORDINATE_ISOLATED_VERIFICATION",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/ExactOriginalScalarTransferring.swift",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/ExactOriginalScalarTransferReceipt.swift",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/DefaultExactOriginalScalarTransporter.swift",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/OriginalCoordinateTransportState.swift",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/OriginalCoordinateTransportState+Roots.swift",
+      "-emit-module-path",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/OriginalCoordinateTransfer.swiftmodule",
+      "-o",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libOriginalCoordinateTransfer.a"
+    ],
+    [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libL0.a",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-asan/out/Products/Debug/L0.o"
+    ],
+    [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libL1.a",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-asan/out/Products/Debug/L1.o"
+    ],
+    [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libDI0.a",
+      "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Products/Debug/DI0.o"
+    ],
+    [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libL2.a",
+      "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Products/Debug/L2.o"
+    ],
+    [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-sanitize=address",
+      "-Xlinker",
+      "-dead_strip",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "originalsourceissuanceverification",
+      "-I",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-asan/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan",
+      "-parse-as-library",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/Proof.swift",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libOriginalCoordinateTransfer.a",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libL0.a",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libL1.a",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libDI0.a",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/libL2.a",
+      "-o",
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/CoordinateProof"
+    ],
+    [
+      "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-coordinate-asan/CoordinateProof"
+    ]
+  ],
+  "cachedL2Proof": {
+    "path": "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Products/Debug/DomainProof",
+    "sha256": "09b49350d22505964297ca2d84f8ab5515a85bffa7bfcf692008c5d00ede5b24"
+  },
+  "lane": "asan",
+  "artifact": "9ade2463bba38edadc15236a1bc20a97d72c6ffcb57513071eaba0e67b9cde73",
+  "objects": {
+    "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-asan/out/Products/Debug/L0.o": "7beeab17d662b1fcb15dd5520636122ba123a88554635251fbd4785f946bf74e",
+    "/private/tmp/cad-source-consumer-handoff-design-20261009/.build/handoff-asan/out/Products/Debug/L1.o": "32f8a42f7313f5dfdec1fdf517eabd915a4a235abe0a43d7c1a592decfacc5a5",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Products/Debug/DI0.o": "22c4e9b92f3a0f5395fcbe7cf2a21f2d0de806e0e31c793b2fc955b55a3d510f",
+    "/private/tmp/cad-domain-identity-completion-20261008/.build/di-plane-opt-asan/out/Products/Debug/L2.o": "d7a1f42d5a7daa1e9b4433afd6fd3e81603e00ca34bb8ddcd7b7dd6b1a6c598b"
+  }
+}

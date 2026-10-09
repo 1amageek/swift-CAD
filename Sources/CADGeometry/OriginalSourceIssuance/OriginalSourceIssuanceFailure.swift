@@ -5,7 +5,7 @@ import L1
 
 public enum OriginalSourceIssuanceFailure: Error {
     case invalidSource, invalidChart, foreignBinding, unsupportedRepresentation
-    case unresolvedAuthority, sourceDepthLimit, countOverflow
+    case unresolvedAuthority, sourceDepthLimit, chartLimit, countOverflow
     case scalar(ExactScalarFailure)
     case polynomial(ExactPolynomialFailure)
     case sourceRejected(any Error)

@@ -1,0 +1,7 @@
+COMMAND: ['python3', 'Tests/OriginalSourceIssuanceVerification/Scripts/VerifyCoordinateTransfer.py', '--lane', 'embedded']
+(node:9748) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS retained L2 selected root, fractions, repeated owner, original arithmetic and exact work boundary
+COORDINATE_TRANSFER_OK work=6331 bytes=65584
+
+EXIT: 0; SECONDS: 6.555

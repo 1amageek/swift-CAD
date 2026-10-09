@@ -1,0 +1,10 @@
+{
+  "mainBase": "43fc4877d433f2488ef032c2053f35948d1cbd1b",
+  "implementation": "49cee6d5",
+  "recordedProductionInputReferencesChecked": 1549,
+  "runtimeArtifactSHA256": "fb8a9313a9b8fbfb4cbb5c209672114997751055f7ae711bebcc76ab31b6659e",
+  "changedMainFiles": "Design and progress only; production inputs match verified receipts.",
+  "conflictResolution": "Preserve current domain ownership/acceptance and finite issued-binding contract.",
+  "scope": "Independent issued consumer checkpoint. Existing public CS/SSI migration remains incomplete.",
+  "pendingPublisherPatch": "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/pending-public-publisher.patch"
+}

@@ -425,3 +425,32 @@ issuer tests own two-root/dependent-root arithmetic, ancestor transfer, exact
 selector identity, lifetime and each resource/failure boundary. This additive
 port is verified with L0/L1 and actual source adapters only; no upper target build
 or revalidation of unchanged L2-L6 algorithms is implied.
+
+
+### Explicit Original Scalar Transport
+
+`OriginalScalarTransferring` binds borrowed retained source values into a caller
+coefficient domain. It returns an immutable receipt retaining the sources, final
+field and ordered imported values. Ordinary `importing` still rejects foreign
+owners. The existing original-field transport algorithm is owned here; the
+higher monotone-endpoint convenience remains a thin extension in the parent.
+The invocation-local transport table is not shared and never escapes the call.
+Existing root definitions, unique-root selectors, denominator checks and both
+attained depth axes survive. Source domains are imported before values, then all
+values are embedded into the final common owner. No new root search occurs.
+Empty input retains the destination and still performs both checkpoints.
+All generated slots, transport evidence and arithmetic use the same admission.
+A resource, evidence or cancellation failure exposes no partial receipt.
+Tests: `OriginalSourceIssuanceVerification/ScalarTransportFixtures.swift` checks
+independent and ancestor owners, dependent roots, exact arithmetic, lifetime,
+strict budgets/depth and entry/terminal cancellation. This additive boundary is
+consumed by the composition handoff; it changes no ordinary scalar import rule.
+
+`bindSelectedRoot` verifies one retained selector over an exact ordered parent
+coefficient vector and rational interval. It performs existing Sturm counting,
+not isolation/search, rejects zero/multiple/excluded roots and unrelated parent
+coefficients, and retains the original parent/definition/selector. Its explicit
+value/coefficient axis and inherited depths use the same admission. The rational
+coefficient constructor preserves exact input without passing through Double.
+The L2 coordinate bridge uses these two operations; it owns L2 source provenance
+and refinement, while L0 owns destination-root validation and original values.

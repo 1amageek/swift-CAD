@@ -2,6 +2,21 @@
 
 ## Purpose and Scope
 
+The composition handoff additionally owns `OriginalIssuedDomainBinding`: consume
+immutable issued laws and an independently authoritative requested source frame,
+prove every finite affine template correspondence, and retain the existing complete
+cover together with the selected inverse images and law indices. A law support
+union never defines the authoritative source support. Missing templates fail with
+the existing incomplete-coverage error; periodic/unbounded and non-affine transport
+remain outside this finite handoff. All original source/chart owners and both proof
+depth axes survive. Verification composes the new binding with unchanged domain/lower
+implementations using independent products; no production-target build.
+
+`DefaultOriginalDomainCoverIssuer.issue` returns selected charts in input-template
+order, preserving each retained local frame. Templates with empty selected images
+are omitted. The issued-law binder uses this contract to associate template indices
+in one forward scan; equal geometric or coefficient values never determine identity.
+
 Child of [Original Domain Identity](../DESIGN.md), without children.
 Own complete source/request coverage by charts or certified chart families.
 Chart coverage is parameter coverage; it does not assert solution existence or
