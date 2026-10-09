@@ -99,3 +99,10 @@ canImport(Synchronization), unchecked Sendable or nonisolated(unsafe) state
 substitution. All target-specific work is confined to existing verification flags
 and SDK selection. The full public CS/SSI migration and seven requirements remain
 separate unfinished work; this evidence closes only coordinate transport optimization.
+
+Optimization commit60c47896 was independently fast-forwarded into the existing
+integration worktree, then main from4226a1f7. All73 unique recorded source/proof
+inputs match the integrated main exactly; all four final coordinate artifacts and
+the Native domain/map artifacts retain their recorded hashes. No integration code
+change or new proof premise was introduced, so existing runtime evidence is reused.
+The unrelated retained publisher draft remains outside this commit and main.
