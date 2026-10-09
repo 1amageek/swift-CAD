@@ -42,3 +42,8 @@ the source addition, independent regression and unchanged consumers has no open
 finding: all mutable state remains invocation-local, with no target-specific
 synchronization or Sendable change. The updated ExactRealRoot design owns the
 allocation admission contract; the existing coordinate proof owns its test.
+
+Repair commit 5a1eedb7 was fast-forwarded into main from 591de4c3. All 73
+unique retained source/proof input hashes match the resulting main exactly. The
+integration introduces no additional source change; unchanged verification
+premises are reused instead of rerunning the same runtime proof.
