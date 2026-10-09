@@ -985,7 +985,13 @@ admitted over its actual phase support. Numerical latitude endpoint uncertainty
 fails explicitly rather than clipping to a binary approximation of a pole.
 Legacy numerical analytic SSI solvers keep their unit-normal precondition at
 their consumer boundaries; scaled N is valid source/evaluation authority, but
-cannot silently enter their unit-distance formulas.
+cannot silently enter their unit-distance formulas. The shared
+PlaneBSplineSurfaceIntersector boundary checks this precondition before boundary
+coincidence, isoparametric reduction or analytic conversion. A nonunit normal
+returns unsupportedCapability without changing the original source normal or
+plane-basis authority. Actual raw/analytic plane and reversed-operand fixtures
+use a unit-separated Native patch: unit N returns empty, tiny/large N fails
+explicitly, and source evaluation remains valid.
 
 ### Exact physical-period coefficient carrier
 

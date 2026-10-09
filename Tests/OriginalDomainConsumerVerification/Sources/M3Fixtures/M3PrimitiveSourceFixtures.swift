@@ -18,6 +18,7 @@ public enum M3PrimitiveSourceFixtures {
     public static func verify() throws {
         try lines()
         try planes()
+        try scaledPlaneConsumers()
         try analyticProviders()
         try physicalWrappers()
         print("PASS M3 actual primitive sources, stored-N UV, original physical wrappers")
@@ -76,6 +77,32 @@ public enum M3PrimitiveSourceFixtures {
             _ = try DefaultSurfaceSurfaceIntersector().intersections(first:scaled,second:.analytic(.sphere(center:.origin,radius:1)),tolerance:.standard)
             throw ExactScalarFailure.invalidEvidence
         } catch let error as KernelError { try require(error.code == .unsupportedCapability) }
+    }
+    private static func scaledPlaneConsumers() throws {
+        let patch = Surface3D.bSpline(.init(uDegree:1,vDegree:1,
+            uKnots:[0,0,1,1],vKnots:[0,0,1,1],controlPoints:[
+                [.init(x:0,y:0,z:0),.init(x:1,y:0,z:0)],
+                [.init(x:0,y:1,z:0),.init(x:1,y:1,z:0)]]))
+        for magnitude in [1.0,1e-12,1e12] {
+            let normal = Vector3D(x:0,y:0,z:magnitude),origin = Point3D(x:0,y:0,z:1)
+            for plane in [Surface3D.plane(.init(origin:origin,normal:normal)),
+                .analytic(.plane(origin:origin,normal:normal))] {
+                try plane.validate(tolerance:.standard)
+                let p = try plane.point(u:0.25,v:0.5,tolerance:.standard)
+                let uv = try plane.parameterProjection(of:p,tolerance:.standard)
+                try require(abs(uv.u-0.25)<1e-9 && abs(uv.v-0.5)<1e-9)
+                for reverse in [false,true] {
+                    do {
+                        let result = try DefaultSurfaceSurfaceIntersector().intersections(
+                            first:reverse ? patch:plane,second:reverse ? plane:patch,tolerance:.standard)
+                        try require(magnitude == 1 && result.isEmpty)
+                    } catch let error as KernelError {
+                        try require(magnitude != 1 && error.code == .unsupportedCapability)
+                    }
+                }
+            }
+        }
+        print("PASS M3 scaled-N numerical dispatch refuses before false coincidence; source UV remains valid")
     }
     private static func analyticProviders() throws {
         var a = try ledger(); let f = ExactRationalScalarDomain(),l = try limits()

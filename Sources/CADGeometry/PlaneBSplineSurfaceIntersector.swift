@@ -10,6 +10,7 @@ struct PlaneBSplineSurfaceIntersector {
         options: SurfaceSurfaceIntersectionOptions,
         tolerance: ModelingTolerance
     ) throws -> [SurfaceSurfaceIntersection] {
+        try plane.requireLegacyUnitNormal(tolerance: tolerance)
         if let boundaryIntersections = try PlaneBSplineBoundarySurfaceIntersector().intersections(
             plane: plane,
             surface: surface,

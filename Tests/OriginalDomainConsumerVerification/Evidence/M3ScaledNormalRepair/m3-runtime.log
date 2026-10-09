@@ -1,0 +1,3 @@
+PASS M3 scaled-N numerical dispatch refuses before false coincidence; source UV remains valid
+PASS M3 exact physical source periods and actual point/derivative domain checks
+PASS M3 actual primitive sources, stored-N UV, original physical wrappers

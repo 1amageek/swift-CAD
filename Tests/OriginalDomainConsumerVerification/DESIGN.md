@@ -53,3 +53,10 @@ complete multi-span CS/SSI, exact selected boundaries, periodic lifts, lifetime
 and independent failure/cancellation fixtures. It records the source snapshot and
 actual compiler inputs and product hashes; concurrent source changes invalidate
 publication evidence. Cached geometry compilation is not assumed by this route.
+
+## M3 scaled-normal regression
+
+The actual production M3 fixture compares the same z=1 raw/analytic plane with
+a z=0 degree-one Native patch in both operand orders. Unit N must return empty;
+nonunit N must propagate the numerical consumer's unsupportedCapability before
+any coincidence success. Point/UV source acceptance remains independent.
