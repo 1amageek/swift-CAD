@@ -1,0 +1,11 @@
+{
+  "success": true,
+  "beforeMain": "2f912224bb5e7d50a1977ca018efff75e420de1b",
+  "mergedMain": "c879fd19510aa2355abed4982e14ef53efc2e5c3",
+  "integrationBranch": "codex/di-m0-integration",
+  "integrationWorktree": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+  "mergeMode": "normal fast-forward",
+  "verifiedNativeInputCount": 536,
+  "allVerifiedInputsMatchMain": true,
+  "mainClean": true
+}

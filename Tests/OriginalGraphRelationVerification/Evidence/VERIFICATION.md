@@ -72,8 +72,9 @@ Only unchanged production input hashes justify its reuse.
 The independent integration checkout fast-forwards latest main `2f912224` to
 implementation `215027be`. Its exact compiler inputs and artifact digest are
 checked before reuse; no rebuild of unchanged layers is needed. `integration`
-records every fresh-process invocation from that checkout. Main merge is the
-remaining delivery step.
+records every fresh-process invocation from that checkout. Main normally fast-forwards from `2f912224` to `c879fd19`;
+`main-merge.json` confirms all 536 verified inputs match main and its checkout is
+clean. The accompanying delivery-record commit changes only progress/evidence.
 
 Native and optimized ASAN admitted work/storage match exactly. WASM payload bytes
 use its 32-bit target layout and are recorded separately in `binding.json`; target
