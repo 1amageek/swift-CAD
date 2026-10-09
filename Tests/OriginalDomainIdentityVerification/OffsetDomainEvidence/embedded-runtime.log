@@ -1,0 +1,14 @@
+(node:4409) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+WASI linear memory: 196608 bytes
+PASS guarded offset domain: enclosure differs from exact material, signed branches, positive-q relation, zero-distance singular exclusion, canonical knot ownership, singleton/empty request and retained source lifetime
+PASS guarded offset domain failures: foreign source, chart/source limits, malformed tuple/template, exact work/storage admission, success/exclusion terminal cancellation
+PASS complete revolution domain: retained weighted chart sides, closed U seam/V knot, singleton/empty clipping and collapsed-fiber denominator guards
+PASS revolution domain source/cycle/chart/family/depth/work/storage/entry/terminal refusal
+PASS analytic scoped identities: genuine intrinsic periods, both torus axes, cone vertex/sphere poles, retained UV, foreign and near-pole refusal
+PASS analytic physical period: mathematical pi, exact finite clipping/empty overlap, reversed cycles, independent budgets and terminal cancel
+PASS checked DI affine/relation view: original scope, polynomial constraints, reversed/permuted axes, COW and retained lifetime
+PASS checked DI complete-product relation and exact admission/work/storage/source/proof/transport/cancellation failures
+PASS M4 affine source-domain composition: reversed/nested image, spatial word, directed traversal, infinite lifts and closed seams
+PASS M4 exact source pullback: uncovered scope refuses, singleton/empty succeed, foreign/zero/depth/work/storage/cancel fail
+PASS DI0-DI3 Native/intrinsic foundation: exact endpoint-sector algebra, canonical unions, unbounded sets, products, lifetime, owner/order refusal, budgets and terminal cancel

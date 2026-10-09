@@ -409,3 +409,38 @@ Independent RevolutionDomainFixtures and actual production revolution handoff ow
 M4.P.R evidence. Generic/non-rational generators, remaining procedural/non-Cartesian
 covers and full M4/M5/M6 acceptance remain separate open obligations. New cover state
 is immutable on every target, with no conditional ownership or shared mutable cache.
+
+
+## Guarded offset domain composition
+
+OriginalGuardedChartFamilyQuerying is the non-Cartesian sibling of the existing
+OriginalChartFamilyQuerying contract. It exposes enclosingSupport and
+effectiveEnclosure explicitly. These are exact requested Cartesian bounds, not
+an unconditional position domain. Member occurrences retain their source-owned
+law and enclosing selection. Position/lifted-position incident queries apply
+all mandatory source predicates before returning an occurrence or complete empty
+result. Consumers must retain the law/guard when constructing a relation; a bound
+alone cannot certify material membership or domain exclusion inside the enclosure.
+
+OriginalNativeOffsetDomainIssuing consumes only the sealed
+OriginalFiniteNativeOffsetLawFamily from the source owner. Source authority owns
+all child charts, differential knot ownership, D/transport-D exclusions, C^2>0,
+and q>0 with q^2=C^2. DI owns request/frame compatibility and exact clipping,
+complete chart traversal and atomic result-count/cancel publication. It does not
+solve for q, regenerate a normal or interpret a sampled offset. The positive root
+is an auxiliary source relation; the original parameter domain remains two-dimensional.
+
+Public queries use one admission and retain immutable family/law/frame owners.
+A selected tuple outside the enclosing request is excluded by exact bounds; an
+inside tuple is excluded only after all retained chart predicates reject it.
+Singular fibers remain distinguishable from work/storage/cancel failure. Foreign
+frames, malformed tuples/templates, source/transport/chart/depth limits propagate
+failure. Only nonperiodic Native child identity UV is currently supplied; generic
+child/periodic/nonlinear coverage remains an explicit source-owner obligation.
+
+Verification is owned by OffsetDomainFixtures and the actual production
+OriginalOffsetSourceProof domain handoff. It checks signed normal branches,
+interior singular exclusion at nonzero and zero offset, owning knot faces,
+positive/negative/wrong q, exact empty/singleton clipping, immutable lifetime,
+independent resource bounds and final cancellation on success and exclusion.
+All state is immutable let or exclusive query-local inout on every target.

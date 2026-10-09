@@ -47,3 +47,6 @@ import DomainFixtures
 
 @Test(.timeLimit(.minutes(1))) func wholeRevolutionDomainFamiliesAndGuards() throws { try RevolutionDomainFixtures.completeFamiliesAndGuards() }
 @Test(.timeLimit(.minutes(1))) func wholeRevolutionDomainRefusal() throws { try RevolutionDomainFixtures.admissionAndRefusal() }
+
+@Test(.timeLimit(.minutes(1))) func guardedOffsetCoverageAndOwnership() throws { try OffsetDomainFixtures.guardedCoverageAndOwnership() }
+@Test(.timeLimit(.minutes(1))) func guardedOffsetFailures() throws { try OffsetDomainFixtures.guardedFailures() }

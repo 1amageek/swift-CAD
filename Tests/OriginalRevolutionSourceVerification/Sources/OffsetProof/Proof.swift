@@ -68,6 +68,24 @@ struct OriginalOffsetSourceProof {
         let actualKnot=try kinkOffset.point(u:0.5,v:0.5,tolerance:.standard)
         let shift=0.25/Double(2).squareRoot()
         try require((actualKnot-Point3D(x:1-shift,y:0.5,z:shift)).length<1e-9)
+        let domainLimits = try OriginalDomainIdentityLimits(source:limits,maximumTransportDepth:16,
+            maximumCharts:2,maximumFamilies:0,maximumIdentityProofs:8)
+        let domainIssuer = DefaultOriginalNativeOffsetDomainIssuer<OriginalOffsetSnapshot<BSplineSurface3D>>()
+        let frame = try domainIssuer.frame(family:family,limits:domainLimits,using:&a)
+        let cover = try domainIssuer.issue(request:frame.fullSelection(limits:domainLimits,using:&a),
+            family:family,limits:domainLimits,using:&a)
+        try require(cover.enclosingSupport.contains([half,zero],limits:domainLimits,using:&a))
+        try require(cover.positionIncidents(at:[half,zero],limits:domainLimits,using:&a).isEmpty)
+        try require(cover.positionIncidents(at:[half,half],limits:domainLimits,using:&a).count == 1)
+        try require(cover.liftedPositionIncidents(at:[half,half,one],limits:domainLimits,using:&a).count == 1)
+        try require(cover.liftedPositionIncidents(at:[half,half,f.negated(one,using:&a)],limits:domainLimits,using:&a).isEmpty)
+        try require(cover.positionIncidents(at:[half,near],limits:domainLimits,using:&a).count == 1)
+        let knotFrame = try domainIssuer.frame(family:kinkFamily,limits:domainLimits,using:&a)
+        let knotCover = try domainIssuer.issue(request:knotFrame.fullSelection(limits:domainLimits,using:&a),
+            family:kinkFamily,limits:domainLimits,using:&a)
+        let owning = try knotCover.positionIncidents(at:[half,half],limits:domainLimits,using:&a)
+        try require(owning.count == 1 && owning[0].template == 1)
+        print("PASS M4 actual guarded offset DI handoff: enclosing bounds, exact singular exclusion, positive-root correspondence and original owning knot side")
         print("PASS M4 actual guarded Native offset law, signed normal branches, retained source, point/derivative, singular fiber, zero distance and separate numerical admission")
     }
 }
