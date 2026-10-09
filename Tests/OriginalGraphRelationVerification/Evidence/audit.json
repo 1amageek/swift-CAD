@@ -1,0 +1,152 @@
+{
+  "nativeAsanInputEquality": true,
+  "inputCount": 536,
+  "newSourceCount": 14,
+  "sourceSHA256": {
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphCompiler.swift": "19682d8972d704f27df30292525eb4f2d1bc3ea3c0d10bb689d15fbb083892fd",
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphRelationResolver.swift": "af7c518a028cb2fd5fb527893491ef1c7758a77985a822ce16e1d4aa323bd4c3",
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalOffsetGraphFamilyPreparer.swift": "5199abd4145a13d5dc4fa863ee23a02db5e75b14ddd21d1f48e67d40d3f839c8",
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalRationalGraphFamilyPreparer.swift": "361a1e46e5c0ebaf3116943a2a0847ee2e2aabc520e74216697cadc299b0a4d0",
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphCompiling.swift": "6109092679e143ecdeda8067c328a75b102ee57e5ee0a2a24395b6e08329193e",
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphFamily.swift": "573a8a7683c3df7ac66e8632838075953fc643891830e74cabddb906b2063c78",
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphFamilyPreparing.swift": "db13e736c4f1ccfff60ff70c21a01f5cd3d83c626ffb7c45a1c0f4d22452a631",
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphPreparation.swift": "e1ecf203859214e7c462ffc7865c552fc17fc2af93cb3f5e5f34a5d72d7bc3ed",
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelationPair.swift": "60b95a2994aab164f9846c851920098b9838af78463f68e6b82a63e9738caa83",
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelationResolving.swift": "4421ca335ee8ac2bd4bbc6a91908ab03a876992f6bdec540799a58ee7456a990",
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelations.swift": "6fd7ebd7fe077dd45c171d928ad1231806fa986ecb25cee6c4d2043e4cfbc2a0",
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DefaultOriginalParametricGraphDomainBinder.swift": "b7bdb8ae50751d53d13f9c9c14f68c39afc638c5d46ccfb5fb729d362d521f3b",
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/OriginalDomainBoundParametricGraph.swift": "231177576c4369152e3a6c1b6fdfc76fe8e941f8159f8fff8f538739b0510e93",
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/OriginalParametricGraphDomainBinding.swift": "14038554b79c3aaa2eda8a8f7b5de82b1e3d859f16d0d91d5ffee534c682f33d"
+  },
+  "scans": {
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphCompiler.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphRelationResolver.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalOffsetGraphFamilyPreparer.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/DefaultOriginalRationalGraphFamilyPreparer.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphCompiling.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphFamily.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphFamilyPreparing.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphPreparation.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelationPair.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelationResolving.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelations.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DefaultOriginalParametricGraphDomainBinder.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/OriginalDomainBoundParametricGraph.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    },
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/OriginalParametricGraphDomainBinding.swift": {
+      "hasFeature(Embedded)": [],
+      "canImport(Synchronization)": [],
+      "Mutex": [],
+      "nonisolated(unsafe)": [],
+      "@unchecked Sendable": [],
+      "FIXME(INCOMPLETE_IMPLEMENTATION)": []
+    }
+  },
+  "ownership": {
+    "receiptOwners": "Immutable source, field, graph, cover and result values with retained COW arrays on every target",
+    "admission": "One exclusive caller ledger; existing scoped OriginalSourceProofAdmission forwards the same ledger and never escapes",
+    "mutableLocals": "Query-local only; no new shared mutable state or target-dependent isolation",
+    "lowerOwners": "Unchanged source/L0-L5 owner and synchronization contracts; prior bound evidence retained"
+  },
+  "review": {
+    "scope": "Source graph -> checked DI provenance -> exact coefficient import -> canonical variables -> forward request membership -> complete pair solve -> L4 prefix projection -> retained original owners",
+    "finding": "Empty family proof depth omitted enclosing frame axes",
+    "fix": "Aggregate frame axes for both rational and guarded families; empty deep-frame fixture rejects shallow reuse",
+    "algorithmReduction": "Constant signs and proved N=D*parameter single-interval domain intersection; nonlinear, negative-denominator and disconnected requests retain forward predicates",
+    "unsafeChange": "No new unsafe type or pointer operation; reuse the existing scoped admission helper"
+  },
+  "capabilities": [
+    "Only checked OriginalExactScalarDomain-to-L2 imports",
+    "XYZ-only implicit receipt rejected by graph binding type"
+  ]
+}

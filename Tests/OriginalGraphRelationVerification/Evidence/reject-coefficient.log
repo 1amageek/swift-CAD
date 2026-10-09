@@ -1,0 +1,8 @@
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalGraphRelationVerification/CapabilityRejections/Coefficient.swift:10:69: error: cannot convert value of type 'OriginalDomainBoundParametricGraph<S, F, E>' to expected argument type 'OriginalDomainBoundParametricGraph<S, OriginalExactScalarDomain, E>'
+ 8 | func rejectCoefficient<S:Sendable,F:ExactScalarArithmetic & ExactScalarOrdering & ExactScalarImporting,E:Sendable,A:ExactScalarAdmission & ~Copyable>(
+ 9 |     binding:OriginalDomainBoundParametricGraph<S,F,E>,field:ExactAlgebraicScalarDomain<OriginalExactScalarDomain>,limits:OriginalDomainIdentityLimits,using a:inout A) throws {
+10 |     _=try DefaultOriginalIssuedGraphCompiler<S,E>().compile(binding:binding,field:field,limits:limits,using:&a)
+   |                                                                     |- error: cannot convert value of type 'OriginalDomainBoundParametricGraph<S, F, E>' to expected argument type 'OriginalDomainBoundParametricGraph<S, OriginalExactScalarDomain, E>'
+   |                                                                     `- note: arguments to generic parameter 'F' ('F' and 'OriginalExactScalarDomain') are expected to be equal
+11 | }
+12 |

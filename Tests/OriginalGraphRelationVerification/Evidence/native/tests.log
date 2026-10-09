@@ -1,0 +1,29 @@
+[0/1] Planning build
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+Test Suite 'All tests' started at 2026-10-09 19:34:12.047.
+Test Suite 'All tests' passed at 2026-10-09 19:34:12.048.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test issuedGraphRelations(_:) started.
+􀟈  Test case passing 1 argument mode → 0 to issuedGraphRelations(_:) started.
+MEASURE rational work=1339672 storage=40014385
+PASS B3 source/DI/L5 group=0
+􀟈  Test case passing 1 argument mode → 1 to issuedGraphRelations(_:) started.
+MEASURE offset knot=false work=15429913 storage=379155392
+PASS B3 source/DI/L5 group=1
+􀟈  Test case passing 1 argument mode → 2 to issuedGraphRelations(_:) started.
+MEASURE offset knot=true work=15494793 storage=380921266
+PASS B3 source/DI/L5 group=2
+􀟈  Test case passing 1 argument mode → 3 to issuedGraphRelations(_:) started.
+PASS forward nonlinear/negative-denominator pullback and retained depth
+PASS B3 source/DI/L5 group=3
+􀟈  Test case passing 1 argument mode → 4 to issuedGraphRelations(_:) started.
+PASS graph binding/compiler ownership, exact work/storage caps, inherited depth, entry/terminal cancellation and graph/pair caps
+PASS B3 source/DI/L5 group=4
+􀟈  Test case passing 1 argument mode → 5 to issuedGraphRelations(_:) started.
+PASS source/DI/L5 SSI curve and singular-offset exclusion
+PASS B3 source/DI/L5 group=5
+􁁛  Test issuedGraphRelations(_:) with 6 test cases passed after 38.802 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 38.803 seconds.

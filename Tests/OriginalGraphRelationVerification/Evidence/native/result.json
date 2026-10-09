@@ -1,0 +1,70 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.346,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.289,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--build-tests"
+      ],
+      "timeoutSeconds": 180,
+      "elapsedSeconds": 2.134,
+      "exitCode": 0
+    },
+    {
+      "label": "tests",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "test",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--skip-build"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 39.422,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-b3-native/arm64-apple-macosx/debug/GraphProof": "d00736d6f6a76ee6b4408a2c61b834bc1e63e3710bffd698692f0982c6f8342e",
+    ".build/pg-b3-native/arm64-apple-macosx/debug/OriginalGraphRelationVerificationPackageTests.xctest/Contents/MacOS/OriginalGraphRelationVerificationPackageTests": "1aef78421a7219d1cb3adc8c69ce501e4bc4921a3f555c659593eaea651be477"
+  },
+  "compiledInputCount": 536,
+  "verificationDriverSHA256": "ba65c4fc1fa3eed2d590b518afebc2110e59cfcf19dc0238502c05a7fa2ee229"
+}

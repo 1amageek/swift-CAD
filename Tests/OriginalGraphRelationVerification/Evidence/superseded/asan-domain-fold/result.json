@@ -1,0 +1,67 @@
+{
+  "success": false,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 1.165,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 1.25,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-asan",
+        "-j",
+        "2",
+        "--sanitize",
+        "address",
+        "--build-tests"
+      ],
+      "timeoutSeconds": 180,
+      "elapsedSeconds": 8.357,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-0",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-asan/arm64-apple-macosx/debug/GraphProof",
+        "0"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 5.182,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-1",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-asan/arm64-apple-macosx/debug/GraphProof",
+        "1"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 60.077,
+      "exitCode": 124
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalGraphRelationVerification/CapabilityRejections/Implicit.swift:8:98: error: cannot convert value of type 'OriginalImplicitImageReceipt<S, C, OriginalExactScalarDomain>' to expected argument type 'OriginalParametricGraphReceipt<S, OriginalExactScalarDomain, C>'
+ 6 | func rejectMissingUV<S:Sendable,C:Sendable,A:ExactScalarAdmission & ~Copyable>(
+ 7 |     image:OriginalImplicitImageReceipt<S,C,OriginalExactScalarDomain>,request:OriginalParameterSelection<S,OriginalExactScalarDomain>,limits:OriginalDomainIdentityLimits,using a:inout A) throws {
+ 8 |     _=try DefaultOriginalParametricGraphDomainBinder<S,OriginalExactScalarDomain,C>().bind(graph:image,request:request,limits:limits,using:&a)
+   |                                                                                                  `- error: cannot convert value of type 'OriginalImplicitImageReceipt<S, C, OriginalExactScalarDomain>' to expected argument type 'OriginalParametricGraphReceipt<S, OriginalExactScalarDomain, C>'
+ 9 | }
+10 |

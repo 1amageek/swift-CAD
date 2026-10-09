@@ -249,3 +249,67 @@ is needed. Verification builds the actual production CADCore/CADGeometry graph b
 Native surface DTO names the original span/jet owner in its signature. It executes
 the new public family entry on actual source snapshots. No other CAD targets are
 required. Prior scalar/lower evidence is retained on unchanged premises.
+
+## Issued graph and DI connection (B3-B4)
+
+The additive graph consumer ports compile sealed domain-bound source graphs and
+resolve complete finite graph families. Existing issued-map APIs remain unchanged.
+No new production module, solver or geometric publisher is introduced.
+
+```mermaid
+flowchart LR
+  S[Sealed source graph and original parameter map] --> D[DI local graph/request binding]
+  C[Existing complete rational or guarded offset cover] --> D
+  D --> I[Checked coefficient import and canonical variable placement]
+  I --> P[Original request pullback plus every source guard and owning side]
+  P --> L[L5 graph pair and L4 existential parameter projection]
+  L --> R[Immutable complete family result retaining all input owners and lifts]
+```
+
+| Owner | Input | Output and guarantee |
+|---|---|---|
+| DI | Source graph, original request, same limits/admission | Sealed local binding; source provenance and inherited depth, no whole-cover claim |
+| Graph compiler | Local binding, explicit L2 field | One canonical graph with parameters before auxiliaries; exact coefficient import, source guards, chart boundaries and forward request pullback |
+| Family preparers | Existing complete issued rational/guarded offset cover | Every required chart compiled once; empty selection retains its complete cover |
+| Family resolver | Two complete preparations, query kind/limits | Every chart pair resolved once; projected parameter topology and all lifted correspondence, no partial publication |
+
+The compiler accepts OriginalExactScalarDomain coefficients through checked L2
+import. Physical-angle fields and XYZ-only implicit receipts do not satisfy this
+capability; protocol conformance is not a coefficient or UV compatibility proof.
+Each original homogeneous law and guard is imported once with checked coordinate
+placement. Requested interval membership of N/D is encoded by D!=0 and exact
+signs of (N-bound*D)*D, so negative denominators and nonlinear/many-to-one maps are
+handled without sign assumptions or inverse maps. Axis intervals are disjoined;
+axis conditions are conjoined. Infinite ends add no invented finite bound.
+Local source support and its owning upper sides are independent solver domains.
+Auxiliary coordinates remain unbounded unless the original guards restrict them.
+
+Constant guards are folded only by exact coefficient sign. When the compiler
+proves N == D*localParameter and the requested axis has one interval, its
+intersection with source support is represented directly in the solver domain;
+disjoint support becomes a false predicate. Other maps and interval unions keep
+the forward predicates above. The existing scoped admission tracks all reached
+decision depths even when these proofs remove a polynomial or predicate.
+
+A prepared graph retains the original DI binding and source receipt, reached
+proof depth and L2 field. Family results retain both full covers, every prepared
+graph, each exact L5 result and all original parameter maps. Local tuple labels
+are not relabeled authored coordinates; the retained forward correspondence is
+the authority. Cross-chart structural identity and numerical XYZ publication are
+outside this foundation. Auxiliary lift multiplicity is not parameter dimension.
+
+Preparation and resolution use one caller admission, with no budget reset or
+legacy solver fallback. Caller maximumGraphs/maximumPairs and existing L3/L4
+limits remain separate. Source/DI limits and retained depths are re-admitted on
+reuse, including empty results. Checked products precede allocations. Every
+unresolved chart/pair or terminal cancellation aborts the whole publication.
+
+Verification: [OriginalGraphRelationVerification](../../../Tests/OriginalGraphRelationVerification/DESIGN.md)
+executes actual source issuers, existing DI covers, these public consumer ports and
+L5 projection on Native/ASAN/matching ordinary and Embedded WASM. It checks original
+TUV/UVUV membership, positive offset branch, nonowning chart sides, exact request
+pullback (including negative denominator and nonlinear correspondence), complete
+empty/lifetime and independent work/storage/depth/source/chart/pair/cancel failures.
+Unchanged lower evidence is reused. Main integration checks the exact verified
+inputs against latest main in a separate worktree. Full-seven completion and new
+shape publication remain separate.

@@ -1,0 +1,21 @@
+[0/1] Planning build
+Building for debugging...
+[0/8] Write sources
+[4/8] Write swift-version-7EE3F01B468E1A0A.txt
+[6/10] Compiling IssuedGraphs DefaultOriginalOffsetGraphFamilyPreparer.swift
+[7/10] Emitting module IssuedGraphs
+[8/11] Compiling IssuedGraphs DefaultOriginalRationalGraphFamilyPreparer.swift
+[9/13] Emitting module GraphFixtures
+[10/13] Compiling GraphFixtures GraphFixtures.swift
+[11/14] Compiling GraphFixtures CheckpointAdmission.swift
+[12/20] Emitting module GraphProof
+[13/20] Compiling GraphProof Proof.swift
+[13/20] Write Objects.LinkFileList
+[15/20] Emitting module GraphTests
+[16/20] Compiling GraphTests GraphTests.swift
+[16/20] Write Objects.LinkFileList
+[17/20] Linking OriginalGraphRelationVerificationPackageTests
+[17/20] Linking GraphProof
+[19/20] Applying GraphProof
+Build complete! (1.81s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

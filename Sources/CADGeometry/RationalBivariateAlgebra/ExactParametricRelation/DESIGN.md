@@ -146,7 +146,7 @@ Additive graph input separates canonical local parameter count from solver arity
 It consumes a checked L3 polynomial predicate whose first four laws are XYZ/W;
 remaining laws and instructions express the original graph guards. L5 establishes
 mathematical consistency/field compatibility, not authored geometry. Source receipt
-conversion and DI requested-domain selection remain B3. Existing rational-map APIs
+conversion and DI requested-domain selection belong to the B3 NativeExactRelations consumer. Existing rational-map APIs
 and result types keep their current behavior.
 
 CS requires one and two local parameters; SSI requires two and two, independently

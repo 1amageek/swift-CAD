@@ -1224,4 +1224,4 @@ adaptation: physical-angle coefficients require a separate compatibility proof.
 XYZ-only implicit evidence does not supply the missing UV theorem. Tests live
 in OriginalSourceIssuanceVerification.
 The L5 contract is [ExactParametricRelation](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md);
-conversion and DI request selection remain B3.
+conversion and DI request selection are consumed by the B3 ports in NativeExactRelations; source issuance still owns no solving or whole-request coverage.

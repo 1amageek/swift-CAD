@@ -1,0 +1,27 @@
+[0/1] Planning build
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+Test Suite 'All tests' started at 2026-10-09 19:13:57.152.
+Test Suite 'All tests' passed at 2026-10-09 19:13:57.154.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.002) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test issuedGraphRelations(_:) started.
+􀟈  Test case passing 1 argument mode → 0 to issuedGraphRelations(_:) started.
+MEASURE rational work=2391825 storage=74048920
+PASS B3 source/DI/L5 group=0
+􀟈  Test case passing 1 argument mode → 1 to issuedGraphRelations(_:) started.
+MEASURE offset knot=false work=20184406 storage=493964437
+PASS B3 source/DI/L5 group=1
+􀟈  Test case passing 1 argument mode → 2 to issuedGraphRelations(_:) started.
+MEASURE offset knot=true work=20547896 storage=503286961
+PASS B3 source/DI/L5 group=2
+􀟈  Test case passing 1 argument mode → 3 to issuedGraphRelations(_:) started.
+PASS forward nonlinear/negative-denominator pullback and retained depth
+PASS B3 source/DI/L5 group=3
+􀟈  Test case passing 1 argument mode → 4 to issuedGraphRelations(_:) started.
+􀢄  Test issuedGraphRelations(_:) recorded an issue with 1 argument mode → 4 at GraphTests.swift:3:2: Caught error: .relation(L5.ExactParametricRelationFailure.cell(L3.ExactRealCellFailure.scalar(L0.ExactScalarFailure.resourceLimit(L0.ExactResource.work))))
+􀢄  Test issuedGraphRelations(_:) with 5 test cases failed after 88.809 seconds with 1 issue.
+􀢄  Test run with 1 test in 0 suites failed after 88.809 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - OriginalGraphRelationVerificationPackageTests (Swift Testing)

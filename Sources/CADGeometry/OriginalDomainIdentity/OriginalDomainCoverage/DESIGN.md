@@ -511,3 +511,21 @@ cuts, both closed sides, strict/singleton/disconnected/empty requests, original
 position/lifetime and independent failure bounds. Actual DerivativeCurveProof
 consumes the genuine original Hermite/plane-constraint source witness; generic
 non-rational derivative sources remain the source owner's open capability.
+
+## Local source graph/request binding (B3)
+
+The additive OriginalParametricGraphDomainBinding protocol binds one sealed source
+position graph to an original requested parameter selection. The issuer checks
+shared source provenance, parameter arity, source limits and inherited graph/frame/
+selection depth. Its immutable receipt retains both values and is a local relation,
+not a claim that this one chart covers the whole request. Complete coverage remains
+owned by existing rational and guarded family receipts. NativeExactRelations consumes
+this receipt without reinterpreting its source or inventing an inverse transport.
+
+The binder neither solves guards nor turns enclosing rectangles into material
+domains. The consumer pulls the original request through the retained forward
+rational parameter map and conjoins all position guards and source-owned chart
+sides. Nonlinear and many-to-one forward maps do not require an inverse. Work,
+storage, source/proof depth and cancellation use the same caller admission.
+Behavioral verification belongs to OriginalGraphRelationVerification and includes
+foreign owners, empty/closed/strict/disconnected selections and inherited limits.

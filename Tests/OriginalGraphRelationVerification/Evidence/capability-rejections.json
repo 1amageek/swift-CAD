@@ -1,0 +1,32 @@
+[
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-typecheck",
+      "-swift-version",
+      "6",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native/arm64-apple-macosx/debug/Modules",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalGraphRelationVerification/CapabilityRejections/Coefficient.swift"
+    ],
+    "expectedRejected": true,
+    "exitCode": 1,
+    "timeoutSeconds": 30,
+    "trailingWhitespaceNormalized": true
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-typecheck",
+      "-swift-version",
+      "6",
+      "-I",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native/arm64-apple-macosx/debug/Modules",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalGraphRelationVerification/CapabilityRejections/Implicit.swift"
+    ],
+    "expectedRejected": true,
+    "exitCode": 1,
+    "timeoutSeconds": 30,
+    "trailingWhitespaceNormalized": true
+  }
+]
