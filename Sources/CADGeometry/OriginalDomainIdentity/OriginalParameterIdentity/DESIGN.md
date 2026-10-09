@@ -162,3 +162,31 @@ Read decisions through protocol requirements. Separate exact-law proof ownership
 from any consumer-specific use; tests of the issuer do not establish self-contact
 or boundary/publication migration. The latter acceptance is owned by the
 [parent consumer matrix](../DESIGN.md#di4-consumer-acceptance-and-migration-boundary).
+
+## Checked whole-relation view
+
+OriginalParameterIdentityRelationQuerying refines the existing querying protocol.
+relation(of:limits:using:) re-admits the complete retained identity receipt before
+publishing an immutable OriginalParameterIdentityRelation. It retains the receipt,
+left/right scopes, proof kind, source/value/coefficient/transport depths and original
+proof owner. There is no public relation initializer. Its constraints are either the
+exact affine word (right[i] = gains[i] * left[permutation[i]] + offsets[i]) or
+completeProduct. completeProduct certifies every pair in the two retained scopes,
+including composed collapsed/shared-boundary proofs; it never widens those scopes.
+The enum alone is syntax, not an identity certificate. Consumers must retain the
+issuer-produced view with any compiled exclusion predicate. Not-established tuples
+outside either scope cannot be excluded. Equal XYZ never issues this view.
+
+Coefficient arrays and proof owners share immutable COW backing; acquisition does
+not materialize or re-charge payloads. New predicates/refinement payloads belong to
+the consuming query's budget. Reuse requires fresh admission and terminal cancel.
+Existing querying conformers remain compatible because the capability is a separate
+refining protocol. The existing decision/restriction/composition behavior is unchanged.
+
+RelationViewFixtures verify whole affine constraints against decide, a genuinely
+constant rational subset against completeProduct, owner release/COW separation,
+source/transport/proof limits, exhausted work, zero-storage shared reuse and
+entry/terminal cancellation. The
+immutable relation is Sendable on Native, WASM and Embedded with identical storage;
+no mutable state or target-specific isolation is introduced. Boundary/self adapters
+own their higher-level refinement and exclusion tests, using public L4 refinePullback.

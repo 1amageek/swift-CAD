@@ -145,3 +145,24 @@ OriginalPlaneCoordinateQuerying consumes the source-owned basis receipt describe
 in [source issuance](../../OriginalSourceIssuance/DESIGN.md#stored-n-plane-basis-authority).
 It evaluates the whole exact plane law and provides an exact on-plane inverse;
 this operation is separate from later numerical output/projection.
+
+## Checked affine-coordinate view
+
+OriginalParameterAffineCoordinateQuerying is a refining protocol implemented by the
+existing transporter. affineCoordinates(of:limits:using:) re-admits the retained
+transport before returning OriginalParameterAffineCoordinates. Its immutable value
+retains the original map and shares its permutation/gain/offset COW buffers. There
+is no public view initializer and no new coefficient allocation or storage charge.
+For each output axis i, image[i] = gains[i] * local[permutation[i]] + offsets[i],
+only on the retained local/image selections. Negative gains and permutations keep
+that orientation. The view proves parameter transport, not source identity.
+Consumers compile their own boundary laws from this checked contract rather than
+sampling the map or accessing transport internals. A later query acquires/admit the
+view again under its own caller budget; terminal cancellation precedes publication.
+The new protocol avoids adding requirements to existing transport conformers.
+
+The independent RelationViewFixtures tests compile these words into polynomial
+constraints, verify exact reversal/permutation and scope, retain owners after the
+original local bindings are gone, and exercise work/storage/depth/source/cancel.
+The view introduces only immutable let state and computed readers on all targets;
+there is no platform-dependent storage/isolation/conformance or mutable registry.

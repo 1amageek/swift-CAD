@@ -38,3 +38,6 @@ import DomainFixtures
 
 @Test(.timeLimit(.minutes(1))) func composedSourceFamilies() throws { try ComposedDomainFixtures.completeFamilies() }
 @Test(.timeLimit(.minutes(1))) func composedSourcePullbackFailures() throws { try ComposedDomainFixtures.completePullbackAndFailures() }
+
+@Test(.timeLimit(.minutes(1))) func checkedAffineAndIdentityRelationViews() throws { try RelationViewFixtures.affineWordsAndLifetime() }
+@Test(.timeLimit(.minutes(1))) func checkedRelationProductAndAdmission() throws { try RelationViewFixtures.completeProductsAndFailures() }

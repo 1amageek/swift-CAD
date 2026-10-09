@@ -1,0 +1,8 @@
+(node:31747) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+WASI linear memory: 1507328 bytes
+PASS checked DI affine/relation view: original scope, polynomial constraints, reversed/permuted axes, COW and retained lifetime
+PASS checked DI complete-product relation and exact admission/work/storage/source/proof/transport/cancellation failures
+PASS M4 affine source-domain composition: reversed/nested image, spatial word, directed traversal, infinite lifts and closed seams
+PASS M4 exact source pullback: uncovered scope refuses, singleton/empty succeed, foreign/zero/depth/work/storage/cancel fail
+PASS DI0-DI3 Native/intrinsic foundation: exact endpoint-sector algebra, canonical unions, unbounded sets, products, lifetime, owner/order refusal, budgets and terminal cancel
