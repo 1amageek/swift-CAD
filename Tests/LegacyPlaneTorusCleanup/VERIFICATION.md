@@ -87,3 +87,10 @@ The ownership/design decision is recorded in the CADGeometry parent design. This
 cleanup does not complete migration of any public CS/SSI family or all seven
 requirements. Integration must compare the exact verified source inputs and
 retain the same live-body deletion proof against latest main.
+
+Cleanup commit9f21f604 was fast-forwarded into the independent integration worktree
+and main froma87b7853. All four verified source/proof/runner inputs match main; the
+actual copied dependency products and runtime artifact retain their recorded hashes.
+The live-body deletion proof and unchanged caller/delegate/verifier were checked
+again on the integrated tree. No integration source adjustment is needed; Native
+behavioral evidence is reused. Foreign worktrees and retained drafts remain untouched.
