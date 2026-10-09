@@ -59,3 +59,6 @@ import DomainFixtures
 
 @Test func retainedSurfaceDomainCorrespondence() throws { try RetainedSurfaceDomainFixtures.fullSourceCorrespondence() }
 @Test func retainedSurfaceDomainAdmissionFailures() throws { try RetainedSurfaceDomainFixtures.atomicFailures() }
+
+@Test func retainedCurveDomainCorrespondence() throws { try RetainedCurveDomainFixtures.fullSourceCorrespondence() }
+@Test func retainedCurveDomainAdmissionFailures() throws { try RetainedCurveDomainFixtures.atomicFailures() }

@@ -1,0 +1,39 @@
+Building for debugging...
+[Computing dependencies]
+[Constructing description]
+[Pre-planning 1 / 239]
+[Planning deferred tasks]
+[Starting]
+[3 / 7] DI
+[4 / 8] DI
+[11 / 15] DomainFixtures
+[12 / 16] DomainFixtures
+[16 / 18] DomainProof-product
+[18 / 20] DomainProof-product
+[19 / 21] DomainProof-product
+[20 / 24] SourceIssuer
+[20 / 24]
+[23 / 43] DomainFixtures
+[24 / 43] DomainFixtures
+[25 / 43] DomainFixtures
+[26 / 43] DomainFixtures
+[27 / 43] DomainFixtures
+[28 / 43] DomainFixtures
+[29 / 43] DomainFixtures
+[30 / 43] DomainFixtures
+[31 / 43] DomainFixtures
+[32 / 43] DomainFixtures
+[33 / 43] DomainFixtures
+[34 / 43] DomainFixtures
+[35 / 43] DI
+[36 / 44] DomainFixtures
+[37 / 44] DomainFixtures
+[39 / 44] DI
+[40 / 44] DomainFixtures
+[40 / 44] DI
+[41 / 45] DI
+[43 / 45] DI
+[44 / 45] DomainFixtures
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalDomainIdentityVerification/Package.swift: DomainProof-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+[45 / 45] DomainProof-product
+Build complete! (28.32秒)

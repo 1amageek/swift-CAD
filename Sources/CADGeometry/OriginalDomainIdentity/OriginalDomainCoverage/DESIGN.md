@@ -495,3 +495,19 @@ requests, original laws/lifetime and independent source/transport/chart/family/
 work/storage/cancel failures. Actual CorrectionProof verifies the genuine
 boundary-correction source-to-DI handoff; derivative surface sources can consume
 this same contract only after their source owner issues a complete witness.
+
+## Sealed retained curve domain composition
+
+OriginalRetainedCurveDomainIssuing consumes the sealed complete normalized curve
+family from the retained source owner. Original XYZ/D, original cell boundaries,
+identity normalized T and complete closed support are the source contract. DI
+owns only frame compatibility, exact requested selection and existing map/cover
+composition. Each occurrence retains its whole family, original law index and
+selected authored T map. Empty success requires full coverage evidence.
+
+The same immutable ownership and admission/depth/cancel contracts as retained
+surface composition apply. RetainedCurveDomainFixtures verifies nonbinary cell
+cuts, both closed sides, strict/singleton/disconnected/empty requests, original
+position/lifetime and independent failure bounds. Actual DerivativeCurveProof
+consumes the genuine original Hermite/plane-constraint source witness; generic
+non-rational derivative sources remain the source owner's open capability.

@@ -1,0 +1,27 @@
+[
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification",
+      "--build-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+      "-j",
+      "1",
+      "--product",
+      "OriginalDerivativeCurveSourceProof"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 149.77214512502542,
+    "timeout_seconds": 300
+  },
+  {
+    "command": [
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/out/Products/Debug/OriginalDerivativeCurveSourceProof"
+    ],
+    "exit_code": 0,
+    "elapsed_seconds": 1.5879967500222847,
+    "timeout_seconds": 120
+  }
+]

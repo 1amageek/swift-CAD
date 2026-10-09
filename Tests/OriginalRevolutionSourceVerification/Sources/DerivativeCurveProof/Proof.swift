@@ -26,6 +26,23 @@ struct OriginalDerivativeCurveSourceProof {
         let family=try DefaultOriginalFiniteRetainedCurveChartPreparer<OriginalPlaneDerivativeCurveSnapshot>().prepare(
             source:source,maximumCharts:1,limits:limits,using:&a)
         try family.admitProof(limits:limits,using:&a);try require(family.laws.count==1)
+        let domainLimits=try OriginalDomainIdentityLimits(source:limits,maximumTransportDepth:16,
+            maximumCharts:4,maximumFamilies:1,maximumIdentityProofs:8)
+        let issuer=DefaultOriginalRetainedCurveDomainIssuer<OriginalPlaneDerivativeCurveSnapshot>()
+        let frame=try issuer.frame(family:family,limits:domainLimits,using:&a)
+        let cover=try issuer.issue(request:frame.fullSelection(limits:domainLimits,using:&a),family:family,limits:domainLimits,using:&a)
+        let quarter=try f.binary64(exactly:0.25,using:&a)
+        let sides=try cover.incident(at:[quarter],limits:domainLimits,using:&a)
+        try require(sides.count==1 && sides[0].law.chart.selection==0)
+        let transporter=DefaultOriginalParameterTransporter<OriginalPlaneDerivativeCurveSnapshot,OriginalExactScalarDomain>()
+        let local=try transporter.forward([quarter],through:transporter.inverse(sides[0].transport,limits:domainLimits,using:&a),
+            limits:domainLimits,using:&a)
+        try require(f.compare(local[0],quarter,using:&a) == .equal)
+        let point=try frame.selection(intervals:[[.checked(field:f,lower:.finite(quarter),upper:.finite(quarter),
+            depth:.init(value:0,coefficient:0),using:&a)]],limits:domainLimits,using:&a)
+        try require(issuer.issue(request:point,family:family,limits:domainLimits,using:&a).incident(at:[quarter],limits:domainLimits,using:&a).count==1)
+        let empty=try frame.selection(intervals:[[]],limits:domainLimits,using:&a)
+        try require(issuer.issue(request:empty,family:family,limits:domainLimits,using:&a).selectedMembers(limits:domainLimits,using:&a).isEmpty)
         let law=family.laws[0],r=law.polynomials
         for (t,expectedZ) in [(0.0,0.0),(0.25,0.103515625),(0.5,0.5),(1.0,1.0)] {
             let parameter=try f.binary64(exactly:t,using:&a)
