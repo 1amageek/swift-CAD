@@ -32,3 +32,17 @@ extension DefaultCurveSurfaceIntersector: NativeExactCurveSurfaceResolving {
             cellLimits: cellLimits, topologyLimits: topologyLimits, using: &admission)
     }
 }
+
+// The collection entry retains exact selected boundaries and all Native chart lifts.
+extension DefaultCurveSurfaceIntersector {
+    public func exactParameterRelations<A: ExactScalarAdmission & ~Copyable>(
+        curve: OriginalBSplineDomainCover<BSplineCurve3D,ExactAlgebraicScalarDomain<ExactRationalScalarDomain>>,
+        surface: OriginalBSplineDomainCover<BSplineSurface3D,ExactAlgebraicScalarDomain<ExactRationalScalarDomain>>,
+        domainLimits: OriginalDomainIdentityLimits,maximumMaps: Int,maximumPairs: Int,
+        cellLimits: ExactRealCellLimits,topologyLimits: ExactRealTopologyLimits,using admission: inout A
+    ) throws(NativeExactRelationFailure) -> NativeExactParametricRelations<BSplineCurve3D,BSplineSurface3D> {
+        try DefaultNativeExactRelationFamilyResolver().exactParameterRelations(first:curve,second:surface,kind:.curveSurface,
+            domainLimits:domainLimits,maximumMaps:maximumMaps,maximumPairs:maximumPairs,
+            cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
+    }
+}

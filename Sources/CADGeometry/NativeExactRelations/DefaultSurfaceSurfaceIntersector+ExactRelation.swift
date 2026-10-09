@@ -32,3 +32,17 @@ extension DefaultSurfaceSurfaceIntersector: NativeExactSurfaceSurfaceResolving {
             cellLimits: cellLimits, topologyLimits: topologyLimits, using: &admission)
     }
 }
+
+// The collection entry retains exact selected boundaries and all Native chart lifts.
+extension DefaultSurfaceSurfaceIntersector {
+    public func exactParameterRelations<A: ExactScalarAdmission & ~Copyable>(
+        first: OriginalBSplineDomainCover<BSplineSurface3D,ExactAlgebraicScalarDomain<ExactRationalScalarDomain>>,
+        second: OriginalBSplineDomainCover<BSplineSurface3D,ExactAlgebraicScalarDomain<ExactRationalScalarDomain>>,
+        domainLimits: OriginalDomainIdentityLimits,maximumMaps: Int,maximumPairs: Int,
+        cellLimits: ExactRealCellLimits,topologyLimits: ExactRealTopologyLimits,using admission: inout A
+    ) throws(NativeExactRelationFailure) -> NativeExactParametricRelations<BSplineSurface3D,BSplineSurface3D> {
+        try DefaultNativeExactRelationFamilyResolver().exactParameterRelations(first:first,second:second,kind:.surfaceSurface,
+            domainLimits:domainLimits,maximumMaps:maximumMaps,maximumPairs:maximumPairs,
+            cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
+    }
+}

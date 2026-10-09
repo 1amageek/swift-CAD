@@ -5,9 +5,11 @@ Parent: [system](../../DESIGN.md). Verification-only composition of production
 Native source providers and CS/SSI parameter consumers with fresh L0-L5/DI.
 
 ## Responsibilities and Boundaries
-Build only this consumer and its exact dependencies. Reuse validated, unchanged
-CADCore and Native DTO/intersector modules after checking their recorded premises.
-No whole CADGeometry rebuild, fake shape, second solver or guessed cache is used.
+Build the exact consumer closure independently for preparation checks. The M2
+behavioral proof builds actual CADCore/CADGeometry because the Native surface DTO
+signature depends on its production span/jet owner. It does not build other CAD
+targets. Historical cached-DTO consumer receipts retain only their recorded
+premises; the current M2 route uses fresh production compilation.
 
 ## Related Designs
 | Design | Relationship | Contract Used | Summary | Cautions |
@@ -18,7 +20,7 @@ No whole CADGeometry rebuild, fake shape, second solver or guessed cache is used
 ## Architecture
 ```mermaid
 flowchart LR
- C[Checked cached Native DTOs] --> A[Actual source providers]
+ C[Actual production Native DTOs] --> A[Actual source providers]
  A --> D[Fresh SourceIssuer and DI]
  D --> N[Actual Native consumer source files]
  L[Fresh L0-L5] --> N
@@ -26,12 +28,28 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
-The compiler builds linked production sources directly. Cached source premises,
-module objects and runtime artifact hashes are recorded. Every public solve uses
+The compiler builds linked production sources directly. Source snapshots, actual
+compiler inputs, module products and runtime artifact hashes are recorded. Every public solve uses
 the same original admission, result topology and independent original ceilings.
 
 ## Verification and Change Impact
 Execute original weighted/contact/multiple-UV/endpoints/empty/overlap/folded-SSI
 fixtures plus limits, cancellation and original domain owner assertions.
 Record current compiled inputs independently from prior foundation evidence.
-This subset composition does not establish fresh whole-module or XYZ integration.
+Independent adapter compilation does not establish Native behavior. The full
+production family proof establishes the additive parameter consumer and M3 source
+providers; it does not establish unrelated CAD targets or general XYZ integration.
+
+
+## M2 Native finite family verification
+
+`NativeFamilyAdapter` compiles the additive collection consumer with the current
+L0-L5/DI closure, excluding unrelated coordinate-transfer L2 adapters. This check
+is preparation evidence only. `Sources/FamilyFixtures` and `Sources/FamilyProof`
+are also linked by the full production
+[Native verification package](../NativeExactRelationVerification/Package.swift).
+That route builds CADCore/CADGeometry and executes actual Native source providers,
+complete multi-span CS/SSI, exact selected boundaries, periodic lifts, lifetime
+and independent failure/cancellation fixtures. It records the source snapshot and
+actual compiler inputs and product hashes; concurrent source changes invalidate
+publication evidence. Cached geometry compilation is not assumed by this route.

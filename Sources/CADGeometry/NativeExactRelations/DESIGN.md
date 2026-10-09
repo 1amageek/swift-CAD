@@ -3,8 +3,9 @@
 ## Purpose and Scope
 Parent: [CADGeometry](../DESIGN.md). Connect the independent L0-L5 foundation to
 actual authored B-spline CS/SSI inputs in the existing production module. The
-bounded input is finite, nonperiodic, positive-weight, source-valid, with exactly
-one positive knot span per axis. No new production package or module is added.
+scalar input remains finite, nonperiodic, positive-weight and single-span. The
+additive M2 collection accepts every selected positive Native span and finite
+periodic lifts. No new production package or module is added.
 
 ## Responsibilities and Boundaries
 This component owns source/domain protocol composition, checked exact coefficient
@@ -210,3 +211,41 @@ reconciliation and distinct UV at one XYZ. Exact work/storage and both depth axe
 result ceilings and cancellation are exercised on the tuple consumer. These tests
 prove the issued contract; they do not establish existing public CS dispatch or
 family receipt compatibility.
+
+## M2 Finite Family Publication Contract
+
+The additive `exactParameterRelations` entry consumes source-bound B-spline
+covers, retaining their original support, request, effective selection and chart
+family. The scalar single-map API remains compatible. The family entry admits
+all positive Native spans and exact finite selections over independently periodic
+axes. `OriginalFiniteChartFamilyQuerying.selectedMembers` owns exact cycle
+enumeration; the consumer never infers periods or clips original support.
+
+```mermaid
+flowchart LR
+  C[Complete selected covers] --> E[DI finite chart occurrences]
+  E --> B[Domain-bound original laws and inverse transports]
+  B --> P[Cartesian local interval pieces]
+  P --> R[L5 exact relation for every chart pair]
+  R --> O[Atomic complete collection with all chart and lift owners]
+```
+
+Each occurrence is prepared once. Each disconnected local axis interval produces
+an exact Cartesian map piece retaining open/closed/singleton boundaries. Every
+pair is compiled and resolved once, including complete empty relation evidence.
+The collection retains the bound laws and original/local correspondences beside
+each TUV or UVUV relation. Equal XYZ, adjacent sides and closed periodic seam
+lifts are never deduplicated. Empty effective source selection returns an empty
+collection with both complete covers retained. Unbounded selected periodic
+families fail explicitly at DI enumeration, rather than inventing a window.
+
+All enumeration, chart issuance, map import, Cartesian expansion, pair resolution
+and publication use one caller admission, caller domain limits and unchanged L3/L4
+limits. Caller `maximumMaps` bounds each source preparation and `maximumPairs`
+bounds their complete product. L3/L4 ceilings apply to each distinct relation;
+the noncopyable admission owns aggregate work, storage, depth and cancellation. Checked counting precedes allocation; partial collections cannot escape
+on failure or cancellation. No derivative, normal, legacy solver or L0-L5 change
+is needed. Verification builds the actual production CADCore/CADGeometry graph because the
+Native surface DTO names the original span/jet owner in its signature. It executes
+the new public family entry on actual source snapshots. No other CAD targets are
+required. Prior scalar/lower evidence is retained on unchanged premises.

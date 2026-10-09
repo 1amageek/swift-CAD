@@ -21,5 +21,7 @@ let package = Package(name: "NativeExactRelationVerification", platforms: [.macO
  linkerSettings: [.unsafeFlags(["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"], .when(platforms: [.custom("wasi")]))]),
  .target(name:"NativePrimitiveSourceFixtures",dependencies:["CADCore","CADGeometry"],path:"Sources/M3Fixtures"),
  .executableTarget(name:"NativePrimitiveSourceProof",dependencies:["NativePrimitiveSourceFixtures"],path:"Sources/M3Proof"),
+ .target(name:"NativeDomainFamilyFixtures",dependencies:["CADCore","CADGeometry"],path:"Sources/FamilyFixtures",swiftSettings:[.define("NATIVE_FAMILY_FULL_VERIFICATION")]),
+ .executableTarget(name:"NativeDomainFamilyProof",dependencies:["NativeDomainFamilyFixtures"],path:"Sources/FamilyProof"),
  .testTarget(name: "NativeExactTests", dependencies: ["NativeExactFixtures"], path: "Tests")
 ])
