@@ -190,3 +190,28 @@ entry/terminal cancellation. The
 immutable relation is Sendable on Native, WASM and Embedded with identical storage;
 no mutable state or target-specific isolation is introduced. Boundary/self adapters
 own their higher-level refinement and exclusion tests, using public L4 refinePullback.
+
+## Analytic source theorem consumption
+
+OriginalAnalyticParameterIdentityIssuing refines the source-specific capability for
+OriginalAnalyticDomainCover. The existing analytic source issuer remains the only
+authority for genuine periods and whole constant fibers. periodic selects a source
+period by axis, intersects selected/effective scopes and clips the translated right
+scope before issuing the affine relation. A temporary unbounded parameter frame
+allows pullback before bounded authored admission; it does not widen final proof.
+Empty translated overlap is a valid empty scoped relation. The original coefficient
+field, angular semantics, period and source owner are retained and re-admitted.
+
+collapsed selects a source-issued fiber by index, intersects the requested scope,
+and requires every fixed-axis interval equal the exact source fixed value. It then
+issues a complete-product relation only on that scope. The proof owner retains the
+original collapsed-fiber receipt and polynomial position laws; scalar/source depths
+and fixed value/position are re-admitted on reuse. Nearby latitude or non-singleton
+fixed axis cannot become a collapse. The source law producer is unchanged.
+
+This primitive identity capability closes M5.P only. Child composition, joins and
+all-family identity acceptance remain M5.C. AnalyticIdentityFixtures own the new
+independent behavioral evidence; production boundary/self composition is separately
+owned by M6 consumers. Existing Native/intrinsic/rational receipts and their public
+query methods remain compatible and are covered by the same independent regression
+package. All storage and proof owners are immutable on every target.

@@ -41,3 +41,6 @@ import DomainFixtures
 
 @Test(.timeLimit(.minutes(1))) func checkedAffineAndIdentityRelationViews() throws { try RelationViewFixtures.affineWordsAndLifetime() }
 @Test(.timeLimit(.minutes(1))) func checkedRelationProductAndAdmission() throws { try RelationViewFixtures.completeProductsAndFailures() }
+
+@Test(.timeLimit(.minutes(1))) func analyticScopedPeriodsAndFibers() throws { try AnalyticIdentityFixtures.intrinsicPeriodsAndFibers() }
+@Test(.timeLimit(.minutes(1))) func analyticPhysicalPeriodClippingAndFailures() throws { try AnalyticIdentityFixtures.physicalClippingAndFailures() }

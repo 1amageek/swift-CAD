@@ -29,6 +29,11 @@ public struct DefaultOriginalParameterIdentityIssuer<S: Sendable,F: ExactScalarA
             _ = try period.field.sign(of:period.lower,using:&a)
             _ = try period.field.sign(of:period.upper,using:&a)
         }
+        for fiber in r.proof.fibers {
+            try a.consumeWork(1)
+            _ = try r.left.frame.scalarField.sign(of:fiber.fixedValue,using:&a)
+            for coordinate in fiber.position { try a.consumeWork(1); _ = try r.left.frame.scalarField.sign(of:coordinate,using:&a) }
+        }
         for pole in r.proof.poles {
             try a.consumeWork(1); _ = try pole.field.sign(of:pole.latitude,using:&a)
             for coordinate in pole.position { try a.consumeWork(1); _ = try pole.field.sign(of:coordinate,using:&a) }
@@ -36,7 +41,7 @@ public struct DefaultOriginalParameterIdentityIssuer<S: Sendable,F: ExactScalarA
     }
     func make<A: ExactScalarAdmission & ~Copyable>(kind: OriginalParameterIdentityKind,left: OriginalParameterSelection<S,F>,right: OriginalParameterSelection<S,F>,
         permutation: [Int]?,gains: [F.Value],offsets: [F.Value],laws: [ExactPolynomial<F>] = [],periods: [OriginalSourcePeriodReceipt<S,F>] = [],
-        boundaries: [OriginalSourceBoundaryDeclaration<S>] = [],poles: [OriginalSourcePoleReceipt<S,F>] = [],parents: [OriginalParameterIdentity<S,F>] = [],depth: Int = 1,using a: inout A,limits l: OriginalDomainIdentityLimits) throws -> OriginalParameterIdentity<S,F> {
+        boundaries: [OriginalSourceBoundaryDeclaration<S>] = [],fibers: [OriginalSourceCollapsedFiberReceipt<S,F>] = [],poles: [OriginalSourcePoleReceipt<S,F>] = [],parents: [OriginalParameterIdentity<S,F>] = [],depth: Int = 1,using a: inout A,limits l: OriginalDomainIdentityLimits) throws -> OriginalParameterIdentity<S,F> {
         var count = 1
         var valueDepth = 0, coefficientDepth = 0
         var sourceDepth = max(left.frame.source.sourceDepth,right.frame.source.sourceDepth)
@@ -45,8 +50,8 @@ public struct DefaultOriginalParameterIdentityIssuer<S: Sendable,F: ExactScalarA
         guard count <= l.maximumIdentityProofs else { throw OriginalDomainIdentityFailure.identityLimit }
         guard depth <= l.maximumTransportDepth else { throw OriginalDomainIdentityFailure.transportDepthLimit }
         try OriginalDomainAccess.storage(2,OriginalSourceBinding<S>.self,&a)
-        try OriginalDomainAccess.owner(([OriginalSourceBinding<S>],[ExactPolynomial<F>],[OriginalSourcePeriodReceipt<S,F>],[OriginalSourceBoundaryDeclaration<S>],[OriginalSourcePoleReceipt<S,F>],[OriginalParameterIdentity<S,F>]).self,&a)
-        let proof = OriginalParameterIdentity<S,F>.Proof(sources:[left.frame.source,right.frame.source],laws:laws,periods:periods,boundaries:boundaries,poles:poles,parents:parents)
+        try OriginalDomainAccess.owner(([OriginalSourceBinding<S>],[ExactPolynomial<F>],[OriginalSourcePeriodReceipt<S,F>],[OriginalSourceBoundaryDeclaration<S>],[OriginalSourcePoleReceipt<S,F>],[OriginalSourceCollapsedFiberReceipt<S,F>],[OriginalParameterIdentity<S,F>]).self,&a)
+        let proof = OriginalParameterIdentity<S,F>.Proof(sources:[left.frame.source,right.frame.source],laws:laws,periods:periods,boundaries:boundaries,poles:poles,fibers:fibers,parents:parents)
         let r = OriginalParameterIdentity(kind:kind,left:left,right:right,permutation:permutation,gains:gains,offsets:offsets,depth:depth,proofCount:count,evidenceDepth:try .init(value:valueDepth,coefficient:coefficientDepth),evidenceSourceDepth:sourceDepth,proof:proof)
         try require(r,l,&a); return r
     }

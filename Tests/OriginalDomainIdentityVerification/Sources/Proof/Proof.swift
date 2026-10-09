@@ -1,6 +1,8 @@
 import DomainFixtures
 @main struct DomainProof {
     static func main() throws {
+        try AnalyticIdentityFixtures.intrinsicPeriodsAndFibers()
+        try AnalyticIdentityFixtures.physicalClippingAndFailures()
         try RelationViewFixtures.affineWordsAndLifetime()
         try RelationViewFixtures.completeProductsAndFailures()
         try ComposedDomainFixtures.completeFamilies()
