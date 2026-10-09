@@ -1,0 +1,101 @@
+{
+  "success": true,
+  "implementationCommit": "215027be",
+  "lanes": {
+    "native": {
+      "resultSHA256": "bc87394ebfbbc4d6cb03227e0e96d4fce576bf443d2491dd4a8c289ed6f7884a",
+      "logs": {
+        "sdk.log": "536b4a03c7f87d36a5dedb47381bfec6f3f8d9c3d506ecd6fdb9184a57909e2c",
+        "tests.log": "da1f2daed0de328a876683a5735d9e908afeb37d543b8e2390626ff704f648e5",
+        "toolchain.log": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+        "build.log": "83e296d79dfff3781533939cdc2f6467dc528970eeccb29013ec88a131cf82fd"
+      },
+      "inputManifestSHA256": "7438982f5aea7223b8f884872db0391cab46c633545b1e3454b94c458ef0f3a9"
+    },
+    "asan": {
+      "resultSHA256": "1bff3b6a2cccf726ea2e12144f488b2014076f1500680cc245affc15f4eef91b",
+      "logs": {
+        "sdk.log": "536b4a03c7f87d36a5dedb47381bfec6f3f8d9c3d506ecd6fdb9184a57909e2c",
+        "proof-1.log": "5533295625e0dd9765d1b0db862ace07762c225b47f66969fec0980c7f46a07a",
+        "proof-0.log": "9bee6eb447d3d470ddc2faee70e740c0ebb25346368dba3e90c3294f40c4665f",
+        "proof-2.log": "26f0469a5071be2b573e6829019659fa028db95ac3ea9f5f8eecb0dcb4bd7bac",
+        "proof-3.log": "c2a9981edcb036b0fd9d4d1dacd68fc42f3f3e9d11d65b7df9402b771ecea30f",
+        "toolchain.log": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+        "proof-4.log": "8a30e74799fbeeddf13ebbe564b595999aa03a52d95bb0dd48b71873569c3ca3",
+        "proof-5.log": "29341a4345dc1cb47394e6441ab064554ad162540b2d9213770ba6a3420ce671",
+        "build.log": "acde7fb3f7f5e3fcac208c3c4c808dfafbdf58dc600f4c32a2a848a3a781a046"
+      },
+      "inputManifestSHA256": "7438982f5aea7223b8f884872db0391cab46c633545b1e3454b94c458ef0f3a9"
+    },
+    "wasm": {
+      "resultSHA256": "0a9754acfd016038384c30777309d55f4ace345b1e490a004f5b0ee28a463996",
+      "logs": {
+        "node.log": "b7677d3ec37ee1897ba07dc2cfe8292fe421c9ac93396cca5bbece486d1a2a41",
+        "sdk.log": "536b4a03c7f87d36a5dedb47381bfec6f3f8d9c3d506ecd6fdb9184a57909e2c",
+        "proof-1.log": "4e87fe7053393aa556fecb8db4bb09ab958995f74c46887f83fa5c68f46f4284",
+        "proof-0.log": "ac8482f4691aac654e3e6b2ccd2fd93c74b3eeb7b6ed2a3afd9829046cfbc4aa",
+        "proof-2.log": "1bafc6646360aaffd8070ee625bc1a2bf2e7efc683e63b438784ed5103563ae1",
+        "proof-3.log": "ebaeccc62472edc1b57ee276bf7cce637d8f23bda2c03e28786ca2b6ea6c222a",
+        "toolchain.log": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+        "proof-4.log": "c694a62ac2a4d72ead49b67f816c8d46559c0236ca8a822fb328bc6d705c79d0",
+        "proof-5.log": "519ede105f46b2e24a031403966eb19b2cd3ce919e020b5ff56701f20a3d3e54",
+        "build.log": "976f53442cb44af12064c9d96e3341993ed386626a81598b3267877109fb7aaf"
+      },
+      "inputManifestSHA256": "561f8bc96f2ce88397fe5c285b23c2a007633802deb7a759da337d95d77d962f"
+    },
+    "embedded": {
+      "resultSHA256": "69b58533dd6863b52579f78320017bdaf1a7fe9e67653011ee6162dacc22bc7d",
+      "logs": {
+        "node.log": "b7677d3ec37ee1897ba07dc2cfe8292fe421c9ac93396cca5bbece486d1a2a41",
+        "sdk.log": "536b4a03c7f87d36a5dedb47381bfec6f3f8d9c3d506ecd6fdb9184a57909e2c",
+        "proof-1.log": "54496ad04bf27d5b757fbab798dc0d7be4d884c82779dd7403d1e2996c71a554",
+        "proof-0.log": "abb85be28ce42ae3ca3ce3bec91a7fd1aaa6099a9fe925839f79d8d8d0236a61",
+        "proof-2.log": "81debf19658fd94bddab3ecd2319c327756823e522a58ecdde847fb490421821",
+        "proof-3.log": "453595dd5e4aceefd9bcbc6b94eae7c7175398aed43d4d65a00dce5a20ea15ed",
+        "toolchain.log": "0b8a89a2a509c22d7708e5de961c937d99829285dfedf796a988cc5275f1986c",
+        "proof-4.log": "155e370831083731dfc555ca09895db0c5d2d0084196e853687b078b64610336",
+        "proof-5.log": "93370ed05e299669309bc0fa9179befb7096cc1c63b737d944081a01f5484a46",
+        "build.log": "9e6c22904c0e7a423d483f574e6761aecd14f00aa78f96db296dfa1abb835c42"
+      },
+      "inputManifestSHA256": "561f8bc96f2ce88397fe5c285b23c2a007633802deb7a759da337d95d77d962f"
+    },
+    "integration": {
+      "resultSHA256": "6ed7b9bf7096d10c723f34a3653c73b1c95c80ab321c4ecca4b6f510a5843ead",
+      "logs": {
+        "proof-1.log": "5533295625e0dd9765d1b0db862ace07762c225b47f66969fec0980c7f46a07a",
+        "proof-0.log": "9bee6eb447d3d470ddc2faee70e740c0ebb25346368dba3e90c3294f40c4665f",
+        "proof-2.log": "26f0469a5071be2b573e6829019659fa028db95ac3ea9f5f8eecb0dcb4bd7bac",
+        "proof-3.log": "c2a9981edcb036b0fd9d4d1dacd68fc42f3f3e9d11d65b7df9402b771ecea30f",
+        "proof-4.log": "8a30e74799fbeeddf13ebbe564b595999aa03a52d95bb0dd48b71873569c3ca3",
+        "proof-5.log": "29341a4345dc1cb47394e6441ab064554ad162540b2d9213770ba6a3420ce671"
+      }
+    }
+  },
+  "productionSourceHashesUnchanged": true,
+  "nativeAsanMeasuredAdmissionIdentical": true,
+  "measuredAdmissionByTarget": {
+    "native": [
+      "MEASURE rational work=1339672 storage=40014385",
+      "MEASURE offset knot=false work=15429913 storage=379155392",
+      "MEASURE offset knot=true work=15494793 storage=380921266"
+    ],
+    "asan": [
+      "MEASURE rational work=1339672 storage=40014385",
+      "MEASURE offset knot=false work=15429913 storage=379155392",
+      "MEASURE offset knot=true work=15494793 storage=380921266"
+    ],
+    "wasm": [
+      "MEASURE rational work=1328891 storage=20134725",
+      "MEASURE offset knot=false work=15201063 storage=190381312",
+      "MEASURE offset knot=true work=15269434 storage=191272386"
+    ],
+    "embedded": [
+      "MEASURE rational work=1328891 storage=20134725",
+      "MEASURE offset knot=false work=15201063 storage=190381312",
+      "MEASURE offset knot=true work=15269434 storage=191272386"
+    ]
+  },
+  "targetCostNote": "Storage is checked target-layout payload bytes, so 32-bit WASM byte and work observations are recorded separately from 64-bit Native. Exact math and result assertions pass on every target.",
+  "retainedLowerManifestSHA256": "95cffcd131d9106a0fb6b82bbf5b2843a65ca3f62d2f451de3e24dc8c1b03c7f",
+  "reviewAuditSHA256": "f33205fd56a93915f6744d52a181ee62ac76b27c2bb0b372c4944509ab161f5f"
+}

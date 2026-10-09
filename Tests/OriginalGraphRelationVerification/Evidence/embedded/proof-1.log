@@ -1,0 +1,6 @@
+(node:25927) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+warning: data race detected: actor-isolated function at GraphProof/Proof.swift:9 was not called on the same actor
+
+MEASURE offset knot=false work=15201063 storage=190381312
+PASS B3 source/DI/L5 group=1

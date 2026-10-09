@@ -1,0 +1,42 @@
+{
+  "source-native": {
+    "inputCount": 277,
+    "manifestSHA256": "2920ff38bc6b4cf3472edac29da75ad50e1f30d6952d9da52e8b29f51bcc0f51",
+    "allInputsUnchanged": true
+  },
+  "source-asan": {
+    "inputCount": 277,
+    "manifestSHA256": "2920ff38bc6b4cf3472edac29da75ad50e1f30d6952d9da52e8b29f51bcc0f51",
+    "allInputsUnchanged": true
+  },
+  "source-wasm": {
+    "inputCount": 267,
+    "manifestSHA256": "ba91aebc6498481e264c1520e633a110d760a537639a48f28a5b5d57aee92046",
+    "allInputsUnchanged": true
+  },
+  "source-embedded": {
+    "inputCount": 267,
+    "manifestSHA256": "ba91aebc6498481e264c1520e633a110d760a537639a48f28a5b5d57aee92046",
+    "allInputsUnchanged": true
+  },
+  "relation-native": {
+    "inputCount": 279,
+    "manifestSHA256": "3ff0417d9c488e3ee4e8e72349293dbd0753e8ff4be4f2e4eba22613388f4b0d",
+    "allInputsUnchanged": true
+  },
+  "relation-asan": {
+    "inputCount": 279,
+    "manifestSHA256": "3ff0417d9c488e3ee4e8e72349293dbd0753e8ff4be4f2e4eba22613388f4b0d",
+    "allInputsUnchanged": true
+  },
+  "relation-wasm": {
+    "inputCount": 277,
+    "manifestSHA256": "c9b75a47fec5b3bc93c778818665c2732d925014e8edc0c121f423b7a0452907",
+    "allInputsUnchanged": true
+  },
+  "relation-embedded": {
+    "inputCount": 277,
+    "manifestSHA256": "c9b75a47fec5b3bc93c778818665c2732d925014e8edc0c121f423b7a0452907",
+    "allInputsUnchanged": true
+  }
+}

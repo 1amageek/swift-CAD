@@ -1,0 +1,72 @@
+{
+  "success": true,
+  "mainBase": "2f912224bb5e7d50a1977ca018efff75e420de1b",
+  "integrationHead": "215027be2892633dc425a20208bf9a6148387b6d",
+  "integrationWorktree": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+  "cacheReuse": "Verified Native artifact reused only after all compiled source/manifest input hashes match the integration worktree; six fresh processes execute from the independent checkout",
+  "inputCount": 536,
+  "inputManifestSHA256": "7438982f5aea7223b8f884872db0391cab46c633545b1e3454b94c458ef0f3a9",
+  "artifactSHA256": "d00736d6f6a76ee6b4408a2c61b834bc1e63e3710bffd698692f0982c6f8342e",
+  "runs": [
+    {
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native/arm64-apple-macosx/debug/GraphProof",
+        "0"
+      ],
+      "workingDirectory": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 7.107,
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native/arm64-apple-macosx/debug/GraphProof",
+        "1"
+      ],
+      "workingDirectory": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 31.346,
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native/arm64-apple-macosx/debug/GraphProof",
+        "2"
+      ],
+      "workingDirectory": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 15.474,
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native/arm64-apple-macosx/debug/GraphProof",
+        "3"
+      ],
+      "workingDirectory": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.238,
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native/arm64-apple-macosx/debug/GraphProof",
+        "4"
+      ],
+      "workingDirectory": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.021,
+      "exitCode": 0
+    },
+    {
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native/arm64-apple-macosx/debug/GraphProof",
+        "5"
+      ],
+      "workingDirectory": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.719,
+      "exitCode": 0
+    }
+  ]
+}

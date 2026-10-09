@@ -11,7 +11,9 @@ numerical geometric publisher or full-seven completion is claimed.
 The independent package compiles the actual production source files through
 symlinks. Each lane's `inputs.json` records compiler inputs, and `result.json`
 records exact commands, bounded execution, toolchain/SDK and artifact hashes.
-Native and ASAN have 536 identical inputs, all checked against current files.
+Native and ASAN have 536 identical inputs. Normal/Embedded WASM have 535
+identical inputs; only the Native Swift Testing file is additional. Every compiled
+input matches current files; `binding.json` binds final records and logs.
 
 ## Behavioral coverage
 
@@ -59,10 +61,21 @@ Superseded runs retain the timeout and harness-dispatch diagnosis.
 |---|---|
 | Native debug | Six Swift Testing cases pass; process guard 120s, case guard 1 minute |
 | ASAN optimized | Six proof processes pass; each guard 60s |
-| Normal WASM | B4 pending |
-| Embedded WASM | B4 pending |
-| Independent latest-main integration | B4 pending |
+| Normal WASM | Six proof processes pass on matching release SDK / Node 24.19.0 |
+| Embedded WASM | Six proof processes pass; matching embedded SDK, WMO and `-Onone` |
+| Independent latest-main integration | All 536 inputs match independent checkout; six fresh Native proof processes pass, cached verified artifact reused |
 
 B0-B2 evidence remains at
 [GraphProjectionEvidence](../../L5ParametricRelationVerification/GraphProjectionEvidence/VERIFICATION.md).
 Only unchanged production input hashes justify its reuse.
+
+The independent integration checkout fast-forwards latest main `2f912224` to
+implementation `215027be`. Its exact compiler inputs and artifact digest are
+checked before reuse; no rebuild of unchanged layers is needed. `integration`
+records every fresh-process invocation from that checkout. Main merge is the
+remaining delivery step.
+
+Native and optimized ASAN admitted work/storage match exactly. WASM payload bytes
+use its 32-bit target layout and are recorded separately in `binding.json`; target
+cost counts are not substituted across architectures. Every lane respects the
+same declared work/storage/depth ceilings.
