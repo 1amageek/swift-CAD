@@ -41,16 +41,25 @@ struct OriginalCoordinateTransportState {
             bases.append(receipt)
             field = receipt.field; return receipt.values[0]
         case .fraction(let numerator, let denominator):
-            let generator = try generator(source.context, using: &a)
-            let n = try polynomial(numerator, at: generator, using: &a)
-            let d = try polynomial(denominator, at: generator, using: &a)
+            try a.admitDepth(value: source.context.depth.value, coefficient: source.context.depth.coefficient)
+            var station: OriginalExactScalar?
+            let n = try polynomial(numerator, in: source.context, at: &station, using: &a)
+            let d = try polynomial(denominator, in: source.context, at: &station, using: &a)
             let currentN = try field.importing(n, using: &a), currentD = try field.importing(d, using: &a)
-            return try field.dividing(currentN, currentD, using: &a)
+            let result = try field.dividing(currentN, currentD, using: &a)
+            // An unused extension still contributes its original causal depth.
+            let depth = try ExactScalarDepth(
+                value: max(result.depth.value, max(source.depth.value,
+                    max(source.context.depth.value, source.calculation?.depth.value ?? 0))),
+                coefficient: max(result.depth.coefficient, max(source.depth.coefficient,
+                    max(source.context.depth.coefficient, source.calculation?.depth.coefficient ?? 0))))
+            return .init(original: result.original, depth: depth)
         }
     }
 
     mutating func polynomial<A: ExactScalarAdmission & ~Copyable>(
-        _ polynomial: ExactPolynomial<Field>, at station: OriginalExactScalar,
+        _ polynomial: ExactPolynomial<Field>, in context: ExactAlgebraicContext<Base>,
+        at station: inout OriginalExactScalar?,
         using a: inout A) throws(ExactScalarFailure) -> OriginalExactScalar {
         guard polynomial.variableCount == 1 else { throw .invalidEvidence }
         try a.admitDepth(value: polynomial.depth.value, coefficient: polynomial.depth.coefficient)
@@ -60,6 +69,13 @@ struct OriginalCoordinateTransportState {
             let coefficient = try value(term.coefficient, using: &a)
             var exponent = term.powers[0]
             guard exponent >= 0 else { throw .invalidEvidence }
+            if exponent == 0 {
+                result = try field.adding(field.importing(result, using: &a),
+                    field.importing(coefficient, using: &a), using: &a)
+                continue
+            }
+            if station == nil { station = try generator(context, using: &a) }
+            guard let station else { throw ExactScalarFailure.invalidEvidence }
             var power = try field.integer(1, using: &a)
             var base = try field.importing(station, using: &a)
             while exponent > 0 {

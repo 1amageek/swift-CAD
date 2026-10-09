@@ -1,0 +1,107 @@
+--- DomainProof.swift
++++ StageProof.swift
+@@ -175,9 +175,12 @@
+             maximumClosures: 128, maximumAttachmentPieces: 256, maximumComponents: 32)
+         var resolveBudget = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 134_217_728,
+             valueDepth: 32, coefficientDepth: 32))
++        let perf_isolated = ContinuousClock.now
++        let work_isolated = resolveBudget.work, bytes_isolated = resolveBudget.storageBytes
+         let isolated = try resolver.resolve(kind: .curveSurface, first: verticalMap, second: planeMap,
+             maximumPairs: 8, maximumIsolatedCells: 8, requireDiscrete: true, cellLimits: cellLimits,
+             topologyLimits: topologyLimits, using: &resolveBudget)
++        print("PERF isolated", perf_isolated.duration(to: .now), "work", resolveBudget.work-work_isolated, "bytes", resolveBudget.storageBytes-bytes_isolated)
+         try require(isolated.pairs.count == 1 && isolated.isolatedCellCount == 1 && !isolated.hasPositiveDimensionalSolutions)
+         let relation = isolated.pairs[0].relation
+         guard let selectedCell = relation.selection.cells.first else { throw DomainProofFailure.incorrect(#line) }
+@@ -190,7 +193,10 @@
+             NativeSnapshot, OriginalBSplineChartSelection>()
+         var tupleBudget = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 134_217_728,
+             valueDepth: 32, coefficientDepth: 32))
++        let perf_originalPoints = ContinuousClock.now
++        let work_originalPoints = tupleBudget.work, bytes_originalPoints = tupleBudget.storageBytes
+         let originalPoints = try tupleResolver.resolve(relation: isolated, maximumPoints: 8, using: &tupleBudget)
++        print("PERF originalPoints", perf_originalPoints.duration(to: .now), "work", tupleBudget.work-work_originalPoints, "bytes", tupleBudget.storageBytes-bytes_originalPoints)
+         try require(originalPoints.points.count == 1 && originalPoints.incidences.count == 1)
+         try require(originalPoints.proofDepth.value >= max(2, relation.components.depth.value) &&
+             originalPoints.proofDepth.coefficient >= max(3, relation.components.depth.coefficient))
+@@ -240,10 +246,16 @@
+             controls: [[0.5,0.5,-0.5],[0.5,0.5,-0.5],[0.5,0.5,0.5]], weights: [1,1,1], periodic: [false])
+         var algebraicBudget = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 134_217_728, valueDepth: 32, coefficientDepth: 32))
+         let algebraicMap = try preparedCurve(algebraicInput, &algebraicBudget)
++        let perf_algebraicRelation = ContinuousClock.now
++        let work_algebraicRelation = algebraicBudget.work, bytes_algebraicRelation = algebraicBudget.storageBytes
+         let algebraicRelation = try resolver.resolve(kind: .curveSurface, first: algebraicMap, second: planeMap,
+             maximumPairs: 8, maximumIsolatedCells: 8, requireDiscrete: true, cellLimits: cellLimits,
+             topologyLimits: topologyLimits, using: &algebraicBudget)
++        print("PERF algebraicRelation", perf_algebraicRelation.duration(to: .now), "work", algebraicBudget.work-work_algebraicRelation, "bytes", algebraicBudget.storageBytes-bytes_algebraicRelation)
++        let perf_algebraicPoints = ContinuousClock.now
++        let work_algebraicPoints = algebraicBudget.work, bytes_algebraicPoints = algebraicBudget.storageBytes
+         let algebraicPoints = try tupleResolver.resolve(relation: algebraicRelation, maximumPoints: 8, using: &algebraicBudget)
++        print("PERF algebraicPoints", perf_algebraicPoints.duration(to: .now), "work", algebraicBudget.work-work_algebraicPoints, "bytes", algebraicBudget.storageBytes-bytes_algebraicPoints)
+         try require(algebraicPoints.points.count == 1)
+         let af = algebraicPoints.coordinates.field, at = algebraicPoints.points[0].t
+         try require(try af.compare(af.multiplying(at, at, using: &algebraicBudget),
+@@ -252,10 +264,16 @@
+             controls: [[0.5,0.5,-1],[0.5,0.5,0],[0.5,0.5,1]], weights: [1,1,1], periodic: [false])
+         var seamBudget = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 134_217_728, valueDepth: 32, coefficientDepth: 32))
+         let seamMap = try preparedCurve(seamInput, &seamBudget)
++        let perf_seamRelation = ContinuousClock.now
++        let work_seamRelation = seamBudget.work, bytes_seamRelation = seamBudget.storageBytes
+         let seamRelation = try resolver.resolve(kind: .curveSurface, first: seamMap, second: planeMap,
+             maximumPairs: 8, maximumIsolatedCells: 8, requireDiscrete: true, cellLimits: cellLimits,
+             topologyLimits: topologyLimits, using: &seamBudget)
++        print("PERF seamRelation", perf_seamRelation.duration(to: .now), "work", seamBudget.work-work_seamRelation, "bytes", seamBudget.storageBytes-bytes_seamRelation)
++        let perf_seamPoints = ContinuousClock.now
++        let work_seamPoints = seamBudget.work, bytes_seamPoints = seamBudget.storageBytes
+         let seamPoints = try tupleResolver.resolve(relation: seamRelation, maximumPoints: 1, using: &seamBudget)
++        print("PERF seamPoints", perf_seamPoints.duration(to: .now), "work", seamBudget.work-work_seamPoints, "bytes", seamBudget.storageBytes-bytes_seamPoints)
+         try require(seamPoints.points.count == 1 && seamPoints.incidences.count == 2 && seamPoints.points[0].incidenceRange.count == 2)
+         try require(try seamPoints.coordinates.field.compare(seamPoints.points[0].t,
+             seamPoints.coordinates.field.integer(1, using: &seamBudget), using: &seamBudget) == .equal)
+@@ -272,21 +290,33 @@
+         let foldCurve = NativeInput(degrees: [1], knots: [[0,0,1,1]], counts: [2],
+             controls: [[0.25,0.5,-0.5],[0.25,0.5,0.5]], weights: [1,1], periodic: [false])
+         let foldCurveMap = try preparedCurve(foldCurve, &foldedBudget)
++        let perf_foldedRelation = ContinuousClock.now
++        let work_foldedRelation = foldedBudget.work, bytes_foldedRelation = foldedBudget.storageBytes
+         let foldedRelation = try resolver.resolve(kind: .curveSurface, first: foldCurveMap, second: foldedMap,
+             maximumPairs: 8, maximumIsolatedCells: 8, requireDiscrete: true, cellLimits: cellLimits,
+             topologyLimits: topologyLimits, using: &foldedBudget)
++        print("PERF foldedRelation", perf_foldedRelation.duration(to: .now), "work", foldedBudget.work-work_foldedRelation, "bytes", foldedBudget.storageBytes-bytes_foldedRelation)
++        let perf_foldedPoints = ContinuousClock.now
++        let work_foldedPoints = foldedBudget.work, bytes_foldedPoints = foldedBudget.storageBytes
+         let foldedPoints = try tupleResolver.resolve(relation: foldedRelation, maximumPoints: 2, using: &foldedBudget)
++        print("PERF foldedPoints", perf_foldedPoints.duration(to: .now), "work", foldedBudget.work-work_foldedPoints, "bytes", foldedBudget.storageBytes-bytes_foldedPoints)
+         try require(foldedPoints.points.count == 2)
+         let ff = foldedPoints.coordinates.field
+         try require(try ff.compare(foldedPoints.points[0].u, ff.binary64(exactly: 0.25, using: &foldedBudget), using: &foldedBudget) == .equal)
+         try require(try ff.compare(foldedPoints.points[1].u, ff.binary64(exactly: 0.75, using: &foldedBudget), using: &foldedBudget) == .equal)
+         print("ORIGINAL_ISSUED_TUV_OK retained algebraic T, two native seam incidences, distinct UV at one XYZ, exact sorting, retained proof depths, atomic budget/cancel failures and complete point owners")
++        let perf_completeEmpty = ContinuousClock.now
++        let work_completeEmpty = a.work, bytes_completeEmpty = a.storageBytes
+         let completeEmpty = try resolver.resolve(kind: .curveSurface, first: compiler.compile(cover: empty,
+             field: coefficientField, maximumMaps: 0, using: &a), second: planeMap,
+             maximumPairs: 0, maximumIsolatedCells: 0, requireDiscrete: true, cellLimits: cellLimits,
+             topologyLimits: topologyLimits, using: &a)
++        print("PERF completeEmpty", perf_completeEmpty.duration(to: .now), "work", a.work-work_completeEmpty, "bytes", a.storageBytes-bytes_completeEmpty)
+         try require(completeEmpty.pairs.isEmpty && completeEmpty.first.original.coverage.effective.isEmpty)
++        let perf_emptyPoints = ContinuousClock.now
++        let work_emptyPoints = a.work, bytes_emptyPoints = a.storageBytes
+         let emptyPoints = try tupleResolver.resolve(relation: completeEmpty, maximumPoints: 0, using: &a)
++        print("PERF emptyPoints", perf_emptyPoints.duration(to: .now), "work", a.work-work_emptyPoints, "bytes", a.storageBytes-bytes_emptyPoints)
+         try require(emptyPoints.points.isEmpty && emptyPoints.incidences.isEmpty && emptyPoints.relation.pairs.isEmpty)
+         do { _ = try resolver.resolve(kind: .curveSurface, first: verticalMap, second: planeMap,
+             maximumPairs: 0, maximumIsolatedCells: 8, requireDiscrete: true, cellLimits: cellLimits,
+@@ -325,9 +355,12 @@
+         let mixedCover = try binder.bind(laws: mixedLaws.laws, request: mixedFrame.fullSelection(limits: limits, using: &a),
+             limits: limits, using: &a)
+         let mixedMap = try compiler.compile(cover: mixedCover, field: coefficientField, maximumMaps: 8, using: &a)
++        let perf_mixed = ContinuousClock.now
++        let work_mixed = a.work, bytes_mixed = a.storageBytes
+         let mixed = try resolver.resolve(kind: .curveSurface, first: mixedMap, second: planeMap,
+             maximumPairs: 8, maximumIsolatedCells: 8, requireDiscrete: false, cellLimits: cellLimits,
+             topologyLimits: topologyLimits, using: &a)
++        print("PERF mixed", perf_mixed.duration(to: .now), "work", a.work-work_mixed, "bytes", a.storageBytes-bytes_mixed)
+         try require(mixed.pairs.count == 3 && mixed.hasPositiveDimensionalSolutions && mixed.isolatedCellCount > 0)
+         do { _ = try tupleResolver.resolve(relation: mixed, maximumPoints: 8, using: &a)
+             throw DomainProofFailure.incorrect(#line)

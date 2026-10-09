@@ -1,4 +1,4 @@
-import L0
+@testable import L0
 import L1
 import L2
 import OriginalCoordinateTransfer
@@ -30,6 +30,27 @@ struct CoordinateStorageAdmission: ExactScalarAdmission, ~Copyable {
 }
 
 @main struct CoordinateProof {
+    /// Only the returned receipt retains the temporary refined source extension.
+    static func retainedConstants(axis: ExactScalarRootAxis, destination: OriginalExactScalarDomain,
+        using a: inout ExactScalarLedger) throws -> ExactOriginalScalarTransferReceipt {
+        let field = try ExactAlgebraicScalarDomain.base(field: destination, maximumExtensionLevel: 4, using: &a)
+        let roots = try ExactRealRootDomain(field: field, using: &a), ring = roots.polynomials
+        let x = try ring.variable(0, using: &a)
+        let law = try ring.subtracting(ring.multiplying(x, x, using: &a),
+            ring.constant(field.integer(2, using: &a), using: &a), using: &a)
+        let source = try roots.bind(law, refinementAxis: axis, using: &a)
+        let interval = try roots.domain(lower: .finite(field.integer(1, using: &a)),
+            upper: .finite(field.integer(2, using: &a)), using: &a)
+        let selected = try roots.isolate(source, in: interval, limits: .init(maximumRoots: 1), using: &a).roots[0]
+        let refined = try roots.refine(selected, maximumWidth: field.binary64(exactly: 0.0625, using: &a), using: &a)
+        let extensionField = try field.adjoin(refined, using: &a), f = extensionField.domain
+        let values = [try f.integer(7, using: &a), try f.integer(0, using: &a),
+            try f.dividing(f.integer(-7, using: &a), f.integer(3, using: &a), using: &a),
+            try f.multiplying(extensionField.generator, extensionField.generator, using: &a)]
+        var bounded = ExactScalarLedger(limits: try .init(work: 512, storageBytes: 16_384, valueDepth: 32, coefficientDepth: 32))
+        return try DefaultExactOriginalScalarTransporter().transfer(values, into: destination, using: &bounded)
+    }
+
     static func main() throws {
         var a = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 134_217_728, valueDepth: 32, coefficientDepth: 32))
         let base = try OriginalExactScalarDomain(maximumValueDepth: 32, maximumCoefficientDepth: 32, using: &a)
@@ -52,6 +73,61 @@ struct CoordinateStorageAdmission: ExactScalarAdmission, ~Copyable {
         let range = try roots.domain(lower: .finite(field.integer(1, using: &a)), upper: .finite(field.integer(2, using: &a)), using: &a)
         let selected = try roots.isolate(source, in: range, limits: .init(maximumRoots: 1), using: &a).roots[0]
         let extended = try field.adjoin(selected, using: &a)
+        let constant = try extended.domain.integer(7, using: &a)
+        var constantBudget = CoordinateStorageAdmission(ledger: .init(limits: try .init(
+            work: 256, storageBytes: 8_192, valueDepth: 32, coefficientDepth: 32)))
+        let constantResult = try DefaultExactOriginalScalarTransporter().transfer([constant], into: base, using: &constantBudget)
+        print("CONSTANT_BOUNDED work=\(constantBudget.ledger.work) bytes=\(constantBudget.ledger.storageBytes)")
+        try require(constantResult.sources.count == 1 && constantResult.field.context.parent == nil)
+        try require(try constantResult.field.compare(constantResult.values[0],
+            constantResult.field.integer(7, using: &a), using: &a) == .equal)
+        for axis in [ExactScalarRootAxis.value, .coefficient] {
+            let retained = try retainedConstants(axis: axis, destination: base, using: &a)
+            let retainedDomain = try ExactAlgebraicScalarDomain(retaining: retained.sources[0], using: &a)
+            try require(retainedDomain.extensionLevel == 1 && retained.field.context.parent == nil)
+            let inherited = retained.sources[0].depth
+            try require((axis == .value ? inherited.value : inherited.coefficient) > 0)
+            for value in retained.values {
+                try require(value.depth.value >= inherited.value && value.depth.coefficient >= inherited.coefficient)
+            }
+            let expected = [try base.integer(7, using: &a), try base.integer(0, using: &a),
+                try base.dividing(base.integer(-7, using: &a), base.integer(3, using: &a), using: &a),
+                try base.integer(2, using: &a)]
+            for index in expected.indices {
+                try require(try retained.field.compare(retained.values[index],
+                    retained.field.importing(expected[index], using: &a), using: &a) == .equal)
+            }
+            var shallow = ExactScalarLedger(limits: try .init(work: 20_000_000, storageBytes: 134_217_728,
+                valueDepth: axis == .value ? inherited.value - 1 : 32,
+                coefficientDepth: axis == .coefficient ? inherited.coefficient - 1 : 32))
+            do { _ = try retained.field.sign(of: retained.values[0], using: &shallow); throw ProofFailure.incorrect }
+            catch ExactScalarFailure.resourceLimit(let exhausted) {
+                try require(exhausted == (axis == .value ? .valueDepth : .coefficientDepth))
+            }
+            let strictDestination = try OriginalExactScalarDomain(
+                maximumValueDepth: axis == .value ? 0 : 32,
+                maximumCoefficientDepth: axis == .coefficient ? 0 : 32, using: &a)
+            do { _ = try DefaultExactOriginalScalarTransporter().transfer(retained.sources, into: strictDestination, using: &a)
+                throw ProofFailure.incorrect }
+            catch ExactScalarFailure.resourceLimit(let exhausted) {
+                try require(exhausted == (axis == .value ? .valueDepth : .coefficientDepth))
+            }
+            for cap in [ExactResource.work, .storage] {
+                var limited = ExactScalarLedger(limits: try .init(work: cap == .work ? 0 : 20_000_000,
+                    storageBytes: cap == .storage ? 0 : 134_217_728, valueDepth: 32, coefficientDepth: 32))
+                do { _ = try DefaultExactOriginalScalarTransporter().transfer(retained.sources, into: base, using: &limited)
+                    throw ProofFailure.incorrect }
+                catch ExactScalarFailure.resourceLimit(let exhausted) { try require(exhausted == cap) }
+            }
+            var cancelledConstant = ExactScalarLedger(limits: try .init(work: 20_000_000,
+                storageBytes: 134_217_728, valueDepth: 32, coefficientDepth: 32)); cancelledConstant.cancel()
+            do { _ = try DefaultExactOriginalScalarTransporter().transfer(retained.sources, into: base, using: &cancelledConstant)
+                throw ProofFailure.incorrect }
+            catch ExactScalarFailure.cancelled {}
+            let verified = try DefaultExactOriginalScalarTransporter().transfer(retained.sources, into: base, using: &a)
+            try require(try verified.field.compare(verified.values[0], verified.field.integer(7, using: &a), using: &a) == .equal)
+        }
+        print("CONSTANT_TRANSFER_OK zero, rational, reduced-square, both retained depths, destination policy, released source and atomic failures")
         let y = extended.generator, f = extended.domain
         let square = try f.multiplying(y, y, using: &a)
         let reciprocal = try f.dividing(f.integer(1, using: &a), y, using: &a)
@@ -88,6 +164,11 @@ struct CoordinateStorageAdmission: ExactScalarAdmission, ~Copyable {
         let nestedRoot = try nestedRoots.isolate(nestedSource, in: nestedRange,
             limits: .init(maximumRoots: 1), using: &a).roots[0]
         let nestedField = try f.adjoin(nestedRoot, using: &a)
+        let liftedParent = try nestedField.domain.importing(y, using: &a)
+        let parentOnly = try DefaultExactOriginalScalarTransporter().transfer([liftedParent], into: base, using: &a)
+        try require(try parentOnly.field.compare(parentOnly.field.multiplying(parentOnly.values[0], parentOnly.values[0], using: &a),
+            parentOnly.field.integer(2, using: &a), using: &a) == .equal)
+        try require(try ExactAlgebraicScalarDomain(retaining: parentOnly.sources[0], using: &a).extensionLevel == 2)
         let nested = try DefaultExactOriginalScalarTransporter().transfer([nestedField.generator, y], into: base, using: &a)
         let nf = nested.field, z = nested.values[0]
         try require(try nf.compare(nf.multiplying(z, z, using: &a), nested.values[1], using: &a) == .equal)
