@@ -228,3 +228,56 @@ intersection. Nonperiodic covers are finite. Periodic covers retain all-integer
 Cartesian families over a verified complete closed fundamental cover; `member` and
 `incident` materialize only the requested lifts, preserving both seam sides.
 No operation implicitly flattens an infinite family.
+
+
+## M0 implementation acceptance and ownership
+
+This matrix fixes mandatory inputs, proof gaps and receiving consumers. Source
+law issuance owns coordinate meaning; coverage never infers it from an image
+polynomial. M0-M3 do not change L0-L5 authority, numerical tolerances or limits.
+
+| Family / concrete input | Required domain and correspondence | Existing authority / owned repair | Acceptance / consumer |
+|---|---|---|---|
+| Native degree-one line and weighted multi-span curve | All positive spans; exact open, closed, singleton, disconnected and excluded requests | OriginalBSplineSourceReading, chart and period receipts; no new producer | member/incident preserve both knot sides; public CS includes all TUV |
+| Native tensor surface with independently periodic U/V | Finite selections with independent arbitrary-size cycles; all seam sides | Same source receipts; NativeExactRelations owns multi-chart compilation/publication | CS/SSI cover every selected chart pair; folded fixture retains current work/storage ceilings |
+| Infinite original line with nonunit direction | Entire real parameter axis, original origin/direction | OriginalLinearSourceReading; source owner supplies unbounded support, not a finite chart-window law | No intersection request invents whole support; exact selected position and exclusion |
+| Stored-N plane, scaled and oblique N | Entire real UV product; exact normalized basis and inverse projection under N+origin authority | OriginalPlaneSourceReading / OriginalPlaneBasisReceipt; source provider and evaluation/UV handoff owned by OriginalSourceIssuance | Exact plane equation, UV roundtrip, owner retention; rounded old basis is not proof |
+| Circle/ellipse, hyperbola/parabola | Full authored angular or real coordinate and branch; radius/axis positivity | Conic source-coordinate reading/law capability is missing and belongs to source owner | Original branch/all parameters retained, full support and exact boundaries; no image-only UV assertion |
+| Cylinder / cone | Authored angular axis and unbounded axial/radial axis, apex fiber for cone | Primitive/cone image receipts exist; source angular coordinate/phase and branch law are missing | Period proof uses actual original angular map; all apex UV retained |
+| Sphere | Intrinsic longitude family, closed latitude and both poles; physical-angle sources retain their distinct meaning | Intrinsic sphere period/pole receipts exist; physical angular source-law capability is separate | Generic family member and incident agree; near-pole cannot become pole |
+| Torus | Two independent original angular axes and complete branch/fiber correspondence | Primitive image receipt exists; two-axis source-coordinate law is missing | Independent cycles, seams and all UV retained |
+| Rigid/affine/parameter image/original word | Whole descendant support pullback, exact reversal and original axes | Existing OSI word/image/traversal receipts; M4 consumes them | Finite/infinite requests compose without invented inverse |
+| Offset/rolling-ball/revolution/Coons/correction/derivative/draft/angular transport | Original construction domains, joins and child correspondence | Existing ruled/Coons receipts reused; remaining specific laws delivered by source owner at M4 | Every defined branch/guard retained; unsupported cannot complete a required cell |
+| Implicit/certified/lift/join/guide | Certified original relation and non-Cartesian guards, complete preimages | Specific source relation capabilities delivered by source owner at M4 | Boundary/self/XYZ consume the same certified relation at M6/M7 |
+
+Nonlinear or singular parameter correspondence is a relation, not
+OriginalParameterTransport's invertible affine map. Its future receipt must retain
+source/target bindings, original equations, denominator/branch guards, complete
+selected domain and all preimages. Forward/inverse queries return complete fibers
+or typed failure under a fresh explicit admission; no unique inverse is promised.
+Non-Cartesian material restrictions stay certified predicates over an ambient
+cover. Their implementation belongs to M4; this contract does not authorize
+pretending a bounding box proves material membership.
+
+A symbolic public result at M7 retains the family owner, template, independent
+integer cycle vector, authored parameter correspondence and full requested
+coverage. Its member/incident queries use explicit admissions and preserve all
+UV/fibers. A finite convenience entry explicitly refuses an unbounded family;
+it cannot silently select one cycle or a finite search window. M2 accepts bounded
+requests only and enumerates their complete finite chart occurrences.
+
+| Exclusive owner | Exact files / resources |
+|---|---|
+| Common DI | OriginalDomainCoverage/OriginalChartFamilyQuerying.swift; existing cover, bound-chart issuer and family methods; OriginalParameterTransport contracts only when required; Tests/OriginalDomainIdentityVerification family fixtures/proof/tests |
+| Native composition | NativeExactRelations/*.swift and changed public consumer requirements; its DESIGN and Tests/NativeExactRelationVerification fixtures; separate Native composition scratch path |
+| Source authority | OriginalSourceIssuance reading/law/provider/receipt files and original evaluation/UV handoffs; its DESIGN and Tests/OriginalSourceIssuanceVerification; shared source changes serialize |
+| Linear/plane issuance | Dedicated linear/plane issuing protocols and implementations in OriginalDomainCoverage; dedicated primitive fixtures in domain verification |
+| Angular issuance | Dedicated conic/analytic issuing protocols and implementations in OriginalDomainCoverage; dedicated angular fixtures in domain verification |
+| Integration | PROGRESS.md, exact input/artifact receipts and independent latest-main worktree; no simultaneous edits of implementation owners' files |
+
+The implementation task currently has one writer on an isolated worktree. File
+owners describe responsibility boundaries, not concurrently dispatched agents.
+Independent Native, ASAN, ordinary WASM and Embedded scratch paths never mutate
+the same build directory. Each milestone records actual behavioral evidence and
+its commit before it is marked complete. The matrix itself is not evidence that
+any missing source law is implemented.
