@@ -1,0 +1,36 @@
+[0/1] Planning build
+Building for debugging...
+[0/5] Write sources
+[1/5] Write swift-version-7EE3F01B468E1A0A.txt
+[3/5] Emitting module L5Tests
+[4/5] Compiling L5Tests RelationTests.swift
+[4/6] Write Objects.LinkFileList
+[5/6] Linking L5ParametricRelationVerificationPackageTests
+Build complete! (1.07s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test guardedGraphRelations(_:) started.
+􀟈  Test case passing 1 argument mode → 0 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=0 lifted=1 projected=1 components=1 work=156526 storage=9196467
+􀟈  Test case passing 1 argument mode → 1 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=1 lifted=2 projected=1 components=1 work=2251348 storage=107413628
+􀟈  Test case passing 1 argument mode → 2 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=2 lifted=1 projected=1 components=1 work=3002962 storage=148331173
+􀟈  Test case passing 1 argument mode → 3 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=3 lifted=1 projected=1 components=1 work=533514 storage=31312884
+􀟈  Test case passing 1 argument mode → 4 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=4 lifted=0 projected=0 components=0 work=385789 storage=22895001
+􀟈  Test case passing 1 argument mode → 5 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=5 lifted=10 projected=5 components=1 work=587398 storage=29467881
+􀟈  Test case passing 1 argument mode → 6 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=6 lifted=0 projected=0 components=0 work=1181325 storage=56216386
+􀟈  Test case passing 1 argument mode → 7 to guardedGraphRelations(_:) started.
+􀢄  Test guardedGraphRelations(_:) recorded an issue with 1 argument mode → 7 at RelationTests.swift:10:2: Time limit was exceeded: 60.000 seconds
+􀟈  Test case passing 1 argument mode → 8 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=8 lifted=4 projected=1 components=1 work=273364 storage=11479063
+􀢄  Test guardedGraphRelations(_:) with 9 test cases failed after 111.450 seconds with 1 issue.
+􀢄  Test run with 1 test in 0 suites failed after 111.451 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L5ParametricRelationVerificationPackageTests (Swift Testing)

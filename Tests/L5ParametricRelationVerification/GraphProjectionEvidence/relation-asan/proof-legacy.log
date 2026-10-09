@@ -1,0 +1,13 @@
+PASS: CS case=0 work=197948 storage=11121799
+PASS: CS case=1 work=157163 storage=9270782
+PASS: CS case=2 work=133665 storage=7826932
+PASS: CS case=3 work=187416 storage=11010511
+PASS: CS case=4 work=141862 storage=8147056
+PASS: CS case=5 work=171018 storage=9767177
+PASS: CS case=6 work=39503 storage=2339728
+PASS: CS case=7 work=90334 storage=4979187
+PASS: weighted/repeated/multiple-UV/guard/empty/continuous CS
+PASS: folded SSI cells=45 attachments=108 components=1 work=8718109 storage=259486554
+PASS: unbounded/singleton retained source and exact tuples
+PASS: exact compile admission work=692 storage=41136; typed limits/cancellation/invalid/foreign-family
+PASS: independent original parameter relation composition group=108

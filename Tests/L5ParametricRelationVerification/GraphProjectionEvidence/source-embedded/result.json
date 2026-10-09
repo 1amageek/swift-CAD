@@ -1,0 +1,77 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.347,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.726,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalSourceIssuanceVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-source-embedded",
+        "-j",
+        "2",
+        "--swift-sdk",
+        "swift-6.4.0-RELEASE_wasm-embedded",
+        "-Xswiftc",
+        "-whole-module-optimization",
+        "-Xswiftc",
+        "-Onone",
+        "--product",
+        "SourceIssuerProof"
+      ],
+      "timeoutSeconds": 180,
+      "elapsedSeconds": 3.191,
+      "exitCode": 0
+    },
+    {
+      "label": "node",
+      "command": [
+        "/usr/local/bin/node",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.076,
+      "exitCode": 0
+    },
+    {
+      "label": "proof",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/L3RealCellVerification/ConvergenceEvidence/retained-run_wasi_smoke.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-source-embedded/wasm32-unknown-wasip1/debug/SourceIssuerProof.wasm"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 1.561,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-source-embedded/wasm32-unknown-wasip1/debug/SourceIssuerProof.wasm": "89270c647074d270b635d228018d72aba249ef471ddd93822cc38c86c8d4c0b6"
+  },
+  "compiledInputCount": 267
+}

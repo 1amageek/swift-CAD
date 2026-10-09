@@ -1,0 +1,5 @@
+[0/1] Planning build
+Building for debugging...
+[0/4] Write swift-version-7EE3F01B468E1A0A.txt
+Build complete! (0.42s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

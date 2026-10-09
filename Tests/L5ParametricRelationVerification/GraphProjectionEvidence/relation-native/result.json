@@ -1,0 +1,93 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.349,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.288,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/L5ParametricRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-native",
+        "-j",
+        "2",
+        "--build-tests"
+      ],
+      "timeoutSeconds": 180,
+      "elapsedSeconds": 0.61,
+      "exitCode": 0
+    },
+    {
+      "label": "tests-graphs",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "test",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/L5ParametricRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-native",
+        "-j",
+        "2",
+        "--skip-build",
+        "--filter",
+        "guardedGraphRelations"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 23.879,
+      "exitCode": 0
+    },
+    {
+      "label": "tests-other",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "test",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/L5ParametricRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-native",
+        "-j",
+        "2",
+        "--skip-build",
+        "--skip",
+        "guardedGraphRelations"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 15.855,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-l5-native/arm64-apple-macosx/debug/L5Proof": "42157e84fc5cb39e7ce0c643965b7f3e69f79dc0c89978bbe71d59de7df65549",
+    ".build/pg-l5-native/arm64-apple-macosx/debug/L5ParametricRelationVerificationPackageTests.xctest/Contents/MacOS/L5ParametricRelationVerificationPackageTests": "ca8ea8785d0360ab18e8dfe6a47a6ea41839ad35aa3fe6b11a8e7347071f108c"
+  },
+  "compiledInputCount": 279,
+  "verificationDriverSHA256": "297895992613c42dbf33ffd86cfd1025c70346ebef10cedf97a4a047361fe473"
+}

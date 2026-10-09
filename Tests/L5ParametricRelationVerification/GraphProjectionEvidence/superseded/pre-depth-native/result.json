@@ -1,0 +1,69 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.35,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.934,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/L5ParametricRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-native",
+        "-j",
+        "2",
+        "--build-tests"
+      ],
+      "timeoutSeconds": 180,
+      "elapsedSeconds": 4.186,
+      "exitCode": 0
+    },
+    {
+      "label": "tests",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "test",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/L5ParametricRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-native",
+        "-j",
+        "2",
+        "--skip-build"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 29.431,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-l5-native/arm64-apple-macosx/debug/L5Proof": "302d3f949db2d090d97590d796e58111e0289680d17c796c83b73dd13337beb4",
+    ".build/pg-l5-native/arm64-apple-macosx/debug/L5ParametricRelationVerificationPackageTests.xctest/Contents/MacOS/L5ParametricRelationVerificationPackageTests": "9883fd90b878ee52a6d6b1a9d8df74d735be38771ff0260db67d51875c1a54c3"
+  },
+  "compiledInputCount": 277
+}

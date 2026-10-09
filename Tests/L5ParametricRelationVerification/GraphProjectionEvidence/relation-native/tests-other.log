@@ -1,0 +1,43 @@
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test exactProjectionFailures() started.
+􀟈  Suite RelationTests started.
+􀟈  Test exactAuxiliaryProjection() started.
+􀟈  Test guardedGraphFailures() started.
+􀟈  Test graphInheritedDepth() started.
+􀟈  Test ssi() started.
+􀟈  Test cs() started.
+􀟈  Test failures() started.
+􀟈  Test lifetime() started.
+DEPTH input=20 normalized=0 rejected=true
+􁁛  Test graphInheritedDepth() passed after 0.045 seconds.
+PASS B2 projection exact work/storage/depth caps, invalid prefix, topology caps and cancel
+􁁛  Test exactProjectionFailures() passed after 0.079 seconds.
+PASS: unbounded/singleton retained source and exact tuples
+􁁛  Test lifetime() passed after 0.123 seconds.
+PASS B2 projection case=0 lifted=2 projected=1 components=1 work=101176
+PASS B2 projection case=1 lifted=2 projected=2 components=2 work=8529
+PASS B2 projection case=2 lifted=1 projected=1 components=1 work=3955
+PASS B2 projection case=3 lifted=3 projected=2 components=1 work=24468
+PASS B2 projection case=4 lifted=0 projected=0 components=0 work=438
+􁁛  Test exactAuxiliaryProjection() passed after 0.426 seconds.
+PASS: CS case=0 work=197948 storage=11121799
+PASS: CS case=1 work=157163 storage=9270782
+PASS: CS case=2 work=133665 storage=7826932
+PASS: exact compile admission work=692 storage=41136; typed limits/cancellation/invalid/foreign-family
+􁁛  Test failures() passed after 1.397 seconds.
+PASS: CS case=3 work=187416 storage=11010511
+PASS: CS case=4 work=141862 storage=8147056
+PASS: CS case=5 work=171018 storage=9767177
+PASS: CS case=6 work=39503 storage=2339728
+PASS: CS case=7 work=90334 storage=4979187
+PASS: weighted/repeated/multiple-UV/guard/empty/continuous CS
+􁁛  Test cs() passed after 2.117 seconds.
+PASS: folded SSI cells=45 attachments=108 components=1 work=8718109 storage=259486554
+􁁛  Test ssi() passed after 6.430 seconds.
+􁁛  Suite RelationTests passed after 6.430 seconds.
+PASS B2 L5 original owners, coefficient compatibility, role validation, exact caps and entry/final cancellation
+􁁛  Test guardedGraphFailures() passed after 15.397 seconds.
+􁁛  Test run with 8 tests in 1 suite passed after 15.397 seconds.

@@ -1,0 +1,69 @@
+[0/1] Planning build
+Test Suite 'All tests' started at 2026-10-09 18:45:25.401.
+Test Suite 'All tests' passed at 2026-10-09 18:45:25.402.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Suite RelationTests started.
+􀟈  Test exactAuxiliaryProjection() started.
+􀟈  Test graphInheritedDepth() started.
+􀟈  Test exactProjectionFailures() started.
+􀟈  Test guardedGraphRelations(_:) started.
+􀟈  Test guardedGraphFailures() started.
+􀟈  Test failures() started.
+􀟈  Test cs() started.
+􀟈  Test ssi() started.
+􀟈  Test lifetime() started.
+􀟈  Test case passing 1 argument mode → 0 to guardedGraphRelations(_:) started.
+DEPTH input=20 normalized=0 rejected=true
+􁁛  Test graphInheritedDepth() passed after 0.081 seconds.
+PASS B2 projection exact work/storage/depth caps, invalid prefix, topology caps and cancel
+􁁛  Test exactProjectionFailures() passed after 0.144 seconds.
+PASS: unbounded/singleton retained source and exact tuples
+􁁛  Test lifetime() passed after 0.233 seconds.
+PASS B2 projection case=0 lifted=2 projected=1 components=1 work=101176
+PASS B2 projection case=1 lifted=2 projected=2 components=2 work=8529
+PASS B2 projection case=2 lifted=1 projected=1 components=1 work=3955
+PASS B2 projection case=3 lifted=3 projected=2 components=1 work=24468
+PASS B2 projection case=4 lifted=0 projected=0 components=0 work=438
+􁁛  Test exactAuxiliaryProjection() passed after 1.062 seconds.
+PASS B2 L5 graph case=0 lifted=1 projected=1 components=1 work=156538 storage=9196531
+􀟈  Test case passing 1 argument mode → 1 to guardedGraphRelations(_:) started.
+PASS: CS case=0 work=197948 storage=11121799
+PASS: CS case=1 work=157163 storage=9270782
+PASS: CS case=2 work=133665 storage=7826932
+PASS: CS case=3 work=187416 storage=11010511
+PASS: exact compile admission work=692 storage=41136; typed limits/cancellation/invalid/foreign-family
+􁁛  Test failures() passed after 3.461 seconds.
+PASS: CS case=4 work=141862 storage=8147056
+PASS: CS case=5 work=171018 storage=9767177
+PASS: CS case=6 work=39503 storage=2339728
+PASS: CS case=7 work=90334 storage=4979187
+PASS: weighted/repeated/multiple-UV/guard/empty/continuous CS
+􁁛  Test cs() passed after 5.099 seconds.
+PASS B2 L5 graph case=1 lifted=2 projected=1 components=1 work=2251363 storage=107413692
+􀟈  Test case passing 1 argument mode → 2 to guardedGraphRelations(_:) started.
+PASS: folded SSI cells=45 attachments=108 components=1 work=8718109 storage=259486554
+􁁛  Test ssi() passed after 14.708 seconds.
+􁁛  Suite RelationTests passed after 14.709 seconds.
+PASS B2 L5 graph case=2 lifted=1 projected=1 components=1 work=3002977 storage=148331237
+􀟈  Test case passing 1 argument mode → 3 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=3 lifted=1 projected=1 components=1 work=533529 storage=31312948
+􀟈  Test case passing 1 argument mode → 4 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=4 lifted=0 projected=0 components=0 work=385804 storage=22895065
+􀟈  Test case passing 1 argument mode → 5 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=5 lifted=10 projected=5 components=1 work=587421 storage=29467945
+􀟈  Test case passing 1 argument mode → 6 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=6 lifted=0 projected=0 components=0 work=1181336 storage=56216450
+􀟈  Test case passing 1 argument mode → 7 to guardedGraphRelations(_:) started.
+PASS B2 L5 original owners, coefficient compatibility, role validation, exact caps and entry/final cancellation
+􁁛  Test guardedGraphFailures() passed after 38.796 seconds.
+􀢄  Test guardedGraphRelations(_:) recorded an issue with 1 argument mode → 7 at RelationTests.swift:10:2: Time limit was exceeded: 60.000 seconds
+􀟈  Test case passing 1 argument mode → 8 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=8 lifted=4 projected=1 components=1 work=273391 storage=11479127
+􀢄  Test guardedGraphRelations(_:) with 9 twarning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+est cases failed after 92.511 seconds with 1 issue.
+􀢄  Test run with 9 tests in 1 suite failed after 92.511 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - L5ParametricRelationVerificationPackageTests (Swift Testing)

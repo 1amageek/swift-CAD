@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "reusedEvidence": true,
+  "verifiedSourceCommit": "4e29afdd",
+  "logs": [
+    "pg-source-asan.log"
+  ],
+  "compiledInputCount": 277,
+  "artifacts": {
+    ".build/pg-source-asan/arm64-apple-macosx/debug/SourceIssuerProof": "0a1ba9745707bbafea2d8ef245127fa029702c681dd3cd9c1781bb9ded4e3343"
+  }
+}

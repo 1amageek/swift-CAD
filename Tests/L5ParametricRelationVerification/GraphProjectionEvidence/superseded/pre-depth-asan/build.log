@@ -1,0 +1,12 @@
+[0/1] Planning build
+Building for debugging...
+[0/6] Write sources
+[1/6] Write swift-version-7EE3F01B468E1A0A.txt
+[3/8] Emitting module L5Fixtures
+[4/8] Compiling L5Fixtures GraphRelationFixtures.swift
+[4/9] Write Objects.LinkFileList
+[6/9] Linking L5ParametricRelationVerificationPackageTests
+[7/9] Linking L5Proof
+[8/9] Applying L5Proof
+Build complete! (1.10s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

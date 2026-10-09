@@ -1,0 +1,12 @@
+{
+  "success": true,
+  "reusedEvidence": true,
+  "verifiedSourceCommit": "4e29afdd",
+  "logs": [
+    "pg-source-native-all.log"
+  ],
+  "compiledInputCount": 277,
+  "artifacts": {
+    ".build/pg-source-native/arm64-apple-macosx/debug/SourceIssuerProof": "93ec5ee2718cb539371c5f5afbc7c1dfadc6b949375e4177818cf9e3b902cfc9"
+  }
+}

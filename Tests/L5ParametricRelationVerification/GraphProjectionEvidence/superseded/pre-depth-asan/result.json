@@ -1,0 +1,173 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.349,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.292,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/L5ParametricRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan",
+        "-j",
+        "2",
+        "--sanitize",
+        "address",
+        "--build-tests"
+      ],
+      "timeoutSeconds": 180,
+      "elapsedSeconds": 1.427,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-projection",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "projection"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.773,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-0",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "0"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.458,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-1",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "1"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 6.656,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-2",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "2"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 7.631,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-3",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "3"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 1.201,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-4",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "4"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.878,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-5",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "5"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 1.387,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-6",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "6"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 3.249,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-7",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "7"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 36.378,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-8",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "8"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.883,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-failures",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "failures"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 34.399,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-legacy",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof",
+        "legacy"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 14.305,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-l5-asan/arm64-apple-macosx/debug/L5Proof": "a5f97a1733681604e558e6906035e8799c76a301cea2b1d2c9b9fb12df0a7cb8",
+    ".build/pg-l5-asan/arm64-apple-macosx/debug/L5ParametricRelationVerificationPackageTests.xctest/Contents/MacOS/L5ParametricRelationVerificationPackageTests": "9605c1aa18e6915a712f24bf45eb0cbd34ab53005198878768786804645f50b1"
+  },
+  "compiledInputCount": 278,
+  "verificationDriverSHA256": "c6bfb28d464466e9e3e506086fb0d3055490d7ec9bd9421adddf87cfa6723afd"
+}

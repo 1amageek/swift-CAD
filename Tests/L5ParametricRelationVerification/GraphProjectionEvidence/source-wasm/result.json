@@ -1,0 +1,14 @@
+{
+  "success": true,
+  "reusedEvidence": true,
+  "verifiedSourceCommit": "4e29afdd",
+  "logs": [
+    "pg-source-wasm-build.log",
+    "pg-source-wasm-runtime.log"
+  ],
+  "compiledInputCount": 267,
+  "artifacts": {
+    ".build/pg-source-wasm/wasm32-unknown-wasip1/debug/SourceIssuerProof.wasm": "48717d7b466357ce7cd5369bb09463c797a29dc5fcae096c7f42062fa0795fd9"
+  },
+  "runtimeElapsedSeconds": 2.748
+}

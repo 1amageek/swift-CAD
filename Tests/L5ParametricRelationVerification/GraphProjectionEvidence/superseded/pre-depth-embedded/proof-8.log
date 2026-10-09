@@ -1,0 +1,4 @@
+(node:77255) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS B2 L5 graph case=8 lifted=4 projected=1 components=1 work=264733 storage=5742947
+PASS: independent original parameter relation composition group=56

@@ -1,0 +1,3 @@
+PASS B2 L5 original owners, coefficient compatibility, role validation, exact caps and entry/final cancellation
+DEPTH input=20 normalized=0 rejected=true
+PASS: independent original parameter relation composition group=102

@@ -1,0 +1,26 @@
+[0/1] Planning build
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test guardedGraphRelations(_:) started.
+􀟈  Test case passing 1 argument mode → 0 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=0 lifted=1 projected=1 components=1 work=156538 storage=9196531
+􀟈  Test case passing 1 argument mode → 1 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=1 lifted=2 projected=1 components=1 work=2251363 storage=107413692
+􀟈  Test case passing 1 argument mode → 2 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=2 lifted=1 projected=1 components=1 work=3002977 storage=148331237
+􀟈  Test case passing 1 argument mode → 3 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=3 lifted=1 projected=1 components=1 work=533529 storage=31312948
+􀟈  Test case passing 1 argument mode → 4 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=4 lifted=0 projected=0 components=0 work=385804 storage=22895065
+􀟈  Test case passing 1 argument mode → 5 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=5 lifted=10 projected=5 components=1 work=587421 storage=29467945
+􀟈  Test case passing 1 argument mode → 6 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=6 lifted=0 projected=0 components=0 work=1181336 storage=56216450
+􀟈  Test case passing 1 argument mode → 7 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=7 lifted=1 projected=1 components=1 work=12433630 storage=542703576
+􀟈  Test case passing 1 argument mode → 8 to guardedGraphRelations(_:) started.
+PASS B2 L5 graph case=8 lifted=4 projected=1 components=1 work=273391 storage=11479127
+􁁛  Test guardedGraphRelations(_:) with 9 test cases passed after 23.250 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 23.250 seconds.

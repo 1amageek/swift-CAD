@@ -1,0 +1,206 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.667,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 1.156,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/L5ParametricRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm",
+        "-j",
+        "2",
+        "--swift-sdk",
+        "swift-6.4.0-RELEASE_wasm",
+        "--product",
+        "L5Proof"
+      ],
+      "timeoutSeconds": 180,
+      "elapsedSeconds": 6.599,
+      "exitCode": 0
+    },
+    {
+      "label": "node",
+      "command": [
+        "/usr/local/bin/node",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.042,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-projection",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "projection"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.675,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-0",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "0"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.512,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-1",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "1"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 5.645,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-2",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "2"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 6.586,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-3",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "3"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 1.314,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-4",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "4"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 1.098,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-5",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "5"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 1.422,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-6",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "6"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 2.609,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-7",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "7"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 26.492,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-8",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "8"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.776,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-failures",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "failures"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 21.517,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-legacy",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm",
+        "legacy"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 8.133,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-l5-wasm/wasm32-unknown-wasip1/debug/L5Proof.wasm": "ed722e3290f5aec809972b52b0353cd786bb6e1ec3b0744f020142a57ad30cc0"
+  },
+  "compiledInputCount": 275
+}

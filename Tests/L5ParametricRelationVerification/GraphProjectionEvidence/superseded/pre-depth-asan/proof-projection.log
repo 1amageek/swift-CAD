@@ -1,0 +1,7 @@
+PASS B2 projection case=0 lifted=2 projected=1 components=1 work=101176
+PASS B2 projection case=1 lifted=2 projected=2 components=2 work=8529
+PASS B2 projection case=2 lifted=1 projected=1 components=1 work=3955
+PASS B2 projection case=3 lifted=3 projected=2 components=1 work=24468
+PASS B2 projection case=4 lifted=0 projected=0 components=0 work=438
+PASS B2 projection exact work/storage/depth caps, invalid prefix, topology caps and cancel
+PASS: independent original parameter relation composition group=112

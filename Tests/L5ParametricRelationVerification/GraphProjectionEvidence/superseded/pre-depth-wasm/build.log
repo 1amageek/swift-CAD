@@ -1,0 +1,24 @@
+[0/1] Planning build
+Building for debugging...
+[0/3] Write swift-version-7EE3F01B468E1A0A.txt
+[1/3] Write sources
+[3/5] Emitting module L5
+[4/5] Compiling L5 ExactParametricGraphRelationSource.swift
+[5/9] Compiling L5 ExactParametricGraphConstructing.swift
+[6/9] Compiling L5 ExactParametricGraphRelation.swift
+[7/9] Compiling L5 ExactParametricGraphResolving.swift
+[8/11] Compiling L5 ExactParametricRelationDomain+Graphs.swift
+[9/11] Compiling L5 ExactParametricRelationDomain+Construction.swift
+[10/11] Compiling L5 ExactParametricRelationDomain+Resolution.swift
+[11/18] Write sources
+[13/18] Wrapping AST for L5 for debugging
+[15/20] Emitting module L5Fixtures
+[16/20] Compiling L5Fixtures GraphRelationFixtures.swift
+[17/21] Wrapping AST for L5Fixtures for debugging
+[19/23] Emitting module L5Proof
+[20/23] Compiling L5Proof Proof.swift
+[21/24] Wrapping AST for L5Proof for debugging
+[22/24] Write Objects.LinkFileList
+[23/24] Linking L5Proof.wasm
+Build of product 'L5Proof' complete! (5.46s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

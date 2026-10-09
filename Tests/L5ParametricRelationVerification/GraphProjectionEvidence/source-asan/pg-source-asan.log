@@ -1,0 +1,409 @@
+Building for debugging...
+[0/33] /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-source-asan/arm64-apple-macosx/debug/OriginalSourceIssuanceVerificationPackageTests.derived/runner.swift
+[1/33] Write sources
+[3/33] Write SourceIssuerProof-entitlement.plist
+[4/33] Write sources
+[7/33] Write RetainedSurfaceIssuerProof-entitlement.plist
+[8/33] Write sources
+[10/33] Write RetainedCurveIssuerProof-entitlement.plist
+[11/33] Write sources
+[16/33] Write GuideIssuerProof-entitlement.plist
+[17/33] Write sources
+[18/33] Write swift-version-7EE3F01B468E1A0A.txt
+[20/53] Emitting module L0
+[21/53] Compiling L0 DefaultOriginalScalarTransporter+SelectedRoot.swift
+[22/53] Compiling L0 DefaultOriginalScalarTransporter.swift
+[23/53] Compiling L0 ExactAlgebraicFiberPolynomial.swift
+[24/53] Compiling L0 ExactAlgebraicFiberRootIsolator.swift
+[25/53] Compiling L0 ExactAlgebraicFiberSturmSequence.swift
+[26/53] Compiling L0 ExactAlgebraicFieldElement.swift
+[27/53] Compiling L0 ExactAlgebraicPairAuthority+Fiber.swift
+[28/53] Compiling L0 ExactAlgebraicPairAuthority.swift
+[29/53] Compiling L0 ExactAlgebraicRealRoot.swift
+[30/53] Compiling L0 ExactBivariateDivision.swift
+[31/53] Compiling L0 ExactBivariateEvaluation.swift
+[32/53] Compiling L0 ExactBivariateGCD.swift
+[33/53] Compiling L0 ExactBivariateGCDProducing.swift
+[34/53] Compiling L0 ExactBivariateMonomial.swift
+[35/53] Compiling L0 ExactBivariatePolynomial+Composition.swift
+[36/53] Compiling L0 ExactBivariatePolynomial.swift
+[37/53] Compiling L0 ExactNaturalMagnitude.swift
+[38/53] Compiling L0 ExactOrder.swift
+[39/53] Compiling L0 ExactRationalCoefficient+Hashable.swift
+[40/90] Compiling L0 ExactRationalCoefficient.swift
+[41/90] Compiling L0 ExactRationalScalarDomain.swift
+[42/90] Compiling L0 ExactResource.swift
+[43/90] Compiling L0 ExactScalarAdmission.swift
+[44/90] Compiling L0 ExactScalarArithmetic.swift
+[45/90] Compiling L0 ExactScalarCount.swift
+[46/90] Compiling L0 ExactScalarDepth.swift
+[47/90] Compiling L0 ExactScalarFailure.swift
+[48/90] Compiling L0 ExactScalarImporting.swift
+[49/90] Compiling L0 ExactScalarLedger.swift
+[50/90] Compiling L0 ExactScalarLimits.swift
+[51/90] Compiling L0 ExactScalarNumericAccess.swift
+[52/90] Compiling L0 ExactScalarOrdering.swift
+[53/90] Compiling L0 ExactScalarPayloadBytes.swift
+[54/90] Compiling L0 ExactScalarRationalAdmission.swift
+[55/90] Compiling L0 ExactScalarRootAxis.swift
+[56/90] Compiling L0 ExactSign.swift
+[57/90] Compiling L0 ExactUnivariateRootIsolator.swift
+[58/90] Compiling L0 ExactUnivariateSturmSequence.swift
+[59/90] Compiling L0 OriginalExactScalar.swift
+[60/90] Compiling L0 OriginalExactScalarDomain+RetainedRoot.swift
+[61/90] Compiling L0 OriginalExactScalarDomain.swift
+[62/90] Compiling L0 OriginalRationalPolynomialRange.swift
+[63/90] Compiling L0 OriginalScalarRootDomainAdmission.swift
+[64/90] Compiling L0 OriginalScalarSelectedRootReceipt.swift
+[65/90] Compiling L0 OriginalScalarTransferReceipt.swift
+[66/90] Compiling L0 OriginalScalarTransferring.swift
+[67/90] Compiling L0 OriginalSingularFieldContext.swift
+[68/90] Compiling L0 OriginalSingularFieldElement.swift
+[69/90] Compiling L0 OriginalSingularFieldPolynomial.swift
+[70/90] Compiling L0 OriginalSingularFieldRoot+RationalRefinement.swift
+[71/90] Compiling L0 OriginalSingularFieldRoot.swift
+[72/90] Compiling L0 OriginalSingularFieldSturm.swift
+[73/90] Compiling L0 OriginalSingularFieldTransport.swift
+[74/90] Compiling L0 RationalAlgebraAdmitting.swift
+[75/90] Compiling L0 RationalAlgebraStorage.swift
+[76/90] Compiling L0 RationalCoefficientDepthAdmission.swift
+[77/111] Emitting module L1
+[78/130] Compiling L1 ExactPolynomialDomain+SeparatedProduct.swift
+[79/130] Compiling L1 ExactPolynomialDomain+SquareFree.swift
+[80/130] Compiling L1 ExactPolynomialDomain+Subresultants.swift
+[81/130] Compiling L1 ExactPolynomialDomain.swift
+[82/130] Compiling L1 ExactPolynomialEliminating.swift
+[83/130] Compiling L1 ExactPolynomialEvaluation.swift
+[84/130] Compiling L1 ExactPolynomialFailure.swift
+[85/130] Compiling L1 ExactPolynomialGCDProducing.swift
+[86/130] Compiling L1 ExactPolynomialGCDTask.swift
+[87/130] Compiling L1 ExactPolynomialImporting.swift
+[88/130] Compiling L1 ExactPolynomialOrderedConstructing.swift
+[89/130] Compiling L1 ExactPolynomialProductIndex.swift
+[90/130] Compiling L1 ExactPolynomialSquareFreeDecomposition.swift
+[91/130] Compiling L1 ExactPolynomialSquareFreeFactor.swift
+[92/130] Compiling L1 ExactPolynomialSquareFreeProducing.swift
+[93/130] Compiling L1 ExactPolynomialSubresultantAlgorithm.swift
+[94/130] Compiling L1 ExactPolynomialSubresultantProducing.swift
+[95/130] Compiling L1 ExactPolynomialTerm.swift
+[96/130] Compiling L1 ExactPrincipalSubresultantSequence.swift
+[97/130] Compiling L1 ExactPolynomial.swift
+[98/130] Compiling L1 ExactPolynomialAccess.swift
+[99/130] Compiling L1 ExactPolynomialAdmission.swift
+[100/130] Compiling L1 ExactPolynomialArithmetic.swift
+[101/130] Compiling L1 ExactPolynomialCalculus.swift
+[102/130] Compiling L1 ExactPolynomialConstructing.swift
+[103/130] Compiling L1 ExactPolynomialContext.swift
+[104/130] Compiling L1 ExactPolynomialDeciding.swift
+[105/130] Compiling L1 ExactPolynomialDegreeCoefficient.swift
+[106/130] Compiling L1 ExactPolynomialDividing.swift
+[107/130] Compiling L1 ExactPolynomialDivision.swift
+[108/130] Compiling L1 ExactPolynomialDomain+Arithmetic.swift
+[109/130] Compiling L1 ExactPolynomialDomain+Calculus.swift
+[110/130] Compiling L1 ExactPolynomialDomain+Coefficients.swift
+[111/130] Compiling L1 ExactPolynomialDomain+Division.swift
+[112/130] Compiling L1 ExactPolynomialDomain+GCD.swift
+[113/130] Compiling L1 ExactPolynomialDomain+HeapProduct.swift
+[114/130] Compiling L1 ExactPolynomialDomain+OrderedConstruction.swift
+[115/130] Compiling L1 ExactPolynomialDomain+PrincipalDeterminant.swift
+[116/130] Compiling L1 ExactPolynomialDomain+Resultant.swift
+[117/156] Emitting module SourceIssuer
+[118/181] Compiling SourceIssuer DefaultOriginalPlaneBasisIssuer.swift
+[119/181] Compiling SourceIssuer DefaultOriginalPrimitiveImageIssuer.swift
+[120/181] Compiling SourceIssuer DefaultOriginalRationalGraphIssuer.swift
+[121/181] Compiling SourceIssuer DefaultOriginalRevolutionLawIssuer.swift
+[122/181] Compiling SourceIssuer DefaultOriginalRuledChartIssuer.swift
+[123/181] Compiling SourceIssuer DefaultOriginalSourceBindingIssuer.swift
+[124/181] Compiling SourceIssuer DefaultOriginalSourceCoefficientImporter.swift
+[125/181] Compiling SourceIssuer DefaultOriginalSpatialChartIssuer.swift
+[126/181] Compiling SourceIssuer DefaultOriginalTraversalChartIssuer.swift
+[127/181] Compiling SourceIssuer DefaultOriginalWholeLinearLawIssuer.swift
+[128/181] Compiling SourceIssuer OriginalAnalyticCoordinateIssuing.swift
+[129/181] Compiling SourceIssuer OriginalAnalyticCoordinateKind.swift
+[130/181] Compiling SourceIssuer OriginalAnalyticCoordinateLawReceipt.swift
+[131/181] Compiling SourceIssuer OriginalAnalyticCoordinateReading.swift
+[132/181] Compiling SourceIssuer OriginalBSplineChartSelection.swift
+[133/181] Compiling SourceIssuer OriginalBSplineSourceReading.swift
+[134/181] Compiling SourceIssuer OriginalCoefficientBoundChartIssuing.swift
+[135/181] Compiling SourceIssuer OriginalConeImageReading.swift
+[136/181] Compiling SourceIssuer OriginalCoonsBoundaryLaw.swift
+[137/181] Compiling SourceIssuer OriginalCoonsBoundarySelection.swift
+[138/181] Compiling SourceIssuer OriginalCoonsChartSelection.swift
+[139/181] Compiling SourceIssuer OriginalCoonsSourceReading.swift
+[140/181] Compiling SourceIssuer OriginalCurveEndpointIssuing.swift
+[141/181] Compiling SourceIssuer OriginalCurveEndpointReceipt.swift
+[142/181] Compiling SourceIssuer OriginalFiniteBSplineChartPreparing.swift
+[143/206] Compiling SourceIssuer OriginalFiniteBSplineCharts.swift
+[144/206] Compiling SourceIssuer OriginalFiniteCoonsBoundaryPreparing.swift
+[145/206] Compiling SourceIssuer OriginalFiniteCoonsChartPreparing.swift
+[146/206] Compiling SourceIssuer OriginalFiniteCurveChartRange.swift
+[147/206] Compiling SourceIssuer OriginalFiniteGuideChartFamily.swift
+[148/206] Compiling SourceIssuer OriginalFiniteGuideChartPreparing.swift
+[149/206] Compiling SourceIssuer OriginalFiniteNativeOffsetLawFamily.swift
+[150/206] Compiling SourceIssuer OriginalFiniteNativeOffsetLawPreparing.swift
+[151/206] Compiling SourceIssuer OriginalFiniteParameterImageChartPreparing.swift
+[152/206] Compiling SourceIssuer OriginalFiniteRetainedCurveChartPreparing.swift
+[153/206] Compiling SourceIssuer OriginalFiniteRetainedCurveCharts.swift
+[154/206] Compiling SourceIssuer OriginalFiniteRetainedSurfaceChartPreparing.swift
+[155/206] Compiling SourceIssuer OriginalFiniteRetainedSurfaceCharts.swift
+[156/206] Compiling SourceIssuer OriginalFiniteRevolutionLawFamily.swift
+[157/206] Compiling SourceIssuer OriginalFiniteRevolutionLawPreparing.swift
+[158/206] Compiling SourceIssuer OriginalFiniteRuledChartPreparing.swift
+[159/206] Compiling SourceIssuer OriginalFiniteSpatialChartPreparing.swift
+[160/206] Compiling SourceIssuer OriginalFiniteTraversalChartPreparing.swift
+[161/206] Compiling SourceIssuer OriginalGuideChartReceipt.swift
+[162/206] Compiling SourceIssuer OriginalGuideSourceReading.swift
+[163/206] Compiling SourceIssuer OriginalImageFrameReading.swift
+[164/206] Compiling SourceIssuer OriginalImageLocalCoordinates.swift
+[165/206] Compiling SourceIssuer OriginalImplicitImageIssuing.swift
+[166/206] Compiling SourceIssuer OriginalImplicitImageReceipt.swift
+[167/206] Compiling SourceIssuer OriginalIntrinsicSphereLawIssuing.swift
+[168/230] Compiling SourceIssuer DefaultOriginalAnalyticCoordinateIssuer+Physical.swift
+[169/230] Compiling SourceIssuer DefaultOriginalAnalyticCoordinateIssuer.swift
+[170/230] Compiling SourceIssuer DefaultOriginalBSplineChartIssuer.swift
+[171/230] Compiling SourceIssuer DefaultOriginalBSplinePeriodIssuer.swift
+[172/230] Compiling SourceIssuer DefaultOriginalConeImageIssuer.swift
+[173/230] Compiling SourceIssuer DefaultOriginalCoonsChartIssuer.swift
+[174/230] Compiling SourceIssuer DefaultOriginalCurveEndpointIssuer.swift
+[175/230] Compiling SourceIssuer DefaultOriginalFiniteBSplineChartPreparer.swift
+[176/230] Compiling SourceIssuer DefaultOriginalFiniteCoonsBoundaryPreparer.swift
+[177/230] Compiling SourceIssuer DefaultOriginalFiniteCoonsChartPreparer.swift
+[178/230] Compiling SourceIssuer DefaultOriginalFiniteGuideChartPreparer.swift
+[179/230] Compiling SourceIssuer DefaultOriginalFiniteNativeOffsetLawPreparer.swift
+[180/230] Compiling SourceIssuer DefaultOriginalFiniteParameterImageChartPreparer.swift
+[181/230] Compiling SourceIssuer DefaultOriginalFiniteRetainedCurveChartPreparer.swift
+[182/230] Compiling SourceIssuer DefaultOriginalFiniteRetainedSurfaceChartPreparer.swift
+[183/230] Compiling SourceIssuer DefaultOriginalFiniteRevolutionLawPreparer.swift
+[184/230] Compiling SourceIssuer DefaultOriginalFiniteRuledChartPreparer.swift
+[185/230] Compiling SourceIssuer DefaultOriginalFiniteSpatialChartPreparer.swift
+[186/230] Compiling SourceIssuer DefaultOriginalFiniteTraversalChartPreparer.swift
+[187/230] Compiling SourceIssuer DefaultOriginalIntrinsicSphereLawIssuer.swift
+[188/230] Compiling SourceIssuer DefaultOriginalLinearChartIssuer.swift
+[189/230] Compiling SourceIssuer DefaultOriginalOffsetGraphIssuer.swift
+[190/230] Compiling SourceIssuer DefaultOriginalOffsetLawIssuer.swift
+[191/230] Compiling SourceIssuer DefaultOriginalParameterImageChartIssuer.swift
+[192/230] Compiling SourceIssuer DefaultOriginalPhysicalAnalyticCoordinateIssuer.swift
+[193/254] Compiling SourceIssuer OriginalPiScalarDomain+Ordering.swift
+[194/254] Compiling SourceIssuer OriginalPiScalarDomain.swift
+[195/254] Compiling SourceIssuer OriginalPiValue.swift
+[196/254] Compiling SourceIssuer OriginalPlaneBasisIssuing.swift
+[197/254] Compiling SourceIssuer OriginalPlaneBasisReceipt.swift
+[198/254] Compiling SourceIssuer OriginalPlaneSourceReading.swift
+[199/254] Compiling SourceIssuer OriginalPrimitiveImageKind.swift
+[200/254] Compiling SourceIssuer OriginalPrimitiveImageReading.swift
+[201/254] Compiling SourceIssuer OriginalPrimitiveImageSelection.swift
+[202/254] Compiling SourceIssuer OriginalRationalChartIssuing.swift
+[203/254] Compiling SourceIssuer OriginalRationalChartReceipt.swift
+[204/254] Compiling SourceIssuer OriginalRationalParameterTransport.swift
+[205/254] Compiling SourceIssuer OriginalRetainedCurveSourceReading.swift
+[206/254] Compiling SourceIssuer OriginalRetainedSurfaceCell.swift
+[207/254] Compiling SourceIssuer OriginalRetainedSurfaceSourceReading.swift
+[208/254] Compiling SourceIssuer OriginalRevolutionLawIssuing.swift
+[209/254] Compiling SourceIssuer OriginalRevolutionLawReceipt.swift
+[210/254] Compiling SourceIssuer OriginalRevolutionSourceReading.swift
+[211/254] Compiling SourceIssuer OriginalRuledChartSelection.swift
+[212/254] Compiling SourceIssuer OriginalRuledLawImport.swift
+[213/254] Compiling SourceIssuer OriginalRuledSourceReading.swift
+[214/254] Compiling SourceIssuer OriginalSourceAngularMap.swift
+[215/254] Compiling SourceIssuer OriginalSourceBinding.swift
+[216/254] Compiling SourceIssuer OriginalSourceBindingIssuing.swift
+[217/278] Compiling SourceIssuer OriginalIntrinsicSphereSourceReading.swift
+[218/278] Compiling SourceIssuer OriginalLinearChartSelection.swift
+[219/278] Compiling SourceIssuer OriginalLinearSourceReading.swift
+[220/278] Compiling SourceIssuer OriginalOffsetLawIssuing.swift
+[221/278] Compiling SourceIssuer OriginalOffsetLawReceipt.swift
+[222/278] Compiling SourceIssuer OriginalOffsetSourceReading.swift
+[223/278] Compiling SourceIssuer OriginalParameterImageChartSelection.swift
+[224/278] Compiling SourceIssuer OriginalParameterImageSourceReading.swift
+[225/278] Compiling SourceIssuer OriginalParametricGraphCondition.swift
+[226/278] Compiling SourceIssuer OriginalParametricGraphIssuing.swift
+[227/278] Compiling SourceIssuer OriginalParametricGraphReceipt.swift
+[228/278] Compiling SourceIssuer OriginalParametricVariableLayout.swift
+[229/278] Compiling SourceIssuer ExactPhysicalAngleCoefficients.swift
+[230/278] Compiling SourceIssuer OriginalPhysicalAngleInterval.swift
+[231/278] Compiling SourceIssuer OriginalPhysicalAngleOwner.swift
+[232/278] Compiling SourceIssuer OriginalPhysicalAngleRefinement.swift
+[233/278] Compiling SourceIssuer OriginalPhysicalAngleScalarDomain+Arithmetic.swift
+[234/278] Compiling SourceIssuer OriginalPhysicalAngleScalarDomain+Ordering.swift
+[235/278] Compiling SourceIssuer OriginalPhysicalAngleScalarDomain.swift
+[236/278] Compiling SourceIssuer OriginalPhysicalAngleValue.swift
+[237/278] Compiling SourceIssuer OriginalPiGenerating.swift
+[238/278] Compiling SourceIssuer OriginalPiOwner.swift
+[239/278] Compiling SourceIssuer OriginalPiRefinement.swift
+[240/278] Compiling SourceIssuer OriginalPiScalarDomain+Arithmetic.swift
+[241/278] Compiling SourceIssuer OriginalSourceChart.swift
+[242/278] Compiling SourceIssuer OriginalSourceCoefficientImporting.swift
+[243/278] Compiling SourceIssuer OriginalSourceCollapsedFiberReceipt.swift
+[244/278] Compiling SourceIssuer OriginalSourceCoordinateAxis.swift
+[245/278] Compiling SourceIssuer OriginalSourceCoordinateFunction.swift
+[246/278] Compiling SourceIssuer OriginalSourceIssuanceFailure.swift
+[247/278] Compiling SourceIssuer OriginalSourceIssuanceLimits.swift
+[248/278] Compiling SourceIssuer OriginalSourceParameterInterval.swift
+[249/278] Compiling SourceIssuer OriginalSourceParameterMeaning.swift
+[250/278] Compiling SourceIssuer OriginalSourcePeriodIssuing.swift
+[251/278] Compiling SourceIssuer OriginalSourcePeriodReceipt.swift
+[252/278] Compiling SourceIssuer OriginalSourcePoleReceipt.swift
+[253/278] Compiling SourceIssuer OriginalSourceProofAdmission.swift
+[254/278] Compiling SourceIssuer OriginalSourceRationalImport.swift
+[255/278] Compiling SourceIssuer OriginalSourceSnapshot.swift
+[256/278] Compiling SourceIssuer OriginalSourceSnapshotting.swift
+[257/278] Compiling SourceIssuer OriginalSpatialChartSelection.swift
+[258/278] Compiling SourceIssuer OriginalSpatialSourceReading.swift
+[259/278] Compiling SourceIssuer OriginalStoredPlaneAxis.swift
+[260/278] Compiling SourceIssuer OriginalTransportedSourceCoefficientImporter.swift
+[261/278] Compiling SourceIssuer OriginalTraversalChartSelection.swift
+[262/278] Compiling SourceIssuer OriginalTraversalSourceReading.swift
+[263/278] Compiling SourceIssuer OriginalWholeLinearLawIssuing.swift
+[264/278] Compiling SourceIssuer OriginalWholeLinearLawReceipt.swift
+[265/294] Emitting module SourceIssuerFixtures
+[266/305] Compiling SourceIssuerFixtures CoonsFixtures.swift
+[267/305] Compiling SourceIssuerFixtures EndpointDepthFixtures.swift
+[268/305] Emitting module RetainedSurfaceIssuerFixtures
+[269/307] Compiling RetainedSurfaceIssuerFixtures RetainedSurfaceFixtures.swift
+[270/307] Compiling RetainedSurfaceIssuerFixtures TraceAdmission.swift
+[271/310] Compiling RetainedCurveIssuerFixtures FixtureRoot.swift
+[272/310] Compiling RetainedCurveIssuerFixtures NativeSource.swift
+[273/310] Emitting module RetainedCurveIssuerFixtures
+[274/312] Compiling RetainedCurveIssuerFixtures RetainedCurveFixtures.swift
+[275/312] Compiling RetainedCurveIssuerFixtures TraceAdmission.swift
+[276/314] Compiling RetainedSurfaceIssuerProof Proof.swift
+[277/314] Emitting module RetainedSurfaceIssuerProof
+[278/316] Compiling RetainedCurveIssuerProof Proof.swift
+[279/316] Emitting module RetainedCurveIssuerProof
+[280/319] Emitting module GuideIssuerFixtures
+[281/319] Compiling GuideIssuerFixtures GuideFixtureRoot.swift
+[282/319] Compiling GuideIssuerFixtures GuideFixtures.swift
+[283/321] Compiling GuideIssuerFixtures NativeSource.swift
+[284/321] Compiling GuideIssuerFixtures TraceAdmission.swift
+[284/321] Write Objects.LinkFileList
+[286/321] Compiling SourceIssuerFixtures RevolutionFixtures.swift
+[287/321] Compiling SourceIssuerFixtures RuledFixtures.swift
+[288/321] Compiling SourceIssuerFixtures ScalarTransportFixtures.swift
+[289/321] Compiling SourceIssuerFixtures SourceFixtures+Cone.swift
+[290/321] Compiling SourceIssuerFixtures SourceFixtures+Implicit.swift
+[291/321] Compiling SourceIssuerFixtures SourceFixtures+Periodic.swift
+[292/321] Compiling SourceIssuerFixtures SourceFixtures+PhysicalAngle.swift
+[293/321] Compiling SourceIssuerFixtures SourceFixtures.swift
+[294/321] Compiling SourceIssuerFixtures SpatialFixtures.swift
+[295/321] Compiling SourceIssuerFixtures TraceAdmission.swift
+[296/321] Compiling SourceIssuerFixtures TraversalFixtures.swift
+[297/323] Compiling GuideIssuerProof Proof.swift
+[298/323] Emitting module GuideIssuerProof
+[303/323] Compiling SourceIssuerFixtures GraphFixtures.swift
+[304/323] Compiling SourceIssuerFixtures GuideFixtures.swift
+[305/323] Compiling SourceIssuerFixtures NativeSource.swift
+[306/323] Compiling SourceIssuerFixtures OffsetFixtures.swift
+[307/323] Compiling SourceIssuerFixtures ParameterImageFixtures.swift
+[308/323] Compiling SourceIssuerFixtures RetainedCurveFixtures.swift
+[309/323] Compiling SourceIssuerFixtures RetainedRootFixtures.swift
+[310/323] Compiling SourceIssuerFixtures RetainedSurfaceFixtures.swift
+[310/323] Write Objects.LinkFileList
+[311/327] Linking RetainedSurfaceIssuerProof
+[313/329] Compiling SourceIssuerProof Proof.swift
+[314/329] Emitting module SourceIssuerProof
+[314/329] Applying RetainedSurfaceIssuerProof
+[315/329] Linking RetainedCurveIssuerProof
+[316/329] Write Objects.LinkFileList
+[317/329] Applying RetainedCurveIssuerProof
+[318/329] Linking SourceIssuerProof
+[319/329] Write Objects.LinkFileList
+[320/329] Applying SourceIssuerProof
+[321/329] Linking GuideIssuerProof
+[322/329] Applying GuideIssuerProof
+[324/329] Emitting module SourceIssuerTests
+[325/332] Compiling SourceIssuerTests GuideTests.swift
+[326/332] Compiling SourceIssuerTests OffsetTests.swift
+[327/332] Compiling SourceIssuerTests RetainedCurveTests.swift
+[328/332] Compiling SourceIssuerTests RetainedSurfaceTests.swift
+[329/332] Compiling SourceIssuerTests RevolutionTests.swift
+[330/332] Compiling SourceIssuerTests SourceTests.swift
+[331/334] Compiling OriginalSourceIssuanceVerificationPackageTests runner.swift
+[332/334] Emitting module OriginalSourceIssuanceVerificationPackageTests
+[332/334] Write Objects.LinkFileList
+[333/334] Linking OriginalSourceIssuanceVerificationPackageTests
+Build complete! (11.12s)
+Test Suite 'All tests' started at 2026-10-09 17:59:40.123.
+Test Suite 'All tests' passed at 2026-10-09 17:59:40.124.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.001) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test spatialLaws() started.
+􀟈  Test originalGuardedOffsetSupply() started.
+􀟈  Test originalRetainedSurfaceSupply() started.
+􀟈  Test originalRevolutionSupply() started.
+􀟈  Test endpointDecisionDepths() started.
+􀟈  Test directedTraversalLaws() started.
+􀟈  Test originalParametricGraphs() started.
+􀟈  Test parameterImageLaws() started.
+􀟈  Test explicitScalarTransport() started.
+􀟈  Test coonsLaws() started.
+􀟈  Test originalSelectedSpansAndTensor() started.
+􀟈  Test coneImages() started.
+􀟈  Test originalExactLaws() started.
+􀟈  Test originalGuideStationSupply() started.
+􀟈  Test originalOwnership() started.
+􀟈  Test originalTypedFailures() started.
+􀟈  Test heterogeneousRuledLaws() started.
+􀟈  Test physicalAngleCoefficients() started.
+􀟈  Test originalRetainedCurveSupply() started.
+􀟈  Test originalCumulativeResources() started.
+􀟈  Test physicalAngleResources() started.
+􀟈  Test retainedRootExtensions() started.
+􀟈  Test originalPeriodicLaws() started.
+􀟈  Test originalImplicitImages() started.
+PASS endpoint decision-only value/coefficient depths survive otherwise depth-zero rational laws
+PASS invalid source/chart, unproved periodic law and independently inherited source-depth refusal
+PASS retained source lifetime, COW mutation, binding copy, foreign chart and polynomial owners
+PASS M4 retained surface position laws, exact whole-square coverage, closed sides and atomic failures
+PASS original Native degree1/2/3 complete exact coefficients, nonunit transport and subnormal bits
+PASS M4 retained original curve law, complete exact cells, inherited decision depth and atomic failures
+PASS exact directed traversal clipping, retained position/guard laws, signed original endpoints and atomic provenance/depth/budgets/cancel
+PASS selected nonclamped multi-span laws and complete weighted tensor coefficients
+PASS exact cumulative work/storage boundary, entry/final cancellation and caller depth rejection
+MEASURE quadratic work=1006 generatedBytes=4389 storageAdmissions=165
+PASS signed/nested original parameter transport, nonunit denominators, child-local support, swap/spatial action, provenance and atomic failures
+PASS B1 sealed rational/offset graphs, roles, positive branch, singular fiber, lifetime and cumulative failures
+􁁛  Test endpointDecisionDepths() passed after 0.074 seconds.
+􁁛  Test originalTypedFailures() passed after 0.074 seconds.
+􁁛  Test originalOwnership() passed after 0.075 seconds.
+􁁛  Test originalRetainedSurfaceSupply() passed after 0.076 seconds.
+􁁛  Test originalExactLaws() passed after 0.077 seconds.
+􁁛  Test originalRetainedCurveSupply() passed after 0.077 seconds.
+􁁛  Test directedTraversalLaws() passed after 0.078 seconds.
+􁁛  Test originalSelectedSpansAndTensor() passed after 0.079 seconds.
+􁁛  Test originalCumulativeResources() passed after 0.079 seconds.
+􁁛  Test parameterImageLaws() passed after 0.079 seconds.
+􁁛  Test originalParametricGraphs() passed after 0.080 seconds.
+PASS M4 retained guide original laws, exact non-dyadic stations, both join incidents, full coverage and atomic failures
+􁁛  Test originalGuideStationSupply() passed after 0.092 seconds.
+PASS M4 original revolution exact weighted/reversed generator law, intrinsic period, normalized raw axis, full child support/correspondence and independent failure/cancel
+􁁛  Test originalRevolutionSupply() passed after 0.095 seconds.
+PASS periodic exact knot/control law, two axes, negative cycles, seam owners, transport and failures
+􁁛  Test originalPeriodicLaws() passed after 0.098 seconds.
+PASS heterogeneous Coons full laws, signed correspondence, uncancelled W, exact corners, other-span endpoint owners and atomic failures
+􁁛  Test coonsLaws() passed after 0.warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+153 seconds.
+PASS original spatial homogeneous action, exact rational/transcendental coefficients, W/support/transport retention and atomic failures
+􁁛  Test spatialLaws() passed after 0.155 seconds.
+PASS complete sphere/cylinder/torus image equations, original sheared frames, source lifetime and failures
+􁁛  Test originalImplicitImages() passed after 0.159 seconds.
+PASS M4 guarded Native offset exact original normal, signed branches, non-Cartesian singular fiber, sealed coverage and atomic failures
+􁁛  Test originalGuardedOffsetSupply() passed after 0.185 seconds.
+PASS explicit retained scalar transport, exact values, foreign import rejection, lifetime and atomic budgets/depth/cancel
+􁁛  Test explicitScalarTransport() passed after 0.197 seconds.
+PASS complete weighted two-span Native preparation and all 16 Coons chart owners, cross-span corner witnesses and exact limits
+PASS physical-angle exact cumulative work/storage, entry/final cancellation and independent coefficient depth
+MEASURE physical-angle work=20985 generatedBytes=22041
+􁁛  Test physicalAngleResources() passed after 0.308 seconds.
+PASS finite ruled/Coons/spatial/parameter/traversal chart composition, reversed exact corners, full laws and atomic limits
+PASS heterogeneous Native/line ruled whole laws, product W, exact support, retained child owners and atomic budgets/cancel/depth
+􁁛  Test heterogeneousRuledLaws() passed after 0.326 seconds.
+PASS retained two-root extension, dependent reducible root, original selectors, ancestor import, lifetime and independent atomic limits/cancel/depth
+􁁛  Test retainedRootExtensions() passed after 0.412 seconds.
+PASS physical-radian exact identities, near-binary64 sign separation, range doubling, lifetime and typed failures
+􁁛  Test physicalAngleCoefficients() passed after 0.615 seconds.
+PASS exact physical-angle cone image, sheared original frame, both nappes/apex, excluded point, ownership and atomic failures
+MEASURE cone work=59788 generatedBytes=123905
+􁁛  Test coneImages() passed after 1.206 seconds.
+􁁛  Test run with 24 tests in 0 suites passed after 1.206 seconds.

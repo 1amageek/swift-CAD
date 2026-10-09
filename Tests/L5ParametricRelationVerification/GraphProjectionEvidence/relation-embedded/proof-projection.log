@@ -1,0 +1,9 @@
+(node:48031) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS B2 projection case=0 lifted=2 projected=1 components=1 work=100223
+PASS B2 projection case=1 lifted=2 projected=2 components=2 work=8381
+PASS B2 projection case=2 lifted=1 projected=1 components=1 work=3876
+PASS B2 projection case=3 lifted=3 projected=2 components=1 work=24200
+PASS B2 projection case=4 lifted=0 projected=0 components=0 work=412
+PASS B2 projection exact work/storage/depth caps, invalid prefix, topology caps and cancel
+PASS: independent original parameter relation composition group=112
