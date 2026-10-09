@@ -1064,3 +1064,40 @@ independent resource limits and cancellation. The actual-provider verification
 runs the original Geometry construction and confirms its numerical point/derivative
 handoff against the exact source law. DI receives the retained law/support/guard
 and generator bindings; DI contract changes require its separate owner approval.
+
+### M4 guarded rational Native offset supply
+
+The next source capability retains the original Native child and distance bits.
+It consumes a sealed finite Native child family, verifies identity authored UV
+correspondence and derives its exact rational differential normal without a new
+normal solver. For the retained child `N/D`, set `A=N_u D-N D_u`,
+`B=N_v D-N D_v`, and `C=A cross B`. The additional positive function q is defined
+by `q*q=C dot C`, `q>0`; the offset law is `(q*N+d*D*C)/(q*D)`.
+The original denominator guard and `C dot C>0` define the position domain, including
+when d is zero. Native differential ownership follows the actual `BSplineBasis.knotSpan` law:
+internal knots belong to the positive span on their right; the final source
+endpoint belongs to the final span. Every closed child chart remains retained,
+but each offset law records whether its upper U/V boundary owns the original
+differential. A nonowning side is explicitly excluded from the offset predicate,
+without changing the original child support or treating tolerance as ownership.
+The family exposes only enclosing chart support: its rectangle is
+never an unconditional domain proof. Every child chart side and its source proof
+are retained in the sealed result; no public family initializer is available.
+
+```text
+sealed Native child family -> exact authored differential normal
+                 |                         |
+        child ownership/UV          q positive root equation
+                 +-------------------------+-> guarded offset family
+                                               -> DI predicate composition
+```
+
+The actual `OffsetSurface3D` public evaluation separately admits tangent length,
+angular separation and numerical normalized-cross thresholds under the chosen
+query tolerance. Source issuance neither removes those failures (including d=0)
+nor treats query tolerance as original equality or source support. Independent
+fixtures distinguish exact positive-normal domain predicates from those numerical
+query admissions; actual provider fixtures run both success and failure. The
+first typed capability is finite nonperiodic Native child support, not all offset
+children or the entire M4 producer scope. Changes affect SourceIssuer tests and
+the actual Geometry source-handoff proof; DI alone owns predicate coverage intake.

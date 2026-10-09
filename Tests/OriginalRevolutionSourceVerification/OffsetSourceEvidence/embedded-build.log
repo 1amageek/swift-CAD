@@ -1,0 +1,25 @@
+COMMAND: ['swift', 'build', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--scratch-path', '.build/di-m4-revolution-embedded', '--build-system', 'native', '--swift-sdk', 'swift-6.4.0-RELEASE_wasm-embedded', '--product', 'SourceIssuerProof', '-j', '2', '-Xlinker', '-z', '-Xlinker', 'stack-size=67108864']
+[0/1] Planning build
+Building for debugging...
+[0/10] Write sources
+[2/10] Write swift-version-7EE3F01B468E1A0A.txt
+[4/12] Emitting module L0
+[5/12] Compiling L0 DefaultOriginalScalarTransporter+SelectedRoot.swift
+[6/13] Wrapping AST for L0 for debugging
+[8/15] Emitting module L1
+[9/15] Compiling L1 ExactPolynomial.swift
+[11/17] Emitting module SourceIssuer
+[13/18] Compiling SourceIssuer DefaultOriginalAnalyticCoordinateIssuer+Physical.swift
+[13/20] Wrapping AST for SourceIssuer for debugging
+[15/20] Emitting module SourceIssuerFixtures
+[16/20] Compiling SourceIssuerFixtures CoonsFixtures.swift
+[17/23] Wrapping AST for SourceIssuerFixtures for debugging
+[19/23] Emitting module SourceIssuerProof
+[20/23] Compiling SourceIssuerProof Proof.swift
+[21/24] Wrapping AST for SourceIssuerProof for debugging
+[22/24] Write Objects.LinkFileList
+[23/24] Linking SourceIssuerProof.wasm
+Build of product 'SourceIssuerProof' complete! (40.16s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+
+EXIT: 0; SECONDS: 40.968

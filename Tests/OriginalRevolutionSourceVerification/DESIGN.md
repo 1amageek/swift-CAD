@@ -1,13 +1,15 @@
 # Original Revolution Source Verification
 
 ## Purpose and Scope
-Verification-only package for the actual original rational-generator revolution
+Verification-only package for actual original rational Native offset and rational-generator revolution
 source capability. Parent design: [OriginalSourceIssuance](../../Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md).
 No production child module is introduced.
 
 ## Responsibilities and Boundaries
 Run actual CADCore/CADGeometry constructors, providers, retained child law issuance
-and point/derivative handoff. This Native package does not generalize its result to
+and point/derivative handoff. The separate offset proof retains the exact normal
+relation and distinguishes singular source fibers from query-specific numerical
+admission, including unchanged zero-distance refusal. This Native package does not generalize its result to
 full Geometry WASM or non-rational generators. Independent source algebra and
 portable receipts are verified by the existing source verification package.
 

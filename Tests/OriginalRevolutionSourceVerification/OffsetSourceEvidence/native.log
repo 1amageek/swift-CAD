@@ -1,0 +1,45 @@
+COMMAND: ['swift', 'test', '--package-path', 'Tests/OriginalSourceIssuanceVerification', '--scratch-path', '.build/di-m4-offset-source', '--build-system', 'native', '-j', '2', '--filter', 'originalGuardedOffsetSupply']
+Building for debugging...
+[0/6] Write sources
+[2/6] Write swift-version-7EE3F01B468E1A0A.txt
+[4/9] Emitting module SourceIssuer
+[5/9] Compiling SourceIssuer DefaultOriginalOffsetLawIssuer.swift
+[6/9] Compiling SourceIssuer OriginalOffsetLawReceipt.swift
+[7/12] Compiling SourceIssuer OriginalOffsetLawIssuing.swift
+[8/12] Compiling SourceIssuer DefaultOriginalFiniteNativeOffsetLawPreparer.swift
+[9/12] Compiling SourceIssuer OriginalFiniteNativeOffsetLawFamily.swift
+[10/26] Compiling SourceIssuerFixtures RuledFixtures.swift
+[11/26] Compiling SourceIssuerFixtures SourceFixtures+Cone.swift
+[12/26] Compiling SourceIssuerFixtures SourceFixtures+Implicit.swift
+[13/26] Compiling SourceIssuerFixtures SourceFixtures+Periodic.swift
+[14/30] Compiling SourceIssuerFixtures NativeSource.swift
+[15/30] Compiling SourceIssuerFixtures OffsetFixtures.swift
+[16/30] Compiling SourceIssuerFixtures ParameterImageFixtures.swift
+[17/30] Compiling SourceIssuerFixtures RevolutionFixtures.swift
+[18/30] Emitting module SourceIssuerFixtures
+[19/30] Compiling SourceIssuerFixtures CoonsFixtures.swift
+[20/30] Compiling SourceIssuerFixtures EndpointDepthFixtures.swift
+[21/30] Compiling SourceIssuerFixtures FiniteFamilyFixtures.swift
+[22/30] Compiling SourceIssuerFixtures FiniteNativeFamilyFixtures.swift
+[23/30] Compiling SourceIssuerFixtures SourceFixtures+PhysicalAngle.swift
+[24/30] Compiling SourceIssuerFixtures SourceFixtures.swift
+[25/30] Compiling SourceIssuerFixtures SpatialFixtures.swift
+[26/30] Compiling SourceIssuerFixtures TraversalFixtures.swift
+[26/32] Write Objects.LinkFileList
+[28/32] Emitting module SourceIssuerTests
+[29/32] Compiling SourceIssuerTests OffsetTests.swift
+[29/33] Write Objects.LinkFileList
+[30/33] Linking SourceIssuerProof
+[31/33] Applying SourceIssuerProof
+[32/33] Linking OriginalSourceIssuanceVerificationPackageTests
+Build complete! (5.59s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test originalGuardedOffsetSupply() started.
+PASS M4 guarded Native offset exact original normal, signed branches, non-Cartesian singular fiber, sealed coverage and atomic failures
+􁁛  Test originalGuardedOffsetSupply() passed after 0.040 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 0.041 seconds.
+
+EXIT: 0; SECONDS: 6.889

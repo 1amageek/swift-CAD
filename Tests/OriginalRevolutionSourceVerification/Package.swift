@@ -9,5 +9,6 @@ let dependency:Package.Dependency = {
 let package=Package(name:"OriginalRevolutionSourceVerification",platforms:[.macOS(.v15)],dependencies:[dependency],targets:[
     .target(name:"CADCore",dependencies:[.product(name:"HashTreeCollections",package:"swift-collections")]),
     .target(name:"CADGeometry",dependencies:["CADCore"]),
-    .executableTarget(name:"OriginalRevolutionSourceProof",dependencies:["CADCore","CADGeometry"],path:"Sources/Proof")
+    .executableTarget(name:"OriginalRevolutionSourceProof",dependencies:["CADCore","CADGeometry"],path:"Sources/Proof"),
+    .executableTarget(name:"OriginalOffsetSourceProof",dependencies:["CADCore","CADGeometry"],path:"Sources/OffsetProof")
 ])
