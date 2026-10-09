@@ -44,6 +44,9 @@ extension SourceFixtures {
         try require(family.laws.count==2 && !family.laws[0].ownsUpperBoundary[0] && family.laws[1].ownsUpperBoundary[0])
         try require(!family.laws[0].admitsPosition(at:[half,half],limits:limits,using:&a))
         try require(family.laws[1].admitsPosition(at:[half,half],limits:limits,using:&a))
+        let graph = try DefaultOriginalOffsetGraphIssuer().issue(family.laws[0], limits: limits, using: &a)
+        try require(!graph.includesUpperBoundary[0])
+        try require(!graph.admits([half,half,f.integer(1,using:&a)],limits:limits,using:&a))
         // Closed original child support remains intact on the nonowning differential side.
         try require(f.compare(family.laws[0].enclosingSupport[0].upper,half,using:&a) == .equal)
     }
