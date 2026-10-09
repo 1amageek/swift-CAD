@@ -24,6 +24,7 @@ let package = Package(name: "OriginalDomainIdentityVerification", platforms: [.m
         "OriginalParameterImageSurfaceSnapshotProvider.swift", "OriginalTraversalSpanSnapshot.swift",
         "OriginalTraversalEndpointBinding.swift", "OriginalTraversalSpanSnapshotProvider.swift",
         "OriginalOffsetSnapshot.swift", "OriginalOffsetSnapshotProvider.swift",
+        "OriginalPlaneDerivativeCurveSnapshot.swift", "OriginalPlaneDerivativeCurveSnapshotProvider.swift",
         "OriginalGuideSnapshot.swift", "OriginalGuideSnapshotProvider.swift",
         "OriginalBoundaryCorrectionSnapshot.swift", "OriginalBoundaryCorrectionSnapshotProvider.swift",
         "OriginalRevolutionSnapshot.swift", "OriginalRevolutionSnapshotProvider.swift",

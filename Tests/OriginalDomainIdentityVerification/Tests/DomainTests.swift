@@ -56,3 +56,6 @@ import DomainFixtures
 
 @Test func completeGuideSourceDomainCorrespondence() throws { try GuideDomainFixtures.fullSourceCorrespondence() }
 @Test func guideDomainAdmissionFailures() throws { try GuideDomainFixtures.admissionAndFailures() }
+
+@Test func retainedSurfaceDomainCorrespondence() throws { try RetainedSurfaceDomainFixtures.fullSourceCorrespondence() }
+@Test func retainedSurfaceDomainAdmissionFailures() throws { try RetainedSurfaceDomainFixtures.atomicFailures() }

@@ -1,0 +1,118 @@
+Building for debugging...
+[Computing dependencies]
+[Using on-disk description]
+[1 / 5] DomainFixtures
+[2 / 6] DomainFixtures
+[6 / 9] DomainFixtures
+[7 / 10] DomainFixtures
+[8 / 10] DomainFixtures
+[9 / 10] DomainTests-product
+[10 / 11] DomainTests-product
+[11 / 11] DomainTests-product
+[12 / 12] DomainProof-product
+[13 / 13] DomainProof-product
+[14 / 14] DomainProof-product
+Build complete! (13.65秒)
+Test Suite 'All tests' started at 2026-10-09 15:27:04.215.
+Test Suite 'All tests' passed at 2026-10-09 15:27:04.219.
+	 Executed 0 tests, with 0 failures (0 unexpected) in 0.000 (0.004) seconds
+􀟈  Test run started.
+􀄵  Testing Library Version: 2084
+􀄵  Target Platform: arm64e-apple-macos14.0
+􀟈  Test completeGuideSourceDomainCorrespondence() started.
+􀟈  Test composedSourceFamilies() started.
+􀟈  Test guardedOffsetFailures() started.
+􀟈  Test explicitFailuresAndAdmission() started.
+􀟈  Test mathematicalPiDomain() started.
+􀟈  Test wholeRevolutionDomainRefusal() started.
+􀟈  Test canonicalDisconnectedUnboundedSets() started.
+􀟈  Test allEndpointSectors() started.
+􀟈  Test rationalSharedDivisorPreservesCostAndFailures() started.
+􀟈  Test verifyEntireDeclaredBoundary() started.
+􀟈  Test guardedOffsetCoverageAndOwnership() started.
+􀟈  Test analyticScopedPeriodsAndFibers() started.
+􀟈  Test scopedIdentityAndExactPeriodOrbits() started.
+􀟈  Test checkedAffineAndIdentityRelationViews() started.
+􀟈  Test analyticPhysicalPeriodClippingAndFailures() started.
+􀟈  Test originalPhysicalAngularDomains() started.
+􀟈  Test guideDomainAdmissionFailures() started.
+􀟈  Test completeSourceDomainChartHandoff() started.
+􀟈  Test originalStoredNormalPlaneBasisAndUV() started.
+􀟈  Test sourceAffineCorrespondence() started.
+􀟈  Test immutableReadersAndTaskCancellation() started.
+􀟈  Test retainedSurfaceDomainCorrespondence() started.
+􀟈  Test wholeOriginalLineAndPlaneDomains() started.
+􀟈  Test completeIntegerFamiliesAndTensorOwners() started.
+􀟈  Test selectedRootSharedDivisorRetainsLocalInverseLaws() started.
+􀟈  Test intrinsicPolesAndPhysicalMeaningRefusal() started.
+􀟈  Test checkedRelationProductAndAdmission() started.
+􀟈  Test wholeRevolutionDomainFamiliesAndGuards() started.
+􀟈  Test scaledStoredNormalsAndExactPlaneUV() started.
+􀟈  Test scopedRevolutionPeriodIdentities() started.
+􀟈  Test chartFamilyWitnessesAndInjection() started.
+􀟈  Test scopedRevolutionIdentityFailures() started.
+􀟈  Test completeFiniteCoversAndHoles() started.
+􀟈  Test retainedSurfaceDomainAdmissionFailures() started.
+􀟈  Test composedSourcePullbackFailures() started.
+􀟈  Test exactPeriodicLiftsAndRefusal() started.
+􀟈  Test sourceCollapsedSubsetsAndOneSidedBoundaries() started.
+􀟈  Test finiteOriginalChartSelections() started.
+􀟈  Test productsAndRetainedOwners() started.
+􀟈  Test wholeOriginalAnalyticDomains() started.
+PASS checked DI affine/relation view: original scope, polynomial constraints, reversed/permuted axes, COW and retained lifetime
+PASS sealed guide DI independent work/storage/source/chart/family/depth/owner/cycle/arity and success/exclusion cancellation
+PASS sealed guide DI: exact 1/3 station, reversed weighted child, both C0 sides, local/source law lifetime, open/disconnected/singleton/empty scope
+PASS guarded offset domain failures: foreign source, chart/source limits, malformed tuple/template, exact work/storage admission, success/exclusion terminal cancellation
+PASS M4 affine source-domain composition: reversed/nested image, spatial word, directed traversal, infinite lifts and closed seams
+PASS complete revolution domain: retained weighted chart sides, closed U seam/V knot, singleton/empty clipping and collapsed-fiber denominator guards
+PASS guarded offset domain: enclosure differs from exact material, signed branches, positive-q relation, zero-distance singular exclusion, canonical knot ownership, singleton/empty request and retained source lifetime
+PASS M4 exact source pullback: uncovered scope refuses, singleton/empty succeed, foreign/zero/depth/work/storage/cancel fail
+PASS retained surface DI exact whole-square identity UV, original laws, four closed sides, strict/singleton/disconnected/empty selections and retained owner
+PASS checked DI complete-product relation and exact admission/work/storage/source/proof/transport/cancellation failures
+PASS analytic scoped identities: genuine intrinsic periods, both torus axes, cone vertex/sphere poles, retained UV, foreign and near-pole refusal
+PASS retained surface DI independent work/storage/source/chart/family/depth/owner/cycle/arity and terminal success/exclusion cancellation
+􁁛  Test completeGuideSourceDomainCorrespondence() passed after 0.342 seconds.
+􁁛  Test guideDomainAdmissionFailures() passed after 0.341 seconds.
+􁁛  Test retainedSurfaceDomainCorrespondence() passed after 0.341 seconds.
+􁁛  Test retainedSurfaceDomainAdmissionFailures() passed after 0.341 seconds.
+􁁛  Test explicitFailuresAndAdmission() passed after 0.342 seconds.
+􁁛  Test canonicalDisconnectedUnboundedSets() passed after 0.342 seconds.
+􁁛  Test rationalSharedDivisorPreservesCostAndFailures() passed after 0.342 seconds.
+􁁛  Test checkedAffineAndIdentityRelationViews() passed after 0.342 seconds.
+􁁛  Test scopedIdentityAndExactPeriodOrbits() passed after 0.342 seconds.
+􁁛  Test verifyEntireDeclaredBoundary() passed after 0.342 seconds.
+􁁛  Test completeSourceDomainChartHandoff() passed after 0.342 seconds.
+􁁛  Test sourceAffineCorrespondence() passed after 0.342 seconds.
+􁁛  Test guardedOffsetFailures() passed after 0.342 seconds.
+􁁛  Test wholeOriginalLineAndPlaneDomains() passed after 0.342 seconds.
+􁁛  Test composedSourceFamilies() passed after 0.342 seconds.
+􁁛  Test intrinsicPolesAndPhysicalMeaningRefusal() passed after 0.342 seconds.
+􁁛  Test wholeRevolutionDomainFamiliesAndGuards() passed after 0.342 seconds.
+􁁛  Test scaledStoredNormalsAndExactPlaneUV() passed after 0.342 seconds.
+􁁛  Test guardedOffsetCoverageAndOwnership() passed after 0.342 seconds.
+􁁛  Test completeFiniteCoversAndHoles() passed after 0.342 seconds.
+􁁛  Test composedSourcePullbackFailures() passed after 0.342 seconds.
+􁁛  Test exactPeriodicLiftsAndRefusal() passed after 0.342 seconds.
+􁁛  Test sourceCollapsedSubsetsAndOneSidedBoundaries() passed after 0.342 seconds.
+􁁛  Test productsAndRetainedOwners() passed after 0.342 seconds.
+􁁛  Test checkedRelationProductAndAdmission() passed after 0.342 seconds.
+􁁛  Test analyticScopedPeriodsAndFibers() passed after 0.342 seconds.
+􁁛  Test immutableReadersAndTaskCancellation() passed after 0.342 seconds.
+PASS revolution identity work/storage/source-owner/family/identity/depth/entry/terminal failures
+􁁛  Test scopedRevolutionIdentityFailures() passed after 0.391 seconds.
+􁁛  Test completeIntegerFamiliesAndTensorOwners() passed after 0.392 seconds.
+PASS revolution source period identities: protocol query, finite clipping/empty overlap, negative cycles, exact original UV, distinct V and near-period refusal, retained source theorem
+􁁛  Test scopedRevolutionPeriodIdentities() passed after 0.402 seconds.
+􁁛  Test wholeRevolutionDomainRefusal() passed after 0.433 seconds.
+PASS revolution domain source/cycle/chart/family/depth/work/storage/entry/terminal refusal
+􁁛  Test originalStoredNormalPlaneBasisAndUV() passed after 0.498 seconds.
+􁁛  Test finiteOriginalChartSelections() passed after 0.536 seconds.
+􁁛  Test chartFamilyWitnessesAndInjection() passed after 0.538 seconds.
+􁁛  Test wholeOriginalAnalyticDomains() passed after 0.549 seconds.
+􁁛  Test selectedRootSharedDivisorRetainsLocalInverseLaws() passed after 0.682 seconds.
+􁁛  Test allEndpointSectors() passed after 0.712 seconds.
+􁁛  Test mathematicalPiDomain() passed after 1.098 seconds.
+􁁛  Test originalPhysicalAngularDomains() passed after 1.465 seconds.
+PASS analytic physical period: mathematical pi, exact finite clipping/empty overlap, reversed cycles, independent budgets and terminal cancel
+􁁛  Test analyticPhysicalPeriodClippingAndFailures() passed after 11.247 seconds.
+􁁛  Test run with 40 tests in 0 suites passed after 11.249 seconds.

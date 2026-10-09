@@ -1,6 +1,8 @@
 import DomainFixtures
 @main struct DomainProof {
     static func main() throws {
+        try RetainedSurfaceDomainFixtures.fullSourceCorrespondence()
+        try RetainedSurfaceDomainFixtures.atomicFailures()
         try GuideDomainFixtures.fullSourceCorrespondence()
         try GuideDomainFixtures.admissionAndFailures()
         try RevolutionIdentityFixtures.scopedPeriodAndClipping()

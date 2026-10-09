@@ -472,3 +472,26 @@ weighted child, both closed join sides, disconnected/open/singleton/empty reques
 retained lifetime, foreign source, inherited scalar-owner checks, malformed tuple/template/cycle, independent
 work/storage/chart/source/depth and final success/exclusion cancellation. Generic
 non-rational traversal/derivative identity coverage remains outside this capability.
+
+## Sealed retained surface domain composition
+
+OriginalRetainedSurfaceDomainIssuing consumes only the source-owned complete
+OriginalFiniteRetainedSurfaceCharts witness. The existing producer owns original
+XYZ/D, nonzero-denominator cell authority, identity authored UV and complete square
+coverage. DI owns frame compatibility and exact request clipping, preserving every
+closed original cell side through existing affine transport and whole-domain cover
+contracts. It does not reinterpret a bounding box as a guarded material domain.
+
+The immutable cover and occurrences retain the complete family, original cell
+index/law and selected identity UV map. Queries use the same caller admission and
+retained causal depths; nonzero cycles, foreign sources, wrong dimensional or
+coordinate frames and resource/cancellation failures propagate. Empty success
+requires the complete source witness plus full effective-selection exclusion.
+No original coefficients are regenerated and no independent relation is solved.
+
+RetainedSurfaceDomainFixtures owns independent public issuer/query coverage for
+nonbinary cell cuts, all closed sides, clipped/strict/singleton/disconnected/empty
+requests, original laws/lifetime and independent source/transport/chart/family/
+work/storage/cancel failures. Actual CorrectionProof verifies the genuine
+boundary-correction source-to-DI handoff; derivative surface sources can consume
+this same contract only after their source owner issues a complete witness.

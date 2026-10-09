@@ -33,6 +33,28 @@ struct OriginalBoundaryCorrectionSourceProof {
             let source=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(original,limits:limits,using:&a)
             let family=try DefaultOriginalFiniteRetainedSurfaceChartPreparer<OriginalBoundaryCorrectionSnapshot>().prepare(source:source,maximumCharts:1,limits:limits,using:&a)
             try family.admitProof(limits:limits,using:&a);try require(family.laws.count==1)
+            let domainLimits=try OriginalDomainIdentityLimits(source:limits,maximumTransportDepth:16,
+                maximumCharts:4,maximumFamilies:1,maximumIdentityProofs:8)
+            let domainIssuer=DefaultOriginalRetainedSurfaceDomainIssuer<OriginalBoundaryCorrectionSnapshot>()
+            let frame=try domainIssuer.frame(family:family,limits:domainLimits,using:&a)
+            let cover=try domainIssuer.issue(request:frame.fullSelection(limits:domainLimits,using:&a),
+                family:family,limits:domainLimits,using:&a)
+            let half=try f.binary64(exactly:0.5,using:&a),quarter=try f.binary64(exactly:0.25,using:&a)
+            let occurrences=try cover.incident(at:[half,quarter],limits:domainLimits,using:&a)
+            try require(occurrences.count==1)
+            let transport=DefaultOriginalParameterTransporter<OriginalBoundaryCorrectionSnapshot,OriginalExactScalarDomain>()
+            let local=try transport.forward([half,quarter],through:transport.inverse(occurrences[0].transport,limits:domainLimits,using:&a),
+                limits:domainLimits,using:&a)
+            try require(f.compare(local[0],half,using:&a) == .equal && f.compare(local[1],quarter,using:&a) == .equal)
+            let selected=try frame.selection(intervals:[[
+                .checked(field:f,lower:.finite(half),upper:.finite(half),depth:.init(value:0,coefficient:0),using:&a)],
+                [.checked(field:f,lower:.finite(quarter),upper:.finite(quarter),depth:.init(value:0,coefficient:0),using:&a)]],
+                limits:domainLimits,using:&a)
+            try require(domainIssuer.issue(request:selected,family:family,limits:domainLimits,using:&a)
+                .incident(at:[half,quarter],limits:domainLimits,using:&a).count==1)
+            let empty=try frame.selection(intervals:[[],[]],limits:domainLimits,using:&a)
+            try require(domainIssuer.issue(request:empty,family:family,limits:domainLimits,using:&a)
+                .selectedMembers(limits:domainLimits,using:&a).isEmpty)
             let law=family.laws[0],r=law.polynomials
             for (u,v,expectedZ) in [(0.5,0.0,nonzero ? 0.125:0),(0.5,0.25,nonzero ? 0.112060546875:0),(0.5,0.5,nonzero ? 0.0625:0)] {
                 let params=[try f.binary64(exactly:u,using:&a),try f.binary64(exactly:v,using:&a)]
