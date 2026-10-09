@@ -1,0 +1,36 @@
+{
+  "commands": [
+    {
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--package-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalDomainIdentityVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2m3-wasm",
+        "-j",
+        "2",
+        "--swift-sdk",
+        "swift-6.4.0-RELEASE_wasm",
+        "--product",
+        "DomainProof"
+      ],
+      "elapsed_seconds": 14.024940958013758,
+      "exit_code": 0,
+      "timeout_seconds": 120
+    },
+    {
+      "command": [
+        "/usr/local/bin/node",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/L3RealCellVerification/ConvergenceEvidence/retained-run_wasi_smoke.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2m3-wasm/out/Products/Debug-webassembly-wasm32/DomainProof.wasm"
+      ],
+      "elapsed_seconds": 73.73907750000944,
+      "exit_code": 0,
+      "timeout_seconds": 120
+    }
+  ],
+  "diagnostic_fixture_sha256": {
+    "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalDomainIdentityVerification/Sources/Fixtures/RevolutionIdentityFixtures.swift": "a9bd8ac316b43ed368128702f89bfded80e12afe5db8f0bd48b07061ac9fabc9"
+  }
+}

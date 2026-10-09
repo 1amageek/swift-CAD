@@ -50,3 +50,6 @@ import DomainFixtures
 
 @Test(.timeLimit(.minutes(1))) func guardedOffsetCoverageAndOwnership() throws { try OffsetDomainFixtures.guardedCoverageAndOwnership() }
 @Test(.timeLimit(.minutes(1))) func guardedOffsetFailures() throws { try OffsetDomainFixtures.guardedFailures() }
+
+@Test(.timeLimit(.minutes(1))) func scopedRevolutionPeriodIdentities() throws { try RevolutionIdentityFixtures.scopedPeriodAndClipping() }
+@Test(.timeLimit(.minutes(1))) func scopedRevolutionIdentityFailures() throws { try RevolutionIdentityFixtures.identityFailures() }

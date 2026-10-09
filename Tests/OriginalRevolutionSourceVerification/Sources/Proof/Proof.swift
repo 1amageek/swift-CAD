@@ -77,6 +77,15 @@ struct OriginalRevolutionSourceProof {
             try require(f.sign(of:occurrence.law.polynomials.evaluated(occurrence.law.radialSquaredNumerator,
                 at:[one,zero,one],using:&a).value,using:&a) == .zero)
         }
+        let identityIssuer = DefaultOriginalParameterIdentityIssuer<OriginalRevolutionSnapshot<BSplineCurve3D>,OriginalExactScalarDomain>()
+        let cycle = try OriginalParameterCycle(exact:ExactRationalScalarDomain().integer(1,using:&a),using:&a)
+        let periodicIdentity = try identityIssuer.periodic(cover:domainCover,from:domainCover.effective,
+            cycle:cycle,limits:domainLimits,using:&a)
+        try require(identityIssuer.decide(periodicIdentity,left:[zero,quarter],right:[receipts.period.period,quarter],
+            limits:domainLimits,using:&a) == .proven)
+        try require(identityIssuer.decide(periodicIdentity,left:[zero,quarter],right:[receipts.period.period,one],
+            limits:domainLimits,using:&a) == .refutedForThisRelation)
+        print("PASS M5 actual revolution source/domain/period identity handoff: scoped source theorem and all original V retained")
         print("PASS M4 actual revolution DI cover: exact source/provider/family handoff, all seam sides and collapsed original UV preserved")
         print("PASS M4 actual revolution retained weighted reversed generator, original raw axis, exact source law and public point/derivative/pole/depth/tolerance handoff")
     }

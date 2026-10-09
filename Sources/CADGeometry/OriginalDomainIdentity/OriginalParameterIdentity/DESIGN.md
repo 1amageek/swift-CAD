@@ -215,3 +215,25 @@ independent behavioral evidence; production boundary/self composition is separat
 owned by M6 consumers. Existing Native/intrinsic/rational receipts and their public
 query methods remain compatible and are covered by the same independent regression
 package. All storage and proof owners are immutable on every target.
+
+
+## Source-owned revolution period consumption
+
+OriginalRevolutionParameterIdentityIssuing consumes a retained sealed revolution
+cover and its source-owned intrinsic period. It first admits the whole source
+family and intersects the selected original UV with the effective request. The
+same internal finite-period clipping helper used by analytic identities maps the
+translated selection through an unbounded bridge, clips it back to effective
+support, then issues the existing periodicOrbit receipt. No period is inferred
+from matching XYZ, a binary approximation to mathematical pi, or a generator sample.
+The source's intrinsic angular label is authoritative for this particular shape.
+
+Original V remains unchanged; every original UV is retained. Negative cycles and
+empty finite overlap are exact. The receipt retains the original period/source
+owner; it makes no claim of a solved intersection or a new collapsed-fiber proof.
+All source/chart/family/depth/work/storage/identity checks and final cancellation
+use the same caller admission. The helper refactor preserves analytic public
+contracts and requires their existing behavioral cases on the composed snapshot.
+Verification belongs to RevolutionIdentityFixtures and the actual production
+revolution source/DI/identity handoff. Generic/non-rational generator, collapsed
+revolution fiber and remaining composed/shared-boundary M5 acceptance stay open.

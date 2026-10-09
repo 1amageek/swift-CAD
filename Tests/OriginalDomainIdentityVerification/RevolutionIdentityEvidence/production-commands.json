@@ -1,0 +1,27 @@
+[
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalRevolutionSourceVerification",
+      "--build-path",
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+      "-j",
+      "1",
+      "--product",
+      "OriginalRevolutionSourceProof"
+    ],
+    "timeout_seconds": 300,
+    "elapsed_seconds": 259.0858227079734,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/out/Products/Debug/OriginalRevolutionSourceProof"
+    ],
+    "elapsed_seconds": 1.4551289579831064,
+    "timeout_seconds": 120,
+    "exit_code": 0
+  }
+]

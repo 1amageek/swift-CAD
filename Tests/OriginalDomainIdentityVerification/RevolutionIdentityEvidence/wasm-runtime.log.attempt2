@@ -1,0 +1,4 @@
+(node:35681) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+WASI linear memory: 1507328 bytes
+PASS revolution source period identities: protocol query, finite clipping/empty overlap, negative cycles, exact original UV, distinct V and near-period refusal, retained source theorem

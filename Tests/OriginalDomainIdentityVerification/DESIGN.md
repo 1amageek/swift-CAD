@@ -123,3 +123,22 @@ work exhaustion, foreign injected period owners and final cancellation fail
 explicitly. Rejected injected period/chart issuers prove that source errors are
 not replaced by default construction. The same portable fixture body runs in
 DomainProof on ordinary/Embedded WASM; Native and ASAN use DomainTests.
+
+## Revolution period identity verification
+
+RevolutionIdentityFixtures consumes the sealed complete generator family through
+OriginalRevolutionParameterIdentityIssuing. It checks exact finite clipping and
+empty overlap, both cycle signs, unchanged original V, near-period refusal,
+foreign owners, independent source/family/chart/identity/transport/work/storage
+limits, and entry/final cancellation. Existing analytic period fixtures validate
+the shared finite-period clipping helper. The production revolution proof checks
+the concrete original source/provider/domain/identity handoff separately.
+
+Component tests and runtimes remain externally bounded at120 seconds. Ordinary
+component builds use120 seconds; an Embedded WMO build may continue for300 seconds
+after a measured incomplete120-second batch, retaining that attempt and scratch path.
+The actual CADGeometry incremental compile may use300 seconds with jobs1 after
+an observed120-second unfinished compiler batch; its runtime remains120 seconds.
+This operational compile window changes no solver, admission, depth, accuracy or
+fixture limit. Retain failed attempts and reuse the same scratch directory.
+Temporary diagnostic output is removed before the final source-bound proof.
