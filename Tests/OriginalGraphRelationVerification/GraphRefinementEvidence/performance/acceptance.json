@@ -1,0 +1,36 @@
+{
+  "success": true,
+  "scope": "First-power optimization only; four generation-admitted unchanged-fixture lanes and one scoped review. Native timing comparison is recorded separately.",
+  "lanes": {
+    "native": {
+      "receiptSHA256": "171201bd4106d596e3ccae81d7c42f274ee76e98a6c75c7557dbbb0786ed9ce5",
+      "generationSHA256": "d1df4ae57129ce21d85b82e53483535d7800c8b1a4ddf1f1fed32c85415b242e",
+      "boundInputs": 1110,
+      "generatedArtifacts": 560,
+      "runtimeSeconds": 52.79
+    },
+    "asan": {
+      "receiptSHA256": "7d7624b9333b185e3aae8319d010d30d0a7ade47ca031775b4e54a8fffc23edc",
+      "generationSHA256": "4712eaab3e9a2f7f6d0b46cc1b3756eed18e7d55788593252b1cfb038a2dfbe5",
+      "boundInputs": 1110,
+      "generatedArtifacts": 560,
+      "runtimeSeconds": 21.267
+    },
+    "wasm": {
+      "receiptSHA256": "09821dcc4fe9c03c18bb023154f98b2efae3c8c528f809deac2cee6639e92746",
+      "generationSHA256": "5058825305e019625df908c57c9f58d84b0379dd1d75db109f394b267c3d8ebe",
+      "boundInputs": 1132,
+      "generatedArtifacts": 580,
+      "runtimeSeconds": 39.217
+    },
+    "embedded": {
+      "receiptSHA256": "9165b8be86df10cb6600f5c240ce6342d7837c07e54d12213bb1f05ff16bd212",
+      "generationSHA256": "949aa0eb4266ddaaf57672448540788d26e4ed492a44dc72071c588a507ed207",
+      "boundInputs": 1129,
+      "generatedArtifacts": 577,
+      "runtimeSeconds": 27.038
+    }
+  },
+  "reviewSHA256": "611bc2484e842e8634130f74ec85cede8dceb0e72aa5d80faccf4742cb977c7d",
+  "comparisonSHA256": "31f03f40798a7d2161e9ab99837e26d48d63be7240692c6473f0a9702201ef06"
+}

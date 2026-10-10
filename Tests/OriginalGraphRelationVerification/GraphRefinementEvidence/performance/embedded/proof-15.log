@@ -1,0 +1,5 @@
+(node:52097) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS graph refinement exact work/storage boundaries
+MEASURE graph refinement work=455253 storage=7224829
+PASS graph refinement descendant-field membership and foreign-field refusal

@@ -91,3 +91,12 @@ Native/ASAN and
 matching ordinary/Embedded WASM use the same immutable production source files.
 This independent proof owns the adapter contract, not untested face/identity
 compilers or full production-module integration.
+
+M6.G performance comparison uses `GraphRefinementEvidence/benchmark.py` with
+separate baseline/candidate generation receipts and serial alternating processes.
+Admission hashes stay outside elapsed/CPU timing. Baseline inputs that changed
+must match their committed generation snapshot; all compiler, generated artifact
+and log bytes must still match. Candidate inputs must match current bytes.
+`run.py --output` retains previous lane evidence while generating a fresh owned
+lane. The first-power optimization belongs to [L3](../../Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md);
+no quota, equality, coverage or target ownership contract is relaxed.

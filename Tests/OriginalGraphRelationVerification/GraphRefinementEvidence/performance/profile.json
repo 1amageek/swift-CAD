@@ -1,0 +1,19 @@
+{
+  "exitCode": 0,
+  "elapsedSeconds": 45.47115641599521,
+  "product": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/.build/m6-refinement-repair/native/b3d157fcff7744cfb682d00fe9062329/build/arm64-apple-macosx/debug/GraphProof",
+  "productSHA256": "2ec9e5d9fb7a505194b0674cb532811b085ff96b47e4976621b96aee538b31ad",
+  "generationSHA256": "03af6140d22bc01dd6bfc477f896c904591c56c41b97592ecc864e2bc003a864",
+  "scope": "Initial15s Native CPU sample; not a whole-run percentage.",
+  "samples": 2230,
+  "offsetGraphConstructionSamples": 1645,
+  "offsetGraphConstructionFraction": 0.7376681614349776,
+  "sampleCommand": [
+    "sample",
+    "<pid>",
+    "15",
+    "5",
+    "-file",
+    "baseline.sample.txt"
+  ]
+}

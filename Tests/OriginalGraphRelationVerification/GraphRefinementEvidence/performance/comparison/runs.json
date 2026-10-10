@@ -1,0 +1,68 @@
+[
+  {
+    "repeat": 0,
+    "lane": "baseline",
+    "elapsedSeconds": 51.63911229104269,
+    "userSeconds": 43.281904000000004,
+    "systemSeconds": 0.910675,
+    "exitCode": 0,
+    "log": "0-baseline.log",
+    "logSHA256": "617acc393630dd0c3dccb2e4ee07891f2e0253e6e585eb1dc500e0c6268f68c1",
+    "productSHA256": "2ec9e5d9fb7a505194b0674cb532811b085ff96b47e4976621b96aee538b31ad"
+  },
+  {
+    "repeat": 0,
+    "lane": "candidate",
+    "elapsedSeconds": 29.56039762502769,
+    "userSeconds": 27.771229999999996,
+    "systemSeconds": 0.31886099999999995,
+    "exitCode": 0,
+    "log": "0-candidate.log",
+    "logSHA256": "40af8491f0eb4e25832224a58a9e06da16e07d1e1781888a3c4ebef09cba1c70",
+    "productSHA256": "2874b753bbbeb5b69a1d475151c8bcf25158768a17dc21968ecb3d3cbdde7ae2"
+  },
+  {
+    "repeat": 1,
+    "lane": "candidate",
+    "elapsedSeconds": 27.159828041039873,
+    "userSeconds": 26.403958000000003,
+    "systemSeconds": 0.18935999999999997,
+    "exitCode": 0,
+    "log": "1-candidate.log",
+    "logSHA256": "40af8491f0eb4e25832224a58a9e06da16e07d1e1781888a3c4ebef09cba1c70",
+    "productSHA256": "2874b753bbbeb5b69a1d475151c8bcf25158768a17dc21968ecb3d3cbdde7ae2"
+  },
+  {
+    "repeat": 1,
+    "lane": "baseline",
+    "elapsedSeconds": 29.287247792002745,
+    "userSeconds": 28.970723000000007,
+    "systemSeconds": 0.09593099999999977,
+    "exitCode": 0,
+    "log": "1-baseline.log",
+    "logSHA256": "617acc393630dd0c3dccb2e4ee07891f2e0253e6e585eb1dc500e0c6268f68c1",
+    "productSHA256": "2ec9e5d9fb7a505194b0674cb532811b085ff96b47e4976621b96aee538b31ad"
+  },
+  {
+    "repeat": 2,
+    "lane": "baseline",
+    "elapsedSeconds": 26.916048709012102,
+    "userSeconds": 26.66855000000001,
+    "systemSeconds": 0.08627300000000027,
+    "exitCode": 0,
+    "log": "2-baseline.log",
+    "logSHA256": "617acc393630dd0c3dccb2e4ee07891f2e0253e6e585eb1dc500e0c6268f68c1",
+    "productSHA256": "2ec9e5d9fb7a505194b0674cb532811b085ff96b47e4976621b96aee538b31ad"
+  },
+  {
+    "repeat": 2,
+    "lane": "candidate",
+    "elapsedSeconds": 22.639733415970113,
+    "userSeconds": 22.356127999999984,
+    "systemSeconds": 0.09162799999999982,
+    "exitCode": 0,
+    "log": "2-candidate.log",
+    "logSHA256": "40af8491f0eb4e25832224a58a9e06da16e07d1e1781888a3c4ebef09cba1c70",
+    "productSHA256": "2874b753bbbeb5b69a1d475151c8bcf25158768a17dc21968ecb3d3cbdde7ae2"
+  }
+]

@@ -1,0 +1,874 @@
+Another instance of SwiftPM (PID: 51930) is already running using '/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/Tests/OriginalGraphRelationVerification/.build', waiting until that process has finished execution...{
+  "cLanguageStandard" : null,
+  "cxxLanguageStandard" : null,
+  "defaultLocalization" : null,
+  "dependencies" : [
+
+  ],
+  "name" : "OriginalGraphRelationVerification",
+  "packageKind" : {
+    "root" : [
+      "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/Tests/OriginalGraphRelationVerification"
+    ]
+  },
+  "pkgConfig" : null,
+  "platforms" : [
+    {
+      "options" : [
+
+      ],
+      "platformName" : "macos",
+      "version" : "14.0"
+    }
+  ],
+  "products" : [
+
+  ],
+  "providers" : null,
+  "swiftLanguageVersions" : null,
+  "targets" : [
+    {
+      "dependencies" : [
+
+      ],
+      "exclude" : [
+        "DESIGN.md"
+      ],
+      "name" : "L0",
+      "packageAccess" : true,
+      "path" : "Sources/L0",
+      "resources" : [
+
+      ],
+      "settings" : [
+
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+        "DESIGN.md"
+      ],
+      "name" : "L1",
+      "packageAccess" : true,
+      "path" : "Sources/L1",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "L1_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+        "DESIGN.md"
+      ],
+      "name" : "DI0",
+      "packageAccess" : true,
+      "path" : "Sources/DI0",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "EXACT_DOMAIN_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "DI0",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+        "DESIGN.md",
+        "DefaultExactOriginalScalarTransporter.swift",
+        "OriginalCoordinateTransportState.swift",
+        "OriginalCoordinateTransportState+Roots.swift"
+      ],
+      "name" : "L2",
+      "packageAccess" : true,
+      "path" : "Sources/L2",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "L2_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L2",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+        "DESIGN.md"
+      ],
+      "name" : "L3",
+      "packageAccess" : true,
+      "path" : "Sources/L3",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "L3_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L2",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L3",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+        "DESIGN.md"
+      ],
+      "name" : "L4",
+      "packageAccess" : true,
+      "path" : "Sources/L4",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "L4_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L2",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L3",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L4",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+        "DESIGN.md"
+      ],
+      "name" : "L5",
+      "packageAccess" : true,
+      "path" : "Sources/L5",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "L5_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L2",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L3",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L4",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L5",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+        "DESIGN.md"
+      ],
+      "name" : "L6",
+      "packageAccess" : true,
+      "path" : "Sources/L6",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "L6_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+        "DESIGN.md",
+        "OriginalPhysicalAngle/DESIGN.md",
+        "BSplineCurve3D+OriginalSourceReading.swift",
+        "BSplineSurface3D+OriginalSourceReading.swift",
+        "OriginalBSplineCurveSnapshotProvider.swift",
+        "OriginalBSplineSurfaceSnapshotProvider.swift",
+        "OriginalAnalyticCoordinateSnapshot.swift",
+        "OriginalAnalyticCoordinateCurveSnapshotProvider.swift",
+        "OriginalAnalyticCoordinateSurfaceSnapshotProvider.swift",
+        "OriginalStoredPlaneBasis.swift",
+        "OriginalPlaneSnapshot.swift",
+        "OriginalPlaneSnapshotProvider.swift",
+        "OriginalAnalyticPrimitiveSnapshot.swift",
+        "OriginalAnalyticPrimitiveSnapshotProvider.swift",
+        "OriginalAnalyticConeSnapshot.swift",
+        "OriginalAnalyticConeSnapshotProvider.swift",
+        "OriginalNativeCurveFamilySnapshotProvider.swift",
+        "OriginalLinearCurveSnapshot.swift",
+        "OriginalLinearCurveSnapshotProvider.swift",
+        "OriginalRuledSurfaceSnapshot.swift",
+        "OriginalRuledSurfaceSnapshotProvider.swift",
+        "OriginalAffineWordSnapshot.swift",
+        "OriginalAffineWordCoefficientImport.swift",
+        "OriginalAffineWordCurveSnapshotProvider.swift",
+        "OriginalAffineWordSurfaceSnapshotProvider.swift",
+        "OriginalNativeSurfaceFamilySnapshotProvider.swift",
+        "OriginalParameterImageSnapshot.swift",
+        "OriginalParameterImageCurveSnapshotProvider.swift",
+        "OriginalParameterImageSurfaceSnapshotProvider.swift",
+        "OriginalTraversalSpanSnapshot.swift",
+        "OriginalTraversalEndpointBinding.swift",
+        "OriginalTraversalSpanSnapshotProvider.swift",
+        "OriginalCoonsSurfaceSnapshot.swift",
+        "OriginalCoonsSurfaceSnapshotProvider.swift",
+        "OriginalRevolutionSnapshot.swift",
+        "OriginalRevolutionSnapshotProvider.swift",
+        "OriginalOffsetSnapshot.swift",
+        "OriginalOffsetSnapshotProvider.swift",
+        "OriginalGuideSnapshot.swift",
+        "OriginalGuideSnapshotProvider.swift",
+        "OriginalBoundaryCorrectionSnapshot.swift",
+        "OriginalBoundaryCorrectionSnapshotProvider.swift",
+        "OriginalPlaneDerivativeCurveSnapshot.swift",
+        "OriginalPlaneDerivativeCurveSnapshotProvider.swift"
+      ],
+      "name" : "SourceIssuer",
+      "packageAccess" : true,
+      "path" : "Sources/SourceIssuer",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "ORIGINAL_SOURCE_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "DI0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "SourceIssuer",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+        "DESIGN.md",
+        "ExactParameterDomain",
+        "OriginalParameterTransport/DESIGN.md",
+        "OriginalDomainCoverage/DESIGN.md",
+        "OriginalParameterIdentity/DESIGN.md"
+      ],
+      "name" : "DI",
+      "packageAccess" : true,
+      "path" : "Sources/DI",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "ORIGINAL_DOMAIN_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L2",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L3",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L4",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L5",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "DI0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "DI",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "SourceIssuer",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+
+      ],
+      "name" : "IssuedGraphs",
+      "packageAccess" : true,
+      "path" : "Sources/IssuedGraphs",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L2",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L3",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L4",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L5",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L6",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "DI0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "DI",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "SourceIssuer",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "IssuedGraphs",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+
+      ],
+      "name" : "IssuedGeometry",
+      "packageAccess" : true,
+      "path" : "Sources/IssuedGeometry",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "kind" : {
+            "define" : {
+              "_0" : "ISSUED_GEOMETRY_ISOLATED_VERIFICATION"
+            }
+          },
+          "tool" : "swift"
+        }
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "IssuedGeometry",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L6",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L2",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L3",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L4",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L5",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "DI0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "DI",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "SourceIssuer",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "IssuedGraphs",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+
+      ],
+      "name" : "GraphFixtures",
+      "packageAccess" : true,
+      "path" : "Sources/Fixtures",
+      "resources" : [
+
+      ],
+      "settings" : [
+
+      ],
+      "type" : "regular"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "GraphFixtures",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+
+      ],
+      "name" : "GraphProof",
+      "packageAccess" : true,
+      "path" : "Sources/Proof",
+      "resources" : [
+
+      ],
+      "settings" : [
+
+      ],
+      "type" : "executable"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "L0",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L1",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L2",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L3",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L4",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L5",
+            null
+          ]
+        },
+        {
+          "byName" : [
+            "L6",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+
+      ],
+      "name" : "GeneralGraphProof",
+      "packageAccess" : true,
+      "path" : "Sources/GeneralGraphProof",
+      "resources" : [
+
+      ],
+      "settings" : [
+        {
+          "condition" : {
+            "platformNames" : [
+              "wasi"
+            ]
+          },
+          "kind" : {
+            "unsafeFlags" : {
+              "_0" : [
+                "-Xlinker",
+                "-z",
+                "-Xlinker",
+                "stack-size=67108864"
+              ]
+            }
+          },
+          "tool" : "linker"
+        }
+      ],
+      "type" : "executable"
+    },
+    {
+      "dependencies" : [
+        {
+          "byName" : [
+            "GraphFixtures",
+            null
+          ]
+        }
+      ],
+      "exclude" : [
+
+      ],
+      "name" : "GraphTests",
+      "packageAccess" : true,
+      "path" : "Tests",
+      "resources" : [
+
+      ],
+      "settings" : [
+
+      ],
+      "type" : "test"
+    }
+  ],
+  "toolsVersion" : {
+    "_version" : "6.4.0"
+  },
+  "traits" : [
+
+  ]
+}

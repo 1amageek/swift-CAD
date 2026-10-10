@@ -108,6 +108,15 @@ must preserve the original tuple and required source sign semantics under that
 same ceiling. The L3 sign-invariance and complete partition fixtures validate
 positive/negative scalar orientation, repeated roots and retained conditions.
 
+Specialization and evaluation retain first powers through the public field import
+operation. This proves the same field lineage and admits retained value depth,
+work, storage and cancellation without constructing one and multiplying by it.
+Higher powers retain exact binary exponentiation. This changes performed work,
+not resource ceilings, source equations, root coverage or query authority. The
+M6.G refinement fixture owns the measured interaction regression, including
+algebraic coordinates, foreign fields, exact resource boundaries and terminal
+cancellation; independent target artifacts bind the changed L3 source.
+
 Projection, lifting and selection are responsibilities inside this one component,
 not new modules or public solver frameworks. Polynomial arithmetic belongs to L1;
 root algorithms and coefficient extension belong to L2. No legacy private exact

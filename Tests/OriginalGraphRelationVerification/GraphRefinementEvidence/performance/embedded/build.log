@@ -1,0 +1,43 @@
+Building for debugging...
+[0/27] Write sources
+[12/27] Write swift-version-7EE3F01B468E1A0A.txt
+[14/29] Emitting module L0
+[15/29] Compiling L0 DefaultOriginalScalarTransporter+SelectedRoot.swift
+[17/34] Emitting module DI0
+[18/34] Compiling DI0 ExactParameterBound.swift
+[19/35] Wrapping AST for L0 for debugging
+[20/35] Wrapping AST for DI0 for debugging
+[22/35] Compiling L1 ExactPolynomial.swift
+[23/35] Emitting module L1
+[25/40] Emitting module L2
+[26/40] Compiling L2 ExactAlgebraicCalculation.swift
+[27/41] Wrapping AST for L1 for debugging
+[29/43] Emitting module SourceIssuer
+[31/44] Compiling L3 ExactCellAccess.swift
+[32/44] Emitting module L3
+[33/45] Wrapping AST for L2 for debugging
+[35/47] Compiling SourceIssuer DefaultOriginalAnalyticCoordinateIssuer+Physical.swift
+[35/47] Wrapping AST for L3 for debugging
+[37/49] Compiling L4 ExactRealAttachment.swift
+[38/49] Emitting module L4
+[39/50] Wrapping AST for SourceIssuer for debugging
+[41/52] Emitting module DI
+[42/52] Compiling DI OriginalDomainAccess.swift
+[43/53] Wrapping AST for L4 for debugging
+[45/53] Compiling L5 ExactParametricConstraintDivision.swift
+[46/53] Emitting module L5
+[46/54] Wrapping AST for DI for debugging
+[48/56] Wrapping AST for L5 for debugging
+[50/56] Emitting module IssuedGraphs
+[51/56] Compiling IssuedGraphs DefaultOriginalIssuedGraphCompiler.swift
+[52/59] Wrapping AST for IssuedGraphs for debugging
+[54/59] Compiling GraphFixtures CheckpointAdmission.swift
+[55/59] Emitting module GraphFixtures
+[56/62] Wrapping AST for GraphFixtures for debugging
+[58/62] Emitting module GraphProof
+[59/62] Compiling GraphProof Proof.swift
+[60/63] Wrapping AST for GraphProof for debugging
+[61/63] Write Objects.LinkFileList
+[62/63] Linking GraphProof.wasm
+Build of product 'GraphProof' complete! (42.94s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

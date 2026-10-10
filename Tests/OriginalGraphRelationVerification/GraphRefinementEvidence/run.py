@@ -14,9 +14,10 @@ from artifact_receipt import digest, verify_generation
 
 parser = argparse.ArgumentParser()
 parser.add_argument("lane", choices=["native", "asan", "wasm", "embedded"])
+parser.add_argument("--output", type=Path, help="Fresh evidence directory; defaults to repair/<lane>")
 args = parser.parse_args()
 root = Path(__file__).resolve().parents[3]
-out = Path(__file__).resolve().parent / "repair" / args.lane
+out = args.output.resolve() if args.output else Path(__file__).resolve().parent / "repair" / args.lane
 if out.exists():
     raise RuntimeError("Archive the prior owned lane evidence before rerunning: " + str(out))
 out.mkdir(parents=True)

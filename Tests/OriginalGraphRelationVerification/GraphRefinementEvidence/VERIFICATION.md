@@ -1,5 +1,9 @@
 # Issued Graph Parameter Refinement Verification
 
+The later first-power performance change and its four current target receipts are
+recorded in [Performance Verification](performance/VERIFICATION.md). The repair
+receipts below remain immutable evidence for their original source snapshot.
+
 ## Current Repair Scope
 
 The requested review reopened M6.G for descendant-field membership and missing

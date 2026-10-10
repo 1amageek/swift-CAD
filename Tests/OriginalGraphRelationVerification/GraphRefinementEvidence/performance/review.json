@@ -1,0 +1,21 @@
+{
+  "scope": "One scoped review of the stable first-power change, generation driver output selection and serial benchmark; no findings require another review cycle.",
+  "sources": {
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/ExactRealCellDomain+Specialization.swift": "ae06c705c5e237aa4876c794e976626fd43fea36cf4802e9f88ab9e8d3b0106b",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactAlgebraicScalarDomain.swift": "247c29848736a241e10879b6a1bd282764dfacb3cc18cd4f0312ff0a98f9ea82",
+    "Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/ExactRootAccess.swift": "5269cd9ca4c58f71f0993b07abd08e6b69db5893120f3f7f35158835494b3cf6",
+    "Tests/OriginalGraphRelationVerification/Sources/Fixtures/GraphRefinementFixtures.swift": "26281a046e4cea9e40c8762a975843885137ef5a1344cae57e1f7d26e8ac59f1",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/run.py": "41fbd5add6038d93344d7335ba97fc99bb08be4aec83faa7ae6985a6c399ae26",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/benchmark.py": "61789eef42abe5cdd3bea9fd45c4adf1aa8b022423b9569d45b420cd3cff303c"
+  },
+  "checks": {
+    "exactness": "x^1 is the imported original exact scalar; exponent!=1 retains the original binary exponentiation.",
+    "authority": "Public importing delegates to embedded, admits source depth and rejects foreign lineage before returning an owned value.",
+    "cancellation": "scalarQuery retains ExactRootAccess entry/body/terminal admission; public callers retain their existing terminal checkpoints.",
+    "resources": "Only unperformed integer/unit multiplication work and allocations disappear; caller limits and current exact-boundary failure fixture remain unchanged.",
+    "ownership": "Immutable field/context/storage/calculation owners are retained. No shared mutable state, new unsafe boundary, conditional Sendable or platform-specific storage is introduced.",
+    "benchmark": "Unchanged actual fixture and compiler configuration; three alternating process pairs; hash admission outside wall/CPU timing; historical source overrides match committed hashes; every emitted artifact and log remains byte-bound.",
+    "runner": "Optional fresh output directory preserves the default and overwrite refusal. Package inspection lanes retry serially after a diagnosed pre-compilation lock-message parse failure."
+  },
+  "findings": []
+}

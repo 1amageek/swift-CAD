@@ -6,6 +6,8 @@ import L2
 
 extension ExactRealCellDomain {
  func power(_ value: Field.Value, _ exponent: Int, field: Field, _ a: inout ExactCellBorrowedAdmission) throws -> Field.Value {
+  // Import retains field authority and depth without allocating a unit product.
+  if exponent == 1 { return try field.importing(value,using:&a) }
   var result = try field.integer(1,using:&a), factor=value, n=exponent
   while n > 0 {
    try a.consumeWork(1)
