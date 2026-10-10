@@ -99,3 +99,17 @@ M7 responsibilities. Whole-seven remains 1/7 and full87 remains incomplete.
 
 Generated archives, modules and executables remain local at the receipt paths;
 only their hashes, commands, logs and drivers are versioned.
+
+## Latest-main delivery
+
+Implementation commit `5d386c40` was independently composed with main `c21d97df`
+without source adjustment. `Evidence/main-integration/integration.json` binds 802
+current inputs, 7,165 unique input/artifact/log checks and all four lane receipts.
+Fresh Native folded (68.733s), Native public boundary failures (22.708s) and
+Embedded folded normalization (47.030s) pass with a 120-second bound per process.
+Every admitted premise matches afterward, including Node and the current WASI
+runner. These slower fresh-process timings are recorded, not presented as a
+performance improvement. Main normally fast-forwarded to the implementation.
+The accompanying integration-record commit closes the delivery; general M4-M8
+and whole-seven/full87 remain incomplete. Existing unrelated unpushed main
+history prevents automatic push.

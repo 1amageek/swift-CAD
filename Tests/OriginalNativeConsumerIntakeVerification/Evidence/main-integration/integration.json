@@ -1,0 +1,90 @@
+{
+  "success": true,
+  "implementationCommit": "5d386c40ad98bfa4447c1228307bf832259f067f",
+  "integrationRoot": "/private/tmp/cad-m6-native-consumer-integration-20261010",
+  "receiptSHA256": {
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-native-stable/receipt.json": "9ce1b516d7b4bee064f4cccbe035cf6f46966e65b546e11de5fba1ef36b33d13",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/native-query-field-accepted/generation.json": "15a683225083abf1b743dca11ab553443f3fd33f953231eb526f27dadb6b1a82",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/native-query-field-accepted/receipt.json": "d3336baa75b4b778d4c6a6cde4fdcd6ca982ba8188ef3e9790a32b95cb5b98c5",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-asan-stable/receipt.json": "791a5fe039fd6108f5aaebd302edb8a90d3434d600a3817247cea145126c7080",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/asan-query-field-accepted/generation.json": "12020677a4396dfe39220cdefe04f684f939211f405d071b4b5fe04371d42461",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/asan-query-field-accepted/receipt.json": "8797b06f062d031b569cff3730cb0e2a072de5b933c917d1b7d954abe1b77dcc",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-wasm-stable/receipt.json": "973208aec6a6f5f26bc645c5550c9e1a63d825f16f745a1404a853bd99fd0797",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/wasm-query-field-accepted/generation.json": "7daa8785e3120d076f7b2e6ed2defbf485b97aa830dd565acdf1a1d9d66bf618",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/wasm-query-field-accepted/receipt.json": "efe6b7e513afdf1b6994b4aa029e139d51c53fda54a0af4b2421a7aa381c865d",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-embedded-stable/receipt.json": "fa86145559f68d63e7252eafe9faf8957a63de5f80480411ea410a1974cd6b98",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/embedded-query-field-accepted/generation.json": "f61368bd8f22ff89d285fa43c0cbfebe9f4c464180a7110ec09661389399f6fa",
+    "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/embedded-query-field-accepted/receipt.json": "5e21ec9fd1a5fb03928cac563618d46ed9cc0cb43b4bd68cbdd4981eb58fd081"
+  },
+  "uniqueCheckedFiles": 7165,
+  "currentSourceInputs": 802,
+  "currentSourceMapSHA256": "e9dc52d431e805d45fcf20ee0ce09f5d53e601ffc2073ed29989b500295386b7",
+  "laneCounts": {
+    "native": {
+      "currentInputUnion": 801,
+      "lowerInputs": 534,
+      "lowerArtifacts": 542,
+      "groups": 9
+    },
+    "asan": {
+      "currentInputUnion": 801,
+      "lowerInputs": 534,
+      "lowerArtifacts": 542,
+      "groups": 9
+    },
+    "wasm": {
+      "currentInputUnion": 801,
+      "lowerInputs": 534,
+      "lowerArtifacts": 564,
+      "groups": 9
+    },
+    "embedded": {
+      "currentInputUnion": 802,
+      "lowerInputs": 534,
+      "lowerArtifacts": 562,
+      "groups": 9
+    }
+  },
+  "driverSHA256": "ad1de3eff0058a6d9cae46d52b9308b87675eec7c769403cf638282fc7e3b921",
+  "runs": [
+    {
+      "command": [
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-native-stable/SelfProof",
+        "folded"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 68.73347845900571,
+      "exitCode": 0,
+      "log": "native-folded.log",
+      "logSHA256": "e1638b23b808e7cd36931c7a79dbf505c7e8b5cefea0168160fbd645b9a53702",
+      "productSHA256": "3be7f3f13823413230ba2e2bc1e3e25d11f3b131e7b95f04207a35ff5527457c"
+    },
+    {
+      "command": [
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-native-stable/BoundaryProof",
+        "failures"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 22.708181000023615,
+      "exitCode": 0,
+      "log": "native-failures.log",
+      "logSHA256": "86c28686887d58c13a0e4f8b39481a3a6928ffaee4dc00871788d4ff30ce1ac0",
+      "productSHA256": "34452f2fd84d17bb2157aa0ed2e085e38968108da2c1c6586be5f28b0f58c7c9"
+    },
+    {
+      "command": [
+        "/usr/local/bin/node",
+        "/private/tmp/cad-m6-native-consumer-integration-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-embedded-stable/SelfProof.wasm",
+        "folded"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 47.03040391596733,
+      "exitCode": 0,
+      "log": "embedded-folded.log",
+      "logSHA256": "01e603676ba4e79dc815b4e0433f729c7be1f6ac00a0a677f5d254a167a829c2",
+      "productSHA256": "2e39d541ee5223f06c48270b72f07b0fc9cc86dfc6356b08ff08e2b22255db8e"
+    }
+  ],
+  "scope": "Independent latest-main input/artifact/log matching and fresh Native folded/public boundary failure plus Embedded folded normalization. No rebuild. Node and runner are admitted against retained lower runtime receipts before execution. ASAN instrumentation scope remains new modules plus independent lower only. General M4-M8 remains open."
+}
