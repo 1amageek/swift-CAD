@@ -9,4 +9,6 @@ public enum OriginalRollingBallCurveGraphEvidence: Sendable {
     case coonsLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalCoonsAtlasSnapshot>>.Graph)
     case boundaryNativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalBoundaryCorrectionSnapshot>>.Graph)
     case boundaryLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalBoundaryCorrectionSnapshot>>.Graph)
+    case derivativeNativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalPlaneDerivativeSurfaceSnapshot>>.Graph)
+    case derivativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalPlaneDerivativeSurfaceSnapshot>>.Graph)
 }

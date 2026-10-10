@@ -9,4 +9,6 @@ public enum OriginalRollingBallCurveGraphCoverage: Sendable {
     case coonsLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalCoonsAtlasSnapshot>>)
     case boundaryNativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalBoundaryCorrectionSnapshot>>)
     case boundaryLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalBoundaryCorrectionSnapshot>>)
+    case derivativeNativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalPlaneDerivativeSurfaceSnapshot>>)
+    case derivativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalPlaneDerivativeSurfaceSnapshot>>)
 }

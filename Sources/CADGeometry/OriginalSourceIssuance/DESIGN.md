@@ -1727,15 +1727,15 @@ General nonrational hosts/pcurves, priority images, M5/M6/M7/M8 remain open.
 ## Retained lift hosts in rolling-ball children
 
 The actual OriginalRollingBallCurveSnapshotProvider explicitly selects the
-existing Coons or boundary-correction host provider and Native B-spline or
-retained affine/constant pcurve provider. Four additive sealed capabilities retain
+existing Coons, boundary-correction or plane-derivative host provider and Native
+B-spline or retained affine/constant pcurve provider. Sealed capabilities retain
 the corresponding original lift binding. Existing Native child/lift capabilities
 and signatures are preserved; unsupported host/pcurve/priority variants fail,
 with no alternative provider retry or image-only correspondence assertion.
 
 ```mermaid
 flowchart LR
- H[Actual Coons or correction host plus pcurve] --> L[Existing sealed lift snapshot]
+ H[Actual Coons, correction or derivative host plus pcurve] --> L[Existing sealed lift snapshot]
  L --> C[Rolling-ball child snapshot and complete graphs]
  C --> R[Existing original minor-arc complete product]
  R --> D[Existing guarded rolling-ball DI]
@@ -1756,7 +1756,8 @@ on every target; scratch and admission are exclusive and invocation-local.
 Terminal cancellation, foreign binding/field rejection and detached lifetime
 apply at both the child and composed-surface boundaries.
 
-Verification owner: Tests/OriginalRetainedRollingBallVerification. Fresh original
+Verification owners: Tests/OriginalRetainedRollingBallVerification and
+Tests/OriginalDerivativeRollingBallVerification. Fresh original
 source/child adapters and actual rolling-ball constructor/evaluator compile on
 receipt-bound retained-host/source/DI and numerical children. All four fixed lanes
 exercise complete products/UV/guards, exact domains/resources/depth/cancel/lifetime

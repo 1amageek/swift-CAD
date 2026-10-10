@@ -1,0 +1,8 @@
+PASS derivative rolling-ball children: sealed Native/retained cases, weighted projected source, all incidents and exact original XYZ/UV
+CHECK derivative rolling-ball preparation projected=false
+CHECK derivative rolling-ball prepared work=5070371
+PASS retained rolling-ball actual product and DI: 128 triples, sixteen incidents, exact XYZ/UV/positive roots, all requests and query resource/cancel
+CHECK derivative rolling-ball proof readmission
+CHECK derivative rolling-ball preparation projected=true
+CHECK derivative rolling-ball prepared work=186792306
+FAIL derivative rolling-ball uncaught failure: source(RetainedHostAdapters.OriginalSourceIssuanceFailure.polynomial(CADGeometry.ExactPolynomialFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work))))

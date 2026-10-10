@@ -1,0 +1,38 @@
+[
+  {
+    "directory": "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-independent-diagnostic",
+    "accepted": false,
+    "reason": "The projected preparation and aggregate independent queries shared the fixture ledger; work exhaustion was preserved as explicit failure. Diagnostic-only runs do not establish acceptance.",
+    "files": {
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-independent-diagnostic/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-independent-diagnostic/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-independent-diagnostic/inputs-before-compile.json": "1613aa0ac0ad2ee52fb0821d6db0af1742f677801059713bad9c59b88812c5cf",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-independent-diagnostic/proof.log": "86bd6a6affac953e838d5cdef8b3f477956626d6fee9e1fb3533723f3aa8dfcb",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-independent-diagnostic/runs.json": "aa26af7452440504ed13a8e0b041c12b2651bb6844c77c64972d5478ef39cf7c"
+    }
+  },
+  {
+    "directory": "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-initial-diagnostic",
+    "accepted": false,
+    "reason": "The projected preparation and aggregate independent queries shared the fixture ledger; work exhaustion was preserved as explicit failure. Diagnostic-only runs do not establish acceptance.",
+    "files": {
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-initial-diagnostic/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-initial-diagnostic/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-initial-diagnostic/inputs-before-compile.json": "f72c664b38df1e158f788be0b47ef306333baf0bf26b6b572582b3f7b8b37ec9",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-initial-diagnostic/proof.log": "77ac1ca12a9443c07bc1b8a95f0979a3475303c94dcdbf6aa47b0f6f405147c8",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-initial-diagnostic/runs.json": "437e5b9b5f9093985de90f36194e9bf5234ec23d2067d2d048623df085f4f47e"
+    }
+  },
+  {
+    "directory": "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-work-diagnostic",
+    "accepted": false,
+    "reason": "The projected preparation and aggregate independent queries shared the fixture ledger; work exhaustion was preserved as explicit failure. Diagnostic-only runs do not establish acceptance.",
+    "files": {
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-work-diagnostic/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-work-diagnostic/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-work-diagnostic/inputs-before-compile.json": "c17694083fb4cc4238526e339fdca79bf59bf951e0ae1b8bdf472ccdae412d7b",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-work-diagnostic/proof.log": "43e28b66d5cd40ae2d22fdee1f068932d3e2ac0a59391f8705115a17994af430",
+      "Tests/OriginalDerivativeRollingBallVerification/Evidence/native-work-diagnostic/runs.json": "da4eae4a0954fd155c2babb241f2afbd70c88b9a16ef7c3f313dea1dd5acfece"
+    }
+  }
+]

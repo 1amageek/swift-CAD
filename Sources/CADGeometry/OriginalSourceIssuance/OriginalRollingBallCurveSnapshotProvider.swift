@@ -43,6 +43,14 @@ public struct OriginalRollingBallCurveSnapshotProvider: OriginalSourceSnapshotti
                     let provider=OriginalRetainedAtlasSurfaceLiftSnapshotProvider(host:OriginalBoundaryCorrectionSnapshotProvider(field:field,tolerance:tolerance),field:field,tolerance:tolerance)
                     let child=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(lift,limits:children,using:&a)
                     capability = .boundaryLift(child);depth=child.sourceDepth
+                case (.procedural(.originalPlaneDerivative),.bSpline):
+                    let provider=OriginalNativePcurveRetainedAtlasLiftSnapshotProvider(host:OriginalPlaneDerivativeSurfaceSnapshotProvider(field:field,tolerance:tolerance),tolerance:tolerance)
+                    let child=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(lift,limits:children,using:&a)
+                    capability = .derivativeNativeLift(child);depth=child.sourceDepth
+                case (.procedural(.originalPlaneDerivative),.affine),(.procedural(.originalPlaneDerivative),.constantU),(.procedural(.originalPlaneDerivative),.constantV):
+                    let provider=OriginalRetainedAtlasSurfaceLiftSnapshotProvider(host:OriginalPlaneDerivativeSurfaceSnapshotProvider(field:field,tolerance:tolerance),field:field,tolerance:tolerance)
+                    let child=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(lift,limits:children,using:&a)
+                    capability = .derivativeLift(child);depth=child.sourceDepth
                 default:
                     // FIXME(INCOMPLETE_IMPLEMENTATION): Remaining lifted rail host/pcurve families
                     // need complete original parameter/guard supply before this rolling-ball

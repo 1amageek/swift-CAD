@@ -110,6 +110,18 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
                     try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
                     graphs.reserveCapacity(family.graphs.count)
                     for graph in family.graphs { try retain(graph,evidence:.boundaryLift(graph),&a) }
+                case .derivativeNativeLift(let binding):
+                    let family=try nativePcurve(binding)
+                    coverage = .derivativeNativeLift(family)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
+                    graphs.reserveCapacity(family.graphs.count)
+                    for graph in family.graphs { try retain(graph,evidence:.derivativeNativeLift(graph),&a) }
+                case .derivativeLift(let binding):
+                    let family=try retained(binding)
+                    coverage = .derivativeLift(family)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
+                    graphs.reserveCapacity(family.graphs.count)
+                    for graph in family.graphs { try retain(graph,evidence:.derivativeLift(graph),&a) }
                 }
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Family.self))
                 let result=Family(source:source,coverage:coverage,field:f,graphs:graphs,
