@@ -98,3 +98,16 @@ lists. Manifest inspection is not a full independent SourceIssuer build claim.
 
 Independent latest-main integration is recorded after the coherent implementation
 commit. Whole-seven remains 1/7; full87 remains incomplete.
+
+## Latest-main integration
+
+Implementation `159cf21f` composes with main `11050e4b` without source adjustment.
+The existing independent integration checkout
+`/private/tmp/cad-m4-ds-main-integration-20261010` is reused after verifying its clean
+matching base. It checks 7,181 unique current input/artifact/log premises before
+and after fresh Native (0.129s) and Embedded (0.236s) source/domain processes,
+each with a 120-second timeout. No rebuild or additional aggregate review occurs.
+`Evidence/main-integration/integration.json` binds all comparisons and commands.
+The accompanying delivery record closes normal main integration. General
+rolling-ball and all other remaining M4-M8 scope stay open; unrelated unpushed
+main history prevents automatic push.

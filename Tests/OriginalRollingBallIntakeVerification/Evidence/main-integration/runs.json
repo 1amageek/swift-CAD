@@ -1,0 +1,26 @@
+[
+  {
+    "lane": "native",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-native-06/RollingBallProof"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.1292585419723764,
+    "exitCode": 0,
+    "log": "/private/tmp/cad-m4-ds-main-integration-20261010/Tests/OriginalRollingBallIntakeVerification/Evidence/main-integration/native-runtime.log",
+    "logSHA256": "9c101ddc6392346a31f5af884d1d9365504d44e4638345418e9e3e488c988c73"
+  },
+  {
+    "lane": "embedded",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-embedded-01/RollingBallProof.wasm"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.23588024999480695,
+    "exitCode": 0,
+    "log": "/private/tmp/cad-m4-ds-main-integration-20261010/Tests/OriginalRollingBallIntakeVerification/Evidence/main-integration/embedded-runtime.log",
+    "logSHA256": "861907eadda03116929b5557cf60f40cd9e9b8306104f266070d086b5d3ed049"
+  }
+]

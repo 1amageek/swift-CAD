@@ -1,0 +1,3 @@
+PASS rolling-ball DI: full/strict 1/3/singleton/disconnected/empty, four incidents, foreign owner, arity/chart/cancel
+PASS rolling-ball source exact work/storage and one-less, entry/final callback cancel; work=38223 bytes=220019
+PASS rolling-ball original minor-arc graph, unequal child knots, four incidents, positive root and radius/degenerate refusal, COW/depth
