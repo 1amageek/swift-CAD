@@ -9,8 +9,9 @@ import SourceIssuer
 import DI
 
 @main struct ActualPeriodicOffsetProof {
-    static func require(_ value: Bool) throws { guard value else { throw ExactScalarFailure.invalidEvidence } }
-    static func main() throws {
+    nonisolated static func require(_ value: Bool) throws { guard value else { throw ExactScalarFailure.invalidEvidence } }
+    static func main() throws { try run() }
+    nonisolated static func run() throws {
         for twoAxes in [false,true] { for distance in [-0.25,0,0.25] {
             var a=ExactScalarLedger(limits:try .init(work:100_000_000,storageBytes:400_000_000,valueDepth:32,coefficientDepth:32))
             let l=try OriginalDomainIdentityLimits(source:.init(remainingSourceDepth:8),maximumTransportDepth:16,maximumCharts:32,maximumFamilies:2,maximumIdentityProofs:32)

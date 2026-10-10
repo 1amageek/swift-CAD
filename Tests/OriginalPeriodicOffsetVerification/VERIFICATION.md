@@ -123,8 +123,41 @@ corrected: the generic admission methods establish Embedded generic protocol
 dispatch, not an existential generic-call capability. This changes no source or
 runtime premise, so the accepted behavior is reused without another review/build.
 
+## Actual-fixture isolation finding and confirmation
+
+Final integration-log inspection found actor-isolation warnings in the original
+Embedded actual fixture despite exit0 and correct numerical results. The actor-
+isolated `@main` body passed nested `map` closures through the Embedded synchronous
+entry path. The numerical and source bodies were unchanged, but this warning
+invalidated isolation acceptance. The M4.S.OP verification/delivery gates were
+reopened rather than treating exit0 as sufficient evidence.
+
+The actual synchronous work and assertion helper now explicitly use `nonisolated`;
+`@main` delegates to that function. No source/DI/adapter or cached numerical body
+changes. `VerifyActualIsolation.py` admits all original unchanged products, stores
+and hashes the original fixture from commitb139b9bb, binds the changed fixture and
+compiles only this upper executable. Its compile and runtime logs must contain no
+actor-isolated/data-race/null-call diagnostics. All four lanes pass the same thirty
+actual geometry queries. Each compile/link/runtime has a120-second timeout.
+
+| Lane | Finding-only compile/link seconds | Runtime seconds |
+|---|---:|---:|
+| Native | 2.950 | 0.852 |
+| ASAN | 2.943 | 0.870 |
+| Normal Wasm | 1.385 | 0.509 |
+| Embedded | 48.842 | 0.307 |
+
+`Evidence/isolation-<lane>/receipt.json` supersedes the original actual fixture's
+isolation acceptance. The original actual receipts remain historical construction/
+source/numerical evidence; their warning logs do not prove isolation readiness.
+One finding-only confirmation verifies the exact isolation diff and warning-free
+logs; no repeated aggregate review or lower/production rebuild is performed.
+
 ## Latest-main delivery
 
 Independent integration receipts and fresh affected Native/Embedded executions
-are recorded in `Evidence/main-integration/integration.json`. Delivery is complete
-only when that record, the coherent commit and PROGRESS delivery item are present.
+are initially recorded in `Evidence/main-integration/integration.json`. Its actual
+Embedded isolation acceptance is superseded by
+`Evidence/main-isolation-integration/integration.json`, which binds the corrected
+fixture and warning-free Native/Embedded execution. Corrected delivery is complete
+only when that record, the repair commit and PROGRESS delivery item are present.
