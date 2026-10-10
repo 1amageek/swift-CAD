@@ -1,0 +1,26 @@
+[
+  {
+    "lane": "native",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-lift-intake-native-final/SurfaceLiftProof"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.282795500010252,
+    "exitCode": 0,
+    "log": "/private/tmp/cad-m4-ds-main-integration-20261010/.build/m4-lift-main-integration-01/native-runtime.log",
+    "logSHA256": "3a769749e8d7a3bfc0400df16ff92efdeac9f3c2eaf6497bf32142ad85bfb344"
+  },
+  {
+    "lane": "embedded",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-lift-intake-embedded-final/SurfaceLiftProof.wasm"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.703551874961704,
+    "exitCode": 0,
+    "log": "/private/tmp/cad-m4-ds-main-integration-20261010/.build/m4-lift-main-integration-01/embedded-runtime.log",
+    "logSHA256": "8d17f50f9461990475367e77f522816d1ca1107ba38d50b8174551330d67768b"
+  }
+]

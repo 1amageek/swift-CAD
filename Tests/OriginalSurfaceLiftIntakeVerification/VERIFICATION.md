@@ -77,7 +77,8 @@ package adapters and target ownership. Two concrete findings were corrected:
    buffer and uses those values throughout. Foreign algebraic fields still fail.
 
 `Evidence/diagnostic-native-boundary-red` and `diagnostic-native-import-red` retain
-actual pre-fix compiler inputs, commands and runtime failures. They are diagnostic,
+producer assembly input hashes, commands and runtime failures. A pre-execution
+fixture hash was not persisted for these failing runs; they are diagnostic,
 not acceptance. Earlier Native compile/fixture diagnostics and intermediate four-
 lane products are also not final acceptance. Finding-only confirmation passes on
 all four final lanes. No remaining blocker is known within this finite capability.
@@ -98,3 +99,17 @@ is reused; this unit does not claim a new parallel stress test.
 A coherent implementation commit and independent latest-main verification close
 this finite unit. Delivery evidence is recorded after actual integration. Complete
 M4-M8 and whole-seven/full87 completion are not asserted; whole-seven remains 1/7.
+
+
+## Latest-main delivery
+
+Implementation commit `702dd84e` was independently composed with latest main
+`e7b570ff` without source adjustment. `Evidence/main-integration/integration.json`
+binds 7,180 unique source/tool/package/artifact/log premises, checked before and
+after fresh Native (0.283 seconds) and Embedded (0.704 seconds) execution. All
+four accepted lane evidence sets remain identical. No rebuilding or additional
+aggregate review was performed. Main normally fast-forwarded to the exact verified
+implementation, followed by the accompanying progress/delivery-record commit.
+Original source-owner drafts, pending consumer merge and protected publisher patch
+were not edited. Unrelated unpushed main history prevents automatic push. All
+remaining M4-M8 and whole-seven/full87 obligations stay open.
