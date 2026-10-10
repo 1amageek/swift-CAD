@@ -4,6 +4,7 @@ import CADCore
 public struct OriginalRollingBallCurveSnapshot: Sendable {
     enum Capability: Sendable {
         case native(OriginalSourceBinding<BSplineCurve3D>)
+        case derivativeCurve(OriginalSourceBinding<OriginalPlaneDerivativeCurveSnapshot>)
         case nativeLift(OriginalSourceBinding<OriginalNativeSurfaceLiftSnapshot>)
         case retainedLift(OriginalSourceBinding<OriginalAffineSurfaceLiftSnapshot>)
         case coonsNativeLift(OriginalSourceBinding<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalCoonsAtlasSnapshot>>)

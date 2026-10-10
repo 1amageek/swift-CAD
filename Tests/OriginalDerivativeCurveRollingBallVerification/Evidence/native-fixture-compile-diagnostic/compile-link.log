@@ -1,0 +1,40 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeCurveRollingBallVerification/Proof.swift:36:24: error: operator can throw but expression is not marked with 'try'
+ 34 |         let u=reverse ? try f.subtracting(one,t,using:&a):t
+ 35 |         let half=try f.dividing(one,two,using:&a)
+ 36 |         let g=weighted && (try f.compare(u,half,using:&a)) == .greater ?
+    |                        |  `- note: call is to 'rethrows' function, but argument function can throw
+    |                        `- error: operator can throw but expression is not marked with 'try'
+ 37 |             try f.dividing(f.subtracting(f.multiplying(f.integer(3,using:&a),u,using:&a),one,using:&a),f.multiplying(two,u,using:&a),using:&a):u
+ 38 |         if !projected { return [z,g] }
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeCurveRollingBallVerification/Proof.swift:71:55: error: 'owner' is inaccessible due to 'internal' protection level
+ 69 |                         count+=1
+ 70 |                         guard case .derivativeCurve(let law)=graph.evidence else { throw ExactScalarFailure.invalidEvidence }
+ 71 |                         try Legacy.require(law.source.owner === retained.source.owner && graph.layout.auxiliaries.isEmpty)
+    |                                                       `- error: 'owner' is inaccessible due to 'internal' protection level
+ 72 |                         let r=graph.polynomials,denominator=try r.evaluated(graph.homogeneous[3],at:[t],using:&a).value
+ 73 |                         for (axis,value) in [try f.integer(0,using:&a),target[0],target[1]].enumerated() {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/159-OriginalSourceBinding.swift:18:9: note: 'owner' declared here
+16 |         }
+17 |     }
+18 |     let owner: Owner
+   |         `- note: 'owner' declared here
+19 |     public var original: Source { owner.original }
+20 |     public var sourceDepth: Int { owner.sourceDepth }
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeCurveRollingBallVerification/Proof.swift:71:81: error: 'owner' is inaccessible due to 'internal' protection level
+ 69 |                         count+=1
+ 70 |                         guard case .derivativeCurve(let law)=graph.evidence else { throw ExactScalarFailure.invalidEvidence }
+ 71 |                         try Legacy.require(law.source.owner === retained.source.owner && graph.layout.auxiliaries.isEmpty)
+    |                                                                                 `- error: 'owner' is inaccessible due to 'internal' protection level
+ 72 |                         let r=graph.polynomials,denominator=try r.evaluated(graph.homogeneous[3],at:[t],using:&a).value
+ 73 |                         for (axis,value) in [try f.integer(0,using:&a),target[0],target[1]].enumerated() {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/159-OriginalSourceBinding.swift:18:9: note: 'owner' declared here
+16 |         }
+17 |     }
+18 |     let owner: Owner
+   |         `- note: 'owner' declared here
+19 |     public var original: Source { owner.original }
+20 |     public var sourceDepth: Int { owner.sourceDepth }

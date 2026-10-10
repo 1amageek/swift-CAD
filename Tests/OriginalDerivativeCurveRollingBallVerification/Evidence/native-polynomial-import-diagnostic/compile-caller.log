@@ -1,0 +1,24 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/8734dcceba534461af305829c7363fda/OriginalPlaneDerivativeCurveSnapshot.swift:29:28: error: cannot find type 'ExactPolynomial' in scope
+27 |     public let originalProofDepth:ExactScalarDepth
+28 |     private let pieces:[OriginalSplineTraversalPolynomialPiece]
+29 |     private let position:[[ExactPolynomial<Field>]]
+   |                            `- error: cannot find type 'ExactPolynomial' in scope
+30 |     private let support:[OriginalSourceParameterInterval<Field.Value>]
+31 |     public var originalCellCount:Int { pieces.count }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/8734dcceba534461af305829c7363fda/OriginalPlaneDerivativeCurveSnapshot.swift:34:57: error: cannot find type 'ExactPolynomial' in scope
+32 |     public func originalCellLowerBound(at index:Int)->Field.Value { support[index].lower }
+33 |     public func originalCellUpperBound(at index:Int)->Field.Value { support[index].upper }
+34 |     public func originalCellHomogeneous(at index:Int)->[ExactPolynomial<Field>] { position[index] }
+   |                                                         `- error: cannot find type 'ExactPolynomial' in scope
+35 |     init(original:OriginalPlaneDerivativeCurve3D,field:Field,polynomials:ExactPolynomialDomain<Field>,proofDepth:ExactScalarDepth,
+36 |         pieces:[OriginalSplineTraversalPolynomialPiece],position:[[ExactPolynomial<Field>]],support:[OriginalSourceParameterInterval<Field.Value>]) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/8734dcceba534461af305829c7363fda/OriginalPlaneDerivativeCurveSnapshot.swift:36:68: error: cannot find type 'ExactPolynomial' in scope
+34 |     public func originalCellHomogeneous(at index:Int)->[ExactPolynomial<Field>] { position[index] }
+35 |     init(original:OriginalPlaneDerivativeCurve3D,field:Field,polynomials:ExactPolynomialDomain<Field>,proofDepth:ExactScalarDepth,
+36 |         pieces:[OriginalSplineTraversalPolynomialPiece],position:[[ExactPolynomial<Field>]],support:[OriginalSourceParameterInterval<Field.Value>]) {
+   |                                                                    `- error: cannot find type 'ExactPolynomial' in scope
+37 |         self.original=original;self.originalField=field;self.originalPolynomials=polynomials;self.originalProofDepth=proofDepth
+38 |         self.pieces=pieces;self.position=position;self.support=support

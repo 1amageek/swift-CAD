@@ -19,6 +19,19 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
                 let f=field,zero=try f.integer(0,using:&a),one=try f.integer(1,using:&a)
                 let coverage: OriginalRollingBallCurveGraphCoverage
                 var graphs:[Family.Graph]=[]
+                func retain<S: Sendable,Selection: Sendable>(_ law: OriginalRationalChartReceipt<S,Selection,OriginalExactScalarDomain>,
+                    evidence: OriginalRollingBallCurveGraphEvidence,_ a: inout OriginalSourceProofAdmission<A>) throws {
+                    try a.consumeWork(1)
+                    try law.admitProof(using:&a)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Int.self))
+                    let layout=try OriginalParametricVariableLayout.checked(variableCount:1,parameters:[0],auxiliaries:[],using:&a)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:OriginalParametricGraphCondition<OriginalExactScalarDomain>.self))
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Bool.self))
+                    graphs.append(.init(source:source,evidence:evidence,field:law.field,polynomials:law.polynomials,
+                        homogeneous:law.homogeneous,support:law.support,includesUpperBoundary:[true],layout:layout,
+                        conditions:[.init(law.denominator,.notEqual),.init(law.parameterTransport.denominators[0],.notEqual)],
+                        parameterTransport:law.parameterTransport,proofDepth:try a.depth))
+                }
                 func retain<E: Sendable>(_ graph: OriginalParametricGraphReceipt<E,OriginalExactScalarDomain,OriginalSurfaceLiftGraphEvidence<E>>,
                     evidence: OriginalRollingBallCurveGraphEvidence,_ a: inout OriginalSourceProofAdmission<A>) throws where E: OriginalLiftGraphSourceReading {
                     try a.consumeWork(1)
@@ -52,18 +65,14 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
                     coverage = .native(family)
                     try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.laws.count,of:Family.Graph.self))
                     graphs.reserveCapacity(family.laws.count)
-                    for law in family.laws {
-                        try a.consumeWork(1)
-                        try law.admitProof(using:&a)
-                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Int.self))
-                        let layout=try OriginalParametricVariableLayout.checked(variableCount:1,parameters:[0],auxiliaries:[],using:&a)
-                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:OriginalParametricGraphCondition<OriginalExactScalarDomain>.self))
-                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Bool.self))
-                        graphs.append(.init(source:source,evidence:.native(law),field:law.field,polynomials:law.polynomials,
-                            homogeneous:law.homogeneous,support:law.support,includesUpperBoundary:[true],layout:layout,
-                            conditions:[.init(law.denominator,.notEqual),.init(law.parameterTransport.denominators[0],.notEqual)],
-                            parameterTransport:law.parameterTransport,proofDepth:try a.depth))
-                    }
+                    for law in family.laws { try retain(law,evidence:.native(law),&a) }
+                case .derivativeCurve(let binding):
+                    let family=try DefaultOriginalFiniteRetainedCurveChartPreparer<OriginalPlaneDerivativeCurveSnapshot>().prepare(
+                        source:binding,maximumCharts:maximumCharts,limits:children,using:&a)
+                    coverage = .derivativeCurve(family)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.laws.count,of:Family.Graph.self))
+                    graphs.reserveCapacity(family.laws.count)
+                    for law in family.laws { try retain(law,evidence:.derivativeCurve(law),&a) }
                 case .nativeLift(let binding):
                     let surface=try DefaultOriginalFiniteBSplineChartPreparer<BSplineSurface3D>().prepare(
                         source:binding.original.originalSurface,field:f,maximumCharts:maximumCharts,limits:children,using:&a)

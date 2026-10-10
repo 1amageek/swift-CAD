@@ -1,0 +1,33 @@
+[
+  {
+    "directory": "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-fixture-compile-diagnostic",
+    "accepted": false,
+    "reason": "Verification assembly/fixture compilation diagnostics; no production behavior acceptance.",
+    "files": {
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-fixture-compile-diagnostic/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-fixture-compile-diagnostic/compile-link.log": "16e48a9516aad682b5ccd1f886b74679ba6719ea5e99aa036123942ca2f0fb0a",
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-fixture-compile-diagnostic/inputs-before-compile.json": "0df61e0b51835878ec4a74e1aa4e590659f11978d17d148ba2aadfdfaa5e09da",
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-fixture-compile-diagnostic/runs.json": "5b40e06d27f32077292d8d3460fe813dd10620162af5e742d489395f06063eb5"
+    }
+  },
+  {
+    "directory": "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-import-diagnostic",
+    "accepted": false,
+    "reason": "Verification assembly/fixture compilation diagnostics; no production behavior acceptance.",
+    "files": {
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-import-diagnostic/compile-caller.log": "b573f86ea6f48e2af58bf07266589f443f080e9dac73448363e4552e7420b73f",
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-import-diagnostic/inputs-before-compile.json": "97103ec3bb9e40e79d4f401802efd0be6602045d87b4aa982a7c56c4156677c5",
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-import-diagnostic/runs.json": "dc76b16f12a18077f915ab599c91d3f03af1367afe76cabe9b5ad812b3b869d9"
+    }
+  },
+  {
+    "directory": "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-polynomial-import-diagnostic",
+    "accepted": false,
+    "reason": "Verification assembly/fixture compilation diagnostics; no production behavior acceptance.",
+    "files": {
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-polynomial-import-diagnostic/compile-caller.log": "fffa0ea416061fbad2a8406bfab5ec59392421eed55de11e743418564ce4fc22",
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-polynomial-import-diagnostic/inputs-before-compile.json": "6ec5a1164debc254d0bb262c4bcc10fca15479283584c4f0afedba40e25f6660",
+      "Tests/OriginalDerivativeCurveRollingBallVerification/Evidence/native-polynomial-import-diagnostic/runs.json": "31f9828f34021f4e84adb84a2b63d8efd46569930b5204b7be8d6c16ef8e17a7"
+    }
+  }
+]

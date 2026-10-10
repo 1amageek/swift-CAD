@@ -1791,3 +1791,41 @@ current positional atlas/source and existing graph/DI consumers. The independent
 assembly records any additive-helper difference from receipt-bound numerical
 modules and compiles those exact helper bodies; unchanged ABI/storage/public
 bodies must be verified before reuse. No broad production rebuilding is implied.
+
+
+## Direct retained derivative curves in rolling-ball children
+
+The actual rolling-ball child provider also consumes Curve3D.originalPlaneDerivative
+through the existing OriginalPlaneDerivativeCurveSnapshotProvider. This source
+owner retains the original rational Hermite producer, source traversal and plane
+constraints. The existing complete retained-curve chart preparer establishes full
+normalized T support and all closed cell sides. No curve fitting, position formula
+or derivative continuity theorem is added by the rolling-ball adapter.
+
+```mermaid
+flowchart LR
+ O[Actual original derivative curve] --> S[Existing original Hermite source]
+ S --> C[Complete retained curve charts]
+ C --> R[Shared rational-law rebinding with Native children]
+ R --> P[Existing rolling-ball complete product]
+ P --> D[Existing guarded DI]
+```
+
+A sealed capability, typed law evidence and retained family coverage keep the
+original source and proof owners. Native and retained rational laws share one
+rebinding implementation: normalized T remains the sole authored parameter,
+homogeneous laws and parameter transport retain their immutable backing, and
+original position/transport denominators remain explicit guards. Every closed cell
+side survives. Field authority and source/proof depth are inherited from the child;
+all preparation/output allocation, work and cancellation use the same caller
+admission. Later independent prepared queries use their explicit caller admissions.
+All owners are immutable Sendable on every target; scratch is invocation-local.
+Foreign bindings/fields, invalid support, exhausted limits and cancellation
+propagate typed failure, with no fallback or source reconstruction.
+
+Verification owner: Tests/OriginalDerivativeCurveRollingBallVerification. Actual
+projected, weighted and reversed curve construction, exact original Hermite XYZ,
+all child chart sides and composed rolling-ball/DI guard/resource/cancel/lifetime
+behavior are checked alongside unchanged Native and retained-lift callers on the
+four fixed lanes. General angular/algebraic derivative supply, other rail families,
+M5/M6/M7/M8 and whole-solid fillet certification remain separate open obligations.

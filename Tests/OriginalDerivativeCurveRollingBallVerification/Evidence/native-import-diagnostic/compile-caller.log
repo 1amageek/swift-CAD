@@ -1,0 +1,158 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/e1cc81634e53478da86e6b5dda75b9d9/OriginalPlaneDerivativeCurveSnapshot.swift:24:26: error: 'OriginalSourceParameterInterval' is ambiguous for type lookup in this context
+22 |     private let pieces:[OriginalSplineTraversalPolynomialPiece]
+23 |     private let position:[[ExactPolynomial<Field>]]
+24 |     private let support:[OriginalSourceParameterInterval<Field.Value>]
+   |                          `- error: 'OriginalSourceParameterInterval' is ambiguous for type lookup in this context
+25 |     public var originalCellCount:Int { pieces.count }
+26 |     public func originalCellLowerBound(at index:Int)->Field.Value { support[index].lower }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/168-OriginalSourceParameterInterval.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// Closed exact support of the implemented Native local representation.
+ 9 | public struct OriginalSourceParameterInterval<Value: Sendable>: Sendable {
+   |               `- note: found this candidate
+10 |     public let lower: Value
+11 |     public let upper: Value
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceParameterInterval.swift:7:15: note: found this candidate
+ 5 | 
+ 6 | /// Closed exact support of the implemented Native local representation.
+ 7 | public struct OriginalSourceParameterInterval<Value: Sendable>: Sendable {
+   |               `- note: found this candidate
+ 8 |     public let lower: Value
+ 9 |     public let upper: Value
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/e1cc81634e53478da86e6b5dda75b9d9/OriginalPlaneDerivativeCurveSnapshot.swift:30:102: error: 'OriginalSourceParameterInterval' is ambiguous for type lookup in this context
+28 |     public func originalCellHomogeneous(at index:Int)->[ExactPolynomial<Field>] { position[index] }
+29 |     init(original:OriginalPlaneDerivativeCurve3D,field:Field,polynomials:ExactPolynomialDomain<Field>,proofDepth:ExactScalarDepth,
+30 |         pieces:[OriginalSplineTraversalPolynomialPiece],position:[[ExactPolynomial<Field>]],support:[OriginalSourceParameterInterval<Field.Value>]) {
+   |                                                                                                      `- error: 'OriginalSourceParameterInterval' is ambiguous for type lookup in this context
+31 |         self.original=original;self.originalField=field;self.originalPolynomials=polynomials;self.originalProofDepth=proofDepth
+32 |         self.pieces=pieces;self.position=position;self.support=support
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/168-OriginalSourceParameterInterval.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// Closed exact support of the implemented Native local representation.
+ 9 | public struct OriginalSourceParameterInterval<Value: Sendable>: Sendable {
+   |               `- note: found this candidate
+10 |     public let lower: Value
+11 |     public let upper: Value
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceParameterInterval.swift:7:15: note: found this candidate
+ 5 | 
+ 6 | /// Closed exact support of the implemented Native local representation.
+ 7 | public struct OriginalSourceParameterInterval<Value: Sendable>: Sendable {
+   |               `- note: found this candidate
+ 8 |     public let lower: Value
+ 9 |     public let upper: Value
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/e1cc81634e53478da86e6b5dda75b9d9/OriginalPlaneDerivativeCurveSnapshotProvider.swift:21:16: error: 'OriginalSourceIssuanceLimits' is ambiguous for type lookup in this context
+19 |     public init(field:OriginalExactScalarDomain,tolerance:ModelingTolerance) { self.field=field;self.tolerance=tolerance }
+20 |     public func snapshot<A:ExactScalarAdmission & ~Copyable>(_ input:borrowing OriginalPlaneDerivativeCurve3D,
+21 |         limits:OriginalSourceIssuanceLimits,using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalPlaneDerivativeCurveSnapshot> {
+   |                `- error: 'OriginalSourceIssuanceLimits' is ambiguous for type lookup in this context
+22 |         do {
+23 |             try a.checkpoint();try a.consumeWork(1);try input.validate(tolerance:tolerance)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/167-OriginalSourceIssuanceLimits.swift:4:15: note: found this candidate
+ 2 | @testable import CADGeometry
+ 3 | /// Source depth is independent from the caller's L0 work/storage/scalar depths.
+ 4 | public struct OriginalSourceIssuanceLimits: Sendable {
+   |               `- note: found this candidate
+ 5 |     public let remainingSourceDepth: Int
+ 6 |     public init(remainingSourceDepth: Int) throws(OriginalSourceIssuanceFailure) {
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceIssuanceLimits.swift:2:15: note: found this candidate
+1 | /// Source depth is independent from the caller's L0 work/storage/scalar depths.
+2 | public struct OriginalSourceIssuanceLimits: Sendable {
+  |               `- note: found this candidate
+3 |     public let remainingSourceDepth: Int
+4 |     public init(remainingSourceDepth: Int) throws(OriginalSourceIssuanceFailure) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/e1cc81634e53478da86e6b5dda75b9d9/OriginalPlaneDerivativeCurveSnapshotProvider.swift:21:69: error: 'OriginalSourceIssuanceFailure' is ambiguous for type lookup in this context
+19 |     public init(field:OriginalExactScalarDomain,tolerance:ModelingTolerance) { self.field=field;self.tolerance=tolerance }
+20 |     public func snapshot<A:ExactScalarAdmission & ~Copyable>(_ input:borrowing OriginalPlaneDerivativeCurve3D,
+21 |         limits:OriginalSourceIssuanceLimits,using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalPlaneDerivativeCurveSnapshot> {
+   |                                                                     `- error: 'OriginalSourceIssuanceFailure' is ambiguous for type lookup in this context
+22 |         do {
+23 |             try a.checkpoint();try a.consumeWork(1);try input.validate(tolerance:tolerance)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/166-OriginalSourceIssuanceFailure.swift:8:13: note: found this candidate
+ 6 | #endif
+ 7 | 
+ 8 | public enum OriginalSourceIssuanceFailure: Error {
+   |             `- note: found this candidate
+ 9 |     case invalidSource, invalidChart, foreignBinding, unsupportedRepresentation, unsupportedCoefficientField
+10 |     case unresolvedAuthority, sourceDepthLimit, chartLimit, countOverflow
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceIssuanceFailure.swift:6:13: note: found this candidate
+ 4 | #endif
+ 5 | 
+ 6 | public enum OriginalSourceIssuanceFailure: Error {
+   |             `- note: found this candidate
+ 7 |     case invalidSource, invalidChart, foreignBinding, unsupportedRepresentation, unsupportedCoefficientField
+ 8 |     case unresolvedAuthority, sourceDepthLimit, chartLimit, countOverflow
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/e1cc81634e53478da86e6b5dda75b9d9/OriginalPlaneDerivativeCurveSnapshotProvider.swift:21:103: error: 'OriginalSourceSnapshot' is ambiguous for type lookup in this context
+19 |     public init(field:OriginalExactScalarDomain,tolerance:ModelingTolerance) { self.field=field;self.tolerance=tolerance }
+20 |     public func snapshot<A:ExactScalarAdmission & ~Copyable>(_ input:borrowing OriginalPlaneDerivativeCurve3D,
+21 |         limits:OriginalSourceIssuanceLimits,using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<OriginalPlaneDerivativeCurveSnapshot> {
+   |                                                                                                       `- error: 'OriginalSourceSnapshot' is ambiguous for type lookup in this context
+22 |         do {
+23 |             try a.checkpoint();try a.consumeWork(1);try input.validate(tolerance:tolerance)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/175-OriginalSourceSnapshot.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// Provider-owned validation evidence; the provider verifies its concrete family.
+ 9 | public struct OriginalSourceSnapshot<Source: Sendable>: Sendable {
+   |               `- note: found this candidate
+10 |     public let original: Source
+11 |     public let sourceDepth: Int
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceSnapshot.swift:7:15: note: found this candidate
+ 5 | 
+ 6 | /// Provider-owned validation evidence; the provider verifies its concrete family.
+ 7 | public struct OriginalSourceSnapshot<Source: Sendable>: Sendable {
+   |               `- note: found this candidate
+ 8 |     public let original: Source
+ 9 |     public let sourceDepth: Int
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/e1cc81634e53478da86e6b5dda75b9d9/OriginalPlaneDerivativeCurveSnapshotProvider.swift:16:60: error: 'OriginalSourceSnapshotting' is ambiguous for type lookup in this context
+14 | 
+15 | /// Reads the existing rational Hermite producer rather than interval projection caches.
+16 | public struct OriginalPlaneDerivativeCurveSnapshotProvider:OriginalSourceSnapshotting {
+   |                                                            `- error: 'OriginalSourceSnapshotting' is ambiguous for type lookup in this context
+17 |     public let field:OriginalExactScalarDomain
+18 |     public let tolerance:ModelingTolerance
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/176-OriginalSourceSnapshotting.swift:9:17: note: found this candidate
+ 7 | 
+ 8 | /// Conformers return validated immutable snapshots, never mutable source aliases.
+ 9 | public protocol OriginalSourceSnapshotting: Sendable {
+   |                 `- note: found this candidate
+10 |     associatedtype Input: Sendable
+11 |     associatedtype Source: Sendable
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceSnapshotting.swift:7:17: note: found this candidate
+ 5 | 
+ 6 | /// Conformers return validated immutable snapshots, never mutable source aliases.
+ 7 | public protocol OriginalSourceSnapshotting: Sendable {
+   |                 `- note: found this candidate
+ 8 |     associatedtype Input: Sendable
+ 9 |     associatedtype Source: Sendable
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-curve-rolling-ball/native/e1cc81634e53478da86e6b5dda75b9d9/OriginalRollingBallCurveSnapshotProvider.swift:31:31: error: generic struct 'DefaultOriginalSourceBindingIssuer' requires that 'OriginalPlaneDerivativeCurveSnapshotProvider' conform to 'OriginalSourceSnapshotting'
+29 |                 capability = .native(child);depth=child.sourceDepth
+30 |             case .originalPlaneDerivative(let curve):
+31 |                 let child=try DefaultOriginalSourceBindingIssuer(provider:OriginalPlaneDerivativeCurveSnapshotProvider(field:field,tolerance:tolerance))
+   |                               `- error: generic struct 'DefaultOriginalSourceBindingIssuer' requires that 'OriginalPlaneDerivativeCurveSnapshotProvider' conform to 'OriginalSourceSnapshotting'
+32 |                     .bind(curve,limits:children,using:&a)
+33 |                 capability = .derivativeCurve(child);depth=child.sourceDepth
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/38-DefaultOriginalSourceBindingIssuer.swift:8:15: note: where 'Provider' = 'OriginalPlaneDerivativeCurveSnapshotProvider'
+ 6 | #endif
+ 7 | 
+ 8 | public struct DefaultOriginalSourceBindingIssuer<Provider: OriginalSourceSnapshotting>: OriginalSourceBindingIssuing {
+   |               `- note: where 'Provider' = 'OriginalPlaneDerivativeCurveSnapshotProvider'
+ 9 |     public typealias Input = Provider.Input
+10 |     public typealias Source = Provider.Source

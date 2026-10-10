@@ -3,6 +3,7 @@ import CADCore
 /// Original unwrapped law/graph owner survives normalized Curve3D rebinding.
 public enum OriginalRollingBallCurveGraphEvidence: Sendable {
     case native(OriginalRationalChartReceipt<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>)
+    case derivativeCurve(OriginalRationalChartReceipt<OriginalPlaneDerivativeCurveSnapshot,Int,OriginalExactScalarDomain>)
     case nativeLift(OriginalFiniteNativeSurfaceLiftGraphs<OriginalNativeSurfaceLiftSnapshot>.Graph)
     case retainedLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalAffineSurfaceLiftSnapshot>.Graph)
     case coonsNativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalCoonsAtlasSnapshot>>.Graph)
