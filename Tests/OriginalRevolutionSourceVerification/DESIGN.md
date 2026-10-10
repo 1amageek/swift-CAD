@@ -52,3 +52,14 @@ derivative constructor, raw support-plane constraints, existing rational Hermite
 producer and point/derivative correspondence with explicit source/storage failure.
 This rational curve handoff does not prove derivative surface or non-rational
 source capability.
+
+## Retained Derivative Surface Verification
+
+`OriginalDerivativeSurfaceSourceProof` executes the actual derivative surface
+constructor, exact position atlas, source snapshot, sealed family, domain clipping
+and numerical position/derivative path. The focused
+[adapter verifier](../OriginalDerivativeSurfaceIntakeVerification/Verify.py)
+recompiles these production bodies with imports only, using receipt-checked
+unchanged CAD child declarations/objects. It avoids a broad CAD rebuild and keeps
+the existing source-owner draft untouched. Its proof scope and admitted cache
+exclusions are recorded in the [evidence](../OriginalDerivativeSurfaceIntakeVerification/VERIFICATION.md).

@@ -1,0 +1,140 @@
+[
+  {
+    "label": "compile",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native",
+      "-emit-library",
+      "-static",
+      "-emit-module",
+      "-enable-testing",
+      "-module-name",
+      "DerivativeSurfaceAdapters",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalPlaneDerivativeSurface3D.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalPlaneDerivativeSurface3D+Queries.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalPlaneDerivativeRationalAtlas.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalCoonsRationalDifferentialAtlas.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalBoundaryCorrectedRationalAtlas.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalRetainedSurfaceSourceReading.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalRetainedSurfaceCell.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalFiniteRetainedSurfaceChartPreparing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalFiniteRetainedSurfaceCharts.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/DefaultOriginalFiniteRetainedSurfaceChartPreparer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalPlaneDerivativeSurfaceSnapshot.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalPlaneDerivativeSurfaceSnapshotProvider.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalBoundaryCorrectionSnapshot.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalBoundaryCorrectionSnapshotProvider.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalRetainedSurfaceDomainIssuing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalRetainedSurfaceDomainCover.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/OriginalRetainedSurfaceChartOccurrence.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/Sources/DefaultOriginalRetainedSurfaceDomainIssuer.swift",
+      "-emit-module-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/DerivativeSurfaceAdapters.swiftmodule",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libDerivativeSurfaceAdapters.a"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 2.609144166985061,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-CADCore",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libCachedCADCore.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/CADCore.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.015217459003906697,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-CADGeometry",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libCachedCADGeometry.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/CADGeometry.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.34962295898003504,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-HashTreeCollections",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/HashTreeCollections.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.02720787498401478,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-InternalCollectionsUtilities",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libCachedInternalCollectionsUtilities.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/InternalCollectionsUtilities.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.017102584009990096,
+    "exitCode": 0
+  },
+  {
+    "label": "link",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native",
+      "-parse-as-library",
+      "-D",
+      "ORIGINAL_DERIVATIVE_SURFACE_ADAPTER_VERIFICATION",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRevolutionSourceVerification/Sources/DerivativeSurfaceProof/Proof.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libDerivativeSurfaceAdapters.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libCachedCADCore.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libCachedCADGeometry.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/libCachedInternalCollectionsUtilities.a",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/DerivativeSurfaceProof"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.6015109170111828,
+    "exitCode": 0
+  },
+  {
+    "label": "runtime",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/DerivativeSurfaceProof"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.9678292500320822,
+    "exitCode": 0
+  }
+]

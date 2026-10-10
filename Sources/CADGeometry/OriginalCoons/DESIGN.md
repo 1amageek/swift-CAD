@@ -346,3 +346,20 @@ owns its correction assembly and position retention. The existing differential
 field contract is unchanged, while SourceIssuer consumes the retained law through
 exact import. Coons and Native initializer paths retain their original position
 arrays directly, without recomputing their laws.
+
+Each cell additionally retains `originalConstructionHomogeneous`, the immutable
+position law already used as its construction input. Native and Coons cells use
+their same original position owner; corrected cells retain the original Native
+tensor owner before correction. This field is construction provenance rather
+than a claim that a Coons law is Native. The concrete cell-stride admission pays
+the additional retained array slot, without recharging or recreating its COW
+coefficients. [Plane Derivatives](PlaneDerivatives/DESIGN.md) consumes the actual
+boundary construction laws for transverse fields, preserving Native owner sides.
+
+A direct Native differential atlas remains an owner-wise chart law; this retained
+field alone supplies no canonical closed-join position witness. Whole retained
+surface position families consume the correction constructor's exact C0 admission
+and original Coons position authority. A caller-authored raw Native tensor with a discontinuous full-multiplicity
+knot cannot acquire whole closed-cell position authority through this port;
+the existing Native knot validation rejects it before construction. Numerical derivative continuity remains a
+separate query contract.

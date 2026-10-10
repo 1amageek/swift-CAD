@@ -80,6 +80,28 @@ public struct OriginalPlaneDerivativeSurface3D: Hashable, Sendable {
         boundaries.boundarySource(boundary)
     }
 
+    package func hasOriginalDerivativeProjection(atEnd: Bool, order: Int) throws -> Bool {
+        guard (1...2).contains(order) else {
+            throw GeometryConversionError.invalidInput("Original surface derivative projection order is invalid.")
+        }
+        let projection = atEnd ? (order == 1 ? endFirst : endSecond) : (order == 1 ? startFirst : startSecond)
+        return !projection.isIdentity
+    }
+
+    package func projectedOriginalDerivative<B: RationalAlgebraAdmitting>(
+        _ original: OriginalSupportingPlaneEquation.Vector, atEnd: Bool,
+        order: Int, usage: inout B) throws -> OriginalSupportingPlaneEquation.Vector {
+        guard (1...2).contains(order) else {
+            throw GeometryConversionError.invalidInput("Original surface derivative projection order is invalid.")
+        }
+        let projection = atEnd ? (order == 1 ? endFirst : endSecond) : (order == 1 ? startFirst : startSecond)
+        return try projection.projectedExact(original, usage: &usage)
+    }
+
+    package func retainsCorrectedConnector(atUMaximum: Bool) -> Bool {
+        (atUMaximum ? right : left) != nil
+    }
+
     /// Source-law witness; the final certifier separately proves section incidence and regularity.
     package func hasExactTransversePlaneConstraint<B: RationalAlgebraAdmitting>(
         surface: Surface3D, order: OriginalPlaneDerivativeOrder, atEnd: Bool, usage: inout B) throws -> Bool {

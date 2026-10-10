@@ -1225,3 +1225,18 @@ XYZ-only implicit evidence does not supply the missing UV theorem. Tests live
 in OriginalSourceIssuanceVerification.
 The L5 contract is [ExactParametricRelation](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md);
 conversion and DI request selection are consumed by the B3 ports in NativeExactRelations; source issuance still owns no solving or whole-request coverage.
+
+### M4 Retained Rational Derivative Surface Intake
+
+The concrete derivative-surface provider consumes the immutable exact position
+atlas owned by [Plane Derivatives](../OriginalCoons/PlaneDerivatives/DESIGN.md).
+It retains the actual construction, final boundaries and original constraints,
+imports original XYZ/D coefficients without another producer, and uses the
+existing retained-surface preparer to seal complete `[0,1]^2` support and identity
+UV correspondence. Source-owned boundary selection, denominator authority and
+inherited proof depth remain with the producer. Numerical tolerance/precision
+admission remains independent of source equality and support. General angular
+or non-rational derivative surfaces require their original ordered-field producer.
+Coefficient transfer consumes the existing admitted canonical term order, so hash
+iteration cannot change polynomial import work between identical preparations.
+The temporary ordered view and imported term storage both use the same caller.

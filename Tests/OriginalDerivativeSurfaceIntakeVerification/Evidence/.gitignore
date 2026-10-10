@@ -1,0 +1,7 @@
+*.a
+*.swiftmodule
+*.swiftdoc
+*.swiftsourceinfo
+*.wasm
+DerivativeSurfaceProof
+Sources/

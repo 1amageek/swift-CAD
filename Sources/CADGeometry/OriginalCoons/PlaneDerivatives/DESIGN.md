@@ -122,6 +122,49 @@ production Embedded and normal WASM builds run the same public smoke with
 
 Exact rational boundary consumers apply the retained exact normal-basis projection to original quotient-rule endpoint derivatives. The four Hermite corrections are reconstructed from original homogeneous source coefficients and raw constraint equations. This path uses no cached interval delta as a coefficient and preserves original piece domains through directed affine restriction. The interval projection cache and exact action share the same immutable normal basis.
 
+### Retained Rational Surface Position Atlas
+
+The exact position atlas consumes the existing correction atlas, retained Native
+tensor owners and original connector laws. It uses package projection ports on
+the original surface to apply the already retained exact normal basis; it never
+prepares another projection or imports interval coefficients. Every Native
+boundary field comes from the owner whose closed V support contains the actual
+section station, with the same exact U support. An interior tensor is never
+extended to a different original boundary owner. Original quotient-rule D1/D2,
+quintic connector blends and corner-flat Hermite residuals implement the same
+source expression as intervalTaylorJet without changing that evaluator.
+
+```text
+existing correction XYZ/D + retained Native boundary XYZ/D
+                         + original exact plane projection
+original connector XYZ/D + original Hermite bases
+                         -> immutable complete position cells
+                         -> SourceIssuer exact import and sealed UV family
+unchanged intervalTaylorJet -> existing numerical admission and derivatives
+```
+
+The position atlas retains every original correction cell, subdivided by any
+original connector station cell. Its denominator is the uncancelled product of
+validated positive-weight Native and original rational traversal denominators
+and their derivative powers, so it remains nonzero throughout each closed cell.
+No normal regularity guard is added to position support. All coefficients, cell
+slots, array capacity and scratch use the caller's single algebra admission;
+the SourceIssuer retains the inherited coefficient/value depth. Missing Native
+boundary ownership, unavailable rational child authority, incomplete coverage,
+source-depth/cell/work/storage exhaustion and cancellation fail before family
+publication. The atlas grants position/support/correspondence only, without a
+new claim of differential continuity across original joins. Non-rational and
+angular surface supply remains outside this rational capability.
+
+Verification compares nonzero projected position against the unchanged actual
+point and derivative path, including section/connector endpoints, all Native
+chart sides, multiple Native V owners, raw plane normals, identity projection
+and explicit source/admission failures. SourceIssuer reuses its already verified
+sealed retained-surface family contract; a caller cannot drop a cell and retain
+the whole-domain witness. The [actual source-to-DI fixture](../../../../Tests/OriginalRevolutionSourceVerification/Sources/DerivativeSurfaceProof/Proof.swift)
+and [focused verification receipt](../../../../Tests/OriginalDerivativeSurfaceIntakeVerification/VERIFICATION.md)
+own this rational surface handoff; whole-CAD rebuilding is separate.
+
 The [authored support tests](../../../../Tests/CADGeometryTests/OriginalAuthoredSupportingPlaneEquationTests.swift)
 exercise exact chart incidence, original tangent projection and retained source
 identity, exact affine cofactor transport, malformed chart refusal, and independent

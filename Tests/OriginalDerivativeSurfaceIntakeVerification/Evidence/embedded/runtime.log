@@ -1,0 +1,10 @@
+CASE derivative surface weighted=false projected=false
+CASE derivative surface weighted=false projected=true
+CASE derivative surface weighted=true projected=false
+CASE derivative surface weighted=true projected=true
+BUDGET measured work=38317 bytes=197320 callbacks=10346
+BUDGET exact work=38317 bytes=197320 callbacks=10346
+PASS derivative source exact work/storage ceilings, entry/final callback cancel, COW and post-scope lifetime
+PASS M4 actual derivative surface, complete retained source-to-DI cover and UV/lifetime, weighted original D1/D2, public position/derivatives and explicit source/storage failure
+(node:95685) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

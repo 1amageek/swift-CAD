@@ -13,5 +13,6 @@ let package=Package(name:"OriginalRevolutionSourceVerification",platforms:[.macO
     .executableTarget(name:"OriginalOffsetSourceProof",dependencies:["CADCore","CADGeometry"],path:"Sources/OffsetProof"),
     .executableTarget(name:"OriginalGuideSourceProof",dependencies:["CADCore","CADGeometry"],path:"Sources/GuideProof"),
     .executableTarget(name:"OriginalBoundaryCorrectionSourceProof",dependencies:["CADCore","CADGeometry"],path:"Sources/CorrectionProof"),
-    .executableTarget(name:"OriginalDerivativeCurveSourceProof",dependencies:["CADCore","CADGeometry"],path:"Sources/DerivativeCurveProof")
+    .executableTarget(name:"OriginalDerivativeCurveSourceProof",dependencies:["CADCore","CADGeometry"],path:"Sources/DerivativeCurveProof"),
+    .executableTarget(name:"OriginalDerivativeSurfaceSourceProof",dependencies:["CADCore","CADGeometry"],path:"Sources/DerivativeSurfaceProof")
 ])

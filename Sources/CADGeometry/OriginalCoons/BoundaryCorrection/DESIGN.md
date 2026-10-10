@@ -147,3 +147,11 @@ slots before publication. Differential tangent/normal computations are unchanged
 through exact rational coefficient import; it does not reconstruct correction.
 Behavioral verification compares nonzero correction, zero-correction Native and
 Coons interactions, position correspondence, explicit refusal and budget failure.
+
+The common cell's `originalConstructionHomogeneous` additionally shares the
+already-generated `tensor.homogeneous` owner. It supplies uncorrected Native
+transverse position authority to [Plane Derivatives](../PlaneDerivatives/DESIGN.md)
+without a second tensor producer. Existing `Cell.self` storage admission includes
+the new array slot; coefficient owners remain shared and differential results
+are unchanged. Native/Coons/correction initialization, nonzero corrected position
+and exact storage refusal are rechecked when this retained port changes.

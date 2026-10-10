@@ -8,6 +8,7 @@ struct OriginalCoonsRationalDifferentialAtlas: Sendable {
         let lowerV: ExactRationalCoefficient
         let upperV: ExactRationalCoefficient
         let homogeneous: [ExactBivariatePolynomial]
+        let originalConstructionHomogeneous: [ExactBivariatePolynomial]
         let tangentU: [ExactBivariatePolynomial]
         let tangentV: [ExactBivariatePolynomial]
         let normal: [ExactBivariatePolynomial]
@@ -73,7 +74,8 @@ struct OriginalCoonsRationalDifferentialAtlas: Sendable {
                     upperU: .originalDouble(owner.uBounds.upper, usage: &usage),
                     lowerV: .originalDouble(owner.vBounds.lower, usage: &usage),
                     upperV: .originalDouble(owner.vBounds.upper, usage: &usage),
-                    homogeneous: original.homogeneous, tangentU: first, tangentV: second, normal: normal))
+                    homogeneous: original.homogeneous, originalConstructionHomogeneous: original.homogeneous,
+                    tangentU: first, tangentV: second, normal: normal))
             }
             guard !cells.isEmpty else {
                 throw GeometryConversionError.invalidInput("Original native atlas has no selected source cell.")
@@ -117,7 +119,8 @@ struct OriginalCoonsRationalDifferentialAtlas: Sendable {
                     .subtracting(first[j].multiplied(by: second[i], usage: &usage), usage: &usage))
             }
             result.append(Cell(lowerU: cell.lowerU, upperU: cell.upperU, lowerV: cell.lowerV, upperV: cell.upperV,
-                homogeneous: position, tangentU: first, tangentV: second, normal: normal))
+                homogeneous: position, originalConstructionHomogeneous: position,
+                tangentU: first, tangentV: second, normal: normal))
         }
         guard !result.isEmpty else {
             throw GeometryConversionError.invalidInput("Original Coons rational atlas has no positive source cells.")
