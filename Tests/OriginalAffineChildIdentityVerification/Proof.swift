@@ -233,7 +233,10 @@ enum AffineChildIdentityProof {
     }
 }
 
-@main struct AffineChildIdentityVerification {
+#if !AFFINE_PAIRED_IDENTITY_VERIFICATION
+@main
+#endif
+struct AffineChildIdentityVerification {
     static func main() throws {
         try AffineChildIdentityProof.periodsNestingAndLifetime()
         try AffineChildIdentityProof.scopesCollapseAndForeign()

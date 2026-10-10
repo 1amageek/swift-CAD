@@ -58,7 +58,7 @@ public struct DefaultOriginalParameterIdentityIssuer<S: Sendable,F: ExactScalarA
             try OriginalDomainAccess.storage(parents.count,OriginalIdentityReadmission<F>.self,&a)
             var owners: [OriginalIdentityReadmission<F>] = []; owners.reserveCapacity(parents.count)
             for parent in parents { try a.consumeWork(1); owners.append(try OriginalIdentityReadmission<F>.preserving(parent,using:&a)) }
-            try OriginalDomainAccess.owner(([OriginalIdentityReadmission<F>.Scalar],[OriginalIdentityReadmission<F>],[any Sendable],ExactScalarDepth?).self,&a)
+            try OriginalDomainAccess.owner(([OriginalIdentityReadmission<F>.Scalar],[OriginalIdentityReadmission<F>],[any Sendable],ExactScalarDepth?,[OriginalSourceAffineAction<F>]).self,&a)
             inherited = .init(scalars:[],parents:owners,retained:[])
         }
         try OriginalDomainAccess.owner(([OriginalSourceBinding<S>],[ExactPolynomial<F>],[OriginalSourcePeriodReceipt<S,F>],[OriginalSourceBoundaryDeclaration<S>],[OriginalSourcePoleReceipt<S,F>],[OriginalSourceCollapsedFiberReceipt<S,F>],[OriginalParameterIdentity<S,F>],OriginalIdentityReadmission<F>?).self,&a)

@@ -1,0 +1,67 @@
+[
+  {
+    "label": "toolchain",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.21,
+    "exitCode": 0
+  },
+  {
+    "label": "sdk",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "sdk",
+      "list"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.259,
+    "exitCode": 0
+  },
+  {
+    "label": "package",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "package",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-paired-identity/native/c011e235d13b4896af8622faebbea1c1/build",
+      "dump-package"
+    ],
+    "timeoutSeconds": 20,
+    "elapsedSeconds": 0.195,
+    "exitCode": 0
+  },
+  {
+    "label": "build",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--build-system",
+      "native",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-paired-identity/native/c011e235d13b4896af8622faebbea1c1/package",
+      "--build-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-paired-identity/native/c011e235d13b4896af8622faebbea1c1/build",
+      "-j",
+      "2",
+      "--product",
+      "AffinePairedIdentityProof"
+    ],
+    "timeoutSeconds": 240,
+    "elapsedSeconds": 10.887,
+    "exitCode": 0
+  },
+  {
+    "label": "proof",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-paired-identity/native/c011e235d13b4896af8622faebbea1c1/build/arm64-apple-macosx/debug/AffinePairedIdentityProof"
+    ],
+    "timeoutSeconds": 180,
+    "elapsedSeconds": 2.138,
+    "exitCode": 0
+  }
+]

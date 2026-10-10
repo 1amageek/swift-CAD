@@ -289,3 +289,50 @@ near-pole, exact effective-request pullback, distinct sameXYZ, foreign owner/fra
 role, independent count/depth/resource failures, cancellation and retained lifetime.
 Use actual source/DI/identity paths and fixed target compile/link/runtime; verify
 changed existing relation consumption and independent latest-main delivery.
+
+
+## Paired affine child identity transport
+
+A paired issuer consumes one existing child identity, two independently source-bound
+M4 affine covers and source-issued affine position-action receipts. The left proof
+frame must match the left child cover and the right frame the right child cover.
+Source-action bindings must match their parent covers. Compare the original 3x4
+position actions exactly in the retained coordinate field before transporting the
+proof. Equal XYZ samples, source names or topology adjacency do not establish this
+agreement. Different actions fail unsupportedSourceProof in this transport port;
+this does not prove that the scoped parent positions differ. Such scopes require
+separate whole-source-law proof under the remaining M5.C contract.
+
+```mermaid
+flowchart LR
+ L[Left M4 cover and source action] --> A[Validate both source actions]
+ R[Right M4 cover and source action] --> A
+ C[Sealed child boundary identity] --> P[Restrict both complete pullbacks]
+ A --> P
+ P --> T[Right map composed with child relation and inverse left map]
+ T --> I[Existing scoped parent identity and query/view]
+```
+
+Parent relations use independent maps: output permutation follows the right map,
+the child relation and the inverse left map; gains/offsets follow that same exact
+composition. Complete-product identities retain separately mapped scopes. Both
+original source owners, proof kind and one-sided roles remain retained; a position
+boundary proof never implies common normal, tangent or global source equality.
+Identity restriction, symmetry, composition and nested paired transport reuse the
+existing receipt and shared readmission owners. The single-cover API delegates to
+this implementation with the identical retained cover, requiring no new action
+proof for that already identical parent.
+
+The source action owners and old child proof/cover arrays are shared. New scope and
+constraint outputs, scalar decision references, evidence-owner payload, source/
+transport/proof depths, count/byte overflow and terminal cancellation use one caller
+admission. Immutable storage/conformance is identical on Native/Wasm/Embedded.
+No new solver, unchecked certificate initializer, Boolean approval callback or
+shared mutable state is introduced. New join declarations, nonlinear/singular
+correspondence and unequal-action scoped law proofs remain required M5.C work.
+
+Source action authority is [OriginalSourceIssuance](../../OriginalSourceIssuance/DESIGN.md#original-affine-position-action-supply).
+Verification owner: Tests/OriginalAffinePairedIdentityVerification, including whole
+boundary laws with unequal germs, independent map permutations/gains, exact strict/
+disconnected/empty scopes, false/foreign action receipts, source/scalar/resource/
+cancellation/lifetime and existing single-cover regression on four fixed lanes.

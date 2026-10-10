@@ -16,9 +16,10 @@ final class OriginalIdentityReadmission<F: ExactScalarArithmetic & ExactScalarOr
     // Data-only retention; no existential method or runtime type lookup is used.
     let retained: [any Sendable]
     let depth: ExactScalarDepth?
-    init(scalars: [Scalar], parents: [OriginalIdentityReadmission<F>], retained: [any Sendable], depth: ExactScalarDepth? = nil) {
+    let actions: [OriginalSourceAffineAction<F>]
+    init(scalars: [Scalar], parents: [OriginalIdentityReadmission<F>], retained: [any Sendable], depth: ExactScalarDepth? = nil,actions: [OriginalSourceAffineAction<F>] = []) {
         self.scalars = scalars; self.parents = parents; self.retained = retained
-        self.depth = depth
+        self.depth = depth;self.actions = actions
     }
     func admit<A: ExactScalarAdmission & ~Copyable>(using a: inout A) throws {
         if let depth { try a.admitDepth(value:depth.value,coefficient:depth.coefficient) }
@@ -26,6 +27,7 @@ final class OriginalIdentityReadmission<F: ExactScalarArithmetic & ExactScalarOr
             try a.consumeWork(1)
             _ = try scalar.field.sign(of: scalar.value, using: &a)
         }
+        for action in actions { try a.consumeWork(1);try action.admitted(using:&a) }
         for parent in parents { try a.consumeWork(1); try parent.admit(using: &a) }
     }
     static func preserving<S: Sendable,A: ExactScalarAdmission & ~Copyable>(
@@ -56,7 +58,7 @@ final class OriginalIdentityReadmission<F: ExactScalarArithmetic & ExactScalarOr
         var valueDepth = receipt.evidenceDepth.value, coefficientDepth = receipt.evidenceDepth.coefficient
         for axis in receipt.left.axes { try a.consumeWork(1); valueDepth = max(valueDepth,axis.depth.value); coefficientDepth = max(coefficientDepth,axis.depth.coefficient) }
         for axis in receipt.right.axes { try a.consumeWork(1); valueDepth = max(valueDepth,axis.depth.value); coefficientDepth = max(coefficientDepth,axis.depth.coefficient) }
-        try OriginalDomainAccess.owner(([Scalar],[OriginalIdentityReadmission<F>],[any Sendable],ExactScalarDepth?).self,&a)
+        try OriginalDomainAccess.owner(([Scalar],[OriginalIdentityReadmission<F>],[any Sendable],ExactScalarDepth?,[OriginalSourceAffineAction<F>]).self,&a)
         return .init(scalars:scalars,parents:parents,retained:[],depth:try .init(value:valueDepth,coefficient:coefficientDepth))
     }
 }

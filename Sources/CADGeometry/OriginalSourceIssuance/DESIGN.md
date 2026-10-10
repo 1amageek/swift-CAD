@@ -1435,3 +1435,28 @@ and lifted source/evaluation, independent exact expectations, child auxiliary gu
 all incidents, source/request authority, coefficient transfer, resource boundaries,
 cancel/lifetime and unchanged Native regression must pass fixed target lanes before
 commit and independent main delivery.
+
+
+## Original affine position-action supply
+
+The affine-action issuing protocol supplies a sealed binding plus one immutable
+3x4 coefficient owner in the requested exact field. Parameter images read their
+original spatial action only when it is present; spatial words use the existing
+coefficient importer; directed traversal supplies the identity position action.
+This reuses the existing construction readers without generating another source
+position formula. The receipt owns no parameter map, intersection or continuity
+claim. Equal action matrices are sufficient to transport an existing child position
+identity through two parents; differing matrices require a separate scoped source
+law proof and are not evidence of nonintersection.
+
+The action value owner retains original coefficients and causal admission depths.
+DI shares this owner rather than copying its coefficient array. Source binding,
+coefficient-field compatibility, every coefficient visit, checked object/array
+allocation and terminal cancellation use the caller's same admission. Owners are
+immutable Sendable on all targets; no callback is retained as proof approval.
+
+The consuming contract is [paired affine identity](../OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md).
+Verification owner is Tests/OriginalAffinePairedIdentityVerification: original
+source matrix/identity supply, all three reader families, foreign bindings/fields,
+causal scalar depth, exact resource boundaries, final cancel and owner lifetime.
+Independent verification does not establish actual upper geometry dispatch.
