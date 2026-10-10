@@ -1,0 +1,4 @@
+error: link command failed with exit code 1 (use -v to see invocation)
+wasm-ld: error: cannot open /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift_static/clang: Is a directory
+wasm-ld: error: cannot open /Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/clang/21/lib/wasm32-unknown-wasip1/libclang_rt.builtins.a: No such file or directory
+clang: error: linker command failed with exit code 1 (use -v to see invocation)

@@ -1,0 +1,2 @@
+error: filename "Checks.swift" used twice: '/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-domain/native/cbb583b9e79a44a0a358ccd7e8c83d76/Checks.swift' and '/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicLiftDomainVerification/Checks.swift'
+note: filenames are used to distinguish private declarations with the same name

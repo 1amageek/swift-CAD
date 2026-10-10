@@ -637,3 +637,64 @@ Exact selections, complete empty results and all closed incidents use the caller
 same admission. No predicate callback, inverse reconstruction or second solver is
 added. The existing Native domain capability remains available. The focused generic
 rolling-ball verification owns this interaction and Native compatibility.
+
+## Periodic Native surface lift domain consumption
+
+The lift-specific DI issuer consumes the sealed periodic Native lift source family
+from [source issuance](../../OriginalSourceIssuance/DESIGN.md#periodic-native-surface-lift-supply).
+Its authored frame is one-dimensional normalized T with exact enclosing support
+[0,1]. The effective enclosure is support intersected with the request, preserving
+open/closed, singleton, disconnected and empty selections. Auxiliary U/V remain
+inside the graph's three-variable layout; they do not increase authored dimension.
+
+```mermaid
+flowchart LR
+ F[Sealed periodic lift family] --> S[Retained Native surface cover and periods]
+ F --> T[Authored T frame and exact request]
+ S --> I[Every UV incident and exact cycle]
+ I --> G[Original source graph member]
+ T --> B[Existing graph binder]
+ G --> B
+ B --> R[Selected relation and original owners]
+```
+
+The immutable prepared space retains one full Native surface cover with the
+source-issued period receipts, a checked bijection from its chart keys to original
+source-law ordinals, the lift family and the authored-T frame. It reuses existing
+Native member/incident algorithms; it does not prove periods again or solve the
+lift/geometry problem. Issuing another T request shares the same prepared surface
+cover and family arrays. No finite selected-members enumeration is used.
+
+The public lift-family querying protocol exposes template count, surface cycle
+rank, retained source/request/effective enclosure, explicit member lookup with a
+two-axis exact cycle vector, and lifted-position incidents for [T,U,V]. It does
+not conform to a source-period family protocol: auxiliary surface cycles are not
+periods or identities of T. No T-only method guesses UV, unique inverse or the
+finite enumeration of all surface lifts.
+
+Explicit members retain their exact cycle indices, original family and selected
+bound graph. Incident queries first validate every coordinate field, including
+U/V even for an empty T request. Existing Native incidence supplies every closed
+surface side and cycle; each is paired with every original pcurve chart, issued
+through the source owner and filtered by the complete original graph conditions.
+The existing graph binder retains the exact T request. Hence a singleton seam,
+corner or pcurve knot retains all applicable sides, and same-XYZ wrong authored UV
+cannot become a position. Empty membership requires exact request/guard exclusion,
+not a missing candidate or failed calculation.
+
+All source/proof/transport/chart/family limits, new output and scratch allocations,
+work and terminal cancellation use one explicit caller admission. The prepared
+space, cover and occurrences are immutable and Sendable on all targets. Occurrences
+retain source/period/pcurve owners through their family and graph after preparation
+or cover release. There is no mutable shared state, cache, callback or unsafe path.
+Foreign frames/owners, malformed indices/tuples, unsupported scalar fields, budget
+exhaustion and cancellation propagate the exact lower failure, never empty success.
+
+Verification owner: `Tests/OriginalPeriodicLiftDomainVerification`. Expected seam,
+knot/corner counts, exact request sets, wrong UV and huge independent cycle cases
+exercise the actual source/DI/binder path. The real lift provider and public point
+evaluation are checked using matching retained numerical products. Fixed Native,
+ASAN, normal Wasm and Embedded compile/link/runtime validate the changed DI/fixture
+boundary with admitted unchanged source/L0/L1 products. Broad CAD/L2-L6 rebuilding
+remains prohibited. General lifts and graph CS/SSI/image/fiber publication remain
+M4/M7 obligations; this port does not complete those consumers.

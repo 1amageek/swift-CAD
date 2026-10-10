@@ -1,0 +1,54 @@
+[
+  {
+    "label": "native-01",
+    "original": ".build/m4-periodic-lift-domain-native-01",
+    "files": {
+      "compile-DI0.log": "afc0026eb189fa15bda57e5d3a59dd8baabeeb7d2f3565c5878dec4399b8c86d",
+      "runs.json": "e782f485f7fbb05e4b846cb34911efc636e833b8df6a4d27bd36479be11e66e6"
+    },
+    "accepted": false
+  },
+  {
+    "label": "native-02",
+    "original": ".build/m4-periodic-lift-domain-native-02",
+    "files": {
+      "compile-DI.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compile-DI0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compile-link.log": "49fda28e9a8cff37e8f8c94d35e3b1278881a93f4c2741c737f1559b291f5007",
+      "runs.json": "5ad876088f1d85f5048b30bf5dc5f8c56a48db6437122b17710996ce4e456438"
+    },
+    "accepted": false
+  },
+  {
+    "label": "actual-native",
+    "original": ".build/m4-periodic-lift-domain-diagnostics-01/actual-native",
+    "files": {
+      "compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "proof.log": "29bbd8c17e533b065e7f6511ea64c1fd57c9c0cefafc3049202e38c8e73b09bd",
+      "runs.json": "1e4391005284dab26a8d0ea4daaadb1b0a66b3b4946a7497a9cb74794c9ef3a9"
+    },
+    "accepted": false
+  },
+  {
+    "label": "wasm",
+    "original": ".build/m4-periodic-lift-domain-diagnostics-01/wasm",
+    "files": {
+      "compile-DI.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compile-DI0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compile-link.log": "546f3314fc78d1d7e3c98c2be9100efd2edced459fd1d9e0051a97e691c9f3ec",
+      "runs.json": "dad3b2c7d880fa5f00a1b14e5cfc491f0d25ff9d14badec6670bbe98db335532"
+    },
+    "accepted": false
+  },
+  {
+    "label": "embedded",
+    "original": ".build/m4-periodic-lift-domain-diagnostics-01/embedded",
+    "files": {
+      "compile-DI.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compile-DI0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "compile-link.log": "18fe60603493476f69340bb069ecf92072c4ae557685de85a5930b9de01030f9",
+      "runs.json": "19bf91da17442ba6c4603f51bfe8c468ccf693ebe4aaf593d20631cb79f28669"
+    },
+    "accepted": false
+  }
+]
