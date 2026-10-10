@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 #if canImport(Darwin)

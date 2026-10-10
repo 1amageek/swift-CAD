@@ -187,3 +187,10 @@ Immutable validated model + ordered affine words + caller ledger
     -> exact determinant face parity + preserved native UV topology
     -> model image -> caller bounded validation/publication
 ```
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.

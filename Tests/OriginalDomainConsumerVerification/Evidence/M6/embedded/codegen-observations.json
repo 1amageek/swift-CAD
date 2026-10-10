@@ -1,0 +1,18 @@
+{
+  "scope": "Completed owned BoundaryProof frontend; limited ps observations, no postmortem stack sample available",
+  "observations": [
+    {
+      "stage": "Final Proof frontend after module emission",
+      "elapsed_seconds": 335,
+      "cpu_seconds": 155.67,
+      "cpu_percent": 48.1,
+      "rss_bytes": 1222131712
+    }
+  ],
+  "peak_rss": "unavailable; sampled RSS is not peak",
+  "final_boundary_build_log_seconds": 917.76,
+  "self_build_log_seconds": 2.56,
+  "stack_sample": "Not obtained: requested after owned final frontend exited. No foreign process sampled.",
+  "host_memory_pressure_after_build": "The system has 38654705664 (2359296 pages with a page size of 16384).\n\nStats: \nPages free: 12214 \nPages purgeable: 148 \nPages purged: 215149691 \n\nSwap I/O:\nSwapins: 65374571 \nSwapouts: 74189831 \n\nPage Q counts:\nPages active: 517506 \nPages inactive: 501963 \nPages speculative: 656 \nPages throttled: 0 \nPages wired down: 535030 \n\nCompressor Stats:\nPages used by compressor: 735499 \nPages decompressed: 2761579984 \nPages compressed: 3328985157 \n\nFile I/O:\nPageins: 961079676 \nPageouts: 699871 \n\nSystem-wide memory free percentage: 44%\n",
+  "vm_stat_after_build": "Mach Virtual Memory Statistics: (page size of 16384 bytes)\nPages free:                                    11946.\nPages active:                                 517100.\nPages inactive:                               502635.\nPages speculative:                               688.\nPages throttled:                                   0.\nPages wired down:                             535024.\nPages purgeable:                                 148.\n\"Translation faults\":                    10410222519.\nPages copy-on-write:                       314787551.\nPages zero filled:                        8728884195.\nPages reactivated:                        1785668948.\nPages purged:                              215149691.\nFile-backed pages:                            255744.\nAnonymous pages:                              764679.\nPages stored in compressor:                  1146308.\nPages occupied by compressor:                 735475.\nDecompressions:                           2761580065.\nCompressions:                             3328985157.\nPageins:                                   961079709.\nPageouts:                                     699871.\nSwapins:                                    65374571.\nSwapouts:                                   74189831.\n"
+}

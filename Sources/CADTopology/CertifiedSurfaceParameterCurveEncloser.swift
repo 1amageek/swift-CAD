@@ -357,7 +357,7 @@ package struct CertifiedSurfaceParameterCurveEncloser {
     var visited = 0
     while let item = pending.popLast() {
       try consumeWork?(item.depth)
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       guard visited < maximumCellCount else {
         throw failure(.resourceLimitExceeded, tolerance: tolerance, "Original pcurve chart exhausted its cell allowance.")
       }

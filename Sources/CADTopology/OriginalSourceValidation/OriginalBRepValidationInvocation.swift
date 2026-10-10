@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 #if canImport(Darwin)
@@ -39,7 +40,7 @@ struct OriginalBRepValidationInvocation: Sendable {
   private var vertices: PersistentMap<VertexID, Vertex> { model.vertices }
 
   private func charge(depth: Int = 0) throws {
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     guard maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0, depth >= 0, depth <= maximumSubdivisionDepth,
       maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
       throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: nil,
@@ -244,7 +245,7 @@ struct OriginalBRepValidationInvocation: Sendable {
           TopologyValidationDiagnostic(
             scope: .references,
             code: .invalidInput,
-            message: String(describing: error)
+            message: KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message
           )
         ]
       )
@@ -631,7 +632,7 @@ struct OriginalBRepValidationInvocation: Sendable {
             guard bytes >= 0 else {
               throw GeometryConversionError.invalidInput("Original BRep storage admission requires nonnegative byte counts.")
             }
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeStorage?(bytes)
           })
       } else {
@@ -681,7 +682,7 @@ struct OriginalBRepValidationInvocation: Sendable {
       phase: .topology,
       code: .topologyFailure,
       tolerance: tolerance,
-      message: "Face \(faceID) coedge \(edgeID) failed \(stage): \(error)"
+      message: "Face \(faceID) coedge \(edgeID) failed \(stage): \(KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message)"
     )
   }
 
@@ -1042,7 +1043,7 @@ struct OriginalBRepValidationInvocation: Sendable {
         consumeWork: consumeWork, consumeStorage: consumeStorage)
     } else {
       shiftedCurves = try SurfaceParameterLoopUnwrapper().unwrap(
-        loop.coedges.compactMap(\.surfaceParameterCurve), uPeriod: uPeriod, vPeriod: vPeriod,
+        loop.coedges.compactMap({ $0.surfaceParameterCurve }), uPeriod: uPeriod, vPeriod: vPeriod,
         uClosureTolerance: uClosureTolerance, vClosureTolerance: vClosureTolerance,
         on: surface, tolerance: tolerance, context: "Surface loop \(loop.id)")
     }

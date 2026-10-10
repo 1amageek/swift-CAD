@@ -50,3 +50,10 @@ The corresponding `CADTopologyTests` prove one loop, disjoint loops,
 seed-relative direction, exclusion of branching/open components, and the
 single-face inner-versus-outer fillability rule. Consumers to recheck are
 CADModeling SurfaceFill and RupaCore body-display topology.
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.

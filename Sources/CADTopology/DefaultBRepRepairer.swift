@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -37,7 +38,7 @@ public struct DefaultBRepRepairer: BRepRepairing {
             .collapseSmallWireEdges, .reorderAndOrientLoopCoedges, .restoreSingularBoundaryUses, .restorePeriodicCharts,
             .removeDuplicateFaces, .sewShellEdges, .orientShellFaces, .orientSolidComponents, .pruneUnreferencedTopology]
         for action in orderedActions where requestedActions.contains(action) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let previous = repaired
             let previousCollapsedCurves = collapsedCurves
             let firstChange = changes.count
@@ -234,7 +235,7 @@ public struct DefaultBRepRepairer: BRepRepairing {
         case .sheet(let shellIDs):
             return .sheet(shellIDs: unique(shellIDs))
         case .solid(let components):
-            let outerShellIDs = components.map(\.outerShellID)
+            let outerShellIDs = components.map({ $0.outerShellID })
             let uniqueOuterShellIDs = Set(outerShellIDs)
             guard uniqueOuterShellIDs.count == outerShellIDs.count else {
                 return topology
@@ -301,7 +302,7 @@ public struct DefaultBRepRepairer: BRepRepairing {
         guard loop.coedges.isEmpty == false else {
             return .rejected("An empty loop has no cycle to reorder.")
         }
-        if Set(loop.coedges.map(\.edgeID)).count != loop.coedges.count {
+        if Set(loop.coedges.map({ $0.edgeID })).count != loop.coedges.count {
             let owningFaces = model.faces.values.filter {
                 $0.loops.contains(loop.id)
             }
@@ -353,7 +354,7 @@ public struct DefaultBRepRepairer: BRepRepairing {
                 }
             )
         }
-        guard let minimumReversalCount = ranked.map(\.reversalCount).min() else {
+        guard let minimumReversalCount = ranked.map({ $0.reversalCount }).min() else {
             return .rejected("Coedges do not define a closed cycle.")
         }
         let minimumCandidates = ranked.filter {
@@ -436,15 +437,15 @@ public struct DefaultBRepRepairer: BRepRepairing {
         model: inout BRepModel,
         changes: inout [BRepRepairChange]
     ) {
-        let shellIDs = Set(model.bodies.values.flatMap(\.shellIDs))
-        let faceIDs = Set(shellIDs.compactMap { model.shells[$0] }.flatMap(\.faceIDs))
-        let loopIDs = Set(faceIDs.compactMap { model.faces[$0] }.flatMap(\.loops))
+        let shellIDs = Set(model.bodies.values.flatMap({ $0.shellIDs }))
+        let faceIDs = Set(shellIDs.compactMap { model.shells[$0] }.flatMap({ $0.faceIDs }))
+        let loopIDs = Set(faceIDs.compactMap { model.faces[$0] }.flatMap({ $0.loops }))
         let edgeIDs = Set(loopIDs.compactMap { model.loops[$0] }.flatMap {
-            $0.coedges.map(\.edgeID)
+            $0.coedges.map({ $0.edgeID })
         })
         let edges = edgeIDs.compactMap { model.edges[$0] }
         let vertexIDs = Set(edges.flatMap { [$0.startVertexID, $0.endVertexID] })
-        let curveIDs = Set(edges.map(\.curveID))
+        let curveIDs = Set(edges.map({ $0.curveID }))
         let surfaceIDs = Set(faceIDs.compactMap { model.faces[$0]?.surfaceID })
 
         let removedShells = removedIDs(model.shells.keys, retaining: shellIDs)

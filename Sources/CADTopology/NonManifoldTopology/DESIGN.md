@@ -118,3 +118,10 @@ successful exact sheet/body and dimensional shape admission, limits and cancella
 Root owns native/WASM/Embedded and cumulative integration verification. Changes
 to GenericShape or ValidatedBRepModel require rechecking the two admission paths;
 the retained raw representation never substitutes for either valid-input contract.
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.

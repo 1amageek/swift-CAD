@@ -31,7 +31,7 @@ enum OriginalParameterQueryStorage {
         var result: [Output] = []
         try reserve(values.count, in: &result, consumeStorage: consumeStorage)
         for value in values {
-            try Task.checkCancellation(); try consumeWork?(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
             result.append(try transform(value))
         }
         return result
@@ -44,7 +44,7 @@ enum OriginalParameterQueryStorage {
         func sift(_ root: Int, _ count: Int, _ storage: inout [Element]) throws {
             var parent = root
             while parent < count / 2 {
-                try Task.checkCancellation(); try consumeWork?(0)
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
                 var child = parent * 2 + 1
                 if child + 1 < count, less(storage[child], storage[child + 1]) { child += 1 }
                 if !less(storage[parent], storage[child]) { return }

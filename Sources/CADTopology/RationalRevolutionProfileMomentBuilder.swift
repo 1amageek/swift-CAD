@@ -38,7 +38,7 @@ struct RationalRevolutionProfileMomentBuilder {
         let degree = patch.degree
         guard degree >= 1,
               patch.controls.count == degree + 1,
-              patch.controls.allSatisfy(\.isFiniteAndPositiveWeight),
+              patch.controls.allSatisfy({ $0.isFiniteAndPositiveWeight }),
               patch.upper > patch.lower else {
             throw KernelError(
                 phase: .topology,

@@ -39,3 +39,31 @@ Invalid/missing source binding, unissued pcurve charts, unclosed source loops, c
 
 ## Verification and Change Impact
 [OriginalFaceBoundaryClippingTests](../../../Tests/CADKernelTests/OriginalFaceBoundaryClippingTests.swift) owns direct public issuer/consumer behavior, original topology and raw-cell identity, lifetime, holes/orientation and all failure contracts. Parent integration owns whole source-family acceptance. The existing Q5 and Native proof suites are reused when their source/contract premise remains unchanged.
+
+## M6 Exact Family Handoff
+
+An additive public overload consumes the new complete Native L5 family boundary
+source. The issuer validates the unchanged stored B-spline surface against the
+selected complete DI cover and retains all original model, face, loop and coedge
+owners. Authored pcurves remain in their exact lifted coordinates. Periodic
+supports and constant/collapsed source maps use the supplied complete DI cover;
+the issuer neither constructs a flattened native rectangle nor guesses lifts.
+The Geometry exact consumer returns every raw/refined pair correspondence, and
+the Kernel wrapper retains the original model and topology roles alongside it.
+All validation and refinement borrow the same caller noncopyable admission.
+
+[M6 public consumer fixtures](../../../Tests/OriginalDomainConsumerVerification/Sources/M6BoundaryFixtures/M6ExactBoundaryFixtures.swift)
+build real exact-validated BRep faces and invoke the additive public overload.
+They check both SSI roles, holes/nonconvex loops, open/closed selections, complete
+empty regions, retained corners/lifted pcurves, supported collapse and owner
+lifetime. An injected consumer returning another sealed domain is rejected.
+Independent caller failures and cancellation at the final publication allocation
+are checked on the same production path. The scoped verification target compiles
+the complete actual Topology module and this Kernel component; it does not claim
+whole CADKernel or Modeling acceptance.
+
+The face issuer directly imports HashTreeCollections while consuming retained
+Topology PersistentMap tables. Kernel declares that direct product dependency;
+import visibility does not change face/source comparison or source ownership.
+The actual validator's portable cancellation wiring is owned by
+[Topology](../../CADTopology/DESIGN.md#m6-portable-validation-wiring).

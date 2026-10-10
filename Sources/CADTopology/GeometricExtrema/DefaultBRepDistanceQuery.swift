@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -494,7 +495,7 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
     private func refinedWitness(_ first: Domain, _ second: Domain, tolerance: ModelingTolerance, budget: BRepDistanceProofBudget) throws
         -> ((Point3D,[Double]),(Point3D,[Double]))? {
         try DistanceQueryStorage.charge(first.intervals.count+second.intervals.count,of: Double.self,budget: budget)
-        var a = first.intervals.map(\.midpoint), b = second.intervals.map(\.midpoint)
+        var a = first.intervals.map({ $0.midpoint }), b = second.intervals.map({ $0.midpoint })
         func evaluated(_ domain: Domain, _ parameters: [Double]) throws
             -> (point: Point3D, bounds: CoordinateEnclosure3D) {
             if let point = domain.point {
@@ -521,7 +522,7 @@ public struct DefaultBRepDistanceQuery: BRepDistanceQuerying {
         var scale = 0.5
         var currentUpper = upperDistance(x.bounds,y.bounds)
         for _ in 0..<32 {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             var improved = false
             for side in 0..<2 {
                 let domain = side == 0 ? first : second

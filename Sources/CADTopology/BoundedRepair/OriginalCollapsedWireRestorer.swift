@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -6,14 +7,14 @@ struct OriginalCollapsedWireRestorer {
     func restore(model: inout BRepModel, tolerance: ModelingTolerance,
         changes: inout [BRepRepairChange], diagnostics: inout [BRepRepairDiagnostic]) throws {
         for faceID in model.faces.keys.sorted() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else { continue }
             for loopID in face.loops {
                 guard var loop = model.loops[loopID], !loop.coedges.isEmpty else { continue }
                 let original = loop.coedges
                 var restored: [Coedge] = []
                 for index in original.indices {
-                    try Task.checkCancellation()
+                    try CurrentTaskCancellationChecker().checkCancellation()
                     let previous = original[index]
                     let next = original[(index+1)%original.count]
                     restored.append(previous)
@@ -39,7 +40,7 @@ struct OriginalCollapsedWireRestorer {
                             v: try ScalarInterval(lower: min(end.v,start.v), upper: max(end.v,start.v)))
                         let receipt = try OriginalSurfaceCollapsedBoundaryPoint.prepare(of: surface, over: box,
                             direction: direction, remainingSourceDepth: 16, tolerance: tolerance,
-                            consumeWork: { try Task.checkCancellation() })
+                            consumeWork: { try CurrentTaskCancellationChecker().checkCancellation() })
                         let displacement = IntervalVector3DBounds(
                             x: receipt.positionBounds.x - .exact(vertex.point.x),
                             y: receipt.positionBounds.y - .exact(vertex.point.y),
@@ -60,7 +61,7 @@ struct OriginalCollapsedWireRestorer {
                     catch {
                         diagnostics.append(.init(action: .restoreSingularBoundaryUses, code: .topologyFailure,
                             entityID: String(describing: loopID),
-                            message: "Original collapsed boundary position could not authorize its omitted use: \(error)."))
+                            message: "Original collapsed boundary position could not authorize its omitted use: \(KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message)."))
                     }
                 }
                 loop.coedges = restored

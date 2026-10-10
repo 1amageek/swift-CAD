@@ -96,3 +96,10 @@ comparison-budget exhaustion, cancellation and rigid-image preservation.
 Changes to the descriptor affect GenericShape's exhaustive root handling and
 must rerun both suites. General coincidence and Boolean admission remain
 separately tracked requirements.
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.

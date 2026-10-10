@@ -1,0 +1,16 @@
+START M6 exact self folded
+RUN M6 descendant query
+RUN M6 foreign query
+RUN M6 query refusal 0
+FAIL M6 self assertion 197
+FAIL M6 self
+(node:26516) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+file:///private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs:11
+const code=wasi.start(instance); if(code!==0) throw new Error(`WASI exit ${code}`);
+                                                    ^
+
+Error: WASI exit 1
+    at file:///private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs:11:53
+
+Node.js v24.19.0

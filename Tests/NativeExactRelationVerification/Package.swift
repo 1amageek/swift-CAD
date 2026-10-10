@@ -10,6 +10,14 @@ let package = Package(name: "NativeExactRelationVerification", platforms: [.macO
 ], targets: [
  .target(name: "CADCore", dependencies: [.product(name: "HashTreeCollections", package: "swift-collections")]),
  .target(name: "CADGeometry", dependencies: ["CADCore"]),
+ .target(name:"CADTopology",dependencies:["CADCore","CADGeometry",.product(name:"HashTreeCollections",package:"swift-collections")]),
+ .target(name:"CADKernel",dependencies:["CADCore","CADGeometry","CADTopology",.product(name:"HashTreeCollections",package:"swift-collections")],path:"Sources/CADKernelBoundary"),
+ .target(name:"NativeExactBoundaryFixtures",dependencies:["CADCore","CADGeometry","CADTopology","CADKernel",.product(name:"HashTreeCollections",package:"swift-collections")],path:"Sources/M6BoundaryFixtures"),
+ .executableTarget(name:"NativeExactBoundaryProof",dependencies:["NativeExactBoundaryFixtures"],path:"Sources/M6BoundaryProof",linkerSettings:[
+ .unsafeFlags(["-Xlinker","-z","-Xlinker","stack-size=67108864"],.when(platforms:[.custom("wasi")]))]),
+ .target(name:"NativeExactSelfFixtures",dependencies:["CADCore","CADGeometry"],path:"Sources/M6SelfFixtures"),
+ .executableTarget(name:"NativeExactSelfProof",dependencies:["NativeExactSelfFixtures"],path:"Sources/M6SelfProof",linkerSettings:[
+ .unsafeFlags(["-Xlinker","-z","-Xlinker","stack-size=67108864"],.when(platforms:[.custom("wasi")]))]),
  .target(name: "NativeExactFixtures", dependencies: ["CADCore", "CADGeometry"], path: "Sources/Fixtures"),
  .executableTarget(name: "NativeExactProof", dependencies: ["NativeExactFixtures"], path: "Sources/Proof", linkerSettings: [
  .unsafeFlags(["-Xlinker", "-z", "-Xlinker", "stack-size=67108864"], .when(platforms: [.custom("wasi")]))]),

@@ -1,0 +1,250 @@
+warning: 'nativeexactrelationverification': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalRealRelationProof/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalPointRelationProof/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/DESIGN.md
+warning: 'nativeexactrelationverification': found 11 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GeometricExtrema/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GenericShape/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SolidComplex/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/VolumeMoments/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OrthographicEdgeProjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/NonManifoldTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OpenBoundaryLoop/DESIGN.md
+warning: 'nativeexactrelationverification': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADKernelBoundary/DESIGN.md
+warning: 'nativeexactrelationverification': found 86 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/OriginalPhysicalAngle/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/ExactParameterDomain/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+warning: 'nativeexactrelationverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/FailureContract/DESIGN.md
+[0/1] Planning build
+Building for debugging...
+[0/15] Write sources
+[4/15] Write swift-version-7EE3F01B468E1A0A.txt
+[6/36] Emitting module CADTopology
+[7/60] Compiling CADTopology DefaultBRepRepairer.swift
+[8/60] Compiling CADTopology DefaultBRepTopologyValidator.swift
+[9/60] Compiling CADTopology DefaultFaceParameterBoundsResolver.swift
+[10/60] Compiling CADTopology ExactRectangularPcurveDomainResolver.swift
+[11/60] Compiling CADTopology FaceParameterExtentResolver.swift
+[12/60] Compiling CADTopology DefaultShapeOperator.swift
+[13/60] Compiling CADTopology ShapeAffineImageBuilder.swift
+[14/60] Compiling CADTopology ShapeAffineWordAdmission.swift
+[15/60] Compiling CADTopology ShapeAffineWordImageBuilder.swift
+[16/60] Compiling CADTopology ShapeClosureResolver.swift
+[17/60] Compiling CADTopology ShapeRigidImageBuilder.swift
+[18/60] Compiling CADTopology BRepDistanceProofBudget.swift
+[19/60] Compiling CADTopology DefaultBRepDistanceQuery.swift
+[20/60] Compiling CADTopology GeometryStore.swift
+[21/60] Compiling CADTopology DefaultNonManifoldTopologyHandler.swift
+[22/60] Compiling CADTopology TopologyRetentionDiagnosticEngine.swift
+[23/60] Compiling CADTopology OpenBoundaryLoopResolver.swift
+[24/60] Compiling CADTopology OriginalBRepValidationInvocation.swift
+[25/60] Compiling CADTopology OriginalSourceProofAdmission.swift
+[26/60] Compiling CADTopology DefaultOrthographicEdgeProjector.swift
+[27/60] Compiling CADTopology PeriodicFaceSeamValidator.swift
+[28/60] Compiling CADTopology RationalBSplinePrismaticVolumeEvaluator.swift
+[29/60] Compiling CADTopology RationalRevolutionProfileMomentBuilder.swift
+[30/60] Compiling CADTopology RationalRevolutionVolumeEvaluator.swift
+[31/83] Compiling CADTopology AnalyticPrismaticVolumeEvaluator.swift
+[32/83] Compiling CADTopology BRepBodySubmodelExtractor.swift
+[33/83] Compiling CADTopology BRepFaceAreaMeasurementEvaluator.swift
+[34/83] Compiling CADTopology BRepModel.swift
+[35/83] Compiling CADTopology BRepRepairRequest.swift
+[36/83] Compiling CADTopology BRepRepairResult.swift
+[37/83] Compiling CADTopology BRepShellReferencePointResolver.swift
+[38/83] Compiling CADTopology BodyTopology.swift
+[39/83] Compiling CADTopology BRepEdgeGeometryClassifier.swift
+[40/83] Compiling CADTopology BRepRepairAudit.swift
+[41/83] Compiling CADTopology BoundedBRepRepairEngine.swift
+[42/83] Compiling CADTopology OriginalCollapsedWireRestorer.swift
+[43/83] Compiling CADTopology OriginalDuplicateFaceRepair.swift
+[44/83] Compiling CADTopology CertifiedAnalyticPairPcurveAreaIntegrator.swift
+[45/83] Compiling CADTopology CertifiedAnalyticPcurveFluxIntegrator.swift
+[46/83] Compiling CADTopology CertifiedBSplineCurveBezierExtractor.swift
+[47/83] Compiling CADTopology CertifiedBSplineSurfaceBezierExtractor.swift
+[48/83] Compiling CADTopology CertifiedHomogeneousBezierCurvePatch.swift
+[49/83] Compiling CADTopology CertifiedPiecewisePolynomialSurfaceFluxPrimitive.swift
+[50/83] Compiling CADTopology CertifiedRationalBezierSurfaceFluxIntegrator.swift
+[51/83] Compiling CADTopology CertifiedSurfaceParameterCurveEncloser.swift
+[52/83] Compiling CADTopology CertifiedSurfaceParameterLoopPredicate.swift
+[53/83] Compiling CADTopology CurveTrim.swift
+[54/83] Compiling CADTopology DefaultBRepEdgeLengthEvaluator.swift
+[55/86] Compiling CADTopology ExactRectangularPcurveDomainResolving.swift
+[56/86] Compiling CADTopology Shape.swift
+[57/86] Compiling CADTopology BRepDistanceQuerying.swift
+[58/88] Compiling CADTopology RetainedTopologyShape.swift
+[59/88] Compiling CADTopology BRepVolumeMomentMeasuring.swift
+[60/103] Compiling CADTopology AnalyticConicSurfaceValidator.swift
+[61/103] Compiling CADTopology BRepEdgeLengthEvaluating.swift
+[62/103] Compiling CADTopology BRepRepairing.swift
+[63/103] Compiling CADTopology BRepTopologyValidating.swift
+[64/103] Compiling CADTopology BRepRepairCollapsedCurve.swift
+[65/103] Compiling CADTopology CertifiedAnalyticImplicitPcurveAreaIntegrator.swift
+[66/103] Compiling CADTopology CertifiedHomogeneousBezierSurfacePatch.swift
+[67/103] Compiling CADTopology CertifiedIntervalSummation.swift
+[68/103] Compiling CADTopology CertifiedPolynomialSurfaceFluxPrimitive.swift
+[69/103] Compiling CADTopology CertifiedUnivariateTaylorJet.swift
+[70/103] Compiling CADTopology Coedge.swift
+[71/103] Compiling CADTopology ExactRectangularPcurveAxisEndpoints.swift
+[72/103] Compiling CADTopology FaceParameterBoundsResolving.swift
+[73/103] Compiling CADTopology GaussLegendreRule.swift
+[74/103] Compiling CADTopology ShapeOperating.swift
+[75/118] Compiling CADTopology BRepDistanceMinimumRegion.swift
+[76/118] Compiling CADTopology BRepDistanceQueryResult.swift
+[77/118] Compiling CADTopology BRepDistanceSelection.swift
+[78/118] Compiling CADTopology BRepDistanceWitness.swift
+[79/118] Compiling CADTopology DistanceQueryStorage.swift
+[80/118] Compiling CADTopology OriginalDistanceMagnitude.swift
+[81/118] Compiling CADTopology Loop.swift
+[82/118] Compiling CADTopology OffsetDiskSectionVolumeIntegrator.swift
+[83/118] Compiling CADTopology OriginalPeriodicSeamProof.swift
+[84/118] Compiling CADTopology OrthographicEdgeProjecting.swift
+[85/118] Compiling CADTopology OrthographicProjectedEdge.swift
+[86/118] Compiling CADTopology SolidComplexValidating.swift
+[87/118] Compiling CADTopology SphericalGreatCirclePcurveAreaIntegrator.swift
+[88/118] Compiling CADTopology SurfaceParameterAreaBounds.swift
+[89/118] Compiling CADTopology BRepVolumeMoments.swift
+[90/118] Compiling CADTopology RevolvedSurfaceFaceAreaIntegrator.swift
+[91/118] Compiling CADTopology DefaultSolidComplexValidator.swift
+[92/118] Compiling CADTopology SolidShellComponent.swift
+[93/118] Compiling CADTopology SphereConeBooleanVolumeEvaluator.swift
+[94/118] Compiling CADTopology SphereCylinderBooleanVolumeEvaluator.swift
+[95/118] Compiling CADTopology SphereTorusBooleanVolumeEvaluator.swift
+[96/118] Compiling CADTopology SphericalFaceAreaIntegrator.swift
+[97/118] Compiling CADTopology CertifiedSurfaceFaceAreaIntegrator.swift
+[98/118] Compiling CADTopology OriginalLinearPcurveFluxIntegrator.swift
+[99/118] Compiling CADTopology OriginalParameterLoopCurveView.swift
+[100/118] Compiling CADTopology OriginalParameterQueryStorage.swift
+[101/118] Compiling CADTopology SurfaceAreaAdaptiveIntegral.swift
+[102/118] Compiling CADTopology SurfaceParameterCurveAreaIntegrator.swift
+[103/118] Compiling CADTopology SurfaceParameterLoopUnwrapper.swift
+[104/118] Compiling CADTopology TorusCylinderBooleanVolumeEvaluator.swift
+[105/118] Compiling CADTopology TorusTorusBooleanVolumeEvaluator.swift
+[106/118] Compiling CADTopology TranslationalPrismVolumeEvaluator.swift
+[107/118] Compiling CADTopology TrimmedAnalyticSurfaceVolumeEvaluator.swift
+[108/118] Compiling CADTopology TrimmedParametricSurfaceVolumeEvaluator.swift
+[109/118] Compiling CADTopology TwoSphereBooleanVolumeEvaluator.swift
+[110/118] Compiling CADTopology ValidatedBRepModel.swift
+[111/118] Compiling CADTopology DefaultBRepVolumeMomentMeasurer.swift
+[112/118] Compiling CADTopology VolumeMomentProofBudget.swift
+[113/120] Compiling CADTopology NonManifoldTopologyHandling.swift
+[114/120] Compiling CADTopology Body.swift
+[114/120] Wrapping AST for CADTopology for debugging
+[116/125] Emitting module CADKernel
+[117/125] Compiling CADKernel DefaultOriginalFaceBoundaryClipper+Exact.swift
+[118/125] Compiling CADKernel DefaultOriginalFaceBoundaryClipper.swift
+[119/125] Compiling CADKernel OriginalExactFaceBoundaryClipping.swift
+[120/125] Compiling CADKernel OriginalExactFaceBoundaryIssuer.swift
+[121/129] Compiling CADKernel OriginalExactFaceClippedParameters.swift
+[122/129] Compiling CADKernel OriginalFaceBoundaryClipping.swift
+[123/129] Compiling CADKernel OriginalFaceBoundaryIssuer.swift
+[124/129] Compiling CADKernel OriginalFaceClippedParameters.swift
+[124/129] Wrapping AST for CADKernel for debugging
+[126/132] Emitting module NativeExactBoundaryFixtures
+[127/132] Compiling NativeExactBoundaryFixtures BoundaryPublicationAdmission.swift
+[128/132] Compiling NativeExactBoundaryFixtures ForeignBoundaryConsumer.swift
+[129/134] Compiling NativeExactBoundaryFixtures M6ExactBoundaryFixtures.swift
+[130/134] Compiling NativeExactBoundaryFixtures M6TopologyPortableFixtures.swift
+[130/134] Wrapping AST for NativeExactBoundaryFixtures for debugging
+[132/136] Compiling NativeExactBoundaryProof Proof.swift
+[133/136] Emitting module NativeExactBoundaryProof
+[133/136] Wrapping AST for NativeExactBoundaryProof for debugging
+[134/136] Write Objects.LinkFileList
+[135/136] Linking NativeExactBoundaryProof.wasm
+Build of product 'NativeExactBoundaryProof' complete! (105.78s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

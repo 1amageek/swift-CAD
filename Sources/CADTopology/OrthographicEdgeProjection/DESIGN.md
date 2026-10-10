@@ -64,3 +64,10 @@ trims and interval refusal. Geometry changes affect this composition. Native
 proof does not establish WASM/Embedded or whole-D2/main completion.
 
 [Cancellation tests](../../../Tests/CADTopologyTests/OrthographicEdgeProjectionCancellationTests.swift) verify cancelled entry and cancellation after the injected geometry constructor; neither returns a projected edge.
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.

@@ -47,7 +47,7 @@ struct SurfaceAreaAdaptiveIntegral {
             }
             let evaluation = try evaluate(cell,&work)
             if let values = evaluation.contribution {
-                guard values.count == 4,values.allSatisfy(\.isFinite) else {
+                guard values.count == 4,values.allSatisfy({ $0.isFinite }) else {
                     throw failure(.classificationFailure,tolerance,"Native integration has incomplete or nonfinite moment coverage.")
                 }
             }

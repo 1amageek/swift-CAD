@@ -1,0 +1,1483 @@
+warning: 'nativeexactrelationverification': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalPointRelationProof/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalRealRelationProof/DESIGN.md
+warning: 'nativeexactrelationverification': found 11 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GeometricExtrema/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/VolumeMoments/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OpenBoundaryLoop/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SolidComplex/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GenericShape/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OrthographicEdgeProjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/NonManifoldTopology/DESIGN.md
+warning: 'nativeexactrelationverification': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADKernelBoundary/DESIGN.md
+warning: 'nativeexactrelationverification': found 86 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/OriginalPhysicalAngle/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/ExactParameterDomain/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+warning: 'nativeexactrelationverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/FailureContract/DESIGN.md
+[0/1] Planning build
+Building for debugging...
+[0/15] Write sources
+[4/15] Write swift-version-7EE3F01B468E1A0A.txt
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+[6/13] Emitting module CADTopology
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:417:102: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+415 |                 diagnostics.append(.init(action: .orientSolidComponents,code: .topologyFailure,
+416 |                     entityID: String(describing: id),
+417 |                     message: "Original signed-shell volume could not certify component orientation: \(error)."))
+    |                                                                                                      `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+418 |                 continue
+419 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalCollapsedWireRestorer.swift:64:114: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+62 |                         diagnostics.append(.init(action: .restoreSingularBoundaryUses, code: .topologyFailure,
+63 |                             entityID: String(describing: loopID),
+64 |                             message: "Original collapsed boundary position could not authorize its omitted use: \(error)."))
+   |                                                                                                                  `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+65 |                     }
+66 |                 }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:247:71: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+245 |                     code: .invalidInput,
+246 |                     entityID: key,
+247 |                     message: "Vertex contains an invalid coordinate: \(error)."
+    |                                                                       `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+248 |                 ))
+249 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:310:62: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+308 |                 scope: .references,
+309 |                 code: .invalidInput,
+310 |                 message: "Geometry store validation failed: \(error)."
+    |                                                              `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+311 |             ))
+312 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:418:77: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+416 |                             code: .topologyFailure,
+417 |                             entityID: coedge.edgeID,
+418 |                             message: "Face-local pcurve validation failed: \(error)."
+    |                                                                             `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+419 |                         ))
+420 |                     }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:443:72: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+441 |                     scope: .pcurves,
+442 |                     code: .topologyFailure,
+443 |                     message: "Geometric pcurve correspondence failed: \(error)."
+    |                                                                        `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+444 |                 ))
+445 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:558:54: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+556 |                 scope: .volume,
+557 |                 code: .topologyFailure,
+558 |                 message: "Volume validation failed: \(error)."
+    |                                                      `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+559 |             )]
+560 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift:685:67: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+ 683 |       code: .topologyFailure,
+ 684 |       tolerance: tolerance,
+ 685 |       message: "Face \(faceID) coedge \(edgeID) failed \(stage): \(error)"
+     |                                                                   `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+ 686 |     )
+ 687 |   }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/RationalRevolutionVolumeEvaluator.swift:275:37: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+273 |         tolerance: ModelingTolerance
+274 |     ) throws -> (origin: Point3D, direction: Vector3D)? {
+275 |         let centers = faces.flatMap(\.rows).map(\.center)
+    |                                     `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+276 |         guard let origin = centers.first else {
+277 |             throw TopologyError.missingReference("Rational revolve contains no profile rows.")
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TranslationalPrismVolumeEvaluator.swift:473:51: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+471 |                     )
+472 |                 }
+473 |                 result.formUnion(loop.coedges.map(\.edgeID))
+    |                                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+474 |             }
+475 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedBSplineSurfaceBezierExtractor.swift:64:17: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 62 |             }
+ 63 |             guard controls.flatMap({ $0 }).allSatisfy(
+ 64 |                 \.isFiniteAndPositiveWeight
+    |                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 65 |             ) else {
+ 66 |                 throw KernelError(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TwoSphereBooleanVolumeEvaluator.swift:179:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+177 | 
+178 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+179 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+180 |         guard orientations.count == 1 else { return nil }
+181 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SphereConeBooleanVolumeEvaluator.swift:334:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+332 | 
+333 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+334 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+335 |         guard orientations.count == 1 else { return nil }
+336 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TorusTorusBooleanVolumeEvaluator.swift:481:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+479 | 
+480 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+481 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+482 |         guard orientations.count == 1 else { return nil }
+483 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SphereTorusBooleanVolumeEvaluator.swift:338:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+336 | 
+337 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+338 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+339 |         guard orientations.count == 1 else { return nil }
+340 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SphereCylinderBooleanVolumeEvaluator.swift:355:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+353 | 
+354 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+355 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+356 |         guard orientations.count == 1 else { return nil }
+357 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TorusCylinderBooleanVolumeEvaluator.swift:512:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+510 | 
+511 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+512 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+513 |         guard orientations.count == 1 else { return nil }
+514 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BodyTopology.swift:75:32: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+73 |         switch self {
+74 |         case .solid(let components):
+75 |             components.flatMap(\.shellIDs)
+   |                                `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+76 |         case .sheet(let shellIDs):
+77 |             shellIDs
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/CertifiedSurfaceFaceAreaIntegrator.swift:125:41: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+123 |                     }
+124 |                 }
+125 |                 let curves = lifted.map(\.translatedCurve)
+    |                                         `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+126 |                 let charts = try curves.map { try SurfaceAreaParameterChartEncloser(curve:$0,on:surface,
+127 |                     maximumControlPointCount:options.maximumControlPointCount,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/PeriodicFaceSeamValidator.swift:51:67: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 49 |     ) throws {
+ 50 |         try tolerance.validate()
+ 51 |         let repeatedUses = Dictionary(grouping: loop.coedges, by: \.edgeID)
+    |                                                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 52 |             .filter { $0.value.count > 1 }
+ 53 |         for edgeID in repeatedUses.keys.sorted() {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceParameterCurveAreaIntegrator.swift:803:19: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 801 |     let deviationU = try chordDeviationUpperBound(
+ 802 |       patch,
+ 803 |       coordinate: \Point2D.x,
+     |                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 804 |       tolerance: tolerance
+ 805 |     )
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:247:71: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+245 |                     code: .invalidInput,
+246 |                     entityID: key,
+247 |                     message: "Vertex contains an invalid coordinate: \(error)."
+    |                                                                       `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+248 |                 ))
+249 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairRequest.swift:68:99: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+66 |                 code: .invalidInput,
+67 |                 tolerance: tolerance,
+68 |                 message: "B-rep repair validation is missing required scopes: \(missingScopes.map(\.rawValue).sorted().joined(separator: ", "))."
+   |                                                                                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+69 |             )
+70 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairResult.swift:7:58: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 5 |     public let changes: [BRepRepairChange]
+ 6 |     public let diagnostics: [BRepRepairDiagnostic]
+ 7 |     public var maximumDisplacement: Double { changes.map(\.maximumDisplacement).max() ?? 0 }
+   |                                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 8 |     public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
+ 9 |     public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairResult.swift:8:56: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 6 |     public let diagnostics: [BRepRepairDiagnostic]
+ 7 |     public var maximumDisplacement: Double { changes.map(\.maximumDisplacement).max() ?? 0 }
+ 8 |     public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
+   |                                                        `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 9 |     public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
+10 |     public var deletedEntityIDs: [String] { Array(Set(changes.flatMap(\.deletedEntityIDs))).sorted() }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairResult.swift:9:73: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 7 |     public var maximumDisplacement: Double { changes.map(\.maximumDisplacement).max() ?? 0 }
+ 8 |     public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
+ 9 |     public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
+   |                                                                         `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+10 |     public var deletedEntityIDs: [String] { Array(Set(changes.flatMap(\.deletedEntityIDs))).sorted() }
+11 | 
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairResult.swift:10:71: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 8 |     public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
+ 9 |     public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
+10 |     public var deletedEntityIDs: [String] { Array(Set(changes.flatMap(\.deletedEntityIDs))).sorted() }
+   |                                                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+11 | 
+12 |     public init(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepEdgeLengthEvaluator.swift:35:38: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+33 |             tolerance: tolerance
+34 |         )
+35 |         return try arcLengthResolver.enclosure(
+   |                                      `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+36 |             of: curve,
+37 |             over: interval,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:274:52: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+272 |                 try CurrentTaskCancellationChecker().checkCancellation()
+273 |                 guard var loop=model.loops[id],loop.coedges.allSatisfy({$0.surfaceParameterCurve != nil})else{continue}
+274 |                 let curves=loop.coedges.compactMap(\.surfaceParameterCurve)
+    |                                                    `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+275 |                 let lifted=try SurfaceParameterLoopUnwrapper().unwrap(curves,on:surface,tolerance:tolerance,context:"Periodic chart repair")
+276 |                 let repaired=lifted.map(\.translatedCurve)
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:327:49: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+325 |         let replacedCurveIDs=Set(removed.compactMap{model.edges[$0]?.curveID})
+326 |         for id in removed{model.edges[id]=nil}
+327 |         let curveIDs=Set(model.edges.values.map(\.curveID))
+    |                                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+328 |         let removedCurves=replacedCurveIDs.filter{!curveIDs.contains($0)}.sorted()
+329 |         for id in removedCurves{model.geometry.curves[id]=nil}
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1159:28: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1157 |             }
+1158 |             let evaluatedWeight = try derivativeValue(
+1159 |                 component: \HomogeneousPoint.weight,
+     |                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1160 |                 uOrder: 0,
+1161 |                 vOrder: 0,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalCollapsedWireRestorer.swift:64:114: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+62 |                         diagnostics.append(.init(action: .restoreSingularBoundaryUses, code: .topologyFailure,
+63 |                             entityID: String(describing: loopID),
+64 |                             message: "Original collapsed boundary position could not authorize its omitted use: \(error)."))
+   |                                                                                                                  `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+65 |                     }
+66 |                 }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalDuplicateFaceRepair.swift:62:63: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 60 |         }
+ 61 |         guard !removed.isEmpty else { return }
+ 62 |         let referencedFaces = Set(model.shells.values.flatMap(\.faceIDs))
+    |                                                               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 63 |         let deleted = removed.subtracting(referencedFaces)
+ 64 |         let candidateLoops = Set(deleted.flatMap { original.faces[$0]?.loops ?? [] })
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPairPcurveAreaIntegrator.swift:1359:15: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1357 |     var result = CertifiedIntervalSummation.sum(
+1358 |       heap.storage,
+1359 |       bounds: \.bounds
+     |               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1360 |     )
+1361 |     result = result.adding(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPairPcurveAreaIntegrator.swift:941:15: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 939 |     let result = CertifiedIntervalSummation.sum(
+ 940 |       heap.storage,
+ 941 |       bounds: \.bounds
+     |               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 942 |     )
+ 943 |     guard result.width <= requestedWidth.nextUp else {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPairPcurveAreaIntegrator.swift:1995:15: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1993 |     let result = CertifiedIntervalSummation.sum(
+1994 |       heap.storage,
+1995 |       bounds: \.bounds
+     |               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1996 |     )
+1997 |     guard result.width <= requestedWidth.nextUp else {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:5683:34: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+5681 |       let uvIntegral = integratedProduct(u, vDerivative)
+5682 |       parameterArea = parameterArea + uvIntegral
+5683 |       let lowerU = uControls.map(\.lower).min() ?? -.infinity
+     |                                  `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+5684 |       let upperU = uControls.map(\.upper).max() ?? .infinity
+5685 |       let center = lowerU + (upperU - lowerU) * 0.5
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedBSplineCurveBezierExtractor.swift:100:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 98 |                 tolerance: tolerance
+ 99 |             )
+100 |             guard controls.allSatisfy(\.isFiniteAndPositiveWeight) else {
+    |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+101 |                 throw KernelError(
+102 |                     phase: .topology,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:5897:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+5895 |   ) throws -> PreparedRationalPcurvePatch {
+5896 |     guard patch.degree >= 1,
+5897 |       patch.controls.allSatisfy(\.isFiniteAndPositiveWeight)
+     |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+5898 |     else {
+5899 |       throw KernelError(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedHomogeneousBezierCurvePatch.swift:40:35: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 38 |     ) throws -> [HomogeneousPoint] {
+ 39 |         guard controls.count >= 2,
+ 40 |               controls.allSatisfy(\.isFiniteAndPositiveWeight),
+    |                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 41 |               fractionLower.isFinite,
+ 42 |               fractionUpper.isFinite,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3566:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3564 |     _ spans: [CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField.ParameterSpan]
+3565 |   ) -> [Double] {
+3566 |     guard let lower = spans.map(\.lower).min(),
+     |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3567 |       let upper = spans.map(\.upper).max()
+3568 |     else {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1257:31: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1255 |             switch projection {
+1256 |             case .normalX:
+1257 |                 components = (\HomogeneousPoint.y, \HomogeneousPoint.z)
+     |                               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1258 |             case .normalY:
+1259 |                 components = (\HomogeneousPoint.z, \HomogeneousPoint.x)
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:600:36: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 598 |             }
+ 599 |             return CertifiedUnivariateTaylorJet.Interval(
+ 600 |                 lower: (ranges.map(\.lower).min() ?? -.infinity).nextDown,
+     |                                    `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 601 |                 upper: (ranges.map(\.upper).max() ?? .infinity).nextUp
+ 602 |             )
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:2403:36: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+2401 |         static func hull(_ values: [Interval]) -> Interval {
+2402 |             Interval(
+2403 |                 lower: (values.map(\.lower).min() ?? -.infinity).nextDown,
+     |                                    `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+2404 |                 upper: (values.map(\.upper).max() ?? .infinity).nextUp
+2405 |             )
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1227:28: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1225 |             }
+1226 |             var weight = try univariateValue(
+1227 |                 component: \HomogeneousPoint.weight,
+     |                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1228 |                 uOrder: 0,
+1229 |                 vOrder: 0,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:446:44: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 444 |             return SecondOrderBounds(
+ 445 |                 value: TaylorInterval(
+ 446 |                     lower: localBounds.map(\.value.lower).min() ?? -.infinity,
+     |                                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 447 |                     upper: localBounds.map(\.value.upper).max() ?? .infinity
+ 448 |                 ),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedHomogeneousBezierCurvePatch.swift:79:35: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 77 |     ) throws -> [CertifiedHomogeneousBezierCurvePatch] {
+ 78 |         guard controls.count >= 2,
+ 79 |               controls.allSatisfy(\.isFiniteAndPositiveWeight),
+    |                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 80 |               lower.isFinite,
+ 81 |               upper.isFinite,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepRepairer.swift:238:48: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+236 |             return .sheet(shellIDs: unique(shellIDs))
+237 |         case .solid(let components):
+238 |             let outerShellIDs = components.map(\.outerShellID)
+    |                                                `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+239 |             let uniqueOuterShellIDs = Set(outerShellIDs)
+240 |             guard uniqueOuterShellIDs.count == outerShellIDs.count else {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GeometricExtrema/DefaultBRepDistanceQuery.swift:498:37: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+496 |         -> ((Point3D,[Double]),(Point3D,[Double]))? {
+497 |         try DistanceQueryStorage.charge(first.intervals.count+second.intervals.count,of: Double.self,budget: budget)
+498 |         var a = first.intervals.map(\.midpoint), b = second.intervals.map(\.midpoint)
+    |                                     `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+499 |         func evaluated(_ domain: Domain, _ parameters: [Double]) throws
+500 |             -> (point: Point3D, bounds: CoordinateEnclosure3D) {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OpenBoundaryLoop/OpenBoundaryLoopResolver.swift:65:22: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 63 |     ) -> Bool {
+ 64 |         let faceIDs = Set(body.shellIDs.compactMap { model.shells[$0] }
+ 65 |             .flatMap(\.faceIDs))
+    |                      `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 66 |         guard faceIDs.isEmpty == false else { return false }
+ 67 |         guard faceIDs.count == 1,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/RationalRevolutionProfileMomentBuilder.swift:41:41: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 39 |         guard degree >= 1,
+ 40 |               patch.controls.count == degree + 1,
+ 41 |               patch.controls.allSatisfy(\.isFiniteAndPositiveWeight),
+    |                                         `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 42 |               patch.upper > patch.lower else {
+ 43 |             throw KernelError(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/SurfaceAreaAdaptiveIntegral.swift:50:59: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 48 |             let evaluation = try evaluate(cell,&work)
+ 49 |             if let values = evaluation.contribution {
+ 50 |                 guard values.count == 4,values.allSatisfy(\.isFinite) else {
+    |                                                           `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 51 |                     throw failure(.classificationFailure,tolerance,"Native integration has incomplete or nonfinite moment coverage.")
+ 52 |                 }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TrimmedAnalyticSurfaceVolumeEvaluator.swift:292:43: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 290 |       context: "Analytic coordinate-loop volume"
+ 291 |     )
+ 292 |     let integrationCurves = unwrapped.map(\.translatedCurve)
+     |                                           `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 293 |     guard
+ 294 |       let contribution = try coordinateLoopContribution(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TrimmedAnalyticSurfaceVolumeEvaluator.swift:342:43: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 340 |       context: "Analytic pcurve-loop volume"
+ 341 |     )
+ 342 |     let integrationCurves = unwrapped.map(\.translatedCurve)
+     |                                           `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 343 |     guard
+ 344 |       let contribution = try analyticLoopContribution(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/VolumeMoments/DefaultBRepVolumeMomentMeasurer.swift:86:76: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 84 |                         tolerance: tolerance, context: "Volume moments",
+ 85 |                         maximumSubdivisionDepth: options.maximumSubdivisionDepth, remainingSourceDepth: 16,
+ 86 |                         consumeWork: { try budget.charge(depth: $0) }).map(\.translatedCurve)
+    |                                                                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 87 |                     predicates.append((loop.role, try CertifiedSurfaceParameterLoopPredicate(curves: lifted,
+ 88 |                         on: surface, tolerance: tolerance, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/AnalyticPrismaticVolumeEvaluator.swift:360:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 358 |     ) throws -> Double? {
+ 359 |         guard let reference = faces.first else { return nil }
+ 360 |         let orientations = Set(faces.map(\.face.orientation))
+     |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 361 |         guard orientations.count == 1 else { return nil }
+ 362 |         for face in faces.dropFirst() {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/AnalyticPrismaticVolumeEvaluator.swift:380:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 378 |         guard let reference = faces.first else { return nil }
+ 379 |         let referenceAxis = try reference.axis.normalized(tolerance: tolerance.distance)
+ 380 |         let orientations = Set(faces.map(\.face.orientation))
+     |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 381 |         guard orientations.count == 1 else { return nil }
+ 382 |         for face in faces.dropFirst() {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/AnalyticPrismaticVolumeEvaluator.swift:962:35: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 960 |             }
+ 961 |         }
+ 962 |         guard let area = caps.map(\.area).max() else {
+     |                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 963 |             return nil
+ 964 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/AnalyticPrismaticVolumeEvaluator.swift:1159:45: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1157 |             parameters.append(try pcurve.endParameter(tolerance: tolerance))
+1158 |         }
+1159 |         guard let minimumU = parameters.map(\.u).min(),
+     |                                             `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1160 |               let maximumU = parameters.map(\.u).max(),
+1161 |               let minimumV = parameters.map(\.v).min(),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:323:70: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+321 |             }
+322 |         }
+323 |         let referenced=Set(model.loops.values.flatMap{$0.coedges.map(\.edgeID)})
+    |                                                                      `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+324 |         let removed=replacedEdges.filter{!referenced.contains($0)}.sorted()
+325 |         let replacedCurveIDs=Set(removed.compactMap{model.edges[$0]?.curveID})
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalDuplicateFaceRepair.swift:65:91: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 63 |         let deleted = removed.subtracting(referencedFaces)
+ 64 |         let candidateLoops = Set(deleted.flatMap { original.faces[$0]?.loops ?? [] })
+ 65 |         let candidateEdges = Set(candidateLoops.flatMap { original.loops[$0]?.coedges.map(\.edgeID) ?? [] })
+    |                                                                                           `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 66 |         let candidateVertices = Set(candidateEdges.flatMap { id -> [VertexID] in
+ 67 |             guard let edge = original.edges[id] else { return [] }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalDuplicateFaceRepair.swift:75:79: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 73 |         let referencedLoops = Set(model.faces.values.flatMap(\.loops))
+ 74 |         for id in candidateLoops where !referencedLoops.contains(id) { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0); model.loops[id] = nil }
+ 75 |         let referencedEdges = Set(model.loops.values.flatMap { $0.coedges.map(\.edgeID) })
+    |                                                                               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 76 |         for id in candidateEdges where !referencedEdges.contains(id) { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0); model.edges[id] = nil }
+ 77 |         let referencedVertices = Set(model.edges.values.flatMap { [$0.startVertexID, $0.endVertexID] })
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3676:41: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3674 |     tolerance: ModelingTolerance
+3675 |   ) throws -> SeamEnclosure {
+3676 |     guard let uLower = field.uSpans.map(\.lower).min(),
+     |                                         `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3677 |       let uUpper = field.uSpans.map(\.upper).max(),
+3678 |       let vLower = field.vSpans.map(\.lower).min(),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3256:29: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3254 |       startParameter, endParameter,
+3255 |     ]
+3256 |     guard values.allSatisfy(\.isFinite) else {
+     |                             `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3257 |       throw KernelError(
+3258 |         phase: .topology,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3365:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3363 |   ) throws -> [Double] {
+3364 |     guard patch.degree >= 1,
+3365 |       patch.controls.allSatisfy(\.isFiniteAndPositiveWeight)
+     |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3366 |     else {
+3367 |       throw KernelError(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3419:44: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3417 |     // A root is located no closer than the controls' own bounds (carried through the piece's
+3418 |     // extraction) place the coordinate, so the slack is the larger of roundoff and that width.
+3419 |     let minimumWeight = weightControls.map(\.lower).min() ?? 0.0
+     |                                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3420 |     let inputUncertainty = minimumWeight > 0.0
+3421 |       ? differences.map { $0.upper - $0.lower }.max().map { $0 / minimumWeight } ?? 0.0
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3524:35: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3522 |       max(partial, abs(value.lower), abs(value.upper))
+3523 |     }
+3524 |     let denominator = weights.map(\.lower).min() ?? 0.0
+     |                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3525 |     guard numerator.isFinite,
+3526 |       denominator.isFinite,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1668:28: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1666 |         ) throws -> Interval {
+1667 |             let valueX = try coordinateJet(
+1668 |                 component: \HomogeneousPoint.x,
+     |                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1669 |                 primary: primary,
+1670 |                 tolerance: tolerance
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1304:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1302 |         ) throws -> ScalarPolynomial2D {
+1303 |             let weight = ScalarPolynomial2D(
+1304 |                 controls.map { $0.map(\.weight) }
+     |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1305 |             )
+1306 |             let x = try ScalarPolynomial2D(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1307:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1305 |             )
+1306 |             let x = try ScalarPolynomial2D(
+1307 |                 controls.map { $0.map(\.x) }
+     |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1308 |             ).subtracting(
+1309 |                 weight.scaled(by: reference.x),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1313:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1311 |             )
+1312 |             let y = try ScalarPolynomial2D(
+1313 |                 controls.map { $0.map(\.y) }
+     |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1314 |             ).subtracting(
+1315 |                 weight.scaled(by: reference.y),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1319:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1317 |             )
+1318 |             let z = try ScalarPolynomial2D(
+1319 |                 controls.map { $0.map(\.z) }
+     |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1320 |             ).subtracting(
+1321 |                 weight.scaled(by: reference.z),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1602:51: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1600 |         ) throws -> Interval {
+1601 |             let controlHull = Interval.hull(
+1602 |                 controls.flatMap { row in row.map(\.weight) }
+     |                                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1603 |             )
+1604 |             guard let certified = evaluated.intersection(controlHull),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepRepairer.swift:305:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+303 |             return .rejected("An empty loop has no cycle to reorder.")
+304 |         }
+305 |         if Set(loop.coedges.map(\.edgeID)).count != loop.coedges.count {
+    |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+306 |             let owningFaces = model.faces.values.filter {
+307 |                 $0.loops.contains(loop.id)
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepRepairer.swift:440:56: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+438 |         changes: inout [BRepRepairChange]
+439 |     ) {
+440 |         let shellIDs = Set(model.bodies.values.flatMap(\.shellIDs))
+    |                                                        `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+441 |         let faceIDs = Set(shellIDs.compactMap { model.shells[$0] }.flatMap(\.faceIDs))
+442 |         let loopIDs = Set(faceIDs.compactMap { model.faces[$0] }.flatMap(\.loops))
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepRepairer.swift:444:28: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+442 |         let loopIDs = Set(faceIDs.compactMap { model.faces[$0] }.flatMap(\.loops))
+443 |         let edgeIDs = Set(loopIDs.compactMap { model.loops[$0] }.flatMap {
+444 |             $0.coedges.map(\.edgeID)
+    |                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+445 |         })
+446 |         let edges = edgeIDs.compactMap { model.edges[$0] }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:349:37: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+347 |                 continue
+348 |             }
+349 |             if Set(loop.coedges.map(\.edgeID)).count != loop.coedges.count,
+    |                                     `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+350 |                surfacesByLoopID[loopID].map({ surface in
+351 |                    PeriodicFaceSeamValidator().certifiesRepeatedEdgeUses(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:418:77: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+416 |                             code: .topologyFailure,
+417 |                             entityID: coedge.edgeID,
+418 |                             message: "Face-local pcurve validation failed: \(error)."
+    |                                                                             `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+419 |                         ))
+420 |                     }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:558:54: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+556 |                 scope: .volume,
+557 |                 code: .topologyFailure,
+558 |                 message: "Volume validation failed: \(error)."
+    |                                                      `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+559 |             )]
+560 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OpenBoundaryLoop/OpenBoundaryLoopResolver.swift:78:17: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 76 |             loop.role == .inner
+ 77 |                 && loop.coedges.count == boundary.traversals.count
+ 78 |                 && Set(loop.coedges.map(\.edgeID)) == boundaryEdgeIDs
+    |                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 79 |         }
+ 80 |     }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift:685:67: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+ 683 |       code: .topologyFailure,
+ 684 |       tolerance: tolerance,
+ 685 |       message: "Face \(faceID) coedge \(edgeID) failed \(stage): \(error)"
+     |                                                                   `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+ 686 |     )
+ 687 |   }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift:1046:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1044 |     } else {
+1045 |       shiftedCurves = try SurfaceParameterLoopUnwrapper().unwrap(
+1046 |         loop.coedges.compactMap(\.surfaceParameterCurve), uPeriod: uPeriod, vPeriod: vPeriod,
+     |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1047 |         uClosureTolerance: uClosureTolerance, vClosureTolerance: vClosureTolerance,
+1048 |         on: surface, tolerance: tolerance, context: "Surface loop \(loop.id)")
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/CertifiedSurfaceFaceAreaIntegrator.swift:630:37: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+628 |         guard Set(starts).count == 4,
+629 |               starts.indices.allSatisfy({ ends[$0] == starts[($0 + 1) % 4] }),
+630 |               let uLow = starts.map(\.u).min(), let uHigh = starts.map(\.u).max(),
+    |                                     `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+631 |               let vLow = starts.map(\.v).min(), let vHigh = starts.map(\.v).max(),
+632 |               uHigh > uLow, vHigh > vLow,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/CertifiedSurfaceFaceAreaIntegrator.swift:554:45: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+552 |                     // Aggregate uncertainty, rather than goal*cellMeasure, owns acceptance.
+553 |                     let values = bounds.map { $0.value*measure }
+554 |                     guard values.allSatisfy(\.isFinite) else {
+    |                                             `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+555 |                         throw failure(.classificationFailure,tolerance,"Native range-only area integral exceeded finite arithmetic.")
+556 |                     }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TrimmedAnalyticSurfaceVolumeEvaluator.swift:250:30: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 248 |         context: "Analytic face loop \(loop.id)"
+ 249 |       )
+ 250 |       curves = unwrapped.map(\.translatedCurve)
+     |                              `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 251 |       guard
+ 252 |         let contribution = try analyticLoopContribution(
+
+[#EmbeddedRestrictions]: <https://docs.swift.org/compiler/documentation/diagnostics/embedded-restrictions>
+[7/13] Compiling CADTopology AnalyticConicSurfaceValidator.swift
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:417:102: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+415 |                 diagnostics.append(.init(action: .orientSolidComponents,code: .topologyFailure,
+416 |                     entityID: String(describing: id),
+417 |                     message: "Original signed-shell volume could not certify component orientation: \(error)."))
+    |                                                                                                      `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+418 |                 continue
+419 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalCollapsedWireRestorer.swift:64:114: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+62 |                         diagnostics.append(.init(action: .restoreSingularBoundaryUses, code: .topologyFailure,
+63 |                             entityID: String(describing: loopID),
+64 |                             message: "Original collapsed boundary position could not authorize its omitted use: \(error)."))
+   |                                                                                                                  `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+65 |                     }
+66 |                 }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:247:71: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+245 |                     code: .invalidInput,
+246 |                     entityID: key,
+247 |                     message: "Vertex contains an invalid coordinate: \(error)."
+    |                                                                       `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+248 |                 ))
+249 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:310:62: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+308 |                 scope: .references,
+309 |                 code: .invalidInput,
+310 |                 message: "Geometry store validation failed: \(error)."
+    |                                                              `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+311 |             ))
+312 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:418:77: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+416 |                             code: .topologyFailure,
+417 |                             entityID: coedge.edgeID,
+418 |                             message: "Face-local pcurve validation failed: \(error)."
+    |                                                                             `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+419 |                         ))
+420 |                     }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:443:72: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+441 |                     scope: .pcurves,
+442 |                     code: .topologyFailure,
+443 |                     message: "Geometric pcurve correspondence failed: \(error)."
+    |                                                                        `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+444 |                 ))
+445 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:558:54: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+556 |                 scope: .volume,
+557 |                 code: .topologyFailure,
+558 |                 message: "Volume validation failed: \(error)."
+    |                                                      `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+559 |             )]
+560 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift:685:67: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+ 683 |       code: .topologyFailure,
+ 684 |       tolerance: tolerance,
+ 685 |       message: "Face \(faceID) coedge \(edgeID) failed \(stage): \(error)"
+     |                                                                   `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+ 686 |     )
+ 687 |   }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/RationalRevolutionVolumeEvaluator.swift:275:37: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+273 |         tolerance: ModelingTolerance
+274 |     ) throws -> (origin: Point3D, direction: Vector3D)? {
+275 |         let centers = faces.flatMap(\.rows).map(\.center)
+    |                                     `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+276 |         guard let origin = centers.first else {
+277 |             throw TopologyError.missingReference("Rational revolve contains no profile rows.")
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TranslationalPrismVolumeEvaluator.swift:473:51: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+471 |                     )
+472 |                 }
+473 |                 result.formUnion(loop.coedges.map(\.edgeID))
+    |                                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+474 |             }
+475 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedBSplineSurfaceBezierExtractor.swift:64:17: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 62 |             }
+ 63 |             guard controls.flatMap({ $0 }).allSatisfy(
+ 64 |                 \.isFiniteAndPositiveWeight
+    |                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 65 |             ) else {
+ 66 |                 throw KernelError(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TwoSphereBooleanVolumeEvaluator.swift:179:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+177 | 
+178 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+179 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+180 |         guard orientations.count == 1 else { return nil }
+181 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SphereConeBooleanVolumeEvaluator.swift:334:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+332 | 
+333 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+334 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+335 |         guard orientations.count == 1 else { return nil }
+336 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TorusTorusBooleanVolumeEvaluator.swift:481:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+479 | 
+480 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+481 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+482 |         guard orientations.count == 1 else { return nil }
+483 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SphereTorusBooleanVolumeEvaluator.swift:338:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+336 | 
+337 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+338 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+339 |         guard orientations.count == 1 else { return nil }
+340 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SphereCylinderBooleanVolumeEvaluator.swift:355:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+353 | 
+354 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+355 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+356 |         guard orientations.count == 1 else { return nil }
+357 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TorusCylinderBooleanVolumeEvaluator.swift:512:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+510 | 
+511 |     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
+512 |         let orientations = Set(faces.map(\.orientation))
+    |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+513 |         guard orientations.count == 1 else { return nil }
+514 |         return orientations.first
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BodyTopology.swift:75:32: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+73 |         switch self {
+74 |         case .solid(let components):
+75 |             components.flatMap(\.shellIDs)
+   |                                `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+76 |         case .sheet(let shellIDs):
+77 |             shellIDs
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/CertifiedSurfaceFaceAreaIntegrator.swift:125:41: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+123 |                     }
+124 |                 }
+125 |                 let curves = lifted.map(\.translatedCurve)
+    |                                         `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+126 |                 let charts = try curves.map { try SurfaceAreaParameterChartEncloser(curve:$0,on:surface,
+127 |                     maximumControlPointCount:options.maximumControlPointCount,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/PeriodicFaceSeamValidator.swift:51:67: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 49 |     ) throws {
+ 50 |         try tolerance.validate()
+ 51 |         let repeatedUses = Dictionary(grouping: loop.coedges, by: \.edgeID)
+    |                                                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 52 |             .filter { $0.value.count > 1 }
+ 53 |         for edgeID in repeatedUses.keys.sorted() {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceParameterCurveAreaIntegrator.swift:803:19: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 801 |     let deviationU = try chordDeviationUpperBound(
+ 802 |       patch,
+ 803 |       coordinate: \Point2D.x,
+     |                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 804 |       tolerance: tolerance
+ 805 |     )
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:247:71: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+245 |                     code: .invalidInput,
+246 |                     entityID: key,
+247 |                     message: "Vertex contains an invalid coordinate: \(error)."
+    |                                                                       `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+248 |                 ))
+249 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairRequest.swift:68:99: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+66 |                 code: .invalidInput,
+67 |                 tolerance: tolerance,
+68 |                 message: "B-rep repair validation is missing required scopes: \(missingScopes.map(\.rawValue).sorted().joined(separator: ", "))."
+   |                                                                                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+69 |             )
+70 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairResult.swift:7:58: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 5 |     public let changes: [BRepRepairChange]
+ 6 |     public let diagnostics: [BRepRepairDiagnostic]
+ 7 |     public var maximumDisplacement: Double { changes.map(\.maximumDisplacement).max() ?? 0 }
+   |                                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 8 |     public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
+ 9 |     public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairResult.swift:8:56: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 6 |     public let diagnostics: [BRepRepairDiagnostic]
+ 7 |     public var maximumDisplacement: Double { changes.map(\.maximumDisplacement).max() ?? 0 }
+ 8 |     public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
+   |                                                        `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 9 |     public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
+10 |     public var deletedEntityIDs: [String] { Array(Set(changes.flatMap(\.deletedEntityIDs))).sorted() }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairResult.swift:9:73: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 7 |     public var maximumDisplacement: Double { changes.map(\.maximumDisplacement).max() ?? 0 }
+ 8 |     public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
+ 9 |     public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
+   |                                                                         `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+10 |     public var deletedEntityIDs: [String] { Array(Set(changes.flatMap(\.deletedEntityIDs))).sorted() }
+11 | 
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepRepairResult.swift:10:71: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 8 |     public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
+ 9 |     public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
+10 |     public var deletedEntityIDs: [String] { Array(Set(changes.flatMap(\.deletedEntityIDs))).sorted() }
+   |                                                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+11 | 
+12 |     public init(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepEdgeLengthEvaluator.swift:35:38: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+33 |             tolerance: tolerance
+34 |         )
+35 |         return try arcLengthResolver.enclosure(
+   |                                      `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+36 |             of: curve,
+37 |             over: interval,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:274:52: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+272 |                 try CurrentTaskCancellationChecker().checkCancellation()
+273 |                 guard var loop=model.loops[id],loop.coedges.allSatisfy({$0.surfaceParameterCurve != nil})else{continue}
+274 |                 let curves=loop.coedges.compactMap(\.surfaceParameterCurve)
+    |                                                    `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+275 |                 let lifted=try SurfaceParameterLoopUnwrapper().unwrap(curves,on:surface,tolerance:tolerance,context:"Periodic chart repair")
+276 |                 let repaired=lifted.map(\.translatedCurve)
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:327:49: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+325 |         let replacedCurveIDs=Set(removed.compactMap{model.edges[$0]?.curveID})
+326 |         for id in removed{model.edges[id]=nil}
+327 |         let curveIDs=Set(model.edges.values.map(\.curveID))
+    |                                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+328 |         let removedCurves=replacedCurveIDs.filter{!curveIDs.contains($0)}.sorted()
+329 |         for id in removedCurves{model.geometry.curves[id]=nil}
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1159:28: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1157 |             }
+1158 |             let evaluatedWeight = try derivativeValue(
+1159 |                 component: \HomogeneousPoint.weight,
+     |                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1160 |                 uOrder: 0,
+1161 |                 vOrder: 0,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalCollapsedWireRestorer.swift:64:114: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+62 |                         diagnostics.append(.init(action: .restoreSingularBoundaryUses, code: .topologyFailure,
+63 |                             entityID: String(describing: loopID),
+64 |                             message: "Original collapsed boundary position could not authorize its omitted use: \(error)."))
+   |                                                                                                                  `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+65 |                     }
+66 |                 }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalDuplicateFaceRepair.swift:62:63: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 60 |         }
+ 61 |         guard !removed.isEmpty else { return }
+ 62 |         let referencedFaces = Set(model.shells.values.flatMap(\.faceIDs))
+    |                                                               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 63 |         let deleted = removed.subtracting(referencedFaces)
+ 64 |         let candidateLoops = Set(deleted.flatMap { original.faces[$0]?.loops ?? [] })
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPairPcurveAreaIntegrator.swift:1359:15: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1357 |     var result = CertifiedIntervalSummation.sum(
+1358 |       heap.storage,
+1359 |       bounds: \.bounds
+     |               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1360 |     )
+1361 |     result = result.adding(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPairPcurveAreaIntegrator.swift:941:15: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 939 |     let result = CertifiedIntervalSummation.sum(
+ 940 |       heap.storage,
+ 941 |       bounds: \.bounds
+     |               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 942 |     )
+ 943 |     guard result.width <= requestedWidth.nextUp else {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPairPcurveAreaIntegrator.swift:1995:15: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1993 |     let result = CertifiedIntervalSummation.sum(
+1994 |       heap.storage,
+1995 |       bounds: \.bounds
+     |               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1996 |     )
+1997 |     guard result.width <= requestedWidth.nextUp else {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:5683:34: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+5681 |       let uvIntegral = integratedProduct(u, vDerivative)
+5682 |       parameterArea = parameterArea + uvIntegral
+5683 |       let lowerU = uControls.map(\.lower).min() ?? -.infinity
+     |                                  `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+5684 |       let upperU = uControls.map(\.upper).max() ?? .infinity
+5685 |       let center = lowerU + (upperU - lowerU) * 0.5
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedBSplineCurveBezierExtractor.swift:100:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 98 |                 tolerance: tolerance
+ 99 |             )
+100 |             guard controls.allSatisfy(\.isFiniteAndPositiveWeight) else {
+    |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+101 |                 throw KernelError(
+102 |                     phase: .topology,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:5897:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+5895 |   ) throws -> PreparedRationalPcurvePatch {
+5896 |     guard patch.degree >= 1,
+5897 |       patch.controls.allSatisfy(\.isFiniteAndPositiveWeight)
+     |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+5898 |     else {
+5899 |       throw KernelError(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedHomogeneousBezierCurvePatch.swift:40:35: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 38 |     ) throws -> [HomogeneousPoint] {
+ 39 |         guard controls.count >= 2,
+ 40 |               controls.allSatisfy(\.isFiniteAndPositiveWeight),
+    |                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 41 |               fractionLower.isFinite,
+ 42 |               fractionUpper.isFinite,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3566:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3564 |     _ spans: [CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField.ParameterSpan]
+3565 |   ) -> [Double] {
+3566 |     guard let lower = spans.map(\.lower).min(),
+     |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3567 |       let upper = spans.map(\.upper).max()
+3568 |     else {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1257:31: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1255 |             switch projection {
+1256 |             case .normalX:
+1257 |                 components = (\HomogeneousPoint.y, \HomogeneousPoint.z)
+     |                               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1258 |             case .normalY:
+1259 |                 components = (\HomogeneousPoint.z, \HomogeneousPoint.x)
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:600:36: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 598 |             }
+ 599 |             return CertifiedUnivariateTaylorJet.Interval(
+ 600 |                 lower: (ranges.map(\.lower).min() ?? -.infinity).nextDown,
+     |                                    `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 601 |                 upper: (ranges.map(\.upper).max() ?? .infinity).nextUp
+ 602 |             )
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:2403:36: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+2401 |         static func hull(_ values: [Interval]) -> Interval {
+2402 |             Interval(
+2403 |                 lower: (values.map(\.lower).min() ?? -.infinity).nextDown,
+     |                                    `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+2404 |                 upper: (values.map(\.upper).max() ?? .infinity).nextUp
+2405 |             )
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1227:28: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1225 |             }
+1226 |             var weight = try univariateValue(
+1227 |                 component: \HomogeneousPoint.weight,
+     |                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1228 |                 uOrder: 0,
+1229 |                 vOrder: 0,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:446:44: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 444 |             return SecondOrderBounds(
+ 445 |                 value: TaylorInterval(
+ 446 |                     lower: localBounds.map(\.value.lower).min() ?? -.infinity,
+     |                                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 447 |                     upper: localBounds.map(\.value.upper).max() ?? .infinity
+ 448 |                 ),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedHomogeneousBezierCurvePatch.swift:79:35: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 77 |     ) throws -> [CertifiedHomogeneousBezierCurvePatch] {
+ 78 |         guard controls.count >= 2,
+ 79 |               controls.allSatisfy(\.isFiniteAndPositiveWeight),
+    |                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 80 |               lower.isFinite,
+ 81 |               upper.isFinite,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepRepairer.swift:238:48: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+236 |             return .sheet(shellIDs: unique(shellIDs))
+237 |         case .solid(let components):
+238 |             let outerShellIDs = components.map(\.outerShellID)
+    |                                                `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+239 |             let uniqueOuterShellIDs = Set(outerShellIDs)
+240 |             guard uniqueOuterShellIDs.count == outerShellIDs.count else {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GeometricExtrema/DefaultBRepDistanceQuery.swift:498:37: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+496 |         -> ((Point3D,[Double]),(Point3D,[Double]))? {
+497 |         try DistanceQueryStorage.charge(first.intervals.count+second.intervals.count,of: Double.self,budget: budget)
+498 |         var a = first.intervals.map(\.midpoint), b = second.intervals.map(\.midpoint)
+    |                                     `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+499 |         func evaluated(_ domain: Domain, _ parameters: [Double]) throws
+500 |             -> (point: Point3D, bounds: CoordinateEnclosure3D) {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OpenBoundaryLoop/OpenBoundaryLoopResolver.swift:65:22: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 63 |     ) -> Bool {
+ 64 |         let faceIDs = Set(body.shellIDs.compactMap { model.shells[$0] }
+ 65 |             .flatMap(\.faceIDs))
+    |                      `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 66 |         guard faceIDs.isEmpty == false else { return false }
+ 67 |         guard faceIDs.count == 1,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/RationalRevolutionProfileMomentBuilder.swift:41:41: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 39 |         guard degree >= 1,
+ 40 |               patch.controls.count == degree + 1,
+ 41 |               patch.controls.allSatisfy(\.isFiniteAndPositiveWeight),
+    |                                         `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 42 |               patch.upper > patch.lower else {
+ 43 |             throw KernelError(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/SurfaceAreaAdaptiveIntegral.swift:50:59: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 48 |             let evaluation = try evaluate(cell,&work)
+ 49 |             if let values = evaluation.contribution {
+ 50 |                 guard values.count == 4,values.allSatisfy(\.isFinite) else {
+    |                                                           `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 51 |                     throw failure(.classificationFailure,tolerance,"Native integration has incomplete or nonfinite moment coverage.")
+ 52 |                 }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TrimmedAnalyticSurfaceVolumeEvaluator.swift:292:43: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 290 |       context: "Analytic coordinate-loop volume"
+ 291 |     )
+ 292 |     let integrationCurves = unwrapped.map(\.translatedCurve)
+     |                                           `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 293 |     guard
+ 294 |       let contribution = try coordinateLoopContribution(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TrimmedAnalyticSurfaceVolumeEvaluator.swift:342:43: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 340 |       context: "Analytic pcurve-loop volume"
+ 341 |     )
+ 342 |     let integrationCurves = unwrapped.map(\.translatedCurve)
+     |                                           `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 343 |     guard
+ 344 |       let contribution = try analyticLoopContribution(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/VolumeMoments/DefaultBRepVolumeMomentMeasurer.swift:86:76: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 84 |                         tolerance: tolerance, context: "Volume moments",
+ 85 |                         maximumSubdivisionDepth: options.maximumSubdivisionDepth, remainingSourceDepth: 16,
+ 86 |                         consumeWork: { try budget.charge(depth: $0) }).map(\.translatedCurve)
+    |                                                                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 87 |                     predicates.append((loop.role, try CertifiedSurfaceParameterLoopPredicate(curves: lifted,
+ 88 |                         on: surface, tolerance: tolerance, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/AnalyticPrismaticVolumeEvaluator.swift:360:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 358 |     ) throws -> Double? {
+ 359 |         guard let reference = faces.first else { return nil }
+ 360 |         let orientations = Set(faces.map(\.face.orientation))
+     |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 361 |         guard orientations.count == 1 else { return nil }
+ 362 |         for face in faces.dropFirst() {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/AnalyticPrismaticVolumeEvaluator.swift:380:42: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 378 |         guard let reference = faces.first else { return nil }
+ 379 |         let referenceAxis = try reference.axis.normalized(tolerance: tolerance.distance)
+ 380 |         let orientations = Set(faces.map(\.face.orientation))
+     |                                          `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 381 |         guard orientations.count == 1 else { return nil }
+ 382 |         for face in faces.dropFirst() {
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/AnalyticPrismaticVolumeEvaluator.swift:962:35: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 960 |             }
+ 961 |         }
+ 962 |         guard let area = caps.map(\.area).max() else {
+     |                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 963 |             return nil
+ 964 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/AnalyticPrismaticVolumeEvaluator.swift:1159:45: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1157 |             parameters.append(try pcurve.endParameter(tolerance: tolerance))
+1158 |         }
+1159 |         guard let minimumU = parameters.map(\.u).min(),
+     |                                             `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1160 |               let maximumU = parameters.map(\.u).max(),
+1161 |               let minimumV = parameters.map(\.v).min(),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:323:70: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+321 |             }
+322 |         }
+323 |         let referenced=Set(model.loops.values.flatMap{$0.coedges.map(\.edgeID)})
+    |                                                                      `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+324 |         let removed=replacedEdges.filter{!referenced.contains($0)}.sorted()
+325 |         let replacedCurveIDs=Set(removed.compactMap{model.edges[$0]?.curveID})
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalDuplicateFaceRepair.swift:65:91: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 63 |         let deleted = removed.subtracting(referencedFaces)
+ 64 |         let candidateLoops = Set(deleted.flatMap { original.faces[$0]?.loops ?? [] })
+ 65 |         let candidateEdges = Set(candidateLoops.flatMap { original.loops[$0]?.coedges.map(\.edgeID) ?? [] })
+    |                                                                                           `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 66 |         let candidateVertices = Set(candidateEdges.flatMap { id -> [VertexID] in
+ 67 |             guard let edge = original.edges[id] else { return [] }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/OriginalDuplicateFaceRepair.swift:75:79: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 73 |         let referencedLoops = Set(model.faces.values.flatMap(\.loops))
+ 74 |         for id in candidateLoops where !referencedLoops.contains(id) { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0); model.loops[id] = nil }
+ 75 |         let referencedEdges = Set(model.loops.values.flatMap { $0.coedges.map(\.edgeID) })
+    |                                                                               `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 76 |         for id in candidateEdges where !referencedEdges.contains(id) { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0); model.edges[id] = nil }
+ 77 |         let referencedVertices = Set(model.edges.values.flatMap { [$0.startVertexID, $0.endVertexID] })
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3676:41: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3674 |     tolerance: ModelingTolerance
+3675 |   ) throws -> SeamEnclosure {
+3676 |     guard let uLower = field.uSpans.map(\.lower).min(),
+     |                                         `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3677 |       let uUpper = field.uSpans.map(\.upper).max(),
+3678 |       let vLower = field.vSpans.map(\.lower).min(),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3256:29: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3254 |       startParameter, endParameter,
+3255 |     ]
+3256 |     guard values.allSatisfy(\.isFinite) else {
+     |                             `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3257 |       throw KernelError(
+3258 |         phase: .topology,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3365:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3363 |   ) throws -> [Double] {
+3364 |     guard patch.degree >= 1,
+3365 |       patch.controls.allSatisfy(\.isFiniteAndPositiveWeight)
+     |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3366 |     else {
+3367 |       throw KernelError(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3419:44: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3417 |     // A root is located no closer than the controls' own bounds (carried through the piece's
+3418 |     // extraction) place the coordinate, so the slack is the larger of roundoff and that width.
+3419 |     let minimumWeight = weightControls.map(\.lower).min() ?? 0.0
+     |                                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3420 |     let inputUncertainty = minimumWeight > 0.0
+3421 |       ? differences.map { $0.upper - $0.lower }.max().map { $0 / minimumWeight } ?? 0.0
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift:3524:35: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3522 |       max(partial, abs(value.lower), abs(value.upper))
+3523 |     }
+3524 |     let denominator = weights.map(\.lower).min() ?? 0.0
+     |                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+3525 |     guard numerator.isFinite,
+3526 |       denominator.isFinite,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1668:28: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1666 |         ) throws -> Interval {
+1667 |             let valueX = try coordinateJet(
+1668 |                 component: \HomogeneousPoint.x,
+     |                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1669 |                 primary: primary,
+1670 |                 tolerance: tolerance
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1304:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1302 |         ) throws -> ScalarPolynomial2D {
+1303 |             let weight = ScalarPolynomial2D(
+1304 |                 controls.map { $0.map(\.weight) }
+     |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1305 |             )
+1306 |             let x = try ScalarPolynomial2D(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1307:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1305 |             )
+1306 |             let x = try ScalarPolynomial2D(
+1307 |                 controls.map { $0.map(\.x) }
+     |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1308 |             ).subtracting(
+1309 |                 weight.scaled(by: reference.x),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1313:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1311 |             )
+1312 |             let y = try ScalarPolynomial2D(
+1313 |                 controls.map { $0.map(\.y) }
+     |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1314 |             ).subtracting(
+1315 |                 weight.scaled(by: reference.y),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1319:39: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1317 |             )
+1318 |             let z = try ScalarPolynomial2D(
+1319 |                 controls.map { $0.map(\.z) }
+     |                                       `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1320 |             ).subtracting(
+1321 |                 weight.scaled(by: reference.z),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/CertifiedRationalBezierSurfaceFluxIntegrator.swift:1602:51: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1600 |         ) throws -> Interval {
+1601 |             let controlHull = Interval.hull(
+1602 |                 controls.flatMap { row in row.map(\.weight) }
+     |                                                   `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1603 |             )
+1604 |             guard let certified = evaluated.intersection(controlHull),
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepRepairer.swift:305:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+303 |             return .rejected("An empty loop has no cycle to reorder.")
+304 |         }
+305 |         if Set(loop.coedges.map(\.edgeID)).count != loop.coedges.count {
+    |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+306 |             let owningFaces = model.faces.values.filter {
+307 |                 $0.loops.contains(loop.id)
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepRepairer.swift:440:56: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+438 |         changes: inout [BRepRepairChange]
+439 |     ) {
+440 |         let shellIDs = Set(model.bodies.values.flatMap(\.shellIDs))
+    |                                                        `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+441 |         let faceIDs = Set(shellIDs.compactMap { model.shells[$0] }.flatMap(\.faceIDs))
+442 |         let loopIDs = Set(faceIDs.compactMap { model.faces[$0] }.flatMap(\.loops))
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepRepairer.swift:444:28: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+442 |         let loopIDs = Set(faceIDs.compactMap { model.faces[$0] }.flatMap(\.loops))
+443 |         let edgeIDs = Set(loopIDs.compactMap { model.loops[$0] }.flatMap {
+444 |             $0.coedges.map(\.edgeID)
+    |                            `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+445 |         })
+446 |         let edges = edgeIDs.compactMap { model.edges[$0] }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:349:37: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+347 |                 continue
+348 |             }
+349 |             if Set(loop.coedges.map(\.edgeID)).count != loop.coedges.count,
+    |                                     `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+350 |                surfacesByLoopID[loopID].map({ surface in
+351 |                    PeriodicFaceSeamValidator().certifiesRepeatedEdgeUses(
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:418:77: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+416 |                             code: .topologyFailure,
+417 |                             entityID: coedge.edgeID,
+418 |                             message: "Face-local pcurve validation failed: \(error)."
+    |                                                                             `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+419 |                         ))
+420 |                     }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepTopologyValidator.swift:558:54: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+556 |                 scope: .volume,
+557 |                 code: .topologyFailure,
+558 |                 message: "Volume validation failed: \(error)."
+    |                                                      `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+559 |             )]
+560 |         }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OpenBoundaryLoop/OpenBoundaryLoopResolver.swift:78:17: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 76 |             loop.role == .inner
+ 77 |                 && loop.coedges.count == boundary.traversals.count
+ 78 |                 && Set(loop.coedges.map(\.edgeID)) == boundaryEdgeIDs
+    |                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 79 |         }
+ 80 |     }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift:685:67: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+ 683 |       code: .topologyFailure,
+ 684 |       tolerance: tolerance,
+ 685 |       message: "Face \(faceID) coedge \(edgeID) failed \(stage): \(error)"
+     |                                                                   `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+ 686 |     )
+ 687 |   }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/OriginalBRepValidationInvocation.swift:1046:33: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1044 |     } else {
+1045 |       shiftedCurves = try SurfaceParameterLoopUnwrapper().unwrap(
+1046 |         loop.coedges.compactMap(\.surfaceParameterCurve), uPeriod: uPeriod, vPeriod: vPeriod,
+     |                                 `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+1047 |         uClosureTolerance: uClosureTolerance, vClosureTolerance: vClosureTolerance,
+1048 |         on: surface, tolerance: tolerance, context: "Surface loop \(loop.id)")
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/CertifiedSurfaceFaceAreaIntegrator.swift:630:37: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+628 |         guard Set(starts).count == 4,
+629 |               starts.indices.allSatisfy({ ends[$0] == starts[($0 + 1) % 4] }),
+630 |               let uLow = starts.map(\.u).min(), let uHigh = starts.map(\.u).max(),
+    |                                     `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+631 |               let vLow = starts.map(\.v).min(), let vHigh = starts.map(\.v).max(),
+632 |               uHigh > uLow, vHigh > vLow,
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/CertifiedSurfaceFaceAreaIntegrator.swift:554:45: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+552 |                     // Aggregate uncertainty, rather than goal*cellMeasure, owns acceptance.
+553 |                     let values = bounds.map { $0.value*measure }
+554 |                     guard values.allSatisfy(\.isFinite) else {
+    |                                             `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+555 |                         throw failure(.classificationFailure,tolerance,"Native range-only area integral exceeded finite arithmetic.")
+556 |                     }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/TrimmedAnalyticSurfaceVolumeEvaluator.swift:250:30: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 248 |         context: "Analytic face loop \(loop.id)"
+ 249 |       )
+ 250 |       curves = unwrapped.map(\.translatedCurve)
+     |                              `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+ 251 |       guard
+ 252 |         let contribution = try analyticLoopContribution(
+
+[#EmbeddedRestrictions]: <https://docs.swift.org/compiler/documentation/diagnostics/embedded-restrictions>
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

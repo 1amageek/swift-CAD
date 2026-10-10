@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -58,7 +59,7 @@ package struct ExactRectangularPcurveDomainResolver:
     }
 
     private func visit() throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork?(0)
     }
 

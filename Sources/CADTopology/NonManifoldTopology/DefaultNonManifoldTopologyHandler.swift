@@ -4,11 +4,11 @@ public struct DefaultNonManifoldTopologyHandler: NonManifoldTopologyHandling {
     public init() {}
 
     public func retain(_ source: any ShapeRepresenting, limits: TopologyRetentionLimits) throws -> RetainedTopologyShape {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let snapshot = source.shapeSnapshot()
         var engine = TopologyRetentionDiagnosticEngine(snapshot: snapshot, limits: limits)
         try engine.inventory()
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return RetainedTopologyShape(snapshot: snapshot)
     }
 
@@ -21,7 +21,7 @@ public struct DefaultNonManifoldTopologyHandler: NonManifoldTopologyHandling {
         limits: TopologyRetentionLimits) throws -> Shape {
         try requireClean(retained, limits: limits)
         let admitted = try DefaultShapeOperator().extract(retained.snapshot, tolerance: tolerance)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return admitted
     }
 
@@ -29,13 +29,13 @@ public struct DefaultNonManifoldTopologyHandler: NonManifoldTopologyHandling {
         limits: TopologyRetentionLimits) throws -> ValidatedBRepModel {
         try requireClean(retained, limits: limits)
         let admitted = try ValidatedBRepModel(retained.model, tolerance: tolerance, validationLevel: .exact)
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return admitted
     }
 
     private func requireClean(_ retained: RetainedTopologyShape, limits: TopologyRetentionLimits) throws {
         let report = try diagnose(retained, limits: limits)
         guard !report.hasStructuralDefects else { throw TopologyRetentionError.modelingAdmissionRejected(report) }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 }

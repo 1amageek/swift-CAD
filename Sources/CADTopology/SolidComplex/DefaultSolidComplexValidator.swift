@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -10,7 +11,7 @@ public struct DefaultSolidComplexValidator: SolidComplexValidating {
         tolerance: ModelingTolerance, options: SolidComplexValidationOptions = .init()
     ) throws {
         try tolerance.validate()
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard options.maximumEdgeComparisons > 0 else { throw SolidComplexError.invalidWorkLimit }
         let bodies = Set(complex.bodyIDs)
         guard !bodies.isEmpty, bodies.count == complex.bodyIDs.count else {
@@ -25,7 +26,7 @@ public struct DefaultSolidComplexValidator: SolidComplexValidating {
         var faceSigns: [SolidFaceUse: Bool] = [:]
         var neighbors = Dictionary(uniqueKeysWithValues: complex.bodyIDs.map { ($0, Set<BodyID>()) })
         for bodyID in complex.bodyIDs {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let body = selected.bodies[bodyID], let components = body.solidComponents,
                   components.count == 1 else { throw SolidComplexError.invalidCell(bodyID) }
             for shellID in body.shellIDs {
@@ -39,7 +40,7 @@ public struct DefaultSolidComplexValidator: SolidComplexValidating {
         var usedFaces = Set<SolidFaceUse>()
         var comparisons = 0
         for interface in complex.interfaces {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard interface.first.bodyID != interface.second.bodyID else {
                 throw SolidComplexError.invalidSelection
             }
@@ -62,7 +63,7 @@ public struct DefaultSolidComplexValidator: SolidComplexValidating {
         var visited = Set<BodyID>()
         var pending = [complex.bodyIDs[0]]
         while let current = pending.popLast() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             if visited.insert(current).inserted {
                 pending.append(contentsOf: neighbors[current, default: []].sorted().reversed())
             }
@@ -80,7 +81,7 @@ public struct DefaultSolidComplexValidator: SolidComplexValidating {
               support == model.geometry.surfaces[second.surfaceID],
               first.loops.count == second.loops.count else { return false }
         for (firstID, secondID) in zip(first.loops, second.loops) {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let a = model.loops[firstID], let b = model.loops[secondID],
                   a.role == b.role, a.coedges.count == b.coedges.count,
                   !a.coedges.isEmpty else { return false }
@@ -88,7 +89,7 @@ public struct DefaultSolidComplexValidator: SolidComplexValidating {
             for shift in a.coedges.indices {
                 var same = true
                 for index in a.coedges.indices {
-                    try Task.checkCancellation()
+                    try CurrentTaskCancellationChecker().checkCancellation()
                     guard comparisons < limit else {
                         throw SolidComplexError.comparisonLimitExceeded(limit: limit)
                     }

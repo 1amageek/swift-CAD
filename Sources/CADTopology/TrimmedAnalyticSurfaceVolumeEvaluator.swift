@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 #if canImport(Darwin)
@@ -246,7 +247,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
         tolerance: tolerance,
         context: "Analytic face loop \(loop.id)"
       )
-      curves = unwrapped.map(\.translatedCurve)
+      curves = unwrapped.map({ $0.translatedCurve })
       guard
         let contribution = try analyticLoopContribution(
           parameterCurves: curves,
@@ -288,7 +289,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       tolerance: tolerance,
       context: "Analytic coordinate-loop volume"
     )
-    let integrationCurves = unwrapped.map(\.translatedCurve)
+    let integrationCurves = unwrapped.map({ $0.translatedCurve })
     guard
       let contribution = try coordinateLoopContribution(
         parameterCurves: integrationCurves,
@@ -338,7 +339,7 @@ struct TrimmedAnalyticSurfaceVolumeEvaluator {
       tolerance: tolerance,
       context: "Analytic pcurve-loop volume"
     )
-    let integrationCurves = unwrapped.map(\.translatedCurve)
+    let integrationCurves = unwrapped.map({ $0.translatedCurve })
     guard
       let contribution = try analyticLoopContribution(
         parameterCurves: integrationCurves,

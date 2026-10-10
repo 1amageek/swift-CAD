@@ -1,0 +1,78 @@
+[
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production",
+      "-j",
+      "2",
+      "-Xswiftc",
+      "-j2",
+      "--product",
+      "NativeExactSelfProof",
+      "--build-system",
+      "native",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "--disable-index-store",
+      "-Xswiftc",
+      "-Onone",
+      "-Xswiftc",
+      "-gnone",
+      "-Xswiftc",
+      "-whole-module-optimization",
+      "-Xlinker",
+      "/Users/1amageek/.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a"
+    ],
+    "elapsed_seconds": 16.963501750025898,
+    "exit_code": 0,
+    "timeout_seconds": 1200
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactSelfProof.wasm",
+      "diagonal"
+    ],
+    "elapsed_seconds": 1.9179220420191996,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactSelfProof.wasm",
+      "folded"
+    ],
+    "elapsed_seconds": 7.597929875017144,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactSelfProof.wasm",
+      "seam"
+    ],
+    "elapsed_seconds": 2.380920082970988,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactSelfProof.wasm",
+      "pole"
+    ],
+    "elapsed_seconds": 3.124987291987054,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  }
+]

@@ -1,0 +1,261 @@
+[
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production",
+      "-j",
+      "2",
+      "-Xswiftc",
+      "-j2",
+      "--product",
+      "NativeExactBoundaryProof",
+      "--build-system",
+      "native",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "--disable-index-store",
+      "-Xswiftc",
+      "-Onone",
+      "-Xswiftc",
+      "-gnone",
+      "-Xswiftc",
+      "-whole-module-optimization",
+      "-Xlinker",
+      "/Users/1amageek/.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a"
+    ],
+    "elapsed_seconds": 138.19500508299097,
+    "exit_code": 1,
+    "timeout_seconds": 1200
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production",
+      "-j",
+      "2",
+      "-Xswiftc",
+      "-j2",
+      "--product",
+      "NativeExactBoundaryProof",
+      "--build-system",
+      "native",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "--disable-index-store",
+      "-Xswiftc",
+      "-Onone",
+      "-Xswiftc",
+      "-gnone",
+      "-Xswiftc",
+      "-whole-module-optimization",
+      "-Xlinker",
+      "/Users/1amageek/.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a"
+    ],
+    "elapsed_seconds": 120.35266050003702,
+    "exit_code": 1,
+    "timeout_seconds": 1200
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production",
+      "-j",
+      "2",
+      "-Xswiftc",
+      "-j2",
+      "--product",
+      "NativeExactBoundaryProof",
+      "--build-system",
+      "native",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "--disable-index-store",
+      "-Xswiftc",
+      "-Onone",
+      "-Xswiftc",
+      "-gnone",
+      "-Xswiftc",
+      "-whole-module-optimization",
+      "-Xlinker",
+      "/Users/1amageek/.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a"
+    ],
+    "elapsed_seconds": 157.73373254202306,
+    "exit_code": 1,
+    "timeout_seconds": 1200
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production",
+      "-j",
+      "2",
+      "-Xswiftc",
+      "-j2",
+      "--product",
+      "NativeExactBoundaryProof",
+      "--build-system",
+      "native",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "--disable-index-store",
+      "-Xswiftc",
+      "-Onone",
+      "-Xswiftc",
+      "-gnone",
+      "-Xswiftc",
+      "-whole-module-optimization",
+      "-Xlinker",
+      "/Users/1amageek/.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a"
+    ],
+    "elapsed_seconds": 919.5973349169944,
+    "exit_code": 0,
+    "timeout_seconds": 1200
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production",
+      "-j",
+      "2",
+      "-Xswiftc",
+      "-j2",
+      "--product",
+      "NativeExactSelfProof",
+      "--build-system",
+      "native",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "--disable-index-store",
+      "-Xswiftc",
+      "-Onone",
+      "-Xswiftc",
+      "-gnone",
+      "-Xswiftc",
+      "-whole-module-optimization",
+      "-Xlinker",
+      "/Users/1amageek/.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a"
+    ],
+    "elapsed_seconds": 4.427032833045814,
+    "exit_code": 0,
+    "timeout_seconds": 1200
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactSelfProof.wasm",
+      "diagonal"
+    ],
+    "elapsed_seconds": 6.254292832978535,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactSelfProof.wasm",
+      "folded"
+    ],
+    "elapsed_seconds": 27.446983749978244,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactSelfProof.wasm",
+      "seam"
+    ],
+    "elapsed_seconds": 10.785860166011844,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactSelfProof.wasm",
+      "pole"
+    ],
+    "elapsed_seconds": 12.93599616701249,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactBoundaryProof.wasm",
+      "holes"
+    ],
+    "elapsed_seconds": 14.93840016698232,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactBoundaryProof.wasm",
+      "nonconvex"
+    ],
+    "elapsed_seconds": 9.946049499965739,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactBoundaryProof.wasm",
+      "sides"
+    ],
+    "elapsed_seconds": 34.534388792002574,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactBoundaryProof.wasm",
+      "seamPole"
+    ],
+    "elapsed_seconds": 4.532681708980817,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "node",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-embedded-production/wasm32-unknown-wasip1/debug/NativeExactBoundaryProof.wasm",
+      "failures"
+    ],
+    "elapsed_seconds": 9.280522749992087,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  }
+]

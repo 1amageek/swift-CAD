@@ -1,0 +1,3 @@
+START M6 exact self seam
+PASS M6 exact scoped periodic seam exclusion; unproved v=1 seam retained with all lift owners
+PASS M6 complete Native exact self-contact consumer seam

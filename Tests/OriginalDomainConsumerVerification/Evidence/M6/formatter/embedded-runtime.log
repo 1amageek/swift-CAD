@@ -1,0 +1,15 @@
+(node:12488) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+DOUBLE nil
+DOUBLE Optional(0.25)
+DOUBLE Optional(-2.5)
+DOUBLE Optional(-0.0)
+DOUBLE Optional(inf)
+DOUBLE Optional(nan)
+DOUBLE Optional(1.7976931348623157e+308)
+INTEGER nil
+INTEGER Optional(0)
+INTEGER Optional(-7)
+INTEGER Optional(-1000000)
+INTEGER Optional(1000000)
+PASS M6 private numeric Optional production formatter probe

@@ -435,3 +435,10 @@ the unchanged requested accuracy. Other chart families retain their generic
 signed-flux issuer and its concrete byte/depth completion dependency.
 
 The support-bound UV flux route consumes Geometry’s bounded original chart constructor and forwards the same selected BYTE callback through closed endpoints and signed-flux queries. Native numeric charts retain one-sided original knot owners; actual implicit root preparation and advances keep their original state on this ledger. General inverse images, implicit certification admission and specialized source charts remain explicit lower dependencies. Surface-area flux preparation receives the composing subdivision ceiling and independent source/algebra policies rather than legacy opaque source preparation.
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.

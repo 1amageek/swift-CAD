@@ -37,7 +37,7 @@ struct CertifiedHomogeneousBezierCurvePatch: Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> [HomogeneousPoint] {
         guard controls.count >= 2,
-              controls.allSatisfy(\.isFiniteAndPositiveWeight),
+              controls.allSatisfy({ $0.isFiniteAndPositiveWeight }),
               fractionLower.isFinite,
               fractionUpper.isFinite,
               fractionLower >= 0.0,
@@ -76,7 +76,7 @@ struct CertifiedHomogeneousBezierCurvePatch: Sendable, Hashable {
         tolerance: ModelingTolerance
     ) throws -> [CertifiedHomogeneousBezierCurvePatch] {
         guard controls.count >= 2,
-              controls.allSatisfy(\.isFiniteAndPositiveWeight),
+              controls.allSatisfy({ $0.isFiniteAndPositiveWeight }),
               lower.isFinite,
               upper.isFinite,
               upper > lower else {
@@ -100,8 +100,8 @@ struct CertifiedHomogeneousBezierCurvePatch: Sendable, Hashable {
         let middle = lower + (upper - lower) * 0.5
         let lowerControls = levels.map { $0[0] }
         let upperControls = levels.reversed().map { $0[$0.count - 1] }
-        guard lowerControls.allSatisfy(\.isFiniteAndPositiveWeight),
-              upperControls.allSatisfy(\.isFiniteAndPositiveWeight) else {
+        guard lowerControls.allSatisfy({ $0.isFiniteAndPositiveWeight }),
+              upperControls.allSatisfy({ $0.isFiniteAndPositiveWeight }) else {
             throw KernelError(
                 phase: .topology,
                 code: .resourceLimitExceeded,

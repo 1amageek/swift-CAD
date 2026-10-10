@@ -93,6 +93,14 @@ Typed geometric failures preserve L0-L6 and source/domain issuance causes. The
 public geometry boundary recursively normalizes nested cancellation and resource
 causes; non-discrete intersections retain their own code, malformed source/domain
 inputs retain invalidInput, and unsupported source capabilities remain explicit.
+The normalization entry is emitted into its caller so Embedded's error type tests
+use the same metadata as the boxing caller. A separately compiled `any Error`
+entry can compare owner-local error metadata against a client's imported copy and
+miss the same nominal error. The fixed-toolchain `@_alwaysEmitIntoClient` boundary
+keeps the existing internal API and classification rules on every target. Its
+cross-module fixture verifies actual resource and cancellation codes, not merely
+that an error was thrown. The scalar publisher and terminal error constructor are
+ABI-visible internal helpers for this serialized body; no public API is added.
 KernelError conversion is owned by this boundary. No increased degree, work, storage, depth or result
 limits, tolerance-based source equality, hidden exploration window or budget reset.
 

@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -82,7 +83,7 @@ public struct DefaultBRepVolumeMomentMeasurer: BRepVolumeMomentMeasuring {
                     let lifted = try SurfaceParameterLoopUnwrapper().unwrap(curves, on: surface,
                         tolerance: tolerance, context: "Volume moments",
                         maximumSubdivisionDepth: options.maximumSubdivisionDepth, remainingSourceDepth: 16,
-                        consumeWork: { try budget.charge(depth: $0) }).map(\.translatedCurve)
+                        consumeWork: { try budget.charge(depth: $0) }).map({ $0.translatedCurve })
                     predicates.append((loop.role, try CertifiedSurfaceParameterLoopPredicate(curves: lifted,
                         on: surface, tolerance: tolerance, maximumSubdivisionDepth: options.maximumSubdivisionDepth,
                         remainingSourceDepth: 16, maximumAlgebraicDepth: 32,
@@ -168,7 +169,7 @@ public struct DefaultBRepVolumeMomentMeasurer: BRepVolumeMomentMeasuring {
             }
             if zip(sums, targets).allSatisfy({ enclosureWidth($0.0) <= $0.1 }) {
                 guard sums[0].lower > 0 else { throw failure("Volume-moment enclosure does not prove positive material volume.", tolerance) }
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 return try BRepVolumeMoments(enclosures: sums.map { try ScalarInterval(lower: $0.lower, upper: $0.upper) }, consumedWork: work)
             }
             try charge(cells.count)

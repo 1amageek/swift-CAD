@@ -38,3 +38,52 @@ Original source validation, cancellation, resource exhaustion and unresolved con
 
 ## Verification and Change Impact
 Deferred behavioral verification must cover regular sheets, discontinuous joins, separated-parameter self-intersections, shared UV interfaces, finite trimmed holes, exhausted work/bytes/depth and concurrent independent invocations. Offset and drafted-sheet consumers must recheck their original authority and publication whenever lower continuity or contact contracts change. Source-only publication of this component does not claim whole-domain implementation completion or runtime verification.
+
+## Exact Native Self-Contact Port
+
+`OriginalExactNativeSelfContactQuerying` adds a public retained-L5 route beside the interval atlas. It consumes a complete `NativeExactParametricRelations<BSplineSurface3D,BSplineSurface3D>` issued from one shared immutable source binding. It always issues the selected authored-coordinate diagonal, and accepts additional nonforgeable DI identity receipts for chart boundaries, periodic orbits, collapsed subsets and declared incidences. Equal XYZ alone never creates an exclusion.
+
+```text
+complete retained Native UVUV family + scoped DI identity receipts
+    -> checked original-coordinate affine views for each chart/lift pair
+    -> scope membership AND proved affine equality / complete-product identity
+    -> NOT(identity union) in the retained L5 polynomial ring
+    -> L4 whole-cell pullback refinement, preserving raw cell ordinals
+    -> immutable residual contacts + original covers, laws, identities and lifts
+```
+
+The consumer retains every raw pair ordinal, including empty refinements. It does not claim an embedding certificate when residual contacts remain; completeness describes exact subtraction of the supplied proved identities from the complete original relation. A missing additional identity leaves its contact selected. A foreign owner, incompatible coordinate semantics, exhausted work/storage/depth, cancellation or incomplete lower refinement throws a typed `NativeExactRelationFailure`; no such path publishes absence or a partial result.
+
+The checked DI views are the authority for affine words and identity constraints. Each receipt's selected left/right scopes are compiled with exact open/closed endpoints and disconnected interval unions in original coordinates. The original-to-local inverse maps are retained for queries; neither raw equality solving nor source law issuing is repeated. Caller L3/L4 limits and the same noncopyable admission apply throughout.
+
+| Invariant | Behavioral evidence |
+|---|---|
+| Only selected proved identities are excluded | diagonal, seam, collapsed pole and scoped boundary fixtures |
+| Nonstructural same-XYZ UV remains | folded surface opposite-UV fixture |
+| All chart/lift and raw/refined owners survive | raw pair count and `sourceCellOrdinals` membership checks |
+| Failure cannot become absence | foreign proof, cancellation and work/storage/depth refusal fixtures |
+| Result owns its source lifetime | query after source value mutation |
+
+The additive exact port depends on [Native Exact Relations](../NativeExactRelations/DESIGN.md), [Original Parameter Identity](../OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md) and [Original Parameter Transport](../OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md). Existing interval atlas callbacks remain unchanged. Changes to DI views or L4 pullback guarantees require rechecking this exact consumer and its Native behavioral fixtures.
+
+### Latest-main Native intake verification
+
+The independent consumer assembly recompiles the actual Native consumer and its
+source/DI/L5 adapters against current independently verified lower modules. It
+reuses receipt-bound unchanged Native DTO/validation products; numerical CS/SSI,
+Coons construction and cached old DI/L3 consumers are outside that reuse path.
+Verification-only imports select these DTOs explicitly, preventing old cached
+relation types from satisfying the new consumer signatures. Native and isolated
+builds retain identical consumer bodies, immutable owners and failure semantics.
+Actual face issuer/Topology acceptance remains separately bound to its retained
+source and compiler receipt. No broad CAD production module is rebuilt.
+
+### Authored-coordinate query field
+
+The exact Native self-contact result accepts an optional query field, defaulting
+to the prepared source field. Both two-coordinate tuples are validated in full
+before visiting any pair, including a completely empty source product. The same
+field supplies DI membership, inverse transport and retained refinement lookup.
+The folded u=+/-sqrt(2)/2 fixture refutes treating new algebraic coordinates as
+foreign ancestor-field values; unrelated fields and insufficient query depth must
+still fail. Retained identity scope and original pair ordinals are unchanged.

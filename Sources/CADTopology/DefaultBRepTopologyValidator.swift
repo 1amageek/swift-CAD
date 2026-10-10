@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -243,7 +244,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
                     scope: .references,
                     code: .invalidInput,
                     entityID: key,
-                    message: "Vertex contains an invalid coordinate: \(error)."
+                    message: "Vertex contains an invalid coordinate: \(KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message)."
                 ))
             }
         }
@@ -306,7 +307,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
             result.append(diagnostic(
                 scope: .references,
                 code: .invalidInput,
-                message: "Geometry store validation failed: \(error)."
+                message: "Geometry store validation failed: \(KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message)."
             ))
         }
         return result
@@ -345,7 +346,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
                 ))
                 continue
             }
-            if Set(loop.coedges.map(\.edgeID)).count != loop.coedges.count,
+            if Set(loop.coedges.map({ $0.edgeID })).count != loop.coedges.count,
                surfacesByLoopID[loopID].map({ surface in
                    PeriodicFaceSeamValidator().certifiesRepeatedEdgeUses(
                        in: loop,
@@ -414,7 +415,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
                             scope: .pcurves,
                             code: .topologyFailure,
                             entityID: coedge.edgeID,
-                            message: "Face-local pcurve validation failed: \(error)."
+                            message: "Face-local pcurve validation failed: \(KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message)."
                         ))
                     }
                 }
@@ -439,7 +440,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
                 result.append(diagnostic(
                     scope: .pcurves,
                     code: .topologyFailure,
-                    message: "Geometric pcurve correspondence failed: \(error)."
+                    message: "Geometric pcurve correspondence failed: \(KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message)."
                 ))
             }
         }
@@ -554,7 +555,7 @@ public struct DefaultBRepTopologyValidator: BRepTopologyValidating {
             return [diagnostic(
                 scope: .volume,
                 code: .topologyFailure,
-                message: "Volume validation failed: \(error)."
+                message: "Volume validation failed: \(KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message)."
             )]
         }
     }

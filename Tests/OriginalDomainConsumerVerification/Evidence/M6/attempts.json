@@ -1,0 +1,527 @@
+[
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--target",
+      "CADKernel"
+    ],
+    "elapsed_seconds": 30.649912958964705,
+    "exit_code": 1
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--target",
+      "CADKernel"
+    ],
+    "elapsed_seconds": 39.79266795795411,
+    "exit_code": 1
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--target",
+      "CADKernel"
+    ],
+    "elapsed_seconds": 27.607911375002004,
+    "exit_code": 1
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 68.12857562501449,
+    "exit_code": 1
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 67.07885941601126,
+    "exit_code": 1
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 120.030394374975,
+    "exit_code": null,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 116.1402854580083,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 2.698875207977835,
+    "exit_code": 1
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 8.726305666961707,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 13.627882750006393,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 62.01570724998601,
+    "exit_code": -5
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 5.326160666998476,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 2.020500707963947,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 2.105527749983594,
+    "exit_code": -5
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "holes"
+    ],
+    "elapsed_seconds": 4.546347750001587,
+    "exit_code": 0,
+    "scope": "Diagnostic boundary group; completion pending"
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "nonconvex"
+    ],
+    "elapsed_seconds": 2.7050659999949858,
+    "exit_code": 0,
+    "scope": "Diagnostic boundary group; completion pending"
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 11.754958083038218,
+    "exit_code": 0,
+    "scope": "Diagnostic self group; completion pending"
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactSelfProof",
+      "diagonal"
+    ],
+    "elapsed_seconds": 2.6937028329703026,
+    "exit_code": 1,
+    "scope": "Diagnostic self group; completion pending"
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "sides"
+    ],
+    "elapsed_seconds": 11.69708183297189,
+    "exit_code": 0,
+    "scope": "Diagnostic boundary group; completion pending"
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "seamPole"
+    ],
+    "elapsed_seconds": 0.39679462497588247,
+    "exit_code": 1,
+    "scope": "Diagnostic boundary group; completion pending"
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 5.087509207951371,
+    "exit_code": 0,
+    "scope": "Diagnostic group; completion pending"
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "seamPole"
+    ],
+    "elapsed_seconds": 1.1538897500140592,
+    "exit_code": 1,
+    "scope": "Diagnostic group; completion pending"
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 3.7179982499801554,
+    "exit_code": 0,
+    "scope": "Diagnostic group; completion pending"
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactSelfProof",
+      "diagonal"
+    ],
+    "elapsed_seconds": 8.705312874983065,
+    "exit_code": 0,
+    "scope": "Diagnostic group; completion pending"
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 25.729470500024036,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 2.066407833015546,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 15.804447915987112,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "holes"
+    ],
+    "elapsed_seconds": 6.79146654199576,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "nonconvex"
+    ],
+    "elapsed_seconds": 2.1140999170020223,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "sides"
+    ],
+    "elapsed_seconds": 4.974626832990907,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "seamPole"
+    ],
+    "elapsed_seconds": 0.7738597090356052,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "failures"
+    ],
+    "elapsed_seconds": 2.851671125041321,
+    "exit_code": 0
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactBoundaryProof"
+    ],
+    "elapsed_seconds": 57.340637624962255,
+    "exit_code": 0,
+    "timeout_seconds": 1200
+  },
+  {
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--package-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production",
+      "-j",
+      "4",
+      "-Xswiftc",
+      "-j4",
+      "--product",
+      "NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 10.114185957994778,
+    "exit_code": 0,
+    "timeout_seconds": 1200
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactSelfProof"
+    ],
+    "elapsed_seconds": 72.88952150003752,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "holes"
+    ],
+    "elapsed_seconds": 20.499353791004978,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "nonconvex"
+    ],
+    "elapsed_seconds": 9.356582666980103,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "sides"
+    ],
+    "elapsed_seconds": 26.891362291004043,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "seamPole"
+    ],
+    "elapsed_seconds": 3.8264328750083223,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  },
+  {
+    "command": [
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/NativeExactBoundaryProof",
+      "failures"
+    ],
+    "elapsed_seconds": 14.840110417047981,
+    "exit_code": 0,
+    "timeout_seconds": 120
+  }
+]

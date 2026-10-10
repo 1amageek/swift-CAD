@@ -43,7 +43,7 @@ public struct CurveTrim: Hashable, Sendable {
         consumeWork: (@Sendable (Int) throws -> Void)? = nil,
         consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
         maximumAlgebraicDepth: Int = 32, maximumSubdivisionDepth: Int = 32) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork?(0)
         guard remainingSourceDepth >= 0, (0...32).contains(maximumAlgebraicDepth),
             (0...32).contains(maximumSubdivisionDepth) else {

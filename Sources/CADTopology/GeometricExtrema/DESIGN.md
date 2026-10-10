@@ -145,3 +145,10 @@ source errors do not fail solely from intermediate squared underflow/overflow.
 Distance lower/upper bounds, Kernel boundary localization and Mesh original
 station-discrepancy admission consume the same primitive without changing their
 separate physical allocations or source authority.
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.

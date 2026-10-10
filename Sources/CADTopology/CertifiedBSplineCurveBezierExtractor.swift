@@ -97,7 +97,7 @@ struct CertifiedBSplineCurveBezierExtractor {
                 operationCount: &operationCount,
                 tolerance: tolerance
             )
-            guard controls.allSatisfy(\.isFiniteAndPositiveWeight) else {
+            guard controls.allSatisfy({ $0.isFiniteAndPositiveWeight }) else {
                 throw KernelError(
                     phase: .topology,
                     code: .singularSystem,

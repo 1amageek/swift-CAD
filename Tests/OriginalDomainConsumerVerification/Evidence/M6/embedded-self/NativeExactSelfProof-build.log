@@ -1,0 +1,127 @@
+warning: 'nativeexactrelationverification': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalRealRelationProof/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalPointRelationProof/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/DESIGN.md
+warning: 'nativeexactrelationverification': found 11 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OpenBoundaryLoop/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OriginalSourceValidation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GenericShape/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/OrthographicEdgeProjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SolidComplex/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/NonManifoldTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/VolumeMoments/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/GeometricExtrema/DESIGN.md
+warning: 'nativeexactrelationverification': found 1 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADKernelBoundary/DESIGN.md
+warning: 'nativeexactrelationverification': found 86 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/ExactParameterDomain/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/OriginalPhysicalAngle/DESIGN.md
+warning: 'nativeexactrelationverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/FailureContract/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/DESIGN.md
+    /private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+[0/1] Planning build
+Building for debugging...
+[0/6] Write sources
+[2/11] Write swift-version-7EE3F01B468E1A0A.txt
+[4/9] Compiling NativeExactSelfFixtures M6ExactSelfFixtures.swift
+[5/9] Emitting module NativeExactSelfFixtures
+[5/11] Wrapping AST for NativeExactSelfFixtures for debugging
+[7/11] Compiling NativeExactSelfProof Proof.swift
+[8/11] Emitting module NativeExactSelfProof
+[8/11] Wrapping AST for NativeExactSelfProof for debugging
+[9/11] Write Objects.LinkFileList
+[10/11] Linking NativeExactSelfProof.wasm
+Build of product 'NativeExactSelfProof' complete! (16.31s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

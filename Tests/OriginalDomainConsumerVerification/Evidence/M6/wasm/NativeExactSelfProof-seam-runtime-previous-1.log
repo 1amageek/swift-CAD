@@ -1,0 +1,5 @@
+(node:45369) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+START M6 exact self seam
+PASS M6 exact scoped periodic seam exclusion; unproved v=1 seam retained with all lift owners
+PASS M6 complete Native exact self-contact consumer seam

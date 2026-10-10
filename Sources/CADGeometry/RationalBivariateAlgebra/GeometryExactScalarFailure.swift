@@ -1,12 +1,19 @@
+#if NATIVE_DOMAIN_ISOLATED_VERIFICATION
+import L0
+@testable import func CADGeometry.rationalAlgebraFailure
+#endif
+
 import CADCore
 
 /// Keeps independent scalar errors behind the existing Geometry failure boundary.
+@usableFromInline
 enum GeometryExactScalarFailure {
     static func withPublication<Result>(_ body: () throws -> Result) throws -> Result {
         do { return try body() }
         catch let failure as ExactScalarFailure { throw published(failure) }
     }
 
+    @usableFromInline
     static func published(_ failure: ExactScalarFailure) -> any Error {
         switch failure {
         case .admissionRejected(let cause): return cause

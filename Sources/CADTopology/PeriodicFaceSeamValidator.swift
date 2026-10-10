@@ -13,18 +13,18 @@ package struct PeriodicFaceSeamValidator {
         consumeStorage: (@Sendable (Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int? = nil) throws {
         try tolerance.validate()
         for index in loop.coedges.indices {
-            try Task.checkCancellation(); try consumeWork(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
             let first = loop.coedges[index]
             var appearedEarlier = false
             for earlier in 0..<index {
-                try Task.checkCancellation(); try consumeWork(0)
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
                 if loop.coedges[earlier].edgeID == first.edgeID { appearedEarlier = true; break }
             }
             if appearedEarlier { continue }
             var second: Coedge?
             var count = 1
             for later in (index + 1)..<loop.coedges.count {
-                try Task.checkCancellation(); try consumeWork(0)
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
                 if loop.coedges[later].edgeID == first.edgeID {
                     count += 1; second = loop.coedges[later]
                 }
@@ -48,7 +48,7 @@ package struct PeriodicFaceSeamValidator {
         tolerance: ModelingTolerance
     ) throws {
         try tolerance.validate()
-        let repeatedUses = Dictionary(grouping: loop.coedges, by: \.edgeID)
+        let repeatedUses = Dictionary(grouping: loop.coedges, by: { $0.edgeID })
             .filter { $0.value.count > 1 }
         for edgeID in repeatedUses.keys.sorted() {
             guard let uses = repeatedUses[edgeID],

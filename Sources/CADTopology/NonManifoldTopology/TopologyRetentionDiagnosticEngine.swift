@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 /// Local structural work; geometry validity remains with the existing validators.
@@ -18,7 +19,7 @@ struct TopologyRetentionDiagnosticEngine {
     }
 
     mutating func inventory() throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         let model = snapshot.model
         var remainingRecords = limits.maximumTopologyRecords
         for count in [model.bodies.count, model.shells.count, model.faces.count, model.loops.count,
@@ -129,18 +130,18 @@ struct TopologyRetentionDiagnosticEngine {
             if let count = edgeUses[id], count > 2 { try append(.excessiveEdgeIncidence(edgeID: id, useCount: count)) }
         }
         try diagnoseLinks()
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         return NonManifoldTopologyReport(issues: issues)
     }
 
     private mutating func charge(_ count: Int = 1) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard count <= remainingWork else { throw TopologyRetentionError.resourceLimitExceeded(.work) }
         remainingWork -= count
     }
 
     private mutating func append(_ issue: TopologyRetentionIssue) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard issues.count < limits.maximumDiagnostics else {
             throw TopologyRetentionError.resourceLimitExceeded(.diagnostics)
         }

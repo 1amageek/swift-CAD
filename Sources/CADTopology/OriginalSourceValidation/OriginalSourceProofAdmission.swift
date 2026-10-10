@@ -16,7 +16,7 @@ package struct OriginalSourceProofAdmission: RationalAlgebraAdmitting {
     }
 
     package mutating func visitExactCell(depth: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth >= 0, maximumAlgebraicDepth.map({ (0...32).contains($0) && depth <= $0 }) ?? true else {
             throw KernelError(phase: .topology, code: .resourceLimitExceeded,
                 tolerance: nil, message: "Original algebra proof exceeds its independent caller ceiling.")
@@ -40,7 +40,7 @@ package struct OriginalSourceProofAdmission: RationalAlgebraAdmitting {
             throw KernelError(phase: .topology, code: .resourceLimitExceeded,
                 tolerance: nil, message: "Original proof word-byte accounting overflowed.")
         }
-        try Task.checkCancellation(); try consumeStorage?(bytes.partialValue)
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeStorage?(bytes.partialValue)
         try consumeExactWork(count)
     }
 }

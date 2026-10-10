@@ -40,7 +40,76 @@ Preparation, Boolean compilation, Q5 refinement, correspondence and result alloc
 All receipts and backing buffers are immutable. There is no global cache, shared mutable state, conditional target storage or independent quota. A result retains its raw receipt and issued boundary domain. Query-local admissions never outlive the call.
 
 ## Failure, Concurrency, and Constraints
-Checked capacity arithmetic and storage admission precede generated buffers. Invalid source/domain binding, missing or unclosed directed trims, exhausted caller resources, independent depth failures and cancellation propagate without a success value. Rational spline, implicit/nonrational trim charts, periodic/pole chart authorities and refined image/fiber strata remain incomplete branches with explicit code markers and typed failures. Their presence does not count as support for whole requirement 4.
+Checked capacity arithmetic and storage admission precede generated buffers. Invalid source/domain binding, missing or unclosed directed trims, exhausted caller resources, independent depth failures and cancellation propagate without a success value. Rational spline and implicit/nonrational trim charts remain incomplete branches with explicit code markers and typed failures. The legacy Q5 route additionally leaves periodic/pole chart authorities and refined image/fiber strata incomplete; the additive M6 Native family route below consumes existing finite DI seam/collapse authority. General issued-family migration remains open and is not counted as whole requirement-4 acceptance.
 
 ## Verification and Change Impact
 [Kernel tests](../../../Tests/CADKernelTests/OriginalFaceBoundaryClippingTests.swift) execute the public raw receipt -> original face issuer -> exact consumer route for holes, nonconvex loops, corners, endpoint/boundary coincidence, strict/closed/empty selection, original raw-cell ownership, source-release lifetime, foreign binding and independent admission/cancellation failures. Native CS/SSI raw receipt behavior and Q5 are unchanged lower premises. Changes to boundary meaning require the Kernel issuer and result correspondence proofs to be revalidated. Whole source-family/domain acceptance and image clipping remain requirement-4 integration work.
+
+## M6 L5 Consumer
+
+The additive exact boundary route consumes the complete Native family collection,
+selected surface role and original directed loops. Its source owner retains all
+ambient source/support/request/effective covers, chart sides and integer lifts.
+The sealed domain is created by the Kernel face issuer after exact stored-source
+comparison and full loop/coedge validation. The legacy Q5 route remains compatible.
+
+```text
+face-issued lifted pcurves + retained Native L5 family
+    -> checked DI affine coordinate view
+    -> exact local winding/material predicate for every pair
+    -> NativeExactParameterRefining (L4 whole-cell pullback)
+    -> complete raw/refined cell correspondence with all UV owners
+```
+
+No periodic or collapsed-source rejection is needed when DI already supplies
+complete finite chart occurrences and exact lifts. The boundary compiler uses
+constant-U/V, affine and polyline source laws in authored traversal order; it
+does not normalize lifts, infer missing curves or apply coedge reversal again.
+Each new guard is refined once over its retained raw L5 selection. The result
+retains every source chart pair, including complete excluded regions. Every
+included refined cell has the L4-issued raw cell ordinal. Equal XYZ never merges
+owners. Closed, strict and boundary policies preserve original endpoint meaning.
+
+All compilation/refinement/query work uses one caller noncopyable admission,
+explicit DI limits and unchanged L3/L4 ceilings. Terminal cancellation and any
+failed pair invalidate the complete publication. The exact face consumer tests
+own holes, nonconvex loops, strict/boundary/empty policies, seam lifts, collapsed
+surfaces, original-source lifetime and independent refusal cases.
+
+[M6 boundary fixtures](../../../Tests/OriginalDomainConsumerVerification/Sources/M6BoundaryFixtures/M6ExactBoundaryFixtures.swift)
+execute the actual Core/Geometry/Topology plus Kernel boundary component. The
+runner binds compiled inputs, artifacts and terminal runtime markers to one
+immutable snapshot. This is component verification, not full CADKernel or
+Modeling acceptance. Query compilers have invocation-local mutable buffers;
+published results and their retained source owners are immutable Sendable values
+on every target. There is no target-specific synchronization or owner contract.
+
+Boundary annotations consume L3's proved original-input signs. A singleton
+seam/pole box can specialize a guard to a constant, so a projection cut receipt
+alone is insufficient. Each requested law is transported through the retained
+L4 singleton-domain reduction receipts by exact polynomial equality, then
+matched exactly to the partition's retained original law ordinal. Original cell
+signs classify every included cell over that complete box. No derivative/sample
+signs or representative matching establish a boundary incidence. The result
+retains the raw selection, partition and complete reduction owners.
+
+### Latest-main Native intake verification
+
+The independent consumer assembly recompiles the actual Native consumer and its
+source/DI/L5 adapters against current independently verified lower modules. It
+reuses receipt-bound unchanged Native DTO/validation products; numerical CS/SSI,
+Coons construction and cached old DI/L3 consumers are outside that reuse path.
+Verification-only imports select these DTOs explicitly, preventing old cached
+relation types from satisfying the new consumer signatures. Native and isolated
+builds retain identical consumer bodies, immutable owners and failure semantics.
+Actual face issuer/Topology acceptance remains separately bound to its retained
+source and compiler receipt. No broad CAD production module is rebuilt.
+
+### Authored-coordinate query field
+
+Exact Native boundary membership accepts an optional query field, defaulting to the
+prepared source field. All authored coordinates are validated before piece visits,
+including an empty raw family. The same field reaches DI selection membership,
+checked inverse-transport evaluation and retained-L5 refinement membership. New
+algebraic coordinates do not require rebuilding the original source or relation.
+Foreign fields/coordinates and query resource/depth/cancel failures propagate.

@@ -1,0 +1,6 @@
+(node:45126) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+START M6 exact self diagonal
+PASS M6 exact self rational depth0 accepted; retained irrational endpoint depth=4 refused at depth0
+PASS M6 exact self selected diagonal all 4 chart owners, raw/refined correspondence and typed refusal
+PASS M6 complete Native exact self-contact consumer diagonal

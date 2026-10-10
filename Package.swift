@@ -114,7 +114,7 @@ let package = Package(
     ),
     .target(
       name: "CADTopology",
-      dependencies: ["CADCore", "CADGeometry"]
+      dependencies: ["CADCore", "CADGeometry", .product(name: "HashTreeCollections", package: "swift-collections")]
     ),
     .target(
       name: "CADIR",
@@ -126,7 +126,7 @@ let package = Package(
     ),
     .target(
       name: "CADKernel",
-      dependencies: ["CADCore", "CADGeometry", "CADTopology", "CADIR", "CADModeling"]
+      dependencies: ["CADCore", "CADGeometry", "CADTopology", "CADIR", "CADModeling", .product(name: "HashTreeCollections", package: "swift-collections")]
     ),
     .target(
       name: "CADUSD",

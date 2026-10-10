@@ -1,0 +1,79 @@
+{
+  "scope": "Source-derived private Optional numeric formatter bodies; Native differential against existing reflection format and Embedded runtime. This does not establish public Topology or boundary acceptance.",
+  "helpers": {
+    "analyticPairOptionalDiagnostic": {
+      "source": "Sources/CADTopology/CertifiedAnalyticPairPcurveAreaIntegrator.swift",
+      "source_sha256": "d3d16e0b6387af993c6e0a6f75fe02e544e7aad82fc4af14f784a30320f7879a",
+      "body": "private func analyticPairOptionalDiagnostic<Value: CustomStringConvertible>(_ value: Value?) -> String {\n    if let value { return \"Optional(\" + value.description + \")\" }\n    return \"nil\"\n}\n",
+      "body_sha256": "4e58162dcfb2697151d14c7b232b67583b2d0753e34ece617f1ed57b28cf1e14"
+    },
+    "analyticFluxOptionalDiagnostic": {
+      "source": "Sources/CADTopology/CertifiedAnalyticPcurveFluxIntegrator.swift",
+      "source_sha256": "b84c6f567e89e053b2b34906b66e160d91fc0c1feec48399222b2c68df65814a",
+      "body": "private func analyticFluxOptionalDiagnostic<Value: CustomStringConvertible>(_ value: Value?) -> String {\n    if let value { return \"Optional(\" + value.description + \")\" }\n    return \"nil\"\n}\n",
+      "body_sha256": "6df6be13bd484ee0e12a6de5b3d88755f02c8da4cb7814ae10b8e56c2555a2e3"
+    }
+  },
+  "commands": [
+    {
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--package-path",
+        "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-formatter-probe/package",
+        "--scratch-path",
+        "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-formatter-probe/native",
+        "-j",
+        "2"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-formatter-probe/native/out/Products/Debug/FormatterProbe"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--package-path",
+        "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-formatter-probe/package",
+        "--scratch-path",
+        "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-formatter-probe/embedded",
+        "-j",
+        "2",
+        "--swift-sdk",
+        "swift-6.4.0-RELEASE_wasm-embedded",
+        "-Xswiftc",
+        "-whole-module-optimization",
+        "-Xswiftc",
+        "-Onone",
+        "-Xswiftc",
+        "-gnone",
+        "-Xlinker",
+        "/Users/1amageek/.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswiftUnicodeDataTables.a"
+      ],
+      "exit_code": 0
+    },
+    {
+      "command": [
+        "node",
+        "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Scripts/RunGeometricProof.mjs",
+        "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-formatter-probe/embedded/out/Products/Debug-webassembly-wasm32/FormatterProbe.wasm",
+        "all"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "native_generated_source_sha256": "3682303ed0b474f201cfa56030360645edb361ba0664d2222893f9e1ba761e98",
+  "embedded_generated_source_sha256": "ae79dccf8634907530de2e5a8b21a76c4c624ac265168fd707d0ce944eb0e7ae",
+  "native_artifact_sha256": "3974de4d755983416fc97cfdb938b72003d5411b1b9c7d66ac9c1988d2c5983f",
+  "embedded_artifact_sha256": "6dba1924a33f8ad8ab3023a32d9aab0c59b2773b499e2073c218f095c050570d",
+  "compiler": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0",
+  "swift_sdk": "swift-6.4.0-RELEASE_wasm-embedded",
+  "target_triple": "wasm32-unknown-wasip1",
+  "unicode_data_tables_sha256": "3abc2dd90a84bf165dbfad4ba2f3ae2470ef5cb27472cb18a9c1632e0ff719d9",
+  "node_version": "v24.19.0"
+}

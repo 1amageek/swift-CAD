@@ -137,3 +137,14 @@ The bounded opposite-seam pair entry consumes the original reversed chart-law
 and exact support-period receipt directly on the same caller work/byte and
 independent algebra policy. Drawing suppression cannot materialize rounded
 reversed/transformed pcurves or infer equality from numeric endpoint shifts.
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.
+
+The nonthrowing diagnose error-message authority is the existing Core failure
+port linked by [Topology](../DESIGN.md#m6-portable-validation-wiring). Its failure
+flag and invalidInput classification remain unchanged.

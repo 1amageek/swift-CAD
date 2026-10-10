@@ -1,7 +1,21 @@
+#if NATIVE_DOMAIN_ISOLATED_VERIFICATION
+import L0
+import L1
+import L2
+import L3
+import L4
+import L5
+import DI0
+import DI
+import SourceIssuer
+#endif
+
 import CADCore
 
 /// Converts nested exact causes once at the existing numerical Geometry boundary.
 enum NativeExactGeometryPublicationFailure {
+    // Embedded error metadata must match the caller that boxed the incoming failure.
+    @_alwaysEmitIntoClient
     static func published(_ error: any Error, tolerance: ModelingTolerance) -> any Error {
         if error is CancellationError { return error }
         if let error = error as? KernelError { return error }
@@ -141,7 +155,8 @@ enum NativeExactGeometryPublicationFailure {
         return error
     }
 
-    private static func failure(_ code: KernelErrorCode, _ tolerance: ModelingTolerance) -> KernelError {
+    @usableFromInline
+    static func failure(_ code: KernelErrorCode, _ tolerance: ModelingTolerance) -> KernelError {
         .init(phase: .geometry, code: code, tolerance: tolerance,
             message: "The original exact geometric query could not complete its required publication.")
     }

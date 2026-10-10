@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 #if canImport(Darwin)
@@ -131,7 +132,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         maximumAlgebraicDepth: Int = 32,
         consumeWork: @Sendable (Int) throws -> Void,
         consumeStorage: (@Sendable (Int) throws -> Void)? = nil) throws {
-        try tolerance.validate(); try Task.checkCancellation(); try consumeWork(0)
+        try tolerance.validate(); try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
         guard (0...32).contains(maximumAlgebraicDepth), !curves.isEmpty, maximumSubdivisionDepth >= 0, remainingSourceDepth > 0,
             uShift.isFinite, vShift.isFinite,
             uPeriod.map({ $0.isFinite && $0 > 0 }) ?? true,
@@ -140,7 +141,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
                 message: "Original chart predicate requires finite policy and caller source depths.")
         }
         for curve in curves {
-            try Task.checkCancellation(); try consumeWork(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
             let lift = try curve.continuousChartLift(on: surface, tolerance: tolerance,
                 maximumSpanCount: 131_072, maximumSubdivisionDepth: maximumSubdivisionDepth,
                 remainingSourceDepth: remainingSourceDepth, consumeWork: { try consumeWork(0) },
@@ -165,7 +166,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         uShift: Double = 0,vShift: Double = 0,uPeriod: Double? = nil,vPeriod: Double? = nil,
         maximumSubdivisionDepth: Int, maximumAlgebraicDepth: Int = 32, remainingSourceDepth: Int = 16,
         consumeWork: @Sendable (Int) throws -> Void) throws {
-        try Task.checkCancellation(); try consumeWork(0)
+        try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
         let tolerance = validatedModel.tolerance
         try tolerance.validate()
         guard remainingSourceDepth >= 0, (0...32).contains(maximumAlgebraicDepth), validatedModel.validationLevel != .modeling,maximumSubdivisionDepth >= 0,
@@ -197,7 +198,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
         maximumSubdivisionDepth: Int = 48
     ) throws -> WindingClassification {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         try consumeWork?(0)
         try tolerance.validate()
         guard maximumSubdivisionDepth >= 0, point.x.isFinite, point.y.isFinite else {
@@ -214,7 +215,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         consumeWork: (@Sendable (Int) throws -> Void)? = nil,
         consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
         maximumSubdivisionDepth: Int = 48) throws -> PlanarPointClassification? {
-        try tolerance.validate(); try Task.checkCancellation(); try consumeWork?(0)
+        try tolerance.validate(); try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
         guard maximumSubdivisionDepth >= 0, point.x.isFinite, point.y.isFinite else {
             throw Self.failure(phase: .classification, code: .invalidInput, tolerance: tolerance,
                 message: "Strict original winding requires a finite query and nonnegative depth.")
@@ -240,11 +241,11 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
             return .boundary
         }
         guard boxes.count >= 3 else { return .winding(0) }
-        for _ in boxes { try Task.checkCancellation(); try consumeWork?(0) }
+        for _ in boxes { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0) }
         let polygon = try homotopyPolygon(boxes, tolerance: tolerance, clearance: clearance, consumeWork: consumeWork, consumeStorage: consumeStorage)
         var winding = 0
         for index in polygon.indices {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeWork?(0)
             let start = polygon[index], end = polygon[(index + 1) % polygon.count]
             let upward = start.y <= point.y && end.y > point.y
@@ -278,7 +279,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
     private func exactAuthoredClosure(consumeWork: (@Sendable (Int) throws -> Void)?) throws -> Bool {
         func endpoints(_ curve: SurfaceParameterCurve, depth: Int = 0) throws
             -> (SurfaceParameter, SurfaceParameter)? {
-            try Task.checkCancellation(); try consumeWork?(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
             guard depth < 16 else { return nil }
             switch curve {
             case .constantU(let u, let start, let end):
@@ -406,7 +407,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         consumeStorage: (@Sendable (Int) throws -> Void)? = nil,
         maximumSubdivisionDepth: Int = 48
     ) throws -> Bool {
-        try tolerance.validate(); try Task.checkCancellation(); try consumeWork?(0)
+        try tolerance.validate(); try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
         guard maximumSubdivisionDepth >= 0 else {
             throw Self.failure(phase: .classification, code: .invalidInput, tolerance: tolerance,
                 message: "Original boundary comparison requires a nonnegative caller depth.")
@@ -432,7 +433,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         var pending: [PairWorkItem] = []
         for first in firstBoxes {
             for second in secondBoxes {
-                try Task.checkCancellation(); try consumeWork?(0)
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
                 guard Self.intersects(first, second, clearance: clearance) else { continue }
                 try OriginalParameterQueryStorage.append(PairWorkItem(first: first, second: second, depth: 0),
                     to: &pending, consumeStorage: consumeStorage)
@@ -440,7 +441,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         }
         var processedCount = 0
         while let item = pending.popLast() {
-            try Task.checkCancellation(); try consumeWork?(item.depth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(item.depth)
             processedCount += 1
             guard processedCount <= maximumWorkItemCount else {
                 throw Self.failure(
@@ -532,7 +533,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         var pending: [RangeWorkItem] = []
         try OriginalParameterQueryStorage.reserve(curves.count, in: &pending, consumeStorage: consumeStorage)
         for index in curves.indices {
-            try Task.checkCancellation(); try consumeWork?(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
             pending.append(RangeWorkItem(curveIndex: index, lowerFraction: 0, upperFraction: 1, depth: 0))
         }
         var accepted: [CurveBox] = []
@@ -606,7 +607,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         var result: [Point2D] = []
         try OriginalParameterQueryStorage.reserve(boxes.count, in: &result, consumeStorage: consumeStorage)
         for index in boxes.indices {
-            try Task.checkCancellation(); try consumeWork?(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
             let current = boxes[index]
             let next = boxes[(index + 1) % boxes.count]
             // The strict route uses actual box intersections after exact endpoint
@@ -670,7 +671,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         var mapped: [CurveBox] = []
         try OriginalParameterQueryStorage.reserve(enclosures.count, in: &mapped, consumeStorage: consumeStorage)
         for enclosure in enclosures {
-            try Task.checkCancellation(); try consumeWork?(item.depth)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(item.depth)
             mapped.append(CurveBox(
                 curveIndex: item.curveIndex,
                 lowerFraction: enclosure.lowerFraction,
@@ -708,7 +709,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
         let ordered = try orderedBoxes(boxes, consumeWork: consumeWork, consumeStorage: consumeStorage)
         try OriginalParameterQueryStorage.reserve(ordered.count, in: &result, consumeStorage: consumeStorage)
         for box in ordered {
-            try Task.checkCancellation(); try consumeWork?(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
             let boxUShift = Self.periodicShift(
                 box.u.midpoint,
                 nearest: referenceU,
@@ -783,7 +784,7 @@ package struct CertifiedSurfaceParameterLoopPredicate: Hashable, Sendable {
     ) throws -> [CurveBox] {
         var result: [CurveBox] = []
         for curveIndex in curves.indices {
-            try Task.checkCancellation(); try consumeWork?(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
             let originalBoxes = try boxes(for: RangeWorkItem(curveIndex: curveIndex,
                 lowerFraction: 0, upperFraction: 1, depth: 0),
                 additionalUShift: additionalUShift, additionalVShift: additionalVShift,

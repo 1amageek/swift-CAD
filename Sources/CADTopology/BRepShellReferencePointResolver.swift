@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 /// Selects a deterministic, geometry-derived origin for shell flux integrals.

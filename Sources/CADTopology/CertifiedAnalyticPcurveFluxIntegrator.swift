@@ -1680,7 +1680,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     var work = 0
     var result = Interval.exact(0)
     while let cell = pending.popLast() {
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       work += 1
       guard work <= maximumWorkItems else {
         throw resourceFailure(residual: Double(work), tolerance: tolerance, message: "Polynomial Green integration exhausted its existing cell allowance.")
@@ -1729,7 +1729,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       pending.append(Cell(lower: middle, upper: cell.upper, depth: cell.depth + 1, width: cell.width * 0.5))
       pending.append(Cell(lower: cell.lower, upper: middle, depth: cell.depth + 1, width: cell.width * 0.5))
     }
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     guard result.width <= requestedWidth else {
       throw resourceFailure(residual: result.width, tolerance: tolerance, message: "Polynomial Green accumulated enclosure exceeds the requested width.")
     }
@@ -1745,7 +1745,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     polynomialPrimitive: CertifiedPiecewisePolynomialSurfaceFluxPrimitive? = nil
   ) throws -> Interval? {
     try tolerance.validate()
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     guard uBase.isFinite,
       requestedWidth.isFinite,
       requestedWidth > 0.0
@@ -3074,7 +3074,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     var result = Interval.exact(0.0)
     var workItemCount = 0
     while let item = pending.popLast() {
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       workItemCount += 1
       guard workItemCount <= maximumWorkItems else {
         throw resourceFailure(
@@ -3195,7 +3195,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           ))
       }
     }
-    try Task.checkCancellation()
+    try CurrentTaskCancellationChecker().checkCancellation()
     return result
   }
 
@@ -3253,7 +3253,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       sine.x, sine.y,
       startParameter, endParameter,
     ]
-    guard values.allSatisfy(\.isFinite) else {
+    guard values.allSatisfy({ $0.isFinite }) else {
       throw KernelError(
         phase: .topology,
         code: .invalidInput,
@@ -3362,7 +3362,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     includeUSurfaceSeams: Bool = true
   ) throws -> [Double] {
     guard patch.degree >= 1,
-      patch.controls.allSatisfy(\.isFiniteAndPositiveWeight)
+      patch.controls.allSatisfy({ $0.isFiniteAndPositiveWeight })
     else {
       throw KernelError(
         phase: .topology,
@@ -3380,8 +3380,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     if includeUSurfaceSeams {
       for seam in interiorSeams(field.uSpans) {
         try appendRationalBezierSeamBreaks(
-          coordinateControls: patch.controls.map(\.x),
-          weightControls: patch.controls.map(\.weight),
+          coordinateControls: patch.controls.map({ $0.x }),
+          weightControls: patch.controls.map({ $0.weight }),
           seam: seam,
           to: &breaks,
           workItemCount: &workItemCount,
@@ -3391,8 +3391,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
     for seam in interiorSeams(field.vSpans) {
       try appendRationalBezierSeamBreaks(
-        coordinateControls: patch.controls.map(\.y),
-        weightControls: patch.controls.map(\.weight),
+        coordinateControls: patch.controls.map({ $0.y }),
+        weightControls: patch.controls.map({ $0.weight }),
         seam: seam,
         to: &breaks,
         workItemCount: &workItemCount,
@@ -3416,7 +3416,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     }
     // A root is located no closer than the controls' own bounds (carried through the piece's
     // extraction) place the coordinate, so the slack is the larger of roundoff and that width.
-    let minimumWeight = weightControls.map(\.lower).min() ?? 0.0
+    let minimumWeight = weightControls.map({ $0.lower }).min() ?? 0.0
     let inputUncertainty = minimumWeight > 0.0
       ? differences.map { $0.upper - $0.lower }.max().map { $0 / minimumWeight } ?? 0.0
       : 0.0
@@ -3442,7 +3442,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       )
     ]
     while let cell = pending.popLast() {
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       workItemCount += 1
       guard workItemCount <= maximumWorkItems else {
         throw resourceFailure(
@@ -3451,8 +3451,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           message: "Certified rational pcurve seam isolation exhausted its Bernstein-cell budget."
         )
       }
-      let hullLower = cell.differences.map(\.lower).min() ?? -.infinity
-      let hullUpper = cell.differences.map(\.upper).max() ?? .infinity
+      let hullLower = cell.differences.map({ $0.lower }).min() ?? -.infinity
+      let hullUpper = cell.differences.map({ $0.upper }).max() ?? .infinity
       if hullLower > 0.0 || hullUpper < 0.0 {
         continue
       }
@@ -3521,7 +3521,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     let numerator = differences.reduce(0.0) { partial, value in
       max(partial, abs(value.lower), abs(value.upper))
     }
-    let denominator = weights.map(\.lower).min() ?? 0.0
+    let denominator = weights.map({ $0.lower }).min() ?? 0.0
     guard numerator.isFinite,
       denominator.isFinite,
       denominator > 0.0
@@ -3563,8 +3563,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
   private func interiorSeams(
     _ spans: [CertifiedRationalBezierSurfaceFluxIntegrator.PreparedField.ParameterSpan]
   ) -> [Double] {
-    guard let lower = spans.map(\.lower).min(),
-      let upper = spans.map(\.upper).max()
+    guard let lower = spans.map({ $0.lower }).min(),
+      let upper = spans.map({ $0.upper }).max()
     else {
       return []
     }
@@ -3673,10 +3673,10 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     parameterEvaluator: (Jet) throws -> (u: Jet, v: Jet),
     tolerance: ModelingTolerance
   ) throws -> SeamEnclosure {
-    guard let uLower = field.uSpans.map(\.lower).min(),
-      let uUpper = field.uSpans.map(\.upper).max(),
-      let vLower = field.vSpans.map(\.lower).min(),
-      let vUpper = field.vSpans.map(\.upper).max()
+    guard let uLower = field.uSpans.map({ $0.lower }).min(),
+      let uUpper = field.uSpans.map({ $0.upper }).max(),
+      let vLower = field.vSpans.map({ $0.lower }).min(),
+      let vUpper = field.vSpans.map({ $0.upper }).max()
     else {
       throw KernelError(
         phase: .topology,
@@ -4259,7 +4259,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           residual: activeWidth,
           tolerance: tolerance,
           message:
-            "Certified implicit rational pcurve flux exhausted its \(maximumWorkItems)-cell budget; widest cell index \(item.cellIndex), local curve [\(item.curveLower), \(item.curveUpper)], depth \(item.depth), lambda [\(item.lambdaLower), \(item.lambdaUpper)], width \(item.width), range width \(item.rangeWidth), midpoint width \(String(describing: item.midpointWidth))."
+            "Certified implicit rational pcurve flux exhausted its \(maximumWorkItems)-cell budget; widest cell index \(item.cellIndex), local curve [\(item.curveLower), \(item.curveUpper)], depth \(item.depth), lambda [\(item.lambdaLower), \(item.lambdaUpper)], width \(item.width), range width \(item.rangeWidth), midpoint width \(analyticFluxOptionalDiagnostic(item.midpointWidth))."
         )
       }
       let curveSpan = item.curveUpper - item.curveLower
@@ -4668,7 +4668,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
           residual: Double(workItemCount),
           tolerance: tolerance,
           message:
-            "Certified analytic pcurve flux exhausted its subdivision budget. Finite width \(totals.finite) versus requested \(requestedWidth), singular cells \(totals.singular), widest cell segment \(String(describing: widest?.segment)) range [\(String(describing: widest?.lower)), \(String(describing: widest?.upper))] depth \(String(describing: widest?.depth)) enclosure width \(String(describing: widest?.enclosure?.width)), current item segment \(item.segment) range [\(item.lower), \(item.upper)] depth \(item.depth) enclosure \(String(describing: item.enclosure?.width))."
+            "Certified analytic pcurve flux exhausted its subdivision budget. Finite width \(totals.finite) versus requested \(requestedWidth), singular cells \(totals.singular), widest cell segment \(analyticFluxOptionalDiagnostic(widest?.segment)) range [\(analyticFluxOptionalDiagnostic(widest?.lower)), \(analyticFluxOptionalDiagnostic(widest?.upper))] depth \(analyticFluxOptionalDiagnostic(widest?.depth)) enclosure width \(analyticFluxOptionalDiagnostic(widest?.enclosure?.width)), current item segment \(item.segment) range [\(item.lower), \(item.upper)] depth \(item.depth) enclosure \(analyticFluxOptionalDiagnostic(item.enclosure?.width))."
         )
       }
       let middle = item.lower + (item.upper - item.lower) * 0.5
@@ -5680,8 +5680,8 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       let vDerivative = derivativeCoefficients(v)
       let uvIntegral = integratedProduct(u, vDerivative)
       parameterArea = parameterArea + uvIntegral
-      let lowerU = uControls.map(\.lower).min() ?? -.infinity
-      let upperU = uControls.map(\.upper).max() ?? .infinity
+      let lowerU = uControls.map({ $0.lower }).min() ?? -.infinity
+      let upperU = uControls.map({ $0.upper }).max() ?? .infinity
       let center = lowerU + (upperU - lowerU) * 0.5
       guard center.isFinite else {
         throw KernelError(
@@ -5696,7 +5696,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
       let maximumDelta = max(abs(lowerU - center), abs(upperU - center)).nextUp
       let maximumVDerivative =
         derivativeBernsteinControls(vControls)
-        .map(\.maximumAbsolute)
+        .map({ $0.maximumAbsolute })
         .max() ?? .infinity
       let trigonometric = try polynomialTrigonometricMoments(
         delta: delta,
@@ -5879,12 +5879,12 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     let uControls = restrictedControls.map { $0.x / $0.weight }
     let vControls = restrictedControls.map { $0.y / $0.weight }
     u.coefficients[0] = Interval(
-      lower: uControls.map(\.lower).min() ?? -.infinity,
-      upper: uControls.map(\.upper).max() ?? .infinity
+      lower: uControls.map({ $0.lower }).min() ?? -.infinity,
+      upper: uControls.map({ $0.upper }).max() ?? .infinity
     )
     v.coefficients[0] = Interval(
-      lower: vControls.map(\.lower).min() ?? -.infinity,
-      upper: vControls.map(\.upper).max() ?? .infinity
+      lower: vControls.map({ $0.lower }).min() ?? -.infinity,
+      upper: vControls.map({ $0.upper }).max() ?? .infinity
     )
     return (u, v)
   }
@@ -5894,7 +5894,7 @@ struct CertifiedAnalyticPcurveFluxIntegrator {
     tolerance: ModelingTolerance
   ) throws -> PreparedRationalPcurvePatch {
     guard patch.degree >= 1,
-      patch.controls.allSatisfy(\.isFiniteAndPositiveWeight)
+      patch.controls.allSatisfy({ $0.isFiniteAndPositiveWeight })
     else {
       throw KernelError(
         phase: .topology,
@@ -6412,4 +6412,10 @@ extension TrimmedAnalyticSurfaceVolumeEvaluator.Interval {
       upper: outwardUpper
     )
   }
+}
+
+/// Preserves the existing optional numeric diagnostic spelling without reflection.
+private func analyticFluxOptionalDiagnostic<Value: CustomStringConvertible>(_ value: Value?) -> String {
+    if let value { return "Optional(" + value.description + ")" }
+    return "nil"
 }

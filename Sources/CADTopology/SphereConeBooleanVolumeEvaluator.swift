@@ -1,3 +1,4 @@
+import HashTreeCollections
 #if canImport(Darwin)
 import Darwin
 #elseif canImport(Glibc)
@@ -330,7 +331,7 @@ struct SphereConeBooleanVolumeEvaluator {
     }
 
     private func uniformOrientation(_ faces: [Face]) -> Orientation? {
-        let orientations = Set(faces.map(\.orientation))
+        let orientations = Set(faces.map({ $0.orientation }))
         guard orientations.count == 1 else { return nil }
         return orientations.first
     }

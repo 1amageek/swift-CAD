@@ -72,7 +72,7 @@ public enum BodyTopology: Equatable, Sendable {
     public var shellIDs: [ShellID] {
         switch self {
         case .solid(let components):
-            components.flatMap(\.shellIDs)
+            components.flatMap({ $0.shellIDs })
         case .sheet(let shellIDs):
             shellIDs
         }

@@ -1,0 +1,19 @@
+Building for debugging...
+[0/12] Write sources
+[1/12] Write swift-version-7EE3F01B468E1A0A.txt
+[3/10] Emitting module CADTopology
+[4/10] Compiling CADTopology AnalyticConicSurfaceValidator.swift
+[4/12] Wrapping AST for CADTopology for debugging
+[6/12] Emitting module CADKernel
+[7/12] Compiling CADKernel DefaultOriginalFaceBoundaryClipper+Exact.swift
+[7/12] Wrapping AST for CADKernel for debugging
+[9/14] Emitting module NativeExactBoundaryFixtures
+[10/14] Compiling NativeExactBoundaryFixtures BoundaryPublicationAdmission.swift
+[10/16] Wrapping AST for NativeExactBoundaryFixtures for debugging
+[12/16] Emitting module NativeExactBoundaryProof
+[13/16] Compiling NativeExactBoundaryProof Proof.swift
+[13/16] Wrapping AST for NativeExactBoundaryProof for debugging
+[14/16] Write Objects.LinkFileList
+[15/16] Linking NativeExactBoundaryProof.wasm
+Build of product 'NativeExactBoundaryProof' complete! (917.76s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

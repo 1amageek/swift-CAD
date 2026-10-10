@@ -43,6 +43,25 @@ extension OriginalParameterSelection {
         }
     }
 
+    public func contains<A: ExactScalarAdmission & ~Copyable>(_ tuple: borrowing [F.Value],
+        queryField: F, limits: OriginalDomainIdentityLimits, using admission: inout A)
+        throws(OriginalDomainIdentityFailure) -> Bool {
+        let input = copy tuple
+        return try OriginalDomainAccess.run(&admission) { a in
+            try frame.require(limits, &a)
+            _ = try queryField.sign(of: frame.scalarField.integer(1, using: &a), using: &a)
+            guard input.count == arity else { throw OriginalDomainIdentityFailure.invalidDomain }
+            var included = true
+            for i in input.indices {
+                try a.consumeWork(1)
+                if try !frame.owner.domains[i].contains(input[i], in: storage[i], queryField: queryField, using: &a) {
+                    included = false
+                }
+            }
+            return included
+        }
+    }
+
     public func intersection<A: ExactScalarAdmission & ~Copyable>(_ other: borrowing Self,
         limits: OriginalDomainIdentityLimits, using admission: inout A) throws(OriginalDomainIdentityFailure) -> Self {
         let rhs = copy other

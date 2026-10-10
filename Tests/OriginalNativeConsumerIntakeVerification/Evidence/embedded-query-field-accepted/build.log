@@ -1,0 +1,40 @@
+Building for debugging...
+[0/25] Write sources
+[11/25] Write swift-version-7EE3F01B468E1A0A.txt
+[13/27] Emitting module L0
+[14/27] Compiling L0 DefaultOriginalScalarTransporter+SelectedRoot.swift
+[16/32] Emitting module DI0
+[17/32] Compiling DI0 ExactParameterBound.swift
+[18/33] Wrapping AST for L0 for debugging
+[19/33] Wrapping AST for DI0 for debugging
+[21/33] Emitting module L1
+[22/33] Compiling L1 ExactPolynomial.swift
+[24/38] Emitting module L2
+[25/38] Compiling L2 ExactAlgebraicCalculation.swift
+[26/39] Wrapping AST for L1 for debugging
+[28/41] Emitting module L3
+[29/41] Compiling L3 ExactCellAccess.swift
+[30/42] Wrapping AST for L2 for debugging
+[32/42] Emitting module SourceIssuer
+[33/42] Compiling SourceIssuer DefaultOriginalAnalyticCoordinateIssuer+Physical.swift
+[34/45] Wrapping AST for L3 for debugging
+[36/47] Emitting module L4
+[38/48] Compiling L4 ExactRealAttachment.swift
+[38/48] Wrapping AST for SourceIssuer for debugging
+[40/50] Emitting module DI
+[41/50] Compiling DI OriginalDomainAccess.swift
+[42/51] Compiling L5 ExactParametricConstraintDivision.swift
+[43/51] Emitting module L5
+[45/52] Wrapping AST for L4 for debugging
+[46/52] Wrapping AST for DI for debugging
+[47/54] Wrapping AST for L5 for debugging
+[49/54] Emitting module NativeRefinement
+[51/55] Compiling NativeRefinement DefaultNativeExactParameterRefiner.swift
+[51/55] Wrapping AST for NativeRefinement for debugging
+[53/57] Compiling NativeConsumerProof Proof.swift
+[54/57] Emitting module NativeConsumerProof
+[55/58] Wrapping AST for NativeConsumerProof for debugging
+[56/58] Write Objects.LinkFileList
+[57/58] Linking NativeConsumerProof.wasm
+Build of product 'NativeConsumerProof' complete! (10.91s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

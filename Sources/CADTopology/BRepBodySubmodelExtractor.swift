@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 /// Extracts the ownership-closed topology and geometry for a set of bodies.
@@ -12,23 +13,23 @@ package struct BRepBodySubmodelExtractor {
         bodyIDs: Set<BodyID>,
         from model: BRepModel
     ) throws -> BRepModel {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         var result = BRepModel()
 
         for bodyID in bodyIDs {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let body = model.bodies[bodyID] else {
                 throw TopologyError.missingReference("Missing body \(bodyID).")
             }
             result.bodies[bodyID] = body
             for shellID in body.shellIDs {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 guard let shell = model.shells[shellID] else {
                     throw TopologyError.missingReference("Missing shell \(shellID).")
                 }
                 result.shells[shellID] = shell
                 for faceID in shell.faceIDs {
-                    try Task.checkCancellation()
+                    try CurrentTaskCancellationChecker().checkCancellation()
                     guard let face = model.faces[faceID],
                           let surface = model.geometry.surfaces[face.surfaceID] else {
                         throw TopologyError.missingReference(
@@ -38,13 +39,13 @@ package struct BRepBodySubmodelExtractor {
                     result.faces[faceID] = face
                     result.geometry.surfaces[face.surfaceID] = surface
                     for loopID in face.loops {
-                        try Task.checkCancellation()
+                        try CurrentTaskCancellationChecker().checkCancellation()
                         guard let loop = model.loops[loopID] else {
                             throw TopologyError.missingReference("Missing loop \(loopID).")
                         }
                         result.loops[loopID] = loop
                         for orientedEdge in loop.edges {
-                            try Task.checkCancellation()
+                            try CurrentTaskCancellationChecker().checkCancellation()
                             let edgeID = orientedEdge.edgeID
                             guard let edge = model.edges[edgeID],
                                   let curve = model.geometry.curves[edge.curveID],

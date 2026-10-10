@@ -40,7 +40,7 @@ struct OriginalLinearPcurveFluxIntegrator {
             guard points.count >= 2 else { throw GeometryError.invalidDistance(Double(points.count)) }
             var sum = ExactRationalCoefficient.zero
             for index in 1..<points.count {
-                try Task.checkCancellation(); try consumeWork?(0)
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork?(0)
                 let first = points[index - 1], last = points[index]
                 let contribution = try segment(.originalDouble(first.u, usage: &usage),
                     .originalDouble(first.v, usage: &usage), .originalDouble(last.u, usage: &usage),

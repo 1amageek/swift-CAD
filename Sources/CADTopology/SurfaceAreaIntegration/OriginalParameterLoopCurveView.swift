@@ -15,7 +15,7 @@ struct OriginalParameterLoopCurveView: RandomAccessCollection, Hashable, Sendabl
     init(curves: [SurfaceParameterCurve]) { storage = .authored(curves) }
     init(validatedLoop: Loop,consumeWork: @Sendable (Int) throws -> Void) throws {
         for use in validatedLoop.coedges {
-            try Task.checkCancellation(); try consumeWork(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
             guard use.surfaceParameterCurve != nil else { throw TopologyError.invalidTrim(use.edgeID) }
         }
         storage = .original(validatedLoop)

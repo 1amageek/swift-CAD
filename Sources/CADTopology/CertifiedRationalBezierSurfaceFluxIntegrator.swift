@@ -113,7 +113,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             uBase: Double,
             consumeCoefficientOperations consume: (Int) throws -> Void
         ) throws -> CertifiedPiecewisePolynomialSurfaceFluxPrimitive? {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             // FIXME(INCOMPLETE_IMPLEMENTATION): Periodic native charts have no prefix owner
             // on volumetric pcurve queries. Complete only with original cycle/seam coverage.
             guard !sourceSurface.isUPeriodic, !sourceSurface.isVPeriodic else {
@@ -127,7 +127,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                     message: "Polynomial Green preparation requires a contained base and positive original weights.")
             }
             for row in sourceSurface.weights {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try consume(row.count)
                 for value in row where value != weight { return nil }
             }
@@ -135,7 +135,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             var inputs: [CertifiedPiecewisePolynomialSurfaceFluxPrimitive.NativePanel] = []
             inputs.reserveCapacity(patches.count)
             for source in patches {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try consume(5)
                 inputs.append(.init(uSpan: .init(lower: source.uLower, upper: source.uUpper),
                     vSpan: .init(lower: source.vLower, upper: source.vUpper),
@@ -443,33 +443,33 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             }
             return SecondOrderBounds(
                 value: TaylorInterval(
-                    lower: localBounds.map(\.value.lower).min() ?? -.infinity,
-                    upper: localBounds.map(\.value.upper).max() ?? .infinity
+                    lower: localBounds.map({ $0.value.lower }).min() ?? -.infinity,
+                    upper: localBounds.map({ $0.value.upper }).max() ?? .infinity
                 ),
                 derivativeU: TaylorInterval(
-                    lower: localBounds.map(\.derivativeU.lower).min() ?? -.infinity,
-                    upper: localBounds.map(\.derivativeU.upper).max() ?? .infinity
+                    lower: localBounds.map({ $0.derivativeU.lower }).min() ?? -.infinity,
+                    upper: localBounds.map({ $0.derivativeU.upper }).max() ?? .infinity
                 ),
                 derivativeV: TaylorInterval(
-                    lower: localBounds.map(\.derivativeV.lower).min() ?? -.infinity,
-                    upper: localBounds.map(\.derivativeV.upper).max() ?? .infinity
+                    lower: localBounds.map({ $0.derivativeV.lower }).min() ?? -.infinity,
+                    upper: localBounds.map({ $0.derivativeV.upper }).max() ?? .infinity
                 ),
                 secondDerivativeUU: TaylorInterval(
-                    lower: localBounds.map(\.secondDerivativeUU.lower).min()
+                    lower: localBounds.map({ $0.secondDerivativeUU.lower }).min()
                         ?? -.infinity,
-                    upper: localBounds.map(\.secondDerivativeUU.upper).max()
+                    upper: localBounds.map({ $0.secondDerivativeUU.upper }).max()
                         ?? .infinity
                 ),
                 secondDerivativeUV: TaylorInterval(
-                    lower: localBounds.map(\.secondDerivativeUV.lower).min()
+                    lower: localBounds.map({ $0.secondDerivativeUV.lower }).min()
                         ?? -.infinity,
-                    upper: localBounds.map(\.secondDerivativeUV.upper).max()
+                    upper: localBounds.map({ $0.secondDerivativeUV.upper }).max()
                         ?? .infinity
                 ),
                 secondDerivativeVV: TaylorInterval(
-                    lower: localBounds.map(\.secondDerivativeVV.lower).min()
+                    lower: localBounds.map({ $0.secondDerivativeVV.lower }).min()
                         ?? -.infinity,
-                    upper: localBounds.map(\.secondDerivativeVV.upper).max()
+                    upper: localBounds.map({ $0.secondDerivativeVV.upper }).max()
                         ?? .infinity
                 )
             )
@@ -597,8 +597,8 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 }
             }
             return CertifiedUnivariateTaylorJet.Interval(
-                lower: (ranges.map(\.lower).min() ?? -.infinity).nextDown,
-                upper: (ranges.map(\.upper).max() ?? .infinity).nextUp
+                lower: (ranges.map({ $0.lower }).min() ?? -.infinity).nextDown,
+                upper: (ranges.map({ $0.upper }).max() ?? .infinity).nextUp
             )
         }
 
@@ -1156,7 +1156,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 )
             }
             let evaluatedWeight = try derivativeValue(
-                component: \HomogeneousPoint.weight,
+                component: { $0.weight },
                 uOrder: 0,
                 vOrder: 0,
                 u: restrictedU,
@@ -1224,7 +1224,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 )
             }
             var weight = try univariateValue(
-                component: \HomogeneousPoint.weight,
+                component: { $0.weight },
                 uOrder: 0,
                 vOrder: 0,
                 u: u,
@@ -1249,16 +1249,16 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             tolerance: ModelingTolerance
         ) throws -> CertifiedUnivariateTaylorJet {
             let components: (
-                first: KeyPath<HomogeneousPoint, Interval>,
-                second: KeyPath<HomogeneousPoint, Interval>
+                first: (HomogeneousPoint) -> Interval,
+                second: (HomogeneousPoint) -> Interval
             )
             switch projection {
             case .normalX:
-                components = (\HomogeneousPoint.y, \HomogeneousPoint.z)
+                components = ({ $0.y }, { $0.z })
             case .normalY:
-                components = (\HomogeneousPoint.z, \HomogeneousPoint.x)
+                components = ({ $0.z }, { $0.x })
             case .normalZ:
-                components = (\HomogeneousPoint.x, \HomogeneousPoint.y)
+                components = ({ $0.x }, { $0.y })
             }
             let first = try univariateValue(
                 component: components.first,
@@ -1277,7 +1277,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                 tolerance: tolerance
             )
             var weight = try univariateValue(
-                component: \HomogeneousPoint.weight,
+                component: { $0.weight },
                 uOrder: 0,
                 vOrder: 0,
                 u: u,
@@ -1301,22 +1301,22 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             tolerance: ModelingTolerance
         ) throws -> ScalarPolynomial2D {
             let weight = ScalarPolynomial2D(
-                controls.map { $0.map(\.weight) }
+                controls.map { $0.map({ $0.weight }) }
             )
             let x = try ScalarPolynomial2D(
-                controls.map { $0.map(\.x) }
+                controls.map { $0.map({ $0.x }) }
             ).subtracting(
                 weight.scaled(by: reference.x),
                 tolerance: tolerance
             )
             let y = try ScalarPolynomial2D(
-                controls.map { $0.map(\.y) }
+                controls.map { $0.map({ $0.y }) }
             ).subtracting(
                 weight.scaled(by: reference.y),
                 tolerance: tolerance
             )
             let z = try ScalarPolynomial2D(
-                controls.map { $0.map(\.z) }
+                controls.map { $0.map({ $0.z }) }
             ).subtracting(
                 weight.scaled(by: reference.z),
                 tolerance: tolerance
@@ -1575,7 +1575,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         }
 
         private func univariateValue(
-            component: KeyPath<HomogeneousPoint, Interval>,
+            component: (HomogeneousPoint) -> Interval,
             uOrder: Int,
             vOrder: Int,
             u: CertifiedUnivariateTaylorJet,
@@ -1599,7 +1599,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             tolerance: ModelingTolerance
         ) throws -> Interval {
             let controlHull = Interval.hull(
-                controls.flatMap { row in row.map(\.weight) }
+                controls.flatMap { row in row.map({ $0.weight }) }
             )
             guard let certified = evaluated.intersection(controlHull),
                   certified.lower > 0.0 else {
@@ -1665,27 +1665,27 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             tolerance: ModelingTolerance
         ) throws -> Interval {
             let valueX = try coordinateJet(
-                component: \HomogeneousPoint.x,
+                component: { $0.x },
                 primary: primary,
                 tolerance: tolerance
             )
             let valueY = try coordinateJet(
-                component: \HomogeneousPoint.y,
+                component: { $0.y },
                 primary: primary,
                 tolerance: tolerance
             )
             let valueZ = try coordinateJet(
-                component: \HomogeneousPoint.z,
+                component: { $0.z },
                 primary: primary,
                 tolerance: tolerance
             )
             let weight = try coordinateJet(
-                component: \HomogeneousPoint.weight,
+                component: { $0.weight },
                 primary: primary,
                 tolerance: tolerance
             )
             let secondaryWeight = try secondaryCoordinateJet(
-                component: \HomogeneousPoint.weight,
+                component: { $0.weight },
                 primary: primary,
                 tolerance: tolerance
             )
@@ -1705,7 +1705,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             let secondaryX = try secondaryEuclideanJet(
                 value: valueX,
                 secondary: secondaryCoordinateJet(
-                    component: \HomogeneousPoint.x,
+                    component: { $0.x },
                     primary: primary,
                     tolerance: tolerance
                 ),
@@ -1716,7 +1716,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             let secondaryY = try secondaryEuclideanJet(
                 value: valueY,
                 secondary: secondaryCoordinateJet(
-                    component: \HomogeneousPoint.y,
+                    component: { $0.y },
                     primary: primary,
                     tolerance: tolerance
                 ),
@@ -1727,7 +1727,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
             let secondaryZ = try secondaryEuclideanJet(
                 value: valueZ,
                 secondary: secondaryCoordinateJet(
-                    component: \HomogeneousPoint.z,
+                    component: { $0.z },
                     primary: primary,
                     tolerance: tolerance
                 ),
@@ -1775,7 +1775,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         }
 
         private func coordinateJet(
-            component: KeyPath<HomogeneousPoint, Interval>,
+            component: (HomogeneousPoint) -> Interval,
             primary: Direction,
             tolerance: ModelingTolerance
         ) throws -> IntervalJet {
@@ -1791,7 +1791,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         }
 
         private func secondaryCoordinateJet(
-            component: KeyPath<HomogeneousPoint, Interval>,
+            component: (HomogeneousPoint) -> Interval,
             primary: Direction,
             tolerance: ModelingTolerance
         ) throws -> IntervalJet {
@@ -1807,7 +1807,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         }
 
         private func derivativeRange(
-            component: KeyPath<HomogeneousPoint, Interval>,
+            component: (HomogeneousPoint) -> Interval,
             uOrder: Int,
             vOrder: Int,
             tolerance: ModelingTolerance
@@ -1828,7 +1828,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         ) throws -> HomogeneousPoint {
             HomogeneousPoint(
                 x: try derivativeValue(
-                    component: \HomogeneousPoint.x,
+                    component: { $0.x },
                     uOrder: 0,
                     vOrder: 0,
                     u: u,
@@ -1836,7 +1836,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                     tolerance: tolerance
                 ),
                 y: try derivativeValue(
-                    component: \HomogeneousPoint.y,
+                    component: { $0.y },
                     uOrder: 0,
                     vOrder: 0,
                     u: u,
@@ -1844,7 +1844,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                     tolerance: tolerance
                 ),
                 z: try derivativeValue(
-                    component: \HomogeneousPoint.z,
+                    component: { $0.z },
                     uOrder: 0,
                     vOrder: 0,
                     u: u,
@@ -1852,7 +1852,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                     tolerance: tolerance
                 ),
                 weight: try derivativeValue(
-                    component: \HomogeneousPoint.weight,
+                    component: { $0.weight },
                     uOrder: 0,
                     vOrder: 0,
                     u: u,
@@ -1871,7 +1871,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         ) throws -> HomogeneousPoint {
             HomogeneousPoint(
                 x: try derivativeValue(
-                    component: \HomogeneousPoint.x,
+                    component: { $0.x },
                     uOrder: uOrder,
                     vOrder: vOrder,
                     u: u,
@@ -1879,7 +1879,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                     tolerance: tolerance
                 ),
                 y: try derivativeValue(
-                    component: \HomogeneousPoint.y,
+                    component: { $0.y },
                     uOrder: uOrder,
                     vOrder: vOrder,
                     u: u,
@@ -1887,7 +1887,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                     tolerance: tolerance
                 ),
                 z: try derivativeValue(
-                    component: \HomogeneousPoint.z,
+                    component: { $0.z },
                     uOrder: uOrder,
                     vOrder: vOrder,
                     u: u,
@@ -1895,7 +1895,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
                     tolerance: tolerance
                 ),
                 weight: try derivativeValue(
-                    component: \HomogeneousPoint.weight,
+                    component: { $0.weight },
                     uOrder: uOrder,
                     vOrder: vOrder,
                     u: u,
@@ -1906,7 +1906,7 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         }
 
         private func derivativeValue(
-            component: KeyPath<HomogeneousPoint, Interval>,
+            component: (HomogeneousPoint) -> Interval,
             uOrder: Int,
             vOrder: Int,
             u: Interval,
@@ -1924,12 +1924,12 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
         }
 
         private func derivativeNet(
-            component: KeyPath<HomogeneousPoint, Interval>,
+            component: (HomogeneousPoint) -> Interval,
             uOrder: Int,
             vOrder: Int,
             tolerance: ModelingTolerance
         ) throws -> [[Interval]] {
-            var net = controls.map { row in row.map { $0[keyPath: component] } }
+            var net = controls.map { row in row.map { component($0) } }
             if let constant = Self.exactConstant(in: net) {
                 return uOrder == 0 && vOrder == 0
                     ? [[constant]]
@@ -2400,8 +2400,8 @@ struct CertifiedRationalBezierSurfaceFluxIntegrator {
 
         static func hull(_ values: [Interval]) -> Interval {
             Interval(
-                lower: (values.map(\.lower).min() ?? -.infinity).nextDown,
-                upper: (values.map(\.upper).max() ?? .infinity).nextUp
+                lower: (values.map({ $0.lower }).min() ?? -.infinity).nextDown,
+                upper: (values.map({ $0.upper }).max() ?? .infinity).nextUp
             )
         }
 

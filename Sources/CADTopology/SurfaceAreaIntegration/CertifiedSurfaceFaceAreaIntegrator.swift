@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 #if canImport(Darwin)
@@ -121,7 +122,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                             "Certified free-surface integration requires connected trims to parameter rounding precision.")
                     }
                 }
-                let curves = lifted.map(\.translatedCurve)
+                let curves = lifted.map({ $0.translatedCurve })
                 let charts = try curves.map { try SurfaceAreaParameterChartEncloser(curve:$0,on:surface,
                     maximumControlPointCount:options.maximumControlPointCount,
                     maximumBoundaryCurveCount:options.maximumBoundaryCurveCount,tolerance:tolerance,
@@ -550,7 +551,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
                     // Crossing a density jump: the complete fan measure remains.
                     // Aggregate uncertainty, rather than goal*cellMeasure, owns acceptance.
                     let values = bounds.map { $0.value*measure }
-                    guard values.allSatisfy(\.isFinite) else {
+                    guard values.allSatisfy({ $0.isFinite }) else {
                         throw failure(.classificationFailure,tolerance,"Native range-only area integral exceeded finite arithmetic.")
                     }
                     // Native chart joins vary only in T. Refining the independent R
@@ -626,8 +627,8 @@ struct CertifiedSurfaceFaceAreaIntegrator {
         }
         guard Set(starts).count == 4,
               starts.indices.allSatisfy({ ends[$0] == starts[($0 + 1) % 4] }),
-              let uLow = starts.map(\.u).min(), let uHigh = starts.map(\.u).max(),
-              let vLow = starts.map(\.v).min(), let vHigh = starts.map(\.v).max(),
+              let uLow = starts.map({ $0.u }).min(), let uHigh = starts.map({ $0.u }).max(),
+              let vLow = starts.map({ $0.v }).min(), let vHigh = starts.map({ $0.v }).max(),
               uHigh > uLow, vHigh > vLow,
               starts.allSatisfy({ ($0.u == uLow || $0.u == uHigh) && ($0.v == vLow || $0.v == vHigh) }) else { return nil }
         return SurfaceParameterBox(u: try ScalarInterval(lower: uLow, upper: uHigh),
@@ -795,7 +796,7 @@ struct CertifiedSurfaceFaceAreaIntegrator {
             try admit(connector.endBoundary.source,options:options,tolerance:tolerance,depth:depth+2)
         case .originalGuideTraversalChain(let chain):
             for traversal in chain.traversals {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try admit(traversal.source,options:options,tolerance:tolerance,depth:depth+2)
             }
         case .originalDrafted(let drafted):

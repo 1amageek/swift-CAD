@@ -771,7 +771,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     }
     let composed = CertifiedIntervalSummation.sum(
       heap.storage,
-      bounds: \.bounds
+      bounds: { $0.bounds }
     )
     let result = Interval(
       lower: composed.lower,
@@ -938,7 +938,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
     let result = CertifiedIntervalSummation.sum(
       heap.storage,
-      bounds: \.bounds
+      bounds: { $0.bounds }
     )
     guard result.width <= requestedWidth.nextUp else {
       throw KernelError(
@@ -1356,7 +1356,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     }
     var result = CertifiedIntervalSummation.sum(
       heap.storage,
-      bounds: \.bounds
+      bounds: { $0.bounds }
     )
     result = result.adding(
       SurfaceParameterAreaBounds(
@@ -1934,7 +1934,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           residual: item.width,
           tolerance: tolerance,
           message:
-            "Generic analytic-pair integration exceeded its certified cell budget for \(surfaceKind(curve.intersection.surface(for: curve.role))) role \(curve.role.rawValue) over normalized interval [\(item.lower), \(item.upper)] at depth \(item.depth); cell width \(item.width), composed width \(totalWidth), requested width \(requestedWidth), active cells \(heap.count), certified derivatives U [\(String(describing: diagnosticBounds.uFirstDerivativeMagnitude)), \(String(describing: diagnosticBounds.uSecondDerivativeMagnitude)), \(String(describing: diagnosticBounds.uThirdDerivativeMagnitude))], V [\(diagnosticBounds.vFirstDerivativeMagnitude), \(String(describing: diagnosticBounds.vSecondDerivativeMagnitude)), \(String(describing: diagnosticBounds.vThirdDerivativeMagnitude))], midpoint derivative [\(diagnosticDifferential.firstDerivative.x), \(diagnosticDifferential.firstDerivative.y)]."
+            "Generic analytic-pair integration exceeded its certified cell budget for \(surfaceKind(curve.intersection.surface(for: curve.role))) role \(curve.role.rawValue) over normalized interval [\(item.lower), \(item.upper)] at depth \(item.depth); cell width \(item.width), composed width \(totalWidth), requested width \(requestedWidth), active cells \(heap.count), certified derivatives U [\(analyticPairOptionalDiagnostic(diagnosticBounds.uFirstDerivativeMagnitude)), \(analyticPairOptionalDiagnostic(diagnosticBounds.uSecondDerivativeMagnitude)), \(analyticPairOptionalDiagnostic(diagnosticBounds.uThirdDerivativeMagnitude))], V [\(diagnosticBounds.vFirstDerivativeMagnitude), \(analyticPairOptionalDiagnostic(diagnosticBounds.vSecondDerivativeMagnitude)), \(analyticPairOptionalDiagnostic(diagnosticBounds.vThirdDerivativeMagnitude))], midpoint derivative [\(diagnosticDifferential.firstDerivative.x), \(diagnosticDifferential.firstDerivative.y)]."
         )
       }
       let midpoint = item.lower + (item.upper - item.lower) * 0.5
@@ -1992,7 +1992,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
 
     let result = CertifiedIntervalSummation.sum(
       heap.storage,
-      bounds: \.bounds
+      bounds: { $0.bounds }
     )
     guard result.width <= requestedWidth.nextUp else {
       throw KernelError(
@@ -2285,7 +2285,7 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
           ),
           tolerance: tolerance,
           message:
-            "Independent analytic-pair integral certificates do not overlap on normalized interval [\(lower), \(upper)]; variation enclosure [\(contribution.lower), \(contribution.upper)], midpoint enclosure [\(midpointEnclosure.lower), \(midpointEnclosure.upper)], one-form DU [\(primitiveBounds.du.lower), \(primitiveBounds.du.upper)], DV [\(primitiveBounds.dv.lower), \(primitiveBounds.dv.upper)], parameter variation U \(String(describing: parameterBounds.totalVariationU)), V \(parameterBounds.totalVariationV), midpoint derivative (\(midpointFirstDerivative.x), \(midpointFirstDerivative.y))."
+            "Independent analytic-pair integral certificates do not overlap on normalized interval [\(lower), \(upper)]; variation enclosure [\(contribution.lower), \(contribution.upper)], midpoint enclosure [\(midpointEnclosure.lower), \(midpointEnclosure.upper)], one-form DU [\(primitiveBounds.du.lower), \(primitiveBounds.du.upper)], DV [\(primitiveBounds.dv.lower), \(primitiveBounds.dv.upper)], parameter variation U \(analyticPairOptionalDiagnostic(parameterBounds.totalVariationU)), V \(parameterBounds.totalVariationV), midpoint derivative (\(midpointFirstDerivative.x), \(midpointFirstDerivative.y))."
         )
       }
       contribution = Interval(lower: overlapLower, upper: overlapUpper)
@@ -3838,4 +3838,10 @@ struct CertifiedAnalyticPairPcurveAreaIntegrator {
     let basisV = try axis.cross(basisU).normalized(tolerance: tolerance.distance)
     return (center, axis, majorRadius, minorRadius, basisU, basisV)
   }
+}
+
+/// Preserves the existing optional numeric diagnostic spelling without reflection.
+private func analyticPairOptionalDiagnostic<Value: CustomStringConvertible>(_ value: Value?) -> String {
+    if let value { return "Optional(" + value.description + ")" }
+    return "nil"
 }

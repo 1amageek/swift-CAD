@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -29,7 +30,7 @@ public struct DefaultShapeOperator: ShapeOperating {
         var wires = Set<ShapeWire>()
         var pending = [selected.root]
         while let root = pending.popLast() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             switch root {
             case .compound(let roots): pending.append(contentsOf: roots.reversed())
             case .wire(let wire):
@@ -38,7 +39,7 @@ public struct DefaultShapeOperator: ShapeOperating {
             }
         }
         for id in model.loops.keys.sorted() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let loop = model.loops[id] else {
                 throw TopologyError.missingReference("Missing selected shape loop \(id).")
             }

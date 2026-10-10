@@ -15,7 +15,7 @@ final class VolumeMomentProofBudget: Sendable {
     var consumedWork: Int { state.withLock { $0.consumed } }
 
     func charge(_ count: Int = 1, depth: Int = 0) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard count >= 0, (0...options.maximumSubdivisionDepth).contains(depth) else {
             throw failure("Original volume-moment visit or subdivision depth is invalid.")
         }

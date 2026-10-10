@@ -59,3 +59,10 @@ retain those ceilings through its source validation and prepared differential
 storage; legacy preparation is not complete original work authority.
 
 Original moment flux preparation receives the same composing subdivision cap, source ceiling 16 and independent algebra ceiling 32 with the invocation work callback. Native coefficient and direct prepared-support queries retain those source policies. Specialized rolling/offset/ruled preparation and generic nonlinear chart admission must preserve the same contract before complete moment-domain closure is claimed.
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.

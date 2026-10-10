@@ -166,3 +166,16 @@ constraints, verify exact reversal/permutation and scope, retain owners after th
 original local bindings are gone, and exercise work/storage/depth/source/cancel.
 The view introduces only immutable let state and computed readers on all targets;
 there is no platform-dependent storage/isolation/conformance or mutable registry.
+
+## Explicit query arithmetic field
+
+OriginalParameterFieldQueryTransporting refines the existing transport protocol
+with forward evaluation under an explicit compatible arithmetic/ordering field.
+The default transporter retains/re-admits the original map, source, coefficient
+words and both frame owners; it validates the query tuple and local selection in
+the query field, then evaluates the unchanged affine word in that field. No map,
+selection or inverse is reissued. Existing forward calls keep their original field.
+OriginalParameterSelection exposes the matching field-aware membership operation
+through ExactParameterDomainFieldQuerying. M6 boundary/self queries pass one field
+through membership, transport and retained-L5 lookup, including empty results and
+foreign tuple validation. No new source equality or structural identity follows.

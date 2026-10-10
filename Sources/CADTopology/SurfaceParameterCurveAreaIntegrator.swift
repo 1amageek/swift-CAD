@@ -229,7 +229,7 @@ package struct SurfaceParameterCurveAreaIntegrator {
     var consumed = 0
     var currentDepth = 0
     func charge() throws {
-      try Task.checkCancellation()
+      try CurrentTaskCancellationChecker().checkCancellation()
       guard consumed < maximumCellCount else {
         throw KernelError(phase: .topology, code: .resourceLimitExceeded, tolerance: tolerance,
           message: "Original UV flux exhausted its complete operation allowance.")
@@ -800,12 +800,12 @@ package struct SurfaceParameterCurveAreaIntegrator {
     )
     let deviationU = try chordDeviationUpperBound(
       patch,
-      coordinate: \Point2D.x,
+      coordinate: { $0.x },
       tolerance: tolerance
     )
     let deviationV = try chordDeviationUpperBound(
       patch,
-      coordinate: \Point2D.y,
+      coordinate: { $0.y },
       tolerance: tolerance
     )
     let variationV = try verticalVariationUpperBound(
@@ -829,7 +829,7 @@ package struct SurfaceParameterCurveAreaIntegrator {
 
   private func chordDeviationUpperBound(
     _ patch: RationalBezierCurvePatch2D,
-    coordinate: KeyPath<Point2D, Double>,
+    coordinate: (Point2D) -> Double,
     tolerance: ModelingTolerance
   ) throws -> Double {
     guard let first = patch.controlPoints.first,
@@ -853,14 +853,14 @@ package struct SurfaceParameterCurveAreaIntegrator {
       if index <= degree {
         coefficient +=
           (1.0 - alpha) * patch.weights[index]
-          * (patch.controlPoints[index][keyPath: coordinate]
-            - first[keyPath: coordinate])
+          * (coordinate(patch.controlPoints[index])
+            - coordinate(first))
       }
       if index > 0 {
         coefficient +=
           alpha * patch.weights[index - 1]
-          * (patch.controlPoints[index - 1][keyPath: coordinate]
-            - last[keyPath: coordinate])
+          * (coordinate(patch.controlPoints[index - 1])
+            - coordinate(last))
       }
       maximumHomogeneousDeviation = max(
         maximumHomogeneousDeviation,

@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -19,7 +20,7 @@ public struct BRepEdgeGeometryClassifier: Sendable {
     }
 
     private func charge() throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0,
             maximumAlgebraicDepth.map({ (0...32).contains($0) }) ?? true else {
             throw GeometryConversionError.invalidInput("Original edge classification requires nonnegative caller depths.")

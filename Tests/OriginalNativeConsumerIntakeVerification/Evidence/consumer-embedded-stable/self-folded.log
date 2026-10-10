@@ -1,0 +1,13 @@
+START M6 exact self folded
+RUN M6 descendant query
+RUN M6 foreign query
+RUN M6 query refusal 0
+RUN M6 query refusal 1
+RUN M6 query refusal 2
+RUN M6 query refusal 3
+RUN M6 empty query
+PASS M6 descendant algebraic UV, foreign/empty validation and query resources/cancel
+PASS M6 exact folded sameXYZ nonidentity retained; scoped declared boundary excluded; retained lifetime
+PASS M6 complete Native exact self-contact consumer folded
+(node:88054) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

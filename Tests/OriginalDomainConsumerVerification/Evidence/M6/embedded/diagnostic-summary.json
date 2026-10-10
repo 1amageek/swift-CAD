@@ -1,0 +1,168 @@
+{
+  "status": "Embedded boundary compile failure; no boundary acceptance claimed",
+  "raw_log_sha256": "d035383bd143eb4ff01f37083221a686390a71a44109b80e8dcfc04dc51221ed",
+  "categories": {
+    "subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 870,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/AnalyticPrismaticVolumeEvaluator.swift",
+      "line": 91,
+      "column": 30,
+      "original_source_example": "        var planeNormals: [Vector3D] = []\n        for faceID in shell.faceIDs {\n            guard let face = model.faces[faceID],\n                  let surface = model.geometry.surfaces[face.surfaceID] else {\n                throw TopologyError.missingReference(\"Analytic volume references missing face geometry.\")",
+      "sha256": "6bbebf40e0689744b8037d86c88b7f1c3385bda15e18ccd22762fbec51190374"
+    },
+    "'checkCancellation()' is unavailable: unavailable in embedded Swift": {
+      "count": 240,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepBodySubmodelExtractor.swift",
+      "line": 15,
+      "column": 18,
+      "original_source_example": "        from model: BRepModel\n    ) throws -> BRepModel {\n        try Task.checkCancellation()\n        var result = BRepModel()\n",
+      "sha256": "5ad73f3106fe0a7af7c10e164a0abec711eb59bb87f3e51a07497a8d053837b7"
+    },
+    "initializer 'init(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 30,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BRepModel.swift",
+      "line": 23,
+      "column": 19,
+      "original_source_example": "  ) {\n    self.geometry = geometry\n    self.bodies = PersistentMap(bodies)\n    self.shells = PersistentMap(shells)\n    self.faces = PersistentMap(faces)",
+      "sha256": "aee56f973970774c012d478fffbdd21954f5ce61149de6985dd25fb1be1d9f43"
+    },
+    "instance method 'makeIterator()' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 66,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BRepRepairAudit.swift",
+      "line": 10,
+      "column": 9,
+      "original_source_example": "        tolerance: ModelingTolerance) throws -> Double {\n        var maximum = 0.0\n        for (id, edge) in original.edges {\n            try Task.checkCancellation()\n            guard let repaired = candidate.edges[id] else { continue }",
+      "sha256": "18feda0a0df5b116291c65cdf9111b24f71bade4ded8d4ca6b96ec1a750f4bfe"
+    },
+    "instance method 'next()' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 66,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BRepRepairAudit.swift",
+      "line": 10,
+      "column": 9,
+      "original_source_example": "        tolerance: ModelingTolerance) throws -> Double {\n        var maximum = 0.0\n        for (id, edge) in original.edges {\n            try Task.checkCancellation()\n            guard let repaired = candidate.edges[id] else { continue }",
+      "sha256": "18feda0a0df5b116291c65cdf9111b24f71bade4ded8d4ca6b96ec1a750f4bfe"
+    },
+    "'init(describing:)' is unavailable: unavailable in embedded Swift": {
+      "count": 32,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BRepRepairAudit.swift",
+      "line": 80,
+      "column": 55,
+      "original_source_example": "            var ids = Set<String>()\n            func insert<Key>(_ kind: String, _ keys: some Sequence<Key>) {\n                for key in keys { ids.insert(kind+\":\"+String(describing: key)) }\n            }\n            insert(\"body\", model.bodies.keys)",
+      "sha256": "18feda0a0df5b116291c65cdf9111b24f71bade4ded8d4ca6b96ec1a750f4bfe"
+    },
+    "cannot use conformance of 'TreeDictionary<Key, Value>.Keys' to 'Sequence' here; 'HashTreeCollections' was not imported by this file": {
+      "count": 92,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BRepRepairAudit.swift",
+      "line": 82,
+      "column": 13,
+      "original_source_example": "                for key in keys { ids.insert(kind+\":\"+String(describing: key)) }\n            }\n            insert(\"body\", model.bodies.keys)\n            insert(\"shell\", model.shells.keys)\n            insert(\"face\", model.faces.keys)",
+      "sha256": "18feda0a0df5b116291c65cdf9111b24f71bade4ded8d4ca6b96ec1a750f4bfe"
+    },
+    "property 'keys' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 96,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BRepRepairAudit.swift",
+      "line": 82,
+      "column": 41,
+      "original_source_example": "                for key in keys { ids.insert(kind+\":\"+String(describing: key)) }\n            }\n            insert(\"body\", model.bodies.keys)\n            insert(\"shell\", model.shells.keys)\n            insert(\"face\", model.faces.keys)",
+      "sha256": "18feda0a0df5b116291c65cdf9111b24f71bade4ded8d4ca6b96ec1a750f4bfe"
+    },
+    "property 'values' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 66,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift",
+      "line": 35,
+      "column": 57,
+      "original_source_example": "                        // Every existing incident pcurve is checked before canonical publication.\n                        var admitted = true\n                        for incidentFace in model.faces.values {\n                            guard let support = model.geometry.surfaces[incidentFace.surfaceID] else { continue }\n                            for incidentLoopID in incidentFace.loops {",
+      "sha256": "7f40905e5b7774fae10ef5fb7da4f1a519e3648108564bd6c9845577d2d9e13f"
+    },
+    "cannot use conformance of 'TreeDictionary<Key, Value>.Values' to 'Sequence' here; 'HashTreeCollections' was not imported by this file": {
+      "count": 32,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift",
+      "line": 177,
+      "column": 49,
+      "original_source_example": "            model.edges[id] = edge\n        }\n        let referenced = Set(model.edges.values.flatMap { [$0.startVertexID, $0.endVertexID] })\n        let deleted = replacement.keys.filter { !referenced.contains($0) }.sorted()\n        for id in deleted { model.vertices[id] = nil }",
+      "sha256": "7f40905e5b7774fae10ef5fb7da4f1a519e3648108564bd6c9845577d2d9e13f"
+    },
+    "type alias 'Element' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 70,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift",
+      "line": 177,
+      "column": 57,
+      "original_source_example": "            model.edges[id] = edge\n        }\n        let referenced = Set(model.edges.values.flatMap { [$0.startVertexID, $0.endVertexID] })\n        let deleted = replacement.keys.filter { !referenced.contains($0) }.sorted()\n        for id in deleted { model.vertices[id] = nil }",
+      "sha256": "7f40905e5b7774fae10ef5fb7da4f1a519e3648108564bd6c9845577d2d9e13f"
+    },
+    "struct 'Values' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 38,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift",
+      "line": 177,
+      "column": 57,
+      "original_source_example": "            model.edges[id] = edge\n        }\n        let referenced = Set(model.edges.values.flatMap { [$0.startVertexID, $0.endVertexID] })\n        let deleted = replacement.keys.filter { !referenced.contains($0) }.sorted()\n        for id in deleted { model.vertices[id] = nil }",
+      "sha256": "7f40905e5b7774fae10ef5fb7da4f1a519e3648108564bd6c9845577d2d9e13f"
+    },
+    "generic struct 'TreeDictionary' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 70,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift",
+      "line": 177,
+      "column": 57,
+      "original_source_example": "            model.edges[id] = edge\n        }\n        let referenced = Set(model.edges.values.flatMap { [$0.startVertexID, $0.endVertexID] })\n        let deleted = replacement.keys.filter { !referenced.contains($0) }.sorted()\n        for id in deleted { model.vertices[id] = nil }",
+      "sha256": "7f40905e5b7774fae10ef5fb7da4f1a519e3648108564bd6c9845577d2d9e13f"
+    },
+    "cannot use conformance of 'TreeDictionary<Key, Value>' to 'Collection' here; 'HashTreeCollections' was not imported by this file": {
+      "count": 2,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift",
+      "line": 207,
+      "column": 75,
+      "original_source_example": "    func collapseSmallEdges(model: inout BRepModel,tolerance:ModelingTolerance,changes:inout[BRepRepairChange],\n        collapsedCurves: inout [BRepRepairCollapsedCurve]) throws {\n        let originalPoints=Dictionary(uniqueKeysWithValues:model.vertices.map{($0.key,$0.value.point)})\n        var vertexOwners=Dictionary(uniqueKeysWithValues:model.vertices.keys.map{($0,Set([$0]))})\n        for id in model.edges.keys.sorted() {",
+      "sha256": "7f40905e5b7774fae10ef5fb7da4f1a519e3648108564bd6c9845577d2d9e13f"
+    },
+    "struct 'Keys' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 22,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift",
+      "line": 208,
+      "column": 26,
+      "original_source_example": "        collapsedCurves: inout [BRepRepairCollapsedCurve]) throws {\n        let originalPoints=Dictionary(uniqueKeysWithValues:model.vertices.map{($0.key,$0.value.point)})\n        var vertexOwners=Dictionary(uniqueKeysWithValues:model.vertices.keys.map{($0,Set([$0]))})\n        for id in model.edges.keys.sorted() {\n            try Task.checkCancellation()",
+      "sha256": "7f40905e5b7774fae10ef5fb7da4f1a519e3648108564bd6c9845577d2d9e13f"
+    },
+    "cannot use conformance of 'TreeDictionary<Key, Value>.Keys' to 'Collection' here; 'HashTreeCollections' was not imported by this file": {
+      "count": 2,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift",
+      "line": 208,
+      "column": 78,
+      "original_source_example": "        collapsedCurves: inout [BRepRepairCollapsedCurve]) throws {\n        let originalPoints=Dictionary(uniqueKeysWithValues:model.vertices.map{($0.key,$0.value.point)})\n        var vertexOwners=Dictionary(uniqueKeysWithValues:model.vertices.keys.map{($0,Set([$0]))})\n        for id in model.edges.keys.sorted() {\n            try Task.checkCancellation()",
+      "sha256": "7f40905e5b7774fae10ef5fb7da4f1a519e3648108564bd6c9845577d2d9e13f"
+    },
+    "cannot use conformance of 'TreeDictionary<Key, Value>.Values' to 'Collection' here; 'HashTreeCollections' was not imported by this file": {
+      "count": 6,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift",
+      "line": 326,
+      "column": 45,
+      "original_source_example": "        let replacedCurveIDs=Set(removed.compactMap{model.edges[$0]?.curveID})\n        for id in removed{model.edges[id]=nil}\n        let curveIDs=Set(model.edges.values.map(\\.curveID))\n        let removedCurves=replacedCurveIDs.filter{!curveIDs.contains($0)}.sorted()\n        for id in removedCurves{model.geometry.curves[id]=nil}",
+      "sha256": "7f40905e5b7774fae10ef5fb7da4f1a519e3648108564bd6c9845577d2d9e13f"
+    },
+    "cannot use conformance of 'TreeDictionary<Key, Value>' to 'Sequence' here; 'HashTreeCollections' was not imported by this file": {
+      "count": 4,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/DefaultBRepRepairer.swift",
+      "line": 549,
+      "column": 13,
+      "original_source_example": "        _ map: PersistentMap<Key, Value>\n    ) -> [(key: Key, value: Value)] {\n        map.sorted { describe($0.key) < describe($1.key) }\n    }\n",
+      "sha256": "ea00a9a33e7e14c8a54549b21a3a4c67fd1a13e9494ed1b2339fc78e7f800df9"
+    },
+    "property 'count' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 16,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/NonManifoldTopology/TopologyRetentionDiagnosticEngine.swift",
+      "line": 24,
+      "column": 36,
+      "original_source_example": "        let model = snapshot.model\n        var remainingRecords = limits.maximumTopologyRecords\n        for count in [model.bodies.count, model.shells.count, model.faces.count, model.loops.count,\n            model.edges.count, model.vertices.count, model.geometry.curves.count, model.geometry.surfaces.count] {\n            guard count <= remainingRecords else { throw TopologyRetentionError.resourceLimitExceeded(.topologyRecords) }",
+      "sha256": "6987b6d19bf2572d132e9eeca08bf26e19ddcd7bc60e38c4ec02b456e2f5f178"
+    },
+    "property 'isEmpty' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file": {
+      "count": 2,
+      "example_path": "/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/ValidatedBRepModel.swift",
+      "line": 110,
+      "column": 32,
+      "original_source_example": "                )\n            }\n            if composed.bodies.isEmpty {\n                composed = certifiedBody\n            } else {",
+      "sha256": "3610ff4d92e4fac130a6bec7c1c80fc1548b4ef10fbf4df91cfa19fa2571f8f2"
+    }
+  },
+  "required_path": "M6 fixture -> ValidatedBRepModel exact initializer -> OriginalBRepValidationInvocation.validate/charge -> OriginalSourceProofAdmission.visitExactCell/retainExactStorage",
+  "source_changed": false
+}

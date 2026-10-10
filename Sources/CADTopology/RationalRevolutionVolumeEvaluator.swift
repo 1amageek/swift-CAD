@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 #if canImport(Darwin)
@@ -271,7 +272,7 @@ struct RationalRevolutionVolumeEvaluator {
         for faces: [RevolvedFace],
         tolerance: ModelingTolerance
     ) throws -> (origin: Point3D, direction: Vector3D)? {
-        let centers = faces.flatMap(\.rows).map(\.center)
+        let centers = faces.flatMap({ $0.rows }).map({ $0.center })
         guard let origin = centers.first else {
             throw TopologyError.missingReference("Rational revolve contains no profile rows.")
         }

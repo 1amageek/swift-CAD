@@ -61,7 +61,7 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                 }
             }
             guard controls.flatMap({ $0 }).allSatisfy(
-                \.isFiniteAndPositiveWeight
+                { $0.isFiniteAndPositiveWeight }
             ) else {
                 throw KernelError(
                     phase: .topology,
@@ -285,7 +285,7 @@ struct CertifiedBSplineSurfaceBezierExtractor {
                     }
                 }
                 guard controls.flatMap({ $0 }).allSatisfy(
-                    \.isFiniteAndPositiveWeight
+                    { $0.isFiniteAndPositiveWeight }
                 ) else {
                     throw KernelError(
                         phase: .topology,
@@ -670,7 +670,7 @@ struct CertifiedBSplineSurfaceBezierExtractor {
     }
 
     private func checkCancellation() throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
     }
 
     private func resourceLimitFailure(

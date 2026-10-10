@@ -47,7 +47,7 @@ package final class BRepDistanceProofBudget: Sendable {
     }
 
     package func charge(depth: Int = 0) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard (0...maximumDepth).contains(depth) else {
             throw failure("Minimum-distance original proof depth exhausted.")
         }
@@ -63,7 +63,7 @@ package final class BRepDistanceProofBudget: Sendable {
     }
 
     package func chargeStorageBytes(_ bytes: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard bytes >= 0 else { throw failure("Distance original byte request is negative.") }
         try state.withLock { state in
             let sum = state.consumedBytes.addingReportingOverflow(bytes)

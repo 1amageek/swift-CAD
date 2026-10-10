@@ -1,0 +1,10 @@
+START M6 exact self diagonal
+PASS M6 exact self rational depth0 accepted; retained irrational endpoint depth=4 refused at depth0
+PASS M6 exact self selected diagonal all 4 chart owners, raw/refined correspondence and typed refusal
+START M6 exact self folded
+PASS M6 exact folded sameXYZ nonidentity retained; scoped declared boundary excluded; retained lifetime
+START M6 exact self seam
+PASS M6 exact scoped periodic seam exclusion; unproved v=1 seam retained with all lift owners
+START M6 exact self pole
+PASS M6 exact collapsed pole product proof excludes only selected open scope
+PASS M6 complete Native exact self-contact consumer

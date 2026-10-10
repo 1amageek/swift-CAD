@@ -7,7 +7,7 @@ struct ShapeAffineImageBuilder {
         tolerance: ModelingTolerance, maximumSubdivisionDepth: Int,
         remainingSourceDepth: Int,
         consumeWork: @escaping @Sendable (Int) throws -> Void) throws -> BRepModel {
-        try tolerance.validate(); try Task.checkCancellation(); try consumeWork(0)
+        try tolerance.validate(); try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
         guard maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0 else {
             throw KernelError(phase: .geometry, code: .invalidInput,
                 tolerance: tolerance, message: "Original affine image requires nonnegative caller depth admission.")

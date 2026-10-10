@@ -1,0 +1,41 @@
+Building for debugging...
+[0/14] Write sources
+[3/14] Write swift-version-7EE3F01B468E1A0A.txt
+[5/12] Compiling CADTopology AnalyticConicSurfaceValidator.swift
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:417:102: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+415 |                 diagnostics.append(.init(action: .orientSolidComponents,code: .topologyFailure,
+416 |                     entityID: String(describing: id),
+417 |                     message: "Original signed-shell volume could not certify component orientation: \(error)."))
+    |                                                                                                      `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+418 |                 continue
+419 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:417:102: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+415 |                 diagnostics.append(.init(action: .orientSolidComponents,code: .topologyFailure,
+416 |                     entityID: String(describing: id),
+417 |                     message: "Original signed-shell volume could not certify component orientation: \(error)."))
+    |                                                                                                      `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+418 |                 continue
+419 |             }
+
+[#EmbeddedRestrictions]: <https://docs.swift.org/compiler/documentation/diagnostics/embedded-restrictions>
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+[6/12] Emitting module CADTopology
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:417:102: warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+415 |                 diagnostics.append(.init(action: .orientSolidComponents,code: .topologyFailure,
+416 |                     entityID: String(describing: id),
+417 |                     message: "Original signed-shell volume could not certify component orientation: \(error)."))
+    |                                                                                                      `- warning: cannot use generic instance method 'appendInterpolation' on a value of type 'any Error' in Embedded Swift [#EmbeddedRestrictions]
+418 |                 continue
+419 |             }
+
+/private/tmp/cad-di-m6-consumers-20261009/Tests/NativeExactRelationVerification/Sources/CADTopology/BoundedRepair/BoundedBRepRepairEngine.swift:417:102: error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+415 |                 diagnostics.append(.init(action: .orientSolidComponents,code: .topologyFailure,
+416 |                     entityID: String(describing: id),
+417 |                     message: "Original signed-shell volume could not certify component orientation: \(error)."))
+    |                                                                                                      `- error: cannot specialize generic function or default protocol method in this context [#EmbeddedRestrictions]
+418 |                 continue
+419 |             }
+
+[#EmbeddedRestrictions]: <https://docs.swift.org/compiler/documentation/diagnostics/embedded-restrictions>
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

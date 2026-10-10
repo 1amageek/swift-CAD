@@ -500,3 +500,86 @@ known host through every original numeric-chart query. Spatial image recursion
 uses the retained source support; literal periodic translation keeps the same
 host. Missing hosting authority cannot certify an original source relation.
 Work, byte admission and independent depth limits remain the same invocation.
+
+## M6 Portable Validation Wiring
+
+The actual exact validator and the full Topology module compile on the same
+Native, ordinary WASM and Embedded graph. Topology directly depends on
+HashTreeCollections where its retained PersistentMap members and conformances
+are consumed; each diagnosed source imports that module explicitly. This changes
+import visibility only, retaining the existing immutable COW map authority.
+
+Existing cancellation sites consume the public
+[Current Task Cancellation](../CADCore/CurrentTaskCancellation/DESIGN.md) port
+through its stateless default checker on all targets. The checker observes the
+current task at the existing site and preserves typed CancellationError. No
+check is removed, no callback is weakened and no budget or algorithm changes.
+
+```text
+exact validator / existing topology operation
+    -> CurrentTaskCancellationChecker
+    -> current Task.isCancelled -> same CancellationError
+```
+
+The retained storage, isolation, callback and release contracts are identical on
+Native, ordinary WASM and Embedded: existing PersistentMap owners remain COW,
+existing proof-budget Mutex owners retain their withLock access, and invocation
+contexts remain immutable Sendable values. This wiring adds no mutable state or
+target-specific synchronization.
+
+The M6 boundary verification graph owns actual exact-model validation, current
+task cancellation and canonical source-ID audit formatting. Full Geometry and
+Topology compilation plus the real Kernel boundary component precede public
+consumer execution. This is not full CADKernel/Modeling acceptance. See
+[M6 boundary fixtures](../../Tests/OriginalDomainConsumerVerification/Sources/M6BoundaryFixtures/M6ExactBoundaryFixtures.swift)
+and the [verification graph](../../Tests/NativeExactRelationVerification/DESIGN.md).
+
+Only existing optional numeric diagnostic strings use private typed formatters:
+Optional(value) and nil retain their original spelling. Source-derived, hash-bound
+Native differential and Embedded probes verify the exact helper bodies.
+The nonthrowing diagnose path preserves isValid:false and invalidInput while
+consuming KernelError.wrapping(...).message from Core's existing
+[Failure Contract](../CADCore/FailureContract/DESIGN.md). Existing KernelError
+messages are retained; GeometryError diagnostic presentation is owned by Core.
+No new error classification or reflection implementation is introduced here.
+
+### M6 Metadata-Free Member Access
+
+The diagnosed Embedded key-path reads use closures selecting the same concrete
+member. Existing map, flatMap, compactMap, allSatisfy and grouping operations
+retain their input traversal, ordering, result counts and container ownership.
+Private homogeneous-coordinate and chord-deviation helpers receive a noncapturing
+member accessor rather than runtime key-path metadata; their arithmetic and
+control buffers remain unchanged. Edge length dispatch explicitly supplies the
+existing default `CurveArcLengthOptions()` to the injected protocol requirement,
+as the former convenience extension did. No Geometry protocol is changed.
+
+The eight diagnosed existential error interpolations consume only the existing
+Core `KernelError.wrapping(...).message` presentation authority. Their prefixes,
+outer diagnostic codes, residuals, KernelError-specific branches and cancellation
+rethrows remain owned by the unchanged caller. Native keeps its prior reflective
+text; Embedded uses Core's typed static presentation. Presentation does not
+authorize a success result or alter error classification.
+
+| Logical owner | Native | Ordinary WASM | Embedded WASM | Read / mutation entry | Release |
+|---|---|---|---|---|---|
+| BRep entity tables | PersistentMap COW | Same | Same | Existing model member reads / value mutation | Retained model release |
+| Original source invocation | Immutable Sendable callbacks and limits | Same | Same | Existing admission callback; no retained mutable ledger | Invocation release |
+| Distance proof work/bytes | `Mutex<State>` | Same | Same | Existing `withLock` charge/read; callback outside lock | Invocation release |
+| Volume moment proof work/bytes | `Mutex<State>` | Same | Same | Existing `withLock` charge/read | Invocation release |
+| Current-task cancellation adapter | Stateless checker | Same | Same | Existing check site → `Task.isCancelled` | No stored owner |
+
+The M6 exact boundary result retains immutable Sendable raw/refined owners and
+COW arrays; its compiler's mutable assembly buffers are local to one call. The
+self-contact result uses the same immutable retained-owner contract. Neither
+consumer introduces shared mutable state, unchecked Sendable or conditional
+storage/isolation. Target-specific numeric/error presentation contains no state.
+
+The complete interpolation boundary is: DefaultBRepTopologyValidator's invalid
+coordinate, geometry store, face-local pcurve, geometric correspondence and
+volume diagnostic catches; OriginalCollapsedWireRestorer's collapsed-position
+catch; OriginalBRepValidationInvocation's non-Kernel contextualized coedge
+catch; and BoundedBRepRepairEngine's signed-shell orientation catch. Each retains
+its prior diagnostic and cancellation control flow. The earlier five-site
+summary omitted the two validator catches and the final compiler-exposed repair
+catch; this list is the complete verified scope.

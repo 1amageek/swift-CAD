@@ -4,10 +4,10 @@ public struct BRepRepairResult: Equatable, Sendable {
     public let after: TopologyValidationReport
     public let changes: [BRepRepairChange]
     public let diagnostics: [BRepRepairDiagnostic]
-    public var maximumDisplacement: Double { changes.map(\.maximumDisplacement).max() ?? 0 }
-    public var toleranceIncrease: Double { changes.map(\.toleranceIncrease).max() ?? 0 }
-    public var generatedEntityIDs: [String] { Array(Set(changes.flatMap(\.generatedEntityIDs))).sorted() }
-    public var deletedEntityIDs: [String] { Array(Set(changes.flatMap(\.deletedEntityIDs))).sorted() }
+    public var maximumDisplacement: Double { changes.map({ $0.maximumDisplacement }).max() ?? 0 }
+    public var toleranceIncrease: Double { changes.map({ $0.toleranceIncrease }).max() ?? 0 }
+    public var generatedEntityIDs: [String] { Array(Set(changes.flatMap({ $0.generatedEntityIDs }))).sorted() }
+    public var deletedEntityIDs: [String] { Array(Set(changes.flatMap({ $0.deletedEntityIDs }))).sorted() }
 
     public init(
         model: BRepModel,

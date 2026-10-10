@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -469,7 +470,7 @@ struct TranslationalPrismVolumeEvaluator {
                         "Translational prism volume references a missing loop."
                     )
                 }
-                result.formUnion(loop.coedges.map(\.edgeID))
+                result.formUnion(loop.coedges.map({ $0.edgeID }))
             }
         }
         return result

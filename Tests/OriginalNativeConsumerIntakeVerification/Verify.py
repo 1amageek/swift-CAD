@@ -75,7 +75,7 @@ execute("toolchain", [swift, "--version"], 10)
 if "Swift version 6.4 " not in (out / "toolchain.log").read_text() and "Swift version 6.4.0 " not in (out / "toolchain.log").read_text():
     raise RuntimeError("The fixed Swift 6.4.0 release toolchain is required")
 execute("sdk", [swift, "sdk", "list"], 10)
-execute("package", [swift, "package", "--package-path", str(root / "Tests/OriginalGraphRelationVerification"), "dump-package"], 20)
+execute("package", [swift, "package", "--package-path", str(root / "Tests/OriginalGraphRelationVerification"), "--scratch-path", str(cache), "dump-package"], 20)
 specification = json.loads((out / "package.log").read_text())
 selected = {"L0", "L1", "DI0", "L2", "L3", "L4", "L5", "SourceIssuer", "DI", }
 targets = []

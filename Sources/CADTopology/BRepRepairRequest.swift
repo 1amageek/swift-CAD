@@ -65,7 +65,7 @@ public struct BRepRepairRequest: Equatable, Sendable {
                 phase: .topology,
                 code: .invalidInput,
                 tolerance: tolerance,
-                message: "B-rep repair validation is missing required scopes: \(missingScopes.map(\.rawValue).sorted().joined(separator: ", "))."
+                message: "B-rep repair validation is missing required scopes: \(missingScopes.map({ $0.rawValue }).sorted().joined(separator: ", "))."
             )
         }
     }

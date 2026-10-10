@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 /// One connected solid region represented by an outer shell and its owned void shells.
@@ -67,7 +68,7 @@ public extension BRepModel {
             )
         }
         for component in components {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consumeWork?(0)
             guard let outerShell = shells[component.outerShellID] else {
                 throw TopologyError.missingReference(
@@ -83,7 +84,7 @@ public extension BRepModel {
                 )
             }
             for voidShellID in component.voidShellIDs {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try consumeWork?(0)
                 guard let voidShell = shells[voidShellID] else {
                     throw TopologyError.missingReference(

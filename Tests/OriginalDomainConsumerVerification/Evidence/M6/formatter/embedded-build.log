@@ -1,0 +1,7 @@
+Building for debugging...
+[Computing dependencies]
+[1 / 3] FormatterProbe-product
+[2 / 4] FormatterProbe-product
+[4 / 4] FormatterProbe-product
+/private/tmp/cad-di-m6-consumers-20261009/.build/m6-formatter-probe/package/Package.swift: FormatterProbe-product: clang: warning: argument unused during compilation: '-rdynamic' [-Wunused-command-line-argument]
+Build complete! (4.15秒)

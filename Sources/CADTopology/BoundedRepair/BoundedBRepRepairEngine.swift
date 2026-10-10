@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -8,7 +9,7 @@ struct BoundedBRepRepairEngine {
     ) throws {
         let correspondence = DefaultCurveSurfaceCorrespondenceValidator()
         for faceID in model.faces.keys.sorted() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let face = model.faces[faceID], let surface = model.geometry.surfaces[face.surfaceID] else { continue }
             for loopID in face.loops {
                 guard var loop = model.loops[loopID] else { continue }
@@ -153,7 +154,7 @@ struct BoundedBRepRepairEngine {
         var retained: [VertexID] = []
         var maximum = 0.0
         for id in model.vertices.keys.sorted() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let vertex = model.vertices[id] else { continue }
             if let owner = retained.first(where: { candidate in
                 guard let point = model.vertices[candidate]?.point else { return false }
@@ -187,7 +188,7 @@ struct BoundedBRepRepairEngine {
 
     func removeDuplicateUses(model: inout BRepModel, tolerance: ModelingTolerance, changes: inout [BRepRepairChange]) throws {
         for id in model.loops.keys.sorted() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard var loop=model.loops[id] else {continue}
             var retained:[Coedge]=[]
             for use in loop.coedges {
@@ -207,7 +208,7 @@ struct BoundedBRepRepairEngine {
         let originalPoints=Dictionary(uniqueKeysWithValues:model.vertices.map{($0.key,$0.value.point)})
         var vertexOwners=Dictionary(uniqueKeysWithValues:model.vertices.keys.map{($0,Set([$0]))})
         for id in model.edges.keys.sorted() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let edge=model.edges[id],edge.startVertexID != edge.endVertexID,
                 let start=model.vertices[edge.startVertexID]?.point,
                 let end=model.vertices[edge.endVertexID]?.point else{continue}
@@ -268,11 +269,11 @@ struct BoundedBRepRepairEngine {
             let topology=SurfaceParameterTopology(surface:surface)
             guard topology.uPeriod != nil || topology.vPeriod != nil else{continue}
             for id in face.loops{
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 guard var loop=model.loops[id],loop.coedges.allSatisfy({$0.surfaceParameterCurve != nil})else{continue}
-                let curves=loop.coedges.compactMap(\.surfaceParameterCurve)
+                let curves=loop.coedges.compactMap({ $0.surfaceParameterCurve })
                 let lifted=try SurfaceParameterLoopUnwrapper().unwrap(curves,on:surface,tolerance:tolerance,context:"Periodic chart repair")
-                let repaired=lifted.map(\.translatedCurve)
+                let repaired=lifted.map({ $0.translatedCurve })
                 if repaired != curves{
                     for index in loop.coedges.indices{loop.coedges[index].surfaceParameterCurve=repaired[index]}
                     model.loops[id]=loop
@@ -292,7 +293,7 @@ struct BoundedBRepRepairEngine {
                 for loopID in face.loops{
                     guard var loop=model.loops[loopID]else{continue}
                     for index in loop.coedges.indices{
-                        try Task.checkCancellation()
+                        try CurrentTaskCancellationChecker().checkCancellation()
                         let use=loop.coedges[index]
                         guard let edge=model.edges[use.edgeID],let curve=model.geometry.curves[edge.curveID]else{continue}
                         guard try BRepEdgeGeometryClassifier().kind(of:edge,in:model,tolerance:tolerance) != .singular else{continue}
@@ -319,11 +320,11 @@ struct BoundedBRepRepairEngine {
                 }
             }
         }
-        let referenced=Set(model.loops.values.flatMap{$0.coedges.map(\.edgeID)})
+        let referenced=Set(model.loops.values.flatMap{$0.coedges.map({ $0.edgeID })})
         let removed=replacedEdges.filter{!referenced.contains($0)}.sorted()
         let replacedCurveIDs=Set(removed.compactMap{model.edges[$0]?.curveID})
         for id in removed{model.edges[id]=nil}
-        let curveIDs=Set(model.edges.values.map(\.curveID))
+        let curveIDs=Set(model.edges.values.map({ $0.curveID }))
         let removedCurves=replacedCurveIDs.filter{!curveIDs.contains($0)}.sorted()
         for id in removedCurves{model.geometry.curves[id]=nil}
         if !removed.isEmpty || !removedCurves.isEmpty {
@@ -336,7 +337,7 @@ struct BoundedBRepRepairEngine {
     func orientShells(model: inout BRepModel, tolerance: ModelingTolerance,
         changes: inout [BRepRepairChange], diagnostics: inout [BRepRepairDiagnostic]) throws {
         for shellID in model.shells.keys.sorted() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let shell = model.shells[shellID] else { continue }
             var incidence: [EdgeID: [(FaceID, Orientation)]] = [:]
             for faceID in shell.faceIDs {
@@ -395,7 +396,7 @@ struct BoundedBRepRepairEngine {
             }
         }
         for id in roles.keys.sorted() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard var shell = model.shells[id],let role = roles[id] else { continue }
             if shell.orientation != role {
                 shell.orientation = role; model.shells[id] = shell
@@ -405,7 +406,7 @@ struct BoundedBRepRepairEngine {
             }
         }
         for id in roles.keys.sorted() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let shell = model.shells[id] else { continue }
             let signed: TrimmedParametricSurfaceVolumeEvaluator.VolumeBounds
             do { signed = try TrimmedParametricSurfaceVolumeEvaluator().volumeBounds(of: shell,in: model,tolerance: tolerance) }
@@ -413,7 +414,7 @@ struct BoundedBRepRepairEngine {
             catch {
                 diagnostics.append(.init(action: .orientSolidComponents,code: .topologyFailure,
                     entityID: String(describing: id),
-                    message: "Original signed-shell volume could not certify component orientation: \(error)."))
+                    message: "Original signed-shell volume could not certify component orientation: \(KernelError.wrapping(error, phase: .topology, tolerance: tolerance).message)."))
                 continue
             }
             if signed.lower > 0 { continue }

@@ -1,0 +1,16 @@
+{
+  "kind": "diagnostic-not-acceptance",
+  "recordedInputs": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-embedded-diagnostic2/inputs.json",
+  "changedInputSnapshots": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactGeometryPublicationFailure.swift": {
+      "snapshot": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-embedded-red/NativeExactGeometryPublicationFailure.swift",
+      "sha256": "d693384bf84ac13240ac8787040ee5a2215f1744a53f57aeaebc2eaaa8c2ca67"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/RationalBivariateAlgebra/GeometryExactScalarFailure.swift": {
+      "snapshot": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-embedded-red/GeometryExactScalarFailure.swift",
+      "sha256": "417c30f0fe654b37fb69136e235d3141b1f28558bf0a118e7fc1980966440ab8"
+    }
+  },
+  "logSHA256": "29cfbaf93a7ade450c94342de5af6bad43a123066be4c9996a7a826d2e364ea8",
+  "observation": "Folded descendant query succeeds, but Embedded work-zero failure remains NativeExactRelationFailure instead of KernelError.resourceLimitExceeded at assertion 197. Other recorded inputs match current sources; changed snapshots exactly match pre-recorded compiler input hashes. This failure is not acceptance."
+}

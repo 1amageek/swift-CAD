@@ -123,3 +123,16 @@ forwards independent source/subdivision/algebra limits and optional BYTE
 admission to the proof. Existing public repair retains its legacy cancellation
 policy; this local proof forwarding does not establish a whole repair storage
 ceiling or complete arbitrary equivalent-chart repair.
+
+### Portable module wiring
+
+This component consumes the unchanged current-task cancellation and direct
+collection import contracts owned by [CADTopology](../DESIGN.md#m6-portable-validation-wiring).
+Its algorithms, budgets, immutable source owners and existing isolation remain
+unchanged on Native, ordinary WASM and Embedded.
+
+Private audit key helpers constrain keys to CustomStringConvertible and consume
+their canonical description directly. Every call uses a TaggedID whose existing
+description is the original PortableIdentity128 canonical string. Generated,
+deleted and changed entity audit labels preserve their kind prefix and exact
+identifier format without requiring runtime reflection.

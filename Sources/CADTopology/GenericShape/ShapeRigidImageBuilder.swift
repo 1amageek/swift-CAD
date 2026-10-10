@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -5,19 +6,19 @@ struct ShapeRigidImageBuilder {
     func transform(_ source: BRepModel, by transform: RigidTransform3D, tolerance: ModelingTolerance) throws -> BRepModel {
         var result = source
         for (id, vertex) in source.vertices {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             result.vertices[id] = Vertex(id: id, point: transform.applying(to: vertex.point))
         }
         for (id, curve) in source.geometry.curves {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             result.geometry.curves[id] = try transform.applying(to: curve, tolerance: tolerance)
         }
         for (id, surface) in source.geometry.surfaces {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             result.geometry.surfaces[id] = try transform.applying(to: surface, tolerance: tolerance)
         }
         for (id, face) in source.faces {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let sourceSurface = source.geometry.surfaces[face.surfaceID],
                   let targetSurface = result.geometry.surfaces[face.surfaceID] else {
                 throw TopologyError.missingReference("Missing rigid-image face surface \(id).")
@@ -35,7 +36,7 @@ struct ShapeRigidImageBuilder {
                     throw TopologyError.missingReference("Missing rigid-image face loop \(loopID).")
                 }
                 for index in loop.coedges.indices {
-                    try Task.checkCancellation()
+                    try CurrentTaskCancellationChecker().checkCancellation()
                     guard let pcurve = loop.coedges[index].surfaceParameterCurve else {
                         throw TopologyError.invalidTrim(loop.coedges[index].edgeID)
                     }

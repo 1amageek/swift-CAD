@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -8,7 +9,7 @@ struct BRepRepairAudit {
         tolerance: ModelingTolerance) throws -> Double {
         var maximum = 0.0
         for (id, edge) in original.edges {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let repaired = candidate.edges[id] else { continue }
             for (oldID, newID) in [(edge.startVertexID, repaired.startVertexID),
                                   (edge.endVertexID, repaired.endVertexID)] {
@@ -25,7 +26,7 @@ struct BRepRepairAudit {
             }
         }
         for collapsed in collapsedCurves {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             guard let point = candidate.vertices[collapsed.retainedVertexID]?.point else {
                 return .infinity
             }
@@ -76,8 +77,8 @@ struct BRepRepairAudit {
         -> (affected: [String], generated: [String], deleted: [String]) {
         func identifiers(_ model: BRepModel) -> Set<String> {
             var ids = Set<String>()
-            func insert<Key>(_ kind: String, _ keys: some Sequence<Key>) {
-                for key in keys { ids.insert(kind+":"+String(describing: key)) }
+            func insert<Key: CustomStringConvertible>(_ kind: String, _ keys: some Sequence<Key>) {
+                for key in keys { ids.insert(kind+":"+key.description) }
             }
             insert("body", model.bodies.keys)
             insert("shell", model.shells.keys)
@@ -92,10 +93,10 @@ struct BRepRepairAudit {
         let before = identifiers(original), after = identifiers(candidate)
         let generated = after.subtracting(before), deleted = before.subtracting(after)
         var affected = generated.union(deleted)
-        func changed<Key: Hashable, Value: Equatable>(_ kind: String,
+        func changed<Key: Hashable & CustomStringConvertible, Value: Equatable>(_ kind: String,
             _ before: PersistentMap<Key, Value>, _ after: PersistentMap<Key, Value>) {
             for (id, value) in after where before[id] != value {
-                affected.insert(kind + ":" + String(describing: id))
+                affected.insert(kind + ":" + id.description)
             }
         }
         changed("body", original.bodies, candidate.bodies)

@@ -151,3 +151,15 @@ finite values and infinity tags, adds no coefficient buffer, and performs no sec
 validation. This avoids leaking the DI0 alias into consumers on Embedded, whose
 specialization requires the declaring module to be imported by the consuming file.
 Only the root construction/access files import DI0; no upper source changes are needed.
+
+## Explicit query ordering field
+
+The refining ExactParameterDomainFieldQuerying protocol adds membership under an
+explicit ordering field without changing existing querying conformers. The retained
+set still owns its axis and depth: the original domain re-admits that set, then the
+query field validates the coordinate and every finite endpoint before comparison.
+A descendant algebraic field can therefore compare a new algebraic coordinate to
+ancestor bounds without rebinding/copying the set. Foreign values/fields, depth,
+resource and cancellation failures remain typed; exclusion never hides validation.
+Existing membership continues to use the retained field with unchanged admission.
+M6 consumer fixtures own the descendant-field integration counterexample.

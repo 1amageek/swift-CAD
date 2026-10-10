@@ -1,0 +1,14 @@
+# Local products are retained at the exact paths bound by verification receipts.
+*.a
+*.swiftmodule
+*.swiftdoc
+*.swiftsourceinfo
+*.wasm
+SelfProof
+BoundaryProof
+# Earlier diagnostic products stay at their original receipt paths locally.
+consumer-*/
+!consumer-*-stable/
+!consumer-embedded-red/
+*-query-field*/
+!*-query-field-accepted/

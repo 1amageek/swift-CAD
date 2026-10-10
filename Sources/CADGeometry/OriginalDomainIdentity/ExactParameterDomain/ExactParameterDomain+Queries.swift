@@ -4,12 +4,13 @@ import L0
 
 extension ExactParameterDomain {
     func membership<A: ExactScalarAdmission & ~Copyable>(_ value: F.Value,
-        _ set: ExactParameterSet<F>, _ a: inout A) throws -> Bool {
+        _ set: ExactParameterSet<F>, queryField: F? = nil, _ a: inout A) throws -> Bool {
+        let field = queryField ?? set.context.field
         for item in set.storage {
             try a.consumeWork(1)
-            let lo = try ExactParameterDomainAccess.compare(.finite(value), item.lower, field: set.context.field, using: &a)
+            let lo = try ExactParameterDomainAccess.compare(.finite(value), item.lower, field: field, using: &a)
             if lo == .less || (lo == .equal && !item.includesLower) { return false }
-            let hi = try ExactParameterDomainAccess.compare(.finite(value), item.upper, field: set.context.field, using: &a)
+            let hi = try ExactParameterDomainAccess.compare(.finite(value), item.upper, field: field, using: &a)
             if hi == .less || (hi == .equal && item.includesUpper) { return true }
         }
         return false

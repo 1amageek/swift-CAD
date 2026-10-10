@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -11,7 +12,7 @@ struct ShapeClosureResolver {
         var result = BRepModel()
         var pending: [Pending] = [.root(root)]
         while let next = pending.popLast() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             switch next {
             case .loop(let id):
                 if result.loops[id] != nil { continue }
@@ -83,7 +84,7 @@ struct ShapeClosureResolver {
         var validatedSolids = Set<BodyID>()
         var validatedWires = Set<ShapeWire>()
         while let reference = pending.popLast() {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             switch reference {
             case .compound(let roots):
                 pending.append(contentsOf: roots.reversed())

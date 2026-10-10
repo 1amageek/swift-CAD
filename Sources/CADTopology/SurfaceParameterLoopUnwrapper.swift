@@ -65,7 +65,7 @@ package struct SurfaceParameterLoopUnwrapper {
                   vClosureTolerance.isFinite, vClosureTolerance > 0 else {
                 throw GeometryConversionError.invalidInput("Original loop unwrapping requires nonempty curves and caller chart admission.")
             }
-            func visit() throws { try Task.checkCancellation(); try consumeWork(0) }
+            func visit() throws { try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0) }
             func retain(_ count: Int, _ stride: Int) throws {
                 let bytes = count.multipliedReportingOverflow(by: stride)
                 guard count >= 0, !bytes.overflow else {

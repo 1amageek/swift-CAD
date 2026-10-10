@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -89,7 +90,7 @@ package struct FaceParameterExtentResolver: FaceParameterBoundsResolving {
         }
         var cellCount = cells.count
         while true {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             let slackU = max(inner.u.upper - inner.u.lower, tolerance.relative) * resolution
             let slackV = max(inner.v.upper - inner.v.lower, tolerance.relative) * resolution
             var refined: [Cell] = []

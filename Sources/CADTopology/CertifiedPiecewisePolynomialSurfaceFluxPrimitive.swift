@@ -62,7 +62,7 @@ struct CertifiedPiecewisePolynomialSurfaceFluxPrimitive {
         prepared.reserveCapacity(vSpans.count)
         var cursor = 0
         for vSpan in vSpans {
-            try Task.checkCancellation()
+            try CurrentTaskCancellationChecker().checkCancellation()
             try consume(1)
             let vWidth = Interval.exact(vSpan.upper) - .exact(vSpan.lower)
             guard vWidth.lower > 0 else { throw Self.failure(.topologyFailure, tolerance, "Green preparation has a degenerate V chart.") }
@@ -71,7 +71,7 @@ struct CertifiedPiecewisePolynomialSurfaceFluxPrimitive {
             try consume(uSpans.count)
             row.reserveCapacity(uSpans.count)
             for uSpan in uSpans {
-                try Task.checkCancellation()
+                try CurrentTaskCancellationChecker().checkCancellation()
                 try consume(5)
                 let input = panels[cursor]; cursor += 1
                 try consume(input.fluxCoefficients.count)
@@ -158,7 +158,7 @@ struct CertifiedPiecewisePolynomialSurfaceFluxPrimitive {
             }
             prepared.append(Band(vSpan: vSpan, panels: anchored))
         }
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         self.source = source; self.reference = reference; self.tolerance = tolerance
         self.uBase = uBase; self.uSpans = uSpans; self.vSpans = vSpans; bands = prepared
         self.field = field

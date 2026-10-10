@@ -8,7 +8,7 @@ struct ShapeAffineWordAdmission: RationalAlgebraAdmitting {
     let consumeStorage: (@Sendable (Int) throws -> Void)?
 
     mutating func visitExactCell(depth: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard depth >= 0 else {
             throw KernelError(phase: .geometry, code: .invalidInput,
                 tolerance: nil, message: "Original affine algebra visit has an invalid depth.")
@@ -30,7 +30,7 @@ struct ShapeAffineWordAdmission: RationalAlgebraAdmitting {
     }
 
     func retainBytes(_ count: Int) throws {
-        try Task.checkCancellation()
+        try CurrentTaskCancellationChecker().checkCancellation()
         guard count >= 0 else { throw invalidStorageCount() }
         try consumeStorage?(count)
     }

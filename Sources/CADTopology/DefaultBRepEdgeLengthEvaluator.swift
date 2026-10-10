@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -34,6 +35,7 @@ public struct DefaultBRepEdgeLengthEvaluator: BRepEdgeLengthEvaluating {
         return try arcLengthResolver.enclosure(
             of: curve,
             over: interval,
+            options: CurveArcLengthOptions(),
             tolerance: tolerance
         )
     }

@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 import CADGeometry
 
@@ -55,13 +56,13 @@ public struct GeometryStore: Equatable, Sendable {
         maximumAlgebraicDepth: Int? = nil) throws {
         try tolerance.validate()
         for curve in curves.values {
-            try Task.checkCancellation(); try consumeWork(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
             try curve.validate(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
                 maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
                 consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)
         }
         for surface in surfaces.values {
-            try Task.checkCancellation(); try consumeWork(0)
+            try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork(0)
             try surface.validate(tolerance: tolerance, remainingSourceDepth: remainingSourceDepth,
                 maximumSubdivisionDepth: maximumSubdivisionDepth, consumeWork: consumeWork,
                 consumeStorage: consumeStorage, maximumAlgebraicDepth: maximumAlgebraicDepth)

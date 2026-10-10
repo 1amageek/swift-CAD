@@ -1,3 +1,4 @@
+import HashTreeCollections
 #if canImport(Darwin)
 import Darwin
 #elseif canImport(Glibc)
@@ -356,7 +357,7 @@ struct AnalyticPrismaticVolumeEvaluator {
         tolerance: ModelingTolerance
     ) throws -> Double? {
         guard let reference = faces.first else { return nil }
-        let orientations = Set(faces.map(\.face.orientation))
+        let orientations = Set(faces.map({ $0.face.orientation }))
         guard orientations.count == 1 else { return nil }
         for face in faces.dropFirst() {
             guard face.center.isApproximatelyEqual(
@@ -376,7 +377,7 @@ struct AnalyticPrismaticVolumeEvaluator {
     ) throws -> Double? {
         guard let reference = faces.first else { return nil }
         let referenceAxis = try reference.axis.normalized(tolerance: tolerance.distance)
-        let orientations = Set(faces.map(\.face.orientation))
+        let orientations = Set(faces.map({ $0.face.orientation }))
         guard orientations.count == 1 else { return nil }
         for face in faces.dropFirst() {
             let axis = try face.axis.normalized(tolerance: tolerance.distance)
@@ -958,7 +959,7 @@ struct AnalyticPrismaticVolumeEvaluator {
                 caps.append((area: area, coordinate: coordinate))
             }
         }
-        guard let area = caps.map(\.area).max() else {
+        guard let area = caps.map({ $0.area }).max() else {
             return nil
         }
         let areaTolerance = max(
@@ -966,8 +967,8 @@ struct AnalyticPrismaticVolumeEvaluator {
             area * tolerance.distance
         )
         let outerCaps = caps.filter { abs($0.area - area) <= areaTolerance }
-        guard let lower = outerCaps.map(\.coordinate).min(),
-              let upper = outerCaps.map(\.coordinate).max(),
+        guard let lower = outerCaps.map({ $0.coordinate }).min(),
+              let upper = outerCaps.map({ $0.coordinate }).max(),
               outerCaps.count >= 2,
               upper - lower > tolerance.distance else {
             return nil
@@ -1155,10 +1156,10 @@ struct AnalyticPrismaticVolumeEvaluator {
             parameters.append(try pcurve.startParameter(tolerance: tolerance))
             parameters.append(try pcurve.endParameter(tolerance: tolerance))
         }
-        guard let minimumU = parameters.map(\.u).min(),
-              let maximumU = parameters.map(\.u).max(),
-              let minimumV = parameters.map(\.v).min(),
-              let maximumV = parameters.map(\.v).max() else {
+        guard let minimumU = parameters.map({ $0.u }).min(),
+              let maximumU = parameters.map({ $0.u }).max(),
+              let minimumV = parameters.map({ $0.v }).min(),
+              let maximumV = parameters.map({ $0.v }).max() else {
             return nil
         }
         let uSpan = maximumU - minimumU

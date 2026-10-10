@@ -1,3 +1,4 @@
+import HashTreeCollections
 import CADCore
 
 public struct OpenBoundaryLoopResolver: Sendable {
@@ -61,7 +62,7 @@ public struct OpenBoundaryLoopResolver: Sendable {
         model: BRepModel
     ) -> Bool {
         let faceIDs = Set(body.shellIDs.compactMap { model.shells[$0] }
-            .flatMap(\.faceIDs))
+            .flatMap({ $0.faceIDs }))
         guard faceIDs.isEmpty == false else { return false }
         guard faceIDs.count == 1,
               let faceID = faceIDs.first,
@@ -69,12 +70,12 @@ public struct OpenBoundaryLoopResolver: Sendable {
             return true
         }
 
-        let boundaryEdgeIDs = Set(boundary.traversals.map(\.edgeID))
+        let boundaryEdgeIDs = Set(boundary.traversals.map({ $0.edgeID }))
         guard boundaryEdgeIDs.count == boundary.traversals.count else { return false }
         return face.loops.compactMap { model.loops[$0] }.contains { loop in
             loop.role == .inner
                 && loop.coedges.count == boundary.traversals.count
-                && Set(loop.coedges.map(\.edgeID)) == boundaryEdgeIDs
+                && Set(loop.coedges.map({ $0.edgeID })) == boundaryEdgeIDs
         }
     }
 
