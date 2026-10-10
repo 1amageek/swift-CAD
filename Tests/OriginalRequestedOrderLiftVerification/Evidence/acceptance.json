@@ -1,0 +1,69 @@
+{
+  "scope": "PG.J original requested-order lift/traversal actual caller and source-owned value-hull repair; whole M4-M8/whole-seven/full87 remain open. One scoped review and finding-only resource/lifetime confirmation.",
+  "receipts": {
+    "native-accepted": {
+      "receipt": "Tests/OriginalRequestedOrderLiftVerification/Evidence/native-accepted/receipt.json",
+      "sha256": "208bd5f5b7e22179f8fb6b801dc15480a14bdaaceb37095a8f4f9713be400a61",
+      "runtimeSeconds": 0.7302079999353737,
+      "expectedRed": false
+    },
+    "asan-accepted": {
+      "receipt": "Tests/OriginalRequestedOrderLiftVerification/Evidence/asan-accepted/receipt.json",
+      "sha256": "0f76ed1c189c0e4d26f29a212d34a3a95a26a18956caf4d92bc4b0fcb8ba794b",
+      "runtimeSeconds": 0.8531051670433953,
+      "expectedRed": false
+    },
+    "wasm-accepted": {
+      "receipt": "Tests/OriginalRequestedOrderLiftVerification/Evidence/wasm-accepted/receipt.json",
+      "sha256": "3e8bd278ace2480733d70e40b3866e13054b3f30eb50b001380be2640496ea83",
+      "runtimeSeconds": 0.5045064159203321,
+      "expectedRed": false
+    },
+    "embedded-accepted": {
+      "receipt": "Tests/OriginalRequestedOrderLiftVerification/Evidence/embedded-accepted/receipt.json",
+      "sha256": "df6c3527d31a7f249a1b076779abfd1881b6d1b670d1e896efd3a7e6abeda3f4",
+      "runtimeSeconds": 0.37807099998462945,
+      "expectedRed": false
+    },
+    "native-red-accepted": {
+      "receipt": "Tests/OriginalRequestedOrderLiftVerification/Evidence/native-red-accepted/receipt.json",
+      "sha256": "ed5ceec91215b05ac376c893dc74dffe22ca843294ac87627ea88abd57aa2a9e",
+      "runtimeSeconds": 0.654149541980587,
+      "expectedRed": true
+    },
+    "native-lifetime": {
+      "receipt": "Tests/OriginalRequestedOrderLiftVerification/Evidence/native-lifetime/receipt.json",
+      "sha256": "5abe357e7486d11cbe50635a37901f95d852b669bfbff6e7350148054a3914ca",
+      "runtimeSeconds": 0.6603372920071706,
+      "expectedRed": false
+    },
+    "asan-lifetime": {
+      "receipt": "Tests/OriginalRequestedOrderLiftVerification/Evidence/asan-lifetime/receipt.json",
+      "sha256": "a0f35c04ed93df036d410244a04e25da69774267f08ed7f425e8254bbcd2c19a",
+      "runtimeSeconds": 0.6829548750538379,
+      "expectedRed": false
+    },
+    "wasm-lifetime": {
+      "receipt": "Tests/OriginalRequestedOrderLiftVerification/Evidence/wasm-lifetime/receipt.json",
+      "sha256": "b5587ef9194525dfd1755ba4c83b1bd12d9ffb0f75a0679c75cb3349b8cd9184",
+      "runtimeSeconds": 0.14405291597358882,
+      "expectedRed": false
+    },
+    "embedded-lifetime": {
+      "receipt": "Tests/OriginalRequestedOrderLiftVerification/Evidence/embedded-lifetime/receipt.json",
+      "sha256": "68d619d5f166aa0c993c1f59a140816d354e5ebf25c07ed52ae590ed82b2b810",
+      "runtimeSeconds": 0.14040212496183813,
+      "expectedRed": false
+    }
+  },
+  "uniquePremises": 8898,
+  "ownedInputs": {
+    "Tests/OriginalRequestedOrderLiftVerification/Proof.swift": "50814f908370a0a980770076ce9851aec53bb244d7c2c5a7b5cbdd3a4b512630",
+    "Tests/OriginalRequestedOrderLiftVerification/Verify.py": "c1727dcb518ef35c06aceabafa9979ba1cf25a3a51641ebf33cfaa6da1917ba9",
+    "Tests/OriginalRequestedOrderLiftVerification/LifetimeProof.swift": "cac7a92f80033dfbaaca4431d1df9f72ae84b69f01882af5493b6f419e630252",
+    "Tests/OriginalRequestedOrderLiftVerification/VerifyLifetime.py": "9b74866f1c5fedc572487f3ad18f6030c34cfdd85ce2889eb6ab56985e30ad07",
+    "Tests/OriginalRequestedOrderLiftVerification/VERIFICATION.md": "ecb8189e9670c3e89008fd142aa4fe59100547b762ab4dc7c07c4559e06f5206",
+    "Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md": "76805856c001bc24be7b603696bc23780daca8e0ec153804f0b2cb39df686c99",
+    "Sources/CADGeometry/SurfaceSilhouette/DESIGN.md": "3223025e42ed51605439e43eaf716113d1bbf1b91bd06c0239c10068ae48f565"
+  }
+}

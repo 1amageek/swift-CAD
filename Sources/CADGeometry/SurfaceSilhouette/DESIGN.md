@@ -126,6 +126,27 @@ analytic/native/offset/original-image jets, with caller span and source-depth
 admission. Native joins require actual original derivative continuity; raw lower
 D3 values never become S4.
 
+The shared surface Taylor entry accepts requested order zero and above. A lift or
+retained traversal requesting a value or D1-D3 must not require C4. Native chart
+joins prove only the requested partials; analytic and procedural owners evaluate
+their original expression at that same order. Ruled/rolling-ball composition adds
+the V first coefficient only when requested order is positive. Revolution composes
+the retained generator and Rodrigues law without a minimum fourth-order gate.
+Existing order-four-and-higher callers retain the same equations, guards, resource
+callbacks and selected source/subdivision/algebra caps. This change adds no source
+identity or continuity theorem and does not promote any padded derivative.
+
+`Tests/OriginalRequestedOrderLiftVerification` owns the low-order surface and actual
+traversal/point/rolling-ball regression. Its independent assembly compiles the four
+changed surface/pcurve producers and links the two original Swift entry boundaries
+to receipt-admitted unchanged callers. The old-source public failure and current
+public success verify body selection. Native uses a private copied archive with
+only those entries weakened; WASM uses the linker's function wrappers. Original
+cached products are never modified. The generated boundary annotation is fixture
+only, has the original Swift signature, and is stripped/checked against the exact
+production source before compilation. This evidence does not replace the separate
+full M8 platform and public-family acceptance.
+
 Analytic Taylor preparation evaluates the original plane/cylinder/cone/sphere/torus
 expressions through order four, with the existing original chart basis. Normal
 fields are computed from those expressions rather than replacing them with a

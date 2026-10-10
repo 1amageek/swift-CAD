@@ -42,6 +42,30 @@ Jacobian. The free coordinate has no derivatives above order one. Surface-lift
 coefficients compose the original UV law with original surface coefficients.
 A coefficient of order k equals derivative/k!, with exact integer scaling.
 
+Lift composition passes the requested order unchanged into the shared surface
+Taylor provider, including zero through three. The surface owner supplies those
+actual original coefficients; requesting a value does not impose C4 continuity.
+Retained root/construction traversal and rolling-ball point callers inherit this
+contract through the same existing call path. The low-order source/caller regression
+is owned by `Tests/OriginalRequestedOrderLiftVerification`; whole-family source,
+domain and identity completion remain independent.
+
+For a validated positive-weight Native pcurve on its native support, the original
+Cartesian control hull independently encloses its value. The requested-order
+pcurve owner intersects only the zeroth coefficient with that hull after parameter
+scaling. This preserves exact boundary coordinates such as constant zero without
+clipping to a receiving surface or changing derivative coefficients. Every control
+visit and final intersection uses the same caller work/cancellation admission;
+the already-owned scaled tables are updated without another coefficient copy.
+Direct constant-U/V charts likewise retain their authored constant coordinate
+and varying-coordinate endpoint hull. An affine chart with an exactly zero
+coordinate direction retains that original constant; general affine and harmonic
+bounds keep their original outward expression. Continuation queries retain their
+separate extrapolation contract and do not use the native-support hull.
+Verification includes weighted/nonclamped sources,
+exact zero/one boundaries, tiny nonzero and out-of-surface coordinates, and actual
+nested lifted-traversal callers.
+
 ## State, Ownership, and Lifecycle
 
 Prepared native spans retain immutable original coefficient authority. The source

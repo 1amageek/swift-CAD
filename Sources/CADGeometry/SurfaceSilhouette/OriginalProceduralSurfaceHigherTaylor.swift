@@ -24,7 +24,7 @@ struct OriginalProceduralSurfaceHigherTaylor {
         }
         var v = try Scalar.constant(.init(lower: box.v.lower, upper: box.v.upper),
             order: order, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
-        try consumeWork(); try v.set(.exact(1), 0, 1)
+        if order > 0 { try consumeWork(); try v.set(.exact(1), 0, 1) }
         func difference(_ a: Vector, _ b: Vector) throws -> Vector {
             try a.adding(b.scaled(by: .exact(-1), consumeWork: consumeWork, consumeStorage: consumeStorage), consumeWork: consumeWork, consumeStorage: consumeStorage)
         }

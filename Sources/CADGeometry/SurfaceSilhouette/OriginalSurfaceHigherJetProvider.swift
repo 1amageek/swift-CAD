@@ -6,9 +6,9 @@ package struct OriginalSurfaceHigherJetProvider {
         tolerance: ModelingTolerance, throughOrder order: Int,
         maximumSpanCount: Int, maximumSubdivisionDepth: Int, remainingSourceDepth: Int, consumeWork: () throws -> Void,
         consumeStorage: ((Int) throws -> Void)? = nil, maximumAlgebraicDepth: Int = 32) throws -> SurfaceAreaIntervalTaylorVectorJet {
-        guard order >= 4, (0...32).contains(maximumAlgebraicDepth), maximumSpanCount > 0, maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0 else {
+        guard order >= 0, (0...32).contains(maximumAlgebraicDepth), maximumSpanCount > 0, maximumSubdivisionDepth >= 0, remainingSourceDepth >= 0 else {
             throw KernelError(phase: .geometry, code: .invalidInput, tolerance: tolerance,
-                message: "Original higher surface jets need order four or higher and caller span admission.")
+                message: "Original surface jets need a nonnegative requested order and caller span admission.")
         }
         try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
         if case .procedural = source, remainingSourceDepth == 0 {

@@ -13,7 +13,7 @@ struct OriginalRevolutionSurfaceHigherTaylor {
         try Surface3D.procedural(.originalRevolution(source)).validateOriginalSource(tolerance: tolerance,
             remainingSourceDepth: remainingSourceDepth, maximumSubdivisionDepth: maximumSubdivisionDepth,
             consumeWork: { _ in try consumeWork() }, consumeStorage: consumeStorage)
-        guard order >= 4, case .closed(let lower, let upper) = source.uDomain,
+        guard order >= 0, case .closed(let lower, let upper) = source.uDomain,
               box.u.lower >= lower, box.u.upper <= upper, box.v.lower >= 0, box.v.upper <= 1 else {
             throw GeometryConversionError.invalidInput("Original higher revolution exceeds its retained angular/generator chart.")
         }
@@ -46,8 +46,8 @@ struct OriginalRevolutionSurfaceHigherTaylor {
         func harmonic(cosine: Bool) throws -> Scalar {
             let argument = SurfaceIntervalJet.parameterU(box.u)
             try consumeWork()
-            let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
-            let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+            let sine = (try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork)).value
+            let cos = (try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork)).value
             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
             let cycle = cosine ? [cos, -sine, -cos, sine] : [sine, cos, -sine, -cos]
             var result = try Scalar(order: order, tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)

@@ -126,7 +126,24 @@ struct OriginalParameterCurveHigherTaylor {
                 maximumSubdivisionDepth: maximumSubdivisionDepth,
                 remainingSourceDepth: remainingSourceDepth - 1, consumeWork: consumeWork, consumeStorage: consumeStorage,
                 maximumAlgebraicDepth: maximumAlgebraicDepth)
-            return try (scaled(jet.x, scale), scaled(jet.y, scale))
+            var u = try scaled(jet.x, scale), v = try scaled(jet.y, scale)
+            guard let first = source.controlPoints.first else {
+                throw GeometryConversionError.invalidInput("Original rational pcurve has no Cartesian control hull.")
+            }
+            var uLower = first.x, uUpper = first.x, vLower = first.y, vUpper = first.y
+            for point in source.controlPoints {
+                try CurrentTaskCancellationChecker().checkCancellation(); try consumeWork()
+                uLower = min(uLower, point.x); uUpper = max(uUpper, point.x)
+                vLower = min(vLower, point.y); vUpper = max(vUpper, point.y)
+            }
+            // Positive original weights prove this hull only on native support.
+            try consumeWork()
+            guard let uValue = try u.coefficient(0, 0).intersection(with: .init(lower: uLower, upper: uUpper)),
+                  let vValue = try v.coefficient(0, 0).intersection(with: .init(lower: vLower, upper: vUpper)) else {
+                throw GeometryConversionError.invalidInput("Original rational pcurve value contradicts its Cartesian control hull.")
+            }
+            try u.set(uValue, 0, 0); try v.set(vValue, 0, 0)
+            return (u, v)
         case .originalBSplineContinuation(let source):
             try OriginalCoefficientAllocation.reserve(count: source.original.controlPoints.count, of: Point3D.self, consumeStorage: consumeStorage)
             let spatial = BSplineCurve3D(degree: source.original.degree, knots: source.original.knots,
@@ -185,7 +202,18 @@ struct OriginalParameterCurveHigherTaylor {
                 let width = OutwardScalarInterval.exact(end) - .exact(start)
                 factor = width * width * .exact(-1)
             } else { factor = .exact(0) }
-            func coordinate(_ scalar: SurfaceIntervalJet) throws -> SurfaceAreaIntervalTaylorScalarJet {
+            let uHull: OutwardScalarInterval?, vHull: OutwardScalarInterval?
+            switch curve {
+            case .constantU(let u, let start, let end):
+                uHull = .exact(u); vHull = .init(lower: min(start, end), upper: max(start, end))
+            case .constantV(let v, let start, let end):
+                uHull = .init(lower: min(start, end), upper: max(start, end)); vHull = .exact(v)
+            case .affine(let origin, let direction, _, _):
+                uHull = direction.x == 0 ? .exact(origin.x) : nil
+                vHull = direction.y == 0 ? .exact(origin.y) : nil
+            default: uHull = nil; vHull = nil
+            }
+            func coordinate(_ scalar: SurfaceIntervalJet, valueHull: OutwardScalarInterval?) throws -> SurfaceAreaIntervalTaylorScalarJet {
                 let count = order.addingReportingOverflow(1)
                 guard !count.overflow else { throw GeometryConversionError.resourceLimitExceeded("Original pcurve derivative count overflows.") }
                 try OriginalCoefficientAllocation.reserve(count: max(4, count.partialValue), of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
@@ -205,6 +233,13 @@ struct OriginalParameterCurveHigherTaylor {
                     tolerance: tolerance, consumeWork: consumeWork, consumeStorage: consumeStorage)
                 for k in 0...order {
                     var value = derivative[k]
+                    if k == 0, let valueHull {
+                        try consumeWork()
+                        guard let bounded = value.intersection(with: valueHull) else {
+                            throw GeometryConversionError.invalidInput("Original pcurve value contradicts its authored coordinate hull.")
+                        }
+                        value = bounded
+                    }
                     if k > 1 { for divisor in 2...k {
                         try consumeWork()
                         guard let next = value.divided(by: .exact(Double(divisor))) else {
@@ -216,7 +251,7 @@ struct OriginalParameterCurveHigherTaylor {
                 }
                 return result
             }
-            return try (coordinate(base.u), coordinate(base.v))
+            return try (coordinate(base.u, valueHull: uHull), coordinate(base.v, valueHull: vHull))
         default:
             // FIXME(INCOMPLETE_IMPLEMENTATION): Nonlinear projected analytic,
             // rigid spherical, analytic-pair and piecewise UV chart laws need
