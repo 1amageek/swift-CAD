@@ -1,0 +1,25 @@
+Building for debugging...
+[0/15] Write sources
+[6/15] Write swift-version-7EE3F01B468E1A0A.txt
+[8/17] Compiling L0 DefaultOriginalScalarTransporter+SelectedRoot.swift
+[9/17] Emitting module L0
+[11/22] Emitting module DI0
+[12/22] Compiling DI0 ExactParameterBound.swift
+[13/23] Wrapping AST for L0 for debugging
+[14/23] Wrapping AST for DI0 for debugging
+[16/23] Compiling L1 ExactPolynomial.swift
+[17/23] Emitting module L1
+[18/24] Wrapping AST for L1 for debugging
+[20/26] Emitting module SourceIssuer
+[22/27] Compiling SourceIssuer DefaultOriginalAnalyticCoordinateIssuer+Physical.swift
+[22/27] Wrapping AST for SourceIssuer for debugging
+[24/29] Emitting module DI
+[25/29] Compiling DI OriginalDomainAccess.swift
+[26/32] Wrapping AST for DI for debugging
+[28/32] Emitting module PeriodicOffsetProof
+[29/32] Compiling PeriodicOffsetProof AnalyticDomainFixtures.swift
+[30/33] Wrapping AST for PeriodicOffsetProof for debugging
+[31/33] Write Objects.LinkFileList
+[32/33] Linking PeriodicOffsetProof.wasm
+Build of product 'PeriodicOffsetProof' complete! (13.64s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

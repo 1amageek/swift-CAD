@@ -11,6 +11,20 @@ public struct DefaultOriginalFiniteBSplineChartPreparer<Source: OriginalBSplineS
         maximumCharts: Int, limits: OriginalSourceIssuanceLimits, using admission: inout A
     ) throws(OriginalSourceIssuanceFailure) -> OriginalFiniteBSplineCharts<Source> {
         do {
+            let values = try build(source:source,field:field,maximumCharts:maximumCharts,periodic:false,limits:limits,using:&admission)
+            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalFiniteBSplineCharts<Source>.self))
+            let result = OriginalFiniteBSplineCharts(source:copy source,field:copy field,support:values.0,laws:values.1)
+            try admission.checkpoint(); return result
+        } catch { throw .init(preserving:error) }
+    }
+    // Only sealed finite/fundamental entrypoints choose the coverage interpretation.
+    func build<A:ExactScalarAdmission & ~Copyable>(source:borrowing OriginalSourceBinding<Source>,
+        field:borrowing OriginalExactScalarDomain,maximumCharts:Int,periodic:Bool,
+        limits:OriginalSourceIssuanceLimits,using admission:inout A) throws(OriginalSourceIssuanceFailure)
+        -> ([OriginalSourceParameterInterval<OriginalExactScalar>],
+            [OriginalRationalChartReceipt<Source,OriginalBSplineChartSelection,OriginalExactScalarDomain>],
+            [OriginalSourcePeriodReceipt<Source,OriginalExactScalarDomain>]) {
+        do {
             try admission.checkpoint(); try source.require(limits)
             let original = source.original, n = original.parameterCount
             guard (1...2).contains(n), maximumCharts >= 0 else { throw OriginalSourceIssuanceFailure.invalidChart }
@@ -19,11 +33,18 @@ public struct DefaultOriginalFiniteBSplineChartPreparer<Source: OriginalBSplineS
                 of: OriginalSourceParameterInterval<OriginalExactScalar>.self))
             var spans: [[Int]] = []; spans.reserveCapacity(n)
             var support: [OriginalSourceParameterInterval<OriginalExactScalar>] = []; support.reserveCapacity(n)
+            var periods: [OriginalSourcePeriodReceipt<Source,OriginalExactScalarDomain>] = []
             var count = 1
             for axis in 0..<n {
                 try admission.consumeWork(1)
                 // The existing periodic issuer/cover remains a separate capability.
-                guard !original.isPeriodic(in: axis) else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
+                if original.isPeriodic(in: axis) {
+                    guard periodic else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
+                    let proof = try DefaultOriginalBSplinePeriodIssuer<Source,OriginalExactScalarDomain>().issue(
+                        source:source,axis:axis,field:field,limits:limits,using:&admission)
+                    try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalSourcePeriodReceipt<Source,OriginalExactScalarDomain>.self))
+                    periods.append(proof)
+                }
                 let degree = original.degree(in: axis), controls = original.controlCount(in: axis)
                 guard degree >= 0, controls > degree else { throw OriginalSourceIssuanceFailure.invalidSource }
                 support.append(.init(lower: try field.binary64(exactly: original.knot(at: degree, in: axis), using: &admission),
@@ -59,9 +80,7 @@ public struct DefaultOriginalFiniteBSplineChartPreparer<Source: OriginalBSplineS
                     laws.append(try issuer.issue(source: source, chart: chart, field: field, limits: limits, using: &admission))
                 }
             }
-            try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalFiniteBSplineCharts<Source>.self))
-            let result = OriginalFiniteBSplineCharts(source: copy source, field: copy field, support: support, laws: laws)
-            try admission.checkpoint(); return result
+            try admission.checkpoint(); return (support,laws,periods)
         } catch { throw .init(preserving: error) }
     }
 }

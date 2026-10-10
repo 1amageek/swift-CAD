@@ -1,5 +1,42 @@
 # Original Source Issuance
 
+## Periodic Native offset supply
+
+The fundamental Native chart preparer shares the finite preparer's original span
+and rational-law construction. Its sealed result retains every fundamental chart
+and independently verified source period. It is a distinct type: a fundamental
+template array is never an `OriginalFiniteBSplineCharts` whole finite support.
+The finite entry continues to reject periodic children. No sampled closure or
+`isPeriodic` flag substitutes for the existing translated-knot/control theorem.
+
+The periodic Native offset preparer consumes that family and the existing offset
+law issuer. Its original differential cross product, positive normal-length root,
+denominator and nonzero-normal guards remain unchanged, including distance zero.
+Periodic upper fundamental endpoints are nonowning: original Native evaluation
+wraps them to the lower endpoint and then selects the right owning span. Closed
+chart germs remain in the template family; a limit normal is not the authored
+offset value at a knot. Translated basis laws imply translated derivative laws,
+so the offset's guarded position relation repeats with the proved child periods.
+
+```mermaid
+flowchart LR
+    N[Original Native source] --> C[Shared fundamental chart builder]
+    N --> P[Existing exact period issuer]
+    C --> O[Existing offset law issuer]
+    P --> F[Sealed periodic offset family]
+    O --> F
+    F --> D[Guarded DI cycle composition]
+```
+
+All receipts are immutable Sendable values on Native, normal Wasm and Embedded;
+only invocation-local arrays and the exclusive caller admission mutate. Whole
+family publication validates source ownership, chart counts, depths and terminal
+cancellation. Period and coefficient owners live with the result. General child
+surfaces, nonlinear UV and automatic CS/SSI publication remain required work in
+their existing owners. The focused periodic-offset verification owns mixed/two-axis
+periods, seam/normal ownership, invalid cyclic storage, resources/cancel/lifetime
+and unchanged finite chart/offset behavior. See [DI composition](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#periodic-native-offset-domain-composition).
+
 ## Purpose and Scope
 
 Parent: [CADGeometry](../DESIGN.md). Child:

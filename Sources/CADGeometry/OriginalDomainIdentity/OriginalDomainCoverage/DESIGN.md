@@ -1,5 +1,43 @@
 # Original Domain Coverage
 
+## Periodic Native offset domain composition
+
+The periodic offset domain issuer consumes the sealed source fundamental family
+and an existing Native child domain space from the same retained child owner and
+scalar field. It checks every chart key and period against that space; source law
+order need not equal DI template order. It retains a checked ordinal map rather
+than copying chart laws. The original offset UV support is all real values on each
+proved periodic axis and the original finite support on other axes. Requests are
+intersected exactly, including open/disconnected/singleton/empty selections.
+
+Member and enclosure-incident queries delegate arbitrary-size cycle arithmetic,
+all seam sides and exact selected correspondence to the existing Native cover.
+The occurrence retains original parent selection, child transport, cycle vector,
+source family and law ordinal. Position queries evaluate the original offset guard
+in the occurrence's fundamental coordinates; lifted queries additionally validate
+the positive normal-length root. Nonowning upper knot/seam germs remain available
+as occurrences but cannot claim canonical offset position. Every coordinate is
+validated before exclusion, including empty requests and the auxiliary root.
+
+```mermaid
+flowchart LR
+    S[Sealed periodic offset source] --> V[Check child/chart/period authority]
+    N[Existing Native child space] --> V
+    V --> C[Retained child request cover]
+    C --> M[Member and all seam incidents]
+    M --> G[Original normal/root guards]
+    G --> R[Original UV and guarded occurrences]
+```
+
+The additive public protocol exposes cycle-aware member/enclosure/guarded queries
+as requirements, including Embedded generic protocol dispatch. It does not
+flatten the infinite family. Same-ledger storage/work, chart/family/source/transport
+and coefficient depths, final cancellation and immutable source lifetime remain
+mandatory. No geometry solver, new normal formula or unchecked coverage callback
+is introduced. Existing finite offset APIs retain their scope. Final symbolic
+CS/SSI/image/fiber output is still M7. Verification belongs to the focused periodic
+offset fixture and retained finite-offset fixtures; see [source authority](../../OriginalSourceIssuance/DESIGN.md#periodic-native-offset-supply).
+
 ## Purpose and Scope
 
 The composition handoff additionally owns `OriginalIssuedDomainBinding`: consume

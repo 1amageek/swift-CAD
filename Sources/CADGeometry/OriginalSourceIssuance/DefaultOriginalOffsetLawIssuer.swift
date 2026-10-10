@@ -35,9 +35,10 @@ public struct DefaultOriginalOffsetLawIssuer<S:OriginalOffsetSourceReading,C:Sen
         var ownsUpper:[Bool]=[];ownsUpper.reserveCapacity(2)
         for axis in 0..<2 {
             try a.consumeWork(1)
-            guard !original.isPeriodic(in:axis) else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
             let end=try f.binary64(exactly:original.knot(at:original.controlCount(in:axis),in:axis),using:&a)
-            ownsUpper.append(try f.compare(child.support[axis].upper,end,using:&a) == .equal)
+            // The original periodic evaluator wraps the upper endpoint to the lower side.
+            let final = try f.compare(child.support[axis].upper,end,using:&a) == .equal
+            ownsUpper.append(!original.isPeriodic(in:axis) && final)
         }
         try child.admitProof(using:&a)
         let r=try ExactPolynomialDomain(field:f,variableCount:2,using:&a)
