@@ -1,0 +1,71 @@
+[
+  {
+    "label": "toolchain",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.084,
+    "exitCode": 0
+  },
+  {
+    "label": "sdk",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "sdk",
+      "list"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.258,
+    "exitCode": 0
+  },
+  {
+    "label": "package",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "package",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/asan/0955d4a4f6074f3d840e27729ce621e2/build",
+      "dump-package"
+    ],
+    "timeoutSeconds": 20,
+    "elapsedSeconds": 0.2,
+    "exitCode": 0
+  },
+  {
+    "label": "build",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--build-system",
+      "native",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/asan/0955d4a4f6074f3d840e27729ce621e2/package",
+      "--build-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/asan/0955d4a4f6074f3d840e27729ce621e2/build",
+      "-j",
+      "2",
+      "--product",
+      "AffineChildIdentityProof",
+      "--sanitize",
+      "address",
+      "-Xswiftc",
+      "-O"
+    ],
+    "timeoutSeconds": 240,
+    "elapsedSeconds": 34.565,
+    "exitCode": 0
+  },
+  {
+    "label": "proof",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/asan/0955d4a4f6074f3d840e27729ce621e2/build/arm64-apple-macosx/debug/AffineChildIdentityProof"
+    ],
+    "timeoutSeconds": 180,
+    "elapsedSeconds": 1.187,
+    "exitCode": 0
+  }
+]

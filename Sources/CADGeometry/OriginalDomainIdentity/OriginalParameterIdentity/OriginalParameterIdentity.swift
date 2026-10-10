@@ -15,8 +15,10 @@ public struct OriginalParameterIdentity<S: Sendable,F: ExactScalarArithmetic & E
         let poles: [OriginalSourcePoleReceipt<S,F>]
         let boundaries: [OriginalSourceBoundaryDeclaration<S>]
         let parents: [OriginalParameterIdentity<S,F>]
-        init(sources: [OriginalSourceBinding<S>],laws: [ExactPolynomial<F>],periods: [OriginalSourcePeriodReceipt<S,F>],boundaries: [OriginalSourceBoundaryDeclaration<S>],poles: [OriginalSourcePoleReceipt<S,F>],fibers: [OriginalSourceCollapsedFiberReceipt<S,F>],parents: [OriginalParameterIdentity<S,F>]) {
+        let inherited: OriginalIdentityReadmission<F>?
+        init(sources: [OriginalSourceBinding<S>],laws: [ExactPolynomial<F>],periods: [OriginalSourcePeriodReceipt<S,F>],boundaries: [OriginalSourceBoundaryDeclaration<S>],poles: [OriginalSourcePoleReceipt<S,F>],fibers: [OriginalSourceCollapsedFiberReceipt<S,F>],parents: [OriginalParameterIdentity<S,F>], inherited: OriginalIdentityReadmission<F>? = nil) {
             self.sources = sources; self.laws = laws; self.periods = periods; self.boundaries = boundaries; self.poles = poles; self.fibers = fibers; self.parents = parents
+            self.inherited = inherited
         }
     }
     public let kind: OriginalParameterIdentityKind

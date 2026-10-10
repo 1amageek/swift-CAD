@@ -1,0 +1,67 @@
+[
+  {
+    "label": "toolchain",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.087,
+    "exitCode": 0
+  },
+  {
+    "label": "sdk",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "sdk",
+      "list"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.206,
+    "exitCode": 0
+  },
+  {
+    "label": "package",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "package",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/native/fcafb5139bf64d92a0f7fdc828afbe3b/build",
+      "dump-package"
+    ],
+    "timeoutSeconds": 20,
+    "elapsedSeconds": 0.148,
+    "exitCode": 0
+  },
+  {
+    "label": "build",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--build-system",
+      "native",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/native/fcafb5139bf64d92a0f7fdc828afbe3b/package",
+      "--build-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/native/fcafb5139bf64d92a0f7fdc828afbe3b/build",
+      "-j",
+      "2",
+      "--product",
+      "AffineChildIdentityProof"
+    ],
+    "timeoutSeconds": 240,
+    "elapsedSeconds": 10.809,
+    "exitCode": 0
+  },
+  {
+    "label": "proof",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/native/fcafb5139bf64d92a0f7fdc828afbe3b/build/arm64-apple-macosx/debug/AffineChildIdentityProof"
+    ],
+    "timeoutSeconds": 180,
+    "elapsedSeconds": 2.109,
+    "exitCode": 0
+  }
+]

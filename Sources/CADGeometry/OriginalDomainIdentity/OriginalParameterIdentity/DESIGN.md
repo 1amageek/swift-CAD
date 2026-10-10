@@ -237,3 +237,55 @@ contracts and requires their existing behavioral cases on the composed snapshot.
 Verification belongs to RevolutionIdentityFixtures and the actual production
 revolution source/DI/identity handoff. Generic/non-rational generator, collapsed
 revolution fiber and remaining composed/shared-boundary M5 acceptance stay open.
+
+
+## Affine child identity transport
+
+Completed M4 affine child covers provide the source-authoritative coordinate
+correspondence. The child identity's two scopes must share the child cover frame.
+The issuer first restricts that proof to the complete pullback of the parent's
+effective request, then transports both scopes through the checked correspondence.
+It conjugates affine constraints and preserves complete-product constraints only
+on the transported scopes. Identity kind and position-only meaning are unchanged.
+
+```mermaid
+flowchart LR
+ C[Sealed child identity] --> R[Existing child restriction]
+ M[M4 affine child cover] --> R
+ R --> P[Exact scope transport and affine conjugation]
+ P --> I[Existing sealed parent identity receipt]
+ I --> N[Nested transport / existing relation consumer]
+```
+
+The existing receipt gains optional immutable proof/readmission retention. A typed
+private evidence owner holds the child proof and M4 cover; its lifetime is retained
+as Sendable data, never invoked as an approval callback. Original scalar/field pairs
+needed for readmission survive affine cancellation. Readmission owners form a typed
+immutable chain, sharing earlier owners without flattening or copying their arrays.
+Existing receipt restriction/symmetry share that owner; transitive composition
+retains applicable inherited owners. An unchanged proof incurs no new retained
+owner. No public unchecked initializer or arbitrary Boolean proof is introduced.
+
+The same existing receipt type is returned, so nested affine child covers and
+existing relation-view consumers can reuse the result. Its original child owners
+and one-sided roles remain retained. Every admission validates original source,
+value/coefficient/transport depth, proof counts and retained scalar fields. The
+parent and child source types may differ without losing either evidence lifetime.
+Same XYZ, a spatial action or failed identity proof never creates a new identity.
+
+`OriginalAffineChildParameterIdentityIssuing` consumes a typed affine child cover
+and a sealed child identity. `DefaultOriginalAffineChildParameterIdentityIssuer`
+returns the existing parent receipt after checking that authority. Existing query/restriction/symmetry/composition requirements
+remain the query contract. All scope, constraint, evidence-owner and scratch
+allocations use the same caller admission, with terminal cancel on empty and
+nonempty publication. Immutable Sendable storage and invocation-local scratch are
+identical on Native/WASM/Embedded. No new unsafe memory or mutable shared state is
+introduced. Nonlinear/singular correspondence, join/shared-boundary issuance and
+general upper consumers remain required M5.C/M6 work.
+
+Verification owner: [OriginalAffineChildIdentityVerification](../../../../Tests/OriginalAffineChildIdentityVerification/VERIFICATION.md). Required
+counterexamples cover reversal/swap/nesting, periodic/collapsed scopes versus
+near-pole, exact effective-request pullback, distinct sameXYZ, foreign owner/frame/
+role, independent count/depth/resource failures, cancellation and retained lifetime.
+Use actual source/DI/identity paths and fixed target compile/link/runtime; verify
+changed existing relation consumption and independent latest-main delivery.

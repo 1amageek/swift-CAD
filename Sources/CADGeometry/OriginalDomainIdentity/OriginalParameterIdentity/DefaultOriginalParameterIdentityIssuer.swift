@@ -38,6 +38,7 @@ public struct DefaultOriginalParameterIdentityIssuer<S: Sendable,F: ExactScalarA
             try a.consumeWork(1); _ = try pole.field.sign(of:pole.latitude,using:&a)
             for coordinate in pole.position { try a.consumeWork(1); _ = try pole.field.sign(of:coordinate,using:&a) }
         }
+        if let inherited = r.proof.inherited { try inherited.admit(using: &a) }
     }
     func make<A: ExactScalarAdmission & ~Copyable>(kind: OriginalParameterIdentityKind,left: OriginalParameterSelection<S,F>,right: OriginalParameterSelection<S,F>,
         permutation: [Int]?,gains: [F.Value],offsets: [F.Value],laws: [ExactPolynomial<F>] = [],periods: [OriginalSourcePeriodReceipt<S,F>] = [],
@@ -50,8 +51,18 @@ public struct DefaultOriginalParameterIdentityIssuer<S: Sendable,F: ExactScalarA
         guard count <= l.maximumIdentityProofs else { throw OriginalDomainIdentityFailure.identityLimit }
         guard depth <= l.maximumTransportDepth else { throw OriginalDomainIdentityFailure.transportDepthLimit }
         try OriginalDomainAccess.storage(2,OriginalSourceBinding<S>.self,&a)
-        try OriginalDomainAccess.owner(([OriginalSourceBinding<S>],[ExactPolynomial<F>],[OriginalSourcePeriodReceipt<S,F>],[OriginalSourceBoundaryDeclaration<S>],[OriginalSourcePoleReceipt<S,F>],[OriginalSourceCollapsedFiberReceipt<S,F>],[OriginalParameterIdentity<S,F>]).self,&a)
-        let proof = OriginalParameterIdentity<S,F>.Proof(sources:[left.frame.source,right.frame.source],laws:laws,periods:periods,boundaries:boundaries,poles:poles,fibers:fibers,parents:parents)
+        var inheritedCount = 0
+        for parent in parents { try a.consumeWork(1); if parent.proof.inherited != nil { inheritedCount = try OriginalDomainAccess.add(inheritedCount,1) } }
+        var inherited: OriginalIdentityReadmission<F>?
+        if inheritedCount > 0 {
+            try OriginalDomainAccess.storage(parents.count,OriginalIdentityReadmission<F>.self,&a)
+            var owners: [OriginalIdentityReadmission<F>] = []; owners.reserveCapacity(parents.count)
+            for parent in parents { try a.consumeWork(1); owners.append(try OriginalIdentityReadmission<F>.preserving(parent,using:&a)) }
+            try OriginalDomainAccess.owner(([OriginalIdentityReadmission<F>.Scalar],[OriginalIdentityReadmission<F>],[any Sendable],ExactScalarDepth?).self,&a)
+            inherited = .init(scalars:[],parents:owners,retained:[])
+        }
+        try OriginalDomainAccess.owner(([OriginalSourceBinding<S>],[ExactPolynomial<F>],[OriginalSourcePeriodReceipt<S,F>],[OriginalSourceBoundaryDeclaration<S>],[OriginalSourcePoleReceipt<S,F>],[OriginalSourceCollapsedFiberReceipt<S,F>],[OriginalParameterIdentity<S,F>],OriginalIdentityReadmission<F>?).self,&a)
+        let proof = OriginalParameterIdentity<S,F>.Proof(sources:[left.frame.source,right.frame.source],laws:laws,periods:periods,boundaries:boundaries,poles:poles,fibers:fibers,parents:parents,inherited:inherited)
         let r = OriginalParameterIdentity(kind:kind,left:left,right:right,permutation:permutation,gains:gains,offsets:offsets,depth:depth,proofCount:count,evidenceDepth:try .init(value:valueDepth,coefficient:coefficientDepth),evidenceSourceDepth:sourceDepth,proof:proof)
         try require(r,l,&a); return r
     }

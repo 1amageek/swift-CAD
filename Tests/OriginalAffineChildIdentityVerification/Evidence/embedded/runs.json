@@ -1,0 +1,85 @@
+[
+  {
+    "label": "toolchain",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.084,
+    "exitCode": 0
+  },
+  {
+    "label": "sdk",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "sdk",
+      "list"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.261,
+    "exitCode": 0
+  },
+  {
+    "label": "package",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "package",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/embedded/4f91e7e8f972402db43be8ef0d761bb5/build",
+      "dump-package"
+    ],
+    "timeoutSeconds": 20,
+    "elapsedSeconds": 0.194,
+    "exitCode": 0
+  },
+  {
+    "label": "build",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--build-system",
+      "native",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/embedded/4f91e7e8f972402db43be8ef0d761bb5/package",
+      "--build-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/embedded/4f91e7e8f972402db43be8ef0d761bb5/build",
+      "-j",
+      "2",
+      "--product",
+      "AffineChildIdentityProof",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "-Xswiftc",
+      "-whole-module-optimization",
+      "-Xswiftc",
+      "-Onone"
+    ],
+    "timeoutSeconds": 240,
+    "elapsedSeconds": 11.631,
+    "exitCode": 0
+  },
+  {
+    "label": "node",
+    "command": [
+      "/usr/local/bin/node",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.042,
+    "exitCode": 0
+  },
+  {
+    "label": "proof",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m5-affine-identity/embedded/4f91e7e8f972402db43be8ef0d761bb5/build/wasm32-unknown-wasip1/debug/AffineChildIdentityProof.wasm"
+    ],
+    "timeoutSeconds": 180,
+    "elapsedSeconds": 1.21,
+    "exitCode": 0
+  }
+]
