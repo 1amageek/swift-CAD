@@ -94,3 +94,15 @@ implementation commit. Whole-seven remains 1/7 and full87 remains incomplete.
 | asan | 1664 | 45 | 5.287 | 1.355 |
 | wasm | 1669 | 1863 | 4.486 | 0.886 |
 | embedded | 1669 | 1864 | 81.395 | 0.495 |
+
+## Latest-main delivery
+
+Implementation `0cacbfc7` composes with main `cd1ade47` without source adjustment.
+The independent checkout `/private/tmp/cad-m4-ds-main-integration-20261010`
+checks all 7,169 admitted source/product/log premises before and after execution.
+Fresh Native (0.425s) and Embedded (0.510s) actual producer/source/DI processes pass
+under 120-second timeouts, without rebuilding or another aggregate review.
+`Evidence/main-integration/integration.json` binds every comparison and command.
+The accompanying integration-record commit closes normal fast-forward delivery.
+General M4/M5/M6, M7/M8 and full87 remain incomplete; unrelated unpushed main
+history prevents automatic push.

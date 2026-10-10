@@ -1,0 +1,26 @@
+[
+  {
+    "lane": "native",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/native/DerivativeSurfaceProof"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.4250387090141885,
+    "exitCode": 0,
+    "log": "/private/tmp/cad-m4-ds-main-integration-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/main-integration/native-runtime.log",
+    "logSHA256": "f28ae6ce2fc7e86816e661eb50c369b3821a23fd2d91e957d7d30c626e6a9f4f"
+  },
+  {
+    "lane": "embedded",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/embedded/DerivativeSurfaceProof.wasm"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.510053500009235,
+    "exitCode": 0,
+    "log": "/private/tmp/cad-m4-ds-main-integration-20261010/Tests/OriginalDerivativeSurfaceIntakeVerification/Evidence/main-integration/embedded-runtime.log",
+    "logSHA256": "2f738207fae2a5ac8ab7ee8e923c4305d072c1bd1ba8232ea3e820751a3ccd20"
+  }
+]

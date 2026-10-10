@@ -1,0 +1,8 @@
+CASE derivative surface weighted=false projected=false
+CASE derivative surface weighted=false projected=true
+CASE derivative surface weighted=true projected=false
+CASE derivative surface weighted=true projected=true
+BUDGET measured work=38318 bytes=363580 callbacks=10346
+BUDGET exact work=38318 bytes=363580 callbacks=10346
+PASS derivative source exact work/storage ceilings, entry/final callback cancel, COW and post-scope lifetime
+PASS M4 actual derivative surface, complete retained source-to-DI cover and UV/lifetime, weighted original D1/D2, public position/derivatives and explicit source/storage failure
