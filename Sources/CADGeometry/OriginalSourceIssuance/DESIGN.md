@@ -2049,3 +2049,41 @@ all join sides, duplicated points, folded traversal, exact requests and resource
 boundaries, cancellation, field/depth refusal and detached lifetime on four fixed
 lanes. General surface-lift/rolling-ball and M7 dispatch remain separate required
 work; this source capability does not close a whole M4-M8 milestone.
+
+## Prepared polyline Native surface lift
+
+The additive Native lift source receives the already-bound complete
+`OriginalPolylinePcurveSnapshot` and retains that same owner. It verifies every
+original input point exactly against the retained polyline, validates/binds the
+original Native host through its existing producer, and proves every vertex lies
+within each finite Native axis. Every segment is affine between those vertices,
+so this establishes whole-segment support without samples, a guessed inverse or
+UV clipping. Periodic axes retain their complete real support; exact cycle and
+seam proofs are supplied later by the existing fundamental-chart preparer.
+Priority images and other host families require their own correspondence and
+remain explicitly incomplete at this specialized port.
+
+```mermaid
+flowchart LR
+ P[Prepared original polyline owner/field] --> S[Checked Native lift source]
+ N[Original Native host binding] --> S
+ S --> C[Existing finite or periodic child charts in the retained field]
+ C --> G[Existing shared lift graph producer]
+ G --> D[Existing finite/periodic DI and original T/UV]
+```
+
+The source never rebuilds the pcurve's arc-length roots. Source-depth admission is
+one level above the maximum retained child depth; original coefficient/value
+proof depths are re-admitted before a new owner may be published. Input matching,
+finite-axis checks, new source storage and terminal cancellation use the same
+caller ledger. Original construction, pcurve input and Native net remain immutable
+COW values; repeated preparation retains the same child owner with independent
+query admission. The actual public numerical point remains a separate regression
+of the original equation and does not certify identity from a residual.
+Verification belongs to
+[OriginalPolylineSurfaceLiftVerification](../../../Tests/OriginalPolylineSurfaceLiftVerification/VERIFICATION.md),
+covering irrational joins/all child pairs, folded/closed traversals, finite and
+periodic Native hosts, all lifted UV/seam sides, exact request/material-free domain
+selection, field/owner/support refusal, source/depth/resource/cancel/lifetime and
+four fixed target lanes. General-host and automatic rolling-ball/M7 migration are
+not completed by this additive prepared-source path.

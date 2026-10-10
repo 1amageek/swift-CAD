@@ -1,0 +1,30 @@
+{
+  "receipts": {
+    "native": {
+      "receipt": "Tests/OriginalPolylineSurfaceLiftVerification/Evidence/native/receipt.json",
+      "sha256": "8d74afedad329ed90659909f6f9aa13cea311046863c0688536e560eba2a5a47"
+    },
+    "asan": {
+      "receipt": "Tests/OriginalPolylineSurfaceLiftVerification/Evidence/asan/receipt.json",
+      "sha256": "af1f400417053ec6fa9913d341cdcc0da7bae55192912abd61b54026936522f0"
+    },
+    "wasm": {
+      "receipt": "Tests/OriginalPolylineSurfaceLiftVerification/Evidence/wasm/receipt.json",
+      "sha256": "a542285f30b3517243fb02864c5dce2a61758e37f96e9b1007c8e6fe0c52e37d"
+    },
+    "embedded": {
+      "receipt": "Tests/OriginalPolylineSurfaceLiftVerification/Evidence/embedded/receipt.json",
+      "sha256": "741a9e13fc3dd621c3918473b03f5c902a7c9bfb6ae6f0fe76c187c55664b787"
+    }
+  },
+  "ownedInputs": {
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolylineSurfaceLiftSnapshot.swift": "1e946541767b5551727e4b984eeaef6c90364f7b715d61527793178e2fedff35",
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolylineSurfaceLiftSnapshotProvider.swift": "e0609e8927c4d09af05b6ad06434cedb9198b70fdee85dd940204fb739b33629",
+    "Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md": "58ae2334a8ec6ad22418973b841eb3ead6235e3a5f119d3d34d40b6efe89b242",
+    "Tests/OriginalPolylineSurfaceLiftVerification/Proof.swift": "05ef39e09eac9152aa61fa843bc72d7437d2c649ffe4f73689affb7a930b5a4e",
+    "Tests/OriginalPolylineSurfaceLiftVerification/Verify.py": "c784ad93c3302203468816fbf37cf3270c954d90157148897860a964793f56cf",
+    "Tests/OriginalPolylineSurfaceLiftVerification/VERIFICATION.md": "df765c551075786f0be874dd500a6d35fda6cbd83f06372e87748d2ec34d9add"
+  },
+  "uniquePremiseCount": 9182,
+  "scope": "Prepared original polyline Native finite/periodic lift source/graph/DI only. General host/priority/rolling-ball dispatch and full M4-M8 remain open."
+}
