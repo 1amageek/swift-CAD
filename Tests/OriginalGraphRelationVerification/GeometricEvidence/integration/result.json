@@ -1,0 +1,151 @@
+{
+  "success": true,
+  "checkout": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+  "composedCommit": "4390d60f2681ddfc6447b67713228f1992f1ed65",
+  "lanes": {
+    "native": {
+      "inputCount": 576,
+      "inputsSHA256": "0f5fee51f9c7328bea921ae3196018d71481f5851b5f156bf396c222fe6e9f92",
+      "resultSHA256": "1c63b847c49ef9fa866e161e11f3fe616dcdb749ad3abc8209ad07ba151512cb"
+    },
+    "wasm": {
+      "inputCount": 575,
+      "inputsSHA256": "e1b5132dd9293d3358a6badf8752c2a9c3d6b884d1c68b526a6a089212edc661",
+      "resultSHA256": "3614c3f224d87bcc1bcf83b84e79ae9da3d7bfcbe9ab296ab18b445a7417b822"
+    },
+    "embedded": {
+      "inputCount": 575,
+      "inputsSHA256": "e1b5132dd9293d3358a6badf8752c2a9c3d6b884d1c68b526a6a089212edc661",
+      "resultSHA256": "9b1a318e0724e7bf016313468e128b9ddd914c1385f4840d1661ba3b11e8b22d"
+    },
+    "general-native": {
+      "inputCount": 301,
+      "inputsSHA256": "cf13efb1b7a314eb617bdeb642eb2954380fca5b0f5c3693cf6488466a608ff6",
+      "resultSHA256": "6496434d740e98ad8a68862c4bf8f61947937510288eb4e4485e3358ad7d2ea0"
+    },
+    "general-asan": {
+      "inputCount": 301,
+      "inputsSHA256": "cf13efb1b7a314eb617bdeb642eb2954380fca5b0f5c3693cf6488466a608ff6",
+      "resultSHA256": "4442178a0da76244760a4a244277ea434c464431a8dc86de3fdba7045e65157b"
+    },
+    "general-wasm": {
+      "inputCount": 301,
+      "inputsSHA256": "cf13efb1b7a314eb617bdeb642eb2954380fca5b0f5c3693cf6488466a608ff6",
+      "resultSHA256": "5cda3f2c793ab977db1b87c3c9015904d23e9f366a067120271b45b161c8a686"
+    },
+    "general-embedded": {
+      "inputCount": 301,
+      "inputsSHA256": "cf13efb1b7a314eb617bdeb642eb2954380fca5b0f5c3693cf6488466a608ff6",
+      "resultSHA256": "51e3153e737423791b37c630586b3082573a6a7cf1b682acc8f180754cc1931a"
+    },
+    "public-native": {
+      "inputCount": 1834,
+      "inputsSHA256": "7ad78cb6c8a7ef07000fc637086e7c499d9bec4c4943f70811c43c0f23ef78ca",
+      "resultSHA256": "3f2ef61157a071ec40432a63cbf2626b24f9c39bb6d61571bab6b37f7a645e3a"
+    },
+    "public-asan": {
+      "inputCount": 1823,
+      "inputsSHA256": "6c937f5aa068077716c3e6336200c1ad8746c001cec89d94677941558f26a86d",
+      "resultSHA256": "058d8e9e36fcead664ee7aed3be36545d29625d38f4b691559e6b8ac6b2fda43"
+    },
+    "public-wasm": {
+      "inputCount": 1823,
+      "inputsSHA256": "6c937f5aa068077716c3e6336200c1ad8746c001cec89d94677941558f26a86d",
+      "resultSHA256": "8de4e4080fb03eb4d4d1a684f94153d050a91fc867f79784e124870f65734c26"
+    },
+    "public-embedded": {
+      "inputCount": 1823,
+      "inputsSHA256": "6c937f5aa068077716c3e6336200c1ad8746c001cec89d94677941558f26a86d",
+      "resultSHA256": "fe474b2fa847e93f48ceb0bd58b34c7c5060fb2eea03ce313e4bd51eeec32634"
+    }
+  },
+  "artifacts": {
+    ".build/pg-b3-native/arm64-apple-macosx/debug/GraphProof": "fd0a7b5f297721e76a5675616870b62a2badf565a1c1ca6fa0e5d790c786a030",
+    ".build/pg-b3-native/arm64-apple-macosx/debug/OriginalGraphRelationVerificationPackageTests.xctest/Contents/MacOS/OriginalGraphRelationVerificationPackageTests": "c6c03bde11c7a0d0362198bc3359146667d95fbb1ad44326703cb52d826e586d",
+    ".build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm": "a3530432db3f31ab23724e554365b005c6f79ac1e6567c9e5f6078537d131a30",
+    ".build/pg-b3-embedded/wasm32-unknown-wasip1/debug/GraphProof.wasm": "e789fa923685ec1071ab7f3423b9ea5bd269a9e27eb8830ccdd787b56adfcbe0",
+    ".build/pg-b3-native/arm64-apple-macosx/debug/GeneralGraphProof": "77f395f88f15913ece02bd8ff16b0c66e64d60d810ca6172eb80a0d77d11d83c",
+    ".build/pg-b3-asan/arm64-apple-macosx/debug/GeneralGraphProof": "59fd8aa0fe133c066d7de23123dcb550ca171826782d20766f9eb353b98bd460",
+    ".build/pg-b3-asan/arm64-apple-macosx/debug/OriginalGraphRelationVerificationPackageTests.xctest/Contents/MacOS/OriginalGraphRelationVerificationPackageTests": "13dcba609680d4a847d5bbf16cd21abee8e703df8d0cfca2c93ba58ebf7f5087",
+    ".build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GeneralGraphProof.wasm": "50b82ea4168f424e94b11e4cc23f2c3b166fb5ded56f4c8ab865238f788344c4",
+    ".build/pg-b3-embedded/wasm32-unknown-wasip1/debug/GeneralGraphProof.wasm": "99aa6f928c321016df082f0ba8f53209c330b575a7591757a9b3620f5d5f9a24",
+    ".build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof": "ec4bcf6ad3df48f887b9ebadf2b98eb68199de5f53f6c8bb04a9ec244c523590",
+    ".build/di-m2-production-native/arm64-apple-macosx/debug/NativeExactGeometricProof": "4e57ee8f1d543cb3d7e94cde9e1f2579ee801bd5d73bb3597a59e1ff1b413f4e",
+    ".build/gp-public-asan-debug/arm64-apple-macosx/debug/IssuedGraphProof": "cb0b9fcbf77ad4f319b8f9f7b2869c3047a8a605c76546cb7d33ba34cd8e8ac8",
+    ".build/pg-b3-asan/arm64-apple-macosx/debug/GraphProof": "f9f553a6270812798bffd0f51f0519e28349487c7d43407c7e4ccbeb9dfd8aa9",
+    ".build/gp-public-wasm/wasm32-unknown-wasip1/debug/IssuedGraphProof.wasm": "98c44075c823ead91739751de7011690ce615c46a804c6b6d1a7c2d20ff3eb98",
+    ".build/gp-public-embedded/wasm32-unknown-wasip1/debug/IssuedGraphProof.wasm": "f5586a1546313f61eebbbb2b30020e47adeab0a7caa53dd3b9a299fb8abe4199"
+  },
+  "runs": [
+    {
+      "label": "public-6",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "6"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 3.568,
+      "exitCode": 0
+    },
+    {
+      "label": "public-7",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "7"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 79.406,
+      "exitCode": 0
+    },
+    {
+      "label": "public-8",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "8"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 5.846,
+      "exitCode": 0
+    },
+    {
+      "label": "public-12",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "12"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.571,
+      "exitCode": 0
+    },
+    {
+      "label": "public-14",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "14"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.241,
+      "exitCode": 0
+    },
+    {
+      "label": "public-cs-weighted",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/NativeExactGeometricProof",
+        "public-cs-weighted"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 35.086,
+      "exitCode": 0
+    },
+    {
+      "label": "public-ssi-endpoints",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/NativeExactGeometricProof",
+        "public-ssi-endpoints"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 5.325,
+      "exitCode": 0
+    }
+  ]
+}

@@ -115,5 +115,9 @@ and concurrent-timeout attempts are preserved separately.
 Every accepted source manifest and current product hash matches the final snapshot.
 The original entry-point math runs and fresh isolated-runner confirmations retain
 separate records; their production math/source premises are unchanged. No timeout or
-diagnostic attempt is acceptance evidence. Latest-main composition remains pending
-until the implementation commit is present in the independent integration checkout.
+diagnostic attempt is acceptance evidence. Independent latest-main composition at implementation commit `4390d60f` succeeds
+against main `8ef7d7a2` with no source adjustment. `integration/result.json` binds all
+eleven lane manifests and current artifacts; seven fresh Native processes exercise
+the actual prepared public CS/SSI ports and unchanged numerical CS/SSI regressions
+from that independent checkout. The accompanying integration-record commit closes
+normal fast-forward main delivery. Foreign worktrees and their changes are preserved.
