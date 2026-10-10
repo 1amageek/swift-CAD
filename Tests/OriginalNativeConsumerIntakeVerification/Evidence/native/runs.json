@@ -1,0 +1,56 @@
+[
+  {
+    "label": "toolchain",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.077,
+    "exitCode": 0
+  },
+  {
+    "label": "sdk",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "sdk",
+      "list"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.242,
+    "exitCode": 0
+  },
+  {
+    "label": "package",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "package",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification",
+      "dump-package"
+    ],
+    "timeoutSeconds": 20,
+    "elapsedSeconds": 0.892,
+    "exitCode": 0
+  },
+  {
+    "label": "build",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--build-system",
+      "native",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m6-refinement-repair/native/5b1e86e7d5044a34a2e54a7074950b1c/package",
+      "--build-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m6-refinement-repair/native/5b1e86e7d5044a34a2e54a7074950b1c/build",
+      "-j",
+      "2",
+      "--product",
+      "NativeConsumerProof"
+    ],
+    "timeoutSeconds": 240,
+    "elapsedSeconds": 8.897,
+    "exitCode": 1
+  }
+]

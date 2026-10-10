@@ -1,0 +1,84 @@
+[
+  {
+    "label": "toolchain",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.077,
+    "exitCode": 0
+  },
+  {
+    "label": "sdk",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "sdk",
+      "list"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.242,
+    "exitCode": 0
+  },
+  {
+    "label": "package",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "package",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification",
+      "dump-package"
+    ],
+    "timeoutSeconds": 20,
+    "elapsedSeconds": 0.184,
+    "exitCode": 0
+  },
+  {
+    "label": "build",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--build-system",
+      "native",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m6-refinement-repair/embedded/6b028d9ac7be4e7ca2d5850fad3d408a/package",
+      "--build-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m6-refinement-repair/embedded/6b028d9ac7be4e7ca2d5850fad3d408a/build",
+      "-j",
+      "2",
+      "--product",
+      "NativeConsumerProof",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm-embedded",
+      "-Xswiftc",
+      "-whole-module-optimization",
+      "-Xswiftc",
+      "-Onone"
+    ],
+    "timeoutSeconds": 240,
+    "elapsedSeconds": 13.269,
+    "exitCode": 0
+  },
+  {
+    "label": "node",
+    "command": [
+      "/usr/local/bin/node",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.02,
+    "exitCode": 0
+  },
+  {
+    "label": "proof-15",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m6-refinement-repair/embedded/6b028d9ac7be4e7ca2d5850fad3d408a/build/wasm32-unknown-wasip1/debug/NativeConsumerProof.wasm",
+      "15"
+    ],
+    "timeoutSeconds": 180,
+    "elapsedSeconds": 1.273,
+    "exitCode": 0
+  }
+]

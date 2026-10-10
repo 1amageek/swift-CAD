@@ -36,7 +36,7 @@ public enum NativeExactRelationFailure: Error {
     case source(OriginalSourceIssuanceFailure)
     case geometry(any Error)
 
-    static func preserving(_ error: any Error) -> Self {
+    package static func preserving(_ error: any Error) -> Self {
         switch error {
         case let value as Self: return value
         case let value as ExactScalarFailure:

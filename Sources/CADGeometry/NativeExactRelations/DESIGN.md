@@ -359,3 +359,41 @@ lower source/toolchain/product receipts must match before cached reuse. Repair
 verification may regenerate independent lower artifacts under the existing explicit
 authorization, without building the CAD production targets; independent
 component proof does not replace full production integration evidence.
+
+## M6 Retained Parameter Refinement
+
+Boundary and self-contact consumers add predicates to an already complete L5
+selection through `NativeExactParameterRefining`. The implementation consumes the
+public L4 `refinePullback` contract with the identity coordinate projection. It
+retains the raw relation and the complete refined region, including excluded
+cells and the exact raw-cell ordinal of every included cell. No raw equality
+compiler/resolver is replayed and no sample classifies a whole cell.
+
+```text
+retained L5 selection + new consumer predicate
+    -> L4 exact whole-cell pullback
+    -> retained raw/refined owners and complete exclusion
+```
+
+Caller cell/topology limits and one noncopyable admission own all work, storage,
+depth and terminal cancellation. Boundary/self components own their added
+predicate semantics and retain their complete Native covers beside this receipt.
+Focused consumer fixtures verify branch ownership, empty refinement, membership,
+independent resource refusal and source lifetime through their public routes.
+
+### Native refinement reuse during M6 intake
+
+The Native L5 refinement uses the same point-location contract as issued-graph
+refinement. `contains` accepts an optional descendant `queryField`, re-admits the
+retained raw component and refined region depths, and delegates coefficient and
+coordinate ownership checks to L3. Omission preserves coefficient-field queries.
+An incompatible field is a typed failure, never exclusion. L4 scalar admission failures
+propagate as Native scalar failures, including resource shortage and cancellation. The immutable raw and
+pullback owners survive source release; query scratch uses the current admission.
+No shared state, unsafe storage, or target-dependent isolation is introduced.
+
+The independent Native consumer intake fixture compiles the actual Native refiner
+and result against current L0-L5 contracts. It checks algebraic membership and
+exclusion, foreign fields, exact work/storage boundaries, raw/refined ordinals,
+entry/terminal cancellation and retained-depth refusal. This evidence owns the
+shared adapter only; actual face/self and Topology integration remain separate.
