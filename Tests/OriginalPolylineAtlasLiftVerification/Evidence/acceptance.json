@@ -1,0 +1,30 @@
+{
+  "receipts": {
+    "native": {
+      "receipt": "Tests/OriginalPolylineAtlasLiftVerification/Evidence/native/receipt.json",
+      "sha256": "c93998c5027a0d63bd03dac952877799c9ee1814ff7b010de182e5898f0283d2"
+    },
+    "asan": {
+      "receipt": "Tests/OriginalPolylineAtlasLiftVerification/Evidence/asan/receipt.json",
+      "sha256": "58df587995b0283ffe86f692bd43db5083ed5050656012e89c2b66b597c13970"
+    },
+    "wasm": {
+      "receipt": "Tests/OriginalPolylineAtlasLiftVerification/Evidence/wasm/receipt.json",
+      "sha256": "9db9dfb30fa800325a069d8ed0bbfae7bbd6745ba8c8039bac0a6df6dd30776f"
+    },
+    "embedded": {
+      "receipt": "Tests/OriginalPolylineAtlasLiftVerification/Evidence/embedded/receipt.json",
+      "sha256": "37ca3e965ab8596797654aadfd46673050aa3f34e9a6a3e2afb1468e05ab7791"
+    }
+  },
+  "ownedInputs": {
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolylineRetainedAtlasLiftSnapshotProvider.swift": "d69aa89ea8da5f40d638aa7c25f027cd356b8a97351ec11118e95f80df3fe795",
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolylineRetainedAtlasLiftSnapshot.swift": "26ee9681cd49ceec49ff6b7781e7216c92c673d31507ced6b5bb37132a8628cd",
+    "Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md": "94993e4ac42a24a173e509066e139290820787d056bff9a957cb5a54aed16cd8",
+    "Tests/OriginalPolylineAtlasLiftVerification/Proof.swift": "250a66a0bb579b4fada6812c6e8405317a5307f3b61987d21da64b831cacdd18",
+    "Tests/OriginalPolylineAtlasLiftVerification/Verify.py": "21b7c315feb8bc23f0cc4f550ed6061c6e1fc18907b80fec097a08bfe2ad7a14",
+    "Tests/OriginalPolylineAtlasLiftVerification/VERIFICATION.md": "53c602106b32c4477a337a57f92eed18dc6a8ee06dd2ba1a718b643e981c815d"
+  },
+  "premiseCount": 9494,
+  "scope": "Prepared polyline retained-atlas Coons/correction source/graph/DI/public-point four-lane acceptance; one stable scoped review. General sources/automatic rolling-ball/full M4-M8 remain open."
+}

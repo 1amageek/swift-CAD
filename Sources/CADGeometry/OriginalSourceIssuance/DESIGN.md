@@ -2087,3 +2087,43 @@ periodic Native hosts, all lifted UV/seam sides, exact request/material-free dom
 selection, field/owner/support refusal, source/depth/resource/cancel/lifetime and
 four fixed target lanes. General-host and automatic rolling-ball/M7 migration are
 not completed by this additive prepared-source path.
+
+## Prepared polyline retained-atlas lift
+
+The retained-atlas lift source consumes the same bound Euclidean polyline and an
+`OriginalRetainedLiftHostSnapshotting` provider. The provider owns the original
+host formula and coefficient field; the composition root supplies that provider
+in the retained pcurve's field. The new source retains both child owners, checks
+the original polyline points exactly, re-admits inherited pcurve depth, and proves
+all vertices lie in the authored normalized square. Affine segments therefore
+remain in that square without sampling, clipping or another arc-length producer.
+The existing retained-surface preparer separately verifies complete square coverage
+from the host cells; a source snapshot alone does not certify chart completeness.
+
+```mermaid
+flowchart LR
+ P[Prepared polyline owner and exact field] --> L[Checked retained-atlas lift source]
+ H[Existing original host producer in that field] --> L
+ L --> C[Existing complete retained child chart preparers]
+ C --> G[Unchanged shared lift graph producer]
+ G --> D[Existing guarded DI selection and all T/UV]
+```
+
+`OriginalPolylineRetainedAtlasLiftSnapshot` conforms to the existing retained-atlas
+reading protocol. No new graph, field transport, coverage or numerical equation is
+introduced. Coons and boundary-correction providers use their original retained
+rational atlas. Other providers can compose only through their existing source
+contract; this unit does not establish new host capability. Priority images and
+tolerance-only UV clamps remain explicit unsupported branches with incomplete
+markers. Source depth is one above both children; charged input/support visits,
+new receipt storage and final cancellation use the caller's admission. Immutable
+COW inputs, prepared coefficient context and host atlas remain owned by the result
+on Native, normal WASM and Embedded without new shared mutation or unsafe storage.
+
+Verification belongs to
+[OriginalPolylineAtlasLiftVerification](../../../Tests/OriginalPolylineAtlasLiftVerification/VERIFICATION.md).
+It exercises actual original Coons and boundary-correction construction, irrational
+stations/folded traversals, all chart products and incident sides, exact original
+XYZ/UV and public point regression, selected domains, owner/field/resource/depth/
+cancel/lifetime counterexamples and four fixed lanes. Unchanged Native finite and
+periodic prepared-polyline lift evidence remains the lower regression authority.
