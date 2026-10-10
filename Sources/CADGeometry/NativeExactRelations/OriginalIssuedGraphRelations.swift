@@ -23,7 +23,8 @@ public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T
             try a.checkpoint();try first.admitProof(limits:limits,using:&a);try second.admitProof(limits:limits,using:&a)
             for pair in pairs { try a.consumeWork(1);try pair.relation.admitProof(using:&a) }
             try a.checkpoint()
-        } catch { throw .preserving(error) }
+        } catch let failure as NativeExactRelationFailure { throw failure }
+        catch { throw .preserving(error) }
     }
 
 }

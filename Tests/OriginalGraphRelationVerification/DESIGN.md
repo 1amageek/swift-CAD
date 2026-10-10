@@ -69,3 +69,15 @@ It is an additive verification-only target; the earlier fourteen-case package
 premise is retained in GeometricEvidence/retained-original-package.swift.
 GeometricEvidence/VERIFICATION.md owns the final commands, configuration distinctions,
 review disposition and latest-main composition record.
+
+## Issued graph refinement verification
+
+Group 15 exercises the production issued-graph refinement port using real sealed
+rational and positive-normal-offset source/DI families. It verifies a continuous
+CS component split at exact thirds, all raw lifted-cell labels, auxiliary branch
+retention/exclusion, complete empty predicates, retained source lifetime, COW
+result copies, invalid pair/arity, exact independent work/storage limits,
+source-depth refusal and entry/final-publication cancellation. Native/ASAN and
+matching ordinary/Embedded WASM use the same immutable production source files.
+This independent proof owns the adapter contract, not untested face/identity
+compilers or full production-module integration.

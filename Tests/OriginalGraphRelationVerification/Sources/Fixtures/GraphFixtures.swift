@@ -68,6 +68,7 @@ public enum GraphFixtures {
 #if ISSUED_GRAPH_PUBLIC_VERIFICATION
         case 14:try publicSSILifetime();
 #endif
+        case 15:try parameterRefinement();
         default:throw Failure.incorrect(#line)}
         print("PASS B3 source/DI/L5 group=\(mode)")
     }

@@ -1,0 +1,9 @@
+import L0
+import L4
+import L1
+import L3
+import L5
+import IssuedGraphs
+@testable import GraphFixtures
+@main struct LedgerProbe { static func main() { run() }
+ nonisolated static func run() { do { _ = try GraphFixtures.makeParameterRefinement(); print("PASS make") } catch { print("CAUGHT make"); if let scalar = error as? ExactScalarFailure { switch scalar { case .invalidSource: print("INVALID SOURCE"); case .resourceLimit: print("RESOURCE"); default: print("OTHER SCALAR") } } else if let native = error as? NativeExactRelationFailure { switch native { case .scalar(.resourceLimit(.work)): print("NATIVE WORK"); case .scalar(.resourceLimit(.storage)): print("NATIVE STORAGE"); case .geometry(let cause): print("NATIVE GEOMETRY"); if let t = cause as? ExactRealTopologyFailure { switch t { case .scalar: print("TOPOLOGY SCALAR"); case .polynomial: print("TOPOLOGY POLYNOMIAL"); case .cell: print("TOPOLOGY CELL"); case .root: print("TOPOLOGY ROOT"); case .operationRejected: print("TOPOLOGY REJECTED"); default: print("TOPOLOGY OTHER") } } else if let n = cause as? NativeExactRelationFailure { switch n { case .scalar(.resourceLimit(.work)): print("NESTED NATIVE WORK"); case .scalar(.resourceLimit(.storage)): print("NESTED NATIVE STORAGE"); default: print("NESTED NATIVE OTHER") } } else if let q = cause as? ExactScalarFailure { switch q { case .resourceLimit(.work): print("SCALAR WORK"); case .resourceLimit(.storage): print("SCALAR STORAGE"); default: print("SCALAR OTHER") } } else if cause is ExactPolynomialFailure { print("POLYNOMIAL") } else if cause is ExactRealCellFailure { print("CELL") } else if cause is ExactParametricRelationFailure { print("PARAMETRIC") } else { print("UNCLASSIFIED") }; default: print("NATIVE OTHER") } } else if let failure = error as? GraphFixtures.Failure { if case .incorrect(let line) = failure { print("FIXTURE ASSERTION"); if line == 149 { print("LINE 149") } } } else { print("OTHER ERROR") } } } }

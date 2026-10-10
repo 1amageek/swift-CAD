@@ -319,3 +319,37 @@ retaining the concrete family/source/DI value. Upper exact point values keep thi
 owner after extraction from a result. This additive protocol changes no relation
 construction or lower solve; it avoids a point dropping authored source evidence
 when its containing publication value leaves scope.
+
+### Issued graph parameter refinement
+
+`OriginalIssuedGraphParameterRefining` consumes a concrete source/DI-bound issued
+collection, a checked pair ordinal, and a predicate over that pair's complete
+solver layout. `DefaultOriginalIssuedGraphParameterRefiner` admits the retained
+source/domain/L5 proof and refines `relation.projection.original` through L4's
+`refinePullback`. Parameters and both auxiliary suffixes remain distinct; a
+predicate with a different arity is rejected; L4 validates coefficient-field
+compatibility. No original
+intersection equations are solved again and no parameter inverse is inferred.
+
+The immutable `OriginalIssuedGraphParameterRefinement` retains the entire issued
+collection, pair ordinal and pullback. Each included refined cell has L4's raw
+lifted-cell ordinal; excluded cells retain -1 and complete exclusion evidence.
+Membership accepts full lifted coordinates with an independent caller admission.
+All source/proof admission, coordinate-map/output storage, work and terminal
+cancellation use that admission. COW copies share the original buffers. There is
+no shared mutable state or target-specific isolation/Sendable branch.
+
+This port owns parameter refinement only. Boundary consumers must separately
+prove face binding and compile exact material/pcurve conditions; self consumers
+must compile only checked scoped structural identity exclusions. Arbitrary input
+predicates do not certify material membership, structural identity or embedding.
+Projected XYZ/image/fiber publication remains the upper consumer's responsibility.
+
+Verification uses the production component in the independent graph proof target:
+a guarded offset source supplies a real auxiliary coordinate; conditions preserve
+its positive branch, reject a negative witness and produce complete empty
+refinements. A continuous CS component is split at an exact nonbinary boundary.
+Raw correspondence, source lifetime, invalid arity, independent resource
+limits and cancellation at entry and final publication are checked. Existing
+lower source/toolchain/product receipts must match before cached reuse; independent
+component proof does not replace full production integration evidence.

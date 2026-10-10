@@ -1,0 +1,12 @@
+(node:92532) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS graph refinement exact work/storage boundaries
+FAIL graph refinement
+file:///Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs:11
+const code=wasi.start(instance); if(code!==0) throw new Error(`WASI exit ${code}`);
+                                                    ^
+
+Error: WASI exit 1
+    at file:///Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs:11:53
+
+Node.js v24.19.0

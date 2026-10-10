@@ -1,0 +1,15 @@
+(node:91813) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+BEGIN issued graph continuous refinement
+PASS graph refinement admission
+PASS graph refinement scalar field
+PASS graph refinement native curve laws
+PASS graph refinement curve domain
+PASS issued continuous curve family
+PASS issued continuous surface family
+PASS issued continuous source relation
+PASS issued graph complete pullback
+PASS issued graph refined membership
+CAUGHT make
+NATIVE GEOMETRY
+NESTED NATIVE WORK
