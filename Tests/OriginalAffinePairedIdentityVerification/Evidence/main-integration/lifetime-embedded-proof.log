@@ -1,0 +1,3 @@
+PASS paired receipt-only lifetime: independent/swap whole-law queries, zero-storage view and cancellation after all constructing scopes end
+(node:37170) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
