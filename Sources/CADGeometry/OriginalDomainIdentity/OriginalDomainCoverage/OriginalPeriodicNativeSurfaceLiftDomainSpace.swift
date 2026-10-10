@@ -6,7 +6,7 @@ import SourceIssuer
 #endif
 
 /// One authored-T frame and one retained all-integer auxiliary surface cover.
-public struct OriginalPeriodicNativeSurfaceLiftDomainSpace<S: OriginalSurfaceLiftSourceReading>: Sendable {
+public struct OriginalPeriodicNativeSurfaceLiftDomainSpace<S: OriginalLiftSourceReading>: Sendable {
     public let family: OriginalPeriodicNativeSurfaceLiftGraphs<S>
     public let frame: OriginalParameterFrame<S,OriginalExactScalarDomain>
     public let surface: OriginalBSplineDomainCover<S.Surface,OriginalExactScalarDomain>

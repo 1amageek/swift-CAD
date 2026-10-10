@@ -1552,3 +1552,48 @@ source release/COW and unchanged finite lift behavior. Fixed Native, changed-sou
 ASAN, normal Wasm and Embedded execution use admitted unchanged numerical children;
 broad CAD and L2-L6 rebuilding remains prohibited. Source/DI and final publication
 change impacts are tracked in the existing progress items.
+
+## Periodic Native host with retained pcurves
+
+The periodic lift family consumes original Native or retained normalized pcurve
+chart laws through the same lift graph producer and one checked family preparation
+body. The host remains Native. Original T is normalized once from the authoritative
+pcurve support; auxiliary U/V carry the surface cycles. Retained chart support
+must be exactly [0,1], with identity local parameter transport and original source
+owner. Compatible coefficients are imported by the existing producer; foreign
+scalar fields fail explicitly. All denominator/branch guards and closed sides remain.
+
+```mermaid
+flowchart LR
+ N[Sealed Native pcurve charts] --> P[Shared checked periodic lift preparation]
+ R[Sealed retained pcurve charts] --> P
+ S[Native fundamental charts and source periods] --> P
+ P --> G[Existing original lift graph producer]
+ G --> D[Same cycle-aware DI and exact T selection]
+```
+
+The family's source requirement widens to OriginalLiftSourceReading. Existing
+Native prepare signatures and conditional typed pcurve property are preserved;
+that getter creates only a value view sharing the same original arrays/owners.
+Retained preparation is an additional refining protocol and overload, with no
+public unchecked family initializer. Retained proof depth is admitted before
+composition. Every support endpoint and polynomial coefficient must import into
+the hosting field before publishing the lazy family; an incompatible algebraic
+coefficient cannot remain hidden until member generation. No pcurve law array is materialized again at this boundary.
+
+OriginalAffineSurfaceLiftSnapshotProvider retains the actual affine/constant
+validator and original coefficient expressions. Its exact endpoint enclosure is
+required only on nonperiodic axes, where tolerance-only clamps remain refused.
+Periodic axes have the source-issued complete real support and retain negative,
+positive, independent and arbitrary-size cycles. Priority images and other general
+surface/pcurve sources remain explicitly incomplete. The family constructor still
+requires certified periods, not a periodic flag as evidence of a source theorem.
+
+Preparation/member/query costs, checked chart products, causal depths and final
+cancel use the same admission. All stored data is immutable and Sendable on every
+target; mutable scratch remains invocation-local. Changing this capability affects
+periodic lift DI and Native/finite lift callers; their original fixtures are rerun
+with current source/DI. Verification belongs to
+Tests/OriginalPeriodicRetainedLiftVerification and compiles only source/DI overlays
+against admitted unchanged lower/numerical products. Broad CAD/L2-L6 rebuilds remain
+prohibited. General M4, identities, consumers and final publication remain open.

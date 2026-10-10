@@ -27,13 +27,13 @@ enum DomainChecks {
         catch OriginalDomainIdentityFailure.source(.scalar(.resourceLimit(_))) {}
         catch OriginalDomainIdentityFailure.source(.polynomial(.scalar(.resourceLimit(_)))) {}
     }
-    nonisolated static func cover<S: OriginalSurfaceLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,
+    nonisolated static func cover<S: OriginalLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,
         using a: inout LiftAdmission) throws -> OriginalPeriodicNativeSurfaceLiftDomainCover<S> {
         let issuer=DefaultOriginalPeriodicNativeSurfaceLiftDomainIssuer<S>(),l=try limits()
         let space=try issuer.prepare(family:family,limits:l,using:&a)
         return try issuer.issue(space:space,request:space.frame.fullSelection(limits:l,using:&a),limits:l,using:&a)
     }
-    nonisolated static func run<S: OriginalSurfaceLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,
+    nonisolated static func run<S: OriginalLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,
         twoAxes: Bool,multi: Bool=false,nonmonotone: Bool=false,constant: Bool=false) throws {
         var a=try LiftAdmission();let f=family.field,l=try limits(),c=try cover(family,using:&a)
         try LiftChecks.require(c.enclosingSupport.arity==1 && c.surfaceCycleRank==(twoAxes ? 2:1))
@@ -77,7 +77,7 @@ enum DomainChecks {
         }
         print("PASS periodic lift DI complete incidents, original T/UV roles, exact requests and wrong-UV exclusion")
     }
-    nonisolated static func resources<S: OriginalSurfaceLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,
+    nonisolated static func resources<S: OriginalLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,
         foreign: OriginalPeriodicNativeSurfaceLiftGraphs<S>) throws {
         let issuer=DefaultOriginalPeriodicNativeSurfaceLiftDomainIssuer<S>(),l=try limits()
         var measured=try LiftAdmission();let space=try issuer.prepare(family:family,limits:l,using:&measured)
@@ -150,7 +150,7 @@ enum DomainChecks {
         let root=try ExactAlgebraicRealRoot(polynomial:p,isolation:roots[0],usage:&u)
         return try .init(root:root,axis:.value,maximumValueDepth:32,maximumCoefficientDepth:32,using:&a)
     }
-    nonisolated static func huge<S: OriginalSurfaceLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,twoAxes: Bool) throws {
+    nonisolated static func huge<S: OriginalLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,twoAxes: Bool) throws {
         var a=try LiftAdmission();let c=try cover(family,using:&a),f=family.field,q=ExactRationalScalarDomain(),l=try limits()
         let cycle=try q.canonical(sign:1,numerator:[0,0,0,1],denominator:[1],using:&a)
         let negative=try q.negated(cycle,using:&a),zero=try q.integer(0,using:&a)
@@ -168,7 +168,7 @@ enum DomainChecks {
         try LiftChecks.require(retained.relation.graph.admits(tuple,limits:l.source,using:&a))
         print("PASS periodic lift DI independent arbitrary-size positive/negative surface cycles and detached occurrence lifetime")
     }
-    nonisolated static func detached<S: OriginalSurfaceLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,tuple: [OriginalExactScalar]) throws -> OriginalPeriodicNativeSurfaceLiftChartOccurrence<S> {
+    nonisolated static func detached<S: OriginalLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,tuple: [OriginalExactScalar]) throws -> OriginalPeriodicNativeSurfaceLiftChartOccurrence<S> {
         var a=try LiftAdmission();let c=try cover(family,using:&a)
         guard let result=try c.liftedPositionIncidents(at:tuple,limits:limits(),using:&a).first else { throw LiftChecks.Failure(line:#line) }
         return result

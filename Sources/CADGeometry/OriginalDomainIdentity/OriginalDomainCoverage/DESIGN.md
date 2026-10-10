@@ -698,3 +698,22 @@ ASAN, normal Wasm and Embedded compile/link/runtime validate the changed DI/fixt
 boundary with admitted unchanged source/L0/L1 products. Broad CAD/L2-L6 rebuilding
 remains prohibited. General lifts and graph CS/SSI/image/fiber publication remain
 M4/M7 obligations; this port does not complete those consumers.
+
+## Retained pcurve periodic lift consumption
+
+The existing periodic Native-host lift DI protocols and implementation accept
+OriginalLiftSourceReading, including sealed retained pcurves. Native callers keep
+their existing signatures and typed child access. Source family pcurveLaws is a
+shared immutable view; incidence combines every source law with each checked Native
+surface incident and uses the existing graph binder. No new domain formula or
+second family consumer is introduced. Source preparation owns complete pcurve
+support and coefficient/proof authority; DI preserves the original authored-T
+request and all guarded auxiliary U/V cycles. See the
+[source contract](../../OriginalSourceIssuance/DESIGN.md#periodic-native-host-with-retained-pcurves).
+
+The same owner/request/field/depth/resource/cancel/lifetime acceptance applies to
+Native and retained pcurves. A surface period does not establish a T period.
+Verification reuses the original Native domain fixture body with current source
+and adds actual affine/constant/reversed/multiturn retained-pcurve paths. General
+surface sources, nonlinear correspondence and final CS/SSI/image/fiber are still
+separate unfinished obligations.

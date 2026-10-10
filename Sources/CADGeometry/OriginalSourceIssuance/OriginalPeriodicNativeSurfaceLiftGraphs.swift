@@ -4,12 +4,14 @@ import L1
 #endif
 
 /// Every fundamental chart pair and exact integer translate, without finite enumeration.
-public struct OriginalPeriodicNativeSurfaceLiftGraphs<S: OriginalSurfaceLiftSourceReading>: OriginalPeriodicNativeSurfaceLiftGraphQuerying {
+public struct OriginalPeriodicNativeSurfaceLiftGraphs<S: OriginalLiftSourceReading>: OriginalPeriodicNativeSurfaceLiftGraphQuerying {
     public typealias Source=S
     public typealias Graph=OriginalParametricGraphReceipt<S,OriginalExactScalarDomain,OriginalSurfaceLiftGraphEvidence<S>>
     public let source: OriginalSourceBinding<S>
     public let surface: OriginalBSplineFundamentalCharts<S.Surface>
-    public let pcurve: OriginalFiniteBSplineCharts<S.Pcurve>
+    public let pcurveLaws: [OriginalRationalChartReceipt<S.Pcurve,S.PcurveSelection,OriginalExactScalarDomain>]
+    let pcurveField: OriginalExactScalarDomain
+    let pcurveSupport: [OriginalSourceParameterInterval<OriginalExactScalar>]
     public let templateCount: Int
     public let proofDepth: ExactScalarDepth
     public let enclosingSupport: [OriginalSourceParameterInterval<OriginalExactScalar>]
@@ -18,9 +20,12 @@ public struct OriginalPeriodicNativeSurfaceLiftGraphs<S: OriginalSurfaceLiftSour
     let offset: OriginalExactScalar
     let span: OriginalExactScalar
     init(source: OriginalSourceBinding<S>,surface: OriginalBSplineFundamentalCharts<S.Surface>,
-        pcurve: OriginalFiniteBSplineCharts<S.Pcurve>,count: Int,proofDepth: ExactScalarDepth,
+        pcurveLaws: [OriginalRationalChartReceipt<S.Pcurve,S.PcurveSelection,OriginalExactScalarDomain>],
+        pcurveField: OriginalExactScalarDomain,pcurveSupport: [OriginalSourceParameterInterval<OriginalExactScalar>],
+        count: Int,proofDepth: ExactScalarDepth,
         support: [OriginalSourceParameterInterval<OriginalExactScalar>],offset: OriginalExactScalar,span: OriginalExactScalar) {
-        self.source=source;self.surface=surface;self.pcurve=pcurve;templateCount=count
+        self.source=source;self.surface=surface;self.pcurveLaws=pcurveLaws
+        self.pcurveField=pcurveField;self.pcurveSupport=pcurveSupport;templateCount=count
         self.proofDepth=proofDepth;enclosingSupport=support;self.offset=offset;self.span=span
     }
     public func admitProof<A: ExactScalarAdmission & ~Copyable>(maximumCharts: Int,
@@ -60,12 +65,19 @@ public struct OriginalPeriodicNativeSurfaceLiftGraphs<S: OriginalSurfaceLiftSour
                         shift.append(cycle)
                     }
                 }
-                let s=surface.laws[template/pcurve.laws.count],p=pcurve.laws[template%pcurve.laws.count]
+                let s=surface.laws[template/pcurveLaws.count],p=pcurveLaws[template%pcurveLaws.count]
                 try s.admitProof(using:&a);try p.admitProof(using:&a)
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalSurfaceLiftGraphEvidence<S>.self))
                 return try OriginalSurfaceLiftGraphProducer<S>().issue(source:source,
                     evidence:.init(surface:s,pcurve:p,surfaceTranslation:shift),offset:offset,span:span,using:&a)
             }
         } catch { throw .init(preserving:error) }
+    }
+}
+
+// Preserve the original typed Native child view without allocating or copying laws.
+extension OriginalPeriodicNativeSurfaceLiftGraphs where S: OriginalSurfaceLiftSourceReading {
+    public var pcurve: OriginalFiniteBSplineCharts<S.Pcurve> {
+        .init(source:source.original.originalPcurve,field:pcurveField,support:pcurveSupport,laws:pcurveLaws)
     }
 }

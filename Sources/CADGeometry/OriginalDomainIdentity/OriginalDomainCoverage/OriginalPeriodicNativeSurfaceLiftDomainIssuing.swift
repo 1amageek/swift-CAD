@@ -6,7 +6,7 @@ import SourceIssuer
 #endif
 
 public protocol OriginalPeriodicNativeSurfaceLiftDomainIssuing: Sendable {
-    associatedtype Source: OriginalSurfaceLiftSourceReading
+    associatedtype Source: OriginalLiftSourceReading
     func prepare<A: ExactScalarAdmission & ~Copyable>(family: borrowing OriginalPeriodicNativeSurfaceLiftGraphs<Source>,
         limits: OriginalDomainIdentityLimits,using admission: inout A)
         throws(OriginalDomainIdentityFailure) -> OriginalPeriodicNativeSurfaceLiftDomainSpace<Source>

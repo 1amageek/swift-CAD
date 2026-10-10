@@ -6,7 +6,7 @@ import SourceIssuer
 #endif
 
 public protocol OriginalPeriodicNativeSurfaceLiftDomainQuerying: Sendable {
-    associatedtype Source: OriginalSurfaceLiftSourceReading
+    associatedtype Source: OriginalLiftSourceReading
     var source: OriginalSourceBinding<Source> { get }
     var enclosingSupport: OriginalParameterSelection<Source,OriginalExactScalarDomain> { get }
     var request: OriginalParameterSelection<Source,OriginalExactScalarDomain> { get }

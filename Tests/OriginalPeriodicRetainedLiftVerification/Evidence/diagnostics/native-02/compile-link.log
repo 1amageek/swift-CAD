@@ -1,0 +1,87 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:42:44: error: static method 'position(_:values:using:)' requires that 'OriginalPeriodicNativeSurfaceLiftDomainCover<PeriodicRetainedLiftProof.Source>.Source' (aka 'OriginalAffineSurfaceLiftSnapshot') conform to 'OriginalSurfaceLiftSourceReading'
+ 40 |                 try LiftChecks.require(member.relation.graph.admits(tuple,limits:l.source,using:&a))
+ 41 |                 if numeric {
+ 42 |                     let xyz=try LiftChecks.position(member.relation.graph,values:tuple,using:&a)
+    |                                            `- error: static method 'position(_:values:using:)' requires that 'OriginalPeriodicNativeSurfaceLiftDomainCover<PeriodicRetainedLiftProof.Source>.Source' (aka 'OriginalAffineSurfaceLiftSnapshot') conform to 'OriginalSurfaceLiftSourceReading'
+ 43 |                     let expected=try family.source.original.original.point(atNormalizedFraction:t,tolerance:.standard)
+ 44 |                     for (axis,value) in [expected.x,expected.y,expected.z].enumerated() {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-retained-lift/native/45c281c65577401eab7ba6adb84603ff/SourceChecks.swift:107:29: note: where 'S' = 'OriginalPeriodicNativeSurfaceLiftDomainCover<PeriodicRetainedLiftProof.Source>.Source' (aka 'OriginalAffineSurfaceLiftSnapshot')
+105 |         print("PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth")
+106 |     }
+107 |     nonisolated static func position<S: OriginalSurfaceLiftSourceReading>(
+    |                             `- note: where 'S' = 'OriginalPeriodicNativeSurfaceLiftDomainCover<PeriodicRetainedLiftProof.Source>.Source' (aka 'OriginalAffineSurfaceLiftSnapshot')
+108 |         _ g: OriginalParametricGraphReceipt<S,OriginalExactScalarDomain,OriginalSurfaceLiftGraphEvidence<S>>,
+109 |         values: [OriginalExactScalar],using a: inout LiftAdmission) throws -> [OriginalExactScalar] {
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:73:38: error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+ 71 |     }
+ 72 |     nonisolated static func detached() throws -> OriginalPeriodicNativeSurfaceLiftChartOccurrence<Source> {
+ 73 |         let original=shape(.constantV(value:0.5,uStart:-3,uEnd:6))
+    |                                      `- error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+ 74 |         let saved=try family(original);var a=try LiftAdmission();let f=saved.field
+ 75 |         return try DomainChecks.detached(saved,tuple:[f.binary64(exactly:0.5,using:&a),f.binary64(exactly:1.5,using:&a),f.binary64(exactly:0.5,using:&a)])
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:81:47: error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+ 79 |         try PeriodicLiftProof.run();try PeriodicLiftDomainProof.run()
+ 80 |         try ActualPeriodicLiftProof.run();try ActualPeriodicLiftDomainProof.run()
+ 81 |         let linear=try family(shape(.constantV(value:0.5,uStart:-3,uEnd:6)))
+    |                                               `- error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+ 82 |         try DomainChecks.run(linear,twoAxes:false);try positions(linear,two:false,u:(-3,9),v:(0.5,0))
+ 83 |         let affine=try family(shape(.affine(origin:.init(x:-3,y:-3),direction:.init(x:9,y:9),startParameter:0,endParameter:1),two:true))
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:82:26: error: generic parameter 'S' could not be inferred
+ 80 |         try ActualPeriodicLiftProof.run();try ActualPeriodicLiftDomainProof.run()
+ 81 |         let linear=try family(shape(.constantV(value:0.5,uStart:-3,uEnd:6)))
+ 82 |         try DomainChecks.run(linear,twoAxes:false);try positions(linear,two:false,u:(-3,9),v:(0.5,0))
+    |                          `- error: generic parameter 'S' could not be inferred
+ 83 |         let affine=try family(shape(.affine(origin:.init(x:-3,y:-3),direction:.init(x:9,y:9),startParameter:0,endParameter:1),two:true))
+ 84 |         try DomainChecks.run(affine,twoAxes:true);try positions(affine,two:true,u:(-3,9),v:(-3,9))
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-retained-lift/native/45c281c65577401eab7ba6adb84603ff/DomainChecks.swift:36:29: note: in call to function 'run(_:twoAxes:multi:nonmonotone:constant:)'
+ 34 |         return try issuer.issue(space:space,request:space.frame.fullSelection(limits:l,using:&a),limits:l,using:&a)
+ 35 |     }
+ 36 |     nonisolated static func run<S: OriginalLiftSourceReading>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,
+    |                             `- note: in call to function 'run(_:twoAxes:multi:nonmonotone:constant:)'
+ 37 |         twoAxes: Bool,multi: Bool=false,nonmonotone: Bool=false,constant: Bool=false) throws {
+ 38 |         var a=try LiftAdmission();let f=family.field,l=try limits(),c=try cover(family,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:85:46: error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+ 83 |         let affine=try family(shape(.affine(origin:.init(x:-3,y:-3),direction:.init(x:9,y:9),startParameter:0,endParameter:1),two:true))
+ 84 |         try DomainChecks.run(affine,twoAxes:true);try positions(affine,two:true,u:(-3,9),v:(-3,9))
+ 85 |         try positions(family(shape(.constantV(value:0.5,uStart:6,uEnd:-3))),two:false,u:(6,-9),v:(0.5,0))
+    |                                              `- error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+ 86 |         try positions(family(shape(.constantU(value:3,vStart:-3,vEnd:6),two:true)),two:true,u:(3,0),v:(-3,9))
+ 87 |         let sensitive=try family(shape(.affine(origin:.init(x:-1e16,y:0.5),direction:.init(x:1,y:0),startParameter:1e16,endParameter:1e16+2)))
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:86:46: error: incorrect argument label in call (have 'value:vStart:vEnd:', expected 'u:vStart:vEnd:')
+ 84 |         try DomainChecks.run(affine,twoAxes:true);try positions(affine,two:true,u:(-3,9),v:(-3,9))
+ 85 |         try positions(family(shape(.constantV(value:0.5,uStart:6,uEnd:-3))),two:false,u:(6,-9),v:(0.5,0))
+ 86 |         try positions(family(shape(.constantU(value:3,vStart:-3,vEnd:6),two:true)),two:true,u:(3,0),v:(-3,9))
+    |                                              `- error: incorrect argument label in call (have 'value:vStart:vEnd:', expected 'u:vStart:vEnd:')
+ 87 |         let sensitive=try family(shape(.affine(origin:.init(x:-1e16,y:0.5),direction:.init(x:1,y:0),startParameter:1e16,endParameter:1e16+2)))
+ 88 |         // Source equality uses the original coefficient expression, not rounded endpoint samples.
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:91:54: error: incorrect argument label in call (have 'value:vStart:vEnd:', expected 'u:vStart:vEnd:')
+ 89 |         try positions(sensitive,two:false,u:(0,2),v:(0.5,0),numeric:false)
+ 90 |         let giant=3*Double(sign:.plus,exponent:96,significand:1)
+ 91 |         try DomainChecks.huge(family(shape(.constantU(value:giant,vStart:0,vEnd:1))),twoAxes:false)
+    |                                                      `- error: incorrect argument label in call (have 'value:vStart:vEnd:', expected 'u:vStart:vEnd:')
+ 92 |         try DomainChecks.resources(linear,foreign:family(shape(.constantV(value:0.5,uStart:-3,uEnd:6))))
+ 93 |         try sourceChecks(linear,foreign:affine)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:92:74: error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+ 90 |         let giant=3*Double(sign:.plus,exponent:96,significand:1)
+ 91 |         try DomainChecks.huge(family(shape(.constantU(value:giant,vStart:0,vEnd:1))),twoAxes:false)
+ 92 |         try DomainChecks.resources(linear,foreign:family(shape(.constantV(value:0.5,uStart:-3,uEnd:6))))
+    |                                                                          `- error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+ 93 |         try sourceChecks(linear,foreign:affine)
+ 94 |         let retained=try detached();var a=try LiftAdmission();let f=retained.family.field
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:99:33: error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+ 97 |         try LiftChecks.require(retained.relation.graph.admits(tuple,limits:DomainChecks.limits().source,using:&a))
+ 98 |         // Nonperiodic-axis tolerance-only clamps remain refused by the actual source provider.
+ 99 |         let bad=shape(.constantV(value:-1e-10,uStart:-3,uEnd:6))
+    |                                 `- error: incorrect argument label in call (have 'value:uStart:uEnd:', expected 'v:uStart:uEnd:')
+100 |         do { _=try family(bad);throw LiftChecks.Failure(line:#line) }
+101 |         catch OriginalSourceIssuanceFailure.unsupportedRepresentation {}

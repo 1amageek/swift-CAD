@@ -4,7 +4,7 @@ import L1
 #endif
 
 public protocol OriginalPeriodicNativeSurfaceLiftGraphQuerying: Sendable {
-    associatedtype Source: OriginalSurfaceLiftSourceReading
+    associatedtype Source: OriginalLiftSourceReading
     var source: OriginalSourceBinding<Source> { get }
     var field: OriginalExactScalarDomain { get }
     var templateCount: Int { get }

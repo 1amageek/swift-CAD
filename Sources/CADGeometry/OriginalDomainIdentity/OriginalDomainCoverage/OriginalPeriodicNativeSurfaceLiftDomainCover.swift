@@ -5,7 +5,7 @@ import DI0
 import SourceIssuer
 #endif
 
-public struct OriginalPeriodicNativeSurfaceLiftDomainCover<S: OriginalSurfaceLiftSourceReading>: OriginalPeriodicNativeSurfaceLiftDomainQuerying {
+public struct OriginalPeriodicNativeSurfaceLiftDomainCover<S: OriginalLiftSourceReading>: OriginalPeriodicNativeSurfaceLiftDomainQuerying {
     public typealias Source=S
     public typealias Occurrence=OriginalPeriodicNativeSurfaceLiftChartOccurrence<S>
     public let space: OriginalPeriodicNativeSurfaceLiftDomainSpace<S>
@@ -56,10 +56,10 @@ public struct OriginalPeriodicNativeSurfaceLiftDomainCover<S: OriginalSurfaceLif
                     }
                 }
                 guard let lawOrdinal else { throw OriginalDomainIdentityFailure.incompleteCoverage }
-                for pcurve in family.pcurve.laws.indices {
+                for pcurve in family.pcurveLaws.indices {
                     try a.consumeWork(1)
                     // The source preparer already checked this complete pair product.
-                    let template=lawOrdinal*family.pcurve.laws.count+pcurve
+                    let template=lawOrdinal*family.pcurveLaws.count+pcurve
                     let occurrence=try member(template:template,cycles:candidate.cycles,limits:limits,using:&a)
                     if try occurrence.relation.graph.admits(tuple,limits:limits.source,using:&a) {
                         guard result.count<limits.maximumCharts else { throw OriginalDomainIdentityFailure.chartLimit }

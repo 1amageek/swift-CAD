@@ -1,0 +1,31 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:43:44: error: static method 'position(_:values:using:)' requires that 'OriginalPeriodicNativeSurfaceLiftDomainCover<PeriodicRetainedLiftProof.Source>.Source' (aka 'OriginalAffineSurfaceLiftSnapshot') conform to 'OriginalSurfaceLiftSourceReading'
+ 41 |                 try LiftChecks.require(member.relation.graph.admits(tuple,limits:l.source,using:&a))
+ 42 |                 if numeric {
+ 43 |                     let xyz=try LiftChecks.position(member.relation.graph,values:tuple,using:&a)
+    |                                            `- error: static method 'position(_:values:using:)' requires that 'OriginalPeriodicNativeSurfaceLiftDomainCover<PeriodicRetainedLiftProof.Source>.Source' (aka 'OriginalAffineSurfaceLiftSnapshot') conform to 'OriginalSurfaceLiftSourceReading'
+ 44 |                     let expected=try family.source.original.original.point(atNormalizedFraction:t,tolerance:.standard)
+ 45 |                     for (axis,value) in [expected.x,expected.y,expected.z].enumerated() {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-retained-lift/native/a6b51f3a576e4fd796d0db7f733b3ec7/SourceChecks.swift:107:29: note: where 'S' = 'OriginalPeriodicNativeSurfaceLiftDomainCover<PeriodicRetainedLiftProof.Source>.Source' (aka 'OriginalAffineSurfaceLiftSnapshot')
+105 |         print("PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth")
+106 |     }
+107 |     nonisolated static func position<S: OriginalSurfaceLiftSourceReading>(
+    |                             `- note: where 'S' = 'OriginalPeriodicNativeSurfaceLiftDomainCover<PeriodicRetainedLiftProof.Source>.Source' (aka 'OriginalAffineSurfaceLiftSnapshot')
+108 |         _ g: OriginalParametricGraphReceipt<S,OriginalExactScalarDomain,OriginalSurfaceLiftGraphEvidence<S>>,
+109 |         values: [OriginalExactScalar],using a: inout LiftAdmission) throws -> [OriginalExactScalar] {
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:100:30: error: 'OriginalSourceIssuanceFailure' initializer is inaccessible due to 'internal' protection level
+ 98 |                 try a.checkpoint();try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:T.self))
+ 99 |                 return .init(original:copy input,sourceDepth:0)
+100 |             } catch { throw .init(preserving:error) }
+    |                              `- error: 'OriginalSourceIssuanceFailure' initializer is inaccessible due to 'internal' protection level
+101 |         }
+102 |     }
+
+/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceIssuanceFailure.swift:13:5: note: 'init(preserving:)' declared here
+11 |     case sourceRejected(any Error)
+12 | 
+13 |     init(preserving error: any Error) {
+   |     `- note: 'init(preserving:)' declared here
+14 |         switch error {
+15 |         case let failure as Self: self = failure

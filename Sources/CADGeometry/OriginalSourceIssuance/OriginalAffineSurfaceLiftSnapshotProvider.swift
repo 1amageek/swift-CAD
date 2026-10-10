@@ -10,7 +10,7 @@ public struct OriginalAffineSurfaceLiftSnapshotProvider: OriginalSourceSnapshott
         do {
             try a.checkpoint();try a.consumeWork(1)
             guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
-            // FIXME(INCOMPLETE_IMPLEMENTATION): General/periodic surface lifts and priority
+            // FIXME(INCOMPLETE_IMPLEMENTATION): General hosting surfaces and priority
             // images need their own complete source correspondence. This affine pcurve port
             // cannot complete those families through a fitted or sampled replacement.
             guard input.exactBSplineImage == nil else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
@@ -27,6 +27,8 @@ public struct OriginalAffineSurfaceLiftSnapshotProvider: OriginalSourceSnapshott
             let native=surface.original,f=field,curve=pcurve.original,ring=curve.originalPolynomials
             for axis in 0..<2 {
                 try a.consumeWork(1)
+                // Periodic axes have complete real support; preserve their authored UV lifts.
+                if native.isPeriodic(in:axis) { continue }
                 let lower=try f.binary64(exactly:axis == 0 ? native.uKnots[native.uDegree]:native.vKnots[native.vDegree],using:&a)
                 let upper=try f.binary64(exactly:axis == 0 ? native.uKnots[native.uControlPointCount]:native.vKnots[native.vControlPointCount],using:&a)
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:OriginalExactScalar.self))

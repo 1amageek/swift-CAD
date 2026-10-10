@@ -5,7 +5,7 @@ import DI0
 import SourceIssuer
 #endif
 
-public struct DefaultOriginalPeriodicNativeSurfaceLiftDomainIssuer<S: OriginalSurfaceLiftSourceReading>: OriginalPeriodicNativeSurfaceLiftDomainIssuing {
+public struct DefaultOriginalPeriodicNativeSurfaceLiftDomainIssuer<S: OriginalLiftSourceReading>: OriginalPeriodicNativeSurfaceLiftDomainIssuing {
     public typealias Source=S
     public init() {}
     func admitted<A: ExactScalarAdmission & ~Copyable>(_ family: OriginalPeriodicNativeSurfaceLiftGraphs<S>,

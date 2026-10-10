@@ -1,0 +1,50 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-retained-lift/native/456babe70a4849738fdb6a4ed4ec5895/OriginalAffinePcurveSnapshot.swift:14:37: error: cannot find type 'ExactPolynomialDomain' in scope
+12 |     public let original: SurfaceParameterCurve
+13 |     public let originalField: Field
+14 |     public let originalPolynomials: ExactPolynomialDomain<Field>
+   |                                     `- error: cannot find type 'ExactPolynomialDomain' in scope
+15 |     public let originalProofDepth: ExactScalarDepth
+16 |     private let position: [ExactPolynomial<Field>]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-retained-lift/native/456babe70a4849738fdb6a4ed4ec5895/OriginalAffinePcurveSnapshot.swift:16:28: error: cannot find type 'ExactPolynomial' in scope
+14 |     public let originalPolynomials: ExactPolynomialDomain<Field>
+15 |     public let originalProofDepth: ExactScalarDepth
+16 |     private let position: [ExactPolynomial<Field>]
+   |                            `- error: cannot find type 'ExactPolynomial' in scope
+17 |     private let lower: Field.Value
+18 |     private let upper: Field.Value
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-retained-lift/native/456babe70a4849738fdb6a4ed4ec5895/OriginalAffinePcurveSnapshot.swift:22:60: error: cannot find type 'ExactPolynomial' in scope
+20 |     public func originalCellLowerBound(at index: Int) -> Field.Value { lower }
+21 |     public func originalCellUpperBound(at index: Int) -> Field.Value { upper }
+22 |     public func originalCellHomogeneous(at index: Int) -> [ExactPolynomial<Field>] { position }
+   |                                                            `- error: cannot find type 'ExactPolynomial' in scope
+23 |     init(original: SurfaceParameterCurve, field: Field, polynomials: ExactPolynomialDomain<Field>,
+24 |         position: [ExactPolynomial<Field>], lower: Field.Value, upper: Field.Value, depth: ExactScalarDepth) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-retained-lift/native/456babe70a4849738fdb6a4ed4ec5895/OriginalAffinePcurveSnapshot.swift:23:70: error: cannot find type 'ExactPolynomialDomain' in scope
+21 |     public func originalCellUpperBound(at index: Int) -> Field.Value { upper }
+22 |     public func originalCellHomogeneous(at index: Int) -> [ExactPolynomial<Field>] { position }
+23 |     init(original: SurfaceParameterCurve, field: Field, polynomials: ExactPolynomialDomain<Field>,
+   |                                                                      `- error: cannot find type 'ExactPolynomialDomain' in scope
+24 |         position: [ExactPolynomial<Field>], lower: Field.Value, upper: Field.Value, depth: ExactScalarDepth) {
+25 |         self.original=original; originalField=field; originalPolynomials=polynomials
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-retained-lift/native/456babe70a4849738fdb6a4ed4ec5895/OriginalAffinePcurveSnapshot.swift:24:20: error: cannot find type 'ExactPolynomial' in scope
+22 |     public func originalCellHomogeneous(at index: Int) -> [ExactPolynomial<Field>] { position }
+23 |     init(original: SurfaceParameterCurve, field: Field, polynomials: ExactPolynomialDomain<Field>,
+24 |         position: [ExactPolynomial<Field>], lower: Field.Value, upper: Field.Value, depth: ExactScalarDepth) {
+   |                    `- error: cannot find type 'ExactPolynomial' in scope
+25 |         self.original=original; originalField=field; originalPolynomials=polynomials
+26 |         self.position=position; self.lower=lower; self.upper=upper; originalProofDepth=depth
+
+/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalPeriodicNativeSurfaceLiftGraphPreparer.swift:73:1: error: conditional conformance of type 'DefaultOriginalPeriodicNativeSurfaceLiftGraphPreparer<S>' to protocol 'OriginalPeriodicNativeSurfaceLiftGraphPreparing' does not imply conformance to inherited protocol 'Sendable'
+ 71 | }
+ 72 | 
+ 73 | extension DefaultOriginalPeriodicNativeSurfaceLiftGraphPreparer: OriginalPeriodicNativeSurfaceLiftGraphPreparing
+    | |- error: conditional conformance of type 'DefaultOriginalPeriodicNativeSurfaceLiftGraphPreparer<S>' to protocol 'OriginalPeriodicNativeSurfaceLiftGraphPreparing' does not imply conformance to inherited protocol 'Sendable'
+    | |- note: did you mean to explicitly state the conformance with the same bounds using 'where S: OriginalSurfaceLiftSourceReading'?
+    | `- note: did you mean to explicitly state the conformance with different bounds?
+ 74 |     where S: OriginalSurfaceLiftSourceReading {
+ 75 |     public func prepare<A: ExactScalarAdmission & ~Copyable>(source: borrowing OriginalSourceBinding<S>,

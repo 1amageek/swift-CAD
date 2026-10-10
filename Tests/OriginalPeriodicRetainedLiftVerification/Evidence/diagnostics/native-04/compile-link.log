@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPeriodicRetainedLiftVerification/RetainedLiftProof.swift:100:31: warning: 'as' test is always true
+ 98 |                 try a.checkpoint();try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:T.self))
+ 99 |                 return .init(original:copy input,sourceDepth:0)
+100 |             } catch let error as ExactScalarFailure { throw .scalar(error) }
+    |                               `- warning: 'as' test is always true
+101 |             catch { throw .sourceRejected(error) }
+102 |         }

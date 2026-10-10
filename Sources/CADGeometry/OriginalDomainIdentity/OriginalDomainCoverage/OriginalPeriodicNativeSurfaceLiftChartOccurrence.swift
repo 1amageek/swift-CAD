@@ -6,7 +6,7 @@ import SourceIssuer
 #endif
 
 /// Original T/UV relation and unreduced surface cycles retain their proof owners.
-public struct OriginalPeriodicNativeSurfaceLiftChartOccurrence<S: OriginalSurfaceLiftSourceReading>: Sendable {
+public struct OriginalPeriodicNativeSurfaceLiftChartOccurrence<S: OriginalLiftSourceReading>: Sendable {
     public let family: OriginalPeriodicNativeSurfaceLiftGraphs<S>
     public let template: Int
     public let cycles: [OriginalParameterCycle]
