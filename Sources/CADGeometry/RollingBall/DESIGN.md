@@ -1,5 +1,12 @@
 # Rolling Ball Contact Sections
 
+The [source issuance contract](../OriginalSourceIssuance/DESIGN.md#rolling-ball-native-child-graph-family)
+owns the exact guarded graph adaptation of this component's retained minor-arc
+expression. The existing radial-cross feasibility threshold is exposed read-only
+from this component so source issuance consumes the same policy. It is not an
+equality or identity tolerance. General fillet/whole-solid completion remains
+independent of this source capability.
+
 ## Purpose and Scope
 
 Child of [CADGeometry](../DESIGN.md), with no children. Owns the local circular

@@ -1,0 +1,149 @@
+[
+  {
+    "label": "compile",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-sanitize=address",
+      "-Xlinker",
+      "-dead_strip",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01",
+      "-emit-library",
+      "-static",
+      "-emit-module",
+      "-enable-testing",
+      "-module-name",
+      "RollingBallAdapters",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/RollingBallBlendSurface3D.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/RollingBallBlendSurface3D+Enclosure.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/DefaultSurfaceRegularityValidator.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/StrictDecoding.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalRollingBallGraphProducer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalRollingBallSourceReading.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalRollingBallSnapshot.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalRollingBallSnapshotProvider.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalRollingBallGraphEvidence.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalFiniteNativeRollingBallGraphs.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalFiniteNativeRollingBallGraphPreparing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/DefaultOriginalFiniteNativeRollingBallGraphPreparer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalParametricVariableLayout.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalParametricGraphCondition.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalParametricGraphReceipt.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalParametricGraphDomainBinding.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalDomainBoundParametricGraph.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/DefaultOriginalParametricGraphDomainBinder.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalNativeRollingBallDomainIssuing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/OriginalNativeRollingBallDomainCover.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/Sources/DefaultOriginalNativeRollingBallDomainIssuer.swift",
+      "-emit-module-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/RollingBallAdapters.swiftmodule",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libRollingBallAdapters.a"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 3.02692858298542,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-CADCore",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libCachedCADCore.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/CADCore.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.015534124977421016,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-CADGeometry",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libCachedCADGeometry.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/CADGeometry.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.266708415991161,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-HashTreeCollections",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/HashTreeCollections.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.027203249977901578,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-InternalCollectionsUtilities",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libCachedInternalCollectionsUtilities.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/InternalCollectionsUtilities.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.013987749989610165,
+    "exitCode": 0
+  },
+  {
+    "label": "link",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-sanitize=address",
+      "-Xlinker",
+      "-dead_strip",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01",
+      "-parse-as-library",
+      "-D",
+      "ORIGINAL_ROLLING_BALL_ADAPTER_VERIFICATION",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRollingBallIntakeVerification/Proof.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libRollingBallAdapters.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libCachedCADCore.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libCachedCADGeometry.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/libCachedInternalCollectionsUtilities.a",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/RollingBallProof"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.7649775419849902,
+    "exitCode": 0
+  },
+  {
+    "label": "runtime",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-rb-intake-asan-01/RollingBallProof"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.9251914580236189,
+    "exitCode": 0
+  }
+]

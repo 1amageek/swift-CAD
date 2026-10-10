@@ -1226,6 +1226,48 @@ in OriginalSourceIssuanceVerification.
 The L5 contract is [ExactParametricRelation](../RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md);
 conversion and DI request selection are consumed by the B3 ports in NativeExactRelations; source issuance still owns no solving or whole-request coverage.
 
+### Rolling-ball Native child graph family
+
+The rolling-ball provider retains the actual construction and separately bound
+center/first-contact/second-contact curves. The Native preparation capability uses
+the existing complete finite curve families. Every child has original support
+`[0,1]` and identity authored U; all triples with nonempty closed U intersection
+are retained, including singleton intersections at different child knots. Different
+degrees, weights and knot partitions are supported. This is not the translated-rail
+area shortcut. Generic/non-Native child supply remains an explicit unfinished
+producer dependency, not a completed rolling-ball family.
+
+For each triple the source issuer constructs the existing minor-arc expression
+in `(u,v,q1,q2,w)`. The ordered local parameters are U/V; positive radial lengths
+q1/q2 and positive half-angle w are auxiliary witnesses, not extra source axes.
+The length equations, positive-root branches, original child denominators, radius
+admission, radial normalization threshold, regular-arc threshold and output
+denominator are conjunctive source guards. The regular-arc threshold is the same
+stored numerical feasibility policy used by the original evaluator; it never
+establishes equality, periodicity or identity. No root is rounded into a coefficient.
+Each admissible witness gives the same original position; an invalid radial has no
+witness. Complete parameter enclosure and guarded position support remain distinct.
+
+```mermaid
+flowchart LR
+ R[Retained rolling-ball construction] --> C[Three complete Native curve families]
+ C --> T[All nonempty closed chart intersections]
+ T --> G[Source-owned minor-arc equations and guards]
+ G --> D[Existing DI graph binder]
+```
+
+Graphs retain the source and all three child-law owners. Immutable family storage
+and local scratch use the caller's same admission, checked chart counts and inherited
+source/value/coefficient depths. Entry and terminal cancellation precede publication.
+No new mutable state, unsafe boundary or target-specific concurrency contract is
+introduced. The rolling-ball component owns the original evaluation formula; DI
+consumes its graph and does not generate another shape expression. Focused tests
+must compare actual construction/evaluation with graph positions, unequal knots,
+all closed incidents, exact guard failures, independent budgets and post-source
+lifetime on Native/ASAN/normal-WASM/Embedded before delivery.
+The actual-source test owner is
+[OriginalRollingBallIntakeVerification](../../../Tests/OriginalRollingBallIntakeVerification/VERIFICATION.md).
+
 ### M4 Retained Rational Derivative Surface Intake
 
 The concrete derivative-surface provider consumes the immutable exact position

@@ -199,6 +199,24 @@ of a bounding box or fitted rational surface.
 
 ## Runtime Flows
 
+### Native rolling-ball graph domain consumption
+
+The rolling-ball domain issuer consumes the sealed complete three-child graph
+family from [source issuance](../../OriginalSourceIssuance/DESIGN.md#rolling-ball-native-child-graph-family).
+It issues an authored UV frame over the original normalized square, verifies
+source ownership/coordinate semantics/exact frame support, and intersects the
+retained request with that enclosure. Per-template members use the existing graph
+binder and retain all positive-root/normalization/regular-arc guards. A request box
+does not prove those guards. Lifted incident queries preserve all five graph
+coordinates while only U/V belong to the source domain. They validate all coordinate
+fields before empty selection can short-circuit, then preserve every closed child
+chart incident. No unique inverse, root search or Boolean UV-only validity callback
+is introduced. Immutable members retain the same family/source/proof owners;
+selection/member/query allocations use one caller admission and terminal cancel.
+Focused rolling-ball source/domain verification owns request singleton, strict,
+disconnected/empty and foreign-owner/semantics/frame counterexamples. Generic rails
+and final ordinary CS/SSI publication remain separate open obligations.
+
 Retain original support/request -> exact intersection -> validate chart templates ->
 transport/select -> verify union and ownership/family theorem -> reserve receipt ->
 final cancellation. Existing source extraction prepares only required homogeneous

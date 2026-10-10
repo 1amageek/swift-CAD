@@ -25,6 +25,13 @@ public struct RollingBallBlendSurface3D: Hashable, Sendable {
 
     /// Validates stored geometry; does not certify fillet feasibility.
     public func validate() throws {
+        try validateConstructionParameters()
+        try centerSpine.validate(tolerance: tolerance)
+        try firstContact.validate(tolerance: tolerance)
+        try secondContact.validate(tolerance: tolerance)
+    }
+
+    package func validateConstructionParameters() throws {
         try tolerance.validate()
         guard radius.isFinite, radius > tolerance.distance,
               case .closed(0, 1) = centerSpine.parameterDomain,
@@ -32,9 +39,6 @@ public struct RollingBallBlendSurface3D: Hashable, Sendable {
               case .closed(0, 1) = secondContact.parameterDomain else {
             throw failure(.invalidInput, "A blend requires a positive radius and normalized center spine.")
         }
-        try centerSpine.validate(tolerance: tolerance)
-        try firstContact.validate(tolerance: tolerance)
-        try secondContact.validate(tolerance: tolerance)
     }
 
     public var uDomain: ParameterDomain { .closed(0, 1) }
@@ -217,6 +221,10 @@ public struct RollingBallBlendSurface3D: Hashable, Sendable {
         }
     }
 
+    package var originalRadialCrossThreshold: Double {
+        max(sin(min(tolerance.angle, .pi * 0.5)), tolerance.relative)
+    }
+
     private func validateRadials(_ first: Vector3D, _ second: Vector3D) throws {
         let firstLength = first.length
         let secondLength = second.length
@@ -228,7 +236,7 @@ public struct RollingBallBlendSurface3D: Hashable, Sendable {
         let a = try first.normalized(tolerance: tolerance.distance)
         let b = try second.normalized(tolerance: tolerance.distance)
         guard 1 + a.dot(b) > 0,
-              a.cross(b).length > max(sin(min(tolerance.angle, .pi * 0.5)), tolerance.relative) else {
+              a.cross(b).length > originalRadialCrossThreshold else {
             throw failure(.singularSystem, "Blend contacts do not define a regular minor arc.")
         }
     }
