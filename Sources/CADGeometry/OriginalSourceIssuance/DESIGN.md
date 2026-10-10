@@ -1874,3 +1874,23 @@ complete mixed/direct products and DI selection, guard, owner, field, depth,
 resource, cancel and lifetime behavior on the four fixed lanes. Existing Native,
 derivative and retained-lift child regressions remain required. General nonrational
 guide supply, arbitrary correspondence and full M4-M8 remain open.
+
+
+## Retained Construction Curves in Rolling-Ball Children
+
+Sealed normalized construction-curve snapshots consume the source-owned endpoint
+connector/affine construction-chart entry described by
+[Original Coons](../OriginalCoons/DESIGN.md#normalized-construction-curve-position-supply).
+The actual carrier, exact position pieces and proof depth remain retained. Existing
+complete retained-curve preparation and rational child rebinding establish the
+whole normalized support and keep all denominator guards and closed incidents.
+The consumer neither rebuilds formulas nor invents an inverse parameter map.
+
+One admission owns extraction, exact coefficient transfer, charts, child products
+and publication. Carrier/source-depth overflow, incompatible owners or fields,
+missing C0 authority, exhausted resources and cancellation preserve typed failure.
+Snapshots and law backing are immutable Sendable in every target; independent
+queries use independent admissions. The changed producer entry has no stored-state
+change. Position supply is not join identity, smoothness or embedding certification.
+Verification owner: Tests/OriginalConstructionCurveRollingBallVerification. General
+non-affine construction laws and full M4-M8 remain open.

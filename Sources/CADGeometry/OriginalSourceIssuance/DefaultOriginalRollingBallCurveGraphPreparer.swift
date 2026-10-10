@@ -80,6 +80,13 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
                     try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.laws.count,of:Family.Graph.self))
                     graphs.reserveCapacity(family.laws.count)
                     for law in family.laws { try retain(law,evidence:.guideCurve(law),&a) }
+                case .constructionCurve(let binding):
+                    let family=try DefaultOriginalFiniteRetainedCurveChartPreparer<OriginalRetainedConstructionCurveSnapshot>().prepare(
+                        source:binding,maximumCharts:maximumCharts,limits:children,using:&a)
+                    coverage = .constructionCurve(family)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.laws.count,of:Family.Graph.self))
+                    graphs.reserveCapacity(family.laws.count)
+                    for law in family.laws { try retain(law,evidence:.constructionCurve(law),&a) }
                 case .nativeLift(let binding):
                     let surface=try DefaultOriginalFiniteBSplineChartPreparer<BSplineSurface3D>().prepare(
                         source:binding.original.originalSurface,field:f,maximumCharts:maximumCharts,limits:children,using:&a)

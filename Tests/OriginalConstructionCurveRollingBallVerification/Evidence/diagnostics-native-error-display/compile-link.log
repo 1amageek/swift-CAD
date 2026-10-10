@@ -1,0 +1,49 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalConstructionCurveRollingBallVerification/Proof.swift:260:7: error: extra tokens following conditional compilation directive
+258 | #if canImport(Darwin)
+259 | print(error)
+260 | #endif;exit(1) } }
+    |       `- error: extra tokens following conditional compilation directive
+261 |     nonisolated static func run() throws {
+262 |         try Legacy.run()
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalConstructionCurveRollingBallVerification/Proof.swift:261:24: error: static methods may only be declared on a type
+259 | print(error)
+260 | #endif;exit(1) } }
+261 |     nonisolated static func run() throws {
+    |                        `- error: static methods may only be declared on a type
+262 |         try Legacy.run()
+263 |         var a=try Admission(work:300_000_000,storage:1_073_741_824)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalConstructionCurveRollingBallVerification/Proof.swift:302:1: error: expected '}' at end of brace statement
+255 |         }
+256 |     }
+257 |     static func main() { do { try run() } catch { print("FAIL retained construction curve rolling-ball uncaught failure")
+    |                        `- note: to match this opening '{'
+258 | #if canImport(Darwin)
+259 | print(error)
+    :
+300 |     }
+301 | }
+302 | 
+    | `- error: expected '}' at end of brace statement
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalConstructionCurveRollingBallVerification/Proof.swift:302:1: error: expected '}' in struct
+ 11 | @testable import CallerAdapters
+ 12 | 
+ 13 | @main struct ConstructionCurveRollingBallProof {
+    |                                                `- note: to match this opening '{'
+ 14 |     typealias Legacy=RetainedRollingBallProof
+ 15 |     typealias Admission=Legacy.Admission
+    :
+300 |     }
+301 | }
+302 | 
+    | `- error: expected '}' in struct
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalConstructionCurveRollingBallVerification/Proof.swift:257:35: error: cannot find 'run' in scope
+255 |         }
+256 |     }
+257 |     static func main() { do { try run() } catch { print("FAIL retained construction curve rolling-ball uncaught failure")
+    |                                   `- error: cannot find 'run' in scope
+258 | #if canImport(Darwin)
+259 | print(error)

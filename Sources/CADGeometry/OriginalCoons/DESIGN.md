@@ -363,3 +363,37 @@ and original Coons position authority. A caller-authored raw Native tensor with 
 knot cannot acquire whole closed-cell position authority through this port;
 the existing Native knot validation rejects it before construction. Numerical derivative continuity remains a
 separate query contract.
+
+
+## Normalized Construction Curve Position Supply
+
+The existing rational traversal producer exposes a source-owned normalized entry
+for OriginalEndpointConnectorCurve3D and affine OriginalCurveConstructionChartImage.
+It retains the same exact construction, endpoint basis, fractions and traversal
+position law over [0,1], without constructing another RootSpan or preparing jets.
+The original positional-continuity issuer must prove full selected C0 before closed
+cells are supplied. Discontinuous source positions cannot acquire whole closed-cell
+authority from a collection of one-sided rational pieces.
+
+```mermaid
+flowchart LR
+ O[Original endpoint connector or construction chart] --> C[Existing exact C0 admission]
+ C --> P[Existing rational traversal position producer]
+ P --> S[Source issuance and complete closed charts]
+ S --> R[Rolling-ball product and guarded DI]
+```
+
+The source entry admits the original carrier's retained depth plus its own descent
+with checked arithmetic and the caller's cap. It preserves the carrier tolerance,
+source/field owners and every side. Work, rational storage, coefficient depths and
+cancel remain charged to the same caller. Non-affine/angular/algebraic laws remain
+explicitly incomplete. The source-issuance consumer transfers exact coefficients;
+it does not own or rebuild the position formula. This additive entry changes no
+stored payload or existing producer body. Verification is owned by
+Tests/OriginalConstructionCurveRollingBallVerification and checks actual source,
+complete products/DI, upstream invalid-knot refusal and inspected C0 admission, all sides and independent resource/cancel/lifetime
+under Native, ASAN, normal WASM and Embedded. Unchanged numerical dependencies may
+be reused only after exact additive-body and source/product receipt admission.
+The changed producer file is freshly compiled in the independent assembly; private
+producer symbols cannot be linked through an isolated extension. Production source
+adapters and this producer assembly use ordinary access control.

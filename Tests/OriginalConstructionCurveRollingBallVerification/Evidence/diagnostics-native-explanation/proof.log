@@ -1,0 +1,3 @@
+PASS retained construction child laws: weighted/reversed exact nonbinary affine fractions, actual directed traversal and nonzero quintic endpoint corrections, all original sides and exact XYZ/T/owners
+FAIL retained construction curve rolling-ball uncaught failure
+scalar(CADGeometry.ExactScalarFailure.admissionRejected(CADGeometry.GeometryConversionError.invalidInput("Original construction position requires its retained carrier.")))

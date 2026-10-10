@@ -6,6 +6,7 @@ public struct OriginalRollingBallCurveSnapshot: Sendable {
         case native(OriginalSourceBinding<BSplineCurve3D>)
         case derivativeCurve(OriginalSourceBinding<OriginalPlaneDerivativeCurveSnapshot>)
         case guideCurve(OriginalSourceBinding<OriginalRetainedGuideCurveSnapshot>)
+        case constructionCurve(OriginalSourceBinding<OriginalRetainedConstructionCurveSnapshot>)
         case nativeLift(OriginalSourceBinding<OriginalNativeSurfaceLiftSnapshot>)
         case retainedLift(OriginalSourceBinding<OriginalAffineSurfaceLiftSnapshot>)
         case coonsNativeLift(OriginalSourceBinding<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalCoonsAtlasSnapshot>>)

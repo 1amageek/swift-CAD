@@ -39,6 +39,44 @@ package struct OriginalSplineTraversalPolynomialPiece: Sendable {
             selectedOwner: nil, depth: 0, capability: Capability(curve), usage: &usage)
     }
 
+    /// Reads an existing normalized construction without another traversal preparation.
+    package static func constructionPieces<B: RationalAlgebraAdmitting>(of source: Curve3D,
+        maximumSourceDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws
+        -> (pieces: [Self], sourceDepth: Int) {
+        try tolerance.validate(); try usage.consumeExactWork(1)
+        let childDepth: Int, subdivisionDepth: Int
+        switch source {
+        case .originalEndpointConnector(let connector):
+            try connector.validate(tolerance: tolerance)
+            childDepth = max(connector.startBoundary.remainingSourceDepth, connector.endBoundary.remainingSourceDepth)
+            subdivisionDepth = connector.maximumSubdivisionDepth
+        case .originalConstructionChart(let image):
+            try image.validate(tolerance: tolerance)
+            childDepth = image.remainingSourceDepth; subdivisionDepth = image.maximumSubdivisionDepth
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Non-affine construction laws require their
+            // ordered-field parameter relation. This normalized rational source entry must
+            // not publish their whole closed support from affine traversal pieces.
+            if case .parameterLaw(let chart) = image.chart, chart.law != .affine {
+                throw GeometryConversionError.invalidInput("Original rational construction source requires its affine parameter law.")
+            }
+        default:
+            throw GeometryConversionError.invalidInput("Original construction position requires its retained carrier.")
+        }
+        let total = childDepth.addingReportingOverflow(1)
+        guard !total.overflow, childDepth >= 0, total.partialValue <= maximumSourceDepth else {
+            throw GeometryConversionError.resourceLimitExceeded("Original construction position exceeds its retained source depth.")
+        }
+        guard try OriginalCurveTraversalContinuityAdmission().proves(source: source, first: .zero, last: .one,
+            remainingSourceDepth: total.partialValue, maximumSubdivisionDepth: subdivisionDepth,
+            maximumAlgebraicDepth: 0, tolerance: tolerance, usage: &usage) else {
+            throw KernelError(phase: .geometry, code: .unsupportedCapability, tolerance: tolerance,
+                message: "Original construction position lacks its complete C0 authority.")
+        }
+        let result = try pieces(source: source, start: .zero, end: .one, selectedOwner: nil, depth: 0,
+            capability: Capability(remainingSourceDepth: total.partialValue, tolerance: tolerance), usage: &usage)
+        return (result, total.partialValue)
+    }
+
     /// Reuses a retained normalized guide source without differential preparation.
     package static func pieces<B: RationalAlgebraAdmitting>(of source: Curve3D,
         remainingSourceDepth: Int, tolerance: ModelingTolerance, usage: inout B) throws -> [Self] {

@@ -1,0 +1,17 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalConstructionCurveRollingBallVerification/Proof.swift:52:24: error: operator can throw but expression is not marked with 'try'
+ 50 |         let parameter=corrected ? t:try f.dividing(reverse ? f.subtracting(two,t,using:&a):f.adding(one,t,using:&a),three,using:&a)
+ 51 |         let half=try f.dividing(one,two,using:&a)
+ 52 |         let g=weighted && (try f.compare(parameter,half,using:&a) == .greater) ?
+    |                        |  `- note: call is to 'rethrows' function, but argument function can throw
+    |                        `- error: operator can throw but expression is not marked with 'try'
+ 53 |             try f.dividing(f.subtracting(f.multiplying(three,parameter,using:&a),one,using:&a),f.multiplying(two,parameter,using:&a),using:&a):parameter
+ 54 |         var z=corrected && reverse ? try f.subtracting(three,f.multiplying(three,g,using:&a),using:&a):try f.multiplying(three,g,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalConstructionCurveRollingBallVerification/Proof.swift:108:32: error: operator can throw but expression is not marked with 'try'
+106 |                 let parameter=try f.dividing(reverse ? f.subtracting(f.integer(3,using:&a),f.multiplying(f.integer(2,using:&a),t,using:&a),using:&a):f.adding(f.integer(1,using:&a),f.multiplying(f.integer(2,using:&a),t,using:&a),using:&a),f.integer(4,using:&a),using:&a)
+107 |                 let half=try f.dividing(f.integer(1,using:&a),f.integer(2,using:&a),using:&a)
+108 |                 let g=weighted && (try f.compare(parameter,half,using:&a) == .greater) ? try f.dividing(f.subtracting(f.multiplying(f.integer(3,using:&a),parameter,using:&a),f.integer(1,using:&a),using:&a),f.multiplying(f.integer(2,using:&a),parameter,using:&a),using:&a):parameter
+    |                                |  `- note: call is to 'rethrows' function, but argument function can throw
+    |                                `- error: operator can throw but expression is not marked with 'try'
+109 |                 let target=try f.multiplying(f.integer(3,using:&a),g,using:&a)
+110 |                 var count=0

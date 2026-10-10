@@ -5,6 +5,7 @@ public enum OriginalRollingBallCurveGraphEvidence: Sendable {
     case native(OriginalRationalChartReceipt<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>)
     case derivativeCurve(OriginalRationalChartReceipt<OriginalPlaneDerivativeCurveSnapshot,Int,OriginalExactScalarDomain>)
     case guideCurve(OriginalRationalChartReceipt<OriginalRetainedGuideCurveSnapshot,Int,OriginalExactScalarDomain>)
+    case constructionCurve(OriginalRationalChartReceipt<OriginalRetainedConstructionCurveSnapshot,Int,OriginalExactScalarDomain>)
     case nativeLift(OriginalFiniteNativeSurfaceLiftGraphs<OriginalNativeSurfaceLiftSnapshot>.Graph)
     case retainedLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalAffineSurfaceLiftSnapshot>.Graph)
     case coonsNativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalCoonsAtlasSnapshot>>.Graph)
