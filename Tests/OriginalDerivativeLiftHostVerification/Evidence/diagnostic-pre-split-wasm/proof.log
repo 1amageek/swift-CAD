@@ -1,0 +1,18 @@
+(node:73206) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+CHECK constructing multi-cell host
+CHECK multi-cell host constructed
+CHECK constructing correction host
+CHECK correction host constructed
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+PASS actual retained boundary-correction host source/DI/public point, closed cell sides, reversed/constant/affine UV, preparation budgets, cancel and clamp refusal
+PASS retained atlas Native pcurve authored spans/normalization, weighted/reversed/constant fibers, exact all sides, selections/resources/cancel/foreign binding and detached lifetime
+PASS derivative actual host/lift/DI: weighted/projected constructors, Native/affine/constant/reversed pcurves, eight incidents, original XYZ/UV and all requests
+PASS derivative host resources/depth/cancel/lifetime: exact preparation/query ceilings, one-less, entry/final callback, COW and retained owners

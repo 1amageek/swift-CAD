@@ -1764,3 +1764,29 @@ and unchanged Native child behavior. General periodic/nonrational child sources,
 priority-image correspondence, M5/M6/M7/M8 remain open. The
 [rolling-ball owner](../RollingBall/DESIGN.md) retains numerical and feasibility
 policy; this source connection is not a whole-solid fillet certificate.
+
+
+## Plane-derivative retained lift host
+
+OriginalPlaneDerivativeSurfaceSnapshotProvider also implements the existing
+OriginalRetainedLiftHostSnapshotting protocol. It accepts only the actual
+Surface3D.procedural.originalPlaneDerivative payload, retains it unchanged and
+delegates to the same checked source binding issuer. This extraction adds no
+position/projection atlas, no derivative-continuity claim and no inferred UV.
+The existing Native and retained affine/constant pcurve lift providers, complete
+chart producer and guarded DI consume the sealed result without another dispatch
+layer. General angular/algebraic derivative sources still require their source
+capability and remain explicitly unsupported here.
+
+One caller admission pays extraction, the original source and lift preparation,
+query scratch and publication. Retained projection/connector/source owners and
+original depth survive the result. Foreign host variants fail before source
+publication; source/field/depth/resource/cancellation failures preserve their
+cause. Configuration and returned owners are immutable Sendable on every target.
+
+Verification owner: Tests/OriginalDerivativeLiftHostVerification. It exercises
+actual Surface3D/lift values, the unchanged original constructor/evaluator,
+current positional atlas/source and existing graph/DI consumers. The independent
+assembly records any additive-helper difference from receipt-bound numerical
+modules and compiles those exact helper bodies; unchanged ABI/storage/public
+bodies must be verified before reuse. No broad production rebuilding is implied.

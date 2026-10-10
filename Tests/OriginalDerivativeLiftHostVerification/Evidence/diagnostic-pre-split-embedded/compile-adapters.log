@@ -1,0 +1,118 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88/173-OriginalSourceProofAdmission.swift:33:9: warning: setter for property 'valueDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+12 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+   |                      `- note: setter for property 'valueDepth' is not '@usableFromInline' or public
+15 |     private(set) var coefficientDepth = 0
+16 |     private init(_ ledger: UnsafeMutablePointer<A>) { self.ledger = ledger }
+   :
+31 |     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
+32 |         try ledger.pointee.admitDepth(value: value, coefficient: coefficient)
+33 |         valueDepth = max(valueDepth, value); coefficientDepth = max(coefficientDepth, coefficient)
+   |         `- warning: setter for property 'valueDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+34 |     }
+35 |     mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88/173-OriginalSourceProofAdmission.swift:33:46: warning: setter for property 'coefficientDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+15 |     private(set) var coefficientDepth = 0
+   |                      `- note: setter for property 'coefficientDepth' is not '@usableFromInline' or public
+16 |     private init(_ ledger: UnsafeMutablePointer<A>) { self.ledger = ledger }
+17 |     static func withBorrow<Result>(_ admission: inout A,
+   :
+31 |     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
+32 |         try ledger.pointee.admitDepth(value: value, coefficient: coefficient)
+33 |         valueDepth = max(valueDepth, value); coefficientDepth = max(coefficientDepth, coefficient)
+   |                                              `- warning: setter for property 'coefficientDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+34 |     }
+35 |     mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88/173-OriginalSourceProofAdmission.swift:37:29: warning: setter for property 'valueDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+12 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+   |                      `- note: setter for property 'valueDepth' is not '@usableFromInline' or public
+15 |     private(set) var coefficientDepth = 0
+16 |     private init(_ ledger: UnsafeMutablePointer<A>) { self.ledger = ledger }
+   :
+35 |     mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+36 |         try ledger.pointee.visitCell(axis: axis, depth: depth)
+37 |         if axis == .value { valueDepth = max(valueDepth, depth) }
+   |                             `- warning: setter for property 'valueDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+38 |         else { coefficientDepth = max(coefficientDepth, depth) }
+39 |     }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88/173-OriginalSourceProofAdmission.swift:38:16: warning: setter for property 'coefficientDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+15 |     private(set) var coefficientDepth = 0
+   |                      `- note: setter for property 'coefficientDepth' is not '@usableFromInline' or public
+16 |     private init(_ ledger: UnsafeMutablePointer<A>) { self.ledger = ledger }
+17 |     static func withBorrow<Result>(_ admission: inout A,
+   :
+36 |         try ledger.pointee.visitCell(axis: axis, depth: depth)
+37 |         if axis == .value { valueDepth = max(valueDepth, depth) }
+38 |         else { coefficientDepth = max(coefficientDepth, depth) }
+   |                `- warning: setter for property 'coefficientDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+39 |     }
+40 | }
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88/173-OriginalSourceProofAdmission.swift:33:9: warning: setter for property 'valueDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+12 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+   |                      `- note: setter for property 'valueDepth' is not '@usableFromInline' or public
+15 |     private(set) var coefficientDepth = 0
+16 |     private init(_ ledger: UnsafeMutablePointer<A>) { self.ledger = ledger }
+   :
+31 |     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
+32 |         try ledger.pointee.admitDepth(value: value, coefficient: coefficient)
+33 |         valueDepth = max(valueDepth, value); coefficientDepth = max(coefficientDepth, coefficient)
+   |         `- warning: setter for property 'valueDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+34 |     }
+35 |     mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88/173-OriginalSourceProofAdmission.swift:33:46: warning: setter for property 'coefficientDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+15 |     private(set) var coefficientDepth = 0
+   |                      `- note: setter for property 'coefficientDepth' is not '@usableFromInline' or public
+16 |     private init(_ ledger: UnsafeMutablePointer<A>) { self.ledger = ledger }
+17 |     static func withBorrow<Result>(_ admission: inout A,
+   :
+31 |     mutating func admitDepth(value: Int, coefficient: Int) throws(ExactScalarFailure) {
+32 |         try ledger.pointee.admitDepth(value: value, coefficient: coefficient)
+33 |         valueDepth = max(valueDepth, value); coefficientDepth = max(coefficientDepth, coefficient)
+   |                                              `- warning: setter for property 'coefficientDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+34 |     }
+35 |     mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88/173-OriginalSourceProofAdmission.swift:37:29: warning: setter for property 'valueDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+12 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+   |                      `- note: setter for property 'valueDepth' is not '@usableFromInline' or public
+15 |     private(set) var coefficientDepth = 0
+16 |     private init(_ ledger: UnsafeMutablePointer<A>) { self.ledger = ledger }
+   :
+35 |     mutating func visitCell(axis: ExactScalarRootAxis, depth: Int) throws(ExactScalarFailure) {
+36 |         try ledger.pointee.visitCell(axis: axis, depth: depth)
+37 |         if axis == .value { valueDepth = max(valueDepth, depth) }
+   |                             `- warning: setter for property 'valueDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+38 |         else { coefficientDepth = max(coefficientDepth, depth) }
+39 |     }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/embedded/e58228ea7a1242f689ebb0c9490ebb88/173-OriginalSourceProofAdmission.swift:38:16: warning: setter for property 'coefficientDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+15 |     private(set) var coefficientDepth = 0
+   |                      `- note: setter for property 'coefficientDepth' is not '@usableFromInline' or public
+16 |     private init(_ ledger: UnsafeMutablePointer<A>) { self.ledger = ledger }
+17 |     static func withBorrow<Result>(_ admission: inout A,
+   :
+36 |         try ledger.pointee.visitCell(axis: axis, depth: depth)
+37 |         if axis == .value { valueDepth = max(valueDepth, depth) }
+38 |         else { coefficientDepth = max(coefficientDepth, depth) }
+   |                `- warning: setter for property 'coefficientDepth' is private and cannot be referenced from an embedded function not marked '@export(interface)'; this will be an error in a future Swift language mode
+39 |     }
+40 | }

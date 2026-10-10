@@ -22,6 +22,7 @@ orthogonal null-space action, never rounded native row projection.
 | [Original Coons](../DESIGN.md) | parent | Original corner incidence | Coherent four boundaries | Position sources are retained |
 | [Boundary Correction](../BoundaryCorrection/DESIGN.md) | depends on | Native tensor and original flat position correction | Unconstrained base | Its pure native Dv claim applies only to that base |
 | [Original Root Span](../../OriginalRootSpan/DESIGN.md) | depends on | Requested-order original directed jets | Source endpoint derivatives | No midpoint becomes a derivative source |
+| [Source Issuance](../../OriginalSourceIssuance/DESIGN.md#plane-derivative-retained-lift-host) | used by | Retained rational position source and checked Surface3D lift host | Same projection/connector owners | Position coverage does not certify derivative continuity |
 | [Loft](../../../CADModeling/Loft/DESIGN.md) | used by | Canonical generated connector and final side | Strict plane continuity | Fresh final source certification is required |
 
 ## Architecture
