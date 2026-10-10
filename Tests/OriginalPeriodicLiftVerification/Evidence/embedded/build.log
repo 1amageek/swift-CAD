@@ -1,0 +1,19 @@
+Building for debugging...
+[0/11] Write sources
+[4/11] Write swift-version-7EE3F01B468E1A0A.txt
+[6/13] Emitting module L0
+[7/13] Compiling L0 DefaultOriginalScalarTransporter+SelectedRoot.swift
+[8/16] Wrapping AST for L0 for debugging
+[10/16] Compiling L1 ExactPolynomial.swift
+[11/16] Emitting module L1
+[12/17] Wrapping AST for L1 for debugging
+[14/19] Emitting module SourceIssuer
+[15/19] Compiling SourceIssuer DefaultOriginalAnalyticCoordinateIssuer+Physical.swift
+[16/22] Wrapping AST for SourceIssuer for debugging
+[18/22] Compiling PeriodicLiftProof Checks.swift
+[19/22] Emitting module PeriodicLiftProof
+[20/23] Wrapping AST for PeriodicLiftProof for debugging
+[21/23] Write Objects.LinkFileList
+[22/23] Linking PeriodicLiftProof.wasm
+Build of product 'PeriodicLiftProof' complete! (7.35s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

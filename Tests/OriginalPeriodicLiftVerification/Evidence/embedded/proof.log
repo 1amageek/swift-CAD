@@ -1,0 +1,11 @@
+(node:43676) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS periodic lift preparation exact resources/cancel/foreign children and sameXYZ wrong authored UV
+PASS periodic lift cycle exceeds machine Int without truncation
+PASS independent periodic lift source family

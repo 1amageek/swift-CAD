@@ -1,0 +1,81 @@
+[
+  {
+    "label": "toolchain",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.086,
+    "exitCode": 0
+  },
+  {
+    "label": "sdk",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "sdk",
+      "list"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.207,
+    "exitCode": 0
+  },
+  {
+    "label": "package",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "package",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification",
+      "--scratch-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/wasm/a8ff6aea953c48e1bd6df8fdb1d7a826/build",
+      "dump-package"
+    ],
+    "timeoutSeconds": 20,
+    "elapsedSeconds": 0.196,
+    "exitCode": 0
+  },
+  {
+    "label": "build",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--build-system",
+      "native",
+      "--package-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/wasm/a8ff6aea953c48e1bd6df8fdb1d7a826/package",
+      "--build-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/wasm/a8ff6aea953c48e1bd6df8fdb1d7a826/build",
+      "-j",
+      "2",
+      "--product",
+      "PeriodicLiftProof",
+      "--swift-sdk",
+      "swift-6.4.0-RELEASE_wasm"
+    ],
+    "timeoutSeconds": 240,
+    "elapsedSeconds": 1.144,
+    "exitCode": 0
+  },
+  {
+    "label": "node",
+    "command": [
+      "/usr/local/bin/node",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.025,
+    "exitCode": 0
+  },
+  {
+    "label": "proof",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/wasm/a8ff6aea953c48e1bd6df8fdb1d7a826/build/wasm32-unknown-wasip1/debug/PeriodicLiftProof.wasm"
+    ],
+    "timeoutSeconds": 180,
+    "elapsedSeconds": 2.589,
+    "exitCode": 0
+  }
+]

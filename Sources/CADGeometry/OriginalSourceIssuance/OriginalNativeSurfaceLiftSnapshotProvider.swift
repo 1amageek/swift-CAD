@@ -34,8 +34,8 @@ public struct OriginalNativeSurfaceLiftSnapshotProvider: OriginalSourceSnapshott
                 // FIXME(INCOMPLETE_IMPLEMENTATION): Legacy lift evaluation clamps UV inside
                 // tolerance. This exact source port cannot publish that implicit geometry change.
                 // General out-of-support hulls require complete original correspondence proofs.
-                guard point.x >= lowerU, point.x <= upperU,
-                    point.y >= lowerV, point.y <= upperV else {
+                guard (native.isUPeriodic || (point.x >= lowerU && point.x <= upperU)),
+                    (native.isVPeriodic || (point.y >= lowerV && point.y <= upperV)) else {
                     throw OriginalSourceIssuanceFailure.unsupportedRepresentation
                 }
             }

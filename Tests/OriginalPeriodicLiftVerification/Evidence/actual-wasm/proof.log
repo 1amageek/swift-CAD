@@ -1,0 +1,18 @@
+(node:44286) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS actual original periodic lift construction/provider/evaluator correspondence
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS actual original periodic lift construction/provider/evaluator correspondence
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS actual original periodic lift construction/provider/evaluator correspondence
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS actual original periodic lift construction/provider/evaluator correspondence
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS actual original periodic lift construction/provider/evaluator correspondence
+PASS periodic lift all translated chart sides, authored UV, roots/guards, generic requirement, exact resources/cancel/depth
+PASS actual original periodic lift construction/provider/evaluator correspondence
+PASS periodic lift preparation exact resources/cancel/foreign children and sameXYZ wrong authored UV
+PASS periodic lift cycle exceeds machine Int without truncation
+PASS finite original lift regression, periodic finite refusal and nonperiodic UV clamp refusal
+PASS actual periodic lift source and finite regression

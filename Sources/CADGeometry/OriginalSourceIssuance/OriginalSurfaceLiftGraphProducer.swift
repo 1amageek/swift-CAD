@@ -15,6 +15,12 @@ struct OriginalSurfaceLiftGraphProducer<S: OriginalLiftSourceReading> {
         let ring=try ExactPolynomialDomain(field:f,variableCount:3,using:&a)
         let zero=try f.integer(0,using:&a),one=try f.integer(1,using:&a)
         let t=try ring.variable(0,using:&a),u=try ring.variable(1,using:&a),v=try ring.variable(2,using:&a)
+        let localU: Polynomial,localV: Polynomial
+        if let shift=evidence.surfaceTranslation {
+            guard shift.count == 2 else { throw OriginalSourceIssuanceFailure.invalidChart }
+            localU=try ring.subtracting(u,ring.constant(shift[0],using:&a),using:&a)
+            localV=try ring.subtracting(v,ring.constant(shift[1],using:&a),using:&a)
+        } else { localU=u;localV=v }
         let tau=try ring.adding(ring.constant(offset,using:&a),ring.scaled(t,by:span,using:&a),using:&a)
         func embed(_ p: Polynomial,surface: Bool) throws -> Polynomial {
             try a.admitDepth(value:p.depth.value,coefficient:p.depth.coefficient)
@@ -26,7 +32,11 @@ struct OriginalSurfaceLiftGraphProducer<S: OriginalLiftSourceReading> {
                 terms.append(.init(powers:powers,coefficient:try f.importing(term.coefficient,using:&a)))
             }
             let result=try ring.polynomial(orderedTerms:terms,using:&a)
-            if surface { return result }
+            if surface {
+                if evidence.surfaceTranslation == nil { return result }
+                try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:Polynomial.self))
+                return try ring.substituted(result,with:[t,localU,localV],using:&a)
+            }
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:Polynomial.self))
             return try ring.substituted(result,with:[tau,u,v],using:&a)
         }
@@ -38,11 +48,11 @@ struct OriginalSurfaceLiftGraphProducer<S: OriginalLiftSourceReading> {
         var guards:[OriginalParametricGraphCondition<Field>]=[];guards.reserveCapacity(11)
         for axis in 0..<2 {
             try a.consumeWork(1)
-            let coordinate=axis == 0 ? u:v,bound=evidence.surface.support[axis]
+            let coordinate=axis == 0 ? u:v,local=axis == 0 ? localU:localV,bound=evidence.surface.support[axis]
             guards.append(.init(try ring.subtracting(ring.multiplying(coordinate,dp,using:&a),
                 embed(evidence.pcurve.homogeneous[axis],surface:false),using:&a),.equal))
-            guards.append(.init(try ring.subtracting(coordinate,ring.constant(bound.lower,using:&a),using:&a),.nonnegative))
-            guards.append(.init(try ring.subtracting(ring.constant(bound.upper,using:&a),coordinate,using:&a),.nonnegative))
+            guards.append(.init(try ring.subtracting(local,ring.constant(bound.lower,using:&a),using:&a),.nonnegative))
+            guards.append(.init(try ring.subtracting(ring.constant(bound.upper,using:&a),local,using:&a),.nonnegative))
             guards.append(.init(try embed(evidence.surface.parameterTransport.denominators[axis],surface:true),.notEqual))
         }
         guards.append(.init(dp,.notEqual));guards.append(.init(position[3],.notEqual))

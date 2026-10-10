@@ -1497,3 +1497,58 @@ Verification owner is Tests/OriginalAffinePairedIdentityVerification: original
 source matrix/identity supply, all three reader families, foreign bindings/fields,
 causal scalar depth, exact resource boundaries, final cancel and owner lifetime.
 Independent verification does not establish actual upper geometry dispatch.
+
+## Periodic Native surface lift supply
+
+The sealed periodic lift family retains the original lift binding, complete Native
+fundamental surface laws with their source-issued periods, and every finite
+rational pcurve law. Its finite template count is the checked chart-pair product;
+its members are indexed by two exact arbitrary-size rational integers, one per
+surface axis. Nonperiodic axes require zero. These indices describe auxiliary surface lifts,
+not periods or identities of authored T. DI must consume a lift-specific relation
+family instead of claiming that the source T coordinate is periodic.
+This is an all-integer family, never
+a finite whole-surface cover or a promise that all members can be enumerated.
+
+```mermaid
+flowchart LR
+ S[Original periodic surface and periods] --> F[Sealed chart-pair family]
+ P[Original finite rational pcurve] --> F
+ F --> C[Checked integer cycles]
+ C --> G[Shared lift graph producer]
+ G --> U[Authored T and auxiliary U/V; full guards]
+```
+
+For translation delta_i = cycle_i * period_i, the shared position producer
+substitutes local UV = authored UV - delta into the original surface law and
+surface guards. The pcurve equations continue to use authored UV directly.
+Every closed fundamental chart side is available, including the two translated
+sides of a seam. Existing continuity and exact periodic source theorems establish
+their position agreement; no derivative continuity or new identity is asserted.
+All cycles remain exact integers without Int conversion. The complete family
+covers every pcurve value because the fundamental surface cover and every integer
+translate cover the original periodic axes. Nonperiodic axes retain exact original
+support guards. No pcurve inverse, hull selection or tolerance clamp is introduced.
+
+The actual snapshot provider accepts out-of-fundamental control coordinates only
+on periodic axes, matching the original surface's periodic domain and evaluator.
+It retains strict exact-support admission on nonperiodic axes, original positive
+pcurve weights and priority-image refusal. The existing finite lift API still
+refuses periodic children and preserves its contract.
+
+Family preparation and member queries retain original children/period owners,
+readmit causal value/coefficient/source depths, charge all new arrays/polynomials
+and use the same caller admission with terminal cancellation. Storage is immutable
+and Sendable on every target; no callback or mutable shared state is retained.
+Protocol requirements expose preparation and graph querying without unchecked
+certificate initialization. The family does not solve intersections or establish
+M5 identity, DI query integration, M6 or M7 publication.
+
+Verification owner: `Tests/OriginalPeriodicLiftVerification`. Actual source-to-graph
+positions are compared with original public lift evaluation at seam, negative and
+independent cycles. Counterexamples cover wrong authored UV despite equal XYZ,
+noninteger/nonperiodic cycles, chart/owner/field/depth/resource failures, cancellation,
+source release/COW and unchanged finite lift behavior. Fixed Native, changed-source
+ASAN, normal Wasm and Embedded execution use admitted unchanged numerical children;
+broad CAD and L2-L6 rebuilding remains prohibited. Source/DI and final publication
+change impacts are tracked in the existing progress items.
