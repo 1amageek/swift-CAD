@@ -2,6 +2,7 @@ import CADCore
 
 /// Original unwrapped law/graph owner survives normalized Curve3D rebinding.
 public enum OriginalRollingBallCurveGraphEvidence: Sendable {
+    case spatialWord(OriginalRollingBallSpatialWordCoverage,Int)
     case native(OriginalRationalChartReceipt<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>)
     case derivativeCurve(OriginalRationalChartReceipt<OriginalPlaneDerivativeCurveSnapshot,Int,OriginalExactScalarDomain>)
     case guideCurve(OriginalRationalChartReceipt<OriginalRetainedGuideCurveSnapshot,Int,OriginalExactScalarDomain>)

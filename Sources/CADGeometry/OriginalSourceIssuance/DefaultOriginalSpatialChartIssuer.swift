@@ -21,61 +21,50 @@ public struct DefaultOriginalSpatialChartIssuer<Source: OriginalSpatialSourceRea
         field: borrowing Field, coefficients: borrowing C, limits: OriginalSourceIssuanceLimits,
         using admission: inout A
     ) throws(OriginalSourceIssuanceFailure) -> OriginalRationalChartReceipt<Source, Selection, Field> where C.Field == Field {
+        let source=copy source,chart=copy chart,field=copy field,coefficients=copy coefficients
         do {
-            try admission.checkpoint(); try admission.consumeWork(1); try source.require(limits)
-            guard source.owns(chart), source.original.originalChild.owns(chart.selection.child.chart) else {
-                throw OriginalSourceIssuanceFailure.foreignBinding
-            }
-            guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
-            try chart.selection.child.source.require(.init(remainingSourceDepth: limits.remainingSourceDepth - 1))
-            try chart.selection.child.admitProof(using: &admission)
-            let child = chart.selection.child
-            guard child.homogeneous.count == 4, child.support.count == child.polynomials.variableCount,
-                child.parameterTransport.numerators.count == child.support.count,
-                child.parameterTransport.denominators.count == child.support.count else {
-                throw OriginalSourceIssuanceFailure.invalidChart
-            }
-            // Checked imports retain the caller's field authority. Equal numeric
-            // approximations never authorize a foreign coefficient context.
-            let ring = try ExactPolynomialDomain(field: copy field,
-                variableCount: child.polynomials.variableCount, using: &admission)
-            try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: ExactPolynomial<Field>.self))
-            var h: [ExactPolynomial<Field>] = []; h.reserveCapacity(4)
-            for axis in 0..<4 { h.append(try ring.importing(child.homogeneous[axis], using: &admission)) }
-            guard try !ring.isZero(h[3], using: &admission) else { throw OriginalSourceIssuanceFailure.invalidSource }
-            try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: ExactPolynomial<Field>.self))
-            var output: [ExactPolynomial<Field>] = []; output.reserveCapacity(4)
-            for row in 0..<3 {
-                var sum = try ring.zero(using: &admission)
-                for column in 0..<4 {
-                    try admission.consumeWork(1)
-                    let coefficient = try coefficients.importing(source.original.spatialCoefficient(row: row, column: column), into: field, using: &admission)
-                    sum = try ring.adding(sum, ring.scaled(h[column], by: coefficient, using: &admission), using: &admission)
+            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { admission in
+                try admission.checkpoint(); try admission.consumeWork(1); try source.require(limits)
+                guard source.owns(chart), source.original.originalChild.owns(chart.selection.child.chart) else {
+                    throw OriginalSourceIssuanceFailure.foreignBinding
                 }
-                output.append(sum)
+                guard limits.remainingSourceDepth > 0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
+                try chart.selection.child.source.require(.init(remainingSourceDepth: limits.remainingSourceDepth - 1))
+                try chart.selection.child.admitProof(using: &admission)
+                let child = chart.selection.child
+                guard child.homogeneous.count == 4, child.support.count == child.polynomials.variableCount,
+                    child.parameterTransport.numerators.count == child.support.count,
+                    child.parameterTransport.denominators.count == child.support.count else {
+                    throw OriginalSourceIssuanceFailure.invalidChart
+                }
+                // Checked imports retain the caller's field authority. Equal numeric
+                // approximations never authorize a foreign coefficient context.
+                let ring = try ExactPolynomialDomain(field: copy field,
+                    variableCount: child.polynomials.variableCount, using: &admission)
+                let output=try OriginalSpatialPositionTransport.applying(source:source.original,
+                    homogeneous:child.homogeneous,ring:ring,coefficients:coefficients,using:&admission)
+                try admission.retainStorage(bytes: exactScalarPayloadBytes(count: child.support.count,
+                    of: OriginalSourceParameterInterval<Field.Value>.self))
+                var support: [OriginalSourceParameterInterval<Field.Value>] = []; support.reserveCapacity(child.support.count)
+                let transportCount = child.support.count.multipliedReportingOverflow(by: 2)
+                guard !transportCount.overflow else { throw OriginalSourceIssuanceFailure.countOverflow }
+                try admission.retainStorage(bytes: exactScalarPayloadBytes(count: transportCount.partialValue, of: ExactPolynomial<Field>.self))
+                var numerator: [ExactPolynomial<Field>] = [], denominator: [ExactPolynomial<Field>] = []
+                numerator.reserveCapacity(child.support.count); denominator.reserveCapacity(child.support.count)
+                for axis in child.support.indices {
+                    try admission.consumeWork(1)
+                    support.append(.init(lower: try field.importing(child.support[axis].lower, using: &admission),
+                        upper: try field.importing(child.support[axis].upper, using: &admission)))
+                    numerator.append(try ring.importing(child.parameterTransport.numerators[axis], using: &admission))
+                    denominator.append(try ring.importing(child.parameterTransport.denominators[axis], using: &admission))
+                }
+                try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
+                    of: OriginalRationalChartReceipt<Source, Selection, Field>.self))
+                let result = OriginalRationalChartReceipt(chart: copy chart, field: copy field,
+                    polynomials: ring, homogeneous: output, support: support,
+                    parameterTransport: .init(numerators: numerator, denominators: denominator), proofDepth: try admission.depth)
+                try admission.checkpoint(); return result
             }
-            output.append(h[3])
-            try admission.retainStorage(bytes: exactScalarPayloadBytes(count: child.support.count,
-                of: OriginalSourceParameterInterval<Field.Value>.self))
-            var support: [OriginalSourceParameterInterval<Field.Value>] = []; support.reserveCapacity(child.support.count)
-            let transportCount = child.support.count.multipliedReportingOverflow(by: 2)
-            guard !transportCount.overflow else { throw OriginalSourceIssuanceFailure.countOverflow }
-            try admission.retainStorage(bytes: exactScalarPayloadBytes(count: transportCount.partialValue, of: ExactPolynomial<Field>.self))
-            var numerator: [ExactPolynomial<Field>] = [], denominator: [ExactPolynomial<Field>] = []
-            numerator.reserveCapacity(child.support.count); denominator.reserveCapacity(child.support.count)
-            for axis in child.support.indices {
-                try admission.consumeWork(1)
-                support.append(.init(lower: try field.importing(child.support[axis].lower, using: &admission),
-                    upper: try field.importing(child.support[axis].upper, using: &admission)))
-                numerator.append(try ring.importing(child.parameterTransport.numerators[axis], using: &admission))
-                denominator.append(try ring.importing(child.parameterTransport.denominators[axis], using: &admission))
-            }
-            try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
-                of: OriginalRationalChartReceipt<Source, Selection, Field>.self))
-            let result = OriginalRationalChartReceipt(chart: copy chart, field: copy field,
-                polynomials: ring, homogeneous: output, support: support,
-                parameterTransport: .init(numerators: numerator, denominators: denominator), proofDepth: child.proofDepth)
-            try admission.checkpoint(); return result
         } catch { throw .init(preserving: error) }
     }
 }

@@ -13,6 +13,12 @@ public struct OriginalRollingBallCurveSnapshotProvider: OriginalSourceSnapshotti
             let children=try OriginalSourceIssuanceLimits(remainingSourceDepth:limits.remainingSourceDepth-1)
             let capability: OriginalRollingBallCurveSnapshot.Capability,depth: Int
             switch copy input {
+            case .originalAffineWord(let word):
+                let provider=OriginalAffineWordCurveSnapshotProvider(
+                    child:Self(field:field,tolerance:word.sourceTolerance),tolerance:tolerance,
+                    maximumAlgebraicDepth:min(word.operationWord.maximumDepth,max(field.maximumValueDepth,field.maximumCoefficientDepth)))
+                let binding=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(word,limits:children,using:&a)
+                capability = .spatialWord(binding);depth=binding.sourceDepth
             case .bSpline:
                 let child=try DefaultOriginalSourceBindingIssuer(provider:OriginalNativeCurveFamilySnapshotProvider(tolerance:tolerance))
                     .bind(input,limits:children,using:&a)

@@ -1894,3 +1894,57 @@ queries use independent admissions. The changed producer entry has no stored-sta
 change. Position supply is not join identity, smoothness or embedding certification.
 Verification owner: Tests/OriginalConstructionCurveRollingBallVerification. General
 non-affine construction laws and full M4-M8 remain open.
+
+
+## Spatial Operation Words over Complete Curve Graphs
+
+OriginalAffineWordCurveSnapshotProvider supplies the original retained prepared-word
+coefficients and descendant source binding. Rolling-ball child preparation consumes
+that source through OriginalSpatialGraphIssuing, then rebinds its complete child
+family without reconstructing a curve or losing auxiliary coordinates. The existing
+spatial rational-chart issuer and graph issuer share one internal position composition;
+no second word producer or rounded affine matrix is introduced.
+
+```mermaid
+flowchart LR
+ W[Original prepared spatial word] --> S[Existing exact coefficient/source provider]
+ C[Complete original child graphs] --> G[Checked spatial graph issuer]
+ S --> G
+ G --> P[Shared homogeneous spatial position composition]
+ P --> R[Retained parent graphs and complete child coverage]
+ R --> B[Rolling-ball product and DI]
+```
+
+Spatial graph issuance verifies parent and child source owners, readmits original
+source/scalar depths and applies only the original spatial coefficients to XYZ/D.
+Parameter transports, support, boundary inclusion, auxiliary layout and every
+condition retain their original immutable backing. The output proof depth includes
+child authority and all attained coefficient/import/composition depths. The rational
+chart issuer keeps its existing chart/support contract and adopts the same depth
+retention. Neither position transport nor source coverage creates parameter identity.
+
+A single immutable coverage owner retains the whole child family and word binding;
+parent graph evidence refers to that owner and the original child ordinal. Its
+object header/payload and all new graph/output storage are admitted before creation.
+Nested child preparation recurses through one concrete admission borrow rather than
+creating deeper generic admission types. No source is re-extracted for each graph.
+The stored descendant calculation tolerance is retained; world coefficient validation
+uses the original caller tolerance and field depth ceilings. Foreign coefficient
+fields fail without numerical rounding, field extension or solver switching.
+
+All source/graph/coverage state is immutable Sendable on Native, normal WASM and
+Embedded; scratch and exclusive ledgers are invocation-local. Later queries use
+explicit fresh admissions. Entry/final cancellation, count/source/value/coefficient
+limits and original guards remain failures. General rigid/affine/parameter-image
+and traversal graph adapters, nonlinear correspondence and whole M4-M8 remain open.
+The test owner is Tests/OriginalSpatialCurveGraphVerification; changed public source,
+old rational-chart interactions, complete/mixed rolling-ball/DI and the four fixed
+target lanes must pass before delivery. No broad production/lower rebuild is implied.
+
+The spatial graph issuer composes in the retained child polynomial ring and field.
+Field selection belongs to child graph preparation; the spatial port takes no
+independent field argument. Conditions and parameter transports are ring-owned
+polynomials, so retaining their backing requires retaining that same ring authority.
+Every incoming guard/support/transport coefficient is validated in that field before
+composition. New XYZ polynomials belong to that ring; no guard or transport rebase
+or duplicate array is introduced.
