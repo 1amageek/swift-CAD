@@ -49,8 +49,15 @@ checks are recorded in `repair/validator-checks.json`.
 review cycle is used. No lower algorithm, tolerance, limit or live legacy CS/SSI
 path changed. Source/proof owners remain immutable Sendable values on every target.
 
-Commit and latest-main delivery follow this verified snapshot. M4/M5/M6 general
-consumers, M7/M8, whole-seven and full87 remain incomplete. Historical evidence
+Implementation commit `ff1d73beee024d47d1c26485ced5bff11303c70f` was normally
+fast-forwarded into main from `11833db7ca8be27cffec1c28cdef4b7412111920`.
+`repair/integration.json` binds the independent main comparison: Native/ASAN each
+match547 current source inputs and563 retained inputs; normal/Embedded WASM each
+match548 current inputs and584/581 retained inputs. A fresh Native process from
+the main checkout passes in64.391s under a90s timeout without rebuilding; its
+product and runtime log hashes are retained. The accompanying delivery-record
+commit closes M6.G. M4/M5/M6 general consumers, M7/M8, whole-seven and full87
+remain incomplete. Historical evidence
 below, and `repair/checks.json` with its old preflight log, are pre-generation
 history only; they do not certify the repaired driver or current Swift artifacts.
 
