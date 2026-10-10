@@ -1829,3 +1829,48 @@ all child chart sides and composed rolling-ball/DI guard/resource/cancel/lifetim
 behavior are checked alongside unchanged Native and retained-lift callers on the
 four fixed lanes. General angular/algebraic derivative supply, other rail families,
 M5/M6/M7/M8 and whole-solid fillet certification remain separate open obligations.
+
+
+## Retained normalized guide curves in rolling-ball children
+
+The normalized guide source provider accepts actual OriginalGuideTraversalChain3D
+and OriginalGuideEndpointConnectorCurve3D carriers. Their existing
+OriginalSplineTraversalPolynomialPiece producer owns station/traversal composition
+and endpoint correction. This provider transfers those exact rational coefficient
+laws into the requested field; it does not reconstruct a guide or correction law.
+The original carrier and produced pieces remain retained as authority. Other
+carriers are refused, and unavailable angular/algebraic original position laws
+remain incomplete rather than approximate success.
+
+```mermaid
+flowchart LR
+ G[Original guide chain or endpoint connector] --> O[Existing normalized polynomial producer]
+ O --> S[Retained source and full closed cells]
+ S --> C[Existing complete retained curve charts]
+ C --> R[Shared rolling-ball rational child rebinding]
+ R --> D[Original complete product and guarded DI]
+```
+
+The authored support is the original normalized closed interval [0,1]. Exact
+nonbinary stations, reversed child traversals, all join sides and endpoint basis
+coefficients are preserved by the original producer. The existing retained-curve
+preparer verifies that the supplied cells cover that full support with no gaps.
+T remains the sole authored parameter and the original rational denominators
+remain graph guards. Position authority does not imply higher-order continuity,
+join identity, embedding or whole-solid fillet feasibility.
+
+One caller admission accounts for original extraction, coefficient transfer,
+complete charts, rolling-ball child/product preparation and publication. Required
+source depth is the carrier's retained depth, and unavailable depth, field, work,
+storage or cancellation propagates its typed cause. Snapshot, laws and coverage
+owners are immutable Sendable on Native, normal WASM and Embedded; scratch stays
+invocation-local. COW copies and released input carriers cannot alter retained
+proofs. Independent later queries use explicit independent admissions.
+
+Verification owner: Tests/OriginalGuideCurveRollingBallVerification. It constructs
+actual weighted/reversed guides with exact nonbinary stations and nonzero original
+endpoint corrections, then checks exact independent XYZ/T, every closed side,
+complete mixed/direct products and DI selection, guard, owner, field, depth,
+resource, cancel and lifetime behavior on the four fixed lanes. Existing Native,
+derivative and retained-lift child regressions remain required. General nonrational
+guide supply, arbitrary correspondence and full M4-M8 remain open.

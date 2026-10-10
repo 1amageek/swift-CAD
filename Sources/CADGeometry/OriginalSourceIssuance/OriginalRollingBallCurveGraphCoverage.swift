@@ -4,6 +4,7 @@ import CADCore
 public enum OriginalRollingBallCurveGraphCoverage: Sendable {
     case native(OriginalFiniteBSplineCharts<BSplineCurve3D>)
     case derivativeCurve(OriginalFiniteRetainedCurveCharts<OriginalPlaneDerivativeCurveSnapshot>)
+    case guideCurve(OriginalFiniteRetainedCurveCharts<OriginalRetainedGuideCurveSnapshot>)
     case nativeLift(OriginalFiniteNativeSurfaceLiftGraphs<OriginalNativeSurfaceLiftSnapshot>)
     case retainedLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalAffineSurfaceLiftSnapshot>)
     case coonsNativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalCoonsAtlasSnapshot>>)

@@ -21,6 +21,10 @@ public struct OriginalRollingBallCurveSnapshotProvider: OriginalSourceSnapshotti
                 let child=try DefaultOriginalSourceBindingIssuer(provider:OriginalPlaneDerivativeCurveSnapshotProvider(field:field,tolerance:tolerance))
                     .bind(curve,limits:children,using:&a)
                 capability = .derivativeCurve(child);depth=child.sourceDepth
+            case .originalGuideTraversalChain,.originalGuideEndpointConnector:
+                let child=try DefaultOriginalSourceBindingIssuer(provider:OriginalRetainedGuideCurveSnapshotProvider(field:field,tolerance:tolerance))
+                    .bind(input,limits:children,using:&a)
+                capability = .guideCurve(child);depth=child.sourceDepth
             case .surfaceLift(let lift):
                 switch (lift.surface,lift.parameterCurve) {
                 case (.bSpline,.bSpline):

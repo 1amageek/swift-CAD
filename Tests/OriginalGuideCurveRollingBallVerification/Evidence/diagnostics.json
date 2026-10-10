@@ -1,0 +1,90 @@
+[
+  {
+    "directory": "before-directed-finding-asan",
+    "accepted": false,
+    "reason": "Superseded by actual directed RootSpan finding confirmation.",
+    "files": {
+      "before-directed-finding-asan/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-directed-finding-asan/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-directed-finding-asan/inputs-before-compile.json": "302ad1e3e2107e8face9f2ba7b4f708f035465651be346fe11ade6f8bf49196f",
+      "before-directed-finding-asan/proof.log": "8e197ce4bafc0df81a62c906331d4f7603b4acaf66998e0e7d8e638a43ee102e",
+      "before-directed-finding-asan/receipt.json": "e0df010b2d6609485647d24ee3363f3800860ed767dbb2a709fd7cf0f37eb3e6",
+      "before-directed-finding-asan/runs.json": "bbf19c830d603bfa6900a77a59e9d817eccee292515d28b93aa1d1d669090dc9"
+    }
+  },
+  {
+    "directory": "before-directed-finding-embedded",
+    "accepted": false,
+    "reason": "Superseded by actual directed RootSpan finding confirmation.",
+    "files": {
+      "before-directed-finding-embedded/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-directed-finding-embedded/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-directed-finding-embedded/inputs-before-compile.json": "5ac7c9631ac3b80553d75305e4ff2749f9bdaec0a92e8b88194f2fbaee68298c",
+      "before-directed-finding-embedded/proof.log": "0f91a84d5fa86c5a30d9b48e85e7d4cda9eb19db17cdcb5f84dd0683f49a0a9f",
+      "before-directed-finding-embedded/receipt.json": "0c8412311d82d81047689fef355a549f1db5f9261eeb4b3ed313bbfb021728c6",
+      "before-directed-finding-embedded/runs.json": "a7d5cb79d5e009a22122823249e3ff09fd05704e587b379fe2323141b093888d"
+    }
+  },
+  {
+    "directory": "before-directed-finding-native",
+    "accepted": false,
+    "reason": "Superseded by actual directed RootSpan finding confirmation.",
+    "files": {
+      "before-directed-finding-native/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-directed-finding-native/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-directed-finding-native/inputs-before-compile.json": "bbd2fa30982091e728e5548be9e97d63836a06bf932729e248e4f83e7f56a80b",
+      "before-directed-finding-native/proof.log": "8e197ce4bafc0df81a62c906331d4f7603b4acaf66998e0e7d8e638a43ee102e",
+      "before-directed-finding-native/receipt.json": "dc583d0a7acc85a5c411cc43f9685ccc3357270cca7ea6523295faba04e2ac1e",
+      "before-directed-finding-native/runs.json": "d977b990ba84ca09341a33f7c54417a14439abc715eaf0c729c5ca3efe3786de"
+    }
+  },
+  {
+    "directory": "before-directed-finding-wasm",
+    "accepted": false,
+    "reason": "Superseded by actual directed RootSpan finding confirmation.",
+    "files": {
+      "before-directed-finding-wasm/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-directed-finding-wasm/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "before-directed-finding-wasm/inputs-before-compile.json": "28cbe38efa75bf67661b92936c9530a0a11ffe59c8ed3a348228f5bc83a30642",
+      "before-directed-finding-wasm/proof.log": "a3970e6689d66ff8ec360475b158f117c9b4d9a14b6a3693d95e09f6ffe1a78a",
+      "before-directed-finding-wasm/receipt.json": "cb99c87549ef3a04d047ac7bd2580ed8d370fe339ef8b07eb99a73b9cff1b75d",
+      "before-directed-finding-wasm/runs.json": "7f54e009f19d48aa474e6af141afb88fde4c841df73505726adf767d803767de"
+    }
+  },
+  {
+    "directory": "native-before-source-checks",
+    "accepted": false,
+    "reason": "Fixture compile/product expectation diagnostics or preliminary source-check snapshot; not final acceptance.",
+    "files": {
+      "native-before-source-checks/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native-before-source-checks/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native-before-source-checks/inputs-before-compile.json": "5be33859069cfb1aee87c66b6bf3137759182cdfaedbc3b4e476ca75bd7c37d7",
+      "native-before-source-checks/proof.log": "082fd4f8775f5960c25717564bcb4ebce98652d7ff39df6b5ba2d4a92def8251",
+      "native-before-source-checks/receipt.json": "ac96096ef4012ff68cfac977fd41d3b1ebad8c46252448a1c51217e29e170da8",
+      "native-before-source-checks/runs.json": "bf0e236b8c5b88619003dbaec2a2a34e1be6a90b0c44f3b0d4fd17754f656a4d"
+    }
+  },
+  {
+    "directory": "native-fixture-compile-diagnostic",
+    "accepted": false,
+    "reason": "Fixture compile/product expectation diagnostics or preliminary source-check snapshot; not final acceptance.",
+    "files": {
+      "native-fixture-compile-diagnostic/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native-fixture-compile-diagnostic/compile-link.log": "8ab5e23304d717ef2bc3635cda21bd5d364af62c42e50992dfd3ff7a3dcb139e",
+      "native-fixture-compile-diagnostic/inputs-before-compile.json": "ab404975d2f757f6f8884f1ba2a756221454c7c165b19f18a3a53d3262f19a2d",
+      "native-fixture-compile-diagnostic/runs.json": "4328de1fd0a59f98a6e27a9a4d2ffb245330bcfd5d32446be437287fc4c933e3"
+    }
+  },
+  {
+    "directory": "native-product-expectation-diagnostic",
+    "accepted": false,
+    "reason": "Fixture compile/product expectation diagnostics or preliminary source-check snapshot; not final acceptance.",
+    "files": {
+      "native-product-expectation-diagnostic/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native-product-expectation-diagnostic/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native-product-expectation-diagnostic/inputs-before-compile.json": "c0535e35bd4f762a0f5826ef186f823c7b8798819f7b527d63369ad39c89c87b",
+      "native-product-expectation-diagnostic/proof.log": "0ab244985fab7a37d7df27d2d34769f6e0ac99ec5ff80d3945d673fae0a82af0",
+      "native-product-expectation-diagnostic/runs.json": "ce96dd2142e5377a61232ef0da1da94f7115037ff596fb54abf275b52d24142c"
+    }
+  }
+]

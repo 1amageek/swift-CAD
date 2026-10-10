@@ -1,0 +1,26 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGuideCurveRollingBallVerification/Proof.swift:29:68: error: type 'ExactRationalCoefficient' has no member 'integer'
+ 27 |                     .init(x:x,y:y,z:$0) },weights:weighted ? [1,1,2]:nil))
+ 28 |             }
+ 29 |             let third=try ExactRationalCoefficient.one.divided(by:.integer(3),usage:&usage)
+    |                                                                    `- error: type 'ExactRationalCoefficient' has no member 'integer'
+ 30 |             let station=reverse ? try third.multiplied(by:.integer(2),usage:&usage):third
+ 31 |             let chain=try OriginalGuideTraversalChain3D(traversals:[span(native(reverse ? 3:0,1)),span(native(1,reverse ? 0:3))],
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGuideCurveRollingBallVerification/Proof.swift:19:9: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 17 |     nonisolated static func curve(x: Double=0,y: Double=0,weighted: Bool,corrected: Bool,reverse: Bool,
+ 18 |         using a: inout Admission) throws -> Curve3D {
+ 19 |         try ExactScalarNumericAccess.withAdmission(&a) { usage in
+    |         `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+ 20 |             func span(_ source: Curve3D,depth: Int=2) throws -> OriginalCurveRootSpan3D {
+ 21 |                 try .init(source:source,start:.authored(0),end:.authored(1),maximumParameterWidth:ModelingTolerance.standard.relative,
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGuideCurveRollingBallVerification/Proof.swift:49:24: error: operator can throw but expression is not marked with 'try'
+ 47 |         let local=left ? try f.dividing(t,station,using:&a):try f.dividing(f.subtracting(t,station,using:&a),f.subtracting(one,station,using:&a),using:&a)
+ 48 |         let half=try f.dividing(one,two,using:&a)
+ 49 |         let g=weighted && (try f.compare(local,half,using:&a) == .greater) ?
+    |                        |  `- note: call is to 'rethrows' function, but argument function can throw
+    |                        `- error: operator can throw but expression is not marked with 'try'
+ 50 |             try f.dividing(f.subtracting(f.multiplying(three,local,using:&a),one,using:&a),f.multiplying(two,local,using:&a),using:&a):local
+ 51 |         var z: OriginalExactScalar
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
