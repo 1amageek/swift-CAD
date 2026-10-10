@@ -1,0 +1,17 @@
+[0/1] Planning build
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test issuedGraphSources(_:) started.
+􀟈  Test case passing 1 argument mode → 0 to issuedGraphSources(_:) started.
+MEASURE rational work=1339672 storage=40014385
+PASS B3 source/DI/L5 group=0
+􀟈  Test case passing 1 argument mode → 1 to issuedGraphSources(_:) started.
+MEASURE offset knot=false work=15429913 storage=379155392
+PASS B3 source/DI/L5 group=1
+􀟈  Test case passing 1 argument mode → 2 to issuedGraphSources(_:) started.
+MEASURE offset knot=true work=15494793 storage=380921266
+􁁛  Test issuedGraphSources(_:) with 3 test cases passed after 103.324 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 103.325 seconds.
+PASS B3 source/DI/L5 group=2

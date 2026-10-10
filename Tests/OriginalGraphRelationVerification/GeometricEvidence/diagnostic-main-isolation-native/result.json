@@ -1,0 +1,134 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.259,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.702,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--build-tests"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 4.558,
+      "exitCode": 0
+    },
+    {
+      "label": "issuedGraphSources",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "test",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--skip-build",
+        "--filter",
+        "issuedGraphSources"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 105.758,
+      "exitCode": 0
+    },
+    {
+      "label": "test-rebuild",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--build-tests"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 2.206,
+      "exitCode": 0
+    },
+    {
+      "label": "issuedGraphPublication",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "test",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--skip-build",
+        "--filter",
+        "issuedGraphPublication"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 40.62,
+      "exitCode": 0
+    },
+    {
+      "label": "issuedGraphFibers",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "test",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--skip-build",
+        "--filter",
+        "issuedGraphFibers"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 54.582,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-b3-native/arm64-apple-macosx/debug/GraphProof": "a803da04d4cf0c776fab25f0bae655e45d99f5094de8fcb5b3a0c5167c277f66",
+    ".build/pg-b3-native/arm64-apple-macosx/debug/OriginalGraphRelationVerificationPackageTests.xctest/Contents/MacOS/OriginalGraphRelationVerificationPackageTests": "c6c03bde11c7a0d0362198bc3359146667d95fbb1ad44326703cb52d826e586d"
+  },
+  "compiledInputCount": 576,
+  "verificationDriverSHA256": "c14556456ac2937145e52d1b2a5f5b5586e687ab5bb2fae0409d9cf3190025a6",
+  "retainedPackagePremise": "Tests/OriginalGraphRelationVerification/GeometricEvidence/retained-original-package.swift"
+}

@@ -3,14 +3,15 @@ import GraphFixtures
 import WASILibc
 #endif
 @main struct GraphProof {
-    enum Failure: Error { case invalidGroup }
-    static func main() throws {
+    enum Failure:Error {case invalidGroup}
+    static func main() throws { try run() }
+    nonisolated static func run() throws {
 #if hasFeature(Embedded)
-        let group=getenv("CAD_PROOF_GROUP").map { UInt8(bitPattern:$0.pointee) } ?? 48
+        let input=getenv("CAD_PROOF_GROUP").map {String(cString:$0)} ?? "0"
 #else
-        let group=CommandLine.arguments.count > 1 ? (CommandLine.arguments[1].utf8.first ?? 48):48
+        let input=CommandLine.arguments.count > 1 ? CommandLine.arguments[1]:"0"
 #endif
-        guard group >= 48 && group <= 53 else { throw Failure.invalidGroup }
-        try GraphFixtures.run(Int(group)-48)
+        guard let group=Int(input),group >= 0,group <= 13 else {throw Failure.invalidGroup}
+        try GraphFixtures.run(group)
     }
 }

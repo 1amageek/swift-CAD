@@ -1,4 +1,8 @@
+#if ISSUED_GRAPH_PUBLIC_VERIFICATION
+import CADGeometry
+#else
 import L0
+#endif
 struct CheckpointAdmission:~Copyable,ExactScalarAdmission {
     var ledger:ExactScalarLedger
     var checkpoints=0

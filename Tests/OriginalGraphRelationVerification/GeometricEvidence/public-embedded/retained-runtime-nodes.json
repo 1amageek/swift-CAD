@@ -1,0 +1,29 @@
+{
+  "artifactSHA256": "f5586a1546313f61eebbbb2b30020e47adeab0a7caa53dd3b9a299fb8abe4199",
+  "runs": [
+    {
+      "label": "proof-6",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-embedded/wasm32-unknown-wasip1/debug/IssuedGraphProof.wasm",
+        "6"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 3.921,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-7",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-embedded/wasm32-unknown-wasip1/debug/IssuedGraphProof.wasm",
+        "7"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 74.914,
+      "exitCode": 0
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test issuedGraphPublication(_:) started.
+􀟈  Test case passing 1 argument mode → 3 to issuedGraphPublication(_:) started.
+PASS forward nonlinear/negative-denominator pullback and retained depth
+􀟈  Test case passing 1 argument mode → 4 to issuedGraphPublication(_:) started.
+PASS B3 source/DI/L5 group=3
+PASS graph binding/compiler ownership, exact work/storage caps, inherited depth, entry/terminal cancellation and graph/pair caps
+PASS B3 source/DI/L5 group=4
+􀟈  Test case passing 1 argument mode → 5 to issuedGraphPublication(_:) started.
+PASS source/DI/L5 SSI curve and singular-offset exclusion
+PASS B3 source/DI/L5 group=5
+􀟈  Test case passing 1 argument mode → 6 to issuedGraphPublication(_:) started.
+MEASURE L6 CS offset=false work=319534 storage=9669853
+PASS B3 source/DI/L5 group=6
+􀟈  Test case passing 1 argument mode → 7 to issuedGraphPublication(_:) started.
+􀢄  Test issuedGraphPublication(_:) recorded an issue with 1 argument mode → 7 at GraphTests.swift:7:2: Time limit was exceeded: 60.000 seconds
+􀢄  Test issuedGraphPublication(_:) with 5 test cases failed after 72.134 seconds with 1 issue.
+􀢄  Test run with 1 test in 0 suites failed after 72.135 seconds with 1 issue.
+Note: Some test targets reported failures:
+  - OriginalGraphRelationVerificationPackageTests (Swift Testing)

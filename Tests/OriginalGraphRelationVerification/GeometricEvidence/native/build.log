@@ -1,0 +1,10 @@
+[0/1] Planning build
+Building for debugging...
+[0/5] Write sources
+[1/5] Write swift-version-7EE3F01B468E1A0A.txt
+[3/5] Emitting module GraphTests
+[4/5] Compiling GraphTests GraphTests.swift
+[4/6] Write Objects.LinkFileList
+[5/6] Linking OriginalGraphRelationVerificationPackageTests
+Build complete! (3.40s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

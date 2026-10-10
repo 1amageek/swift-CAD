@@ -1,0 +1,5 @@
+(node:20062) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+MEASURE general L5 work=1983714 storage=33095714
+MEASURE general L6 work=49775 storage=668772 fiberWork=2057205 fiberStorage=31311056
+PASS B3 source/DI/L5 group=11

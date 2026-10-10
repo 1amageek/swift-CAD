@@ -1,0 +1,48 @@
+{
+  "success": false,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.27,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.685,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/NativeExactRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-wasm",
+        "-j",
+        "2",
+        "--swift-sdk",
+        "swift-6.4.0-RELEASE_wasm",
+        "--product",
+        "IssuedGraphProof"
+      ],
+      "timeoutSeconds": 240,
+      "elapsedSeconds": 240.021,
+      "exitCode": 124
+    }
+  ]
+}

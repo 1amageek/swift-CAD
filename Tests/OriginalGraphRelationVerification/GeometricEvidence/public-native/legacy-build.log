@@ -1,0 +1,68 @@
+Building for debugging...
+[0/6] Write sources
+[0/6] Write NativeExactGeometricProof-entitlement.plist
+[0/6] Write sources
+[3/7] Write swift-version-7EE3F01B468E1A0A.txt
+[5/13] Emitting module NativeExactFixtures
+[6/13] Compiling NativeExactFixtures FinalPublicationAdmission.swift
+[7/13] Compiling NativeExactFixtures L5SquareReductionFixtures.swift
+[8/13] Compiling NativeExactFixtures L6CurveSurfaceFixtures.swift
+[9/13] Compiling NativeExactFixtures L6PublicCurveSurfaceFixtures.swift
+[10/13] Compiling NativeExactFixtures L6PublicSurfaceSurfaceFixtures.swift
+[11/18] Compiling NativeExactFixtures L6SurfaceSurfaceFixtures.swift
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/Fixtures/NativePreparationFixtures.swift:47:42: warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 45 |                 continue
+ 46 |             }
+ 47 |             try ExactScalarNumericAccess.withAdmission(&a) { usage in
+    |                                          `- warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 48 |                 let direct = try OriginalRationalSurfaceHomogeneous(source: surface,
+ 49 |                     uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree, tolerance: .standard, usage: &usage)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[12/18] Compiling NativeExactFixtures NativeExactFixtures.swift
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/Fixtures/NativePreparationFixtures.swift:47:42: warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 45 |                 continue
+ 46 |             }
+ 47 |             try ExactScalarNumericAccess.withAdmission(&a) { usage in
+    |                                          `- warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 48 |                 let direct = try OriginalRationalSurfaceHomogeneous(source: surface,
+ 49 |                     uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree, tolerance: .standard, usage: &usage)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[13/18] Compiling NativeExactFixtures NativePreparationFixtures.swift
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/Fixtures/NativePreparationFixtures.swift:47:42: warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 45 |                 continue
+ 46 |             }
+ 47 |             try ExactScalarNumericAccess.withAdmission(&a) { usage in
+    |                                          `- warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 48 |                 let direct = try OriginalRationalSurfaceHomogeneous(source: surface,
+ 49 |                     uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree, tolerance: .standard, usage: &usage)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[14/18] Compiling NativeExactFixtures NativeProvenanceFixtures.swift
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/Fixtures/NativePreparationFixtures.swift:47:42: warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 45 |                 continue
+ 46 |             }
+ 47 |             try ExactScalarNumericAccess.withAdmission(&a) { usage in
+    |                                          `- warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 48 |                 let direct = try OriginalRationalSurfaceHomogeneous(source: surface,
+ 49 |                     uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree, tolerance: .standard, usage: &usage)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[15/18] Compiling NativeExactFixtures OrderedConstructionAdmission.swift
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/Fixtures/NativePreparationFixtures.swift:47:42: warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 45 |                 continue
+ 46 |             }
+ 47 |             try ExactScalarNumericAccess.withAdmission(&a) { usage in
+    |                                          `- warning: result of call to 'withAdmission(_:original:inherited:maximum:_:)' is unused [#NoUsage]
+ 48 |                 let direct = try OriginalRationalSurfaceHomogeneous(source: surface,
+ 49 |                     uSpanIndex: surface.uDegree, vSpanIndex: surface.vDegree, tolerance: .standard, usage: &usage)
+
+[#NoUsage]: <https://docs.swift.org/compiler/documentation/diagnostics/no-usage>
+[16/20] Emitting module NativeExactGeometricProof
+[17/20] Compiling NativeExactGeometricProof Proof.swift
+[17/20] Write Objects.LinkFileList
+[18/20] Linking NativeExactGeometricProof
+[19/20] Applying NativeExactGeometricProof
+Build of product 'NativeExactGeometricProof' complete! (16.06s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

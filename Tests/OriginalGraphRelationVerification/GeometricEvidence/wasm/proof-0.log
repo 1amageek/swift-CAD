@@ -1,0 +1,4 @@
+(node:66764) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+MEASURE rational work=1328891 storage=20134725
+PASS B3 source/DI/L5 group=0

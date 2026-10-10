@@ -8,6 +8,7 @@ let package = Package(name: "OriginalGraphRelationVerification", platforms: [.ma
  .target(name: "L3", dependencies: ["L0", "L1", "L2"], path: "Sources/L3", exclude: ["DESIGN.md"], swiftSettings: [.define("L3_ISOLATED_VERIFICATION")]),
  .target(name: "L4", dependencies: ["L0", "L1", "L2", "L3"], path: "Sources/L4", exclude: ["DESIGN.md"], swiftSettings: [.define("L4_ISOLATED_VERIFICATION")]),
  .target(name: "L5", dependencies: ["L0", "L1", "L2", "L3", "L4"], path: "Sources/L5", exclude: ["DESIGN.md"], swiftSettings: [.define("L5_ISOLATED_VERIFICATION")]),
+ .target(name:"L6",dependencies:["L0","L1","L2","L3","L4","L5"],path:"Sources/L6",exclude:["DESIGN.md"],swiftSettings:[.define("L6_ISOLATED_VERIFICATION")]),
     .target(name: "SourceIssuer", dependencies: ["L0", "L1"], path: "Sources/SourceIssuer", exclude: ["DESIGN.md", "OriginalPhysicalAngle/DESIGN.md",
         "BSplineCurve3D+OriginalSourceReading.swift", "BSplineSurface3D+OriginalSourceReading.swift",
         "OriginalBSplineCurveSnapshotProvider.swift", "OriginalBSplineSurfaceSnapshotProvider.swift",
@@ -32,7 +33,9 @@ let package = Package(name: "OriginalGraphRelationVerification", platforms: [.ma
         swiftSettings: [.define("ORIGINAL_SOURCE_ISOLATED_VERIFICATION")]),
     .target(name: "DI", dependencies: ["L0", "L1", "DI0", "SourceIssuer"], path: "Sources/DI", exclude: ["DESIGN.md", "ExactParameterDomain", "OriginalParameterTransport/DESIGN.md", "OriginalDomainCoverage/DESIGN.md", "OriginalParameterIdentity/DESIGN.md"], swiftSettings: [.define("ORIGINAL_DOMAIN_ISOLATED_VERIFICATION")]),
  .target(name:"IssuedGraphs",dependencies:["L0","L1","L2","L3","L4","L5","DI0","DI","SourceIssuer"],path:"Sources/IssuedGraphs",swiftSettings:[.define("SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION")]),
- .target(name:"GraphFixtures",dependencies:["L0","L1","L2","L3","L4","L5","DI0","DI","SourceIssuer","IssuedGraphs"],path:"Sources/Fixtures"),
+ .target(name:"IssuedGeometry",dependencies:["L0","L1","L2","L3","L4","L5","L6","DI0","DI","SourceIssuer","IssuedGraphs"],path:"Sources/IssuedGeometry",swiftSettings:[.define("ISSUED_GEOMETRY_ISOLATED_VERIFICATION")]),
+ .target(name:"GraphFixtures",dependencies:["IssuedGeometry","L6","L0","L1","L2","L3","L4","L5","DI0","DI","SourceIssuer","IssuedGraphs"],path:"Sources/Fixtures"),
  .executableTarget(name:"GraphProof",dependencies:["GraphFixtures"],path:"Sources/Proof"),
+ .executableTarget(name:"GeneralGraphProof",dependencies:["L0","L1","L2","L3","L4","L5","L6"],path:"Sources/GeneralGraphProof",linkerSettings:[.unsafeFlags(["-Xlinker","-z","-Xlinker","stack-size=67108864"],.when(platforms:[.custom("wasi")]))]),
  .testTarget(name:"GraphTests",dependencies:["GraphFixtures"],path:"Tests")
 ])

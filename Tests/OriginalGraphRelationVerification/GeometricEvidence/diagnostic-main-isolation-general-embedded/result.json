@@ -1,0 +1,69 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.197,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.669,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-embedded",
+        "-j",
+        "2",
+        "--swift-sdk",
+        "swift-6.4.0-RELEASE_wasm-embedded",
+        "-Xswiftc",
+        "-whole-module-optimization",
+        "-Xswiftc",
+        "-Onone",
+        "--product",
+        "GeneralGraphProof"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 27.298,
+      "exitCode": 0
+    },
+    {
+      "label": "proof",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-embedded/wasm32-unknown-wasip1/debug/GeneralGraphProof.wasm",
+        "general"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 11.529,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-b3-embedded/wasm32-unknown-wasip1/debug/GeneralGraphProof.wasm": "32575300d7a5d26820393302e9058ec853a2e80e4de8dc67b8bdf70e98a78ac1"
+  },
+  "compiledInputCount": 301,
+  "verificationDriverSHA256": "7a986c6121fb404e10e6d1f1403a073fad6fe58017ebe6ed80d093269f0b792d"
+}

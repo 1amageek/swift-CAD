@@ -313,3 +313,9 @@ empty/lifetime and independent work/storage/depth/source/chart/pair/cancel failu
 Unchanged lower evidence is reused. Main integration checks the exact verified
 inputs against latest main in a separate worktree. Full-seven completion and new
 shape publication remain separate.
+
+`OriginalIssuedGraphRelationOwning` exposes immutable kind/pair requirements while
+retaining the concrete family/source/DI value. Upper exact point values keep this
+owner after extraction from a result. This additive protocol changes no relation
+construction or lower solve; it avoids a point dropping authored source evidence
+when its containing publication value leaves scope.

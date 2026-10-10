@@ -1,0 +1,270 @@
+warning: ignoring '-enable-batch-mode' because '-whole-module-optimization' was also specified
+remark: Incremental compilation has been disabled: it is not compatible with whole module optimization
+5605
+{
+  "command_arguments" : [
+    "-frontend",
+    "-c",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/Tests\/NativeExactRelationVerification\/Sources\/IssuedGraphProof\/IssuedGraphProof.swift",
+    "-emit-dependencies-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.d",
+    "-serialize-diagnostics-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.dia",
+    "-target",
+    "arm64-apple-macosx15.0",
+    "-Xllvm",
+    "-aarch64-use-tbi",
+    "-enable-objc-interop",
+    "-sdk",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX27.0.sdk",
+    "-I",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules",
+    "-I",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/macosx\/testing",
+    "-I",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/lib",
+    "-F",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/Library\/Frameworks",
+    "-module-cache-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/ModuleCache",
+    "-no-color-diagnostics",
+    "-Xcc",
+    "-fno-color-diagnostics",
+    "-enable-testing",
+    "-g",
+    "-debug-info-format=dwarf",
+    "-dwarf-version=5",
+    "-sanitize=address",
+    "-swift-version",
+    "6",
+    "-Onone",
+    "-D",
+    "SWIFT_PACKAGE",
+    "-D",
+    "DEBUG",
+    "-D",
+    "SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+    "-entry-point-function-name",
+    "IssuedGraphProof_main",
+    "-empty-abi-descriptor",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/plugins\/testing",
+    "-enable-anonymous-context-mangled-names",
+    "-file-compilation-dir",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD",
+    "-Xcc",
+    "-isysroot",
+    "-Xcc",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX27.0.sdk",
+    "-Xcc",
+    "-F",
+    "-Xcc",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/Library\/Frameworks",
+    "-Xcc",
+    "-fPIC",
+    "-Xcc",
+    "-g",
+    "-no-auto-bridging-header-chaining",
+    "-module-name",
+    "IssuedGraphProof",
+    "-package-name",
+    "nativeexactrelationverification",
+    "-in-process-plugin-server-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/libSwiftInProcPluginServer.dylib",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/plugins",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/local\/lib\/swift\/host\/plugins",
+    "-target-sdk-version",
+    "27.0",
+    "-target-sdk-name",
+    "macosx27.0",
+    "-external-plugin-path",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/lib\/swift\/host\/plugins#\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/bin\/swift-plugin-server",
+    "-external-plugin-path",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/local\/lib\/swift\/host\/plugins#\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/bin\/swift-plugin-server",
+    "-parse-as-library",
+    "-num-threads",
+    "8",
+    "-o",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.swift.o",
+    "-index-store-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/index\/store",
+    "-index-system-modules"
+  ],
+  "command_executable" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/bin\/swift-frontend",
+  "inputs" : [
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/Tests\/NativeExactRelationVerification\/Sources\/IssuedGraphProof\/IssuedGraphProof.swift"
+  ],
+  "kind" : "began",
+  "name" : "compile",
+  "outputs" : [
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.swift.o",
+      "type" : "object"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.d",
+      "type" : "d"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.dia",
+      "type" : "diagnostics"
+    }
+  ],
+  "pid" : 20389,
+  "process" : {
+    "real_pid" : 20389
+  }
+}
+6678
+{
+  "command_arguments" : [
+    "-frontend",
+    "-emit-module",
+    "-experimental-skip-non-inlinable-function-bodies-without-types",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/Tests\/NativeExactRelationVerification\/Sources\/IssuedGraphProof\/IssuedGraphProof.swift",
+    "-target",
+    "arm64-apple-macosx15.0",
+    "-Xllvm",
+    "-aarch64-use-tbi",
+    "-enable-objc-interop",
+    "-sdk",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX27.0.sdk",
+    "-I",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules",
+    "-I",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/macosx\/testing",
+    "-I",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/lib",
+    "-F",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/Library\/Frameworks",
+    "-module-cache-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/ModuleCache",
+    "-no-color-diagnostics",
+    "-Xcc",
+    "-fno-color-diagnostics",
+    "-enable-testing",
+    "-g",
+    "-debug-info-format=dwarf",
+    "-dwarf-version=5",
+    "-sanitize=address",
+    "-swift-version",
+    "6",
+    "-Onone",
+    "-D",
+    "SWIFT_PACKAGE",
+    "-D",
+    "DEBUG",
+    "-D",
+    "SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+    "-entry-point-function-name",
+    "IssuedGraphProof_main",
+    "-empty-abi-descriptor",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/plugins\/testing",
+    "-enable-anonymous-context-mangled-names",
+    "-file-compilation-dir",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD",
+    "-Xcc",
+    "-isysroot",
+    "-Xcc",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/SDKs\/MacOSX27.0.sdk",
+    "-Xcc",
+    "-F",
+    "-Xcc",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/Library\/Frameworks",
+    "-Xcc",
+    "-fPIC",
+    "-Xcc",
+    "-g",
+    "-no-auto-bridging-header-chaining",
+    "-module-name",
+    "IssuedGraphProof",
+    "-package-name",
+    "nativeexactrelationverification",
+    "-in-process-plugin-server-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/libSwiftInProcPluginServer.dylib",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/plugins",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/local\/lib\/swift\/host\/plugins",
+    "-target-sdk-version",
+    "27.0",
+    "-target-sdk-name",
+    "macosx27.0",
+    "-external-plugin-path",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/lib\/swift\/host\/plugins#\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/bin\/swift-plugin-server",
+    "-external-plugin-path",
+    "\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/local\/lib\/swift\/host\/plugins#\/Applications\/Xcode.app\/Contents\/Developer\/Platforms\/MacOSX.platform\/Developer\/usr\/bin\/swift-plugin-server",
+    "-emit-module-doc-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules\/IssuedGraphProof.swiftdoc",
+    "-emit-module-source-info-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules\/IssuedGraphProof.swiftsourceinfo",
+    "-serialize-diagnostics-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.emit-module.dia",
+    "-emit-dependencies-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.emit-module.d",
+    "-parse-as-library",
+    "-o",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules\/IssuedGraphProof.swiftmodule",
+    "-emit-abi-descriptor-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules\/IssuedGraphProof.abi.json"
+  ],
+  "command_executable" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/bin\/swift-frontend",
+  "inputs" : [
+
+  ],
+  "kind" : "began",
+  "name" : "emit-module",
+  "outputs" : [
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules\/IssuedGraphProof.swiftmodule",
+      "type" : "swiftmodule"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules\/IssuedGraphProof.swiftdoc",
+      "type" : "swiftdoc"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules\/IssuedGraphProof.swiftsourceinfo",
+      "type" : "swiftsourceinfo"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.emit-module.dia",
+      "type" : "emit-module-diagnostics"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/IssuedGraphProof.build\/IssuedGraphProof.emit-module.d",
+      "type" : "emit-module.d"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/gp-public-asan-debug\/arm64-apple-macosx\/debug\/Modules\/IssuedGraphProof.abi.json",
+      "type" : "abi-baseline-json"
+    }
+  ],
+  "pid" : 20388,
+  "process" : {
+    "real_pid" : 20388
+  }
+}
+129
+{
+  "exit-status" : 0,
+  "kind" : "finished",
+  "name" : "compile",
+  "pid" : 20389,
+  "process" : {
+    "real_pid" : 20389
+  }
+}
+133
+{
+  "exit-status" : 0,
+  "kind" : "finished",
+  "name" : "emit-module",
+  "pid" : 20388,
+  "process" : {
+    "real_pid" : 20388
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "success": false,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.143,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.517,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/NativeExactRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-asan-debug",
+        "-j",
+        "4",
+        "--sanitize",
+        "address",
+        "-Xswiftc",
+        "-whole-module-optimization",
+        "-Xswiftc",
+        "-Onone",
+        "-Xswiftc",
+        "-num-threads",
+        "-Xswiftc",
+        "8",
+        "--product",
+        "IssuedGraphProof"
+      ],
+      "timeoutSeconds": 240,
+      "elapsedSeconds": 110.244,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-6",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-asan-debug/arm64-apple-macosx/debug/IssuedGraphProof",
+        "6"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 3.629,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-7",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-asan-debug/arm64-apple-macosx/debug/IssuedGraphProof",
+        "7"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 79.506,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-8",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-asan-debug/arm64-apple-macosx/debug/IssuedGraphProof",
+        "8"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 9.006,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-9",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-asan-debug/arm64-apple-macosx/debug/IssuedGraphProof",
+        "9"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 33.183,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-10",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-asan-debug/arm64-apple-macosx/debug/IssuedGraphProof",
+        "10"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 12.511,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-11",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-asan-debug/arm64-apple-macosx/debug/IssuedGraphProof",
+        "11"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 31.408,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-12",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-asan-debug/arm64-apple-macosx/debug/IssuedGraphProof",
+        "12"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 1.922,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-13",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/gp-public-asan-debug/arm64-apple-macosx/debug/IssuedGraphProof",
+        "13"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 120.151,
+      "exitCode": 124
+    }
+  ]
+}

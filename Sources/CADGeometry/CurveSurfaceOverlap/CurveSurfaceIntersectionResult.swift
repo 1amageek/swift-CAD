@@ -21,9 +21,19 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Source-bound L0-L6 image/fiber evidence; nil for other producers.
     public let originalExactGeometricRelation: NativeExactGeometricRelation?
 
+    /// Complete source/DI-bound graph contacts, all auxiliary lifts and L6 image/fiber evidence.
+    public let originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)?
+
+    /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
+    public var representation: ExactIntersectionResultRepresentation {
+        originalIssuedGeometricRelation == nil ? .numericalRepresentatives : .exactRelation
+    }
+
+
     public var hasPositiveDimensionalSolutions: Bool {
         !overlaps.isEmpty || originalNativeRelations?.hasPositiveDimensionalSolutions == true
             || originalExactGeometricRelation?.hasPositiveDimensionalSolutions == true
+            || originalIssuedGeometricRelation?.hasPositiveDimensionalSolutions == true
     }
 
     init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap],
@@ -32,7 +42,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalPolynomialPoints: OriginalPolynomialCurveSurfacePoints? = nil,
         originalAffinePoints: OriginalAffineCurveSurfacePoints? = nil,
         originalCoonsPoints: OriginalCoonsCurveSurfacePoints? = nil,
-        originalExactGeometricRelation: NativeExactGeometricRelation? = nil) {
+        originalExactGeometricRelation: NativeExactGeometricRelation? = nil,
+        originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
@@ -41,5 +52,6 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalAffinePoints = originalAffinePoints
         self.originalCoonsPoints = originalCoonsPoints
         self.originalExactGeometricRelation = originalExactGeometricRelation
+        self.originalIssuedGeometricRelation = originalIssuedGeometricRelation
     }
 }

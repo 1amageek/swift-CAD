@@ -1,0 +1,4 @@
+(node:81006) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS actual public isolated SSI, final publication cancellation and extracted point/source lifetime
+PASS B3 source/DI/L5 group=14

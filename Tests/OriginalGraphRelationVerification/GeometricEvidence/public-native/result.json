@@ -1,0 +1,381 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.258,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.776,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/NativeExactRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+        "-j",
+        "2",
+        "--product",
+        "IssuedGraphProof"
+      ],
+      "timeoutSeconds": 240,
+      "elapsedSeconds": 48.028,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-6",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "6"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 4.043,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-7",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "7"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 81.577,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-8",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "8"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 5.397,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-9",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "9"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 16.362,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-10",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "10"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 3.036,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-11",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "11"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 9.45,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-12",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "12"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.529,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-13",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "13"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 76.754,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-14",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "14"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.34,
+      "exitCode": 0
+    },
+    {
+      "label": "legacy-build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/NativeExactRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native",
+        "-j",
+        "2",
+        "--product",
+        "NativeExactGeometricProof"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 17.299,
+      "exitCode": 0
+    },
+    {
+      "label": "public-cs-weighted",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/NativeExactGeometricProof",
+        "public-cs-weighted"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 41.473,
+      "exitCode": 0
+    },
+    {
+      "label": "public-ssi-endpoints",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/NativeExactGeometricProof",
+        "public-ssi-endpoints"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 4.45,
+      "exitCode": 0
+    },
+    {
+      "label": "entry-compile",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+        "-module-name",
+        "IssuedGraphProof",
+        "-emit-dependencies",
+        "-emit-module",
+        "-emit-module-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/Modules/IssuedGraphProof.swiftmodule",
+        "-output-file-map",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof.build/output-file-map.json",
+        "-incremental",
+        "-c",
+        "@/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof.build/sources",
+        "-I",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/Modules",
+        "-target",
+        "arm64-apple-macosx15.0",
+        "-incremental",
+        "-enable-batch-mode",
+        "-serialize-diagnostics",
+        "-index-store-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/index/store",
+        "-Onone",
+        "-enable-testing",
+        "-j2",
+        "-DSWIFT_PACKAGE",
+        "-DDEBUG",
+        "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+        "-module-cache-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/ModuleCache",
+        "-parseable-output",
+        "-Xfrontend",
+        "-entry-point-function-name",
+        "-Xfrontend",
+        "IssuedGraphProof_main",
+        "-parse-as-library",
+        "-swift-version",
+        "6",
+        "-I",
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/macosx/testing",
+        "-L",
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/macosx/testing",
+        "-plugin-path",
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g",
+        "-Xcc",
+        "-isysroot",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+        "-Xcc",
+        "-F",
+        "-Xcc",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-Xcc",
+        "-fPIC",
+        "-Xcc",
+        "-g",
+        "-package-name",
+        "nativeexactrelationverification"
+      ],
+      "timeoutSeconds": 240,
+      "elapsedSeconds": 2.16,
+      "exitCode": 0
+    },
+    {
+      "label": "entry-link",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+        "-L",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug",
+        "-o",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "-module-name",
+        "IssuedGraphProof",
+        "-Xlinker",
+        "-no_warn_duplicate_libraries",
+        "-emit-executable",
+        "-Xlinker",
+        "-alias",
+        "-Xlinker",
+        "_IssuedGraphProof_main",
+        "-Xlinker",
+        "_main",
+        "-Xlinker",
+        "-rpath",
+        "-Xlinker",
+        "@loader_path",
+        "@/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof.product/Objects.LinkFileList",
+        "-Xlinker",
+        "-rpath",
+        "-Xlinker",
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift-6.2/macosx",
+        "-target",
+        "arm64-apple-macosx15.0",
+        "-Xlinker",
+        "-add_ast_path",
+        "-Xlinker",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/Modules/CADCore.swiftmodule",
+        "-Xlinker",
+        "-add_ast_path",
+        "-Xlinker",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/Modules/CADGeometry.swiftmodule",
+        "-Xlinker",
+        "-add_ast_path",
+        "-Xlinker",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/Modules/HashTreeCollections.swiftmodule",
+        "-Xlinker",
+        "-add_ast_path",
+        "-Xlinker",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/Modules/InternalCollectionsUtilities.swiftmodule",
+        "-Xlinker",
+        "-add_ast_path",
+        "-Xlinker",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/Modules/IssuedGraphFixtures.swiftmodule",
+        "-Xlinker",
+        "-add_ast_path",
+        "-Xlinker",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/Modules/IssuedGraphProof.swiftmodule",
+        "-I",
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/macosx/testing",
+        "-L",
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/macosx/testing",
+        "-plugin-path",
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/testing",
+        "-sdk",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+        "-F",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+        "-I",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-L",
+        "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+        "-g"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 5.251,
+      "exitCode": 0
+    },
+    {
+      "label": "entry-proof-6",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "6"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 6.086,
+      "exitCode": 0
+    },
+    {
+      "label": "entry-proof-7",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "7"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 86.083,
+      "exitCode": 0
+    },
+    {
+      "label": "entry-proof-8",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "8"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 5.789,
+      "exitCode": 0
+    },
+    {
+      "label": "entry-proof-12",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "12"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.56,
+      "exitCode": 0
+    },
+    {
+      "label": "entry-proof-14",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof",
+        "14"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.266,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/di-m2-production-native/arm64-apple-macosx/debug/IssuedGraphProof": "ec4bcf6ad3df48f887b9ebadf2b98eb68199de5f53f6c8bb04a9ec244c523590",
+    ".build/di-m2-production-native/arm64-apple-macosx/debug/NativeExactGeometricProof": "4e57ee8f1d543cb3d7e94cde9e1f2579ee801bd5d73bb3597a59e1ff1b413f4e"
+  },
+  "compiledInputCount": 1834,
+  "verificationDriverSHA256": "04a59cc7d3ac871315328ed7b9d15b0f5013d2d19f290bb27ae61b4ecbd80dd4",
+  "entrypointRepair": "Only implicit MainActor isolation of the synchronous test main is replaced by explicit nonisolated; all retained production inputs match and the rebuilt entry point executes the recorded cases without actor-isolation diagnostics."
+}

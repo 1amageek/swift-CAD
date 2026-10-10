@@ -1,0 +1,65 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.196,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.68,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-asan",
+        "-j",
+        "2",
+        "--sanitize",
+        "address",
+        "-Xswiftc",
+        "-O",
+        "--product",
+        "GeneralGraphProof"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 7.442,
+      "exitCode": 0
+    },
+    {
+      "label": "proof",
+      "command": [
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-asan/arm64-apple-macosx/debug/GeneralGraphProof"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 12.496,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-b3-asan/arm64-apple-macosx/debug/GeneralGraphProof": "edbaded11f30e9d417bcb1f348410cb473000be55c1dfa8caed1e2c637f242fd",
+    ".build/pg-b3-asan/arm64-apple-macosx/debug/OriginalGraphRelationVerificationPackageTests.xctest/Contents/MacOS/OriginalGraphRelationVerificationPackageTests": "13dcba609680d4a847d5bbf16cd21abee8e703df8d0cfca2c93ba58ebf7f5087"
+  },
+  "compiledInputCount": 301,
+  "verificationDriverSHA256": "7a986c6121fb404e10e6d1f1403a073fad6fe58017ebe6ed80d093269f0b792d"
+}

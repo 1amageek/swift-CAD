@@ -1,0 +1,27 @@
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test issuedGraphFibers(_:) started.
+􀟈  Test case passing 1 argument mode → 8 to issuedGraphFibers(_:) started.
+MEASURE L6 SSI work=2516347 storage=78893325
+PASS B3 source/DI/L5 group=8
+􀟈  Test case passing 1 argument mode → 9 to issuedGraphFibers(_:) started.
+MEASURE L6 auxiliary free=false work=6280399 storage=157201261
+PASS B3 source/DI/L5 group=9
+􀟈  Test case passing 1 argument mode → 10 to issuedGraphFibers(_:) started.
+MEASURE L6 auxiliary free=true work=1350298 storage=44586417
+PASS B3 source/DI/L5 group=10
+􀟈  Test case passing 1 argument mode → 11 to issuedGraphFibers(_:) started.
+MEASURE general L5 work=2007525 storage=65989130
+MEASURE general L6 work=49778 storage=1336712 fiberWork=2075607 fiberStorage=62323388
+PASS B3 source/DI/L5 group=11
+􀟈  Test case passing 1 argument mode → 12 to issuedGraphFibers(_:) started.
+PASS complete empty, retained source, independent exact work/storage, final cancellation and point refusal
+PASS B3 source/DI/L5 group=12
+􀟈  Test case passing 1 argument mode → 13 to issuedGraphFibers(_:) started.
+MEASURE general L5 work=20703154 storage=478674989
+MEASURE general L6 work=51443 storage=1348844 fiberWork=1325473 fiberStorage=39978408
+PASS B3 source/DI/L5 group=13
+􁁛  Test issuedGraphFibers(_:) with 6 test cases passed after 53.756 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 53.757 seconds.

@@ -1,0 +1,1 @@
+../../../OriginalGraphRelationVerification/Sources/Fixtures/CheckpointAdmission.swift

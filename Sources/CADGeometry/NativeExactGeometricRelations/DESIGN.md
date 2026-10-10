@@ -193,3 +193,23 @@ Status: design only; current implementation guarantees above remain unchanged.
 Public family consumers will retain the issued source/domain evidence and solved relation, including the exact compatibility bridge for existing point receipt accessors.
 The [common consumer handoff](../OriginalSourceIssuance/DESIGN.md#composition-consumer-handoff-design)
 owns coefficient transport, complete-cover, publication and migration acceptance.
+
+## Issued graph composition
+
+The prepared graph port consumes `OriginalIssuedGraphRelations` from the complete
+DI family resolver. One geometry pair retains each L5 relation and its L6 image/fiber
+receipt; a source-bound immutable result retains both source families and complete
+DI covers, including empty families. No chart pair is re-solved. Public CS/SSI rich
+results expose this evidence through an additive read-only protocol requirement.
+The existing Native rational numerical producers and result properties remain
+compatible. Exact prepared publication distinguishes retained exact contacts from
+legacy numerical representative arrays; a discrete numerical adapter must refuse
+results for which it cannot publish the complete requested representation.
+
+Prepared publication has no solver fallback. Source/DI proof reuse, L6 preparation,
+result limits and final publication use the same caller admission. Public exact
+contacts expose original local tuples, all auxiliary lifts, forward authored
+parameter transport, and XYZ/fiber witnesses through the retained pair. They are
+not XYZ-deduplicated. Positive-dimensional relations remain available through the
+rich receipt and cannot become discrete/empty success. Native/ASAN and matching
+ordinary/Embedded tests exercise actual result constructors and public methods.

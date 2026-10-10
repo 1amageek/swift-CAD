@@ -1,0 +1,3 @@
+MEASURE general L5 work=2007525 storage=65989130
+MEASURE general L6 work=49778 storage=1336712 fiberWork=2075607 fiberStorage=62323388
+PASS B3 source/DI/L5 group=11

@@ -1,0 +1,87 @@
+{
+  "success": false,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.259,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.702,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--build-tests"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 4.558,
+      "exitCode": 0
+    },
+    {
+      "label": "issuedGraphSources",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "test",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--skip-build",
+        "--filter",
+        "issuedGraphSources"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 105.758,
+      "exitCode": 0
+    },
+    {
+      "label": "issuedGraphPublication",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "test",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-native",
+        "-j",
+        "2",
+        "--skip-build",
+        "--filter",
+        "issuedGraphPublication"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 73.658,
+      "exitCode": 1
+    }
+  ]
+}

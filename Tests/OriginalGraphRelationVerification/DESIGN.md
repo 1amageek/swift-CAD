@@ -50,3 +50,22 @@ matching SDKs. Source hashes and artifacts bind actual compiler inputs. Only cha
 source/DI/consumer interactions are verified; B0-B2 lower fixtures remain valid on
 unchanged sources. Main integration compares these exact inputs and executes the
 composed Native proof from an independent worktree.
+
+## Issued geometry and public composition
+
+The package now also compiles actual L6 and source-bound geometric composition.
+Groups 6-13 verify original rational/offset exact points, source parameter transports,
+positive SSI images/fibers, finite and free auxiliary witnesses, affine whole-cell
+image dimensions, complete station fibers/lift membership, limits and cancellation.
+The actual CADCore/CADGeometry package at ../NativeExactRelationVerification consumes
+the same fixtures through `ISSUED_GRAPH_PUBLIC_VERIFICATION`; group14 adds extracted
+public SSI point/source lifetime and terminal publication cancellation. No substitute
+result, intersector or geometry implementation is used. Prepared exact publication
+is explicit; legacy numerical publication is regression-tested separately.
+
+`GeneralGraphProof` separately forces the nonlinear XYZ-prefix pullback (no finite-fiber
+or affine theorem) and checks a complete exact station fiber on all four lanes.
+It is an additive verification-only target; the earlier fourteen-case package
+premise is retained in GeometricEvidence/retained-original-package.swift.
+GeometricEvidence/VERIFICATION.md owns the final commands, configuration distinctions,
+review disposition and latest-main composition record.

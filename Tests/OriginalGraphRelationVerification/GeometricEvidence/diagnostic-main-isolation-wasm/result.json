@@ -1,0 +1,232 @@
+{
+  "success": true,
+  "runs": [
+    {
+      "label": "toolchain",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.468,
+      "exitCode": 0
+    },
+    {
+      "label": "sdk",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "sdk",
+        "list"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.788,
+      "exitCode": 0
+    },
+    {
+      "label": "build",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "build",
+        "--build-system",
+        "native",
+        "--package-path",
+        "Tests/OriginalGraphRelationVerification",
+        "--build-path",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm",
+        "-j",
+        "2",
+        "--swift-sdk",
+        "swift-6.4.0-RELEASE_wasm",
+        "--product",
+        "GraphProof"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 16.456,
+      "exitCode": 0
+    },
+    {
+      "label": "node",
+      "command": [
+        "/usr/local/bin/node",
+        "--version"
+      ],
+      "timeoutSeconds": 10,
+      "elapsedSeconds": 0.054,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-0",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "0"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 12.361,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-1",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "1"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 63.602,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-2",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "2"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 70.795,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-3",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "3"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 2.162,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-4",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "4"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 0.334,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-5",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "5"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 4.049,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-6",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "6"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 5.19,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-7",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "7"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 114.898,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-8",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "8"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 11.621,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-9",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "9"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 32.295,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-10",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "10"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 6.651,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-11",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "11"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 15.536,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-12",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "12"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 1.356,
+      "exitCode": 0
+    },
+    {
+      "label": "proof-13",
+      "command": [
+        "/usr/local/bin/node",
+        "Tests/NativeExactRelationVerification/Scripts/run_wasi_group.mjs",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm",
+        "13"
+      ],
+      "timeoutSeconds": 120,
+      "elapsedSeconds": 99.001,
+      "exitCode": 0
+    }
+  ],
+  "artifacts": {
+    ".build/pg-b3-wasm/wasm32-unknown-wasip1/debug/GraphProof.wasm": "4fd66f5dad67eeea02f7cb80fc72f2eef19a43d610b942a8640c8b3199c95492"
+  },
+  "compiledInputCount": 575,
+  "verificationDriverSHA256": "9e38903b67e615d3b09669e9829e7d496be94825df5d133e195a5764dcadf024",
+  "retainedPackagePremise": "Tests/OriginalGraphRelationVerification/GeometricEvidence/retained-original-package.swift"
+}

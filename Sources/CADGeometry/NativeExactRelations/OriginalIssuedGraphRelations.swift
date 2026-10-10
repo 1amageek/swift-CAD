@@ -10,7 +10,7 @@ import DI
 import SourceIssuer
 #endif
 
-public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: Sendable {
+public struct OriginalIssuedGraphRelations<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphRelationOwning {
     public let first:OriginalIssuedGraphFamily<S,E,C>
     public let second:OriginalIssuedGraphFamily<T,F,D>
     public let kind:ExactParametricRelationKind

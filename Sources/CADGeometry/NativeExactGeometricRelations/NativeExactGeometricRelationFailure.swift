@@ -1,3 +1,8 @@
+#if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
+import L6
+import IssuedGraphs
+#endif
+
 /// Preserves lower exact causes and the geometry publication failure boundary.
 public enum NativeExactGeometricRelationFailure: Error {
     case parameter(NativeExactRelationFailure)

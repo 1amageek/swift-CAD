@@ -1,0 +1,4 @@
+(node:67620) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+MEASURE offset knot=false work=15201063 storage=190381312
+PASS B3 source/DI/L5 group=1

@@ -8,5 +8,5 @@ import L5
 #endif
 
 public enum ExactGeometricEvidenceKind: Sendable {
-    case empty, originalCurveImage, isolatedParameters, constantImage, affineInjection, finiteFiberMaps, firstParameterCurve, originalGraph
+    case affineRelation, empty, originalCurveImage, isolatedParameters, constantImage, affineInjection, finiteFiberMaps, firstParameterCurve, originalGraph
 }

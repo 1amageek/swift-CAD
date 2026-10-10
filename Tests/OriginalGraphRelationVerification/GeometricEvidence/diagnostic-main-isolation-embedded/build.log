@@ -1,0 +1,20 @@
+[0/1] Planning build
+Building for debugging...
+[0/18] Write sources
+[1/18] Write swift-version-7EE3F01B468E1A0A.txt
+[3/10] Emitting module L6
+[4/10] Compiling L6 DefaultExactGeometricGraphRelationResolver+Affine.swift
+[5/13] Wrapping AST for L6 for debugging
+[7/13] Emitting module IssuedGeometry
+[9/14] Compiling IssuedGeometry DefaultOriginalIssuedGeometricRelationResolver.swift
+[9/14] Wrapping AST for IssuedGeometry for debugging
+[11/16] Emitting module GraphFixtures
+[12/16] Compiling GraphFixtures CheckpointAdmission.swift
+[13/17] Wrapping AST for GraphFixtures for debugging
+[15/19] Emitting module GraphProof
+[17/20] Compiling GraphProof Proof.swift
+[17/20] Wrapping AST for GraphProof for debugging
+[18/20] Write Objects.LinkFileList
+[19/20] Linking GraphProof.wasm
+Build of product 'GraphProof' complete! (92.49s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

@@ -1,0 +1,4 @@
+(node:70121) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS graph binding/compiler ownership, exact work/storage caps, inherited depth, entry/terminal cancellation and graph/pair caps
+PASS B3 source/DI/L5 group=4

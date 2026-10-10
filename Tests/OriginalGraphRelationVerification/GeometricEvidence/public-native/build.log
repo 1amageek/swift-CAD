@@ -1,0 +1,173 @@
+warning: 'nativeexactrelationverification': found 3 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalRealRelationProof/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADIntersectionPortabilitySmoke/OriginalPointRelationProof/DESIGN.md
+warning: 'nativeexactrelationverification': found 86 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/KnotRemoval/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeCurveChartCover/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolynomialCurveSurfacePoints/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactScalar/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceQueryAdmission/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeMultiChartSurfaceSurfaceRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineIntersectionSources/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceAreaIntegration/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveCurveContact/PlanarPartition/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceBoundaryCertification/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterTransport/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalLineIncidence/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativePointRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineOperationWord/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalBoundaryClipping/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveSurfaceOverlap/NativeRelation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealTopology/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactParametricRelation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/Involute/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/ParameterImage/NativeAxisInverse/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGeometrySourceValidation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/GuideCorrection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealRoot/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/EndpointConnector/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalGraphBand/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/GeometryConversion/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalPolyline/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativePlaneContacts/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSourceZeroSet/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/StructuralGeometryWork/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceFitting/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfacePointRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsCurveSurfacePoints/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactPolynomial/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDraftedSection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCircularMeasurement/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSourceIssuance/OriginalPhysicalAngle/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRuledIntersectionSources/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/BoundaryCorrection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/ExactRealCell/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RollingBall/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProjectedCurveContacts/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSurfaceQueryAdmission/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRevolution/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceEmbedding/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalDomainIdentity/ExactParameterDomain/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceSurfaceRelations/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/RationalBivariateAlgebra/OriginalFieldScalarRoot/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/BSplineCurveCommonBasis/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSpatialPoint/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoonsIntersectionSources/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/CanonicalSphereChart/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalProvenance/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/IntersectionAlgebra/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveConstructionChart/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OrthographicCurveProjection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfacePoleGeometry/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRectangleTessellation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalRootSpan/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/NativeSurfaceChartInjection/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineCurveSurfacePoints/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAffineImage/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNativeSurfaceChartCover/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/PlaneDerivatives/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalSurfaceEmbedding/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/PeriodicBSpline/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalAnalyticIntersectionSources/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceProjectionAdmission/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalCurveSurfaceCorrespondence/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalHigherCurveJets/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/OriginalNormalAngleBounds/DESIGN.md
+warning: 'nativeexactrelationverification': found 7 file(s) which are unhandled; explicitly declare them as resources or exclude from the target
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADCore/NativeCodecCapability/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADCore/PortableIdentity/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADCore/CurrentTaskCancellation/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADCore/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADCore/FailureContract/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADCore/CapabilityContract/DESIGN.md
+    /Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADCore/PortableSourceEncoding/DESIGN.md
+[0/1] Planning build
+Building for debugging...
+[0/7] Write sources
+[3/7] Write swift-version-7EE3F01B468E1A0A.txt
+[5/14] Compiling CADGeometry DefaultOriginalIssuedGeometricRelationResolver.swift
+[6/14] Compiling CADGeometry OriginalIssuedExactIntersectionPoint.swift
+[7/14] Compiling CADGeometry OriginalIssuedGraphRelationOwning.swift
+[8/14] Compiling CADGeometry OriginalIssuedGraphRelations.swift
+[9/14] Compiling CADGeometry DefaultExactGeometricGraphRelationResolver+Affine.swift
+[10/14] Compiling CADGeometry DefaultExactGeometricGraphRelationResolver+Queries.swift
+[11/19] Compiling CADGeometry DefaultExactGeometricGraphRelationResolver.swift
+[12/19] Compiling CADGeometry ExactGeometricEvidenceKind.swift
+[13/19] Compiling CADGeometry ExactGeometricGraphFiber.swift
+[14/19] Compiling CADGeometry ExactGeometricGraphRelation.swift
+[15/19] Compiling CADGeometry ExactGeometricGraphRelationResolving.swift
+[16/26] Compiling CADGeometry CurveSurfaceIntersectionResult.swift
+[17/26] Compiling CADGeometry DefaultCurveSurfaceIntersector+GeometricPublication.swift
+[18/26] Compiling CADGeometry DefaultCurveSurfaceIntersector+IssuedGraphs.swift
+[19/26] Compiling CADGeometry DefaultSurfaceSurfaceIntersector+GeometricPublication.swift
+[20/26] Compiling CADGeometry DefaultSurfaceSurfaceIntersector+IssuedGraphs.swift
+[21/26] Compiling CADGeometry OriginalIssuedGeometricRelationReading.swift
+[22/26] Compiling CADGeometry OriginalIssuedGeometricRelationResolving.swift
+[23/33] Compiling CADGeometry OriginalIssuedGeometricRelations.swift
+[24/33] Compiling CADGeometry OriginalIssuedGraphResultResolving.swift
+[25/33] Compiling CADGeometry DefaultOriginalIssuedGraphRelationResolver.swift
+[26/33] Compiling CADGeometry OriginalIssuedGraphRelationResolving.swift
+[27/33] Compiling CADGeometry DefaultExactGeometricGraphRelationResolver+Graphs.swift
+[28/33] Compiling CADGeometry DefaultExactGeometricGraphRelationResolver+Maps.swift
+[29/33] Compiling CADGeometry DefaultExactGeometricGraphRelationResolver+Points.swift
+[30/37] Compiling CADGeometry OriginalIssuedGeometricRelationPair.swift
+[31/37] Compiling CADGeometry DefaultExactGeometricRelationResolver.swift
+[32/37] Compiling CADGeometry ExactGeometricGraphPoint.swift
+[33/37] Compiling CADGeometry ExactGeometricRelation.swift
+[34/40] Compiling CADGeometry ExactGeometricRelationStorage.swift
+[35/40] Compiling CADGeometry ExactGeometricStratumID.swift
+[36/40] Compiling CADGeometry ExactGeometricStratumView.swift
+[37/40] Emitting module CADGeometry
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/CurveParameterThirdOrderDerivatives.swift:336:5: warning: 'internal' modifier conflicts with extension's default access of 'private'
+334 | 
+335 | private extension SurfaceParameterCurve {
+336 |     internal func thirdOrderDifferential(
+    |     `- warning: 'internal' modifier conflicts with extension's default access of 'private'
+337 |         atNormalizedFraction fraction: Double,
+338 |         on supportSurface: Surface3D,
+
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:49:24: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+47 |             let argument = SurfaceIntervalJet.parameterU(box.u)
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+   |                        `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+
+/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/NativeExactRelationVerification/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift:50:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+48 |             try consumeWork()
+49 |             let sine = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: false, consumeWork: consumeWork).value
+50 |             let cos = try CanonicalSphereAngularPhase.harmonic(of: argument, cosine: true, consumeWork: consumeWork).value
+   |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+51 |             try OriginalCoefficientAllocation.reserve(count: 4, of: OutwardScalarInterval.self, consumeStorage: consumeStorage)
+52 |             let cycle = cosine ? [cos, -sine, -cos, sine] : [sine, cos, -sine, -cos]
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>
+[38/43] Emitting module IssuedGraphFixtures
+[39/43] Compiling IssuedGraphFixtures CheckpointAdmission.swift
+[40/43] Compiling IssuedGraphFixtures GraphFixtures.swift
+[41/45] Compiling IssuedGraphFixtures GraphGeometryFixtures.swift
+[42/45] Compiling IssuedGraphFixtures NativeSource.swift
+[43/47] Emitting module IssuedGraphProof
+[44/47] Compiling IssuedGraphProof IssuedGraphProof.swift
+[44/47] Write Objects.LinkFileList
+[45/47] Linking IssuedGraphProof
+[46/47] Applying IssuedGraphProof
+Build of product 'IssuedGraphProof' complete! (44.85s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

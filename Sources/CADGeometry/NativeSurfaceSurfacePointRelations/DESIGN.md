@@ -99,3 +99,16 @@ Root dispatch integration must execute the same producer on every eligible route
 
 Source-bound L0-L6 publication additionally retains originalExactGeometricRelation. The intersections array remains isolated numerical representatives; the complete exact receipt retains positive image/fiber strata and both original UV domains. Existing producers are preserved.
 See [NativeExactGeometricRelations](../NativeExactGeometricRelations/DESIGN.md).
+
+## Prepared issued graph results
+
+The explicit `intersectionResult(exactRelations:...)` port consumes the completed
+B3 DI-bound family relation and retains its source-bound L6 graph receipt in
+`originalIssuedGeometricRelation`. `representation == .exactRelation` means exact
+points and strata were requested; the numerical arrays are not an absence test.
+`exactPoints` on the retained protocol contains all isolated authored tuples and
+exact XYZ, with original local parameters and every lift retained. Positive and
+empty relations retain the same complete source/coverage owners. Existing numeric
+entry points and Codable point formats are unchanged. No implicit numeric fallback
+or source pair re-solve occurs. The composition contract is owned by
+[NativeExactGeometricRelations](../NativeExactGeometricRelations/DESIGN.md).

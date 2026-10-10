@@ -1,0 +1,52 @@
+[0/1] Planning build
+Building for debugging...
+[0/5] Write sources
+[1/7] Write swift-version-7EE3F01B468E1A0A.txt
+[3/16] Emitting module L6
+[4/24] Compiling L6 DefaultExactGeometricRelationResolver+Queries.swift
+[5/24] Compiling L6 DefaultExactGeometricRelationResolver.swift
+[6/24] Compiling L6 ExactCurveParameterBoundary.swift
+[7/24] Compiling L6 ExactCurveParameterSpan.swift
+[8/24] Compiling L6 ExactGeometricEvidenceKind.swift
+[9/24] Compiling L6 ExactGeometricFiber.swift
+[10/24] Compiling L6 ExactGeometricGraphFiber.swift
+[11/24] Compiling L6 ExactGeometricGraphPoint.swift
+[12/28] Compiling L6 DefaultExactGeometricGraphRelationResolver+Affine.swift
+[13/28] Compiling L6 DefaultExactGeometricGraphRelationResolver+Graphs.swift
+[14/28] Compiling L6 DefaultExactGeometricGraphRelationResolver+Maps.swift
+[15/28] Compiling L6 DefaultExactGeometricGraphRelationResolver+Points.swift
+[16/28] Compiling L6 DefaultExactGeometricGraphRelationResolver+Queries.swift
+[17/28] Compiling L6 DefaultExactGeometricGraphRelationResolver.swift
+[18/28] Compiling L6 DefaultExactGeometricRelationResolver+Coverage.swift
+[19/28] Compiling L6 DefaultExactGeometricRelationResolver+Maps.swift
+[20/31] Compiling L6 ExactGeometricGraphRelation.swift
+[21/31] Compiling L6 ExactGeometricGraphRelationResolving.swift
+[22/31] Compiling L6 ExactGeometricRelation.swift
+[23/31] Compiling L6 ExactGeometricRelationQuerying.swift
+[24/31] Compiling L6 ExactGeometricRelationStorage.swift
+[25/31] Compiling L6 ExactGeometricStratumID.swift
+[26/31] Compiling L6 ExactGeometricStratumView.swift
+[27/36] Emitting module IssuedGeometry
+[28/39] Compiling IssuedGeometry OriginalIssuedGeometricRelationReading.swift
+[29/39] Compiling IssuedGeometry OriginalIssuedGeometricRelationResolving.swift
+[30/39] Compiling IssuedGeometry OriginalIssuedGeometricRelations.swift
+[31/39] Compiling IssuedGeometry DefaultOriginalIssuedGeometricRelationResolver.swift
+[32/39] Compiling IssuedGeometry NativeExactGeometricRelationFailure.swift
+[33/39] Compiling IssuedGeometry OriginalIssuedExactIntersectionPoint.swift
+[34/39] Compiling IssuedGeometry OriginalIssuedGeometricRelationPair.swift
+[35/42] Emitting module GraphFixtures
+[36/43] Compiling GraphFixtures CheckpointAdmission.swift
+[37/43] Compiling GraphFixtures GraphFixtures.swift
+[38/44] Compiling GraphFixtures GraphGeometryFixtures.swift
+[39/44] Compiling GraphFixtures NativeSource.swift
+[40/48] Emitting module GraphTests
+[41/48] Compiling GraphTests GraphTests.swift
+[41/48] Write Objects.LinkFileList
+[43/48] Emitting module GraphProof
+[44/48] Compiling GraphProof Proof.swift
+[44/48] Write Objects.LinkFileList
+[45/48] Linking GraphProof
+[46/48] Linking OriginalGraphRelationVerificationPackageTests
+[47/48] Applying GraphProof
+Build complete! (36.87s)
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.

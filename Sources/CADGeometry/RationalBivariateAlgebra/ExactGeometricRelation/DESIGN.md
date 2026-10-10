@@ -106,3 +106,86 @@ Station authority: XYZ applies to CS and SSI; curveParameter applies to CS.
 firstSurfaceUV requires a surface as the first source (SSI); secondSurfaceUV
 applies to the surface second source in both CS and SSI. Offsets derive from
 retained source arity, never a fixed SSI coordinate assumption.
+
+## Auxiliary-aware graph relations
+
+`ExactGeometricGraphRelation` consumes the complete L5 graph relation, including its
+already projected original-parameter topology and all lifted auxiliary witnesses.
+Its source assumption is a position function: all admitted auxiliary witnesses at
+one canonical parameter tuple yield the same XYZ/W. The sealed source graph receipt
+owns this guarantee; L5 proves the relation and existential projection, not authored
+position semantics. The source-bound composition supplies that receipt and retains
+its owner. Arbitrary multivalued mathematical L5 relations are not source position
+inputs to this L6 contract. Multiple auxiliary witnesses are permitted; multiple
+positions for one source parameter tuple are not.
+It never resolves the original TUV/UVUV problem again. Isolated projected parameters
+have zero-dimensional images and original-parameter fibers even if auxiliary lifts
+are positive-dimensional. For CS with an auxiliary-free curve, original rational
+curve constancy proves image dimension from the T prefix. Remaining cases refine
+the existing lifted selection onto the XYZ graph using L4 pullback. The coordinate
+order is XYZ, all original local parameters, then all auxiliaries. Distinct included
+prefix cells at XYZ+parameter depth are counted once by exact owner-bound cell ID;
+auxiliary suffix dimensions never enter parameter, image or fiber dimensions.
+Original projected L5 components remain the connectivity authority. Whole-cell
+source labels map each graph prefix to that authority; conflicting labels fail.
+
+Station queries are new explicitly budgeted constraints, not repeated original
+queries. They retain the parent receipt, constrain original graph laws, solve the
+station relation, and use L4 existential projection before reporting components or
+fiber dimensions. Multiple auxiliary witnesses do not multiply original tuples.
+XYZ/UV/T stations retain the original local parameter semantics; the source-bound
+upper receipt retains forward authored parameter transports separately.
+
+```mermaid
+flowchart LR
+ L5[Complete L5 graph and parameter projection] --> C{Proved image shortcut}
+ C -->|applicable| S[Original parameter strata]
+ C -->|general| P[L4 pullback onto XYZ graph]
+ P --> X[Unique XYZ plus parameter prefixes]
+ S --> R[Immutable L6 graph receipt]
+ X --> R
+ R --> F[Station constraint and existential parameter fiber]
+```
+
+No new lower solver, module, cache or mutable shared state is introduced. Arrays
+are immutable COW payloads; new record/index storage and polynomial transforms
+are admitted. Empty results retain the complete L5 exclusion owner. The existing
+rational L6 API and its proof path remain unchanged. Independent graph verification
+owns auxiliary duplicates/free witnesses, projected connectivity, station fibers,
+limits, cancellation and retained source lifetimes.
+
+For the general graph, either retained source may anchor XYZ because L5 owns their
+exact equality. If all four anchor polynomials have zero powers on every auxiliary
+coordinate, L6 refines the already projected L5 parameter selection directly. No
+auxiliary solve is repeated. Otherwise it refines the retained lifted selection and
+deduplicates XYZ+parameter prefixes. The selection theorem and anchor laws remain
+owned in both paths. Polynomial power scans, transform storage and final merged
+proof buffers are admitted; passing existing polynomial owners shares their payloads.
+
+### Affine whole-cell graph theorem
+
+If the original position numerators are affine, W is a nonzero constant, and
+all projection laws of both the lifted cell and its compatible parameter cell
+are affine, their zero-sign laws define the entire affine hull of the selected
+polyhedral cell. L6 computes exact row ranks of this hull, of its parameter
+projection and of its XYZ projection. It accepts the theorem only when the
+computed parameter dimension equals the already certified L5 parameter-cell
+dimension. Compatible lifts must give identical image dimensions. Fiber dimension
+is parameter rank minus image rank; free auxiliary directions never contribute.
+All source topology and lift attribution remain L5-owned. This is a whole-cell
+linear algebra theorem, not a Jacobian-at-a-sample or branch-connection heuristic.
+The original immutable cells/laws and admitted rank depth remain retained.
+
+If either anchor is auxiliary-independent, the affine theorem acts directly on
+certified projected parameter cells. Nonlinear or free auxiliary fibers are then
+irrelevant: L5 already owns their complete existential projection. Only when both
+anchors depend on auxiliaries are compatible lifted-cell affine hulls required.
+
+Station T/UV constraints commute with existential auxiliary projection. XYZ
+constraints do too when a retained anchor is auxiliary-independent, as proved by
+its original polynomial powers. These queries constrain the retained complete
+parameter predicate directly; `usesParameterProjection` records that choice.
+`sourceProjection` retains the original auxiliary correspondence; the fiber is
+its intersection with the new station selection. `containsLift` checks both exact
+owned partitions and every retained guard, with final cancellation. No auxiliary problem is solved again in this case.
+Other XYZ queries solve the constrained lifted relation and project it as before.

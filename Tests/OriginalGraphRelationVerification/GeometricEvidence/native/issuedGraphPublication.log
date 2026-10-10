@@ -1,0 +1,23 @@
+[0/1] Planning build
+warning: '--build-system native' has been deprecated and will be removed in a future release; please report an issue at https://github.com/swiftlang/swift-package-manager/issues if you are unable to adopt the default build system.
+􀟈  Test run started.
+􀄵  Testing Library Version: 6.4 (efd8d65801f569d)
+􀄵  Target Platform: arm64-apple-macosx
+􀟈  Test issuedGraphPublication(_:) started.
+􀟈  Test case passing 1 argument mode → 3 to issuedGraphPublication(_:) started.
+PASS forward nonlinear/negative-denominator pullback and retained depth
+PASS B3 source/DI/L5 group=3
+􀟈  Test case passing 1 argument mode → 4 to issuedGraphPublication(_:) started.
+PASS graph binding/compiler ownership, exact work/storage caps, inherited depth, entry/terminal cancellation and graph/pair caps
+PASS B3 source/DI/L5 group=4
+􀟈  Test case passing 1 argument mode → 5 to issuedGraphPublication(_:) started.
+PASS source/DI/L5 SSI curve and singular-offset exclusion
+PASS B3 source/DI/L5 group=5
+􀟈  Test case passing 1 argument mode → 6 to issuedGraphPublication(_:) started.
+MEASURE L6 CS offset=false work=319534 storage=9669853
+PASS B3 source/DI/L5 group=6
+􀟈  Test case passing 1 argument mode → 7 to issuedGraphPublication(_:) started.
+MEASURE L6 CS offset=true work=15311716 storage=375505408
+PASS B3 source/DI/L5 group=7
+􁁛  Test issuedGraphPublication(_:) with 5 test cases passed after 39.057 seconds.
+􁁛  Test run with 1 test in 0 suites passed after 39.058 seconds.

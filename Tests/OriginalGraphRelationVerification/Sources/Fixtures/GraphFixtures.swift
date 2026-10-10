@@ -1,3 +1,7 @@
+#if ISSUED_GRAPH_PUBLIC_VERIFICATION
+import CADCore
+@testable import CADGeometry
+#else
 import L0
 import L1
 import L2
@@ -8,6 +12,7 @@ import DI0
 import DI
 @testable import SourceIssuer
 import IssuedGraphs
+#endif
 
 public enum GraphFixtures {
     enum Failure:Error { case incorrect(Int) }
@@ -59,7 +64,11 @@ public enum GraphFixtures {
     static func cellLimits() throws -> ExactRealCellLimits {try .init(maximumStoredCells:20_000,maximumRootsPerStack:100)}
     static func topologyLimits() throws -> ExactRealTopologyLimits {try .init(maximumGeneratedCells:20_000,maximumRootsPerStack:100,maximumClosures:1000,maximumAttachmentPieces:20_000,maximumComponents:1000)}
     public static func run(_ mode:Int) throws {
-        switch mode {case 0:try rational();case 1:try offset(false);case 2:try offset(true);case 3:try correspondence();case 4:try failures();case 5:try surfaceAndSingular();default:throw Failure.incorrect(#line)}
+        switch mode {case 0:try rational();case 1:try offset(false);case 2:try offset(true);case 3:try correspondence();case 4:try failures();case 5:try surfaceAndSingular();case 6:try geometryCS(false);case 7:try geometryCS(true);case 8:try geometrySSI();case 9:try auxiliaryGeometry(false);case 10:try auxiliaryGeometry(true);case 11:try graphGeometryGeneral();case 12:try geometryEmptyAndFailures();case 13:try graphGeometryGeneral(true);
+#if ISSUED_GRAPH_PUBLIC_VERIFICATION
+        case 14:try publicSSILifetime();
+#endif
+        default:throw Failure.incorrect(#line)}
         print("PASS B3 source/DI/L5 group=\(mode)")
     }
     static func rational() throws {

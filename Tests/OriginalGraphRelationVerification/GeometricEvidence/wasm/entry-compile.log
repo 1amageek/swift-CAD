@@ -1,0 +1,260 @@
+5143
+{
+  "command_arguments" : [
+    "-frontend",
+    "-emit-module",
+    "-experimental-skip-non-inlinable-function-bodies-without-types",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/Tests\/OriginalGraphRelationVerification\/Sources\/Proof\/Proof.swift",
+    "-target",
+    "wasm32-unknown-wasip1",
+    "-disable-objc-interop",
+    "-sdk",
+    "\/Users\/1amageek\/Library\/org.swift.swiftpm\/swift-sdks\/swift-6.4.0-RELEASE_wasm.artifactbundle\/swift-6.4.0-RELEASE_wasm\/wasm32-unknown-wasip1\/WASI.sdk",
+    "-I",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/Modules",
+    "-module-cache-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/ModuleCache",
+    "-no-color-diagnostics",
+    "-Xcc",
+    "-fno-color-diagnostics",
+    "-enable-testing",
+    "-g",
+    "-debug-info-format=dwarf",
+    "-dwarf-version=4",
+    "-swift-version",
+    "6",
+    "-Onone",
+    "-D",
+    "SWIFT_PACKAGE",
+    "-D",
+    "DEBUG",
+    "-D",
+    "SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+    "-empty-abi-descriptor",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/plugins\/testing",
+    "-resource-dir",
+    "\/Users\/1amageek\/Library\/org.swift.swiftpm\/swift-sdks\/swift-6.4.0-RELEASE_wasm.artifactbundle\/swift-6.4.0-RELEASE_wasm\/wasm32-unknown-wasip1\/swift.xctoolchain\/usr\/lib\/swift_static",
+    "-use-static-resource-dir",
+    "-enable-anonymous-context-mangled-names",
+    "-file-compilation-dir",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD",
+    "-Xcc",
+    "--sysroot",
+    "-Xcc",
+    "\/Users\/1amageek\/Library\/org.swift.swiftpm\/swift-sdks\/swift-6.4.0-RELEASE_wasm.artifactbundle\/swift-6.4.0-RELEASE_wasm\/wasm32-unknown-wasip1\/WASI.sdk",
+    "-Xcc",
+    "-g",
+    "-no-auto-bridging-header-chaining",
+    "-module-name",
+    "GraphProof",
+    "-package-name",
+    "originalgraphrelationverification",
+    "-in-process-plugin-server-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/libSwiftInProcPluginServer.dylib",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/plugins",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/local\/lib\/swift\/host\/plugins",
+    "-emit-module-doc-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.swiftdoc",
+    "-emit-module-source-info-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.swiftsourceinfo",
+    "-serialize-diagnostics-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.emit-module.dia",
+    "-emit-dependencies-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.emit-module.d",
+    "-parse-as-library",
+    "-o",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.swiftmodule"
+  ],
+  "command_executable" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/bin\/swift-frontend",
+  "inputs" : [
+
+  ],
+  "kind" : "began",
+  "name" : "emit-module",
+  "outputs" : [
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.swiftmodule",
+      "type" : "swiftmodule"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.swiftdoc",
+      "type" : "swiftdoc"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.swiftsourceinfo",
+      "type" : "swiftsourceinfo"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.emit-module.dia",
+      "type" : "emit-module-diagnostics"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.emit-module.d",
+      "type" : "emit-module.d"
+    }
+  ],
+  "pid" : 21402,
+  "process" : {
+    "real_pid" : 21402
+  }
+}
+4880
+{
+  "command_arguments" : [
+    "-frontend",
+    "-c",
+    "-primary-file",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/Tests\/OriginalGraphRelationVerification\/Sources\/Proof\/Proof.swift",
+    "-emit-dependencies-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/Proof.d",
+    "-emit-reference-dependencies-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/Proof.swiftdeps",
+    "-serialize-diagnostics-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/Proof.dia",
+    "-target",
+    "wasm32-unknown-wasip1",
+    "-disable-objc-interop",
+    "-sdk",
+    "\/Users\/1amageek\/Library\/org.swift.swiftpm\/swift-sdks\/swift-6.4.0-RELEASE_wasm.artifactbundle\/swift-6.4.0-RELEASE_wasm\/wasm32-unknown-wasip1\/WASI.sdk",
+    "-I",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/Modules",
+    "-module-cache-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/ModuleCache",
+    "-no-color-diagnostics",
+    "-Xcc",
+    "-fno-color-diagnostics",
+    "-enable-testing",
+    "-g",
+    "-debug-info-format=dwarf",
+    "-dwarf-version=4",
+    "-swift-version",
+    "6",
+    "-Onone",
+    "-D",
+    "SWIFT_PACKAGE",
+    "-D",
+    "DEBUG",
+    "-D",
+    "SWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+    "-empty-abi-descriptor",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/plugins\/testing",
+    "-resource-dir",
+    "\/Users\/1amageek\/Library\/org.swift.swiftpm\/swift-sdks\/swift-6.4.0-RELEASE_wasm.artifactbundle\/swift-6.4.0-RELEASE_wasm\/wasm32-unknown-wasip1\/swift.xctoolchain\/usr\/lib\/swift_static",
+    "-use-static-resource-dir",
+    "-enable-anonymous-context-mangled-names",
+    "-file-compilation-dir",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD",
+    "-Xcc",
+    "--sysroot",
+    "-Xcc",
+    "\/Users\/1amageek\/Library\/org.swift.swiftpm\/swift-sdks\/swift-6.4.0-RELEASE_wasm.artifactbundle\/swift-6.4.0-RELEASE_wasm\/wasm32-unknown-wasip1\/WASI.sdk",
+    "-Xcc",
+    "-g",
+    "-no-auto-bridging-header-chaining",
+    "-module-name",
+    "GraphProof",
+    "-package-name",
+    "originalgraphrelationverification",
+    "-in-process-plugin-server-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/libSwiftInProcPluginServer.dylib",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/lib\/swift\/host\/plugins",
+    "-plugin-path",
+    "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/local\/lib\/swift\/host\/plugins",
+    "-parse-as-library",
+    "-o",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/Proof.swift.o",
+    "-index-store-path",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/index\/store",
+    "-index-system-modules"
+  ],
+  "command_executable" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/bin\/swift-frontend",
+  "inputs" : [
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/Tests\/OriginalGraphRelationVerification\/Sources\/Proof\/Proof.swift"
+  ],
+  "kind" : "began",
+  "name" : "compile",
+  "outputs" : [
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/Proof.swift.o",
+      "type" : "object"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/Proof.d",
+      "type" : "d"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/Proof.swiftdeps",
+      "type" : "swift-dependencies"
+    },
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/Proof.dia",
+      "type" : "diagnostics"
+    }
+  ],
+  "pid" : 21401,
+  "process" : {
+    "real_pid" : 21401
+  }
+}
+133
+{
+  "exit-status" : 0,
+  "kind" : "finished",
+  "name" : "emit-module",
+  "pid" : 21402,
+  "process" : {
+    "real_pid" : 21402
+  }
+}
+129
+{
+  "exit-status" : 0,
+  "kind" : "finished",
+  "name" : "compile",
+  "pid" : 21401,
+  "process" : {
+    "real_pid" : 21401
+  }
+}
+949
+{
+  "command_arguments" : [
+    "-modulewrap",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.swiftmodule",
+    "-target",
+    "wasm32-unknown-wasip1",
+    "-o",
+    "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.o"
+  ],
+  "command_executable" : "\/Users\/1amageek\/Library\/Developer\/Toolchains\/swift-6.4.0-RELEASE.xctoolchain\/usr\/bin\/swift-frontend",
+  "inputs" : [
+
+  ],
+  "kind" : "began",
+  "name" : "module-wrap",
+  "outputs" : [
+    {
+      "path" : "\/Users\/1amageek\/.codex\/worktrees\/di-protocol-responsibilities\/swift-CAD\/.build\/pg-b3-wasm\/wasm32-unknown-wasip1\/debug\/GraphProof.build\/GraphProof.o",
+      "type" : "object"
+    }
+  ],
+  "pid" : 21409,
+  "process" : {
+    "real_pid" : 21409
+  }
+}
+133
+{
+  "exit-status" : 0,
+  "kind" : "finished",
+  "name" : "module-wrap",
+  "pid" : 21409,
+  "process" : {
+    "real_pid" : 21409
+  }
+}
