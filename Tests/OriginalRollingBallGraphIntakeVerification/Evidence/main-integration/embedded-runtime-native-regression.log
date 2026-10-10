@@ -1,0 +1,5 @@
+PASS rolling-ball DI: full/strict 1/3/singleton/disconnected/empty, four incidents, foreign owner, arity/chart/cancel
+PASS rolling-ball source exact work/storage and one-less, entry/final callback cancel; work=38554 bytes=126807
+PASS rolling-ball original minor-arc graph, unequal child knots, four incidents, positive root and radius/degenerate refusal, COW/depth
+(node:29405) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

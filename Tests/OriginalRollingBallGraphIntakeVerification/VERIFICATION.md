@@ -109,4 +109,19 @@ and 1,946,770 / 6,208,404 bytes on wasm32. Native-only regression preparation is
 one-less tests pass under unchanged caller ceilings. These admitted costs are
 correctness measurements, not a throughput benchmark.
 
-Independent latest-main delivery follows the coherent implementation commit.
+## Latest-main delivery
+
+Implementation commit `ff67aa6d` was independently composed with latest main
+`a1ff6da9` without source adjustment. `Evidence/main-integration/integration.json`
+binds 7,583 unique source/tool/package/product/log premises, checked before
+and after four fresh processes: Native new graph 6.576s,
+Native regression 0.137s, Embedded new graph 4.459s and
+Embedded regression 0.239s. Every process passes under its
+120-second timeout; no rebuilding or second aggregate review is performed.
+
+Main normally fast-forwarded to the exact verified implementation. Source-owner
+25 dirty/untracked files, original M6 consumer 264 files, HEAD/status/index and the
+protected publisher patch remain identical to the pre-delivery snapshot. The
+accompanying delivery-record commit updates only progress and evidence. Unrelated
+unpushed main history prevents automatic push; whole-seven remains 1/7 and full87
+is incomplete. Other required M4 source/domain capabilities and M5-M8 remain open.
