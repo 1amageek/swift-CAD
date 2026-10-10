@@ -1382,3 +1382,56 @@ lanes with admitted unchanged children. Independent exact expectations refute
 rounded affine endpoints, wrong direction/UV, missing tensor sides, foreign owners,
 strict/empty selection and lost cancellation/lifetime. No broader publication or
 all-family completion is inferred.
+
+
+## Rolling-ball child graph composition
+
+The source owner supplies normalized complete curve position graphs from existing
+sealed Native or surface-lift families. A complete curve graph family retains its
+source, original coverage owner, exact [0,1] enclosure, every original position
+graph and proof depth. Its constructor is internal; arbitrary graph arrays or
+Boolean callbacks cannot publish completeness. This source-level family precedes
+L5 intersection preparation and does not duplicate that upper relation family.
+
+A concrete Curve3D snapshot retains the actual Native curve or lift source binding.
+Its explicit branch selection supports Native curves, rational B-spline pcurve
+lifts and retained affine/constant-U/V pcurve lifts on Native surfaces. Existing
+producers prepare each branch once. Rebinding position graphs retains original
+law/graph evidence and coverage arrays through COW ownership, without resampling,
+fitted controls, root solving or expression regeneration. Other required child
+families remain explicit upstream capabilities, not an alternate solver fallback.
+
+```mermaid
+flowchart LR
+ N[Complete Native curve charts] --> C[Sealed normalized curve position graphs]
+ L[Complete Native / retained pcurve lift graphs] --> C
+ C --> P[All original child chart triples]
+ P --> R[One existing rolling-ball minor-arc producer]
+ R --> D[Existing DI graph binder]
+```
+
+The existing Native source requirement refines a common child-binding/construction
+requirement. The Native public family/preparer keeps its signature. One source-owned
+minor-arc algorithm accepts embedded child positions and guards; its Native entry
+and generic graph entry differ only in child embedding. Generic embedding maps each
+child's one parameter to original U, assigns disjoint auxiliary coordinates, then
+allocates the three positive radial-length/half-angle witnesses. Original U/V remain
+the only authored coordinates. Every child condition, support endpoint inclusion,
+parameter-transport denominator, normalization/branch guard and owner is retained.
+Arbitrary variable permutations use canonical polynomial construction, never an
+assumed monomial order. Every admissible child witness represents the same original
+child position; every resulting witness represents the original minor-arc formula.
+
+The complete child product includes every nonempty enclosure intersection, including
+singletons and tuples whose guards later exclude them. No sampled feasibility or
+XYZ agreement prunes coverage. Checked graph/variable/condition counts, coefficients,
+embedding scratch, source/value/coefficient depths and terminal cancellation share
+one caller admission. Families/evidence are immutable Sendable owners on all targets.
+No unsafe boundary or shared state is introduced. General shape and ordinary fillet
+validity remain separate from this source/domain obligation.
+
+Verification owner: Tests/OriginalRollingBallGraphIntakeVerification. Actual mixed
+and lifted source/evaluation, independent exact expectations, child auxiliary guards,
+all incidents, source/request authority, coefficient transfer, resource boundaries,
+cancel/lifetime and unchanged Native regression must pass fixed target lanes before
+commit and independent main delivery.

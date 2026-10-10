@@ -584,3 +584,18 @@ even for empty selections, and all closed tensor sides survive. This additive
 retained capability preserves the existing Native issuer and its source semantics.
 Focused affine-lift and existing Native-lift fixtures own the changed interaction.
 No new solver, shared mutable state or alternate caller budget is introduced.
+
+
+## Rolling-ball generic child graph domain consumption
+
+Consume the sealed child-graph rolling-ball family from
+[source issuance](../../OriginalSourceIssuance/DESIGN.md#rolling-ball-child-graph-composition).
+Frame authority and effective selection remain the original UV square. Variable
+count follows the actual disjoint child auxiliary layout plus radial/root witnesses;
+auxiliaries never become authored axes. Validate and import every query coordinate
+before empty selection can short-circuit. Member issuance uses the existing graph
+binder and retains every child equation, support/branch guard, source owner and depth.
+Exact selections, complete empty results and all closed incidents use the caller's
+same admission. No predicate callback, inverse reconstruction or second solver is
+added. The existing Native domain capability remains available. The focused generic
+rolling-ball verification owns this interaction and Native compatibility.

@@ -61,7 +61,7 @@ source_names = [
     'StrictDecoding.swift',
 ]
 source_names += ['OriginalSourceIssuance/' + name + '.swift' for name in [
-    'OriginalRollingBallGraphProducer', 'OriginalRollingBallSourceReading', 'OriginalRollingBallSnapshot',
+    'OriginalRollingBallGraphProducer', 'OriginalRollingBallChildSourceReading', 'OriginalRollingBallChildGraphEvidence', 'OriginalRollingBallSourceReading', 'OriginalRollingBallSnapshot',
     'OriginalRollingBallSnapshotProvider', 'OriginalRollingBallGraphEvidence',
     'OriginalFiniteNativeRollingBallGraphs', 'OriginalFiniteNativeRollingBallGraphPreparing',
     'DefaultOriginalFiniteNativeRollingBallGraphPreparer',

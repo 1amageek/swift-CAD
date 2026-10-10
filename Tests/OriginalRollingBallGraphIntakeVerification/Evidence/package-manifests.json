@@ -1,0 +1,56 @@
+{
+  "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalSourceIssuanceVerification/Package.swift": {
+    "sha256": "798a235ca4faa18864e9519ad2e5b57961249558787b28873dd1a707fc491233",
+    "exitCode": 0,
+    "targets": [
+      {
+        "target": "SourceIssuer",
+        "adapterExclusions": [
+          "OriginalRollingBallCurveSnapshot.swift",
+          "OriginalRollingBallCurveSnapshotProvider.swift",
+          "OriginalRollingBallCurveGraphEvidence.swift",
+          "OriginalRollingBallCurveGraphCoverage.swift",
+          "DefaultOriginalRollingBallCurveGraphPreparer.swift",
+          "OriginalGraphRollingBallSnapshot.swift",
+          "OriginalGraphRollingBallSnapshotProvider.swift"
+        ]
+      }
+    ]
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDomainIdentityVerification/Package.swift": {
+    "sha256": "e0b0213a1d6813ac2682c8d6dc264b8297754bd9a62622f037479495df4c3ac1",
+    "exitCode": 0,
+    "targets": [
+      {
+        "target": "SourceIssuer",
+        "adapterExclusions": [
+          "OriginalRollingBallCurveSnapshot.swift",
+          "OriginalRollingBallCurveSnapshotProvider.swift",
+          "OriginalRollingBallCurveGraphEvidence.swift",
+          "OriginalRollingBallCurveGraphCoverage.swift",
+          "DefaultOriginalRollingBallCurveGraphPreparer.swift",
+          "OriginalGraphRollingBallSnapshot.swift",
+          "OriginalGraphRollingBallSnapshotProvider.swift"
+        ]
+      }
+    ]
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification/Package.swift": {
+    "sha256": "0e2eef8d1260ee40ed78ccaf688b7d2c95fd08fd7f8d968bf0327b79e0108e08",
+    "exitCode": 0,
+    "targets": [
+      {
+        "target": "SourceIssuer",
+        "adapterExclusions": [
+          "OriginalRollingBallCurveSnapshot.swift",
+          "OriginalRollingBallCurveSnapshotProvider.swift",
+          "OriginalRollingBallCurveGraphEvidence.swift",
+          "OriginalRollingBallCurveGraphCoverage.swift",
+          "DefaultOriginalRollingBallCurveGraphPreparer.swift",
+          "OriginalGraphRollingBallSnapshot.swift",
+          "OriginalGraphRollingBallSnapshotProvider.swift"
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,6 @@
+PASS rolling-ball DI: full/strict 1/3/singleton/disconnected/empty, sixteen incidents, foreign owner, arity/chart/cancel
+PASS generic rolling-ball compatible child fields, inherited value/coefficient depth and permuted variable embedding
+PASS generic rolling-ball exact work/storage and one-less, entry/final cancel: work=1946770 bytes=6208404
+PASS real lifted/mixed rolling-ball graphs and original evaluator, all 16 knot incidents, nonmonotone/constant fibers, child UV/positive-root guards and source lifetime/COW
+(node:29131) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
