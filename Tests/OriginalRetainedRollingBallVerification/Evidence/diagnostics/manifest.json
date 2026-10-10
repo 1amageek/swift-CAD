@@ -1,0 +1,31 @@
+{
+  "accepted": false,
+  "reason": "Superseded fixture failures: catch clauses omitted preserved OriginalDomainIdentityFailure.source.polynomial.scalar and raw ExactScalarFailure from actual host construction. No production source fix was needed. Only final Evidence/<lane>/receipt.json records are accepted.",
+  "files": {
+    "initial-native/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "initial-native/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "initial-native/inputs-before-compile.json": "00a00201d306f218a1947ba52fd31e6c1c706093e7ba5fed3f9c83483f6f1f88",
+    "initial-native/proof.log": "e49e93d37660bd3ac0a6010b327dc3a48496d23c872e8a1f33185f1a66d57999",
+    "initial-native/runs.json": "07e4d37aad7c90d84d84b90917d3a8f4e28bd714ceb0961d1b8ad7df117f366f",
+    "second-asan/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "second-asan/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "second-asan/inputs-before-compile.json": "792b52d35d2119075b17a4b9eb55e78d296263d7680e9c51760b595a4f8ec1e2",
+    "second-asan/proof.log": "1adedc07d43e1c189b8d3dbcfb9375e040edb4b221d7143043752959d75cd28b",
+    "second-asan/runs.json": "217ac5dbcd64de6bf6d50cd3a78744165c91e05f390b99a3d2c28babe98ad4b5",
+    "second-embedded/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "second-embedded/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "second-embedded/inputs-before-compile.json": "6ee79ed1adf38a8c330abbc77a6e6a3213566e2bf1771e1b4ce14fbb75172ad7",
+    "second-embedded/proof.log": "da719b5096fe3ec96e27341288bce532fbb8deaf777c4e89f532a7f1ccd4d301",
+    "second-embedded/runs.json": "1b7d8e1f1d31d37bbf6d63c466c7148d044dd90ffc856009022ed260e380c0f9",
+    "second-native/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "second-native/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "second-native/inputs-before-compile.json": "aa5900c0671b263e0065ae8fd3aa623636c0e0b999e9d0d8808a9cc440b1ce1f",
+    "second-native/proof.log": "1adedc07d43e1c189b8d3dbcfb9375e040edb4b221d7143043752959d75cd28b",
+    "second-native/runs.json": "5a89a4addf23e852decba87d930ef8f665fe0f108856abcefbb71a7a2bcca73c",
+    "second-wasm/compile-caller.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "second-wasm/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "second-wasm/inputs-before-compile.json": "4f8752b97d38f0554612f81942fc69664c8b6d3eac0bbe25417038f96e6a7cd9",
+    "second-wasm/proof.log": "d39512a5b77e2f89ede2235f13eae16bfabf8d3d866c73d61a9c16d5d7ffe03e",
+    "second-wasm/runs.json": "7b2b96aae1de34826c0c6eaa433d5889bbc6014f39261b8739d7384385a7593c"
+  }
+}

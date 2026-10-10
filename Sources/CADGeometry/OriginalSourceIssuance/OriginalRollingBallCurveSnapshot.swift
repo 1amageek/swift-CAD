@@ -6,6 +6,10 @@ public struct OriginalRollingBallCurveSnapshot: Sendable {
         case native(OriginalSourceBinding<BSplineCurve3D>)
         case nativeLift(OriginalSourceBinding<OriginalNativeSurfaceLiftSnapshot>)
         case retainedLift(OriginalSourceBinding<OriginalAffineSurfaceLiftSnapshot>)
+        case coonsNativeLift(OriginalSourceBinding<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalCoonsAtlasSnapshot>>)
+        case coonsLift(OriginalSourceBinding<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalCoonsAtlasSnapshot>>)
+        case boundaryNativeLift(OriginalSourceBinding<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalBoundaryCorrectionSnapshot>>)
+        case boundaryLift(OriginalSourceBinding<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalBoundaryCorrectionSnapshot>>)
     }
     public let original: Curve3D
     let capability: Capability

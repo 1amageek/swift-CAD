@@ -5,4 +5,8 @@ public enum OriginalRollingBallCurveGraphCoverage: Sendable {
     case native(OriginalFiniteBSplineCharts<BSplineCurve3D>)
     case nativeLift(OriginalFiniteNativeSurfaceLiftGraphs<OriginalNativeSurfaceLiftSnapshot>)
     case retainedLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalAffineSurfaceLiftSnapshot>)
+    case coonsNativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalCoonsAtlasSnapshot>>)
+    case coonsLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalCoonsAtlasSnapshot>>)
+    case boundaryNativeLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalBoundaryCorrectionSnapshot>>)
+    case boundaryLift(OriginalFiniteRetainedSurfaceLiftGraphs<OriginalRetainedAtlasSurfaceLiftSnapshot<OriginalBoundaryCorrectionSnapshot>>)
 }

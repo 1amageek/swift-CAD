@@ -18,17 +18,33 @@ public struct OriginalRollingBallCurveSnapshotProvider: OriginalSourceSnapshotti
                     .bind(input,limits:children,using:&a)
                 capability = .native(child);depth=child.sourceDepth
             case .surfaceLift(let lift):
-                switch lift.parameterCurve {
-                case .bSpline:
+                switch (lift.surface,lift.parameterCurve) {
+                case (.bSpline,.bSpline):
                     let child=try DefaultOriginalSourceBindingIssuer(provider:OriginalNativeSurfaceLiftSnapshotProvider(tolerance:tolerance))
                         .bind(lift,limits:children,using:&a)
                     capability = .nativeLift(child);depth=child.sourceDepth
-                case .affine,.constantU,.constantV:
+                case (.bSpline,.affine),(.bSpline,.constantU),(.bSpline,.constantV):
                     let child=try DefaultOriginalSourceBindingIssuer(provider:OriginalAffineSurfaceLiftSnapshotProvider(field:field,tolerance:tolerance))
                         .bind(lift,limits:children,using:&a)
                     capability = .retainedLift(child);depth=child.sourceDepth
+                case (.procedural(.originalCoons),.bSpline):
+                    let provider=OriginalNativePcurveRetainedAtlasLiftSnapshotProvider(host:OriginalCoonsAtlasSnapshotProvider(field:field,tolerance:tolerance),tolerance:tolerance)
+                    let child=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(lift,limits:children,using:&a)
+                    capability = .coonsNativeLift(child);depth=child.sourceDepth
+                case (.procedural(.originalCoons),.affine),(.procedural(.originalCoons),.constantU),(.procedural(.originalCoons),.constantV):
+                    let provider=OriginalRetainedAtlasSurfaceLiftSnapshotProvider(host:OriginalCoonsAtlasSnapshotProvider(field:field,tolerance:tolerance),field:field,tolerance:tolerance)
+                    let child=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(lift,limits:children,using:&a)
+                    capability = .coonsLift(child);depth=child.sourceDepth
+                case (.procedural(.originalBoundaryCorrected),.bSpline):
+                    let provider=OriginalNativePcurveRetainedAtlasLiftSnapshotProvider(host:OriginalBoundaryCorrectionSnapshotProvider(field:field,tolerance:tolerance),tolerance:tolerance)
+                    let child=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(lift,limits:children,using:&a)
+                    capability = .boundaryNativeLift(child);depth=child.sourceDepth
+                case (.procedural(.originalBoundaryCorrected),.affine),(.procedural(.originalBoundaryCorrected),.constantU),(.procedural(.originalBoundaryCorrected),.constantV):
+                    let provider=OriginalRetainedAtlasSurfaceLiftSnapshotProvider(host:OriginalBoundaryCorrectionSnapshotProvider(field:field,tolerance:tolerance),field:field,tolerance:tolerance)
+                    let child=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(lift,limits:children,using:&a)
+                    capability = .boundaryLift(child);depth=child.sourceDepth
                 default:
-                    // FIXME(INCOMPLETE_IMPLEMENTATION): Remaining lifted rail pcurve families
+                    // FIXME(INCOMPLETE_IMPLEMENTATION): Remaining lifted rail host/pcurve families
                     // need complete original parameter/guard supply before this rolling-ball
                     // source port can publish their full normalized child cover.
                     throw OriginalSourceIssuanceFailure.unsupportedRepresentation

@@ -20,11 +20,27 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
                 let coverage: OriginalRollingBallCurveGraphCoverage
                 var graphs:[Family.Graph]=[]
                 func retain<E: Sendable>(_ graph: OriginalParametricGraphReceipt<E,OriginalExactScalarDomain,OriginalSurfaceLiftGraphEvidence<E>>,
-                    evidence: OriginalRollingBallCurveGraphEvidence,_ a: inout OriginalSourceProofAdmission<A>) throws where E: OriginalLiftSourceReading {
+                    evidence: OriginalRollingBallCurveGraphEvidence,_ a: inout OriginalSourceProofAdmission<A>) throws where E: OriginalLiftGraphSourceReading {
                     try a.consumeWork(1)
                     graphs.append(.init(source:source,evidence:evidence,field:graph.field,polynomials:graph.polynomials,
                         homogeneous:graph.homogeneous,support:graph.support,includesUpperBoundary:graph.includesUpperBoundary,
                         layout:graph.layout,conditions:graph.conditions,parameterTransport:graph.parameterTransport,proofDepth:graph.proofDepth))
+                }
+                func retained<S: OriginalRetainedAtlasLiftSourceReading>(_ binding: OriginalSourceBinding<S>) throws -> OriginalFiniteRetainedSurfaceLiftGraphs<S> {
+                    let surface=try DefaultOriginalFiniteRetainedSurfaceChartPreparer<S.Surface>().prepare(
+                        source:binding.original.originalSurface,maximumCharts:maximumCharts,limits:children,using:&a)
+                    let pcurve=try DefaultOriginalFiniteRetainedCurveChartPreparer<S.Pcurve>().prepare(
+                        source:binding.original.originalPcurve,maximumCharts:maximumCharts,limits:children,using:&a)
+                    return try DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<S>().prepare(
+                        source:binding,surface:surface,pcurve:pcurve,maximumCharts:maximumCharts,limits:children,using:&a)
+                }
+                func nativePcurve<S: OriginalNativePcurveRetainedAtlasLiftSourceReading>(_ binding: OriginalSourceBinding<S>) throws -> OriginalFiniteRetainedSurfaceLiftGraphs<S> {
+                    let surface=try DefaultOriginalFiniteRetainedSurfaceChartPreparer<S.Surface>().prepare(
+                        source:binding.original.originalSurface,maximumCharts:maximumCharts,limits:children,using:&a)
+                    let pcurve=try DefaultOriginalFiniteBSplineChartPreparer<S.Pcurve>().prepare(
+                        source:binding.original.originalPcurve,field:f,maximumCharts:maximumCharts,limits:children,using:&a)
+                    return try DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<S>().prepare(
+                        source:binding,surface:surface,pcurve:pcurve,maximumCharts:maximumCharts,limits:children,using:&a)
                 }
                 switch source.original.capability {
                 case .native(let binding):
@@ -70,6 +86,30 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
                     try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
                     graphs.reserveCapacity(family.graphs.count)
                     for graph in family.graphs { try retain(graph,evidence:.retainedLift(graph),&a) }
+                case .coonsNativeLift(let binding):
+                    let family=try nativePcurve(binding)
+                    coverage = .coonsNativeLift(family)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
+                    graphs.reserveCapacity(family.graphs.count)
+                    for graph in family.graphs { try retain(graph,evidence:.coonsNativeLift(graph),&a) }
+                case .coonsLift(let binding):
+                    let family=try retained(binding)
+                    coverage = .coonsLift(family)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
+                    graphs.reserveCapacity(family.graphs.count)
+                    for graph in family.graphs { try retain(graph,evidence:.coonsLift(graph),&a) }
+                case .boundaryNativeLift(let binding):
+                    let family=try nativePcurve(binding)
+                    coverage = .boundaryNativeLift(family)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
+                    graphs.reserveCapacity(family.graphs.count)
+                    for graph in family.graphs { try retain(graph,evidence:.boundaryNativeLift(graph),&a) }
+                case .boundaryLift(let binding):
+                    let family=try retained(binding)
+                    coverage = .boundaryLift(family)
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
+                    graphs.reserveCapacity(family.graphs.count)
+                    for graph in family.graphs { try retain(graph,evidence:.boundaryLift(graph),&a) }
                 }
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Family.self))
                 let result=Family(source:source,coverage:coverage,field:f,graphs:graphs,

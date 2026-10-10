@@ -1,0 +1,1 @@
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: RetainedHostAdapters.OriginalDomainIdentityFailure.source(RetainedHostAdapters.OriginalSourceIssuanceFailure.polynomial(CADGeometry.ExactPolynomialFailure.scalar(CADGeometry.ExactScalarFailure.cancelled)))

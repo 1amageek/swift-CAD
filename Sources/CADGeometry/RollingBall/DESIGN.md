@@ -29,6 +29,7 @@ Local success must not be used as a whole-surface or solid certificate.
 | Design | Relationship | Contract Used | Summary | Cautions |
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | surface evaluation and intersection correspondence | Supplies offset surfaces, normals and rational curves. | Keep geometric truth separate from sampled evidence. |
+| [Source Issuance](../OriginalSourceIssuance/DESIGN.md#retained-lift-hosts-in-rolling-ball-children) | used by | Sealed complete child graphs and original minor-arc product | Consumes actual retained-host lift rails | No new minor-arc, identity or whole-solid theorem |
 | [CADModeling](../../CADModeling/DESIGN.md) | used by | contact sections and blend patches | Ordinary fillet dispatch composes retained topology through the kernel port. | Current selection domain remains limited; full fillet parity is not established. |
 
 ## Architecture

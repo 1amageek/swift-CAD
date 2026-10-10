@@ -1,0 +1,15 @@
+(node:68849) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS existing rolling-ball curve caller consumes retained lift source/family with complete knot sides, typed pcurve view and exact resources/cancel
+wasm://wasm/RetainedRollingBallProof.wasm-1470e112:1
+
+
+RuntimeError: unreachable
+    at RetainedRollingBallProof.wasm.swift_errorInMain (wasm://wasm/RetainedRollingBallProof.wasm-1470e112:wasm-function[13499]:0x9f1e47)
+    at RetainedRollingBallProof.wasm.main (wasm://wasm/RetainedRollingBallProof.wasm-1470e112:wasm-function[16874]:0xd96300)
+    at RetainedRollingBallProof.wasm.__main_void (wasm://wasm/RetainedRollingBallProof.wasm-1470e112:wasm-function[44160]:0x248b9be)
+    at RetainedRollingBallProof.wasm._start (wasm://wasm/RetainedRollingBallProof.wasm-1470e112:wasm-function[9]:0x12fd7)
+    at WASI.start (node:wasi:138:7)
+    at file:///private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalCoonsLiftVerification/RunWASI.mjs:7:25
+
+Node.js v24.19.0

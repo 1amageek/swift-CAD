@@ -1723,3 +1723,44 @@ path is freshly compiled on receipt-bound numerical children, then exercised
 through actual SurfaceLiftCurve3D and existing DI, with four-target success,
 resource/depth/cancel/foreign-owner/lifetime cases and prior retained-host fixtures.
 General nonrational hosts/pcurves, priority images, M5/M6/M7/M8 remain open.
+
+## Retained lift hosts in rolling-ball children
+
+The actual OriginalRollingBallCurveSnapshotProvider explicitly selects the
+existing Coons or boundary-correction host provider and Native B-spline or
+retained affine/constant pcurve provider. Four additive sealed capabilities retain
+the corresponding original lift binding. Existing Native child/lift capabilities
+and signatures are preserved; unsupported host/pcurve/priority variants fail,
+with no alternative provider retry or image-only correspondence assertion.
+
+```mermaid
+flowchart LR
+ H[Actual Coons or correction host plus pcurve] --> L[Existing sealed lift snapshot]
+ L --> C[Rolling-ball child snapshot and complete graphs]
+ C --> R[Existing original minor-arc complete product]
+ R --> D[Existing guarded rolling-ball DI]
+```
+
+The child graph preparer consumes the existing complete retained host charts and
+pcurve spans, then invokes the unchanged shared lift producer. Typed evidence and
+coverage retain both child bindings and immutable law/graph arrays. Rebinding
+retains original parameter roles, every auxiliary UV, chart/domain guard and
+proof depth; no source position is recomputed. The original rolling-ball product
+accepts these graphs through its existing child contract, preserves all chart
+triples and keeps radial normalization/positive-root guards and radius policy.
+
+Child/provider descent uses the same source-depth budget and ledger. Output
+metadata sizes use actual generic strides; graph/evidence growth is admitted
+before allocation. All configuration and retained evidence are immutable Sendable
+on every target; scratch and admission are exclusive and invocation-local.
+Terminal cancellation, foreign binding/field rejection and detached lifetime
+apply at both the child and composed-surface boundaries.
+
+Verification owner: Tests/OriginalRetainedRollingBallVerification. Fresh original
+source/child adapters and actual rolling-ball constructor/evaluator compile on
+receipt-bound retained-host/source/DI and numerical children. All four fixed lanes
+exercise complete products/UV/guards, exact domains/resources/depth/cancel/lifetime
+and unchanged Native child behavior. General periodic/nonrational child sources,
+priority-image correspondence, M5/M6/M7/M8 remain open. The
+[rolling-ball owner](../RollingBall/DESIGN.md) retains numerical and feasibility
+policy; this source connection is not a whole-solid fillet certificate.
