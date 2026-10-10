@@ -1,0 +1,3 @@
+PASS real periodic Native offset construction/provider/DI/evaluator, independent axes, negative cycles, seam ownership, signed/zero distance and COW
+(node:41118) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)

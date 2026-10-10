@@ -1,0 +1,7 @@
+PASS independent periodic axes, seam/corner germs, canonical original position, positive-root guards, huge negative cycles and generic witness
+PASS strict/disconnected/singleton/empty requests and exact singular normal guards at negative/zero/positive distance
+PASS periodic source refusal, foreign owner, malformed query, exact work/storage, chart/family limits, entry/mid/final cancel and detached lifetime/COW
+PASS guarded offset domain: enclosure differs from exact material, signed branches, positive-q relation, zero-distance singular exclusion, canonical knot ownership, singleton/empty request and retained source lifetime
+PASS guarded offset domain failures: foreign source, chart/source limits, malformed tuple/template, exact work/storage admission, success/exclusion terminal cancellation
+(node:41114) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
