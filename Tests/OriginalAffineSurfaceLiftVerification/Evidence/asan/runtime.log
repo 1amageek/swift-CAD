@@ -1,0 +1,3 @@
+PASS surface-lift DI strict 1/3/singleton/disconnected/empty, foreign owner/field, chart/arity and empty publication cancel
+PASS surface-lift exact resource limits and one-less, entry/final callback cancel; work=17773 bytes=110776
+PASS retained affine/constant lift, reversed traversal, exact 2^-104 distinction, original evaluator and all chart sides; source COW/lifetime/depth/unsupported guards

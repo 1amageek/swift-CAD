@@ -27,6 +27,8 @@ let package = Package(name: "OriginalSourceIssuanceVerification", platforms: [.m
         "OriginalRollingBallSnapshot.swift", "OriginalRollingBallSnapshotProvider.swift",
         "BSplineCurve2D+OriginalSourceReading.swift", "OriginalBSplinePcurveSnapshotProvider.swift",
         "OriginalNativeSurfaceLiftSnapshot.swift", "OriginalNativeSurfaceLiftSnapshotProvider.swift",
+        "OriginalAffinePcurveSnapshot.swift", "OriginalAffinePcurveSnapshotProvider.swift",
+        "OriginalAffineSurfaceLiftSnapshot.swift", "OriginalAffineSurfaceLiftSnapshotProvider.swift",
         "OriginalGuideSnapshot.swift", "OriginalGuideSnapshotProvider.swift",
         "OriginalBoundaryCorrectionSnapshot.swift", "OriginalBoundaryCorrectionSnapshotProvider.swift",
         "OriginalPlaneDerivativeCurveSnapshot.swift", "OriginalPlaneDerivativeCurveSnapshotProvider.swift",

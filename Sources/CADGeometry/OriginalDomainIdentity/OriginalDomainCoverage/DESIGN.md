@@ -569,3 +569,18 @@ cancel, including successful empty selection. Existing child storage and graph
 preparation are retained without recomputation. The focused lift verification owns
 this source-to-DI interaction. General/periodic lift sources and automatic public
 geometric results remain required open work, not a finite API fallback.
+
+
+## Retained pcurve lift domain consumption
+
+The retained lift issuer consumes the sealed retained-pcurve/Native-surface family
+from [source issuance](../../OriginalSourceIssuance/DESIGN.md#retained-pcurve-lift-composition).
+Its source remains one normalized T coordinate. UV are auxiliary witnesses, never
+new authored dimensions. Frame/source semantics and exact whole T support are
+checked before selection; members use the existing graph binder, and lifted
+incident queries retain all source equations, UV chart bounds and denominators.
+Importable rational coordinates are normalized once, foreign algebraic fields fail
+even for empty selections, and all closed tensor sides survive. This additive
+retained capability preserves the existing Native issuer and its source semantics.
+Focused affine-lift and existing Native-lift fixtures own the changed interaction.
+No new solver, shared mutable state or alternate caller budget is introduced.

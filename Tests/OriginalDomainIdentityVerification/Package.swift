@@ -27,6 +27,8 @@ let package = Package(name: "OriginalDomainIdentityVerification", platforms: [.m
         "OriginalRollingBallSnapshot.swift", "OriginalRollingBallSnapshotProvider.swift",
         "BSplineCurve2D+OriginalSourceReading.swift", "OriginalBSplinePcurveSnapshotProvider.swift",
         "OriginalNativeSurfaceLiftSnapshot.swift", "OriginalNativeSurfaceLiftSnapshotProvider.swift",
+        "OriginalAffinePcurveSnapshot.swift", "OriginalAffinePcurveSnapshotProvider.swift",
+        "OriginalAffineSurfaceLiftSnapshot.swift", "OriginalAffineSurfaceLiftSnapshotProvider.swift",
         "OriginalPlaneDerivativeCurveSnapshot.swift", "OriginalPlaneDerivativeCurveSnapshotProvider.swift",
         "OriginalPlaneDerivativeSurfaceSnapshot.swift", "OriginalPlaneDerivativeSurfaceSnapshotProvider.swift",
         "OriginalGuideSnapshot.swift", "OriginalGuideSnapshotProvider.swift",

@@ -1,0 +1,72 @@
+{
+  "swift": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+  "swiftSHA256": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+  "records": [
+    {
+      "package": "OriginalSourceIssuanceVerification",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "package",
+        "--package-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalSourceIssuanceVerification",
+        "--scratch-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-manifest-OriginalSourceIssuanceVerification",
+        "dump-package"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.6730472079943866,
+      "exitCode": 0,
+      "packageSHA256": "51e9ae915c29254e57ce9eb4c713772d558ef32feb0da18c6642b9c3c5f0b3b3",
+      "requiredExcluded": [
+        "OriginalAffinePcurveSnapshot.swift",
+        "OriginalAffinePcurveSnapshotProvider.swift",
+        "OriginalAffineSurfaceLiftSnapshot.swift",
+        "OriginalAffineSurfaceLiftSnapshotProvider.swift"
+      ]
+    },
+    {
+      "package": "OriginalDomainIdentityVerification",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "package",
+        "--package-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDomainIdentityVerification",
+        "--scratch-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-manifest-OriginalDomainIdentityVerification",
+        "dump-package"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.5793585419887677,
+      "exitCode": 0,
+      "packageSHA256": "1cb5a9392537f31f8f5e9bc6acfcfc5351abcf5a7c267ba28bac458197d5947e",
+      "requiredExcluded": [
+        "OriginalAffinePcurveSnapshot.swift",
+        "OriginalAffinePcurveSnapshotProvider.swift",
+        "OriginalAffineSurfaceLiftSnapshot.swift",
+        "OriginalAffineSurfaceLiftSnapshotProvider.swift"
+      ]
+    },
+    {
+      "package": "OriginalGraphRelationVerification",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "package",
+        "--package-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification",
+        "--scratch-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-manifest-OriginalGraphRelationVerification",
+        "dump-package"
+      ],
+      "timeoutSeconds": 60,
+      "elapsedSeconds": 0.5817925840383396,
+      "exitCode": 0,
+      "packageSHA256": "bad4bc310bafe12b96d5ff37c9d2dfef88a49ac51578cb6aa9f26ab28d413730",
+      "requiredExcluded": [
+        "OriginalAffinePcurveSnapshot.swift",
+        "OriginalAffinePcurveSnapshotProvider.swift",
+        "OriginalAffineSurfaceLiftSnapshot.swift",
+        "OriginalAffineSurfaceLiftSnapshotProvider.swift"
+      ]
+    }
+  ]
+}

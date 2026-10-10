@@ -1331,3 +1331,54 @@ sides, wrong UV, outside-chart guards, exact clipping/empty requests, foreign ow
 and scalar field, resource boundaries, cancellation and COW/source lifetime.
 [Domain coverage](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#native-surface-lift-domain-consumption)
 consumes this sealed witness; ordinary all-family CS/SSI/XYZ publication remains M7.
+
+
+## Retained pcurve lift composition
+
+The common lift source requirement owns immutable surface/pcurve bindings and the
+pcurve chart-key type. The existing Native requirement refines it with a Native
+pcurve/key, preserving its public API and complete Native family constructor.
+A retained-pcurve refinement consumes `OriginalFiniteRetainedCurveCharts` and its
+complete normalized support instead. Both use the same existing lift polynomial
+producer; neither DI nor another consumer regenerates a shape expression.
+
+```mermaid
+flowchart LR
+ A[Authored affine / constant-U / constant-V pcurve] --> R[Retained exact UV position law]
+ R --> C[Existing complete retained-curve charts]
+ N[Native surface charts] --> L[Shared lift graph producer]
+ C --> L
+ B[Existing Native pcurve charts] --> L
+ L --> D[Guarded original T / auxiliary UV domain]
+```
+
+The affine pcurve owner retains original origin, raw direction and authored start/
+end parameters. Its normalized polynomial is origin + direction *
+(start + (end-start)*T), evaluated in the original exact scalar field. Constant-U/V
+retains the unchanged constant coordinate and directed interpolation, including
+reversal. No rounded endpoint or fabricated Native control net is source authority.
+The retained curve's third coordinate is exact zero and denominator exact one.
+Construction validity matches the actual pcurve validator. Parent lift validation
+uses the actual fixed-visit affine/constant validator after Native child validation;
+its bounded scalar visits and temporary arrays are charged to the same admission.
+Exact endpoint checks then prove the whole affine UV segment lies inside exact
+Native support. Tolerance-only/clamped support and unproved priority images fail
+explicitly. Other pcurve branches remain required unfinished capabilities.
+
+The sealed retained lift family accepts only the original matching Native surface
+and retained-pcurve family, verifies identity coordinate transports, normalized
+whole pcurve support and every closed chart pair. Compatible pcurve support
+endpoints and law coefficients are imported into the surface field before
+comparison or composition; independent rational field owners are not rejected.
+It shares source/theorem owners
+and common XYZ/D/equations/guards without a second formula producer. New immutable
+families and invocation-local scratch retain identical Native/WASM/Embedded
+ownership. Work, bytes, source/proof/chart depths and terminal cancel use one caller
+ledger. The old Native family/issuer retains its signature and behavioral contract.
+
+Verification owner: `Tests/OriginalAffineSurfaceLiftVerification`. Compile/link/run
+actual new source/DI and both old Native and new retained fixtures on fixed target
+lanes with admitted unchanged children. Independent exact expectations refute
+rounded affine endpoints, wrong direction/UV, missing tensor sides, foreign owners,
+strict/empty selection and lost cancellation/lifetime. No broader publication or
+all-family completion is inferred.

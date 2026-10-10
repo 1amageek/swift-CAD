@@ -4,10 +4,10 @@ import L1
 #endif
 
 /// Exact forward composition; auxiliary UV is never recovered through an inverse.
-struct OriginalSurfaceLiftGraphProducer<S: OriginalSurfaceLiftSourceReading> {
+struct OriginalSurfaceLiftGraphProducer<S: OriginalLiftSourceReading> {
     typealias Field=OriginalExactScalarDomain
     typealias Polynomial=ExactPolynomial<Field>
-    typealias Graph=OriginalFiniteNativeSurfaceLiftGraphs<S>.Graph
+    typealias Graph=OriginalParametricGraphReceipt<S,Field,OriginalSurfaceLiftGraphEvidence<S>>
     func issue<A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<S>,
         evidence: OriginalSurfaceLiftGraphEvidence<S>,offset: Field.Value,span: Field.Value,
         using a: inout OriginalSourceProofAdmission<A>) throws -> Graph {
@@ -51,8 +51,8 @@ struct OriginalSurfaceLiftGraphProducer<S: OriginalSurfaceLiftSourceReading> {
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:Polynomial.self))
         let identity=OriginalRationalParameterTransport<Field>(numerators:[try parameters.variable(0,using:&a)],
             denominators:[try parameters.constant(one,using:&a)])
-        let lower=try f.dividing(f.subtracting(evidence.pcurve.support[0].lower,offset,using:&a),span,using:&a)
-        let upper=try f.dividing(f.subtracting(evidence.pcurve.support[0].upper,offset,using:&a),span,using:&a)
+        let lower=try f.dividing(f.subtracting(f.importing(evidence.pcurve.support[0].lower,using:&a),offset,using:&a),span,using:&a)
+        let upper=try f.dividing(f.subtracting(f.importing(evidence.pcurve.support[0].upper,using:&a),offset,using:&a),span,using:&a)
         guard try f.compare(lower,zero,using:&a) != .less,try f.compare(upper,one,using:&a) != .greater else {
             throw OriginalSourceIssuanceFailure.invalidChart
         }

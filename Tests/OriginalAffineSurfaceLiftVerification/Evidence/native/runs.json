@@ -1,0 +1,196 @@
+[
+  {
+    "label": "compile",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final",
+      "-emit-library",
+      "-static",
+      "-emit-module",
+      "-enable-testing",
+      "-module-name",
+      "AffineSurfaceLiftAdapters",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/BSplineCurve2D+OriginalSourceReading.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalBSplinePcurveSnapshotProvider.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalSurfaceLiftSourceReading.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalNativeSurfaceLiftSnapshot.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalNativeSurfaceLiftSnapshotProvider.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalSurfaceLiftGraphEvidence.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalFiniteNativeSurfaceLiftGraphs.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalFiniteNativeSurfaceLiftGraphPreparing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/DefaultOriginalFiniteNativeSurfaceLiftGraphPreparer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalSurfaceLiftGraphProducer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalParametricVariableLayout.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalParametricGraphCondition.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalParametricGraphReceipt.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalLiftSourceReading.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalRetainedCurveSourceReading.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalFiniteRetainedCurveCharts.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalFiniteRetainedCurveChartPreparing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/DefaultOriginalFiniteRetainedCurveChartPreparer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalRetainedSurfaceLiftSourceReading.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalAffinePcurveSnapshot.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalAffinePcurveSnapshotProvider.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalAffineSurfaceLiftSnapshot.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalAffineSurfaceLiftSnapshotProvider.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalFiniteRetainedSurfaceLiftGraphs.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalFiniteRetainedSurfaceLiftGraphPreparing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalParametricGraphDomainBinding.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalDomainBoundParametricGraph.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/DefaultOriginalParametricGraphDomainBinder.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalNativeSurfaceLiftDomainIssuing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalNativeSurfaceLiftDomainCover.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/DefaultOriginalNativeSurfaceLiftDomainIssuer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalRetainedSurfaceLiftDomainIssuing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/OriginalRetainedSurfaceLiftDomainCover.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/Sources/DefaultOriginalRetainedSurfaceLiftDomainIssuer.swift",
+      "-emit-module-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/AffineSurfaceLiftAdapters.swiftmodule",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libAffineSurfaceLiftAdapters.a"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 3.847322167013772,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-CADCore",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedCADCore.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/CADCore.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.018629541038535535,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-CADGeometry",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedCADGeometry.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/CADGeometry.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.31164504203479737,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-HashTreeCollections",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/HashTreeCollections.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.020413459045812488,
+    "exitCode": 0
+  },
+  {
+    "label": "archive-InternalCollectionsUtilities",
+    "command": [
+      "ar",
+      "-rcs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedInternalCollectionsUtilities.a",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug/InternalCollectionsUtilities.o"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.013536417041905224,
+    "exitCode": 0
+  },
+  {
+    "label": "link",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final",
+      "-parse-as-library",
+      "-D",
+      "ORIGINAL_SURFACE_LIFT_ADAPTER_VERIFICATION",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalAffineSurfaceLiftVerification/Proof.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libAffineSurfaceLiftAdapters.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedCADCore.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedCADGeometry.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedInternalCollectionsUtilities.a",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/AffineSurfaceLiftProof"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.6089103339472786,
+    "exitCode": 0
+  },
+  {
+    "label": "runtime",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/AffineSurfaceLiftProof"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.6646216670051217,
+    "exitCode": 0
+  },
+  {
+    "label": "link-native-regression",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-swift-version",
+      "6",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final",
+      "-parse-as-library",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/NativeRegression.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libAffineSurfaceLiftAdapters.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedCADCore.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedCADGeometry.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/libCachedInternalCollectionsUtilities.a",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/NativeRegression"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.5955157079733908,
+    "exitCode": 0
+  },
+  {
+    "label": "runtime-native-regression",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/NativeRegression"
+    ],
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.6378190409159288,
+    "exitCode": 0
+  }
+]
