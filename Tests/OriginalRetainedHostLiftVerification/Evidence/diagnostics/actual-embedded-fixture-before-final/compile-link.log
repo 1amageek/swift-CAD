@@ -1,0 +1,63 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/ActualProof.swift:72:56: error: missing argument label 'terminator:' in call
+ 70 |         catch RetainedHostAdapters.OriginalSourceIssuanceFailure.polynomial(.scalar(.resourceLimit(_))) {}
+ 71 |     }
+ 72 |     static func main() { do { try run() } catch { print("FAIL actual retained host:",error);exit(1) } }
+    |                                                        `- error: missing argument label 'terminator:' in call
+ 73 |     nonisolated static func run() throws {
+ 74 |         var a=try Admission();let f=try OriginalExactScalarDomain(maximumValueDepth:32,maximumCoefficientDepth:32,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/ActualProof.swift:72:86: error: cannot convert value of type 'any Error' to expected argument type 'StaticString'
+ 70 |         catch RetainedHostAdapters.OriginalSourceIssuanceFailure.polynomial(.scalar(.resourceLimit(_))) {}
+ 71 |     }
+ 72 |     static func main() { do { try run() } catch { print("FAIL actual retained host:",error);exit(1) } }
+    |                                                                                      `- error: cannot convert value of type 'any Error' to expected argument type 'StaticString'
+ 73 |     nonisolated static func run() throws {
+ 74 |         var a=try Admission();let f=try OriginalExactScalarDomain(maximumValueDepth:32,maximumCoefficientDepth:32,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/ActualProof.swift:88:46: error: extra argument in call
+ 86 |         for (index,pcurve) in curves.enumerated() {
+ 87 |             let input=SurfaceLiftCurve3D(surface:.procedural(.originalBoundaryCorrected(host)),parameterCurve:pcurve)
+ 88 |             print("CHECK binding host",multi,index)
+    |                                              `- error: extra argument in call
+ 89 |             let family=try family(input,field:f,using:&a),issuer=RetainedHostAdapters.DefaultOriginalRetainedSurfaceLiftDomainIssuer<Source>()
+ 90 |             let frame=try issuer.frame(family:family,limits:l,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/ActualProof.swift:88:40: error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+ 86 |         for (index,pcurve) in curves.enumerated() {
+ 87 |             let input=SurfaceLiftCurve3D(surface:.procedural(.originalBoundaryCorrected(host)),parameterCurve:pcurve)
+ 88 |             print("CHECK binding host",multi,index)
+    |                                        `- error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+ 89 |             let family=try family(input,field:f,using:&a),issuer=RetainedHostAdapters.DefaultOriginalRetainedSurfaceLiftDomainIssuer<Source>()
+ 90 |             let frame=try issuer.frame(family:family,limits:l,using:&a)
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/ActualProof.swift:72:56: error: missing argument label 'terminator:' in call
+ 70 |         catch RetainedHostAdapters.OriginalSourceIssuanceFailure.polynomial(.scalar(.resourceLimit(_))) {}
+ 71 |     }
+ 72 |     static func main() { do { try run() } catch { print("FAIL actual retained host:",error);exit(1) } }
+    |                                                        `- error: missing argument label 'terminator:' in call
+ 73 |     nonisolated static func run() throws {
+ 74 |         var a=try Admission();let f=try OriginalExactScalarDomain(maximumValueDepth:32,maximumCoefficientDepth:32,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/ActualProof.swift:72:86: error: cannot convert value of type 'any Error' to expected argument type 'StaticString'
+ 70 |         catch RetainedHostAdapters.OriginalSourceIssuanceFailure.polynomial(.scalar(.resourceLimit(_))) {}
+ 71 |     }
+ 72 |     static func main() { do { try run() } catch { print("FAIL actual retained host:",error);exit(1) } }
+    |                                                                                      `- error: cannot convert value of type 'any Error' to expected argument type 'StaticString'
+ 73 |     nonisolated static func run() throws {
+ 74 |         var a=try Admission();let f=try OriginalExactScalarDomain(maximumValueDepth:32,maximumCoefficientDepth:32,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/ActualProof.swift:88:46: error: extra argument in call
+ 86 |         for (index,pcurve) in curves.enumerated() {
+ 87 |             let input=SurfaceLiftCurve3D(surface:.procedural(.originalBoundaryCorrected(host)),parameterCurve:pcurve)
+ 88 |             print("CHECK binding host",multi,index)
+    |                                              `- error: extra argument in call
+ 89 |             let family=try family(input,field:f,using:&a),issuer=RetainedHostAdapters.DefaultOriginalRetainedSurfaceLiftDomainIssuer<Source>()
+ 90 |             let frame=try issuer.frame(family:family,limits:l,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/ActualProof.swift:88:40: error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+ 86 |         for (index,pcurve) in curves.enumerated() {
+ 87 |             let input=SurfaceLiftCurve3D(surface:.procedural(.originalBoundaryCorrected(host)),parameterCurve:pcurve)
+ 88 |             print("CHECK binding host",multi,index)
+    |                                        `- error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+ 89 |             let family=try family(input,field:f,using:&a),issuer=RetainedHostAdapters.DefaultOriginalRetainedSurfaceLiftDomainIssuer<Source>()
+ 90 |             let frame=try issuer.frame(family:family,limits:l,using:&a)

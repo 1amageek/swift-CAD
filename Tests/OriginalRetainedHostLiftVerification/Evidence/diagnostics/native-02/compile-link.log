@@ -1,0 +1,49 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/Proof.swift:48:16: error: missing arguments for parameters 'maximumValueDepth', 'maximumCoefficientDepth', 'using' in call
+ 46 |     nonisolated static func source(mode: Int=0,missing: Bool=false,discontinuous: Bool=false,using a: inout LiftAdmission)
+ 47 |         throws -> (OriginalSourceBinding<Source>,OriginalFiniteRetainedSurfaceCharts<Host>,OriginalFiniteRetainedCurveCharts<Curve>) {
+ 48 |         let f=F(),r=try ExactPolynomialDomain(field:f,variableCount:2,using:&a)
+    |                `- error: missing arguments for parameters 'maximumValueDepth', 'maximumCoefficientDepth', 'using' in call
+ 49 |         let z=try f.integer(0,using:&a),o=try f.integer(1,using:&a),two=try f.integer(2,using:&a)
+ 50 |         let third=try f.dividing(o,f.integer(3,using:&a),using:&a),half=try f.dividing(o,two,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/native/3fd59e6671374e4cb50b92e8d4948be9/package/Sources/L0/OriginalExactScalarDomain.swift:12:12: note: 'init(maximumValueDepth:maximumCoefficientDepth:using:)' declared here
+ 10 |     }
+ 11 | 
+ 12 |     public init<A: ExactScalarAdmission & ~Copyable>(maximumValueDepth: Int,
+    |            `- note: 'init(maximumValueDepth:maximumCoefficientDepth:using:)' declared here
+ 13 |         maximumCoefficientDepth: Int, using admission: inout A) throws(ExactScalarFailure) {
+ 14 |         try admission.checkpoint()
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/Proof.swift:48:15: error: generic parameter 'A' could not be inferred
+ 46 |     nonisolated static func source(mode: Int=0,missing: Bool=false,discontinuous: Bool=false,using a: inout LiftAdmission)
+ 47 |         throws -> (OriginalSourceBinding<Source>,OriginalFiniteRetainedSurfaceCharts<Host>,OriginalFiniteRetainedCurveCharts<Curve>) {
+ 48 |         let f=F(),r=try ExactPolynomialDomain(field:f,variableCount:2,using:&a)
+    |               `- error: generic parameter 'A' could not be inferred
+ 49 |         let z=try f.integer(0,using:&a),o=try f.integer(1,using:&a),two=try f.integer(2,using:&a)
+ 50 |         let third=try f.dividing(o,f.integer(3,using:&a),using:&a),half=try f.dividing(o,two,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/native/3fd59e6671374e4cb50b92e8d4948be9/package/Sources/L0/OriginalExactScalarDomain.swift:12:12: note: in call to initializer
+ 10 |     }
+ 11 | 
+ 12 |     public init<A: ExactScalarAdmission & ~Copyable>(maximumValueDepth: Int,
+    |            `- note: in call to initializer
+ 13 |         maximumCoefficientDepth: Int, using admission: inout A) throws(ExactScalarFailure) {
+ 14 |         try admission.checkpoint()
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/Proof.swift:108:45: error: value of type 'OriginalParametricGraphReceipt<RetainedHostLiftProof.Source, OriginalExactScalarDomain, OriginalSurfaceLiftGraphEvidence<RetainedHostLiftProof.Source>>' has no member 'denominator'
+106 |             for member in found {
+107 |                 let graph=member.graph,r=graph.polynomials
+108 |                 let d=try r.evaluated(graph.denominator,at:tuple,using:&a).value
+    |                                             `- error: value of type 'OriginalParametricGraphReceipt<RetainedHostLiftProof.Source, OriginalExactScalarDomain, OriginalSurfaceLiftGraphEvidence<RetainedHostLiftProof.Source>>' has no member 'denominator'
+109 |                 let x=try f.dividing(r.evaluated(graph.homogeneous[0],at:tuple,using:&a).value,d,using:&a)
+110 |                 let y=try f.dividing(r.evaluated(graph.homogeneous[1],at:tuple,using:&a).value,d,using:&a)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/Proof.swift:108:23: warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+106 |             for member in found {
+107 |                 let graph=member.graph,r=graph.polynomials
+108 |                 let d=try r.evaluated(graph.denominator,at:tuple,using:&a).value
+    |                       `- warning: no calls to throwing functions occur within 'try' expression [#UnnecessaryEffectMarker]
+109 |                 let x=try f.dividing(r.evaluated(graph.homogeneous[0],at:tuple,using:&a).value,d,using:&a)
+110 |                 let y=try f.dividing(r.evaluated(graph.homogeneous[1],at:tuple,using:&a).value,d,using:&a)
+
+[#UnnecessaryEffectMarker]: <https://docs.swift.org/compiler/documentation/diagnostics/unnecessary-effect-marker>

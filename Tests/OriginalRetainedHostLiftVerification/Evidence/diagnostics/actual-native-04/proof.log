@@ -1,0 +1,1 @@
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: CADGeometry.ExactScalarFailure.admissionRejected(CADGeometry.GeometryConversionError.invalidInput("Original Hermite connector residual lacks exact section-end D1/D2-flat authority."))

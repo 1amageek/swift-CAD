@@ -1,0 +1,8 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedHostLiftVerification/Proof.swift:153:29: error: main() must be '@MainActor'
+151 |         print("PASS retained host complete weighted/nonmonotone/constant/reversed lifted relations, all nonbinary sides, exact requests and budget/cancel")
+152 |     }
+153 |     nonisolated static func main() throws {
+    |                             `- error: main() must be '@MainActor'
+154 |         try PeriodicRetainedLiftProof.run()
+155 |         for mode in 0..<4 { try behavior(family(mode:mode),mode:mode) }

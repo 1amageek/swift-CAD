@@ -4,7 +4,7 @@ import L1
 #endif
 
 /// Exact forward composition; auxiliary UV is never recovered through an inverse.
-struct OriginalSurfaceLiftGraphProducer<S: OriginalLiftSourceReading> {
+struct OriginalSurfaceLiftGraphProducer<S: OriginalLiftGraphSourceReading> {
     typealias Field=OriginalExactScalarDomain
     typealias Polynomial=ExactPolynomial<Field>
     typealias Graph=OriginalParametricGraphReceipt<S,Field,OriginalSurfaceLiftGraphEvidence<S>>

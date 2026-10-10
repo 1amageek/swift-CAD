@@ -1,0 +1,13 @@
+CHECK constructing multi-cell host
+CHECK multi-cell host constructed
+CHECK constructing correction host
+CHECK correction host constructed
+CHECK binding host true 0
+CHECK binding host true 1
+CHECK binding host true 2
+CHECK binding host true 3
+CHECK binding host false 0
+CHECK binding host false 1
+CHECK binding host false 2
+CHECK binding host false 3
+PASS actual retained boundary-correction host source/DI/public point, closed cell sides, reversed/constant/affine UV, preparation budgets, cancel and clamp refusal

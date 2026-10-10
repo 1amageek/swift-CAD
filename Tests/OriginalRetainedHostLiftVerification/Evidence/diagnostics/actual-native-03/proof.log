@@ -1,0 +1,1 @@
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: CADGeometry.ExactScalarFailure.admissionRejected(KernelError(phase: geometry, code: resourceLimitExceeded, tolerance: ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09), message: Original native span cover exhausted its aggregate ceiling.))

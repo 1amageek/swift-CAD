@@ -1,0 +1,13 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-host-actual/native/290fcece96ae489c8665756bb1a14d42/359-OriginalBoundaryCorrectionSnapshotProvider.swift:57:65: error: 'input' is borrowed and cannot be consumed
+55 | extension OriginalBoundaryCorrectionSnapshotProvider: OriginalRetainedLiftHostSnapshotting {
+56 |     public typealias Source = OriginalBoundaryCorrectionSnapshot
+57 |     public func bindHost<A: ExactScalarAdmission & ~Copyable>(_ input: borrowing Surface3D,
+   |                                                                 `- error: 'input' is borrowed and cannot be consumed
+58 |         limits: OriginalSourceIssuanceLimits,using admission: inout A)
+59 |         throws(OriginalSourceIssuanceFailure) -> OriginalSourceBinding<Source> {
+60 |         do {
+61 |             try admission.checkpoint();try admission.consumeWork(1)
+62 |             guard case .procedural(.originalBoundaryCorrected(let host)) = input else {
+   |             `- note: consumed here
+63 |                 throw OriginalSourceIssuanceFailure.unsupportedRepresentation
+64 |             }

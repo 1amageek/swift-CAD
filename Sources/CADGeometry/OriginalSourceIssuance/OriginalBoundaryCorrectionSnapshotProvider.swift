@@ -49,3 +49,19 @@ public struct OriginalBoundaryCorrectionSnapshotProvider:OriginalSourceSnapshott
         } catch { throw .init(preserving:error) }
     }
 }
+
+extension OriginalBoundaryCorrectionSnapshotProvider: OriginalRetainedLiftHostSnapshotting {
+    public typealias Source = OriginalBoundaryCorrectionSnapshot
+    public func bindHost<A: ExactScalarAdmission & ~Copyable>(_ input: borrowing Surface3D,
+        limits: OriginalSourceIssuanceLimits,using admission: inout A)
+        throws(OriginalSourceIssuanceFailure) -> OriginalSourceBinding<Source> {
+        let input=copy input
+        do {
+            try admission.checkpoint();try admission.consumeWork(1)
+            guard case .procedural(.originalBoundaryCorrected(let host)) = input else {
+                throw OriginalSourceIssuanceFailure.unsupportedRepresentation
+            }
+            return try DefaultOriginalSourceBindingIssuer(provider:self).bind(host,limits:limits,using:&admission)
+        } catch { throw .init(preserving:error) }
+    }
+}

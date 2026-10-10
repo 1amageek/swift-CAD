@@ -1,0 +1,2 @@
+CHECK constructing multi-cell host
+FAIL actual retained host: admissionRejected(CADGeometry.GeometryConversionError.invalidInput("Original Hermite connector residual lacks exact section-end D1/D2-flat authority."))

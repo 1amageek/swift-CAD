@@ -717,3 +717,22 @@ Verification reuses the original Native domain fixture body with current source
 and adds actual affine/constant/reversed/multiturn retained-pcurve paths. General
 surface sources, nonlinear correspondence and final CS/SSI/image/fiber are still
 separate unfinished obligations.
+
+## Retained atlas host lift consumption
+
+The existing retained-pcurve lift domain issuer/cover accepts the shared sealed
+finite lift family with either Native or retained-atlas hosts. Only the source
+reading bound widens; request construction, exact enclosure/support intersection,
+all-coordinate validation, graph binding, guarded lifted incidence and same-ledger
+admission remain one implementation. It never inspects producer cell internals,
+infers UV from T, or classifies the T enclosure as material membership. Occurrences
+retain the entire source family and both original child laws. Native callers keep
+their existing API and typed child access.
+
+The [source owner](../../OriginalSourceIssuance/DESIGN.md#retained-atlas-hosting-surface-lifts)
+issues complete charts and guards. Tests/OriginalRetainedHostLiftVerification owns
+actual boundary-correction atlas source-to-DI, nonbinary singleton/
+strict/disconnected/empty requests, all incident sides, foreign owner/field,
+resource/depth/cancel and detached lifetime checks on fixed target lanes. General
+nonrational/preimage capabilities and final CS/SSI/image/fiber publication remain
+separate M4/M7 obligations.

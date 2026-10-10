@@ -3,26 +3,29 @@ import L0
 import L1
 #endif
 
-public struct DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<S: OriginalRetainedSurfaceLiftSourceReading>: OriginalFiniteRetainedSurfaceLiftGraphPreparing {
+public struct DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<S: OriginalRetainedPcurveLiftSourceReading>: Sendable {
     public typealias Source = S
     public init() {}
-    public func prepare<A: ExactScalarAdmission & ~Copyable>(source: borrowing OriginalSourceBinding<S>,
-        surface: borrowing OriginalFiniteBSplineCharts<S.Surface>,pcurve: borrowing OriginalFiniteRetainedCurveCharts<S.Pcurve>,
+    private func prepared<A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<S>,
+        surfaceSource: OriginalSourceBinding<S.Surface>,
+        surfaceLaws: [OriginalRationalChartReceipt<S.Surface,S.SurfaceSelection,OriginalExactScalarDomain>],
+        surfaceSupport: [OriginalSourceParameterInterval<OriginalExactScalar>],field: OriginalExactScalarDomain,
+        surfaceDepth: ExactScalarDepth?,pcurve: OriginalFiniteRetainedCurveCharts<S.Pcurve>,
         maximumCharts: Int,limits: OriginalSourceIssuanceLimits,using admission: inout A)
         throws(OriginalSourceIssuanceFailure) -> OriginalFiniteRetainedSurfaceLiftGraphs<S> {
-        let source=copy source,surface=copy surface,pcurve=copy pcurve
         do {
             return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
                 try a.checkpoint();try source.require(limits)
                 guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
                 guard maximumCharts>=0 else { throw OriginalSourceIssuanceFailure.chartLimit }
-                guard source.original.originalSurface.owner === surface.source.owner,
+                guard source.original.originalSurface.owner === surfaceSource.owner,
                     source.original.originalPcurve.owner === pcurve.source.owner else { throw OriginalSourceIssuanceFailure.foreignBinding }
                 let childLimits=try OriginalSourceIssuanceLimits(remainingSourceDepth:limits.remainingSourceDepth-1)
-                try surface.source.require(childLimits);try pcurve.admitProof(limits:childLimits,using:&a)
-                guard surface.source.original.parameterCount == 2,surface.support.count == 2,
-                    !surface.laws.isEmpty,!pcurve.laws.isEmpty else { throw OriginalSourceIssuanceFailure.invalidChart }
-                let f=surface.field,zero=try f.integer(0,using:&a),one=try f.integer(1,using:&a)
+                try surfaceSource.require(childLimits);try pcurve.admitProof(limits:childLimits,using:&a)
+                if let surfaceDepth { try a.admitDepth(value:surfaceDepth.value,coefficient:surfaceDepth.coefficient) }
+                guard surfaceSupport.count == 2,
+                    !surfaceLaws.isEmpty,!pcurve.laws.isEmpty else { throw OriginalSourceIssuanceFailure.invalidChart }
+                let f=field,zero=try f.integer(0,using:&a),one=try f.integer(1,using:&a)
                 guard try f.compare(f.importing(pcurve.support.lower,using:&a),zero,using:&a) == .equal,
                     try f.compare(f.importing(pcurve.support.upper,using:&a),one,using:&a) == .equal else { throw OriginalSourceIssuanceFailure.invalidChart }
                 func validate<C: Sendable,K: Sendable>(_ law: OriginalRationalChartReceipt<C,K,OriginalExactScalarDomain>,
@@ -40,26 +43,51 @@ public struct DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<S: OriginalR
                         }
                     }
                 }
-                for law in surface.laws { try validate(law,source:surface.source,arity:2,&a) }
+                for law in surfaceLaws { try validate(law,source:surfaceSource,arity:2,&a) }
                 for law in pcurve.laws { try validate(law,source:pcurve.source,arity:1,&a) }
-                let count=surface.laws.count.multipliedReportingOverflow(by:pcurve.laws.count)
+                let count=surfaceLaws.count.multipliedReportingOverflow(by:pcurve.laws.count)
                 guard !count.overflow else { throw OriginalSourceIssuanceFailure.countOverflow }
                 guard count.partialValue<=maximumCharts else { throw OriginalSourceIssuanceFailure.chartLimit }
                 typealias Family=OriginalFiniteRetainedSurfaceLiftGraphs<S>
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:count.partialValue,of:Family.Graph.self))
                 var graphs:[Family.Graph]=[];graphs.reserveCapacity(count.partialValue)
                 let producer=OriginalSurfaceLiftGraphProducer<S>()
-                for s in surface.laws { for p in pcurve.laws {
+                for s in surfaceLaws { for p in pcurve.laws {
                     try a.consumeWork(1)
                     try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalSurfaceLiftGraphEvidence<S>.self))
                     graphs.append(try producer.issue(source:source,evidence:.init(surface:s,pcurve:p),offset:zero,span:one,using:&a))
                 } }
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalSourceParameterInterval<OriginalExactScalar>.self))
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Family.self))
-                let result=Family(source:source,surface:surface,pcurve:pcurve,graphs:graphs,
+                let result=Family(source:source,surfaceSource:surfaceSource,surfaceLaws:surfaceLaws,
+                    surfaceSupport:surfaceSupport,field:f,pcurve:pcurve,graphs:graphs,
                     support:[.init(lower:zero,upper:one)],proofDepth:try a.depth)
                 try a.checkpoint();return result
             }
         } catch { throw .init(preserving:error) }
+    }
+}
+
+extension DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer: OriginalFiniteRetainedSurfaceLiftGraphPreparing
+    where S: OriginalRetainedSurfaceLiftSourceReading {
+    public func prepare<A: ExactScalarAdmission & ~Copyable>(source: borrowing OriginalSourceBinding<S>,
+        surface: borrowing OriginalFiniteBSplineCharts<S.Surface>,pcurve: borrowing OriginalFiniteRetainedCurveCharts<S.Pcurve>,
+        maximumCharts: Int,limits: OriginalSourceIssuanceLimits,using admission: inout A)
+        throws(OriginalSourceIssuanceFailure) -> OriginalFiniteRetainedSurfaceLiftGraphs<S> {
+        try prepared(source:source,surfaceSource:surface.source,surfaceLaws:surface.laws,
+            surfaceSupport:surface.support,field:surface.field,surfaceDepth:nil,pcurve:pcurve,
+            maximumCharts:maximumCharts,limits:limits,using:&admission)
+    }
+}
+
+extension DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer: OriginalFiniteRetainedAtlasLiftGraphPreparing
+    where S: OriginalRetainedAtlasLiftSourceReading {
+    public func prepare<A: ExactScalarAdmission & ~Copyable>(source: borrowing OriginalSourceBinding<S>,
+        surface: borrowing OriginalFiniteRetainedSurfaceCharts<S.Surface>,pcurve: borrowing OriginalFiniteRetainedCurveCharts<S.Pcurve>,
+        maximumCharts: Int,limits: OriginalSourceIssuanceLimits,using admission: inout A)
+        throws(OriginalSourceIssuanceFailure) -> OriginalFiniteRetainedSurfaceLiftGraphs<S> {
+        try prepared(source:source,surfaceSource:surface.source,surfaceLaws:surface.laws,
+            surfaceSupport:surface.support,field:surface.field,surfaceDepth:surface.proofDepth,pcurve:pcurve,
+            maximumCharts:maximumCharts,limits:limits,using:&admission)
     }
 }
