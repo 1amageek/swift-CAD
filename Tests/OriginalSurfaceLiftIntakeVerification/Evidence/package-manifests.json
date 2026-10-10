@@ -1,0 +1,66 @@
+{
+  "swift": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+  "swiftSHA256": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+  "records": [
+    {
+      "package": "OriginalSourceIssuanceVerification",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "package",
+        "--package-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalSourceIssuanceVerification",
+        "--scratch-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-lift-manifest-OriginalSourceIssuanceVerification",
+        "dump-package"
+      ],
+      "exitCode": 0,
+      "packageSHA256": "6b092ed0aad972dff6eaa614792008ba76f6da2825f892825966db4df2a5cf8e",
+      "requiredExcluded": [
+        "BSplineCurve2D+OriginalSourceReading.swift",
+        "OriginalBSplinePcurveSnapshotProvider.swift",
+        "OriginalNativeSurfaceLiftSnapshot.swift",
+        "OriginalNativeSurfaceLiftSnapshotProvider.swift"
+      ]
+    },
+    {
+      "package": "OriginalDomainIdentityVerification",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "package",
+        "--package-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDomainIdentityVerification",
+        "--scratch-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-lift-manifest-OriginalDomainIdentityVerification",
+        "dump-package"
+      ],
+      "exitCode": 0,
+      "packageSHA256": "c81a88fabf45fa0514a4d967d658dd51af2896397b9bcf08a986c1e40c49ce3d",
+      "requiredExcluded": [
+        "BSplineCurve2D+OriginalSourceReading.swift",
+        "OriginalBSplinePcurveSnapshotProvider.swift",
+        "OriginalNativeSurfaceLiftSnapshot.swift",
+        "OriginalNativeSurfaceLiftSnapshotProvider.swift"
+      ]
+    },
+    {
+      "package": "OriginalGraphRelationVerification",
+      "command": [
+        "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+        "package",
+        "--package-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGraphRelationVerification",
+        "--scratch-path",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-lift-manifest-OriginalGraphRelationVerification",
+        "dump-package"
+      ],
+      "exitCode": 0,
+      "packageSHA256": "bc5dcccd4dec5b3c2d64fc7330e38edc388a1e3d7bc356712b91641159bf7aed",
+      "requiredExcluded": [
+        "BSplineCurve2D+OriginalSourceReading.swift",
+        "OriginalBSplinePcurveSnapshotProvider.swift",
+        "OriginalNativeSurfaceLiftSnapshot.swift",
+        "OriginalNativeSurfaceLiftSnapshotProvider.swift"
+      ]
+    }
+  ]
+}

@@ -547,3 +547,25 @@ sides. Nonlinear and many-to-one forward maps do not require an inverse. Work,
 storage, source/proof depth and cancellation use the same caller admission.
 Behavioral verification belongs to OriginalGraphRelationVerification and includes
 foreign owners, empty/closed/strict/disconnected selections and inherited limits.
+
+
+## Native surface lift domain consumption
+
+The Native lift domain issuer consumes only the sealed complete family from
+[source issuance](../../OriginalSourceIssuance/DESIGN.md#native-surface-lift-graph-supply).
+It derives the original normalized one-coordinate T frame, checks owner, exact
+whole support and authored coordinate meaning, and intersects the request exactly.
+Members use the existing `DefaultOriginalParametricGraphDomainBinder`, retaining
+T as the only source parameter and U/V as auxiliaries. Lifted incident queries
+import every compatible coordinate into the retained field once before exclusion,
+reject foreign algebraic fields, and apply every graph equation,
+UV chart bound and denominator guard. The selected T enclosure alone never proves
+UV/material membership. Closed pcurve knots and surface corners return every
+incident owner; equal XYZ or auxiliary coordinates do not merge distinct T.
+
+All new state is immutable and target-common. One caller admission accounts for
+new selections/members/results, source and proof depths, chart limits and terminal
+cancel, including successful empty selection. Existing child storage and graph
+preparation are retained without recomputation. The focused lift verification owns
+this source-to-DI interaction. General/periodic lift sources and automatic public
+geometric results remain required open work, not a finite API fallback.

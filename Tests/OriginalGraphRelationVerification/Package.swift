@@ -28,6 +28,8 @@ let package = Package(name: "OriginalGraphRelationVerification", platforms: [.ma
         "OriginalRevolutionSnapshot.swift", "OriginalRevolutionSnapshotProvider.swift",
         "OriginalOffsetSnapshot.swift", "OriginalOffsetSnapshotProvider.swift",
         "OriginalRollingBallSnapshot.swift", "OriginalRollingBallSnapshotProvider.swift",
+        "BSplineCurve2D+OriginalSourceReading.swift", "OriginalBSplinePcurveSnapshotProvider.swift",
+        "OriginalNativeSurfaceLiftSnapshot.swift", "OriginalNativeSurfaceLiftSnapshotProvider.swift",
         "OriginalGuideSnapshot.swift", "OriginalGuideSnapshotProvider.swift",
         "OriginalBoundaryCorrectionSnapshot.swift", "OriginalBoundaryCorrectionSnapshotProvider.swift",
         "OriginalPlaneDerivativeCurveSnapshot.swift", "OriginalPlaneDerivativeCurveSnapshotProvider.swift",

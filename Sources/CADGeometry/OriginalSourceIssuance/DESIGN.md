@@ -1282,3 +1282,52 @@ or non-rational derivative surfaces require their original ordered-field produce
 Coefficient transfer consumes the existing admitted canonical term order, so hash
 iteration cannot change polynomial import work between identical preparations.
 The temporary ordered view and imported term storage both use the same caller.
+
+
+## Native surface lift graph supply
+
+The lift source owner retains the actual `SurfaceLiftCurve3D`, a validated Native
+surface binding and a validated rational B-spline pcurve binding. The 2D source
+reader exposes original U/V controls and exact zero as its third homogeneous
+coordinate; it never fits or constructs a replacement XYZ curve. This finite
+capability requires nonperiodic Native children and no priority B-spline image.
+The pcurve control hull must lie inside exact Native support: positive weights
+then prove that no legacy tolerance-driven UV clamp participates. Control hulls
+outside exact support remain unsupported pending full correspondence, even when
+the numerical evaluator accepts/clamps them. Other pcurve/surface variants and a priority image without retained equality proof
+fail explicitly and remain required unfinished family work.
+
+```mermaid
+flowchart LR
+ L[Original lift] --> S[Native surface charts]
+ L --> P[Original pcurve charts]
+ S --> G[All chart pairs]
+ P --> G
+ G --> R[T parameter; U/V auxiliary; exact equations and guards]
+ R --> D[Existing DI graph binder]
+```
+
+The sealed family keeps every surface-chart/pcurve-chart pair, including guarded
+empty pairs. It derives whole normalized T support from the authored pcurve knot
+support [a,b] with tau=a+(b-a)T. Each graph uses original surface XYZ/D in auxiliary
+U/V and equations U*Dp(T)-NpU(T)=0 and V*Dp(T)-NpV(T)=0. Both UV chart bounds and all
+source/transport denominators remain conjuncts. Thus nonmonotone, constant and
+self-overlapping pcurves retain every original T; no nonlinear inverse is claimed.
+Only the affine tau-to-T normalization is inverted. Closed chart boundaries retain
+all incident sides. Source snapshots validate original child data and the existing
+pcurve control-domain admission under the caller ledger; query guards use exact
+bounds, independently of modeling tolerance.
+
+The preparer accepts only sealed complete child families with matching retained
+owners, identity Native coordinate transports and dimensions 2/1. Checked product
+counts, all coefficient/term work/storage, source/proof depths and final cancel
+share the caller admission. Immutable families retain child laws and original lift
+for result lifetime on Native, WASM and Embedded. No shared mutable state is added.
+
+Verification owner: `Tests/OriginalSurfaceLiftIntakeVerification`. Actual unchanged
+lift evaluation is admitted from matching source/product receipts. Independent
+expectations cover weighted and nonmonotone UV, constant fibers, all knot/corner
+sides, wrong UV, outside-chart guards, exact clipping/empty requests, foreign owner
+and scalar field, resource boundaries, cancellation and COW/source lifetime.
+[Domain coverage](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#native-surface-lift-domain-consumption)
+consumes this sealed witness; ordinary all-family CS/SSI/XYZ publication remains M7.
