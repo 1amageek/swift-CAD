@@ -1,0 +1,30 @@
+{
+  "receipts": {
+    "native": {
+      "receipt": "Tests/OriginalPolylinePcurveVerification/Evidence/native/receipt.json",
+      "sha256": "664f9f3bd40eb66ad15efee414f68edc70e2ad8b45d199f7fb7941e3140987be"
+    },
+    "asan": {
+      "receipt": "Tests/OriginalPolylinePcurveVerification/Evidence/asan/receipt.json",
+      "sha256": "1485d92811a74937e1b73e2cfdbe8cd3c72684adac73486540679578c9056e12"
+    },
+    "wasm": {
+      "receipt": "Tests/OriginalPolylinePcurveVerification/Evidence/wasm/receipt.json",
+      "sha256": "3853b44f77a7ab30e5293f078094029ddfec566ec016f9cd5d8b470d11e2b65e"
+    },
+    "embedded": {
+      "receipt": "Tests/OriginalPolylinePcurveVerification/Evidence/embedded/receipt.json",
+      "sha256": "acf5a804278cf37cf41a5ee6b7054a1bd6bf997e22db13efff1ff72992af50dd"
+    }
+  },
+  "ownedInputs": {
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolylinePcurveSnapshot.swift": "f24c13920d21b65d59027cf2bd5347fe8a19f38962afd7f7386429e649a8dfb1",
+    "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolylinePcurveSnapshotProvider.swift": "08c1ad7835fca3a53a656fb00afb636e3c538addf35368a74eef66e64672e57d",
+    "Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md": "85d609ec9dc905002c24041d3968277572677c821b9f6aef99eadcdc3bd54c11",
+    "Tests/OriginalPolylinePcurveVerification/Proof.swift": "31819aa0caec594fe0f617c04dec65e657fa901521ac8f7e52f20acd8d14d38f",
+    "Tests/OriginalPolylinePcurveVerification/Verify.py": "5bb3275d31aaaa43de8db5f2bba426684cdd7079679a0ff8d39986b4192aa0e2",
+    "Tests/OriginalPolylinePcurveVerification/VERIFICATION.md": "454311542e5c5412b7494b06b988b53d5e456923533c37b8f8cd7621ece14923"
+  },
+  "uniquePremiseCount": 8938,
+  "scope": "Complete original Euclidean polyline pcurve source and unchanged retained chart/domain consumption only; full M4-M8 remains open."
+}

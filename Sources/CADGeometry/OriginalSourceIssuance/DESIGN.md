@@ -2010,3 +2010,42 @@ jet from the legacy higher-surface provider, which requires order four or greate
 Graph/domain completeness does not repair or certify that numerical caller. The
 required requested-order repair and actual public evaluation proof remain PG.J in
 PROGRESS.md; the fixture preserves its typed refusal instead of accepting a point.
+
+## Original Euclidean polyline pcurve supply
+
+The polyline snapshot consumes the existing
+`OriginalEuclideanPolylineParameterLaw` as its only arc-length authority. Its
+positive segments define closed normalized parameter cells; exactly repeated
+points remain in the original input and original point indices, while zero-length
+segments are not charts. Unequal incident derivative germs and repeated UV on
+nonmonotone traversal remain separate cells. No tolerance merges points or roots.
+
+The source retains the producer's exact algebraic coefficient field explicitly.
+It exports the original affine-in-global-fraction UV law per segment through
+`OriginalRetainedCurveSourceReading`; Z is zero and W is one. The source proof
+depth includes attained coefficient/value depths from construction and transfer.
+A caller may prepare compatible host laws in that retained field; the source does
+not silently upgrade an independently selected field or claim generic lift dispatch.
+The existing finite retained-curve preparer and domain issuer verify complete
+normalized support and request restriction; no new chart or coverage algorithm
+is introduced. Ordinary source binding preserves owner/source-depth authority.
+
+```mermaid
+flowchart LR
+ P[Authored UV points] --> L[Existing exact Euclidean arc-length producer]
+ L --> S[Immutable source and retained coefficient field]
+ S --> C[Existing retained closed-curve charts]
+ C --> D[Existing exact domain selection and incidents]
+```
+
+Every producer/transfer visit, output allocation and attained depth uses the same
+caller admission. Entry and terminal cancellation are checked, failure retains its
+original scalar/source cause, and source/input release or COW mutation does not
+alter receipts. New production state is immutable and identical on Native, normal
+WASM and Embedded. Verification is owned by
+[OriginalPolylinePcurveVerification](../../../Tests/OriginalPolylinePcurveVerification/VERIFICATION.md)
+and covers the actual producer/source/chart/domain chain, irrational stations,
+all join sides, duplicated points, folded traversal, exact requests and resource
+boundaries, cancellation, field/depth refusal and detached lifetime on four fixed
+lanes. General surface-lift/rolling-ball and M7 dispatch remain separate required
+work; this source capability does not close a whole M4-M8 milestone.
