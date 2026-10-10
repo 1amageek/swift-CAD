@@ -107,3 +107,18 @@ validates manifest configuration, not a broad production package build.
 
 Coherent commit and independent latest-main delivery are recorded after execution.
 No broad CADCore/CADGeometry/Kernel or L2-L6 rebuild was performed.
+
+
+## Latest-main delivery
+
+Implementation commit `a97d9d51` was composed independently with latest main
+`52b49d5d` without source adjustment. `Evidence/main-integration/integration.json`
+binds 7,331 unique source/tool/package/artifact/log premises, checked before and
+after four fresh processes: Native affine lift (0.098 seconds), Native original
+lift regression (0.085), Embedded affine lift (0.212) and Embedded original lift
+regression (0.224). Every process passes without rebuilding or another aggregate
+review. Original source-owner and pending consumer worktrees preserve their HEAD,
+index/status and all 289 dirty/untracked file hashes; the protected publisher patch
+is unchanged. Main normally fast-forwarded to the verified implementation, followed
+by the accompanying delivery-record commit. Unrelated unpushed main history remains
+preserved without push. All other M4-M8 and whole-seven/full87 obligations stay open.

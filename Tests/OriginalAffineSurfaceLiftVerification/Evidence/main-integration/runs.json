@@ -1,0 +1,50 @@
+[
+  {
+    "label": "native-AffineSurfaceLiftProof",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/AffineSurfaceLiftProof"
+    ],
+    "cwd": "/private/tmp/cad-m4-ds-main-integration-20261010",
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.09810674993786961,
+    "exitCode": 0,
+    "logSHA256": "60f0563ef1faddc02542c1e07ad4513aa46c838ebb8a5e2eb28d732008dfa7a0"
+  },
+  {
+    "label": "native-NativeRegression",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-native-final/NativeRegression"
+    ],
+    "cwd": "/private/tmp/cad-m4-ds-main-integration-20261010",
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.08457870897836983,
+    "exitCode": 0,
+    "logSHA256": "86b8476751659062dc92b973a4553ce15da95783474257237ab727852ea9bdee"
+  },
+  {
+    "label": "embedded-AffineSurfaceLiftProof",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-ds-main-integration-20261010/Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-embedded-final/AffineSurfaceLiftProof.wasm"
+    ],
+    "cwd": "/private/tmp/cad-m4-ds-main-integration-20261010",
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.21177908300887793,
+    "exitCode": 0,
+    "logSHA256": "a87cb2612458fd61240c776713cfe692bacf665cc78f4e0eb57829ce137e807a"
+  },
+  {
+    "label": "embedded-NativeRegression",
+    "command": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-ds-main-integration-20261010/Tests/OriginalSourceIssuanceVerification/Scripts/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-affine-lift-embedded-final/NativeRegression.wasm"
+    ],
+    "cwd": "/private/tmp/cad-m4-ds-main-integration-20261010",
+    "timeoutSeconds": 120,
+    "elapsedSeconds": 0.22354825004003942,
+    "exitCode": 0,
+    "logSHA256": "de7045d6392514a0df83e625148228e031258ac9f1068034125787aa5caf9420"
+  }
+]

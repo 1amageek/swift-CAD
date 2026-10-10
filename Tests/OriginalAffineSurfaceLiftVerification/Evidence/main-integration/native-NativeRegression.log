@@ -1,0 +1,4 @@
+PASS surface-lift original weighted evaluation, nonnormalized pcurve transport, exact XYZ and all eight knot/corner incidents
+PASS surface-lift DI strict 1/3/singleton/disconnected/empty, foreign owner/field, chart/arity and empty publication cancel
+PASS surface-lift exact resource limits and one-less, entry/final callback cancel; work=24251 bytes=161712
+PASS surface-lift nonmonotone duplicate XYZ, constant fibers, source lifetime/COW/depth and unsupported priority-image refusal
