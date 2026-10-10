@@ -1,0 +1,43 @@
+{
+  "accepted": false,
+  "reasons": {
+    "initial-*": "Adapter compile succeeded; fixture had an Admission type mismatch. Reused adapter commands/generated sources/products/logs match final receipts.",
+    "fixture-second-*": "Invalid full-multiplicity Native knot data was rejected by its source validator before the intended Coons counterexample. Native/ASAN failed. The old WASI wrapper returned zero despite FAIL; those premature wasm/embedded receipts are invalid and excluded. Final verifier checks exit code, absence of FAIL and all four required success markers; its local WASI runner propagates wasi.start exit status."
+  },
+  "files": {
+    "fixture-second-asan/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fixture-second-asan/inputs-before-compile.json": "f996033fc13b310132ddeb3a08bde35c9452b3e7ecb9d06b81c91fd85aa625b8",
+    "fixture-second-asan/proof.log": "ab30b346991cfb1409215b24d25b8476edb497a5f6635f51372ac5c9cc068d7c",
+    "fixture-second-asan/runs.json": "0c77a8ea2b98973a1a77d627f5bbc019166e37f08db1e02879b026ed25b8426e",
+    "fixture-second-embedded/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fixture-second-embedded/inputs-before-compile.json": "5819b2eac394ccec3003e8d36d83a25a3f54ce1618e12d50323c4501c3f432f3",
+    "fixture-second-embedded/proof.log": "b93e76a8cea2083083b440ef49271b339e61e978d31edaea3e61ce69ddbe922f",
+    "fixture-second-embedded/receipt.json": "721b21c29d72864c3a613f41ccc88f738badfda717010a99c1758959a0da9738",
+    "fixture-second-embedded/runs.json": "b06610436f54bddb64a5e59ba6156ceac0ece19ebac9f6c404776a39a79be316",
+    "fixture-second-native/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fixture-second-native/inputs-before-compile.json": "8ebd9496005657c05eaf72f9ea93e83aa7604de1f1d715b08e0015f114f56fc2",
+    "fixture-second-native/proof.log": "ab30b346991cfb1409215b24d25b8476edb497a5f6635f51372ac5c9cc068d7c",
+    "fixture-second-native/runs.json": "3c61cae2f827af4a8dce191fffdc351b129c56d87c1979130bbda408ec4b5668",
+    "fixture-second-wasm/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "fixture-second-wasm/inputs-before-compile.json": "2aa11f838bb314202d03a4c2280725e32704699f207646e6d11687e67411ca2e",
+    "fixture-second-wasm/proof.log": "815cdd603d13702c73cf1ddc5ff54f5179de39a80e37e897a13a92936bf2f368",
+    "fixture-second-wasm/receipt.json": "44a8ee1b3b893efc72d9b055a1f9e6fac1299dce5a50d2e49e3ab9d206fe7c3d",
+    "fixture-second-wasm/runs.json": "62d4d54a1e905792da20cd99f869ca3aadc17121b0029c91b141ff162e1c473e",
+    "initial-asan/compile-adapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "initial-asan/compile-link.log": "7dbeb0bb4dfc0d4a31154b6e706cc3c90a0ca6e83e2fc1b00f9d5a90335fac28",
+    "initial-asan/inputs-before-compile.json": "f996033fc13b310132ddeb3a08bde35c9452b3e7ecb9d06b81c91fd85aa625b8",
+    "initial-asan/runs.json": "d201b561d99680d5e2e21dca4f8559c81b52f3470fe267528469a578b8524629",
+    "initial-embedded/compile-adapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "initial-embedded/compile-link.log": "5a93fba189859aa1f5499c7b52d6399acb1da70eea3c1726c30c0429bbfd1310",
+    "initial-embedded/inputs-before-compile.json": "5819b2eac394ccec3003e8d36d83a25a3f54ce1618e12d50323c4501c3f432f3",
+    "initial-embedded/runs.json": "231cfdcb953fce67bc85962fa66dfb4ef50b2de162a927de7c76ce00ae5775b9",
+    "initial-native/compile-adapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "initial-native/compile-link.log": "7dbeb0bb4dfc0d4a31154b6e706cc3c90a0ca6e83e2fc1b00f9d5a90335fac28",
+    "initial-native/inputs-before-compile.json": "8ebd9496005657c05eaf72f9ea93e83aa7604de1f1d715b08e0015f114f56fc2",
+    "initial-native/runs.json": "a2b96ee28a90426b893ee935a008bd6bfb324fa3703cfab2e08535f562c6c9fe",
+    "initial-wasm/compile-adapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "initial-wasm/compile-link.log": "7dbeb0bb4dfc0d4a31154b6e706cc3c90a0ca6e83e2fc1b00f9d5a90335fac28",
+    "initial-wasm/inputs-before-compile.json": "2aa11f838bb314202d03a4c2280725e32704699f207646e6d11687e67411ca2e",
+    "initial-wasm/runs.json": "abfb4515313bf37fc7faf62f203d34bbb0e007391ba4f0dd4ff67fd0e8ab00d7"
+  }
+}

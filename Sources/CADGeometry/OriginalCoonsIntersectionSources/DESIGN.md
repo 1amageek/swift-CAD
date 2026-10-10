@@ -14,6 +14,7 @@ The existing boundary-piece producer supplies normalized original homogeneous cu
 |---|---|---|---|---|
 | [CADGeometry](../DESIGN.md) | parent | Procedural source dispatch | Owns public composition | Parent index/public changes are root-owned |
 | [Original Coons](../OriginalCoons/DESIGN.md) | depends on / used by | OriginalCoonsSurface3D and OriginalSplineTraversalPolynomialPiece | Retains exact corners, directed piece laws and differential consumers | Cached interval corners never become polynomial coefficients |
+| [Source Issuance](../OriginalSourceIssuance/DESIGN.md#retained-coons-atlas-lift-hosts) | used by | Shared complete position atlas | Supplies retained Coons lift hosts | Does not widen the bounded CS/SSI adapter or prove embedding |
 | [Original Root Span](../OriginalRootSpan/DESIGN.md) | depends on | Immutable authored traversal and independent caps | Binds native source and directed endpoints | No root reconstruction or parameter midpoint |
 | [Original Ruled Intersection Sources](../OriginalRuledIntersectionSources/DESIGN.md) | depends on | Existing homogeneous relation ring adapter | Reuses XYZ cross-products and two denominator predicates | No duplicated relation solver |
 | [IntersectionAlgebra](../IntersectionAlgebra/DESIGN.md) | depends on | OriginalPolynomialRelation | Consumes exact domains and predicates | Empty equality cannot exclude tolerance contact |

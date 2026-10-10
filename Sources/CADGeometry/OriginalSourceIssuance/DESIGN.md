@@ -1687,3 +1687,39 @@ incidence, guarded UV versus numerical point accuracy, all old retained-host
 fixtures and independent limit/cancel/foreign-binding/lifetime counterexamples.
 The [DI consumer](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#retained-host-native-pcurve-domain-consumption)
 uses the same graph source contract and does not solve or infer UV.
+
+## Retained Coons atlas lift hosts
+
+OriginalCoonsAtlasSnapshotProvider consumes the existing position-only
+[Coons homogeneous atlas](../OriginalCoonsIntersectionSources/DESIGN.md) and retains
+its actual constructor, four directed boundary owners, exact corners and every
+positive closed cell. It imports coefficients in canonical order into the selected
+exact field and exposes the existing retained-surface reader. The snapshot is
+sealed; no consumer can inject a cover or position theorem. Original normalized
+UV and denominator laws are unchanged. Position continuity grants no differential
+continuity, regularity or embedding certificate.
+
+```mermaid
+flowchart LR
+ C[Actual original Coons surface] --> A[Existing homogeneous atlas]
+ A --> S[Sealed retained source and complete charts]
+ S --> L[Existing affine or Native pcurve lift producer]
+ L --> D[Existing guarded lift DI]
+```
+
+The provider validates tolerance, requires the maximum retained boundary source
+depth plus one, charges the same caller admission and retains producer proof depth.
+The existing chart preparer independently verifies the whole closed square; lift
+preparation retains all child chart pairs, guards and auxiliary UV. Actual host
+extraction matches only the originalCoons variant and delegates to this provider.
+Unsupported angular/algebraic or discontinuous sources fail before publication;
+there is no alternate correction, fitted tensor, inverse or differential atlas.
+All fields and evidence are immutable Sendable across Native/Wasm/Embedded;
+no shared mutable state or cache exists. Terminal cancellation is checked after
+all callbacks. Detached results retain original producer and coefficient owners.
+
+Verification owner: Tests/OriginalCoonsLiftVerification. The changed source/host
+path is freshly compiled on receipt-bound numerical children, then exercised
+through actual SurfaceLiftCurve3D and existing DI, with four-target success,
+resource/depth/cancel/foreign-owner/lifetime cases and prior retained-host fixtures.
+General nonrational hosts/pcurves, priority images, M5/M6/M7/M8 remain open.

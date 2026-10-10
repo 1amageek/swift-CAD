@@ -1,0 +1,17 @@
+CHECK constructing multi-cell host
+CHECK multi-cell host constructed
+CHECK constructing correction host
+CHECK correction host constructed
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+CHECK binding host
+PASS actual retained boundary-correction host source/DI/public point, closed cell sides, reversed/constant/affine UV, preparation budgets, cancel and clamp refusal
+PASS retained atlas Native pcurve authored spans/normalization, weighted/reversed/constant fibers, exact all sides, selections/resources/cancel/foreign binding and detached lifetime
+CHECK constructing multi-cell host
+CHECK multi-cell host constructed
+FAIL Native pcurve retained host

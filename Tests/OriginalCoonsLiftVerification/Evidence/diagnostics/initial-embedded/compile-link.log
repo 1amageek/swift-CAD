@@ -1,0 +1,15 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalCoonsLiftVerification/ActualProof.swift:50:77: error: cannot convert value of type 'ActualRetainedHostLiftProof.Admission' to expected argument type 'ActualCoonsAffineLiftProof.Admission'
+ 48 |         var held: Family?
+ 49 |         for multi in [true,false] {
+ 50 |             let host=try ActualCoonsAffineLiftProof.shape(multi:multi,using:&a)
+    |                                                                             `- error: cannot convert value of type 'ActualRetainedHostLiftProof.Admission' to expected argument type 'ActualCoonsAffineLiftProof.Admission'
+ 51 |             for mode in 0..<3 {
+ 52 |                 let coordinates: [Double]=mode==2 ? [0.5,0.5,0.5]:mode==1 ? [1,0.5,0]:[0,0.5,1]
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalCoonsLiftVerification/ActualProof.swift:50:77: error: cannot convert value of type 'ActualRetainedHostLiftProof.Admission' to expected argument type 'ActualCoonsAffineLiftProof.Admission'
+ 48 |         var held: Family?
+ 49 |         for multi in [true,false] {
+ 50 |             let host=try ActualCoonsAffineLiftProof.shape(multi:multi,using:&a)
+    |                                                                             `- error: cannot convert value of type 'ActualRetainedHostLiftProof.Admission' to expected argument type 'ActualCoonsAffineLiftProof.Admission'
+ 51 |             for mode in 0..<3 {
+ 52 |                 let coordinates: [Double]=mode==2 ? [0.5,0.5,0.5]:mode==1 ? [1,0.5,0]:[0,0.5,1]
