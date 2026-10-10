@@ -95,5 +95,16 @@ is distinct from the accepted serial comparison above:
 
 `review.json` records the one scoped review with no findings. Public import keeps
 coefficient lineage and retained depth/cancellation authority, without new shared
-state, unsafe access or platform-specific ownership. Main delivery remains a
-separate integration gate; no further review cycle is required by this source.
+state, unsafe access or platform-specific ownership. Implementation commit `82453adf` was normally fast-forwarded into main from
+`3e540921`. No further review cycle was required by this source.
+
+## Independent Main Delivery
+
+`integration.json` binds the committed implementation and the four immutable lane
+receipts. Every recorded non-build owned input is mapped to its corresponding
+main file and compared before/after runtime; generated/compiler paths retain
+absolute ownership. Main matches547/547/548/548 current inputs and563/563/584/581
+retained inputs for Native/ASAN/normal-WASM/Embedded. A fresh Native process from
+the main checkout passes in29.633s under120s timeout without rebuilding. The
+product and `integration-native.log` hashes are retained. The accompanying
+integration-record commit closes delivery; no unrelated history is pushed.

@@ -1,0 +1,40 @@
+{
+  "success": true,
+  "implementationCommit": "82453adfc4a0f8627a2d2a52795a9c2406ddc3dd",
+  "mainBase": "3e540921dcabe174e8f622b788c0d733b2828162",
+  "ownedRoot": "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD",
+  "mainRoot": "/Users/1amageek/Desktop/3D/swift-CAD",
+  "normalization": "Map every recorded non-.build owned source/input path to the same relative path under main; retain generated/compiler paths. Compare all hashes before and after fresh Native runtime; no rebuild.",
+  "lanes": {
+    "native": {
+      "receiptSHA256": "171201bd4106d596e3ccae81d7c42f274ee76e98a6c75c7557dbbb0786ed9ce5",
+      "matchedMainInputs": 547,
+      "matchedRetainedInputs": 563
+    },
+    "asan": {
+      "receiptSHA256": "7d7624b9333b185e3aae8319d010d30d0a7ade47ca031775b4e54a8fffc23edc",
+      "matchedMainInputs": 547,
+      "matchedRetainedInputs": 563
+    },
+    "wasm": {
+      "receiptSHA256": "09821dcc4fe9c03c18bb023154f98b2efae3c8c528f809deac2cee6639e92746",
+      "matchedMainInputs": 548,
+      "matchedRetainedInputs": 584
+    },
+    "embedded": {
+      "receiptSHA256": "9165b8be86df10cb6600f5c240ce6342d7837c07e54d12213bb1f05ff16bd212",
+      "matchedMainInputs": 548,
+      "matchedRetainedInputs": 581
+    }
+  },
+  "runtime": {
+    "command": [
+      "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/.build/m6-refinement-repair/native/e5aef074f7b14a04ad55cdc291d76bee/build/arm64-apple-macosx/debug/GraphProof"
+    ],
+    "elapsedSeconds": 29.633319291984662,
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "productSHA256": "2874b753bbbeb5b69a1d475151c8bcf25158768a17dc21968ecb3d3cbdde7ae2",
+    "logSHA256": "40af8491f0eb4e25832224a58a9e06da16e07d1e1781888a3c4ebef09cba1c70"
+  }
+}
