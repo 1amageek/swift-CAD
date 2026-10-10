@@ -44,3 +44,9 @@ uses its existing generation validator without changing it.
 The upper Native face/self authored-coordinate query paths still need descendant
 field transport and actual current-snapshot integration. This adapter receipt must
 not be generalized to those paths or used as evidence of whole M6 completion.
+
+Implementation commit d57d854f was normally fast-forwarded into main from d85a9275.
+Evidence/integration.json binds current main source matching and all generation
+artifacts across four lanes, followed by a fresh Native runtime without rebuilding.
+The remaining Native consumer intake stays in the independent worktree; original
+source drafts and the pending consumer merge are preserved.
