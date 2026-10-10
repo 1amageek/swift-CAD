@@ -1,0 +1,15 @@
+PASS periodic lift DI complete incidents, original T/UV roles, exact requests and wrong-UV exclusion
+PASS actual original periodic lift evaluator and all DI-bound chart positions
+PASS periodic lift DI complete incidents, original T/UV roles, exact requests and wrong-UV exclusion
+PASS actual original periodic lift evaluator and all DI-bound chart positions
+PASS periodic lift DI independent arbitrary-size positive/negative surface cycles and detached occurrence lifetime
+PASS periodic lift DI complete incidents, original T/UV roles, exact requests and wrong-UV exclusion
+PASS actual original periodic lift evaluator and all DI-bound chart positions
+PASS periodic lift DI complete incidents, original T/UV roles, exact requests and wrong-UV exclusion
+PASS actual original periodic lift evaluator and all DI-bound chart positions
+PASS periodic lift DI independent arbitrary-size positive/negative surface cycles and detached occurrence lifetime
+PASS periodic lift DI exact resources, entry/intermediate/final cancel, invalid/foreign fields/owners and independent limits
+PASS actual original source and evaluator retained by detached DI occurrence
+PASS actual periodic lift source/domain/evaluator composition
+(node:47589) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
