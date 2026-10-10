@@ -113,8 +113,22 @@ producer code outside the additive entry matches the inherited premise.
 | wasm | 0.671 s | 1.899 s | 2.802 s | 19.389 s | 4479 |
 | embedded | 11.017 s | 34.342 s | 39.397 s | 9.642 s | 4478 |
 
- Every command has a 120-second
+Every command has a 120-second
 timeout and uses fixed Swift 6.4.0 and its matching SDK. The verifier rejects warnings,
 errors, actor/race/null-call and function-signature diagnostics. Independent latest-main
 delivery must match all source/product/log premises before and after fresh Native
 and Embedded runtime, while preserving foreign drafts and the publisher patch.
+
+
+## Latest-main delivery
+
+Implementation commit e2467353 is normally fast-forwarded into main from a5c7cf05.
+The independent integration checkout matches 10,684 unique source/product/log
+premises before and after fresh Native (13.790 s) and Embedded (9.597 s) actual
+caller processes. There is no integration source adjustment or broad rebuild.
+Original source-owner and consumer-owner HEAD, status, index and every protected
+dirty file, plus the protected publisher patch, remain identical to the admitted
+baseline. Evidence/main-integration/integration.json owns the exact comparison,
+commands and accepted runtime logs. The accompanying record commit closes this
+limited unit; M4 general sources, M5/M6 general acceptance, M7/M8 and whole-seven/
+full87 remain open. No push includes the unrelated unpushed main history.
