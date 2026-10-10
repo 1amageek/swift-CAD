@@ -100,3 +100,15 @@ full-87 completion remain separate and incomplete.
 All four final receipts match the current source and driver. Prior failure logs
 are excluded from acceptance. Latest-main delivery is recorded separately in
 `integration.json` after the implementation commit.
+
+## Latest-Main Delivery
+
+Implementation `799fc84af2615ab26f5f9bc495e23d4a0440799c` normally fast-forwarded the clean
+independent main checkout from `afbacc6d5e767eadd0738b4abb61a21334e49264` without source adjustment. All
+four receipts matched 579 current main source inputs per lane and their unchanged
+retained artifacts. A fresh Native process ran from that checkout in
+26.148 seconds (90-second bound); complete membership/resource/cancel/lifetime
+verification passed. `integration.json` binds the normalized source premises,
+receipt digests, actual product and fresh runtime log. The accompanying record
+commit closes M6.G only; full M4/M5/M6 remains open. No push includes unrelated
+existing main commits.
