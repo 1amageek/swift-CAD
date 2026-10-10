@@ -1,0 +1,25 @@
+{
+  "scope": "Exact reviewed bytes recovered by reversing the documented finding patch, admitted only after equality with all accepted pre-finding source hashes. Runtime receipts are unchanged. Current changed-source finding receipts supersede these four source premises.",
+  "sources": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalParametricPolynomialEmbedding.swift": {
+      "sha256": "5d20e6c3658b51ca423e61afee70a5e52bd6ca29d62636767994e66028d45e20",
+      "snapshot": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/review-snapshot/OriginalParametricPolynomialEmbedding.swift",
+      "currentSHA256": "c1f81e67ab386fb6c5ecfad63a3ef10e9b8326ad2718ebc154fa495d5b5c2438"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalCurveParameterGraphPullback.swift": {
+      "sha256": "c811c7b61770a3d3646ac12cf726f78f2b72d4f7cfdea2621891139df93a8898",
+      "snapshot": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/review-snapshot/OriginalCurveParameterGraphPullback.swift",
+      "currentSHA256": "25d5be6494e161819b927762be387859bc3f94b65e6f007ec002cab5b2727d1c"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Proof.swift": {
+      "sha256": "f9b9105074ef3ff890cc00d23aaf9d5b6f2387f757352da2e10c750e169303d7",
+      "snapshot": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/review-snapshot/Proof.swift",
+      "currentSHA256": "a49b59e995afa7b234e6b7ba66e2447abf7e848abb5f23b528e7a021bbb190a2"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Verify.py": {
+      "sha256": "38b3d26a46d20a8d930c43bc4029b5a0cdda7750cb36e90db98c0f24b88c9aa4",
+      "snapshot": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/review-snapshot/Verify.py",
+      "currentSHA256": "549b285f29b4c46625aee2b6798359f82176306bfe40132cf80a1188d184dcdc"
+    }
+  }
+}

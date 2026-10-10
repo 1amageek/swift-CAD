@@ -10,18 +10,7 @@ struct OriginalRollingBallGraphProducer<S: OriginalRollingBallChildSourceReading
 
     func embedded<A: ExactScalarAdmission & ~Copyable>(_ p: Polynomial,map: [Int],
         ring: ExactPolynomialDomain<Field>,field: Field,using a: inout OriginalSourceProofAdmission<A>) throws -> Polynomial {
-        try a.admitDepth(value:p.depth.value,coefficient:p.depth.coefficient)
-        try a.retainStorage(bytes:exactScalarPayloadBytes(count:p.termCount,of:ExactPolynomialTerm<Field.Value>.self))
-        var terms:[ExactPolynomialTerm<Field.Value>]=[];terms.reserveCapacity(p.termCount)
-        for term in p.terms {
-            try a.consumeWork(1)
-            guard term.powers.count==map.count else { throw OriginalSourceIssuanceFailure.invalidChart }
-            try a.retainStorage(bytes:exactScalarPayloadBytes(count:ring.variableCount,of:Int.self))
-            var powers=[Int](repeating:0,count:ring.variableCount)
-            for index in map.indices { try a.consumeWork(1);powers[map[index]]=term.powers[index] }
-            terms.append(.init(powers:powers,coefficient:try field.importing(term.coefficient,using:&a)))
-        }
-        return try ring.polynomial(terms:terms,using:&a)
+        try OriginalParametricPolynomialEmbedding.applying(p,map:map,ring:ring,field:field,using:&a)
     }
 
     func issue<A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<S>,

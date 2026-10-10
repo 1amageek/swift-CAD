@@ -1,0 +1,322 @@
+{
+  "scope": "Finite original image/traversal graph source and rolling-ball/DI composition only. Four reviewed full paths with immutable exact source snapshots plus current four-target finding-only confirmation. PG.J numerical caller, general source maps/families and whole M4-M8/seven/full87 remain incomplete.",
+  "receipts": [
+    {
+      "lane": "native",
+      "kind": "reviewed-full",
+      "receipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/native/receipt.json",
+      "sha256": "a59b3c041427832a993cb74696c4c697d4fd1e49812ebc3ac3fec8396906bfa8",
+      "archivedPremises": [
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Verify.py",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Proof.swift",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalParametricPolynomialEmbedding.swift",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalCurveParameterGraphPullback.swift"
+      ],
+      "runs": [
+        {
+          "label": "compile-payload-helper",
+          "elapsedSeconds": 0.8803318329155445,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-caller",
+          "elapsedSeconds": 4.175557916983962,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-link",
+          "elapsedSeconds": 4.412941999966279,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "proof",
+          "elapsedSeconds": 15.659032083000056,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        }
+      ]
+    },
+    {
+      "lane": "native",
+      "kind": "current-finding",
+      "receipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/native-finding-final/receipt.json",
+      "sha256": "ead2074b3744ca8708afc5ac3c5cb48143487d3bc65869c9682ec9a959233ba5",
+      "archivedPremises": [],
+      "runs": [
+        {
+          "label": "compile-payload-helper",
+          "elapsedSeconds": 0.6108996249968186,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-caller",
+          "elapsedSeconds": 3.978996791993268,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-link",
+          "elapsedSeconds": 4.182834250037558,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "proof",
+          "elapsedSeconds": 0.61990658310242,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        }
+      ]
+    },
+    {
+      "lane": "asan",
+      "kind": "reviewed-full",
+      "receipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/asan/receipt.json",
+      "sha256": "2aad36e7bfdbff861fccf5bc45713e3a1c1e8e7ba16d1514c414b5454c745066",
+      "archivedPremises": [
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Verify.py",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Proof.swift",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalParametricPolynomialEmbedding.swift",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalCurveParameterGraphPullback.swift"
+      ],
+      "runs": [
+        {
+          "label": "compile-payload-helper",
+          "elapsedSeconds": 1.755850207991898,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-caller",
+          "elapsedSeconds": 9.261960624950007,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-link",
+          "elapsedSeconds": 10.202993417042308,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "proof",
+          "elapsedSeconds": 20.518740958999842,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        }
+      ]
+    },
+    {
+      "lane": "asan",
+      "kind": "current-finding",
+      "receipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/asan-finding-final/receipt.json",
+      "sha256": "a5d24570b6b933df5b487a2b6efab7268da3fe8224dd65abec87c9a1e2175662",
+      "archivedPremises": [],
+      "runs": [
+        {
+          "label": "compile-payload-helper",
+          "elapsedSeconds": 1.421033582999371,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-caller",
+          "elapsedSeconds": 8.812486790935509,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-link",
+          "elapsedSeconds": 9.866408540983684,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "proof",
+          "elapsedSeconds": 0.7123225840041414,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        }
+      ]
+    },
+    {
+      "lane": "wasm",
+      "kind": "reviewed-full",
+      "receipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/wasm/receipt.json",
+      "sha256": "10fa85987b2a030885028cb6ac1001562f66b5fea950b8ce8e2b22bae6f8a525",
+      "archivedPremises": [
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Verify.py",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Proof.swift",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalParametricPolynomialEmbedding.swift",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalCurveParameterGraphPullback.swift"
+      ],
+      "runs": [
+        {
+          "label": "compile-payload-helper",
+          "elapsedSeconds": 0.6744412500411272,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-caller",
+          "elapsedSeconds": 3.7283055830048397,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-link",
+          "elapsedSeconds": 3.358689791057259,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "proof",
+          "elapsedSeconds": 19.995628333068453,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        }
+      ]
+    },
+    {
+      "lane": "wasm",
+      "kind": "current-finding",
+      "receipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/wasm-finding-final/receipt.json",
+      "sha256": "0d346e5fd465e6db18dd9dcd86e77f9b1995529138d2214f14d09e3dc0378964",
+      "archivedPremises": [],
+      "runs": [
+        {
+          "label": "compile-payload-helper",
+          "elapsedSeconds": 0.6009494999889284,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-caller",
+          "elapsedSeconds": 3.53833362495061,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-link",
+          "elapsedSeconds": 3.1468865839997306,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "proof",
+          "elapsedSeconds": 0.19519941706676036,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        }
+      ]
+    },
+    {
+      "lane": "embedded",
+      "kind": "reviewed-full",
+      "receipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/embedded/receipt.json",
+      "sha256": "c325263bb980f382ecd3d071105d30ef4528ab470b0391cd6a7f0da5b5c88785",
+      "archivedPremises": [
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Verify.py",
+        "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Proof.swift",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalParametricPolynomialEmbedding.swift",
+        "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalCurveParameterGraphPullback.swift"
+      ],
+      "runs": [
+        {
+          "label": "compile-payload-helper",
+          "elapsedSeconds": 11.201842125039548,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-caller",
+          "elapsedSeconds": 34.833691791049205,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-link",
+          "elapsedSeconds": 40.31965458299965,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "proof",
+          "elapsedSeconds": 10.182868083007634,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        }
+      ]
+    },
+    {
+      "lane": "embedded",
+      "kind": "current-finding",
+      "receipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/embedded-finding-final/receipt.json",
+      "sha256": "e1ae2eea0593242f043cc6ab31592f55df8b3cd6c0fda4bfd40ac3e4054510b5",
+      "archivedPremises": [],
+      "runs": [
+        {
+          "label": "compile-payload-helper",
+          "elapsedSeconds": 10.548212292022072,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-caller",
+          "elapsedSeconds": 33.76302525005303,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "compile-link",
+          "elapsedSeconds": 40.94533412496094,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        },
+        {
+          "label": "proof",
+          "elapsedSeconds": 0.20547920907847583,
+          "exitCode": 0,
+          "timeoutSeconds": 120
+        }
+      ]
+    }
+  ],
+  "reviewedSourceManifest": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/review-snapshot/manifest.json",
+    "sha256": "8059b47ef60cf2200a7e1d05967f5a6b49256d661555322b042b47bbb9ecfa07"
+  },
+  "supersededPremises": [
+    {
+      "original": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalParametricPolynomialEmbedding.swift",
+      "reviewedSHA256": "5d20e6c3658b51ca423e61afee70a5e52bd6ca29d62636767994e66028d45e20",
+      "archived": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/review-snapshot/OriginalParametricPolynomialEmbedding.swift",
+      "currentSHA256": "c1f81e67ab386fb6c5ecfad63a3ef10e9b8326ad2718ebc154fa495d5b5c2438"
+    },
+    {
+      "original": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalCurveParameterGraphPullback.swift",
+      "reviewedSHA256": "c811c7b61770a3d3646ac12cf726f78f2b72d4f7cfdea2621891139df93a8898",
+      "archived": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/review-snapshot/OriginalCurveParameterGraphPullback.swift",
+      "currentSHA256": "25d5be6494e161819b927762be387859bc3f94b65e6f007ec002cab5b2727d1c"
+    },
+    {
+      "original": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Proof.swift",
+      "reviewedSHA256": "f9b9105074ef3ff890cc00d23aaf9d5b6f2387f757352da2e10c750e169303d7",
+      "archived": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/review-snapshot/Proof.swift",
+      "currentSHA256": "de2a2a41405dfb45456e09a64fde45f7d5362ac3111f47be81d4e6bad75dc85b"
+    },
+    {
+      "original": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Verify.py",
+      "reviewedSHA256": "38b3d26a46d20a8d930c43bc4029b5a0cdda7750cb36e90db98c0f24b88c9aa4",
+      "archived": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Evidence/review-snapshot/Verify.py",
+      "currentSHA256": "e33918df74543381fa22dd0d4cedf759215b1a9cd7e87e56c531d1307ee1f39d"
+    }
+  ],
+  "review": "One stable scoped review; auxiliary transport arity/layout finding corrected and rechecked. Fixture CommandLine selection repaired using common compile flag; diagnostic finding attempts are excluded.",
+  "protectedDraftsUnchanged": true,
+  "broadProductionRebuild": false
+}

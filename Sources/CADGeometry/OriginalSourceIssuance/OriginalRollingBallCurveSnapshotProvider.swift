@@ -13,6 +13,20 @@ public struct OriginalRollingBallCurveSnapshotProvider: OriginalSourceSnapshotti
             let children=try OriginalSourceIssuanceLimits(remainingSourceDepth:limits.remainingSourceDepth-1)
             let capability: OriginalRollingBallCurveSnapshot.Capability,depth: Int
             switch copy input {
+            case .parameterImage(let image):
+                let provider=OriginalParameterImageCurveSnapshotProvider(child:Self(field:field,tolerance:tolerance),tolerance:tolerance)
+                let binding=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(image,limits:children,using:&a)
+                capability = .parameterImage(binding);depth=binding.sourceDepth
+            case .originalConstructionChart(let image):
+                if case .traversal(let span)=image.chart {
+                    let provider=OriginalTraversalSpanSnapshotProvider(child:Self(field:field,tolerance:tolerance),field:field)
+                    let binding=try DefaultOriginalSourceBindingIssuer(provider:provider).bind(span,limits:children,using:&a)
+                    capability = .traversal(binding);depth=binding.sourceDepth
+                } else {
+                    let child=try DefaultOriginalSourceBindingIssuer(provider:OriginalRetainedConstructionCurveSnapshotProvider(field:field,tolerance:tolerance))
+                        .bind(input,limits:children,using:&a)
+                    capability = .constructionCurve(child);depth=child.sourceDepth
+                }
             case .originalAffineWord(let word):
                 let provider=OriginalAffineWordCurveSnapshotProvider(
                     child:Self(field:field,tolerance:word.sourceTolerance),tolerance:tolerance,
@@ -31,7 +45,7 @@ public struct OriginalRollingBallCurveSnapshotProvider: OriginalSourceSnapshotti
                 let child=try DefaultOriginalSourceBindingIssuer(provider:OriginalRetainedGuideCurveSnapshotProvider(field:field,tolerance:tolerance))
                     .bind(input,limits:children,using:&a)
                 capability = .guideCurve(child);depth=child.sourceDepth
-            case .originalEndpointConnector,.originalConstructionChart:
+            case .originalEndpointConnector:
                 let child=try DefaultOriginalSourceBindingIssuer(provider:OriginalRetainedConstructionCurveSnapshotProvider(field:field,tolerance:tolerance))
                     .bind(input,limits:children,using:&a)
                 capability = .constructionCurve(child);depth=child.sourceDepth

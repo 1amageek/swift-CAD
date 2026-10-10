@@ -1948,3 +1948,65 @@ polynomials, so retaining their backing requires retaining that same ring author
 Every incoming guard/support/transport coefficient is validated in that field before
 composition. New XYZ polynomials belong to that ring; no guard or transport rebase
 or duplicate array is introduced.
+
+
+### Parameter images and traversal over complete finite curve graphs
+
+The source owner composes the existing exact parameter-image reader and retained
+traversal endpoint producer with every supported finite curve graph. A sealed
+`OriginalFiniteCurveGraphs` retains the child's authored closed support independently
+of chart unions. `OriginalCompleteCurveGraphs` remains normalized [0,1]; the existing
+rolling-ball preparer's public boundary verifies that interval exactly before
+publishing the normalized family. Arbitrary Native knot support is accepted only
+by internal finite preparation, not by weakening the normalized contract.
+
+```mermaid
+flowchart LR
+ M[Original gain/offset or retained traversal endpoints] --> P[Relational graph pullback]
+ C[Complete finite child cover and original support] --> P
+ P --> F[Complete parent finite family]
+ F --> N[Checked normalized rolling-ball boundary]
+ N --> R[Existing product and guarded DI]
+```
+
+The common pullback introduces parent T and retains all child local coordinates as
+auxiliaries. It embeds the original position and every guard into the new ring,
+retains child interval/owning-side restrictions, and adds
+`childN - (gain*T + offset)*childD == 0` with the original denominator guard.
+There is no inverse of the child transport. The identity parent transport remains
+univariate, matching the existing lift/product contract. Image support is the exact
+affine pullback of independently authored child support. Traversal support is [0,1]
+only after both retained endpoints lie in that complete child support. All child
+charts remain available, including guard-empty occurrences and every incident side.
+
+Source/child bindings and fields must agree; map gain must be nonzero. A selected
+local graph interval is an ambient restriction, not a newly asserted complete
+cover. Only the sealed family preparer combines it with source completeness.
+The existing rolling-ball polynomial embedding is shared with the pullback;
+variable maps are checked and all new term/power arrays are admitted before
+allocation. Immutable family owners retain children once, while graph evidence
+retains the same owner and ordinal. All targets use the same Sendable/immutable
+storage and invocation-local admission; no unsafe state or new solver is added.
+
+The public spatial-word coverage's `Children` view now uses the sealed finite
+family rather than promising normalized support for every descendant. Its source,
+coverage, field, graphs, support and proof-depth readers remain available. Only
+the outer rolling-ball boundary promises [0,1]. This permits an image around a
+spatial word with arbitrary Native support without changing the normalized caller.
+
+Verification belongs to `Tests/OriginalParameterCurveGraphVerification`: actual
+image/traversal construction and evaluation, independent exact T/UV/XYZ witnesses,
+arbitrary Native support, nonmonotone/constant lifted fibers, reversal/nesting,
+full/strict/singleton/disconnected/empty DI requests, all incidents, foreign owner/
+field, exact resource and depth boundaries, entry/intermediate/terminal cancel,
+COW/lifetime, and retained Native/word callers. Fixed Native/changed-source-ASAN/
+normal-WASM/Embedded assembly reuses only receipt-admitted unchanged lower products.
+General nonlinear authored maps, infinite child families, other sources, M5/M6 and
+M7/M8 remain required independent work.
+
+The actual numerical nested lifted-traversal caller remains incomplete: retained
+construction traversal of a parameter image of a surface lift requests a low-order
+jet from the legacy higher-surface provider, which requires order four or greater.
+Graph/domain completeness does not repair or certify that numerical caller. The
+required requested-order repair and actual public evaluation proof remain PG.J in
+PROGRESS.md; the fixture preserves its typed refusal instead of accepting a point.

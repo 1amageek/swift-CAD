@@ -749,3 +749,20 @@ admission are unchanged. Native-only and retained-pcurve APIs remain compatible.
 Source authority and focused verification belong to the
 [source component](../../OriginalSourceIssuance/DESIGN.md#retained-atlas-hosts-with-native-pcurves).
 M7 automatic/symbolic publication and general nonrational coverage remain open.
+
+
+### Finite parameter-image and traversal graph consumption
+
+The source-owned relational pullback retains parent T as its parameter and every
+child local coordinate/UV as an auxiliary, with a univariate identity parameter
+transport. The existing graph binder and rolling-ball domain consumer therefore
+retain complete preimages and original guards without a DI algorithm change.
+A closed ambient parent support does not imply material membership: source child
+bounds, denominator and correspondence equations remain required predicates.
+Complete source coverage comes from the sealed finite child family, not a graph
+support union. See the [source owner](../../OriginalSourceIssuance/DESIGN.md#parameter-images-and-traversal-over-complete-finite-curve-graphs).
+Verification is owned by `Tests/OriginalParameterCurveGraphVerification`, including
+all closed incidents, exact singleton/open/disconnected/empty selections and same
+caller resource/cancel/lifetime. A diagnosed legacy nested lifted-traversal point
+failure remains separate from this parameter-domain proof and blocks that caller's
+full acceptance; this additive source/DI handoff does not claim M7 publication.

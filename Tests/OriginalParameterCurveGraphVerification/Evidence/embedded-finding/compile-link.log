@@ -1,0 +1,15 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Proof.swift:332:16: error: cannot find 'CommandLine' in scope
+330 |     static func main() {
+331 |         do {
+332 |             if CommandLine.arguments.contains("--finding") { try finding() }
+    |                `- error: cannot find 'CommandLine' in scope
+333 |             else { try run() }
+334 |         }
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalParameterCurveGraphVerification/Proof.swift:332:16: error: cannot find 'CommandLine' in scope
+330 |     static func main() {
+331 |         do {
+332 |             if CommandLine.arguments.contains("--finding") { try finding() }
+    |                `- error: cannot find 'CommandLine' in scope
+333 |             else { try run() }
+334 |         }

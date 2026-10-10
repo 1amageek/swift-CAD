@@ -5,6 +5,7 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
     public typealias Evidence=OriginalRollingBallCurveGraphEvidence
     public typealias Coverage=OriginalRollingBallCurveGraphCoverage
     public typealias Family = OriginalCompleteCurveGraphs<OriginalRollingBallCurveSnapshot,OriginalRollingBallCurveGraphEvidence,OriginalRollingBallCurveGraphCoverage>
+    private typealias Prepared=OriginalFiniteCurveGraphs<Source,Evidence,Coverage>
     public init() {}
     public func prepare<A: ExactScalarAdmission & ~Copyable>(source: borrowing OriginalSourceBinding<OriginalRollingBallCurveSnapshot>,
         field: OriginalExactScalarDomain,maximumCharts: Int,limits: OriginalSourceIssuanceLimits,using admission: inout A)
@@ -12,13 +13,21 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
         let source=copy source
         do {
             return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
-                try compose(source:source,field:field,maximumCharts:maximumCharts,limits:limits,using:&a)
+                let family=try compose(source:source,field:field,maximumCharts:maximumCharts,limits:limits,using:&a)
+                guard try field.compare(family.support.lower,field.integer(0,using:&a),using:&a) == .equal,
+                    try field.compare(family.support.upper,field.integer(1,using:&a),using:&a) == .equal else {
+                    throw OriginalSourceIssuanceFailure.invalidChart
+                }
+                try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Family.self))
+                let result=Family(source:source,coverage:family.coverage,field:family.field,graphs:family.graphs,
+                    support:family.support,proofDepth:try a.depth)
+                try a.checkpoint();return result
             }
         } catch { throw .init(preserving:error) }
     }
     private func compose<A: ExactScalarAdmission & ~Copyable>(source: OriginalSourceBinding<Source>,
         field: OriginalExactScalarDomain,maximumCharts: Int,limits: OriginalSourceIssuanceLimits,
-        using a: inout OriginalSourceProofAdmission<A>) throws -> Family {
+        using a: inout OriginalSourceProofAdmission<A>) throws -> Prepared {
         try a.checkpoint();try source.require(limits)
         guard limits.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
         guard maximumCharts>=0 else { throw OriginalSourceIssuanceFailure.chartLimit }
@@ -26,6 +35,7 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
         let f=field,zero=try f.integer(0,using:&a),one=try f.integer(1,using:&a)
         let coverage: OriginalRollingBallCurveGraphCoverage
         var graphs:[Family.Graph]=[]
+        var support=OriginalSourceParameterInterval(lower:zero,upper:one)
         func retain<S: Sendable,Selection: Sendable>(_ law: OriginalRationalChartReceipt<S,Selection,OriginalExactScalarDomain>,
             evidence: OriginalRollingBallCurveGraphEvidence,_ a: inout OriginalSourceProofAdmission<A>) throws {
             try a.consumeWork(1)
@@ -63,18 +73,76 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
                 source:binding,surface:surface,pcurve:pcurve,maximumCharts:maximumCharts,limits:children,using:&a)
         }
         switch source.original.capability {
+        case .parameterImage(let binding):
+            try binding.require(children)
+            guard children.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
+            let descendants=try OriginalSourceIssuanceLimits(remainingSourceDepth:children.remainingSourceDepth-1)
+            let family=try compose(source:binding.original.originalChild,field:f,maximumCharts:maximumCharts,limits:descendants,using:&a)
+            let gain=try binding.original.originalGain(in:0,field:f,using:&a)
+            let offset=try binding.original.originalOffset(in:0,field:f,using:&a)
+            guard try f.sign(of:gain,using:&a) != .zero else { throw OriginalSourceIssuanceFailure.invalidSource }
+            let first=try f.dividing(f.subtracting(family.support.lower,offset,using:&a),gain,using:&a)
+            let last=try f.dividing(f.subtracting(family.support.upper,offset,using:&a),gain,using:&a)
+            let ascending=try f.compare(first,last,using:&a) != .greater
+            support = .init(lower:ascending ? first:last,upper:ascending ? last:first)
+            let payload=try exactScalarPayloadBytes(count:1,of:(OriginalSourceBinding<OriginalRollingBallParameterImageCoverage.Map>,Prepared).self)
+            let header=try exactScalarPayloadBytes(count:2,of:UnsafeRawPointer.self)
+            let bytes=payload.addingReportingOverflow(header)
+            guard !bytes.overflow else { throw OriginalSourceIssuanceFailure.countOverflow }
+            try a.retainStorage(bytes:bytes.partialValue)
+            let owner=OriginalRollingBallParameterImageCoverage(source:binding,children:family)
+            coverage = .parameterImage(owner)
+            try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
+            graphs.reserveCapacity(family.graphs.count)
+            let issuer=DefaultOriginalParameterImageGraphIssuer<OriginalRollingBallParameterImageCoverage.Map,OriginalExactScalarDomain,OriginalRollingBallCurveGraphEvidence>()
+            for index in family.graphs.indices {
+                try a.consumeWork(1)
+                let graph=try issuer.issue(source:binding,child:family.graphs[index],parameters:support,limits:children,using:&a)
+                graphs.append(.init(source:source,evidence:.parameterImage(owner,index),field:graph.field,polynomials:graph.polynomials,
+                    homogeneous:graph.homogeneous,support:graph.support,includesUpperBoundary:graph.includesUpperBoundary,
+                    layout:graph.layout,conditions:graph.conditions,parameterTransport:graph.parameterTransport,proofDepth:graph.proofDepth))
+            }
+        case .traversal(let binding):
+            try binding.require(children)
+            guard children.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
+            let descendants=try OriginalSourceIssuanceLimits(remainingSourceDepth:children.remainingSourceDepth-1)
+            let family=try compose(source:binding.original.originalChild,field:f,maximumCharts:maximumCharts,limits:descendants,using:&a)
+            let start=try f.importing(binding.original.originalStart,using:&a),end=try f.importing(binding.original.originalEnd,using:&a)
+            try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:OriginalExactScalar.self))
+            for endpoint in [start,end] {
+                try a.consumeWork(1)
+                guard try f.compare(endpoint,family.support.lower,using:&a) != .less,
+                    try f.compare(endpoint,family.support.upper,using:&a) != .greater else { throw OriginalSourceIssuanceFailure.invalidSource }
+            }
+            let payload=try exactScalarPayloadBytes(count:1,of:(OriginalSourceBinding<OriginalRollingBallTraversalCoverage.Map>,Prepared).self)
+            let header=try exactScalarPayloadBytes(count:2,of:UnsafeRawPointer.self)
+            let bytes=payload.addingReportingOverflow(header)
+            guard !bytes.overflow else { throw OriginalSourceIssuanceFailure.countOverflow }
+            try a.retainStorage(bytes:bytes.partialValue)
+            let owner=OriginalRollingBallTraversalCoverage(source:binding,children:family)
+            coverage = .traversal(owner)
+            try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
+            graphs.reserveCapacity(family.graphs.count)
+            let issuer=DefaultOriginalTraversalGraphIssuer<OriginalRollingBallTraversalCoverage.Map,OriginalExactScalarDomain,OriginalRollingBallCurveGraphEvidence>()
+            for index in family.graphs.indices {
+                try a.consumeWork(1)
+                let graph=try issuer.issue(source:binding,child:family.graphs[index],limits:children,using:&a)
+                graphs.append(.init(source:source,evidence:.traversal(owner,index),field:graph.field,polynomials:graph.polynomials,
+                    homogeneous:graph.homogeneous,support:graph.support,includesUpperBoundary:graph.includesUpperBoundary,
+                    layout:graph.layout,conditions:graph.conditions,parameterTransport:graph.parameterTransport,proofDepth:graph.proofDepth))
+            }
         case .spatialWord(let binding):
             try binding.require(children)
             guard children.remainingSourceDepth>0 else { throw OriginalSourceIssuanceFailure.sourceDepthLimit }
             let descendants=try OriginalSourceIssuanceLimits(remainingSourceDepth:children.remainingSourceDepth-1)
             let family=try compose(source:binding.original.originalChild,field:f,maximumCharts:maximumCharts,limits:descendants,using:&a)
-            let payload=try exactScalarPayloadBytes(count:1,of:(OriginalSourceBinding<OriginalRollingBallSpatialWordCoverage.Word>,Family).self)
+            let payload=try exactScalarPayloadBytes(count:1,of:(OriginalSourceBinding<OriginalRollingBallSpatialWordCoverage.Word>,Prepared).self)
             let header=try exactScalarPayloadBytes(count:2,of:UnsafeRawPointer.self)
             let bytes=payload.addingReportingOverflow(header)
             guard !bytes.overflow else { throw OriginalSourceIssuanceFailure.countOverflow }
             try a.retainStorage(bytes:bytes.partialValue)
             let owner=OriginalRollingBallSpatialWordCoverage(source:binding,children:family)
-            coverage = .spatialWord(owner)
+            coverage = .spatialWord(owner);support=family.support
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:Family.Graph.self))
             graphs.reserveCapacity(family.graphs.count)
             let issuer=DefaultOriginalSpatialGraphIssuer<OriginalRollingBallSpatialWordCoverage.Word,OriginalExactScalarDomain,OriginalRollingBallCurveGraphEvidence>()
@@ -88,10 +156,8 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
         case .native(let binding):
             let family=try DefaultOriginalFiniteBSplineChartPreparer<BSplineCurve3D>().prepare(source:binding,
                 field:f,maximumCharts:maximumCharts,limits:children,using:&a)
-            guard family.support.count==1,
-                try f.compare(family.support[0].lower,zero,using:&a) == .equal,
-                try f.compare(family.support[0].upper,one,using:&a) == .equal else { throw OriginalSourceIssuanceFailure.invalidChart }
-            coverage = .native(family)
+            guard family.support.count==1 else { throw OriginalSourceIssuanceFailure.invalidChart }
+            coverage = .native(family);support=family.support[0]
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.laws.count,of:Family.Graph.self))
             graphs.reserveCapacity(family.laws.count)
             for law in family.laws { try retain(law,evidence:.native(law),&a) }
@@ -175,9 +241,9 @@ public struct DefaultOriginalRollingBallCurveGraphPreparer: OriginalCompleteCurv
             graphs.reserveCapacity(family.graphs.count)
             for graph in family.graphs { try retain(graph,evidence:.derivativeLift(graph),&a) }
         }
-        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Family.self))
-        let result=Family(source:source,coverage:coverage,field:f,graphs:graphs,
-            support:.init(lower:zero,upper:one),proofDepth:try a.depth)
+        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Prepared.self))
+        let result=Prepared(source:source,coverage:coverage,field:f,graphs:graphs,
+            support:support,proofDepth:try a.depth)
         try a.checkpoint();return result
     }
 }

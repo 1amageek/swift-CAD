@@ -1,0 +1,4 @@
+(node:88304) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS nonlinear and collapsed child preimages, open guards and foreign field
+PASS auxiliary transport and variable-layout finding confirmation

@@ -3,6 +3,8 @@ import CADCore
 /// Explicit original Curve3D construction; no fitted or XYZ-only authority.
 public struct OriginalRollingBallCurveSnapshot: Sendable {
     enum Capability: Sendable {
+        case parameterImage(OriginalSourceBinding<OriginalParameterImageSnapshot<ParameterImageCurve3D,OriginalRollingBallCurveSnapshot>>)
+        case traversal(OriginalSourceBinding<OriginalTraversalSpanSnapshot<OriginalRollingBallCurveSnapshot>>)
         case spatialWord(OriginalSourceBinding<OriginalAffineWordSnapshot<OriginalAffineWordCurve3D,OriginalRollingBallCurveSnapshot>>)
         case native(OriginalSourceBinding<BSplineCurve3D>)
         case derivativeCurve(OriginalSourceBinding<OriginalPlaneDerivativeCurveSnapshot>)
