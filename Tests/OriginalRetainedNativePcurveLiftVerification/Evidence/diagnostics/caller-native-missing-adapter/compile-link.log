@@ -1,0 +1,15 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedNativePcurveLiftVerification/CallerProof.swift:16:13: error: module 'RetainedHostAdapters' has no member named 'OriginalRollingBallCurveSnapshotProvider'
+14 |         let input=Curve3D.surfaceLift(.init(surface:.bSpline(surface),parameterCurve:.constantV(v:0.5,uStart:0,uEnd:1)))
+15 |         let source=try RetainedHostAdapters.DefaultOriginalSourceBindingIssuer(provider:
+16 |             RetainedHostAdapters.OriginalRollingBallCurveSnapshotProvider(field:f,tolerance:.standard))
+   |             `- error: module 'RetainedHostAdapters' has no member named 'OriginalRollingBallCurveSnapshotProvider'
+17 |             .bind(input,limits:.init(remainingSourceDepth:3),using:&a)
+18 |         let p=RetainedHostAdapters.DefaultOriginalRollingBallCurveGraphPreparer()
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedNativePcurveLiftVerification/CallerProof.swift:18:15: error: module 'RetainedHostAdapters' has no member named 'DefaultOriginalRollingBallCurveGraphPreparer'
+16 |             RetainedHostAdapters.OriginalRollingBallCurveSnapshotProvider(field:f,tolerance:.standard))
+17 |             .bind(input,limits:.init(remainingSourceDepth:3),using:&a)
+18 |         let p=RetainedHostAdapters.DefaultOriginalRollingBallCurveGraphPreparer()
+   |               `- error: module 'RetainedHostAdapters' has no member named 'DefaultOriginalRollingBallCurveGraphPreparer'
+19 |         let family=try p.prepare(source:source,field:f,maximumCharts:4,limits:.init(remainingSourceDepth:3),using:&a)
+20 |         try ActualRetainedHostLiftProof.require(family.graphs.count==4)

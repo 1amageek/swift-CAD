@@ -1650,3 +1650,40 @@ host routing remains a subsequent source integration obligation: the immutable
 numerical cache predates that nominal type implementation, so current typed producer
 evidence cannot certify a new cached-enum caller. It is not replaced by reconstruction
 or an unchecked cast in this lift composition.
+
+## Retained atlas hosts with Native pcurves
+
+The additive retained-host/Native-pcurve snapshot binds the actual SurfaceLiftCurve3D
+children through the existing retained host and B-spline snapshot providers. The
+host has its retained normalized square; the pcurve keeps its authored knot domain.
+The existing finite B-spline preparer remains authority for every positive span.
+No curve formula, normalized spline, chart partition or inverse is regenerated.
+Priority images, unsupported hosts and control hulls requiring tolerance-only UV
+clamps fail explicitly. General pcurve and derivative actual-host routing remain open.
+
+```mermaid
+flowchart LR
+ H[Retained host family] --> P[Shared finite lift preparation]
+ C[Original Native pcurve spans] --> P
+ P --> G[Existing lift producer with authored offset/span]
+ G --> D[Existing guarded T/UV domain]
+```
+
+The shared finite lift owner retains typed surface/pcurve source bindings, law arrays
+and supports. Existing retained-pcurve and Native-surface typed views share those
+immutable arrays; the new Native-pcurve view does likewise. Preparation validates
+both child authorities, identity chart coordinates, inherited depth and complete
+product cardinality before using the original lift graph producer. The producer
+already maps T to the authored pcurve coordinate with the exact offset/span, and
+retains every span guard and auxiliary UV. No source theorem is strengthened.
+
+All configuration/evidence is immutable Sendable on Native/Wasm/Embedded; scratch
+and the exclusive admission remain invocation-local. Work/storage/source/value/
+coefficient/chart limits and terminal cancellation apply to all paths, including
+empty DI requests and reuse. Retained children and original lift survive input release.
+Verification owner: Tests/OriginalRetainedNativePcurveLiftVerification, actual
+boundary-correction hosts with weighted multi-span pcurves, exact nonbinary knot
+incidence, guarded UV versus numerical point accuracy, all old retained-host
+fixtures and independent limit/cancel/foreign-binding/lifetime counterexamples.
+The [DI consumer](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#retained-host-native-pcurve-domain-consumption)
+uses the same graph source contract and does not solve or infer UV.

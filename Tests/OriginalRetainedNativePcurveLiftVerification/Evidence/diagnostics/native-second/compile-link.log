@@ -1,0 +1,23 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalRetainedNativePcurveLiftVerification/ActualProof.swift:101:84: error: ambiguous use of 'finite'
+ 99 |                     try require(abs(point.y-0.5)<=ModelingTolerance.standard.distance)
+100 |                     try require(abs(point.z-(multi ? 0:ud*(1-ud)/4))<=ModelingTolerance.standard.distance)
+101 |                     let interval=try ExactParameterInterval.checked(field:f,lower:.finite(t),upper:.finite(t),
+    |                                                                                    `- error: ambiguous use of 'finite'
+102 |                         depth:.init(value:32,coefficient:32),using:&a)
+103 |                     let selected=try issuer.issue(request:frame.selection(intervals:[[interval]],limits:l,using:&a),family:family,limits:l,using:&a)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalDomainIdentity/ExactParameterDomain/ExactParameterBound.swift:6:28: note: found this candidate in module 'CADGeometry'
+4 | 
+5 | public enum ExactParameterBound<Value: Sendable>: Sendable {
+6 |     case negativeInfinity, finite(Value), positiveInfinity
+  |                            `- note: found this candidate in module 'CADGeometry'
+7 | }
+8 | 
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-actual/native/d0de374dd5be419bae6e64c92110cb9c/207-ExactParameterBound.swift:8:28: note: found this candidate in module 'RetainedHostAdapters'
+ 6 | 
+ 7 | public enum ExactParameterBound<Value: Sendable>: Sendable {
+ 8 |     case negativeInfinity, finite(Value), positiveInfinity
+   |                            `- note: found this candidate in module 'RetainedHostAdapters'
+ 9 | }
+10 | 

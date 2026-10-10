@@ -1,0 +1,35 @@
+[
+  {
+    "label": "compile-caller",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-actual/native/3c4628bcf21e42648aa234e3a5390c82",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168",
+      "-enable-testing",
+      "-emit-library",
+      "-static",
+      "-emit-module",
+      "-module-name",
+      "CallerAdapters",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/OriginalRollingBallCurveSnapshot.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/OriginalRollingBallCurveSnapshotProvider.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/OriginalRollingBallCurveGraphEvidence.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/OriginalRollingBallCurveGraphCoverage.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/DefaultOriginalRollingBallCurveGraphPreparer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/BSplineCurve3D+OriginalSourceReading.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/OriginalBSplineCurveSnapshotProvider.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/OriginalNativeCurveFamilySnapshotProvider.swift",
+      "-emit-module-path",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/CallerAdapters.swiftmodule",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/1225794953b14eaf8e03673e1ace4168/libCallerAdapters.a"
+    ],
+    "elapsedSeconds": 0.14997708308510482,
+    "exitCode": 1,
+    "timeoutSeconds": 120
+  }
+]

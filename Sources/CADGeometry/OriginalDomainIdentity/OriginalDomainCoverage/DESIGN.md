@@ -736,3 +736,16 @@ strict/disconnected/empty requests, all incident sides, foreign owner/field,
 resource/depth/cancel and detached lifetime checks on fixed target lanes. General
 nonrational/preimage capabilities and final CS/SSI/image/fiber publication remain
 separate M4/M7 obligations.
+
+## Retained host Native pcurve domain consumption
+
+The retained lift domain issuer accepts the common checked lift graph source reader.
+Its sealed family may now contain a Native pcurve with authored knot support as well
+as a normalized retained pcurve. The original graph producer already transports
+normalized T to that support; DI still sees one T parameter and two UV auxiliaries.
+No membership/request/guard algorithm changes. Empty queries validate every scalar,
+all closed host/span incidents survive, and retained source/graph owners and proof
+admission are unchanged. Native-only and retained-pcurve APIs remain compatible.
+Source authority and focused verification belong to the
+[source component](../../OriginalSourceIssuance/DESIGN.md#retained-atlas-hosts-with-native-pcurves).
+M7 automatic/symbolic publication and general nonrational coverage remain open.

@@ -5,7 +5,7 @@ import DI0
 import SourceIssuer
 #endif
 
-public struct DefaultOriginalRetainedSurfaceLiftDomainIssuer<S: OriginalRetainedPcurveLiftSourceReading>: OriginalRetainedSurfaceLiftDomainIssuing {
+public struct DefaultOriginalRetainedSurfaceLiftDomainIssuer<S: OriginalLiftGraphSourceReading>: OriginalRetainedSurfaceLiftDomainIssuing {
     public typealias Source = S
     public init() {}
     func admitted<A: ExactScalarAdmission & ~Copyable>(_ family: OriginalFiniteRetainedSurfaceLiftGraphs<S>,

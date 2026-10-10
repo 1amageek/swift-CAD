@@ -1,0 +1,9 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/c4a0be4108ea4647a914de299cf09903/OriginalRollingBallCurveSnapshot.swift:1:8: error: missing required modules: 'Darwin', 'Foundation'
+ 1 | import CADCore
+   |        `- error: missing required modules: 'Darwin', 'Foundation'
+ 2 | @testable import RetainedHostAdapters
+ 3 | import enum CADGeometry.Curve3D
+
+<unknown>:0: note: did you forget to set an SDK using -sdk or SDKROOT?
+<unknown>:0: note: use "xcrun swiftc" to select the default macOS SDK installed with Xcode

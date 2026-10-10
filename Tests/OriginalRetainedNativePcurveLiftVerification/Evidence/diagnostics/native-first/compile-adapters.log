@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-actual/native/32431612ec03478684067aec82090215/18-DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer.swift:125:104: error: thrown expression type 'ExactScalarFailure' cannot be converted to error type 'OriginalSourceIssuanceFailure'
+123 |         try prepared(source:source,surfaceSource:surface.source,surfaceLaws:surface.laws,
+124 |             surfaceSupport:surface.support,field:surface.field,surfaceDepth:surface.proofDepth,
+125 |             pcurveSource:pcurve.source,pcurveLaws:pcurve.laws,pcurveSupport:pcurve.support,pcurveDepth:.init(value:0,coefficient:0),
+    |                                                                                                        `- error: thrown expression type 'ExactScalarFailure' cannot be converted to error type 'OriginalSourceIssuanceFailure'
+126 |             normalizedPcurve:false,maximumCharts:maximumCharts,limits:limits,using:&admission)
+127 |     }

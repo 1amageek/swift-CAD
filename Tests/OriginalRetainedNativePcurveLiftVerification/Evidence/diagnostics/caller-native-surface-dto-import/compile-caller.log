@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/10885b56a1204e0e9ab91b0b0ac7f84e/DefaultOriginalRollingBallCurveGraphPreparer.swift:60:79: error: cannot find type 'BSplineSurface3D' in scope
+58 |                     }
+59 |                 case .nativeLift(let binding):
+60 |                     let surface=try DefaultOriginalFiniteBSplineChartPreparer<BSplineSurface3D>().prepare(
+   |                                                                               `- error: cannot find type 'BSplineSurface3D' in scope
+61 |                         source:binding.original.originalSurface,field:f,maximumCharts:maximumCharts,limits:children,using:&a)
+62 |                     let pcurve=try DefaultOriginalFiniteBSplineChartPreparer<BSplineCurve2D>().prepare(

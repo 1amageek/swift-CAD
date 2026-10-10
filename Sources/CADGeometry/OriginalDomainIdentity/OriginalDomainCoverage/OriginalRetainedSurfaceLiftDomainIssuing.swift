@@ -6,7 +6,7 @@ import SourceIssuer
 #endif
 
 public protocol OriginalRetainedSurfaceLiftDomainIssuing: Sendable {
-    associatedtype Source: OriginalRetainedPcurveLiftSourceReading
+    associatedtype Source: OriginalLiftGraphSourceReading
     func frame<A: ExactScalarAdmission & ~Copyable>(family: borrowing OriginalFiniteRetainedSurfaceLiftGraphs<Source>,
         limits: OriginalDomainIdentityLimits,using admission: inout A)
         throws(OriginalDomainIdentityFailure) -> OriginalParameterFrame<Source,OriginalExactScalarDomain>

@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-retained-native-pcurve-caller/native/c253c54fa7b84be3836a4fb14990dd23/OriginalRollingBallCurveSnapshotProvider.swift:51:39: error: cannot find 'exactScalarPayloadBytes' in scope
+49 |             let total=depth.addingReportingOverflow(1)
+50 |             guard !total.overflow else { throw OriginalSourceIssuanceFailure.countOverflow }
+51 |             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalRollingBallCurveSnapshot.self))
+   |                                       `- error: cannot find 'exactScalarPayloadBytes' in scope
+52 |             let result=OriginalRollingBallCurveSnapshot(original:copy input,capability:capability)
+53 |             try a.checkpoint();return .init(original:result,sourceDepth:total.partialValue)

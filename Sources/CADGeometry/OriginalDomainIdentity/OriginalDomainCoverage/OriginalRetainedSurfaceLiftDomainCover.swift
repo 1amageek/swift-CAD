@@ -6,7 +6,7 @@ import SourceIssuer
 #endif
 
 /// Complete selected T enclosure with the original auxiliary UV relation retained.
-public struct OriginalRetainedSurfaceLiftDomainCover<S: OriginalRetainedPcurveLiftSourceReading>: Sendable {
+public struct OriginalRetainedSurfaceLiftDomainCover<S: OriginalLiftGraphSourceReading>: Sendable {
     public typealias Field = OriginalExactScalarDomain
     public typealias Member = OriginalDomainBoundParametricGraph<S,Field,OriginalSurfaceLiftGraphEvidence<S>>
     public let family: OriginalFiniteRetainedSurfaceLiftGraphs<S>

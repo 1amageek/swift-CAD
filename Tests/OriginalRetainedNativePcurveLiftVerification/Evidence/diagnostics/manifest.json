@@ -1,0 +1,28 @@
+{
+  "classification": "Diagnostic/superseded executions only; selected identical Native adapter compilation is reused with command/source/product receipts, not its old fixture runtime.",
+  "files": {
+    "caller-native-sdk-flags/compile-caller.log": "46855b8e98f95b689841cb6c6a98404a7940474c6bec850536126a3775f6754d",
+    "caller-native-sdk-flags/runs.json": "09a46bedc18f73f9180be6d0265dcfa2c245a443ab1363b92eafb639f198aac1",
+    "native-third/compile-adapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-third/inputs-before-compile.json": "e3a7413a1667d36ca4d1c96e4e99f0ad9a74450851a4fc6ecb5bdfad4075e744",
+    "native-third/proof.log": "f45b97fb225dd7acba5297c2fc48caab983df2a2dee69dd59182787534f0f440",
+    "native-third/runs.json": "a418cf4d3be4a459f3e11935ba46ab4afa78d2a8b92eb1ea7d15a255482a9573",
+    "native-third/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-third/receipt.json": "3c1382b7a00b741d39385d8515b8dc8f827a12719e46910c6d7913aaba634731",
+    "native-first/compile-adapters.log": "ccc6f13211c570e9eae7848f35a9ee866e1e70120e3d643dbd176fb989865d63",
+    "native-first/inputs-before-compile.json": "ef3090530c2be31e46cacc690e6acdb2f697bb99648019149baf952f467748eb",
+    "native-first/runs.json": "b30c766cebd8592b1e7493c5423f90465b81757b062e2d229ef4aaf9ca569ea9",
+    "caller-native-missing-adapter/runs.json": "549fc7bb739ff326d4ebdeff8df1541de04c6aa4c02e3aeba7c29c7418965606",
+    "caller-native-missing-adapter/compile-link.log": "bf7f8af85b07a08734342216deee4469143ab822e1c069b808332b2bce77285a",
+    "caller-native-surface-dto-import/compile-caller.log": "dbaec14d2632631df552ecb01a66b21a4bcd2574c6b4ff74e6a56d72f5ae8030",
+    "caller-native-surface-dto-import/runs.json": "33c457c5ad1075e0643f9e7f21bd58992e830c968e0613720ebdd5f4239df8bf",
+    "caller-native-scalar-helper-import/compile-caller.log": "8532973ce2e74ce1ba3faaa4f462bbb7ab3de8e255692a26e3f901fd03a465c9",
+    "caller-native-scalar-helper-import/runs.json": "6c22e23f5a82a29d08db12dd88747cc82694fb159987997c37e577e3776e0af5",
+    "native-second/compile-adapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-second/inputs-before-compile.json": "8c26210a47b0be463581ddc6acd07dc053ce2ca720924b04444e55b3e83f77da",
+    "native-second/runs.json": "8b827ae707ee2b94dc3ddf5d9501a4c069692581c666c69057da003797e76f75",
+    "native-second/compile-link.log": "0ef10c73c9be265528bca9acd037bb07490142422132f6b27561cea9a0ae9255",
+    "caller-native-prefix-before-sdk/compile-caller.log": "56800a84292451654281df8c9849d97b261764d90a087650ba435968938c8a84",
+    "caller-native-prefix-before-sdk/runs.json": "dc9630b07cd98d89b4398c4d431b5fdbc93bf96d3c91786388d950182ca0786d"
+  }
+}
