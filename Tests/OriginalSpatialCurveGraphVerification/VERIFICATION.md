@@ -90,8 +90,9 @@ No broad CADCore/CADGeometry/Kernel or L2-L6 rebuild occurs. ASAN instruments th
 fresh changed-source/caller/fixture assembly, not every unchanged numerical dependency.
 The fixed Swift 6.4.0 compiler and matching normal/Embedded SDK commands, immutable
 artifacts, source inputs and accepted logs are bound by each lane's receipt.
-Every process has a 120-second timeout. Final logs have no warnings/errors,
-actor-isolation/race/null-call or function-signature diagnostics.
+Every process has a 120-second timeout. Final compile/link logs contain no warnings/errors. Runtime logs contain no
+actor-isolation/race/null-call or function-signature diagnostics; Node's existing
+WASI ExperimentalWarning is retained.
 
 | Lane | Producer compile | Caller compile | Link | Runtime | Bound inputs |
 |---|---:|---:|---:|---:|---:|
@@ -121,5 +122,18 @@ shared position composition, all eleven changed/new production files, child recu
 old-chart proof depth, actual rolling-ball/DI callers, independent fixture expectations,
 all four accepted logs and source/product consistency. No unresolved finding remains.
 Existing source/consumer drafts and the protected publisher patch retain their
-original HEAD/status/index/content hashes. Latest-main delivery remains a separate
-receipt-bound gate below.
+original HEAD/status/index/content hashes. Latest-main delivery is recorded below.
+
+
+## Latest-main delivery
+
+Implementation f8f6a243 is normally fast-forwarded into main from 53676553 after
+independent comparison of 10,736 source/product/log/documentation premises before
+and after fresh Native (12.750 s) and Embedded (9.109 s) actual caller processes.
+Every runtime input and protected foreign snapshot matches without rebuilding or
+source adjustment. Evidence/main-integration/integration.json owns the comparison,
+commands and accepted logs. Its documentationSnapshot binds the reviewed document
+at immutable implementation f8f6a243; this delivery section is post-runtime metadata.
+The accompanying record commit closes the limited unit, with general M4-M8 and
+whole-seven/full87 acceptance still open. Unrelated unpushed main history is retained
+without automatic push.
