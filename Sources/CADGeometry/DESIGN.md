@@ -150,6 +150,30 @@ failure, and migration obligations are specified in the
 [Intersection Algebra foundation contract](IntersectionAlgebra/DESIGN.md#intersection-classification-and-proximity-boundary).
 Legacy tolerance-based coincidence is not evidence of migration completion.
 
+### Near-Parallel Plane Pair Classification
+
+The existing public SSI dispatcher forwards its selected options to
+`PlanePlaneSurfaceIntersector`. Direct-authored plane pairs always use the existing
+[original supporting-plane issuer](OriginalCoons/PlaneDerivatives/DESIGN.md)
+to supply each authored equation. Near-parallel canonical procedural pairs also
+require that issuer instead of relying on their rounded canonical coefficients.
+Exact rational cross products establish
+parallelism; proportional equation constants establish coincidence. A positive
+stored separation is disjoint regardless of modeling tolerance. Coincidence
+publishes zero residual only after that exact proof. All scalar preparation and
+predicates use the existing option-derived SSI allowance, with terminal
+cancellation before empty/coincident publication. Unsupported original equation
+transport fails explicitly instead of accepting a rounded canonical plane.
+
+Nonzero exact cross products continue to the existing numerical line producer
+without using the modeling angle as a parallelism threshold. This repair does
+not certify that producer's full original parameter/image coverage or migrate
+all procedural plane families. The legacy unit-normal admission remains.
+The focused `Tests/OriginalPlanePlaneIntersectionVerification` fixture owns
+distinct/identical planes, sub-tolerance angles, explicit source/resource/cancel
+failures and actual-dispatch regression. Its immutable cached dependency
+premises are recorded; it is not a full CAD or M8 rebuild.
+
 ### Canonical Ideal Angular Primitive Authority
 
 [Canonical Sphere Chart](CanonicalSphereChart/DESIGN.md) owns the shared phase producer.

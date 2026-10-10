@@ -195,6 +195,7 @@ public struct DefaultSurfaceSurfaceIntersector: SurfaceSurfaceIntersecting {
           second: secondPlane,
           firstSurface: first,
           secondSurface: second,
+          options: options,
           tolerance: tolerance
         )
       case (.plane(let plane), .sphere(let sphere)),

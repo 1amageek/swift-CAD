@@ -1,0 +1,58 @@
+{
+  "inputs": {
+    "Sources/CADGeometry/PlanePlaneSurfaceIntersector.swift": "9e5172b237e69267364f578ffa4eda14673c42823cebf3f70cb03e82daf162c9",
+    "Sources/CADGeometry/DefaultSurfaceSurfaceIntersector.swift": "1d8dff9d1263aa8d9caba8dcf4ee32f09c7fee0acce4471e18550b782177cd92",
+    "Tests/OriginalPlanePlaneIntersectionVerification/Proof.swift": "74424ae7102ab837fd1c6d1feb45e08ac33b78d0bc21df62f8f4395554a302f2"
+  },
+  "immutableDependencySnapshot": {
+    "readOnlyOrigin": "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/.build/di-m2-production-native/out/Products/Debug",
+    "copiedInputs": {
+      ".build/legacy-plane-torus/cache/CADCore.o": "2b65d4a7d140bd3db69ef541c4cb791eec54172123514b9268bcf32d1feb5dd6",
+      ".build/legacy-plane-torus/cache/CADCore.swiftmodule/arm64-apple-macos.swiftdoc": "f15da3c4871e9b5a9b36f15a642ecef569c8bedbef9c874c17246dc982cf052b",
+      ".build/legacy-plane-torus/cache/CADCore.swiftmodule/arm64-apple-macos.swiftmodule": "bfc86e747ca13f4b7aa31e2f9e41daaa8e212ea8532dfd61b9bd3441823eebc4",
+      ".build/legacy-plane-torus/cache/CADCore.swiftmodule/arm64-apple-macos.abi.json": "4277ac6b49f8511196028a5ac20f5b1b1dfa754c24615d34068089f0b1739728",
+      ".build/legacy-plane-torus/cache/CADCore.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo": "afea78f28b18a5caf672b862bdd237dfcff4d2e3e231ab66483b21da6511c73a",
+      ".build/legacy-plane-torus/cache/CADGeometry.o": "13efc23cdb8231bab71a91334b458ebe1612a23fbdff285865a8fe1d020c9d1b",
+      ".build/legacy-plane-torus/cache/CADGeometry.swiftmodule/arm64-apple-macos.swiftdoc": "a27d4c5c05465ca7885da5b15ee3afb93cde4f3bb04e40e61f0d308b6dbb6939",
+      ".build/legacy-plane-torus/cache/CADGeometry.swiftmodule/arm64-apple-macos.swiftmodule": "078f2c7cbb8df3d017b69cb47013091af200735c3e5fef895faa371bd9ca13a1",
+      ".build/legacy-plane-torus/cache/CADGeometry.swiftmodule/arm64-apple-macos.abi.json": "4277ac6b49f8511196028a5ac20f5b1b1dfa754c24615d34068089f0b1739728",
+      ".build/legacy-plane-torus/cache/CADGeometry.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo": "1aec11808d26351be4c4408e2685237f6687a8f78025d69eb0cc96d12d04b3ef",
+      ".build/legacy-plane-torus/cache/HashTreeCollections.o": "8ac42afccdcb7bb317d4f62155a9725f3c351a669421f2db4854100485706924",
+      ".build/legacy-plane-torus/cache/HashTreeCollections.swiftmodule/arm64-apple-macos.swiftdoc": "9aac896ec8cad0848a24c77c8843da47dde6b1b3f5ab6f1ecee7a825739de24b",
+      ".build/legacy-plane-torus/cache/HashTreeCollections.swiftmodule/arm64-apple-macos.swiftmodule": "00c9d869fd9e3fdf9deab247a56c43642d46edeca6e6cb91f43a7ea750e5b13c",
+      ".build/legacy-plane-torus/cache/HashTreeCollections.swiftmodule/arm64-apple-macos.abi.json": "4277ac6b49f8511196028a5ac20f5b1b1dfa754c24615d34068089f0b1739728",
+      ".build/legacy-plane-torus/cache/HashTreeCollections.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo": "c39bcf9656fb625148fcc4ead85661ec5046f68961e47fba9bd8d0800f558f5a",
+      ".build/legacy-plane-torus/cache/InternalCollectionsUtilities.o": "e489128a74b04440ac9e17a13de0c5294db9d553fe77045accb71fdd16901d67",
+      ".build/legacy-plane-torus/cache/InternalCollectionsUtilities.swiftmodule/arm64-apple-macos.swiftdoc": "028f69b784d8e7064ddbf4a6638f7a07bf6a96ca8b89e24a3c0eb839faf0ea25",
+      ".build/legacy-plane-torus/cache/InternalCollectionsUtilities.swiftmodule/arm64-apple-macos.swiftmodule": "6270eb0dfb228b27bbb5a812a591cce2a46e6fe2b81ec2d546e61fef59827b12",
+      ".build/legacy-plane-torus/cache/InternalCollectionsUtilities.swiftmodule/arm64-apple-macos.abi.json": "4277ac6b49f8511196028a5ac20f5b1b1dfa754c24615d34068089f0b1739728",
+      ".build/legacy-plane-torus/cache/InternalCollectionsUtilities.swiftmodule/Project/arm64-apple-macos.swiftsourceinfo": "1e29394e9e166cba74bb3c40ee33636412d94b1b7d187e6ce53ba080b4578a98"
+    }
+  },
+  "command": [
+    "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+    "-swift-version",
+    "6",
+    "-sdk",
+    "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+    "-target",
+    "arm64-apple-macos15.0",
+    "-I",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/legacy-plane-torus/cache",
+    "-parse-as-library",
+    "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/cad-plane-pair-1k2uaxss/PlanePlaneSurfaceIntersector.swift",
+    "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/cad-plane-pair-1k2uaxss/DefaultSurfaceSurfaceIntersector.swift",
+    "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/cad-plane-pair-1k2uaxss/Proof.swift",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/legacy-plane-torus/cache/CADGeometry.o",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/legacy-plane-torus/cache/CADCore.o",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/legacy-plane-torus/cache/HashTreeCollections.o",
+    "/Users/1amageek/.codex/worktrees/source-consumer-handoff-recovery/swift-CAD/.build/legacy-plane-torus/cache/InternalCollectionsUtilities.o",
+    "-o",
+    "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/cad-plane-pair-1k2uaxss/Proof"
+  ],
+  "compilerSHA256": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+  "productSHA256": "ee0735c04b248e8559dc127abe46235ff536a9f6a847d85ee021f5879f349e33",
+  "runtimeExitCode": -5,
+  "runtimeSHA256": "256e6a23205ab7bdc83c8090f5c900a78cd408d42be4dff6cddeced7eabeaf9f",
+  "scope": "Changed actual Native dispatcher and plane producer; immutable cached dependencies. ASAN, when selected, instruments only recompiled sources; no broad production/L2-L6 build."
+}

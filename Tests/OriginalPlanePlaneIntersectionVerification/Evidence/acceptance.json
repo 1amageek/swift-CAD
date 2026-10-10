@@ -1,0 +1,27 @@
+{
+  "native": {
+    "hashes": {
+      "receipt.json": "d5d85a1b6a6dcb3f1f08022bdb3033e0404c7a18a2741dc9648f6e45410e19e4",
+      "runtime.log": "7ce7d65d7f855388cf85a66dbabeda1a00c4218c0256881eb91dc8903db50b87",
+      "build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "retainedProduct": "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/cad-plane-pair-yg4d887k/Proof",
+    "currentSourcePremises": 127,
+    "result": "PASS"
+  },
+  "asan": {
+    "hashes": {
+      "receipt.json": "0f7433db4b712c939c70e9ed4241b1f543e38f22bf3538dba9ffb91db609dc21",
+      "runtime.log": "7ce7d65d7f855388cf85a66dbabeda1a00c4218c0256881eb91dc8903db50b87",
+      "build.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "retainedProduct": "/var/folders/c4/bcbjzcj556d3xj45z64rzjmw0000gn/T/cad-plane-pair-87azxukv/Proof",
+    "currentSourcePremises": 127,
+    "result": "PASS"
+  },
+  "review": {
+    "snapshotBase": "6d9190fd",
+    "findings": [],
+    "scope": "One stable change review: exact parallel/proportional equations, same option-derived allowance, no shared-state/unsafe/platform split, preserved unit-normal refusal and transverse offset regression. Numerical transverse line/UV migration remains explicitly incomplete."
+  }
+}
