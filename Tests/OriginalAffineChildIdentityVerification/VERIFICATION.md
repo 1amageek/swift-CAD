@@ -90,8 +90,10 @@ this confirmation. No additional aggregate review is required.
 
 ## Latest-main delivery
 
-Independent latest-main source/product/log comparison and fresh Native/Embedded
-processes are recorded in `Evidence/main-integration/integration.json` when delivery
-closes. Foreign source/consumer drafts, pending merge and the protected publisher
+Implementation commit89e71c84 is delivered to main. Independent latest-main
+comparison verifies2644 source/product/log premises before and after fresh Native
+1.808s and Embedded1.149s processes, recorded in
+`Evidence/main-integration/integration.json`. No integration source adjustment or
+rebuilding was needed. Foreign source/consumer drafts, pending merge and the protected publisher
 patch must remain byte-identical. No broad rebuild or unverified cached execution
 is part of delivery. General M5.C, M6, M7/M8 and whole-seven/full87 remain open.
