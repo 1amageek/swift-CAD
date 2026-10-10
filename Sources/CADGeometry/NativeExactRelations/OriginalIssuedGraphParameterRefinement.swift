@@ -23,6 +23,7 @@ public struct OriginalIssuedGraphParameterRefinement<S: Sendable,E: Sendable,C: 
 
     public func contains<A: ExactScalarAdmission & ~Copyable>(
         liftedCoordinates: [ExactAlgebraicScalarDomain<OriginalExactScalarDomain>.Value],
+        queryField: ExactAlgebraicScalarDomain<OriginalExactScalarDomain>? = nil,
         limits: OriginalDomainIdentityLimits, rootLimits: ExactRealRootLimits, using admission: inout A
     ) throws(NativeExactRelationFailure) -> Bool {
         do {
@@ -31,7 +32,9 @@ public struct OriginalIssuedGraphParameterRefinement<S: Sendable,E: Sendable,C: 
             let region = pullback.region
             try admission.admitDepth(value: region.depth.value, coefficient: region.depth.coefficient)
             let cells = try ExactRealCellDomain<OriginalExactScalarDomain>(retaining: region.partition.source, using: &admission)
-            let field = try cells.coefficientField(of: region.partition.source, using: &admission)
+            let field: ExactAlgebraicScalarDomain<OriginalExactScalarDomain>
+            if let queryField { field = queryField }
+            else { field = try cells.coefficientField(of: region.partition.source, using: &admission) }
             let point = try cells.point(field: field, coordinates: liftedCoordinates, using: &admission)
             guard let cell = try cells.locate(point, in: region.partition, limits: rootLimits, using: &admission) else {
                 try admission.checkpoint()

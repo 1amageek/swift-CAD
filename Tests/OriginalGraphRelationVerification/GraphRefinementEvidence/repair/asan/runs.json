@@ -1,0 +1,69 @@
+[
+  {
+    "label": "toolchain",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "--version"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.134,
+    "exitCode": 0
+  },
+  {
+    "label": "sdk",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "sdk",
+      "list"
+    ],
+    "timeoutSeconds": 10,
+    "elapsedSeconds": 0.264,
+    "exitCode": 0
+  },
+  {
+    "label": "package",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "package",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/Tests/OriginalGraphRelationVerification",
+      "dump-package"
+    ],
+    "timeoutSeconds": 20,
+    "elapsedSeconds": 0.21,
+    "exitCode": 0
+  },
+  {
+    "label": "build",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swift",
+      "build",
+      "--build-system",
+      "native",
+      "--package-path",
+      "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/.build/m6-refinement-repair/asan/46e36b2a9a9f480e9825ae9426b89a0e/package",
+      "--build-path",
+      "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/.build/m6-refinement-repair/asan/46e36b2a9a9f480e9825ae9426b89a0e/build",
+      "-j",
+      "2",
+      "--product",
+      "GraphProof",
+      "--sanitize",
+      "address",
+      "-Xswiftc",
+      "-O"
+    ],
+    "timeoutSeconds": 240,
+    "elapsedSeconds": 81.151,
+    "exitCode": 0
+  },
+  {
+    "label": "proof-15",
+    "command": [
+      "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/.build/m6-refinement-repair/asan/46e36b2a9a9f480e9825ae9426b89a0e/build/arm64-apple-macosx/debug/GraphProof"
+    ],
+    "timeoutSeconds": 180,
+    "elapsedSeconds": 36.092,
+    "exitCode": 0
+  }
+]

@@ -1,0 +1,23 @@
+{
+  "scope": "Current receipt validator behavior; synthetic fixtures certify no real Swift artifact.",
+  "command": [
+    "python3",
+    "-m",
+    "unittest",
+    "discover",
+    "-s",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence",
+    "-p",
+    "test_artifact_receipt.py",
+    "-v"
+  ],
+  "timeoutSeconds": 20,
+  "exitCode": 0,
+  "inputs": {
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/artifact_receipt.py": "97731669de77854c2dca0537d18b8cf7e36f0eb34fb5fe916412e45d3ff02ba2",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/test_artifact_receipt.py": "60ee515faf542aef873218acc04fbc02d53ee32fbe5d59149133cca0fd49c1a6"
+  },
+  "logs": {
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/repair/validator-tests.log": "04e590a0184a31a82825fb334d085398fc2d13c32625d9ad2009c5a2c055cfa8"
+  }
+}

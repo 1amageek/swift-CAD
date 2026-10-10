@@ -1,0 +1,42 @@
+{
+  "scope": "One finding-only confirmation of descendant-field membership and generation-bound artifact admission; no additional aggregate review.",
+  "lanes": {
+    "native": {
+      "receiptSHA256": "38030127830fa660798a65043b61af9088ee4c2e72f3b8a4c5fdf8db29703ecd",
+      "generationSHA256": "03af6140d22bc01dd6bfc477f896c904591c56c41b97592ecc864e2bc003a864",
+      "boundInputs": 1110,
+      "generatedArtifacts": 560,
+      "runtimeSeconds": 42.135
+    },
+    "asan": {
+      "receiptSHA256": "16c729fa04cb50d1b7e2b4c15513b54e0e0298223fadf4a4777204ca7d12116b",
+      "generationSHA256": "d883146830c2d20868ae104c962b6c2ba7d1719a430775d60241c117ad1efaa5",
+      "boundInputs": 1110,
+      "generatedArtifacts": 560,
+      "runtimeSeconds": 36.092
+    },
+    "wasm": {
+      "receiptSHA256": "99dfdb5b4d596548b2b2ceaf976e753aee8de9bf47a0fd14e1bc82e7aa1249f5",
+      "generationSHA256": "075af0c253bfddb2685361153a0732a363d6208e253325b8f2b789f9f9d894c7",
+      "boundInputs": 1132,
+      "generatedArtifacts": 580,
+      "runtimeSeconds": 69.379
+    },
+    "embedded": {
+      "receiptSHA256": "62007eb296b5a812fe109d77508c922f90140f1bec3044c9dee89ae7bab0f699",
+      "generationSHA256": "61c3dc8fc00440c292225a9c0f93034653b795d2a3861f2b00faf9c2010ad157",
+      "boundInputs": 1129,
+      "generatedArtifacts": 577,
+      "runtimeSeconds": 36.355
+    }
+  },
+  "productionSource": {
+    "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphParameterRefinement.swift": "6fe21866292c142f822e58118e0d63a888b9ecb442f8dea05b6c049b867541f3"
+  },
+  "ownership": "Immutable fields and COW owners on Native/WASM/Embedded; query field is retained by the L3 scoped point, independent exclusive caller admission. No new mutable storage, unsafe access, target-dependent Sendable or isolation branch.",
+  "validatorReceiptSHA256": "5e2ffd155318e044ed06ff43444ffff8c2d8390b8b4667db0feccef0a2709e51",
+  "findingsClosed": [
+    "Exact sqrt(1/3) membership, algebraic exclusion and foreign-field failure execute in all four lanes.",
+    "Actual fresh generation receipts bind every module/object and source/compiler premise before runtime; missing/overwritten receipt cases fail."
+  ]
+}

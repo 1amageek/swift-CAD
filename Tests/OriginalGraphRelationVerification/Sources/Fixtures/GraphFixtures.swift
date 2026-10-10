@@ -63,6 +63,7 @@ public enum GraphFixtures {
     }
     static func cellLimits() throws -> ExactRealCellLimits {try .init(maximumStoredCells:20_000,maximumRootsPerStack:100)}
     static func topologyLimits() throws -> ExactRealTopologyLimits {try .init(maximumGeneratedCells:20_000,maximumRootsPerStack:100,maximumClosures:1000,maximumAttachmentPieces:20_000,maximumComponents:1000)}
+#if !GRAPH_REFINEMENT_ONLY_VERIFICATION
     public static func run(_ mode:Int) throws {
         switch mode {case 0:try rational();case 1:try offset(false);case 2:try offset(true);case 3:try correspondence();case 4:try failures();case 5:try surfaceAndSingular();case 6:try geometryCS(false);case 7:try geometryCS(true);case 8:try geometrySSI();case 9:try auxiliaryGeometry(false);case 10:try auxiliaryGeometry(true);case 11:try graphGeometryGeneral();case 12:try geometryEmptyAndFailures();case 13:try graphGeometryGeneral(true);
 #if ISSUED_GRAPH_PUBLIC_VERIFICATION
@@ -72,6 +73,7 @@ public enum GraphFixtures {
         default:throw Failure.incorrect(#line)}
         print("PASS B3 source/DI/L5 group=\(mode)")
     }
+#endif
     static func rational() throws {
         var a=try ledger();let f=try Base(maximumValueDepth:32,maximumCoefficientDepth:32,using:&a),field=try Field.base(field:f,maximumExtensionLevel:32,using:&a),l=try limits()
         let first=try DefaultOriginalRationalGraphFamilyPreparer().prepare(cover:cover(native(curve(),f,&a),&a),field:field,maximumGraphs:8,limits:l,using:&a)

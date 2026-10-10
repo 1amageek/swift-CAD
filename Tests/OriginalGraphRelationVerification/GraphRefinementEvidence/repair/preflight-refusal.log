@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/run.py", line 94, in <module>
+    hashes.update(verify_generation(args.generation_receipt, args.cache_root,
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/1amageek/.codex/worktrees/di-m0-integration/swift-CAD/Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/artifact_receipt.py", line 19, in verify_generation
+    raise RuntimeError("Lower generation logs are not bound")
+RuntimeError: Lower generation logs are not bound

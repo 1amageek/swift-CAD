@@ -335,6 +335,10 @@ The immutable `OriginalIssuedGraphParameterRefinement` retains the entire issued
 collection, pair ordinal and pullback. Each included refined cell has L4's raw
 lifted-cell ordinal; excluded cells retain -1 and complete exclusion evidence.
 Membership accepts full lifted coordinates with an independent caller admission.
+An optional `queryField` supplies an exact descendant of the coefficient field;
+omitting it preserves coefficient-field queries. L3 validates that the query
+field imports the source coefficients and owns every coordinate. Foreign or
+incompatible fields fail explicitly; coordinates are never rounded or rebuilt.
 All source/proof admission, coordinate-map/output storage, work and terminal
 cancellation use that admission. COW copies share the original buffers. There is
 no shared mutable state or target-specific isolation/Sendable branch.
@@ -351,5 +355,7 @@ its positive branch, reject a negative witness and produce complete empty
 refinements. A continuous CS component is split at an exact nonbinary boundary.
 Raw correspondence, source lifetime, invalid arity, independent resource
 limits and cancellation at entry and final publication are checked. Existing
-lower source/toolchain/product receipts must match before cached reuse; independent
+lower source/toolchain/product receipts must match before cached reuse. Repair
+verification may regenerate independent lower artifacts under the existing explicit
+authorization, without building the CAD production targets; independent
 component proof does not replace full production integration evidence.

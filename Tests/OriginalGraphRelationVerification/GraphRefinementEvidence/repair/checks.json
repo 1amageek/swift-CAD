@@ -1,0 +1,76 @@
+{
+  "scope": "Python receipt validation only; no Swift compiler or cached executable invoked",
+  "runs": [
+    {
+      "label": "receipt-tests",
+      "command": [
+        "python3",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence",
+        "-p",
+        "test_artifact_receipt.py",
+        "-v"
+      ],
+      "timeoutSeconds": 20,
+      "exitCode": 0,
+      "expectedExitCode": 0
+    },
+    {
+      "label": "preflight-refusal",
+      "command": [
+        "python3",
+        "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/run.py",
+        "native",
+        "--cache-root",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD",
+        "--generation-receipt",
+        "/Users/1amageek/.codex/worktrees/di-protocol-responsibilities/swift-CAD/Tests/OriginalGraphRelationVerification/GeometricEvidence/native/result.json"
+      ],
+      "timeoutSeconds": 20,
+      "exitCode": 1,
+      "expectedExitCode": 1
+    }
+  ],
+  "preservedHistoricalEvidence": {
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/native/compile-GraphProof.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/native/proof-15.log": "6f7030fd30616ee72ccc23860fc517b69684eb909f3bcf788103ce0de23b7c28",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/native/compile-GraphFixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/native/compile-IssuedGraphs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/native/runs.json": "45b63ae3f6234c74f08f7a3674037a4b2623849f5a4b71a5f5e19c1e5bf5027e",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/native/link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/native/receipt.json": "5eabaf18985ce0a384e21bab8519f2a613401e42bd423425bb1724319ee08082",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/asan/compile-GraphProof.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/asan/proof-15.log": "6f7030fd30616ee72ccc23860fc517b69684eb909f3bcf788103ce0de23b7c28",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/asan/compile-GraphFixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/asan/compile-IssuedGraphs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/asan/runs.json": "3f0ea9336d49160ecd4e01425304e959afdff56bb37502f8a1e364e041513c42",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/asan/link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/asan/receipt.json": "ff2329cd54478a01c0b5ee86abc09b3f0a791cf099935b697f1ddf95c90d5d56",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/wasm/compile-GraphProof.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/wasm/proof-15.log": "3716897a1a0c1148db70b29ce618e2c8b1d02ee7f14a7a9cb9b86cd8e59f26c4",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/wasm/compile-GraphFixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/wasm/compile-IssuedGraphs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/wasm/runs.json": "eba78b4d26698546fe0251e7bf322b7c48342df0769442609ba0c8cb1b37ea3c",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/wasm/link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/wasm/receipt.json": "6993af5c715484def9d76e890889ff0a2d306f5e72a5860fae42ef3977c65c7b",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/embedded/compile-GraphProof.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/embedded/proof-15.log": "ad919495470f93b90ce11f57dd9d4d72e28f10db1ba725482a19995520cf6df3",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/embedded/compile-GraphFixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/embedded/compile-IssuedGraphs.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/embedded/runs.json": "6e6536f9c8505484cedaa03f55e42940ca0cd306ad5abcee38a8671ccec94752",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/embedded/link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/embedded/receipt.json": "f25e7c8ddc5b8348357e7939a9f430b1fbbfb23939614a8f71d22d61e2ecb4f9"
+  },
+  "inputs": {
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/run.py": "16a23f426f02c2556d57241a2731756088f7a6da6ecf3c445fef7640d952031c",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/artifact_receipt.py": "97731669de77854c2dca0537d18b8cf7e36f0eb34fb5fe916412e45d3ff02ba2",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/test_artifact_receipt.py": "60ee515faf542aef873218acc04fbc02d53ee32fbe5d59149133cca0fd49c1a6"
+  },
+  "logs": {
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/repair/preflight-refusal.log": "7fd30c88899e083178a2a88cb2ac8e93ad71b020864490845b1259649ec4e2f7",
+    "Tests/OriginalGraphRelationVerification/GraphRefinementEvidence/repair/receipt-tests.log": "badabe62c0bad2e412671238d403256d4c8db8cbc2bde62d79b49b062f871692"
+  }
+}

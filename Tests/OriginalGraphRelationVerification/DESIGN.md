@@ -77,7 +77,17 @@ rational and positive-normal-offset source/DI families. It verifies a continuous
 CS component split at exact thirds, all raw lifted-cell labels, auxiliary branch
 retention/exclusion, complete empty predicates, retained source lifetime, COW
 result copies, invalid pair/arity, exact independent work/storage limits,
-source-depth refusal and entry/final-publication cancellation. Native/ASAN and
+source-depth refusal and entry/final-publication cancellation. The membership
+regression uses the exact descendant-field point `t = sqrt(1/3)` and checks
+foreign-field rejection against the same retained refinement. Cached reuse
+requires successful generation receipts binding all reused module/object bytes,
+unchanged source/compiler inputs and generation logs before compilation or
+execution; missing/mismatched receipts are refusal cases. The repair driver
+generates an isolated package from the existing target contracts, omits L6 and
+geometric publication fixtures, and compiles the complete required source set into
+a new owned directory. A generation receipt is admitted before runtime. The
+refinement-only dispatcher does not reference unrelated geometry fixture bodies.
+Native/ASAN and
 matching ordinary/Embedded WASM use the same immutable production source files.
 This independent proof owns the adapter contract, not untested face/identity
 compilers or full production-module integration.

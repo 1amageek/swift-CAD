@@ -27,6 +27,37 @@ extension GraphFixtures {
             try require(!retained.contains(liftedCoordinates: [t,t,half], limits: limits(),
                 rootLimits: .init(maximumRoots: 100), using: &a))
         }
+        let roots = try ExactRealRootDomain(field: field, using: &a)
+        let ring = roots.polynomials
+        let law = try roots.bind(ring.polynomial(terms: [
+            .init(powers: [2], coefficient: field.integer(3, using: &a)),
+            .init(powers: [0], coefficient: field.integer(-1, using: &a))
+        ], using: &a), using: &a)
+        let interval = try roots.domain(lower: .finite(field.integer(0, using: &a)),
+            upper: .finite(field.integer(1, using: &a)), using: &a)
+        let root = try roots.isolate(law, in: interval, limits: .init(maximumRoots: 1), using: &a).roots[0]
+        let extensionValue = try field.adjoin(root, using: &a)
+        let t = extensionValue.generator
+        let extensionHalf = try extensionValue.domain.binary64(exactly: 0.5, using: &a)
+        let coordinates = [t,t,extensionHalf]
+        let point = try cells.point(field: extensionValue.domain, coordinates: coordinates, using: &a)
+        guard let cell = try cells.locate(point, in: retained.pullback.region.partition,
+            limits: .init(maximumRoots: 100), using: &a),
+            let index = retained.pullback.region.cells.firstIndex(of: cell) else { throw Failure.incorrect(#line) }
+        try require(retained.pullback.region.included[index])
+        try require(retained.contains(liftedCoordinates: coordinates, queryField: extensionValue.domain,
+            limits: limits(), rootLimits: .init(maximumRoots: 100), using: &a))
+        let outside = try extensionValue.domain.adding(t, extensionValue.domain.integer(1, using: &a), using: &a)
+        try require(!retained.contains(liftedCoordinates: [outside,outside,extensionHalf],
+            queryField: extensionValue.domain, limits: limits(), rootLimits: .init(maximumRoots: 100), using: &a))
+        let foreignBase = try Base(maximumValueDepth: 32, maximumCoefficientDepth: 32, using: &a)
+        let foreignField = try Field.base(field: foreignBase, maximumExtensionLevel: 32, using: &a)
+        do {
+            _ = try retained.contains(liftedCoordinates: coordinates, queryField: foreignField,
+                limits: limits(), rootLimits: .init(maximumRoots: 100), using: &a)
+            throw Failure.incorrect(#line)
+        } catch NativeExactRelationFailure.cell(.scalar(.incompatibleDomain)) {}
+        print("PASS graph refinement descendant-field membership and foreign-field refusal")
         var ordinals = retained.pullback.sourceCellOrdinals
         ordinals.removeAll()
         try require(!retained.pullback.sourceCellOrdinals.isEmpty)
