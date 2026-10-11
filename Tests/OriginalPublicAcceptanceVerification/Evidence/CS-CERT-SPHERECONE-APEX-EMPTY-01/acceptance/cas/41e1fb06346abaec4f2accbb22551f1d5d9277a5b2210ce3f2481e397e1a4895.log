@@ -1,0 +1,103 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisRelations.swift:509:26: error: cannot find type 'OriginalRevolutionAxisSectionReceipt' in scope
+507 |     public let first: OriginalIssuedGraphFamily<L,LineLaw,LineCover>
+508 |     public let originalDomain: OriginalRevolutionDomainCover<S,C,Base>
+509 |     public let sections: OriginalRevolutionAxisSectionReceipt<S,C,Base,L>
+    |                          `- error: cannot find type 'OriginalRevolutionAxisSectionReceipt' in scope
+510 |     public let secondGraphs: [OriginalIssuedGraphPreparation<S,SectionEvidence>]
+511 |     public let pairs: [OriginalIssuedGraphRelationPair]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisRelations.swift:506:40: error: cannot find type 'OriginalRevolutionAxisSectionEvidence' in scope
+504 |     public typealias LineLaw = OriginalRationalChartReceipt<L,OriginalLinearChartSelection,Base>
+505 |     public typealias LineCover = OriginalIssuedDomainCover<L,OriginalLinearChartSelection,Base>
+506 |     public typealias SectionEvidence = OriginalRevolutionAxisSectionEvidence<S,C,Base,L>
+    |                                        `- error: cannot find type 'OriginalRevolutionAxisSectionEvidence' in scope
+507 |     public let first: OriginalIssuedGraphFamily<L,LineLaw,LineCover>
+508 |     public let originalDomain: OriginalRevolutionDomainCover<S,C,Base>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisRelations.swift:535:28: error: cannot find 'DefaultOriginalRevolutionAxisSectionIssuer' in scope
+533 |         try a.checkpoint();try first.admitProof(limits:limits,using:&a)
+534 |         try cover.admitted(limits,&a)
+535 |         let sections = try DefaultOriginalRevolutionAxisSectionIssuer<S,C,Base,L>()
+    |                            `- error: cannot find 'DefaultOriginalRevolutionAxisSectionIssuer' in scope
+536 |             .issue(family:cover.family,line:first.source,limits:limits.source,using:&a)
+537 |         guard maximumPairs >= 0,maximumPolynomialDegree >= 0,first.parameterCount == 1,
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisRelations.swift:538:26: error: generic parameter 'Selection' could not be inferred
+536 |             .issue(family:cover.family,line:first.source,limits:limits.source,using:&a)
+537 |         guard maximumPairs >= 0,maximumPolynomialDegree >= 0,first.parameterCount == 1,
+538 |             cover.source.owns(sections.family.period.anchor),
+    |                          `- error: generic parameter 'Selection' could not be inferred
+539 |             sections.graphs.count == cover.family.laws.count else {
+540 |             throw NativeExactRelationFailure.invalidDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/159-OriginalSourceBinding.swift:39:17: note: in call to function 'owns'
+37 |     }
+38 | 
+39 |     public func owns<Selection: Sendable>(_ chart: borrowing OriginalSourceChart<Source, Selection>) -> Bool {
+   |                 `- note: in call to function 'owns'
+40 |         owner === chart.binding.owner
+41 |     }
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisRelations.swift:509:26: error: cannot find type 'OriginalRevolutionAxisSectionReceipt' in scope
+507 |     public let first: OriginalIssuedGraphFamily<L,LineLaw,LineCover>
+508 |     public let originalDomain: OriginalRevolutionDomainCover<S,C,Base>
+509 |     public let sections: OriginalRevolutionAxisSectionReceipt<S,C,Base,L>
+    |                          `- error: cannot find type 'OriginalRevolutionAxisSectionReceipt' in scope
+510 |     public let secondGraphs: [OriginalIssuedGraphPreparation<S,SectionEvidence>]
+511 |     public let pairs: [OriginalIssuedGraphRelationPair]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisRelations.swift:506:40: error: cannot find type 'OriginalRevolutionAxisSectionEvidence' in scope
+504 |     public typealias LineLaw = OriginalRationalChartReceipt<L,OriginalLinearChartSelection,Base>
+505 |     public typealias LineCover = OriginalIssuedDomainCover<L,OriginalLinearChartSelection,Base>
+506 |     public typealias SectionEvidence = OriginalRevolutionAxisSectionEvidence<S,C,Base,L>
+    |                                        `- error: cannot find type 'OriginalRevolutionAxisSectionEvidence' in scope
+507 |     public let first: OriginalIssuedGraphFamily<L,LineLaw,LineCover>
+508 |     public let originalDomain: OriginalRevolutionDomainCover<S,C,Base>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisRelations.swift:535:28: error: cannot find 'DefaultOriginalRevolutionAxisSectionIssuer' in scope
+533 |         try a.checkpoint();try first.admitProof(limits:limits,using:&a)
+534 |         try cover.admitted(limits,&a)
+535 |         let sections = try DefaultOriginalRevolutionAxisSectionIssuer<S,C,Base,L>()
+    |                            `- error: cannot find 'DefaultOriginalRevolutionAxisSectionIssuer' in scope
+536 |             .issue(family:cover.family,line:first.source,limits:limits.source,using:&a)
+537 |         guard maximumPairs >= 0,maximumPolynomialDegree >= 0,first.parameterCount == 1,
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisRelations.swift:538:26: error: generic parameter 'Selection' could not be inferred
+536 |             .issue(family:cover.family,line:first.source,limits:limits.source,using:&a)
+537 |         guard maximumPairs >= 0,maximumPolynomialDegree >= 0,first.parameterCount == 1,
+538 |             cover.source.owns(sections.family.period.anchor),
+    |                          `- error: generic parameter 'Selection' could not be inferred
+539 |             sections.graphs.count == cover.family.laws.count else {
+540 |             throw NativeExactRelationFailure.invalidDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/159-OriginalSourceBinding.swift:39:17: note: in call to function 'owns'
+37 |     }
+38 | 
+39 |     public func owns<Selection: Sendable>(_ chart: borrowing OriginalSourceChart<Source, Selection>) -> Bool {
+   |                 `- note: in call to function 'owns'
+40 |         owner === chart.binding.owner
+41 |     }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisGeometricRelationReading.swift:491:51: error: cannot find type 'OriginalRevolutionSnapshot' in scope
+489 | /// Concrete retained-source requirements are callable through the rich result on Embedded.
+490 | public protocol OriginalRevolutionAxisGeometricRelationReading: OriginalIssuedGeometricRelationReading {
+491 |     var original: OriginalRevolutionAxisRelations<OriginalRevolutionSnapshot<BSplineCurve3D>,
+    |                                                   `- error: cannot find type 'OriginalRevolutionSnapshot' in scope
+492 |         OriginalTraversalChartSelection<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>,
+493 |         OriginalLinearCurveSnapshot> { get }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisGeometricRelationReading.swift:494:55: error: cannot find type 'OriginalRevolutionSnapshot' in scope
+492 |         OriginalTraversalChartSelection<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>,
+493 |         OriginalLinearCurveSnapshot> { get }
+494 |     var originalDomain: OriginalRevolutionDomainCover<OriginalRevolutionSnapshot<BSplineCurve3D>,
+    |                                                       `- error: cannot find type 'OriginalRevolutionSnapshot' in scope
+495 |         OriginalTraversalChartSelection<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>,
+496 |         OriginalExactScalarDomain> { get }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v2/upper/OriginalRevolutionAxisGeometricRelations.swift:491:32: error: cannot find type 'OriginalRevolutionSnapshot' in scope
+489 | /// Exact image/fiber publication shares one immutable source-pair owner across both public views.
+490 | public final class OriginalRevolutionAxisGeometricRelations: OriginalRevolutionAxisGeometricRelationReading {
+491 |     public typealias Surface = OriginalRevolutionSnapshot<BSplineCurve3D>
+    |                                `- error: cannot find type 'OriginalRevolutionSnapshot' in scope
+492 |     public typealias Selection = OriginalTraversalChartSelection<BSplineCurve3D,OriginalBSplineChartSelection,OriginalExactScalarDomain>
+493 |     public typealias Original = OriginalRevolutionAxisRelations<Surface,Selection,OriginalLinearCurveSnapshot>

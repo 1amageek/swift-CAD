@@ -1,0 +1,3 @@
+(node:88380) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS closed/open/empty/singleton/source-external requests and same-owner selections; foreign request scalar rejected

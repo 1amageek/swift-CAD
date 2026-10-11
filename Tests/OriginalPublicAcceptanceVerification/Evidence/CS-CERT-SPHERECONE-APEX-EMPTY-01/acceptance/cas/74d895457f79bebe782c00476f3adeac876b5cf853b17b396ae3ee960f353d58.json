@@ -1,0 +1,45 @@
+{
+  "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CertifiedSphereConeIntersectionCurve.swift",
+  "currentSHA256": "585f163d5424e7a7ce978469067dcd8c7f24596800d7e1beec62466dafdc8351",
+  "cachedSHA256": "df15cecad78b967d08a07862cc57459d581c5cbe142f1c5915fed8582faca967",
+  "generatedPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-asan-20261013-v2/source/CertifiedApexSourcePayload.swift",
+  "generatedSHA256": "e188cf0b3d32ddc2dcbd41d6bc70812faf7b02eed6ec97a42ec8e27b527c1d78",
+  "ranges": [
+    {
+      "kind": "actual-nested-helper-declarations",
+      "firstLine": 54,
+      "lastLine": 242,
+      "sha256": "8d9cbfd3b9a46ae1bde10af2deff933dd762372e66b2d4e46c4c58d4de8f29c8",
+      "bytes": 5721
+    },
+    {
+      "kind": "private static func makeConfiguration(",
+      "firstLine": 3343,
+      "lastLine": 3388,
+      "sha256": "4ed6fbe0f93804620df9f0fae78fc31691621353c9357fc27b9039f351b5e0db",
+      "bytes": 1922
+    },
+    {
+      "kind": "private static func canonicalCone(",
+      "firstLine": 3390,
+      "lastLine": 3397,
+      "sha256": "d992a65f0caedaf9049da1b352540423547b1267a75366b8be6b44f33c1bfa79",
+      "bytes": 347
+    },
+    {
+      "kind": "private static func isNegative(",
+      "firstLine": 3932,
+      "lastLine": 3936,
+      "sha256": "7ede2803ab5f28afca240bd6fd59af6fd376db210fbef29f4cee559a8bb1b40c",
+      "bytes": 235
+    },
+    {
+      "kind": "actual-new-source-snapshot-port",
+      "firstLine": 4014,
+      "lastLine": 4048,
+      "sha256": "16a2fdc604f8590039fb5dd18f8b981a8c68c8376830602a603ad90737f66c93",
+      "bytes": 2459
+    }
+  ],
+  "typeAuthority": "Imported cached CADGeometry.CertifiedSphereConeIntersectionCurve; no type/storage/constructor redeclaration."
+}

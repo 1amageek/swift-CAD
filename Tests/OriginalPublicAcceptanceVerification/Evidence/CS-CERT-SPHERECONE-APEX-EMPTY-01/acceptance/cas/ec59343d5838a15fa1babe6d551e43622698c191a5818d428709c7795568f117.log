@@ -1,0 +1,7 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v1/source/DefaultOriginalCertifiedSphereConeApexPlaneSeparationIssuer.swift:557:52: error: cannot convert value of type 'OriginalPhysicalAngleScalarDomain.Value' (aka 'OriginalPhysicalAngleValue') to expected argument type '[OriginalPhysicalAngleScalarDomain.Value]' (aka 'Array<OriginalPhysicalAngleValue>')
+555 |                     throw OriginalSourceIssuanceFailure.unresolvedAuthority
+556 |                 }
+557 |                 let physicalSlope = try f.dividing(physicalSine, by: physicalCosine, using: &usage)
+    |                                                    `- error: cannot convert value of type 'OriginalPhysicalAngleScalarDomain.Value' (aka 'OriginalPhysicalAngleValue') to expected argument type '[OriginalPhysicalAngleScalarDomain.Value]' (aka 'Array<OriginalPhysicalAngleValue>')
+558 |                 let physicalA = try f.adding(one, f.multiplying(physicalSlope, physicalSlope, using: &usage), using: &usage)
+559 | 

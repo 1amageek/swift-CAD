@@ -1,0 +1,14 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v4/Proof.swift:792:17: error: invalid redeclaration of 'result'
+781 |         var declined = 0
+782 |         for intersection in originals {
+783 |             guard case .curve(let result) = intersection, case .analyticAnalytic(let exact) = result.truth,
+    |                                   `- note: 'result' previously declared here
+784 |                 case .sphereCone(let otherBranch) = exact.definition,
+785 |                 otherBranch.componentKind == .apexReducedAngularInterval, otherBranch.lowerAngle == Double.pi else { continue }
+    :
+790 |             options.surfaceURange = try .init(lower: -2, upper: 2)
+791 |             options.surfaceVRange = try .init(lower: -2, upper: 2)
+792 |             let result = try DefaultCurveSurfaceIntersector().intersectionResult(curve: exact.curve, surface: plane,
+    |                 `- error: invalid redeclaration of 'result'
+793 |                 options: options, tolerance: .standard)
+794 |             try require(result.originalCertifiedApexPlaneExclusion == nil)

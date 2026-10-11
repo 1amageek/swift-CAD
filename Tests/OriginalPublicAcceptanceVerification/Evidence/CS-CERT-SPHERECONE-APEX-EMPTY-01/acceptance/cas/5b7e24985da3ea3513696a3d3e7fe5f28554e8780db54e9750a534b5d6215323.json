@@ -1,0 +1,155 @@
+[
+  {
+    "label": "runtime-dispatch",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v5/Acceptance",
+      "dispatch"
+    ],
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 1.7113673329586163,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledOwnedCPULimitSeconds": 120,
+    "sampledCPUSeconds": 1.62,
+    "peakOwnedProcessResidentSumKiB": 13072,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "240d8561de854e04dfde72c347ef99fbe2e13f2be3368561e03e3638136a2630"
+  },
+  {
+    "label": "runtime-source",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v5/Acceptance",
+      "source"
+    ],
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.5840977089246735,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledOwnedCPULimitSeconds": 120,
+    "sampledCPUSeconds": 0.27,
+    "peakOwnedProcessResidentSumKiB": 11872,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "d34a42e81cf2ed665cb3439a53bc12736af2735fc06baac64c9bcf84d48939e3"
+  },
+  {
+    "label": "runtime-requests",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v5/Acceptance",
+      "requests"
+    ],
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 3.039322040975094,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledOwnedCPULimitSeconds": 120,
+    "sampledCPUSeconds": 2.71,
+    "peakOwnedProcessResidentSumKiB": 13216,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "eaa5f41d37563ae50be75a44a0f73c13f64033d2576fba21e75a17df5b8ed698"
+  },
+  {
+    "label": "runtime-resources",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v5/Acceptance",
+      "resources"
+    ],
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 4.770576582988724,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledOwnedCPULimitSeconds": 120,
+    "sampledCPUSeconds": 4.63,
+    "peakOwnedProcessResidentSumKiB": 13440,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "5bb96bee7a5b79e50ff94ba4ad0ef82cda8cbf11c847aa8b0fc0ad648b9521c0"
+  },
+  {
+    "label": "runtime-readmission",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v5/Acceptance",
+      "readmission"
+    ],
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.5659357080003247,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledOwnedCPULimitSeconds": 120,
+    "sampledCPUSeconds": 0.27,
+    "peakOwnedProcessResidentSumKiB": 12304,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "6491a38f73f12676f2a0d26f68640a007033d5131f0a77f7fd9ecadf96bd89e9"
+  },
+  {
+    "label": "runtime-cancel-entry",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v5/Acceptance",
+      "cancel-entry"
+    ],
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.18935229198541492,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledOwnedCPULimitSeconds": 120,
+    "sampledCPUSeconds": 0,
+    "peakOwnedProcessResidentSumKiB": 5456,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "053dc81d1e62aaa920aff06b8c41010e8fa1c697dd9f8d29d6ea7bd5b3e88440"
+  },
+  {
+    "label": "runtime-cancel-final",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v5/Acceptance",
+      "cancel-final"
+    ],
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 1.3857954579871148,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledOwnedCPULimitSeconds": 120,
+    "sampledCPUSeconds": 1.09,
+    "peakOwnedProcessResidentSumKiB": 12832,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "167e871a081e1a17c62684e3be3ca593a3c106c235efa01794f515422d39b5b3"
+  },
+  {
+    "label": "runtime-cancel-reader",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v5/Acceptance",
+      "cancel-reader"
+    ],
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.5657958330120891,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledOwnedCPULimitSeconds": 120,
+    "sampledCPUSeconds": 0.27,
+    "peakOwnedProcessResidentSumKiB": 12272,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "cc8fdbaf721370be5c2e3b9491c22e79ec1dcffe38e68409aa3639c6d8ba260f"
+  },
+  {
+    "label": "runtime-lifetime",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v5/Acceptance",
+      "lifetime"
+    ],
+    "exitCode": 0,
+    "boundedStop": null,
+    "elapsedSeconds": 0.9203107500215992,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledOwnedCPULimitSeconds": 120,
+    "sampledCPUSeconds": 0.82,
+    "peakOwnedProcessResidentSumKiB": 12464,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "45765eba92bb30e7d74c56a86d41f26f31f4958d8b340854462accda67b824e1"
+  }
+]

@@ -1,0 +1,5 @@
+{
+  "path": ".build/cs-cert-spherecone-apex-acceptance-native-20261013-v1/CertifiedSphereConeApexEmptyAcceptance.py",
+  "sha256": "b5a59bee8c1003ad15f2696cf6625e572bfd8d3bcce5adfecd4dd620fc7ac2cd",
+  "scope": "Driver exact bytes preserved after failed source compile; runtime not executed."
+}

@@ -4007,3 +4007,43 @@ public struct CertifiedSphereConeIntersectionCurve: Hashable, Sendable {
 extension CertifiedSphereConeIntersectionCurve: Codable {}
 extension CertifiedSphereConeIntersectionCurve.ComponentKind: Codable {}
 #endif
+
+extension CertifiedSphereConeIntersectionCurve {
+    /// Reads the same private configuration and generator coefficients as the position law.
+    /// The caller owns admission and retains the immutable original component and surfaces.
+    func originalApexReducedSourceSnapshot(field: OriginalPhysicalAngleScalarDomain,
+        tolerance: ModelingTolerance) throws -> OriginalCertifiedSphereConeApexSnapshot {
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Other apex intervals have no source snapshot
+        // contract here. Public source preparation supports only the retained [0,binary pi]
+        // branch until its full interpolation and denominator guards are certified.
+        guard componentKind == .apexReducedAngularInterval,
+              lowerAngle == 0, upperAngle.bitPattern == Double.pi.bitPattern else {
+            throw OriginalSourceIssuanceFailure.unsupportedRepresentation
+        }
+        let configuration = try Self.makeConfiguration(
+            sphereSurface: sphereSurface, coneSurface: coneSurface, tolerance: tolerance)
+        let basis = try analyticOrthonormalBasis(configuration.cone.axis, tolerance: tolerance)
+        let cosine = cos(configuration.cone.halfAngle)
+        let sine = sin(configuration.cone.halfAngle)
+        // Preserve the authored division and scale ordering from slantDifferential.
+        let slantDenominator = configuration.quadraticA * cos(configuration.cone.halfAngle)
+        let inverseQuadraticCosine = 1.0 / slantDenominator
+        let scale = 2.0 * inverseQuadraticCosine
+        // The original affine angle is finite for every closed normalized T in [0,1].
+        // This apex branch does not exclude zero slant at either closed endpoint.
+        guard configuration.cone.halfAngle.isFinite,
+              slantDenominator.isFinite, slantDenominator > 0,
+              inverseQuadraticCosine.isFinite, inverseQuadraticCosine > 0,
+              scale.isFinite, scale > 0 else {
+            throw OriginalSourceIssuanceFailure.unresolvedAuthority
+        }
+        return OriginalCertifiedSphereConeApexSnapshot(original: self, field: field,
+            apex: configuration.cone.apex, axis: configuration.cone.axis,
+            basisU: basis.u, basisV: basis.v, halfAngle: configuration.cone.halfAngle,
+            axialCenter: configuration.axialCenter, radialCosine: configuration.radialCosine,
+            radialSine: configuration.radialSine, quadraticA: configuration.quadraticA,
+            quadraticC: configuration.quadraticC, sine: sine, cosine: cosine,
+            slope: configuration.slope, slantDenominator: slantDenominator,
+            inverseQuadraticCosine: inverseQuadraticCosine, slantScale: scale)
+    }
+}

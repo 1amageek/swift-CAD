@@ -36,6 +36,9 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete finite physical-phase plane contacts, retaining exact Q(pi) T/UV and L6 evidence.
     public let originalAngularPlaneRelation: (any OriginalAngularPlaneRelationReading)?
 
+    /// Complete original certified-apex separation with exact requested/effective domains.
+    public let originalCertifiedApexPlaneExclusion: (any OriginalCertifiedApexPlaneExclusionReading)?
+
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
         (originalContainedLiftPlaneFamily != nil || originalIssuedGeometricRelation != nil && originalIssuedNumericalPoints == nil) ? .exactRelation : .numericalRepresentatives
@@ -48,6 +51,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
             || originalIssuedGeometricRelation?.hasPositiveDimensionalSolutions == true
             || originalContainedLiftPlaneFamily?.hasPositiveDimensionalSolutions == true
             || originalAngularPlaneRelation?.hasPositiveDimensionalSolutions == true
+            || originalCertifiedApexPlaneExclusion?.hasPositiveDimensionalSolutions == true
     }
 
     init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap],
@@ -61,7 +65,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalIssuedNumericalPoints: OriginalIssuedNumericalCurveSurfacePoints? = nil,
         originalContainedLiftPlaneFamily: (any OriginalContainedLiftPlaneFamilyReading)? = nil,
         originalRevolutionAxisRelation: (any OriginalRevolutionAxisGeometricRelationReading)? = nil,
-        originalAngularPlaneRelation: (any OriginalAngularPlaneRelationReading)? = nil) {
+        originalAngularPlaneRelation: (any OriginalAngularPlaneRelationReading)? = nil,
+        originalCertifiedApexPlaneExclusion: (any OriginalCertifiedApexPlaneExclusionReading)? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
@@ -75,5 +80,6 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalContainedLiftPlaneFamily = originalContainedLiftPlaneFamily
         self.originalRevolutionAxisRelation = originalRevolutionAxisRelation
         self.originalAngularPlaneRelation = originalAngularPlaneRelation
+        self.originalCertifiedApexPlaneExclusion = originalCertifiedApexPlaneExclusion
     }
 }

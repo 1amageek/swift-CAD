@@ -2390,3 +2390,72 @@ The cell fixture owns full zero-set/exclusion and original law/label equality,
 foreign-field/refusal, exact resources/depth, cancellation and detached/COW
 lifetime on the changed Native/ASAN/ordinary-WASM/Embedded paths. General angular
 windows, other source families and other trigonometric equations remain open.
+
+## Certified Apex Whole-Support Plane Separation
+
+This contract owns the source proof for CS-CERT-SPHERECONE-APEX-EMPTY-01 in
+[the coverage catalog](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#cs-cert-spherecone-apex-empty-01-complete-direct-height-exclusion-oracle).
+It supplies a strict separation theorem for the actual apex-reduced stored
+position law, not sphere membership, host UV recovery or a general certified graph.
+
+```text
+actual certified apex -> original private configuration / generator producer
+  -> immutable source snapshot and binding
+actual plane snapshot -> existing plane basis in the same physical-angle field
+  -> checked whole-support separation issuer -> sealed retained receipt
+```
+
+`OriginalCertifiedSphereConeApexSnapshot` and its provider retain the actual
+component, source surfaces, original angle labels, normalized closed T support
+[0,1], source depth and original configuration/basis coefficients. A small
+read-only port in CertifiedSphereConeIntersectionCurve.swift calls its existing
+private makeConfiguration and actual generator basis; it does not widen private
+visibility or reconstruct those equations in DI. No public unchecked snapshot
+or certificate initializer is added.
+
+`OriginalCertifiedSphereConeApexPlaneSeparationIssuing` and its default issuer
+consume the bound snapshot, actual OriginalPlaneBasisReceipt in the existing
+OriginalPhysicalAngleScalarDomain and one caller admission. The sealed
+OriginalCertifiedSphereConeApexPlaneSeparationReceipt retains those same owners,
+field, closed support, signed-plane lower/upper bounds, coefficient semantics
+and attained proof depth. Issuance proves its interval strictly excludes zero.
+Physical coefficients are exact functions of the retained authored angle;
+regenerated binary64 configuration coefficients are separately exact imports.
+The common envelope covers both, preserves every denominator/branch condition
+and every endpoint, and uses whole-phase sin/cos bounds. It performs no cosine
+cancellation, point sampling, residual exclusion or assumption of parent-sphere
+equality. The fixed unit-Z configuration and planeZ2 capability is explicit;
+other required certified branches remain incomplete with local markers.
+
+The actual Native public stop is an independent sign refinement of the expanded
+physical A=1+k^2 lower-bound comparison (degree8), before denominator or
+readmission checks. The issuer therefore composes monotone rational interval
+bounds from its already checked positive k and c bounds: A, D=A*c, 1/D and 2/D
+need no repeated transcendental sign decision. The derived A upper bound is
+1+(33/64)^2=5185/4096; this internal envelope preserves the same height bound
+31581/35392 and strict plane clearance. Original physical expressions and all
+binary coefficients remain retained. Readmission uses field.importing to
+validate each immutable value owner and attained scalar/coefficient depth
+without proving its already sealed sign theorem again. The sealed owner retains
+the previously admitted coefficient storage; readmission charges its new work
+and scratch without materializing those immutable coefficient buffers again. This
+changes neither modeling tolerance nor caller resource limits.
+
+All temporary and retained values, coefficient storage, source/value/coefficient
+depths and final publication checkpoints use the same admission. readmission
+checks every retained value and source/plane authority without regenerating
+configuration, decomposing the original pair or creating a new allowance.
+Unsupported capability, nonseparation, foreign field/owner, invalid guard,
+resource failure and cancellation remain explicit failures.
+
+The [pair owner](../NativeExactRelations/DESIGN.md#certified-apex-empty-pair-binding)
+owns exact request/effective selection; the source theorem covers all authored T.
+Verification compares the ordinary fixed input with the independent complete
+height oracle, actual original coefficients/support/guards and the retained
+strict interval. Changed source port/configuration and proof admission require
+focused source and public failure/boundary/resource/cancel/lifetime checks on
+Native/ASAN/normal-WASM/Embedded. Selected-body validation may extract exact
+private helper ranges into an extension of the admitted cached concrete type;
+source/range/prefix/compiler/product hashes must preserve the actual bodies and
+nominal owner. It must not redeclare the curve/constructor/enum or hand-copy its
+formula. No broad CADGeometry or L2-L6 rebuild is implied.

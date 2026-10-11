@@ -690,3 +690,42 @@ No partial or empty success substitutes for a failed completeness proof. The
 owns ordinary entries and numerical representatives. The public-cell fixture
 owns exact two-root/empty/request/incident/dimension behavior and changed-path
 failure/resources/cancel/lifetime evidence across the four fixed target lanes.
+
+## Certified Apex Empty Pair Binding
+
+For CS-CERT-SPHERECONE-APEX-EMPTY-01, OriginalCertifiedApexPlaneExclusion
+retains the [sealed source separation theorem](../OriginalSourceIssuance/DESIGN.md#certified-apex-whole-support-plane-separation)
+and exact original domain selection. It owns no position/configuration formula
+and calls no L5 solver for an already proved empty pair.
+
+```text
+sealed source/plane separation receipt
+  -> existing generic T frame -> request intersection authored support
+  -> existing plane domain issuer -> actual UV support/request/effective
+  -> immutable complete-empty pair owner
+```
+
+The checked internal factory accepts the source receipt and public requests.
+It obtains source, field and closed support from the receipt, binds the actual
+source through DefaultOriginalParameterTransporter.frame and existing
+selection/intersection, and issues the plane cover only from receipt.plane.
+Callers cannot substitute a different plane, source law or unchecked predicate.
+The owner retains authored T support, requested/effective T, full/requested/
+effective original plane UV cover and the proof owner. Empty or singleton
+requests preserve their exact selection meaning. Whole-source separation implies
+empty tuples, incidents, image and fiber for every effective request. This does
+not assert a nonempty source graph, identity, host UV relation or global equality.
+
+Source/plane receipt readmission and each retained selection depth/finite
+endpoint use the same ledger and exact field. Existing plane basis/cover
+source/transport/chart/family limits remain enforced. No fake identity transport
+is introduced to admit a selection, and no source/domain decomposition is
+repeated. Immutable owners and new output/scratch payloads are charged before
+creation; depth/storage/work/cancel/overflow failures propagate.
+
+The [public producer](../NativeExactGeometricRelations/DESIGN.md#certified-apex-empty-publication)
+consumes this complete-empty owner. Verification binds the fixed ordinary input,
+exact source/plane/request ownership, closed support intersection and every
+retained bound, including foreign binding, empty/singleton/support-external
+requests, attained depths and exact/one-less resources. Detached sources and
+independent admission readers must retain the same proof without reconstruction.

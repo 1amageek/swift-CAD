@@ -1,0 +1,35 @@
+{
+  "cell": "CS-CERT-SPHERECONE-APEX-EMPTY-01",
+  "scope": "Durable observation text and original raw logs; compiler products remain ignored. Original first-run runner is archived before the one causal compile repair.",
+  "files": {
+    "native-observation-20261013-v1/oracle-worksheet.py": "de52865e435bdbbc0293c258d16c311a25cdbabf78ce7955157753434d5c1d13",
+    "native-observation-20261013-v1/oracle-calculation.log": "331df2b19aa5fc6c973d39c5a8859ca9edd773f2dbc233b748d462df7340317f",
+    "native-observation-20261013-v1/premises-before.json": "2d3bac1441711585d2a7f2a1231ed141bbddd7b906b53c56dcf9fd934abab891",
+    "native-observation-20261013-v1/oracle-metadata.json": "a7ee6942ab7f174bf7e437a0f9dc7274680e5af7d5f8f053513a7c9bbfc7a085",
+    "native-observation-20261013-v1/compile-command.json": "686a34197f429e8e7a75ea2a20c42a35ef6b38c14808162be49a1fec971d6c99",
+    "native-observation-20261013-v1/runner-before-plane-contract-repair.py": "0bdc3a25f9973f8bc1574b99c45082ca6e7bfb8f988efce9adc8bac33685899d",
+    "native-observation-20261013-v1/runs.json": "003f49b7efcdb34d659ef12a39f6358dfb963806826ca3091ca604aaadcc1a88",
+    "native-observation-20261013-v1/compile-link.log": "5dbd683a621857d22702cc7f6a4a5401df073352fd3af8f1f8011bc4780e9330",
+    "native-observation-20261013-v1/oracle-worksheet.json": "a18d0488a08e53eaa7b1419709067109bcfa5d66cbf8e61263077b37f23ea09e",
+    "native-observation-20261013-v1/receipt.json": "e0e8e48ca7e0fe302fa123ac67e14132b94403daa8a318eb02d8e31136be31d5",
+    "native-observation-20261013-v2/oracle-worksheet.py": "de52865e435bdbbc0293c258d16c311a25cdbabf78ce7955157753434d5c1d13",
+    "native-observation-20261013-v2/oracle-calculation.log": "331df2b19aa5fc6c973d39c5a8859ca9edd773f2dbc233b748d462df7340317f",
+    "native-observation-20261013-v2/premises-before.json": "795626412fc709424add9fee9dec4bbef8c1885adcf2ec70c130bd9f35934192",
+    "native-observation-20261013-v2/observation.json": "92e87b93e706b7d90cfb7e27d33a0a9cda6b74d0e6a03870b3a3a1d6cfa9e942",
+    "native-observation-20261013-v2/oracle-metadata.json": "a7ee6942ab7f174bf7e437a0f9dc7274680e5af7d5f8f053513a7c9bbfc7a085",
+    "native-observation-20261013-v2/compile-command.json": "58614c1a0d671f1e98777643125c8f2f69e888a6d33b3ad92d32e271a8945d78",
+    "native-observation-20261013-v2/observation-summary.json": "31eaaa0f49908441b478815aaf476ba8f2568e0902d5238bf26313f0c629decc",
+    "native-observation-20261013-v2/runs.json": "343068763ddb4f6e17f713b836d92b066ea9d64aa3bc58e7965b506680c3843b",
+    "native-observation-20261013-v2/compile-link.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "native-observation-20261013-v2/oracle-worksheet.json": "a18d0488a08e53eaa7b1419709067109bcfa5d66cbf8e61263077b37f23ea09e",
+    "native-observation-20261013-v2/receipt.json": "9e5082d2e62797ce544d4da4d4dd42b44c86b48772fca842429cd45b74de8765",
+    "native-observation-20261013-v2/runtime-once.log": "7a43ae94bdcd1b35b0eeddb9610ebaa52b589c728a4ddff14e92c12443adf6d8"
+  },
+  "sourceFiles": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CertifiedSphereConeApexEmptyObservation.swift": "3470d825a1a707fe11c746f9d7734140689f42877c617b1a07895a9b71cd934b",
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CertifiedSphereConeApexEmptyObservation.py": "a4028f5ee57671cdc076da9084affa6512ce754ecedd3a03174bc14ea1dbf947"
+  },
+  "ignoredProducts": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cert-spherecone-apex-empty-native-observation-20261013-v2/Observation": "108bae5d03ae5a342b871378de3b0e5057200008693f18f2241f1f1d3efe2a3a"
+  }
+}

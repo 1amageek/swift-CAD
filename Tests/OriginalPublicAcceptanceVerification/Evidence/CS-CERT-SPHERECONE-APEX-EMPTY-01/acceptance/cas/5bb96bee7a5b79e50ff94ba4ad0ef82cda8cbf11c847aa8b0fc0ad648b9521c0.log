@@ -1,0 +1,5 @@
+QUERY_WORK: 6880497
+QUERY_STORAGE: 3790384
+ATTAINED_VALUE_DEPTH: 0
+ATTAINED_COEFFICIENT_DEPTH: 2
+PASS measured exact N/N-1 work/storage, attained scalar/source depth, chart1/0, no fabricated positive pair count and entry/mid cancellation

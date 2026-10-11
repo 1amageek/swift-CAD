@@ -1,0 +1,29 @@
+{
+  "scope": "One first-throw diagnostic against the frozen v3 failed complete executable; never acceptance evidence.",
+  "command": [
+    "/usr/bin/lldb",
+    "--batch",
+    "-o",
+    "breakpoint set -n swift_willThrow",
+    "-o",
+    "run complete",
+    "-o",
+    "thread backtrace -c 40",
+    "-o",
+    "process kill",
+    "--",
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v3/Acceptance"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 2.3348272499861196,
+  "boundedStop": false,
+  "ownedDescendantsRemaining": [],
+  "product": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v3/Acceptance",
+  "productSHA256": "c13e5052bc448276e4b3ffe397d92d98223e8e139d868f3f107fc4d5c2dca276",
+  "sourceReceipt": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v3/receipt.json",
+  "sourceReceiptSHA256": "f9107b60c80c91824bd8cefde48bc080a78fe842b3cafbe928f549487771d60d",
+  "debuggerSHA256": "34129c71a01a74f7f3b2443521519b2e5447553fa187f5fcafaaf8c42cc192e2",
+  "logSHA256": "5b7f3572fe72210487bc6508bcfd54f484baa53d2d9ac0b4c6408ea8b6831b37",
+  "postHashesMatch": true,
+  "success": false
+}

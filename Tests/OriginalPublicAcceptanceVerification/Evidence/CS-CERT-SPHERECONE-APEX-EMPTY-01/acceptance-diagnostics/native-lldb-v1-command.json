@@ -1,0 +1,14 @@
+[
+  "/usr/bin/lldb",
+  "--batch",
+  "-o",
+  "breakpoint set -n swift_willThrow",
+  "-o",
+  "run complete",
+  "-o",
+  "thread backtrace -c 40",
+  "-o",
+  "process kill",
+  "--",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-native-20261013-v3/Acceptance"
+]

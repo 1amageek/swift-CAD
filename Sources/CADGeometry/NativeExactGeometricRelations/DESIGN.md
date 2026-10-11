@@ -576,3 +576,43 @@ publication cancellation, finite-UV forwarding and the existing synthetic
 proof-plane path belong to the changed public-cell verification. One stable
 review and exact latest-main delivery are required; broader angular windows,
 other primitives and general M4-M8 completion remain open.
+
+## Certified Apex Empty Publication
+
+OriginalCertifiedApexPlanePublicProducer consumes the
+[complete-empty pair binding](../NativeExactRelations/DESIGN.md#certified-apex-empty-pair-binding)
+for CS-CERT-SPHERECONE-APEX-EMPTY-01. It selects the source issuer's explicit
+checked capability before each existing ordinary bare/rich, standard/callback
+CS route. Nonselected live routes retain their precedence; after selection,
+issuance/admission failure propagates through the existing public mapper.
+
+```text
+ordinary four-entry CS -> same caller allowance -> source separation issuer
+  -> exact selected pair owner -> final empty publication checkpoint
+  -> bare [] / rich [] plus retained exclusion reader
+```
+
+OriginalCertifiedApexPlaneExclusionReading exposes the concrete immutable owner,
+isEmpty and dimensional flags as non-generic protocol requirements. The additive
+CurveSurfaceIntersectionResult.originalCertifiedApexPlaneExclusion defaults nil
+for other producers and retains the owner for rich results. Empty points/overlaps
+and positive-dimensional flags remain false. Existing representation behavior
+is preserved. The source/selection theorem, rather than an empty candidate
+array, proves the result complete. There is no unchecked initializer or Boolean
+callback that can approve completeness.
+
+The producer reuses NativeExactPublicAdmission and the existing failure mapper,
+never resets work/storage/depth/cancel limits, charges new output storage before
+allocation and checks cancellation immediately before returning even an empty
+result. Later reader queries re-admit retained proof/selection under independent
+ledgers. Ownership, Sendable requirements and isolation are target-common; the
+new state is immutable or invocation-local.
+
+Verification uses the actual observed constructor/request and independent whole-T
+empty oracle, all four dispatch entries, source/plane/selection correspondence,
+invalid capability/guard/scalar/owner and attained resource limits, entry/mid/
+final-empty/follow-up cancellation, COW/detached lifetime and independent readers.
+Changed nonselected routes receive only causally affected regression checks.
+Fixed Native/ASAN/normal-WASM/Embedded selected-body evidence, one comprehensive
+review, coherent commit and independent latest-main comparison close only this
+cell; all other mandatory certified branches and M4-M8 remain open.

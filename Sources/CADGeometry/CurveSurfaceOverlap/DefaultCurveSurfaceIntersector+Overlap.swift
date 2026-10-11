@@ -8,6 +8,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
         tolerance: ModelingTolerance
     ) throws -> CurveSurfaceIntersectionResult {
         return try GeometryExactScalarFailure.withPublication {
+          if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
+              options:options,tolerance:tolerance) { return excluded }
           if let angular = try OriginalAngularPlanePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance) { return angular }
           if let axis = try OriginalRevolutionAxisLinePublicProducer().resolve(curve:curve,surface:surface,
@@ -33,6 +35,8 @@ extension DefaultCurveSurfaceIntersector: CurveSurfaceIntersectionResolving {
               maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
               consumeWork: consumeWork, consumeStorage: consumeStorage,
               maximumAlgebraicDepth: maximumAlgebraicDepth)
+          if let excluded = try OriginalCertifiedApexPlanePublicProducer().resolve(curve:curve,surface:surface,
+              options:options,tolerance:tolerance,invocation:invocation) { return excluded }
           if let angular = try OriginalAngularPlanePublicProducer().resolve(curve:curve,surface:surface,
               options:options,tolerance:tolerance,invocation:invocation) { return angular }
           if let axis = try OriginalRevolutionAxisLinePublicProducer().resolve(curve:curve,surface:surface,

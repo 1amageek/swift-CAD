@@ -1,0 +1,12 @@
+(node:87119) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+FAIL certified apex complete-empty acceptance
+Failure(line: 607)
+file:///private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-wasm-20261013-v1/run.mjs:7
+const code=wasi.start(instance);if(code!==0)throw new Error(`WASI exit ${code}`);
+                                                  ^
+
+Error: WASI exit 1
+    at file:///private/tmp/cad-m4-m8-completion-20261010/.build/cs-cert-spherecone-apex-acceptance-wasm-20261013-v1/run.mjs:7:51
+
+Node.js v24.19.0
