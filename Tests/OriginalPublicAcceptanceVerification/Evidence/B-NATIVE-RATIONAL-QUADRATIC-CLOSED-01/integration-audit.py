@@ -279,12 +279,29 @@ def audit():
         accepted.append({**metadata, 'rawReceiptSuccess': record['success'], 'rawReceiptState': record['state']})
     require(all(value == groups for value in covered.values()), 'four-lane group coverage incomplete')
 
+    retained_products = {}
     for observation in summary['observations']:
         record, labels = inspect(observation, historical_observation=True)
         require(record['state'] == 'observed-public-unsupportedCoverage' and
                 record['typedStop'] == 'NativeExactRelationFailure.unsupportedCoverage' and
                 record['noClippedSuccess'] is True, 'historical public stop was relabeled')
         require('compile-link-observation' in labels and 'runtime-observation' in labels, 'historical observation runs')
+        legacy_product = EVIDENCE / 'native-observation-v1/RationalQuadraticBoundaryProof'
+        legacy_relative = str(legacy_product.relative_to(ROOT))
+        if legacy_relative in durable:
+            expected = 'd16f5cba22dde1a0608902bf750fda1ba25a5d732ae730ee6bbc87099263419a'
+            require(observation['receiptSHA256'] == '434c08d8240e60d2971fa0e053d94833206644d0ba2290dcea87acf46efe7446' and
+                    locate(observation['receipt']) == EVIDENCE / 'native-observation-v1/receipt.json' and
+                    durable[legacy_relative] == expected and record['products'].get(str(legacy_product)) == expected,
+                    'legacy retained product must bind the exact original receipt and manifest')
+            command = labels['compile-link-observation']['command']
+            require(command[command.index('-o') + 1] == str(legacy_product) and
+                    labels['runtime-observation']['command'][0] == str(legacy_product),
+                    'legacy retained product must be the actual compile output and runtime input')
+            require(not git(ROOT, 'ls-files', '--', legacy_relative), 'legacy product reference must be untracked')
+            retained_products[legacy_relative] = dict(originalPath=str(legacy_product), sha256=expected,
+                                                     receiptSHA256=observation['receiptSHA256'])
+            del durable[legacy_relative]
 
     diagnostics = summary['diagnostics']
     for metadata in diagnostics:
@@ -394,6 +411,8 @@ def audit():
         check(INDEPENDENT / relative, digest)
     for relative in deleted:
         require(not (ROOT / relative).exists() and not (INDEPENDENT / relative).exists(), f'deletion mismatch: {relative}')
+    tracked = {value.decode() for value in git(ROOT, 'ls-files', '-z', '--', *durable).split(b'\0') if value}
+    require(tracked == durable.keys(), 'all remaining durable manifest entries must be tracked')
 
     protected = prior['protectedDrafts']
 
@@ -435,6 +454,7 @@ def audit():
                   historicalObservationLimits='Original unsupported observation records timeout/CPU/exit/log/RSS, not owned-descendant cleanup; it supplies no accepted owner-lifetime evidence.',
                   nativeSelectedBodies=37, issuedSelectedBodies=17, uniqueCurrentSourceBodies=len(current),
                   durableEvidence=durable, protectedDrafts=protected,
+                  retainedProductReferences=retained_products,
                   auditReferences=references, uniqueArtifacts=len(cache), independentSeconds=independent_seconds,
                   elapsedSeconds=time.monotonic() - started, auditScriptSHA256=sha(__file__), buildOrRuntimeRepeated=False)
     output = ROOT / '.build/rational-quadratic-boundary-integration.json'
