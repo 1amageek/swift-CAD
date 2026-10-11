@@ -1,0 +1,33 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeCollapsedBoundaryAcceptance.swift:237:29: error: main() must be '@MainActor'
+235 |     }
+236 | 
+237 |     nonisolated static func main() throws {
+    |                             `- error: main() must be '@MainActor'
+238 |         let (retained, finalStorageCall) = try prepare()
+239 |         var a = try Fixture.ledger()
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeCollapsedBoundaryAcceptance.swift:216:33: error: cannot find 'NativeExactGeometryPublicationFailure' in scope
+214 |             do { _ = try Fixture.clip(source, owner, &a); throw Failure.unexpectedSuccess }
+215 |             catch let failure as NativeExactRelationFailure {
+216 |                 let published = NativeExactGeometryPublicationFailure.published(failure, tolerance: .standard)
+    |                                 `- error: cannot find 'NativeExactGeometryPublicationFailure' in scope
+217 |                 if mode == 2 { try require(published is CancellationError) }
+218 |                 else { try require((published as? KernelError)?.code == .resourceLimitExceeded) }
+        0.20 real         0.19 user         0.07 sys
+           123764736  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               19694  page reclaims
+                 427  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                 152  voluntary context switches
+                 348  involuntary context switches
+           730081602  instructions retired
+           210427270  cycles elapsed
+            12616424  peak memory footprint

@@ -1,0 +1,28 @@
+PASS B-NATIVE-COLLAPSED-CLOSED-01 actual Native CS and validated Kernel closed clipper
+PASS B-NATIVE-COLLAPSED-CLOSED-01 exact source laws, closed full TUV and authored transport
+METRIC rawTerminal 27 rawSelected 9
+PASS B-NATIVE-COLLAPSED-CLOSED-01 independent raw whole-cell iff all(t,u,0), t/u in closed unit intervals
+METRIC refinedTerminal 63 refinedSelected 9 bottom 9 left 3 right 3
+PASS B-NATIVE-COLLAPSED-CLOSED-01 independent refined whole-cell iff, all ordinals and bottom/corner incidents
+PASS B-NATIVE-COLLAPSED-CLOSED-01 complete oracle after construction/source scope release
+PASS B-NATIVE-COLLAPSED-CLOSED-01 entry/final cancellation and zero work/storage cause preservation
+PASS B-NATIVE-COLLAPSED-CLOSED-01 complete empty out-of-support request retained by actual Kernel clipper
+PASS B-NATIVE-COLLAPSED-CLOSED-01 complete cell; oracle image dimension 0 / original-coordinate fiber dimension 2
+        1.02 real         0.31 user         0.00 sys
+            17858560  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                1283  page reclaims
+                  35  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                  31  involuntary context switches
+          6199948307  instructions retired
+          1265942868  cycles elapsed
+             5014080  peak memory footprint

@@ -1,0 +1,25 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeCollapsedBoundaryAcceptance.swift:163:21: error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+161 |             try require(coedge.orientation == .forward && coedge.surfaceParameterCurve == expectedPcurves[index])
+162 |         }
+163 |         try require(result.original.model.faces[result.faceID]?.loops == result.loops.map(\.id))
+    |                     `- error: subscript 'subscript(_:)' cannot be used in an embedded function not marked '@export(interface)' because 'HashTreeCollections' was not imported by this file
+164 |         let rawSignatures = try rawOracle(raw, using: &a)
+165 |         let refined = result.parameters.refinements[0], pullback = refined.parameters.pullback, region = pullback.region
+        0.24 real         0.18 user         0.03 sys
+           109871104  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               10781  page reclaims
+                 213  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  50  voluntary context switches
+                  94  involuntary context switches
+          1034959402  instructions retired
+           269595524  cycles elapsed
+            14828240  peak memory footprint

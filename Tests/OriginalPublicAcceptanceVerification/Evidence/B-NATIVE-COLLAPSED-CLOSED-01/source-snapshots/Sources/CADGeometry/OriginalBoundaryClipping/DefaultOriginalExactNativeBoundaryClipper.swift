@@ -1,0 +1,49 @@
+#if NATIVE_DOMAIN_ISOLATED_VERIFICATION
+import L0
+import L1
+import L2
+import L3
+import L4
+import L5
+import DI0
+import DI
+import SourceIssuer
+import SourceGeometryAdapters
+import struct CADGeometry.BSplineCurve3D
+import struct CADGeometry.BSplineSurface3D
+import enum CADGeometry.SurfaceParameterCurve
+@testable import class CADGeometry.OriginalNativeBoundaryDomain
+#endif
+
+/// Refines only new lifted boundary guards over each retained complete raw L5 pair.
+public struct DefaultOriginalExactNativeBoundaryClipper: OriginalExactNativeBoundaryClipping {
+    public init() {}
+    public func clip<A: ExactScalarAdmission & ~Copyable>(_ boundary: OriginalExactNativeBoundaryDomain,
+        selection: OriginalNativeBoundaryDomain.Selection,domainLimits: OriginalDomainIdentityLimits,
+        cellLimits: ExactRealCellLimits,topologyLimits: ExactRealTopologyLimits,using admission: inout A
+    ) throws(NativeExactRelationFailure) -> OriginalExactClippedNativeParameters {
+        do {
+            try admission.checkpoint()
+            try boundary.source.admitted(limits:domainLimits,using:&admission)
+            let count = boundary.source.pairCount
+            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:count,of:OriginalExactBoundaryRefinement.self))
+            var results: [OriginalExactBoundaryRefinement] = [];results.reserveCapacity(count)
+            for ordinal in 0..<count {
+                try admission.consumeWork(1)
+                let part = try boundary.source.part(at:ordinal)
+                var compiler = try OriginalExactBoundaryCompiler(part.relation,using:&admission)
+                let root = try compiler.boundary(boundary,part:part,selection:selection,limits:domainLimits,&admission)
+                let instructions = try compiler.instructions(root,&admission)
+                let source = try compiler.cells.bind(polynomials:compiler.laws,domains:part.relation.original.predicate.source.domains,using:&admission)
+                let predicate = try compiler.cells.predicate(instructions:instructions,for:source,using:&admission)
+                let refined = try DefaultNativeExactParameterRefiner().refine(part.relation,matching:predicate,
+                    cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
+                let spans = try compiler.boundaryReferences(in:refined.pullback,using:&admission)
+                results.append(.init(parameters:refined,boundarySpans:spans))
+            }
+            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalExactClippedNativeParameters.self))
+            let result = OriginalExactClippedNativeParameters(boundary:boundary,selection:selection,refinements:results)
+            try admission.checkpoint();return result
+        } catch { throw .preserving(error) }
+    }
+}

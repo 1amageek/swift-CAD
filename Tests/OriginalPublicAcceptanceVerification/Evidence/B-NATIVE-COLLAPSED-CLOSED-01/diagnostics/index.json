@@ -1,0 +1,14 @@
+{
+  "state": "diagnostics-only; not final-source cell acceptance",
+  "intermediateSuccess": "Native v2, Native v3, ASAN v1 and WASM v1 completed on their recorded fixture snapshots. Final acceptance uses the portable final fixture separately.",
+  "nativeV1": "Fixture entry isolation/internal helper import typecheck failures; production module passed; no runtime.",
+  "nativeV1ToV2DuplicateModule": {
+    "premiseChange": false,
+    "unnecessaryRecompileSeconds": 2.16,
+    "cause": "Runner failed to persist module artifact hashes before the first fixture typecheck failure. Module receipt and explicit reuse now avoid repeated same-lane module compilation."
+  },
+  "nativeV2ToV3": "New fixed-contract assertion checks each refined raw ordinal by an injective exact raw-cell sign signature; typed original work/storage/cancel causes also asserted. Module reused.",
+  "embeddedV1": "Fixture required direct HashTreeCollections import for its faces subscript; production module passed; no runtime.",
+  "embeddedV2": "Fixture key path map(\\.id) is unsupported by fixed Embedded toolchain. Replaced by equivalent closure map { $0.id }; module reused; no runtime.",
+  "noProductionCorrections": true
+}

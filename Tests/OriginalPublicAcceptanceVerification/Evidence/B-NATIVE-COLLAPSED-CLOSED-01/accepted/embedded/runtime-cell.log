@@ -1,0 +1,28 @@
+PASS B-NATIVE-COLLAPSED-CLOSED-01 actual Native CS and validated Kernel closed clipper
+PASS B-NATIVE-COLLAPSED-CLOSED-01 exact source laws, closed full TUV and authored transport
+PASS B-NATIVE-COLLAPSED-CLOSED-01 independent raw whole-cell iff all(t,u,0), t/u in closed unit intervals
+PASS B-NATIVE-COLLAPSED-CLOSED-01 independent refined whole-cell iff, all ordinals and bottom/corner incidents
+PASS B-NATIVE-COLLAPSED-CLOSED-01 complete oracle after construction/source scope release
+PASS B-NATIVE-COLLAPSED-CLOSED-01 entry/final cancellation and zero work/storage cause preservation
+PASS B-NATIVE-COLLAPSED-CLOSED-01 complete empty out-of-support request retained by actual Kernel clipper
+PASS B-NATIVE-COLLAPSED-CLOSED-01 complete cell; oracle image dimension 0 / original-coordinate fiber dimension 2
+(node:30442) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+        0.53 real         0.66 user         0.06 sys
+           708919296  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               43465  page reclaims
+                  77  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                2224  involuntary context switches
+         10760859243  instructions retired
+          2823262738  cycles elapsed
+           669797472  peak memory footprint

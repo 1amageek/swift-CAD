@@ -1,0 +1,27 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeCollapsedBoundaryAcceptance.swift:164:91: error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+162 |             try require(coedge.orientation == .forward && coedge.surfaceParameterCurve == expectedPcurves[index])
+163 |         }
+164 |         try require(result.original.model.faces[result.faceID]?.loops == result.loops.map(\.id))
+    |                                                                                           `- error: cannot use key path in embedded Swift [#EmbeddedRestrictions]
+165 |         let rawSignatures = try rawOracle(raw, using: &a)
+166 |         let refined = result.parameters.refinements[0], pullback = refined.parameters.pullback, region = pullback.region
+
+[#EmbeddedRestrictions]: <https://docs.swift.org/compiler/documentation/diagnostics/embedded-restrictions>
+       10.86 real        10.61 user         0.21 sys
+          1462566912  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+               94560  page reclaims
+                 442  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                  12  voluntary context switches
+                 444  involuntary context switches
+          1006728010  instructions retired
+           256348607  cycles elapsed
+            14828264  peak memory footprint
