@@ -414,11 +414,74 @@ clamping or tolerant source equality is not an allowed substitute. Existing
 polyline/Coons lift and plane-source/domain receipts are the initial dependencies;
 the distinct-polyline shared-field prerequisite is not needed by this input.
 
-PROGRESS.md remains the sole execution/status record. Its cell-mapping task must
-finish the remaining finite input/oracle/stop/change/evidence records before those
-cells enter production implementation. M7/M8 closure requires every applicable
-cell and the cumulative integration evidence; historical source-only completions
-remain internal premises.
+Cell readiness is local. A cell may enter production implementation when its own
+input, oracle, observed stop, causal change and consumed receipt dependencies are
+fixed; it does not wait for completion of the catalog or unrelated cells. The
+catalog-mapping item owns completeness of the mapping, not execution authority for
+an already frozen cell. An unobserved proposed stop remains a definition gap in
+that cell. A source-signature limitation is identified as such and is not reported
+as a reproduced runtime failure.
+
+#### Concrete boundary cells using existing Coons receipts
+
+These three cells use the same exact original constructor, with one public
+selection policy per cell. Build the planar four-cell host with
+[PolylineAtlasLiftProof.shape(multi:true)](../../../../Tests/OriginalPolylineAtlasLiftVerification/Proof.swift)
+and retain its OriginalCoonsSurface3D as the actual face support. The query curve
+is the degree-one Native curve with knots [0,0,1,1] and control points
+[(0,1/2,0),(1,1/2,0)]. The validated face has one outer loop around [0,1]^2 and
+one inner loop around [1/4,3/4]^2. Each loop uses four retained constant-U/V
+pcurves in the traversal order of
+[M6ExactBoundaryFixtures.rectangle/face](../../../../Tests/OriginalDomainConsumerVerification/Sources/M6BoundaryFixtures/M6ExactBoundaryFixtures.swift),
+with reversed coedges as in verifyHoleSelections. The face's surface and lifted
+edge support must remain this Coons source, rather than a replacement Native
+plane. Use the complete curve and surface requests; the authored incidence
+relation is (T,U,V)=(t,t,1/2), 0<=t<=1.
+
+| Cell | Public input / exact request | Independent expected public result |
+|---|---|---|
+| B-COONS-HOLE-CLOSED-01 | The above retained CS relation and validated Coons face through the Kernel face clipping route, selection closed | t in [0,1/4] union [3/4,1], XYZ=(t,1/2,0), original TUV and every retained raw/refined/boundary correspondence |
+| B-COONS-HOLE-STRICT-01 | The same exact input, selection strictInterior | t in (0,1/4) union (3/4,1), with the same source/parameter authority; all four boundary values excluded |
+| B-COONS-HOLE-BOUNDARY-01 | The same exact input, selection boundary | t in {0,1/4,3/4,1}; outer and inner boundary-span owners retained, with no interior interval selected |
+
+The oracle is the exact unit-square material minus the open square hole on
+v=1/2, with the requested inclusion policy. It is independent of the consumer's
+winding/refinement implementation. These cells own material/parameter results;
+their eventual XYZ publication remains an explicit M7 obligation.
+
+For each cell the currently confirmed connection limit is the public
+[OriginalExactFaceBoundaryClipping.clip](../../../../Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryClipping.swift)
+input OriginalExactNativeBoundarySource. Its cases accept only Native B-spline
+relation collections; they cannot bind this retained Coons graph relation.
+This is a source-signature observation, not a runtime red. The exact general
+relation-to-face binding diagnostic and its receipt remain definition gaps before
+production changes for these cells.
+
+The causal path is the existing original Coons/Native curve source issuance,
+their DI-bound graph relation, the retained L5 refinement adapter, verified
+Coons face-source correspondence, and the Kernel face-bound result. A complete
+M4, a new Coons producer, or preparation of unrelated child families is not a
+dependency. The policy cells share the relation preparation and immutable face
+owner; they retain independent query admissions. Common code changes are one
+serialized work unit, and all three public policies must pass before that unit
+closes. Applicable scoped identity is consumed only where this actual boundary
+requires it; a proof for another source or a global M5 completion is not required.
+
+Reuse the unchanged Native material/Kernel behavior in
+[Native consumer intake](../../../../Tests/OriginalNativeConsumerIntakeVerification/CONSUMERS.md)
+and the retained Coons graph/source premises in
+[Polyline atlas lift verification](../../../../Tests/OriginalPolylineAtlasLiftVerification/VERIFICATION.md)
+only within their recorded scope. Neither receipt proves these general Coons
+Kernel cells. Their new receipts must bind the concrete public diagnostic,
+changed-path success/failure, raw/refined ordinals, source/face refusal, exact
+resource boundaries, cancellation and detached-owner queries on the fixed target
+lanes, followed by scoped review and latest-main delivery.
+
+PROGRESS.md remains the sole execution/status record. The finite catalog is not
+yet exhaustive: remaining family/variant/consumer definitions belong to its
+mapping item. These four explicit cells do not stand in for missing inputs.
+M7/M8 closure requires every applicable cell and the cumulative integration
+evidence; historical source-only completions remain internal premises.
 
 ### M3 primitive issuer implementation boundary
 
