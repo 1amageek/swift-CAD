@@ -99,10 +99,10 @@ def audit():
     exact_head(MAIN, BASE)
     require(git(MAIN, 'branch', '--show-current').decode().strip() == 'main', 'main branch required')
     independent_head = git(INDEPENDENT, 'rev-parse', 'HEAD').decode().strip()
-    require(independent_head in {BASE, implementation}, 'independent checkout must be baseline or implementation')
     exact_head(INDEPENDENT, independent_head)
-    subprocess.run(['git', 'merge-base', '--is-ancestor', BASE, implementation], cwd=ROOT, check=True, timeout=30)
-    if independent_head == BASE:
+    for ancestor, descendant in [(BASE, independent_head), (independent_head, implementation)]:
+        subprocess.run(['git', 'merge-base', '--is-ancestor', ancestor, descendant], cwd=ROOT, check=True, timeout=30)
+    if independent_head != implementation:
         subprocess.run(['git', 'merge', '--ff-only', '--quiet', implementation], cwd=INDEPENDENT, check=True, timeout=30)
     exact_head(INDEPENDENT, implementation)
 
@@ -185,6 +185,16 @@ def audit():
     def inspect(item, accepted=False):
         receipt_path = entry(item)
         record = read(receipt_path)
+        # A prior selected fixture/runner is bound to its exact copied input in
+        # the same receipt, never asserted equal to the current source path.
+        for authority in ['fixture', 'runner']:
+            name = summary[authority]['path']
+            digest = record.get('checks', {}).get(name)
+            if digest is not None and digest != summary[authority]['sha256']:
+                copied = str(receipt_original_path(item).parent / Path(name).name)
+                require(record['checks'].get(copied) == digest and (copied, digest) in archived,
+                        f'exact copied historical {authority} binding')
+                archived[(name, digest)] = archived[(copied, digest)]
         for field in ['checks', 'freshProduction']:
             for name, digest in record.get(field, {}).items():
                 saved_input(name, digest)
