@@ -1,0 +1,61 @@
+{
+  "cell": "CS-POLY-01",
+  "sourceCommit": "2c70852263e99e6e61b0820882de8ab4c87a0734",
+  "candidateWorktree": "/private/tmp/cad-m4-ds-main-integration-20261010",
+  "mainBefore": "4d2de9b1b295627abe35dfb39d830ea08c9f5a1f",
+  "productionSnapshotSHA256": "933d5888e3a012cb63acfdf923878656e59b45384fe122abdf763f08cfcd183b",
+  "lanes": {
+    "native": {
+      "productionBodies": 23,
+      "effectiveInputs": 3288,
+      "archivedCompilerInputs": 323,
+      "retainedProducts": 14,
+      "acceptedRuns": 7,
+      "receiptSHA256": "2ff419dc21f8079e92d14a98d6137957e7f137344f66b98eb7e071240b45b88d",
+      "parentProducts": 1,
+      "parentLogs": 3,
+      "admittedInputsAndParentProductsAndLogs": 3292
+    },
+    "asan": {
+      "productionBodies": 23,
+      "effectiveInputs": 3288,
+      "archivedCompilerInputs": 323,
+      "retainedProducts": 14,
+      "acceptedRuns": 7,
+      "receiptSHA256": "b10f3ca9519587b7f490d6b17d1f7632c6d854f15e03e755589427010797e35b",
+      "parentProducts": 1,
+      "parentLogs": 3,
+      "admittedInputsAndParentProductsAndLogs": 3292
+    },
+    "wasm": {
+      "productionBodies": 23,
+      "effectiveInputs": 5120,
+      "archivedCompilerInputs": 323,
+      "retainedProducts": 14,
+      "acceptedRuns": 7,
+      "receiptSHA256": "50b99626ae34c2e95754a91374e323259474cc7c91b5c2d03af057e12a2693ec",
+      "parentProducts": 1,
+      "parentLogs": 3,
+      "admittedInputsAndParentProductsAndLogs": 5124
+    },
+    "embedded": {
+      "productionBodies": 23,
+      "effectiveInputs": 5118,
+      "archivedCompilerInputs": 324,
+      "retainedProducts": 16,
+      "acceptedRuns": 4,
+      "receiptSHA256": "e1426e1b798b5bf36fe9523c1f2b1d79d5ed1183db99f3f93b2fb0592bcdf99e",
+      "parentProducts": 1,
+      "parentLogs": 3,
+      "admittedInputsAndParentProductsAndLogs": 5122
+    }
+  },
+  "protectedDraftSHA256": "97db4b01b16d6c5a66cdd0bfdfbeda4aa939389f12481b2e0ba8d10d873e8016",
+  "sourceTreeMatches": true,
+  "unchangedBehavioralEvidenceReused": true,
+  "newBuildOrRuntime": false,
+  "scope": "Independent latest-main candidate composition of the same four-lane public acceptance cell; no whole M4-M8 or broad production build claim.",
+  "elapsedSeconds": 4.647971375030465,
+  "mainDeliveryCommit": "2c70852263e99e6e61b0820882de8ab4c87a0734",
+  "mainProductionHashesMatch": true
+}

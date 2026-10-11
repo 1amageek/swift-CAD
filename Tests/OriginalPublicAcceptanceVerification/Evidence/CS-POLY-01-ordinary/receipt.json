@@ -1,6 +1,6 @@
 {
   "cell": "CS-POLY-01",
-  "status": "verified-awaiting-main-delivery",
+  "status": "delivered",
   "base": "4d2de9b1",
   "lanes": {
     "native": {
@@ -39,5 +39,9 @@
   "productionSnapshotSHA256": "933d5888e3a012cb63acfdf923878656e59b45384fe122abdf763f08cfcd183b",
   "diagnosticScope": "Subnormal saved-normal failure is a separate open cell, not accepted coverage. Continuous overlap and all other mandatory cells remain open.",
   "reviewSHA256": "15316d37630af8b2ff7e31a788595ee1ba459228e9056af455534cc0757d39b4",
-  "verificationSHA256": "472584deb8ac40e8d630e017b3b84d18f1beb241c39aaef08f92f5be40e49cce"
+  "verificationSHA256": "472584deb8ac40e8d630e017b3b84d18f1beb241c39aaef08f92f5be40e49cce",
+  "sourceCommit": "2c70852263e99e6e61b0820882de8ab4c87a0734",
+  "mainDeliveryCommit": "2c70852263e99e6e61b0820882de8ab4c87a0734",
+  "integrationReceipt": "integration.json",
+  "integrationReceiptSHA256": "d4f5e830e48f7c72c070cd0bc1beace38ce3babfe156e83543372944124b4a95"
 }
