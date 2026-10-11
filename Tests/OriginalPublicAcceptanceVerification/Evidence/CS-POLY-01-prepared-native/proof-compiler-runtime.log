@@ -1,0 +1,1 @@
+PASS singleton compiler: original parameter retained; all laws constant on scope; false guard excludes, true guard selects

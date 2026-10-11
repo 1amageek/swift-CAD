@@ -1,0 +1,1069 @@
+diff --git a/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md b/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+index 8dd22d5f..a86981de 100644
+--- a/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
++++ b/Sources/CADGeometry/NativeExactGeometricRelations/DESIGN.md
+@@ -115,6 +115,20 @@ once and recheck only concrete findings. Source/domain expansion has its own tes
+ 
+ ## Public Migration Boundary
+ 
++The prepared retained-lift/plane public overload consumes the sealed complete
++relation from [NativeExactRelations](../NativeExactRelations/DESIGN.md#retained-lift-against-the-whole-original-plane).
++It reuses L6 and the existing exact public point/image/fiber representation.
++The common publication algorithm retains the supplied immutable relation owner,
++maps local parameters through the proved original transport, and publishes all
++auxiliary lifts; it performs no additional decomposition or XYZ deduplication.
++The plane graph's two coordinates already are the original basis UV.
++Source preparation and every later query use explicit independent admissions.
++This additive prepared port does not by itself migrate the ordinary Curve3D
++entry. CS-POLY-01 remains open until that exact input reaches the ordinary public
++result with both distinct authored T roots and the complete retained evidence.
++The changed path requires focused real-source success/exclusion, exact domains,
++wrong-owner/field and resource/cancel/lifetime checks on the fixed target lanes.
++
+ BSpline caller-ledger and existing Curve3D/Surface3D ordinary/callback-admitted
+ intersectionResult/intersections requirements use one L5/L6 relation for the
+ finite closed nonperiodic positive-weight single-span Native family. Multi-span
+@@ -221,3 +235,13 @@ parameter transport, and XYZ/fiber witnesses through the retained pair. They are
+ not XYZ-deduplicated. Positive-dimensional relations remain available through the
+ rich receipt and cannot become discrete/empty success. Native/ASAN and matching
+ ordinary/Embedded tests exercise actual result constructors and public methods.
++
++
++Checked polynomial lift reductions restore each isolated point's full original
++`(T,U,V)` in `OriginalIssuedExactIntersectionPoint.originalFirstCoordinates`.
++The shared publication algorithm evaluates the source-issued forward laws in the
++retained witness field. Existing unreduced producers keep this optional field
++nil and retain their original auxiliary witnesses as before. Continuous fibers
++retain the same forward laws and original graphs in the lift/plane relation owner.
++The ordinary numerical dispatcher still requires explicit migration and must not
++be declared complete from this prepared-port capability alone.
+diff --git a/Sources/CADGeometry/NativeExactGeometricRelations/DefaultOriginalIssuedGeometricRelationResolver.swift b/Sources/CADGeometry/NativeExactGeometricRelations/DefaultOriginalIssuedGeometricRelationResolver.swift
+index 5b471f88..bdbb9eca 100644
+--- a/Sources/CADGeometry/NativeExactGeometricRelations/DefaultOriginalIssuedGeometricRelationResolver.swift
++++ b/Sources/CADGeometry/NativeExactGeometricRelations/DefaultOriginalIssuedGeometricRelationResolver.swift
+@@ -13,79 +13,23 @@ import IssuedGraphs
+ #endif
+ 
+ public struct DefaultOriginalIssuedGeometricRelationResolver: OriginalIssuedGeometricRelationResolving {
+-    typealias Base = OriginalExactScalarDomain
+-    typealias Field = ExactAlgebraicScalarDomain<Base>
+     public init() {}
+-    public func resolve<S: Sendable, E: Sendable, C: Sendable, T: Sendable, F: Sendable, D: Sendable, A: ExactScalarAdmission & ~Copyable>(
+-        _ relations: borrowing OriginalIssuedGraphRelations<S,E,C,T,F,D>, limits: OriginalDomainIdentityLimits,
+-        geometryLimits: ExactGeometricRelationLimits, maximumPoints: Int, using a: inout A
+-    ) throws(NativeExactGeometricRelationFailure) -> OriginalIssuedGeometricRelations<S,E,C,T,F,D> {
++    public func resolve<S: Sendable,E: Sendable,C: Sendable,T: Sendable,F: Sendable,D: Sendable,A: ExactScalarAdmission & ~Copyable>(
++        _ relations: borrowing OriginalIssuedGraphRelations<S,E,C,T,F,D>,limits: OriginalDomainIdentityLimits,
++        geometryLimits: ExactGeometricRelationLimits,maximumPoints: Int,using a: inout A)
++        throws(NativeExactGeometricRelationFailure) -> OriginalIssuedGeometricRelations<S,E,C,T,F,D> {
+         do {
+             guard maximumPoints >= 0 else { throw ExactGeometricRelationFailure.invalidSourceBinding }
+-            try relations.admitProof(limits: limits, using: &a)
+-            let resolver = DefaultExactGeometricGraphRelationResolver<Base>()
+-            try a.retainStorage(bytes: exactScalarPayloadBytes(count: relations.pairs.count, of: OriginalIssuedGeometricRelationPair.self))
+-            var pairs: [OriginalIssuedGeometricRelationPair] = []; pairs.reserveCapacity(relations.pairs.count)
+-            var points: [OriginalIssuedExactIntersectionPoint] = []
+-            var strataCount = 0, componentCount = 0
+-            for pair in relations.pairs {
+-                try a.consumeWork(1)
+-                let geometry = try resolver.resolve(pair.relation, limits: geometryLimits, using: &a)
+-                let stratumSum = strataCount.addingReportingOverflow(geometry.strata.count)
+-                let componentSum = componentCount.addingReportingOverflow(pair.relation.components.count)
+-                guard !stratumSum.overflow, !componentSum.overflow else { throw ExactGeometricRelationFailure.countOverflow }
+-                strataCount = stratumSum.partialValue; componentCount = componentSum.partialValue
+-                guard strataCount <= geometryLimits.maximumStrata, componentCount <= geometryLimits.topology.maximumComponents else { throw ExactGeometricRelationFailure.resultLimit }
+-                for members in pair.relation.components.memberRanges {
+-                    var isolated = true
+-                    for m in members { try a.consumeWork(1); if pair.relation.components.members[m].dimension != 0 { isolated = false } }
+-                    guard isolated else { continue }
+-                    for m in members {
+-                        guard points.count < maximumPoints else { throw ExactGeometricRelationFailure.resultLimit }
+-                        let cell = pair.relation.components.members[m]
+-                        var ordinal: Int? = nil
+-                        for i in pair.relation.selection.cells.indices { try a.consumeWork(1); if pair.relation.selection.cells[i] == cell { ordinal = i; break } }
+-                        guard let ordinal else { throw ExactGeometricRelationFailure.invalidCoverage }
+-                        let local = try resolver.point(atParameterOrdinal: ordinal, in: geometry, using: &a)
+-                        let first = relations.first.graphs[pair.firstGraphIndex].original.graph.parameterTransport
+-                        let second = relations.second.graphs[pair.secondGraphIndex].original.graph.parameterTransport
+-                        let firstParameters = try transport(first, coordinates: local.parameters, offset: 0, field: local.witness.field, &a)
+-                        let secondParameters = try transport(second, coordinates: local.parameters, offset: pair.relation.original.first.parameterCount, field: local.witness.field, &a)
+-                        try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalIssuedExactIntersectionPoint.self))
+-                        points.append(.init(sourceRelation: copy relations, pairOrdinal: pairs.count, local: local, firstParameters: firstParameters, secondParameters: secondParameters))
+-                    }
+-                }
+-                pairs.append(.init(original: pair, geometry: geometry))
+-            }
+-            try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalIssuedGeometricRelations<S,E,C,T,F,D>.self))
+-            let result = OriginalIssuedGeometricRelations(original: copy relations, pairs: pairs, exactPoints: points)
+-            try a.checkpoint(); return result
++            try relations.admitProof(limits:limits,using:&a)
++            let retained = copy relations
++            let publication = try OriginalIssuedGeometricPublication.resolve(retained,geometryLimits:geometryLimits,maximumPoints:maximumPoints,
++                transports:{ pair in
++                    (retained.first.graphs[pair.firstGraphIndex].original.graph.parameterTransport,
++                     retained.second.graphs[pair.secondGraphIndex].original.graph.parameterTransport)
++                },using:&a)
++            try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalIssuedGeometricRelations<S,E,C,T,F,D>.self))
++            let result = OriginalIssuedGeometricRelations(original:copy relations,pairs:publication.pairs,exactPoints:publication.points)
++            try a.checkpoint();return result
+         } catch { throw .preserving(error) }
+     }
+-    private func transport<A: ExactScalarAdmission & ~Copyable>(_ original: OriginalRationalParameterTransport<Base>,
+-        coordinates: [Field.Value], offset: Int, field: Field, _ a: inout A) throws -> [Field.Value] {
+-        let count = original.numerators.count
+-        guard count == original.denominators.count, offset >= 0, offset <= coordinates.count,
+-            count <= coordinates.count - offset else { throw ExactGeometricRelationFailure.invalidSourceBinding }
+-        let ring = try ExactPolynomialDomain(field: field, variableCount: count, using: &a)
+-        try a.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Field.Value.self))
+-        var local: [Field.Value] = []; local.reserveCapacity(count)
+-        for i in 0..<count { try a.consumeWork(1); local.append(coordinates[offset + i]) }
+-        try a.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Field.Value.self))
+-        var result: [Field.Value] = []; result.reserveCapacity(count)
+-        for axis in 0..<count {
+-            let numerator = try imported(original.numerators[axis], into: ring, field: field, &a)
+-            let denominator = try imported(original.denominators[axis], into: ring, field: field, &a)
+-            result.append(try field.dividing(ring.evaluated(numerator, at: local, using: &a).value,
+-                ring.evaluated(denominator, at: local, using: &a).value, using: &a))
+-        }
+-        return result
+-    }
+-    private func imported<A: ExactScalarAdmission & ~Copyable>(_ law: ExactPolynomial<Base>,
+-        into ring: ExactPolynomialDomain<Field>, field: Field, _ a: inout A) throws -> ExactPolynomial<Field> {
+-        try a.retainStorage(bytes: exactScalarPayloadBytes(count: law.termCount, of: ExactPolynomialTerm<Field.Value>.self))
+-        var terms: [ExactPolynomialTerm<Field.Value>] = []; terms.reserveCapacity(law.termCount)
+-        for term in law.terms { try a.consumeWork(1); terms.append(.init(powers: term.powers, coefficient: try field.importingBase(term.coefficient, using: &a))) }
+-        return try ring.polynomial(terms: terms, using: &a)
+-    }
+ }
+diff --git a/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedExactIntersectionPoint.swift b/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedExactIntersectionPoint.swift
+index 42478e24..4350aa3e 100644
+--- a/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedExactIntersectionPoint.swift
++++ b/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedExactIntersectionPoint.swift
+@@ -19,9 +19,13 @@ public struct OriginalIssuedExactIntersectionPoint: Sendable {
+     public let local: ExactGeometricGraphPoint<OriginalExactScalarDomain>
+     public let firstParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>]
+     public let secondParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>]
++    /// Forward-restored source coordinates when a checked source reduction removes auxiliaries.
++    public let originalFirstCoordinates: [ExactAlgebraicScalar<OriginalExactScalarDomain>]?
+     public var position: ExactXYZ<OriginalExactScalarDomain> { local.position }
+     init(sourceRelation: any OriginalIssuedGraphRelationOwning, pairOrdinal: Int, local: ExactGeometricGraphPoint<OriginalExactScalarDomain>,
+-        firstParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>], secondParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>]) {
++        firstParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>], secondParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>],
++        originalFirstCoordinates: [ExactAlgebraicScalar<OriginalExactScalarDomain>]? = nil) {
+         self.sourceRelation = sourceRelation; self.pairOrdinal = pairOrdinal; self.local = local; self.firstParameters = firstParameters; self.secondParameters = secondParameters
++        self.originalFirstCoordinates = originalFirstCoordinates
+     }
+ }
+diff --git a/Sources/CADGeometry/NativeExactRelations/DESIGN.md b/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+index 63dcd0c4..59c2c05e 100644
+--- a/Sources/CADGeometry/NativeExactRelations/DESIGN.md
++++ b/Sources/CADGeometry/NativeExactRelations/DESIGN.md
+@@ -47,6 +47,31 @@ flowchart LR
+ ```
+ 
+ ## Contracts and Invariants
++
++### Retained lift against the whole original plane
++
++CS-POLY-01's observed public stop and acceptance are owned by
++[the coverage cell](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#public-acceptance-cell-execution).
++The additive prepared route consumes an OriginalRetainedSurfaceLiftDomainCover
++and an OriginalPrimitiveDomainCover retaining the issued original plane basis.
++OriginalPlaneGraphCompiling translates that basis and the exact effective UV set
++to an L5 graph with genuinely unbounded UV support. It retains the original
++plane cover; it does not fabricate a finite OriginalParametricGraphReceipt.
++OriginalLiftPlaneRelationResolving compiles every retained lift template through
++the existing graph compiler and solves every selected pair with that plane graph.
++It preserves all lift auxiliary equations, guards and original T transport.
++
++Only the sealed issuers construct the new immutable preparations and relation.
++The caller supplies the shared coefficient field and the same admission and
++existing domain/cell/topology/count limits. Foreign fields, source depth,
++missing coverage, cancellation and resource failure propagate atomically.
++Disconnected, open, singleton and empty plane selections remain exact. Empty
++results retain both source covers and L5 exclusion; there is no legacy retry.
++Every new buffer and receipt is charged before allocation, including checked
++template counts. Owners and Sendable contracts are identical across targets.
++This route's public result and ordinary entry migration are owned by
++[geometric publication](../NativeExactGeometricRelations/DESIGN.md).
++
+ - Validate input and degree before indexed source access. Count every visited knot
+   with the same admission; require one positive span on each entire native axis.
+ - Import original rational coefficients directly into one shared L2 coefficient
+@@ -397,3 +422,46 @@ and result against current L0-L5 contracts. It checks algebraic membership and
+ exclusion, foreign fields, exact work/storage boundaries, raw/refined ordinals,
+ entry/terminal cancellation and retained-depth refusal. This evidence owns the
+ shared adapter only; actual face/self and Topology integration remain separate.
++
++
++The retained polynomial lift/plane resolver consumes the source-owned checked
++polynomial witness reduction described in
++[source issuance](../OriginalSourceIssuance/DESIGN.md#polynomial-lift-witness-reduction-for-a-retained-public-query).
++Each raw pair retains the original cover, reduced graph preparation and forward
++original-coordinate map. Reducing uniquely determined UV is exact transport,
++not removal of original UV or a second solve of the same intersection problem.
++
++
++### Exact affine plane-incidence restriction
++
++A polynomial lift/plane query may restrict local T before L5 only from the exact
++necessary plane equation `N dot (Hxyz - origin * Hw) = 0`. A zero equation keeps
++the whole requested graph. A nonzero constant proves exclusion. A nonconstant
++linear equation has exactly one candidate, derived by field division and retained
++with its coefficients. This restriction currently applies only when the retained
++original T transport is exactly identity; other transports keep the original
++query. Higher-degree equations also keep the original complete L5 query.
++
++The sealed restriction receipt retains the original binding, selected binding,
++equation, original plane owner and attained depths. Original request/support
++intersection and every source guard remain authoritative; a candidate is not a
++contact proof. L5 still proves contact, absence or positive-dimensional fibers.
++No failed calculation becomes exclusion. Excluded chart queries retain these
++complete exclusion receipts even when they generate no raw relation pair.
++
++The existing graph compiler may use an exact selected singleton as its root
++domain only after proving identity transport and inclusion in the original local
++support with the original endpoint policy. It retains all request and guard
++predicates. The whole plane UV support is unchanged. The public-cell verification
++must keep the same work/storage/depth/cancel ceilings; this is the causal response
++to CS-POLY-01 exhausting work in template 1 after polynomial witness reduction.
++
++After exact domain restriction, the compiler substitutes any closed singleton
++parameter into every imported position and predicate law. The substitution is
++valid only on that retained domain; it does not assert global source equality.
++All predicate instructions, original parameter slots, auxiliary slots, binding
++owners and endpoint policies remain present. A guard that becomes false still
++proves exclusion through the existing predicate. This avoids projecting a varying
++polynomial over a parameter already proved fixed, without a second solve or a
++larger admission. The existing identity-domain restriction is reused rather than
++duplicated, and non-singleton queries do not allocate a substitution array.
+diff --git a/Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphCompiler.swift b/Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphCompiler.swift
+index e40148de..5a800136 100644
+--- a/Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphCompiler.swift
++++ b/Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphCompiler.swift
+@@ -100,6 +100,29 @@ public struct DefaultOriginalIssuedGraphCompiler<S: Sendable,E: Sendable>: Origi
+                 }
+                 try append(.and,to:&program,&admission)
+             }
++            // Specialize only on the proved domain; keep every guard and parameter slot.
++            var replacements:[Polynomial]=[]
++            for axis in 0..<p {
++                let selected=domains[axis]
++                guard selected.includesLower,selected.includesUpper,
++                    case .finite(let lower)=selected.lower,case .finite(let upper)=selected.upper,
++                    try field.compare(lower,upper,using:&admission) == .equal else { continue }
++                if replacements.isEmpty {
++                    try admission.retainStorage(bytes:exactScalarPayloadBytes(count:n,of:Polynomial.self))
++                    replacements.reserveCapacity(n)
++                    for index in 0..<n {
++                        try admission.consumeWork(1)
++                        replacements.append(try ring.variable(index,using:&admission))
++                    }
++                }
++                replacements[axis]=try ring.constant(lower,using:&admission)
++            }
++            if !replacements.isEmpty {
++                for index in laws.indices {
++                    try admission.consumeWork(1)
++                    laws[index]=try ring.substituted(laws[index],with:replacements,using:&admission)
++                }
++            }
+             let source=try cells.bind(polynomials:laws,domains:domains,using:&admission)
+             let predicate=try cells.predicate(instructions:program,for:source,using:&admission)
+             let domain=ExactParametricRelationDomain<Base,Cells,ExactRealTopology<Base>>(cells:Cells.self,topology:.init(cells:Cells.self))
+diff --git a/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md b/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
+index 0388ef06..c0318d4e 100644
+--- a/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
++++ b/Sources/CADGeometry/OriginalSourceIssuance/DESIGN.md
+@@ -2168,3 +2168,31 @@ stations/folded traversals, all chart products and incident sides, exact origina
+ XYZ/UV and public point regression, selected domains, owner/field/resource/depth/
+ cancel/lifetime counterexamples and four fixed lanes. Unchanged Native finite and
+ periodic prepared-polyline lift evidence remains the lower regression authority.
++
++
++### Polynomial lift witness reduction for a retained public query
++
++The lift/whole-plane public cell consumes a sealed reduction of an already issued
++lift graph when each auxiliary coordinate has a retained equality of the form
++`a * auxiliary + p(T) = 0` with exact nonzero constant `a`. The source reducer
++checks the complete one-parameter/two-auxiliary layout and derives both forward
++polynomials from those equations. It substitutes them into every original position
++law and every guard through existing polynomial operations. It retains the original
++graph and the complete forward coordinate map; no inverse, new geometric formula,
++chart sampling, guard deletion or enlarged caller allowance is involved.
++
++| Authority | Guarantee |
++|---|---|
++| Original sealed graph | Original source, chart sides, authored T and full guarded UV relation |
++| Checked equality coefficients | Every admitted original tuple has exactly the supplied UV at that T |
++| Reduced graph plus forward coordinates | Exact two-way correspondence with the original guarded graph, including empty/constant/singleton subsets |
++| Public lift/plane owner | Retains both graph forms and exposes the coordinate correspondence for points and continuous fibers |
++
++An unavailable constant-coefficient elimination is an explicit unsupported
++capability of this reducer. It does not establish empty contact and does not
++silently select another solver. General rational/implicit source obligations stay
++unchanged. The concrete need is the CS-POLY-01 prepared query exhausting its
++existing 8,388,608 work allowance when solving two uniquely determined auxiliary
++UV variables as independent variables. Verification must run that original input
++under the same ceiling, compare all original guards and lifted tuples, and retain
++failure/depth/cancel/lifetime checks before public-cell completion.
+diff --git a/Sources/CADGeometry/NativeExactGeometricRelations/DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift b/Sources/CADGeometry/NativeExactGeometricRelations/DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift
+new file mode 100644
+index 00000000..909c41c6
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactGeometricRelations/DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift
+@@ -0,0 +1,34 @@
++#if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import L6
++import DI0
++import DI
++import SourceIssuer
++import IssuedGraphs
++#endif
++
++extension DefaultCurveSurfaceIntersector: OriginalRetainedLiftPlaneIntersecting {
++    public func intersectionResult<S: OriginalLiftGraphSourceReading,P: OriginalPlaneSourceReading,A: ExactScalarAdmission & ~Copyable>(
++        lift: borrowing OriginalRetainedSurfaceLiftDomainCover<S>,plane: borrowing OriginalIssuedPlaneGraph<P>,
++        maximumPairs: Int,limits: OriginalDomainIdentityLimits,geometryLimits: ExactGeometricRelationLimits,
++        maximumPoints: Int,using a: inout A) throws(NativeExactGeometricRelationFailure) -> CurveSurfaceIntersectionResult {
++        do {
++            guard maximumPoints >= 0 else { throw ExactGeometricRelationFailure.invalidSourceBinding }
++            let original = try DefaultOriginalLiftPlaneRelationResolver().resolve(lift:lift,plane:plane,maximumPairs:maximumPairs,
++                limits:limits,cellLimits:geometryLimits.cells,topologyLimits:geometryLimits.topology,using:&a)
++            let publication = try OriginalIssuedGeometricPublication.resolve(original,geometryLimits:geometryLimits,maximumPoints:maximumPoints,
++                transports:{ pair in (original.firstGraphs[pair.firstGraphIndex].original.graph.parameterTransport,nil) },
++                firstCoordinates:{ pair in original.firstReductions[pair.firstGraphIndex].originalCoordinates },using:&a)
++            try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalLiftPlaneGeometricRelations<S,P>.self))
++            let receipt = OriginalLiftPlaneGeometricRelations(original:original,pairs:publication.pairs,exactPoints:publication.points)
++            try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:CurveSurfaceIntersectionResult.self))
++            let result = CurveSurfaceIntersectionResult(points:[],overlaps:[],originalIssuedGeometricRelation:receipt)
++            try a.checkpoint();return result
++        } catch { throw .preserving(error) }
++    }
++}
+diff --git a/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricPublication.swift b/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricPublication.swift
+new file mode 100644
+index 00000000..4df3d86b
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricPublication.swift
+@@ -0,0 +1,117 @@
++#if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import L6
++import DI0
++import DI
++import SourceIssuer
++import IssuedGraphs
++#endif
++
++/// Shared publication of one retained L5 relation; no second decomposition or tuple merging.
++struct OriginalIssuedGeometricPublication {
++    typealias Base = OriginalExactScalarDomain
++    typealias Field = ExactAlgebraicScalarDomain<Base>
++    let pairs: [OriginalIssuedGeometricRelationPair]
++    let points: [OriginalIssuedExactIntersectionPoint]
++    static func resolve<R: OriginalIssuedGraphRelationOwning,A: ExactScalarAdmission & ~Copyable>(
++        _ relations: borrowing R, geometryLimits: ExactGeometricRelationLimits, maximumPoints: Int,
++        transports: (OriginalIssuedGraphRelationPair) -> (OriginalRationalParameterTransport<Base>,OriginalRationalParameterTransport<Base>?),
++        firstCoordinates: ((OriginalIssuedGraphRelationPair) -> [ExactPolynomial<Base>])? = nil,
++        using a: inout A) throws -> Self {
++        guard maximumPoints >= 0 else { throw ExactGeometricRelationFailure.invalidSourceBinding }
++        let resolver = DefaultExactGeometricGraphRelationResolver<Base>()
++        try a.retainStorage(bytes:exactScalarPayloadBytes(count:relations.pairs.count,of:OriginalIssuedGeometricRelationPair.self))
++        var pairs: [OriginalIssuedGeometricRelationPair] = []; pairs.reserveCapacity(relations.pairs.count)
++        var points: [OriginalIssuedExactIntersectionPoint] = []
++        // Erase the immutable full source owner once, sharing its retained box across points.
++        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:R.self))
++        let owner: any OriginalIssuedGraphRelationOwning = copy relations
++        var strataCount = 0, componentCount = 0
++        for pair in relations.pairs {
++            try a.consumeWork(1)
++            let geometry = try resolver.resolve(pair.relation,limits:geometryLimits,using:&a)
++            let stratumSum = strataCount.addingReportingOverflow(geometry.strata.count)
++            let componentSum = componentCount.addingReportingOverflow(pair.relation.components.count)
++            guard !stratumSum.overflow,!componentSum.overflow else { throw ExactGeometricRelationFailure.countOverflow }
++            strataCount = stratumSum.partialValue; componentCount = componentSum.partialValue
++            guard strataCount <= geometryLimits.maximumStrata,componentCount <= geometryLimits.topology.maximumComponents else { throw ExactGeometricRelationFailure.resultLimit }
++            let maps = transports(pair)
++            for members in pair.relation.components.memberRanges {
++                var isolated = true
++                for m in members { try a.consumeWork(1); if pair.relation.components.members[m].dimension != 0 { isolated = false } }
++                guard isolated else { continue }
++                for m in members {
++                    guard points.count < maximumPoints else { throw ExactGeometricRelationFailure.resultLimit }
++                    let cell = pair.relation.components.members[m]
++                    var ordinal: Int? = nil
++                    for i in pair.relation.selection.cells.indices { try a.consumeWork(1); if pair.relation.selection.cells[i] == cell { ordinal = i; break } }
++                    guard let ordinal else { throw ExactGeometricRelationFailure.invalidCoverage }
++                    let local = try resolver.point(atParameterOrdinal:ordinal,in:geometry,using:&a)
++                    let first = try transport(maps.0,coordinates:local.parameters,offset:0,field:local.witness.field,using:&a)
++                    let second: [Field.Value]
++                    if let map = maps.1 {
++                        second = try transport(map,coordinates:local.parameters,offset:pair.relation.original.first.parameterCount,field:local.witness.field,using:&a)
++                    } else {
++                        let offset = pair.relation.original.first.parameterCount, count = pair.relation.original.second.parameterCount
++                        guard offset >= 0,count >= 0,offset <= local.parameters.count,count <= local.parameters.count-offset else { throw ExactGeometricRelationFailure.invalidSourceBinding }
++                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:count,of:Field.Value.self))
++                        var values: [Field.Value] = []; values.reserveCapacity(count)
++                        for i in 0..<count { try a.consumeWork(1);values.append(local.parameters[offset+i]) }
++                        second = values
++                    }
++                    let restored: [Field.Value]?
++                    if let firstCoordinates {
++                        let laws = firstCoordinates(pair), count = pair.relation.original.first.parameterCount
++                        guard count >= 0,count <= local.parameters.count else { throw ExactGeometricRelationFailure.invalidSourceBinding }
++                        let ring = try ExactPolynomialDomain(field:local.witness.field,variableCount:count,using:&a)
++                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:count,of:Field.Value.self))
++                        var tuple: [Field.Value] = []; tuple.reserveCapacity(count)
++                        for i in 0..<count { try a.consumeWork(1);tuple.append(local.parameters[i]) }
++                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:laws.count,of:Field.Value.self))
++                        var values: [Field.Value] = []; values.reserveCapacity(laws.count)
++                        for law in laws {
++                            try a.consumeWork(1)
++                            values.append(try ring.evaluated(imported(law,into:ring,field:local.witness.field,using:&a),at:tuple,using:&a).value)
++                        }
++                        restored = values
++                    } else { restored = nil }
++                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalIssuedExactIntersectionPoint.self))
++                    points.append(.init(sourceRelation:owner,pairOrdinal:pairs.count,local:local,firstParameters:first,secondParameters:second,originalFirstCoordinates:restored))
++                }
++            }
++            pairs.append(.init(original:pair,geometry:geometry))
++        }
++        try a.checkpoint(); return .init(pairs:pairs,points:points)
++    }
++    private static func transport<A: ExactScalarAdmission & ~Copyable>(_ original: OriginalRationalParameterTransport<Base>,
++        coordinates: [Field.Value], offset: Int, field: Field, using a: inout A) throws -> [Field.Value] {
++        let count = original.numerators.count
++        guard count == original.denominators.count, offset >= 0, offset <= coordinates.count,
++            count <= coordinates.count - offset else { throw ExactGeometricRelationFailure.invalidSourceBinding }
++        let ring = try ExactPolynomialDomain(field: field, variableCount: count, using: &a)
++        try a.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Field.Value.self))
++        var local: [Field.Value] = []; local.reserveCapacity(count)
++        for i in 0..<count { try a.consumeWork(1); local.append(coordinates[offset + i]) }
++        try a.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Field.Value.self))
++        var result: [Field.Value] = []; result.reserveCapacity(count)
++        for axis in 0..<count {
++            let numerator = try imported(original.numerators[axis], into: ring, field: field, using: &a)
++            let denominator = try imported(original.denominators[axis], into: ring, field: field, using: &a)
++            result.append(try field.dividing(ring.evaluated(numerator, at: local, using: &a).value,
++                ring.evaluated(denominator, at: local, using: &a).value, using: &a))
++        }
++        return result
++    }
++    private static func imported<A: ExactScalarAdmission & ~Copyable>(_ law: ExactPolynomial<Base>,
++        into ring: ExactPolynomialDomain<Field>, field: Field, using a: inout A) throws -> ExactPolynomial<Field> {
++        try a.retainStorage(bytes: exactScalarPayloadBytes(count: law.termCount, of: ExactPolynomialTerm<Field.Value>.self))
++        var terms: [ExactPolynomialTerm<Field.Value>] = []; terms.reserveCapacity(law.termCount)
++        for term in law.terms { try a.consumeWork(1); terms.append(.init(powers: term.powers, coefficient: try field.importingBase(term.coefficient, using: &a))) }
++        return try ring.polynomial(terms: terms, using: &a)
++    }
++}
+diff --git a/Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlaneGeometricRelations.swift b/Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlaneGeometricRelations.swift
+new file mode 100644
+index 00000000..6116ee67
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlaneGeometricRelations.swift
+@@ -0,0 +1,27 @@
++#if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import L6
++import DI0
++import DI
++import SourceIssuer
++import IssuedGraphs
++#endif
++
++/// Source-owned lift/whole-plane points, strata and all original parameter/auxiliary fibers.
++public struct OriginalLiftPlaneGeometricRelations<S: OriginalLiftGraphSourceReading,P: OriginalPlaneSourceReading>: OriginalIssuedGeometricRelationReading {
++    public let original: OriginalLiftPlaneRelations<S,P>
++    public let pairs: [OriginalIssuedGeometricRelationPair]
++    public let exactPoints: [OriginalIssuedExactIntersectionPoint]
++    public var kind: ExactParametricRelationKind { .curveSurface }
++    public var hasPositiveDimensionalSolutions: Bool { pairs.contains { $0.geometry.hasPositiveDimensionalSolutions } }
++    public var hasPositiveDimensionalImage: Bool { pairs.contains { $0.geometry.hasPositiveDimensionalImage } }
++    public var isEmpty: Bool { pairs.allSatisfy { $0.geometry.isEmpty } }
++    init(original: OriginalLiftPlaneRelations<S,P>,pairs: [OriginalIssuedGeometricRelationPair],exactPoints: [OriginalIssuedExactIntersectionPoint]) {
++        self.original = original; self.pairs = pairs; self.exactPoints = exactPoints
++    }
++}
+diff --git a/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedLiftPlaneIntersecting.swift b/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedLiftPlaneIntersecting.swift
+new file mode 100644
+index 00000000..ec9688a9
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedLiftPlaneIntersecting.swift
+@@ -0,0 +1,21 @@
++#if ISSUED_GEOMETRY_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import L6
++import DI0
++import DI
++import SourceIssuer
++import IssuedGraphs
++#endif
++
++public protocol OriginalRetainedLiftPlaneIntersecting: Sendable {
++    func intersectionResult<S: OriginalLiftGraphSourceReading,P: OriginalPlaneSourceReading,A: ExactScalarAdmission & ~Copyable>(
++        lift: borrowing OriginalRetainedSurfaceLiftDomainCover<S>,plane: borrowing OriginalIssuedPlaneGraph<P>,
++        maximumPairs: Int,limits: OriginalDomainIdentityLimits,geometryLimits: ExactGeometricRelationLimits,
++        maximumPoints: Int,using admission: inout A
++    ) throws(NativeExactGeometricRelationFailure) -> CurveSurfaceIntersectionResult
++}
+diff --git a/Sources/CADGeometry/NativeExactRelations/DefaultOriginalLiftPlaneRelationResolver.swift b/Sources/CADGeometry/NativeExactRelations/DefaultOriginalLiftPlaneRelationResolver.swift
+new file mode 100644
+index 00000000..d0d155ee
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactRelations/DefaultOriginalLiftPlaneRelationResolver.swift
+@@ -0,0 +1,115 @@
++#if SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import DI0
++import DI
++import SourceIssuer
++#endif
++
++public struct DefaultOriginalLiftPlaneRelationResolver: OriginalLiftPlaneRelationResolving {
++    public init() {}
++    public func resolve<S: OriginalLiftGraphSourceReading,P: OriginalPlaneSourceReading,A: ExactScalarAdmission & ~Copyable>(
++        lift: borrowing OriginalRetainedSurfaceLiftDomainCover<S>,plane: borrowing OriginalIssuedPlaneGraph<P>,
++        maximumPairs: Int,limits: OriginalDomainIdentityLimits,cellLimits: ExactRealCellLimits,
++        topologyLimits: ExactRealTopologyLimits,using a: inout A)
++        throws(NativeExactRelationFailure) -> OriginalLiftPlaneRelations<S,P> {
++        do {
++            try a.checkpoint(); try lift.family.admitProof(limits:limits.source,using:&a)
++            try plane.admitProof(limits:limits,using:&a)
++            guard maximumPairs >= 0 else { throw NativeExactRelationFailure.invalidDomain }
++            guard lift.templateCount <= limits.maximumCharts else { throw OriginalDomainIdentityFailure.chartLimit }
++            _ = try plane.field.importingBase(lift.family.field.integer(0,using:&a),using:&a)
++            let count = lift.effectiveEnclosure.isEmpty ? 0:lift.templateCount
++            guard count <= maximumPairs else { throw OriginalDomainIdentityFailure.chartLimit }
++            typealias Preparation = OriginalIssuedGraphPreparation<S,OriginalSurfaceLiftGraphEvidence<S>>
++            try a.retainStorage(bytes:exactScalarPayloadBytes(count:count,of:Preparation.self))
++            try a.retainStorage(bytes:exactScalarPayloadBytes(count:count,of:OriginalIssuedGraphRelationPair.self))
++            try a.retainStorage(bytes:exactScalarPayloadBytes(count:count,of:OriginalPolynomialSurfaceLiftGraphReduction<S>.self))
++            try a.retainStorage(bytes:exactScalarPayloadBytes(count:count,of:OriginalLiftPlaneParameterRestriction<S,P>.self))
++            var restrictions: [OriginalLiftPlaneParameterRestriction<S,P>] = []; restrictions.reserveCapacity(count)
++            var reductions: [OriginalPolynomialSurfaceLiftGraphReduction<S>] = []; reductions.reserveCapacity(count)
++            var graphs: [Preparation] = []; graphs.reserveCapacity(count)
++            var pairs: [OriginalIssuedGraphRelationPair] = []; pairs.reserveCapacity(count)
++            typealias Base = OriginalExactScalarDomain
++            typealias Cells = ExactRealCellDomain<Base>
++            let solver = ExactParametricRelationDomain<Base,Cells,ExactRealTopology<Base>>(cells:Cells.self,topology:.init(cells:Cells.self))
++            for template in 0..<count {
++                try a.consumeWork(1)
++                let member = try lift.member(template:template,limits:limits,using:&a)
++                // FIXME(INCOMPLETE_IMPLEMENTATION): This prepared consumer currently requires
++                // polynomial UV elimination. Required rational/nonlinear witness families must
++                // retain their complete correspondence before this route claims general coverage.
++                let reduction = try DefaultOriginalPolynomialSurfaceLiftGraphReducer<S>().reduce(member.graph,limits:limits.source,using:&a)
++                let binding = try DefaultOriginalParametricGraphDomainBinder().bind(graph:reduction.graph,request:member.request,limits:limits,using:&a)
++                let restriction = try restrict(binding,plane:plane,limits:limits,using:&a)
++                let prepared = try DefaultOriginalIssuedGraphCompiler().compile(binding:restriction.selected,field:plane.field,limits:limits,using:&a)
++                restrictions.append(restriction); reductions.append(reduction); graphs.append(prepared)
++                if restriction.selected.request.isEmpty { continue }
++                let input = try solver.compile(kind:.curveSurface,first:prepared.graph,second:plane.graph,using:&a)
++                let relation = try solver.resolve(input,cellLimits:cellLimits,topologyLimits:topologyLimits,using:&a)
++                pairs.append(.init(firstGraphIndex:template,secondGraphIndex:0,relation:relation))
++            }
++            try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalLiftPlaneRelations<S,P>.self))
++            let result = OriginalLiftPlaneRelations(first:copy lift,firstGraphs:graphs,firstReductions:reductions,firstRestrictions:restrictions,second:copy plane,pairs:pairs)
++            try a.checkpoint(); return result
++        } catch { throw .preserving(error) }
++    }
++    private func restrict<S: OriginalLiftGraphSourceReading,P: OriginalPlaneSourceReading,A: ExactScalarAdmission & ~Copyable>(
++        _ binding: OriginalLiftPlaneParameterRestriction<S,P>.Member,plane: OriginalIssuedPlaneGraph<P>,
++        limits: OriginalDomainIdentityLimits,using admission: inout A) throws -> OriginalLiftPlaneParameterRestriction<S,P> {
++        try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
++            try binding.admitProof(limits:limits,using:&a)
++            let g = binding.graph,f = g.field,r = g.polynomials,basis = plane.original.law
++            var equation = try r.constant(f.integer(0,using:&a),using:&a)
++            for axis in 0..<3 {
++                try a.consumeWork(1)
++                let offset = try r.scaled(g.homogeneous[3],by:f.importing(basis.origin[axis],using:&a),using:&a)
++                equation = try r.adding(equation,r.scaled(r.subtracting(g.homogeneous[axis],offset,using:&a),
++                    by:f.importing(basis.normal[axis],using:&a),using:&a),using:&a)
++            }
++            var kind: OriginalLiftPlaneParameterRestriction<S,P>.Kind = .unchanged
++            var request = binding.request
++            let degree = try r.degree(of:equation,in:0,using:&a)
++            let parameterRing = try ExactPolynomialDomain(field:f,variableCount:1,using:&a)
++            let identity = try parameterRing.equals(parameterRing.importing(g.parameterTransport.numerators[0],using:&a),parameterRing.variable(0,using:&a),using:&a)
++                && parameterRing.equals(parameterRing.importing(g.parameterTransport.denominators[0],using:&a),parameterRing.constant(f.integer(1,using:&a),using:&a),using:&a)
++            if identity,let degree,degree <= 1 {
++                if degree == 0 {
++                    kind = .excluded
++                    request = try request.frame.selection(intervals:[[]],limits:limits,using:&a)
++                } else {
++                    var constant = try f.integer(0,using:&a),slope = try f.integer(0,using:&a)
++                    for term in equation.terms {
++                        try a.consumeWork(1)
++                        guard term.powers.count == 1 else { throw NativeExactRelationFailure.invalidDomain }
++                        if term.powers[0] == 0 { constant = term.coefficient }
++                        else if term.powers[0] == 1 { slope = term.coefficient }
++                        else { throw NativeExactRelationFailure.invalidDomain }
++                    }
++                    let root = try f.dividing(f.negated(constant,using:&a),slope,using:&a)
++                    let lower = try f.compare(root,g.support[0].lower,using:&a),upper = try f.compare(root,g.support[0].upper,using:&a)
++                    if lower == .less || upper == .greater || (upper == .equal && !g.includesUpperBoundary[0]) {
++                        kind = .excluded
++                        request = try request.frame.selection(intervals:[[]],limits:limits,using:&a)
++                    } else {
++                        kind = .singleton(root)
++                        let interval = try ExactParameterInterval.checked(field:f,lower:.finite(root),upper:.finite(root),
++                            includesLower:true,includesUpper:true,depth:root.depth,using:&a)
++                        let candidate = try request.frame.selection(intervals:[[interval]],limits:limits,using:&a)
++                        request = try request.intersection(candidate,limits:limits,using:&a)
++                    }
++                }
++            }
++            let selected = try DefaultOriginalParametricGraphDomainBinder().bind(graph:g,request:request,limits:limits,using:&a)
++            try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalLiftPlaneParameterRestriction<S,P>.self))
++            let result = OriginalLiftPlaneParameterRestriction(original:binding,selected:selected,plane:plane.original.source,
++                equation:equation,kind:kind,depth:try a.depth)
++            try a.checkpoint(); return result
++        }
++    }
++
++}
+diff --git a/Sources/CADGeometry/NativeExactRelations/DefaultOriginalPlaneGraphCompiler.swift b/Sources/CADGeometry/NativeExactRelations/DefaultOriginalPlaneGraphCompiler.swift
+new file mode 100644
+index 00000000..ad58d7d1
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactRelations/DefaultOriginalPlaneGraphCompiler.swift
+@@ -0,0 +1,110 @@
++#if SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import DI0
++import DI
++import SourceIssuer
++#endif
++
++/// Compiles the proved original basis over its exact selected, possibly unbounded UV domain.
++public struct DefaultOriginalPlaneGraphCompiler<S: OriginalPlaneSourceReading>: OriginalPlaneGraphCompiling {
++    public typealias Source = S
++    public typealias Base = OriginalExactScalarDomain
++    public typealias Field = ExactAlgebraicScalarDomain<Base>
++    typealias Polynomial = ExactPolynomial<Field>
++    public init() {}
++    public func compile<A: ExactScalarAdmission & ~Copyable>(cover: borrowing OriginalIssuedPlaneGraph<S>.Cover,
++        field: borrowing Field, limits: OriginalDomainIdentityLimits, using admission: inout A)
++        throws(NativeExactRelationFailure) -> OriginalIssuedPlaneGraph<S> {
++        let original = copy cover, field = copy field
++        do {
++            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
++                try a.checkpoint(); try original.source.require(limits.source)
++                guard limits.maximumCharts >= 1 else { throw OriginalDomainIdentityFailure.chartLimit }
++                guard original.effective.arity == 2 else { throw NativeExactRelationFailure.invalidDomain }
++                let basis = original.law, f = original.request.frame.scalarField
++                guard original.source.owns(try basis.source.chart(0,limits:limits.source,using:&a)) else {
++                    throw OriginalDomainIdentityFailure.foreignOwner
++                }
++                _ = try field.importingBase(f.integer(0,using:&a),using:&a)
++                for axis in original.effective.axes { try a.admitDepth(value:axis.depth.value,coefficient:axis.depth.coefficient) }
++                typealias Cells = ExactRealCellDomain<Base>
++                let cells = try Cells(field:field,variableCount:2,using:&a), ring = cells.polynomials
++                let x = try ring.variable(0,using:&a), y = try ring.variable(1,using:&a)
++                try a.retainStorage(bytes:exactScalarPayloadBytes(count:4,of:Polynomial.self))
++                var laws: [Polynomial] = []; laws.reserveCapacity(4)
++                for i in 0..<3 {
++                    try a.consumeWork(1)
++                    let o = try ring.constant(field.importingBase(basis.origin[i],using:&a),using:&a)
++                    let u = try ring.constant(field.importingBase(basis.u[i],using:&a),using:&a)
++                    let v = try ring.constant(field.importingBase(basis.v[i],using:&a),using:&a)
++                    laws.append(try ring.adding(o,ring.adding(ring.multiplying(u,x,using:&a),ring.multiplying(v,y,using:&a),using:&a),using:&a))
++                }
++                laws.append(try ring.constant(field.integer(1,using:&a),using:&a))
++                let roots = try ExactRealRootDomain(field:field,using:&a)
++                let whole = try roots.domain(lower:.negativeInfinity,upper:.positiveInfinity,using:&a)
++                try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:ExactRealRootInterval<Field.Value>.self))
++                var domains = [whole,whole]
++                var program: [ExactRealCellInstruction] = []
++                try append(.literal(true),to:&program,&a)
++                for axis in 0..<2 {
++                    try a.consumeWork(1)
++                    let intervals = original.effective.axes[axis].intervals
++                    if intervals.count == 1, !intervals[0].isEmpty {
++                        let interval = intervals[0]
++                        domains[axis] = try roots.domain(lower:bound(interval.lower,field,&a),upper:bound(interval.upper,field,&a),
++                            includesLower:interval.includesLower,includesUpper:interval.includesUpper,using:&a)
++                        continue
++                    }
++                    try append(.literal(false),to:&program,&a)
++                    let coordinate = axis == 0 ? x:y
++                    for interval in intervals {
++                        try a.consumeWork(1)
++                        guard !interval.isEmpty else { continue }
++                        try append(.literal(true),to:&program,&a)
++                        if case .finite(let lower) = interval.lower {
++                            let value = try ring.constant(field.importingBase(lower,using:&a),using:&a)
++                            try atom(ring.subtracting(coordinate,value,using:&a),interval.includesLower ? .greaterOrEqual:.greater,laws:&laws,program:&program,&a)
++                        }
++                        if case .finite(let upper) = interval.upper {
++                            let value = try ring.constant(field.importingBase(upper,using:&a),using:&a)
++                            try atom(ring.subtracting(value,coordinate,using:&a),interval.includesUpper ? .greaterOrEqual:.greater,laws:&laws,program:&program,&a)
++                        }
++                        try append(.or,to:&program,&a)
++                    }
++                    try append(.and,to:&program,&a)
++                }
++                let source = try cells.bind(polynomials:laws,domains:domains,using:&a)
++                let predicate = try cells.predicate(instructions:program,for:source,using:&a)
++                let solver = ExactParametricRelationDomain<Base,Cells,ExactRealTopology<Base>>(cells:Cells.self,topology:.init(cells:Cells.self))
++                let graph = try solver.graph(from:predicate,parameterCount:2,using:&a)
++                let depth = try a.depth
++                try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalIssuedPlaneGraph<S>.self))
++                let result = OriginalIssuedPlaneGraph(original:original,graph:graph,field:field,depth:depth)
++                try a.checkpoint(); return result
++            }
++        } catch { throw .preserving(error) }
++    }
++    private func bound<A: ExactScalarAdmission & ~Copyable>(_ value: ExactParameterBound<OriginalExactScalar>,
++        _ field: Field, _ a: inout A) throws -> ExactRealRootBound<Field.Value> {
++        switch value {
++        case .negativeInfinity: return .negativeInfinity
++        case .positiveInfinity: return .positiveInfinity
++        case .finite(let value): return .finite(try field.importingBase(value,using:&a))
++        }
++    }
++    private func append<T,A: ExactScalarAdmission & ~Copyable>(_ value: T,to array: inout [T],_ a: inout A) throws {
++        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:T.self)); array.append(value)
++    }
++    private func atom<A: ExactScalarAdmission & ~Copyable>(_ law: Polynomial,_ relation: ExactRealCellSignRelation,
++        laws: inout [Polynomial],program: inout [ExactRealCellInstruction],_ a: inout A) throws {
++        let index = laws.count
++        try append(law,to:&laws,&a)
++        try append(.sign(polynomial:index,relation:relation),to:&program,&a)
++        try append(.and,to:&program,&a)
++    }
++}
+diff --git a/Sources/CADGeometry/NativeExactRelations/OriginalIssuedPlaneGraph.swift b/Sources/CADGeometry/NativeExactRelations/OriginalIssuedPlaneGraph.swift
+new file mode 100644
+index 00000000..9875d4b6
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactRelations/OriginalIssuedPlaneGraph.swift
+@@ -0,0 +1,33 @@
++#if SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import DI0
++import DI
++import SourceIssuer
++#endif
++
++/// An exact whole-plane graph, retaining the source-issued basis and selected UV set.
++public struct OriginalIssuedPlaneGraph<S: OriginalPlaneSourceReading>: Sendable {
++    public typealias Cover = OriginalPrimitiveDomainCover<S,OriginalExactScalarDomain,OriginalPlaneBasisReceipt<S,OriginalExactScalarDomain>>
++    public let original: Cover
++    public let graph: ExactParametricGraph<OriginalExactScalarDomain>
++    public let field: ExactAlgebraicScalarDomain<OriginalExactScalarDomain>
++    public let depth: ExactScalarDepth
++    init(original: Cover, graph: ExactParametricGraph<OriginalExactScalarDomain>,
++        field: ExactAlgebraicScalarDomain<OriginalExactScalarDomain>, depth: ExactScalarDepth) {
++        self.original = original; self.graph = graph; self.field = field; self.depth = depth
++    }
++    public func admitProof<A: ExactScalarAdmission & ~Copyable>(limits: OriginalDomainIdentityLimits,
++        using a: inout A) throws(NativeExactRelationFailure) {
++        do {
++            try a.checkpoint(); try original.source.require(limits.source)
++            guard limits.maximumCharts >= 1 else { throw OriginalDomainIdentityFailure.chartLimit }
++            try a.admitDepth(value: depth.value, coefficient: depth.coefficient)
++            try a.checkpoint()
++        } catch { throw .preserving(error) }
++    }
++}
+diff --git a/Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneParameterRestriction.swift b/Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneParameterRestriction.swift
+new file mode 100644
+index 00000000..e4f0ad5c
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneParameterRestriction.swift
+@@ -0,0 +1,26 @@
++#if SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import DI0
++import DI
++import SourceIssuer
++#endif
++
++/// Complete necessary plane-incidence preimage, retaining the original request and equation.
++public struct OriginalLiftPlaneParameterRestriction<S: OriginalLiftGraphSourceReading,P: OriginalPlaneSourceReading>: Sendable {
++    public typealias Member = OriginalDomainBoundParametricGraph<S,OriginalExactScalarDomain,OriginalSurfaceLiftGraphEvidence<S>>
++    public enum Kind: Sendable { case unchanged, excluded, singleton(OriginalExactScalar) }
++    public let original: Member
++    public let selected: Member
++    public let plane: OriginalSourceBinding<P>
++    public let equation: ExactPolynomial<OriginalExactScalarDomain>
++    public let kind: Kind
++    public let depth: ExactScalarDepth
++    init(original: Member,selected: Member,plane: OriginalSourceBinding<P>,equation: ExactPolynomial<OriginalExactScalarDomain>,kind: Kind,depth: ExactScalarDepth) {
++        self.original = original; self.selected = selected; self.plane = plane; self.equation = equation; self.kind = kind; self.depth = depth
++    }
++}
+diff --git a/Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneRelationResolving.swift b/Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneRelationResolving.swift
+new file mode 100644
+index 00000000..919f83fb
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneRelationResolving.swift
+@@ -0,0 +1,19 @@
++#if SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import DI0
++import DI
++import SourceIssuer
++#endif
++
++public protocol OriginalLiftPlaneRelationResolving: Sendable {
++    func resolve<S: OriginalLiftGraphSourceReading,P: OriginalPlaneSourceReading,A: ExactScalarAdmission & ~Copyable>(
++        lift: borrowing OriginalRetainedSurfaceLiftDomainCover<S>,plane: borrowing OriginalIssuedPlaneGraph<P>,
++        maximumPairs: Int,limits: OriginalDomainIdentityLimits,cellLimits: ExactRealCellLimits,
++        topologyLimits: ExactRealTopologyLimits,using admission: inout A
++    ) throws(NativeExactRelationFailure) -> OriginalLiftPlaneRelations<S,P>
++}
+diff --git a/Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneRelations.swift b/Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneRelations.swift
+new file mode 100644
+index 00000000..c78c0f89
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneRelations.swift
+@@ -0,0 +1,37 @@
++#if SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import DI0
++import DI
++import SourceIssuer
++#endif
++
++/// Complete selected lift/plane source product, retaining every guarded chart and raw pair.
++public struct OriginalLiftPlaneRelations<S: OriginalLiftGraphSourceReading,P: OriginalPlaneSourceReading>: OriginalIssuedGraphRelationOwning {
++    public let first: OriginalRetainedSurfaceLiftDomainCover<S>
++    public let firstGraphs: [OriginalIssuedGraphPreparation<S,OriginalSurfaceLiftGraphEvidence<S>>]
++    public let firstReductions: [OriginalPolynomialSurfaceLiftGraphReduction<S>]
++    public let firstRestrictions: [OriginalLiftPlaneParameterRestriction<S,P>]
++    public let second: OriginalIssuedPlaneGraph<P>
++    public let pairs: [OriginalIssuedGraphRelationPair]
++    public var kind: ExactParametricRelationKind { .curveSurface }
++    init(first: OriginalRetainedSurfaceLiftDomainCover<S>,firstGraphs: [OriginalIssuedGraphPreparation<S,OriginalSurfaceLiftGraphEvidence<S>>],
++        firstReductions: [OriginalPolynomialSurfaceLiftGraphReduction<S>],firstRestrictions: [OriginalLiftPlaneParameterRestriction<S,P>],second: OriginalIssuedPlaneGraph<P>,pairs: [OriginalIssuedGraphRelationPair]) {
++        self.first = first; self.firstGraphs = firstGraphs; self.firstReductions = firstReductions; self.firstRestrictions = firstRestrictions; self.second = second; self.pairs = pairs
++    }
++    public func admitProof<A: ExactScalarAdmission & ~Copyable>(limits: OriginalDomainIdentityLimits,
++        using a: inout A) throws(NativeExactRelationFailure) {
++        do {
++            try a.checkpoint(); try first.family.admitProof(limits:limits.source,using:&a)
++            guard first.templateCount <= limits.maximumCharts else { throw OriginalDomainIdentityFailure.chartLimit }
++            try second.admitProof(limits:limits,using:&a)
++            for graph in firstGraphs { try a.consumeWork(1); try graph.admitProof(limits:limits,using:&a) }
++            for pair in pairs { try a.consumeWork(1); try pair.relation.admitProof(using:&a) }
++            try a.checkpoint()
++        } catch { throw .preserving(error) }
++    }
++}
+diff --git a/Sources/CADGeometry/NativeExactRelations/OriginalPlaneGraphCompiling.swift b/Sources/CADGeometry/NativeExactRelations/OriginalPlaneGraphCompiling.swift
+new file mode 100644
+index 00000000..81cd636b
+--- /dev/null
++++ b/Sources/CADGeometry/NativeExactRelations/OriginalPlaneGraphCompiling.swift
+@@ -0,0 +1,20 @@
++#if SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION
++import L0
++import L1
++import L2
++import L3
++import L4
++import L5
++import DI0
++import DI
++import SourceIssuer
++#endif
++
++public protocol OriginalPlaneGraphCompiling: Sendable {
++    associatedtype Source: OriginalPlaneSourceReading
++    func compile<A: ExactScalarAdmission & ~Copyable>(
++        cover: borrowing OriginalPrimitiveDomainCover<Source,OriginalExactScalarDomain,OriginalPlaneBasisReceipt<Source,OriginalExactScalarDomain>>,
++        field: borrowing ExactAlgebraicScalarDomain<OriginalExactScalarDomain>,
++        limits: OriginalDomainIdentityLimits, using admission: inout A
++    ) throws(NativeExactRelationFailure) -> OriginalIssuedPlaneGraph<Source>
++}
+diff --git a/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalPolynomialSurfaceLiftGraphReducer.swift b/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalPolynomialSurfaceLiftGraphReducer.swift
+new file mode 100644
+index 00000000..146c6429
+--- /dev/null
++++ b/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalPolynomialSurfaceLiftGraphReducer.swift
+@@ -0,0 +1,90 @@
++#if ORIGINAL_SOURCE_ISOLATED_VERIFICATION
++import L0
++import L1
++#endif
++
++/// Eliminates only auxiliary coordinates uniquely fixed by retained exact equalities.
++public struct DefaultOriginalPolynomialSurfaceLiftGraphReducer<S: OriginalLiftGraphSourceReading>: OriginalPolynomialSurfaceLiftGraphReducing {
++    public typealias Source = S
++    public typealias Reduction = OriginalPolynomialSurfaceLiftGraphReduction<S>
++    typealias Field = OriginalExactScalarDomain
++    typealias Polynomial = ExactPolynomial<Field>
++    public init() {}
++    public func reduce<A: ExactScalarAdmission & ~Copyable>(_ graph: borrowing Reduction.Graph,
++        limits: OriginalSourceIssuanceLimits,using admission: inout A)
++        throws(OriginalSourceIssuanceFailure) -> Reduction {
++        let original = copy graph
++        do {
++            return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
++                try a.checkpoint(); try original.source.require(limits)
++                try a.admitDepth(value:original.proofDepth.value,coefficient:original.proofDepth.coefficient)
++                guard original.layout.variableCount == 3,original.layout.parameters == [0],
++                    original.layout.auxiliaries == [1,2],original.support.count == 1,
++                    original.homogeneous.count == 4 else { throw OriginalSourceIssuanceFailure.invalidChart }
++                let f = original.field,r = original.polynomials
++                let reduced = try ExactPolynomialDomain(field:f,variableCount:1,using:&a)
++                try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:Polynomial.self))
++                var replacements: [Polynomial] = []; replacements.reserveCapacity(3)
++                replacements.append(try r.variable(0,using:&a))
++                for axis in 1...2 {
++                    try a.consumeWork(1)
++                    var replacement: Polynomial?
++                    for condition in original.conditions where condition.relation == .equal {
++                        try a.consumeWork(1)
++                        var coefficient: Field.Value?, valid = true
++                        for term in condition.polynomial.terms {
++                            try a.consumeWork(1)
++                            guard term.powers.count == 3 else { throw OriginalSourceIssuanceFailure.invalidChart }
++                            if term.powers[1] == 0 && term.powers[2] == 0 { continue }
++                            if term.powers[axis] == 1 && term.powers[0] == 0 && term.powers[3-axis] == 0 && coefficient == nil {
++                                coefficient = term.coefficient
++                            } else { valid = false; break }
++                        }
++                        guard valid,let coefficient,try f.sign(of:coefficient,using:&a) != .zero else { continue }
++                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:condition.polynomial.termCount,of:ExactPolynomialTerm<Field.Value>.self))
++                        var terms: [ExactPolynomialTerm<Field.Value>] = []; terms.reserveCapacity(condition.polynomial.termCount)
++                        for term in condition.polynomial.terms where term.powers[1] == 0 && term.powers[2] == 0 {
++                            try a.consumeWork(1)
++                            terms.append(.init(powers:term.powers,coefficient:try f.dividing(f.negated(term.coefficient,using:&a),coefficient,using:&a)))
++                        }
++                        replacement = try r.polynomial(terms:terms,using:&a); break
++                    }
++                    guard let replacement else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
++                    replacements.append(replacement)
++                }
++                func project(_ law: Polynomial) throws -> Polynomial {
++                    try a.admitDepth(value:law.depth.value,coefficient:law.depth.coefficient)
++                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:law.termCount,of:ExactPolynomialTerm<Field.Value>.self))
++                    var terms: [ExactPolynomialTerm<Field.Value>] = []; terms.reserveCapacity(law.termCount)
++                    for term in law.terms {
++                        try a.consumeWork(1)
++                        guard term.powers.count == 3,term.powers[1] == 0,term.powers[2] == 0 else { throw OriginalSourceIssuanceFailure.invalidChart }
++                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Int.self))
++                        terms.append(.init(powers:[term.powers[0]],coefficient:term.coefficient))
++                    }
++                    return try reduced.polynomial(terms:terms,using:&a)
++                }
++                try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:Polynomial.self))
++                var coordinates: [Polynomial] = []; coordinates.reserveCapacity(3)
++                for law in replacements { coordinates.append(try project(law)) }
++                try a.retainStorage(bytes:exactScalarPayloadBytes(count:4,of:Polynomial.self))
++                var position: [Polynomial] = []; position.reserveCapacity(4)
++                for law in original.homogeneous { position.append(try project(r.substituted(law,with:replacements,using:&a))) }
++                try a.retainStorage(bytes:exactScalarPayloadBytes(count:original.conditions.count,of:OriginalParametricGraphCondition<Field>.self))
++                var conditions: [OriginalParametricGraphCondition<Field>] = []; conditions.reserveCapacity(original.conditions.count)
++                for condition in original.conditions {
++                    try a.consumeWork(1)
++                    conditions.append(.init(try project(r.substituted(condition.polynomial,with:replacements,using:&a)),condition.relation))
++                }
++                let layout = try OriginalParametricVariableLayout.checked(variableCount:1,parameters:[0],auxiliaries:[],using:&a)
++                try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Reduction.Graph.self))
++                let result = Reduction.Graph(source:original.source,evidence:original.evidence,field:f,polynomials:reduced,
++                    homogeneous:position,support:original.support,includesUpperBoundary:original.includesUpperBoundary,
++                    layout:layout,conditions:conditions,parameterTransport:original.parameterTransport,proofDepth:try a.depth)
++                try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Reduction.self))
++                let receipt = Reduction(original:original,graph:result,originalCoordinates:coordinates)
++                try a.checkpoint(); return receipt
++            }
++        } catch { throw .init(preserving:error) }
++    }
++}
+diff --git a/Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialSurfaceLiftGraphReducing.swift b/Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialSurfaceLiftGraphReducing.swift
+new file mode 100644
+index 00000000..e405d065
+--- /dev/null
++++ b/Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialSurfaceLiftGraphReducing.swift
+@@ -0,0 +1,12 @@
++#if ORIGINAL_SOURCE_ISOLATED_VERIFICATION
++import L0
++import L1
++#endif
++
++public protocol OriginalPolynomialSurfaceLiftGraphReducing: Sendable {
++    associatedtype Source: OriginalLiftGraphSourceReading
++    func reduce<A: ExactScalarAdmission & ~Copyable>(
++        _ graph: borrowing OriginalPolynomialSurfaceLiftGraphReduction<Source>.Graph,
++        limits: OriginalSourceIssuanceLimits,using admission: inout A)
++        throws(OriginalSourceIssuanceFailure) -> OriginalPolynomialSurfaceLiftGraphReduction<Source>
++}
+diff --git a/Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialSurfaceLiftGraphReduction.swift b/Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialSurfaceLiftGraphReduction.swift
+new file mode 100644
+index 00000000..cb1b918b
+--- /dev/null
++++ b/Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialSurfaceLiftGraphReduction.swift
+@@ -0,0 +1,15 @@
++#if ORIGINAL_SOURCE_ISOLATED_VERIFICATION
++import L0
++import L1
++#endif
++
++/// Exact forward bijection from a reduced graph to its retained original UV witnesses.
++public struct OriginalPolynomialSurfaceLiftGraphReduction<S: OriginalLiftGraphSourceReading>: Sendable {
++    public typealias Graph = OriginalParametricGraphReceipt<S,OriginalExactScalarDomain,OriginalSurfaceLiftGraphEvidence<S>>
++    public let original: Graph
++    public let graph: Graph
++    public let originalCoordinates: [ExactPolynomial<OriginalExactScalarDomain>]
++    init(original: Graph,graph: Graph,originalCoordinates: [ExactPolynomial<OriginalExactScalarDomain>]) {
++        self.original = original; self.graph = graph; self.originalCoordinates = originalCoordinates
++    }
++}

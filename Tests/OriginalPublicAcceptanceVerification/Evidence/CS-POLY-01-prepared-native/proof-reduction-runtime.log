@@ -1,0 +1,2 @@
+INCIDENTS 8 4 missing equality rejected
+PASS source reduction only: 12 charts, 72 tuple/guard comparisons, 18 admitted tuples; exact/one-less work 8700 bytes 33049 entry/final cancel

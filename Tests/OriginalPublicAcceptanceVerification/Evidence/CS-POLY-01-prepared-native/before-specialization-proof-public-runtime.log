@@ -1,0 +1,2 @@
+PREPARED 12 work 80370 bytes 494927
+FAIL retained lift/plane parameter(PublicLiftPlane.NativeExactRelationFailure.relation(PublicLiftPlane.ExactParametricRelationFailure.cell(PublicLiftPlane.ExactRealCellFailure.polynomial(CADGeometry.ExactPolynomialFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work))))))

@@ -1,0 +1,9 @@
+{
+  "runtime": [
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/proof"
+  ],
+  "timeoutSeconds": 120,
+  "exitCode": 0,
+  "elapsedSeconds": 3.14107133296784,
+  "productSHA256": "37dd6c3bc46b65d257867cb01d39377e880f129b381146582aaa66764c8bde46"
+}
