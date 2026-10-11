@@ -1,0 +1,13 @@
+{
+  "state": "verified-diagnostic-integration",
+  "checkpointCommit": "31662033b82a7b9eecb06058709e5a7e76cb2198",
+  "mainBase": "2f88bf50",
+  "independentWorktree": "/private/tmp/cad-m4-ds-main-integration-20261010",
+  "checkedPremises": 3575,
+  "receiptSHA256": "6cf44b5a29b55c41d8be4cacc133ca4d0ec31e6d221b7f47f612e70e031472f2",
+  "retainedFullAdmissionSHA256": "7bd5be01f2155c3f3f38f1b38a3c93314bd77c3a1230bef59deb911dc1c0b8f5",
+  "sourceAdjustment": false,
+  "rebuild": false,
+  "repeatedRuntime": false,
+  "scope": "Initial Coons public input rejection checkpoint only; material policy cells and full M4-M8 remain incomplete."
+}

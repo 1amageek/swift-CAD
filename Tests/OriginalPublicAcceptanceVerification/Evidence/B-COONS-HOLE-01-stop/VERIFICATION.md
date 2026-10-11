@@ -75,3 +75,12 @@ logs correspond to that stable fixture; no earlier failed attempt is accepted.
 One scoped checkpoint review confirms the actual original constructor, complete
 request, public input type, unchanged validator path, expected compiler refusal
 and evidence locality. No production API or runtime behavior was changed.
+
+## Latest-main diagnostic checkpoint delivery
+
+Commit `31662033` independently composes with main `2f88bf50`. The independent
+worktree matches 3,575 source/input/product/log premises without source adjustment,
+rebuilding or repeated runtime. `integration.json` binds that comparison to the
+accepted receipt. Main normally fast-forwarded to this checkpoint; this accompanying
+delivery record closes only the initial stop observation. The three public material
+cells remain open, and the next owned work item is COONS01.PUBLIC.
