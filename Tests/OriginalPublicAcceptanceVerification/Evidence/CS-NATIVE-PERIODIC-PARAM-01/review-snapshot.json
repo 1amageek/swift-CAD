@@ -1,0 +1,19 @@
+{
+  "files": {
+    "Sources/CADGeometry/NativeExactRelations/DESIGN.md": "9c31ee3f6c94a3c40387753b098c43d89d55586d80822a908014c076a7e58dfa",
+    "Sources/CADGeometry/NativeExactRelations/DefaultCurveSurfaceIntersector+SymbolicRelation.swift": "b1f8a45f19a9783b77c37c142c0c9a26e6280b6393d28fe0e3e611b88c4735a4",
+    "Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationFamilyResolver+Symbolic.swift": "28c81b46bf83c1e6cef1d9b9b0b767240801229e8844c1791b6f77f1751c2a30",
+    "Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationFamilyResolver.swift": "0d65ef32bd2ef586f4d5e29d631640f3e7c3f317520bf464e8314fd7967d5538",
+    "Sources/CADGeometry/NativeExactRelations/DefaultSurfaceSurfaceIntersector+SymbolicRelation.swift": "3749f38ad6f984bd3fb8d5518afddcee318d422d2634e97fdc0a4e1dc4f4514e",
+    "Sources/CADGeometry/NativeExactRelations/NativeExactSymbolicRelationFamily.swift": "aa38620d18c77588fd71032debdb4ae0a27d1013062cc9b25cfa1771cb98939e",
+    "Sources/CADGeometry/NativeExactRelations/NativeExactSymbolicRelationFamilyResolving.swift": "174d08400dc65e503b67e0237d337d3abe8267e86ee53123f7e62f1a7dd2af2b",
+    "Sources/CADGeometry/NativeExactRelations/NativeExactSymbolicRelationMember.swift": "c41c4458e843126b7d5ed0bed272eef76f0c9fae0ad638552d3dc8d201f432b5",
+    "Sources/CADGeometry/NativeExactRelations/NativeExactSymbolicRelationTemplate.swift": "1de7de7ce53bd598a69377f0586f631b857f9dd1622eade5fb50831c728615ed",
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md": "662f285df4161471788a87064860787cc94292803d1a5bb25aa545bb70509964",
+    "Tests/OriginalPublicAcceptanceVerification/NativePeriodicBindingFailure.swift": "f23c49e46b5809a37afe49aa7f13d5b45def9f1ea5d4d4226140fa049dfb331c",
+    "Tests/OriginalPublicAcceptanceVerification/NativePeriodicParameterFamily.py": "0b5db56eeca853aa94c23279629882840ed2fe15a8eb1bd8bac8adbd41053028",
+    "Tests/OriginalPublicAcceptanceVerification/NativePeriodicParameterFamily.swift": "a51f87751c4f2da43c30116ae7145497bf6708f3ca1dc373192e907146cdff43"
+  },
+  "productionBodies": 8,
+  "reviewScope": "One stable current production review, public fixture/driver/design interaction only."
+}

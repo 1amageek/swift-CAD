@@ -1,0 +1,28 @@
+{
+  "scope": "Observed timeout cleanup defect only; no geometric acceptance",
+  "driver": ".build/cs-native-periodic-binding-embedded-20261011-v1/family-driver.py",
+  "driverSHA256": "3fff0f34cfc6dcf64be48ba5fe6ad08a4bb94e046521e198fb0e5cd2fd2c075f",
+  "executeSHA256": "630bdaace55701a02f518f53dd3d6a22388f1bb9d64c47c2c2567833b5dc89a2",
+  "runs": [
+    {
+      "label": "runtime-family",
+      "command": [
+        "python3",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/native-periodic-timeout-probe-confirmation/probe.py",
+        "/private/tmp/cad-m4-m8-completion-20261010/.build/native-periodic-timeout-probe-confirmation/child.pid"
+      ],
+      "timeoutSeconds": 1,
+      "cpuLimitSeconds": 360,
+      "elapsedSeconds": 1.0334146249806508,
+      "exitCode": -9,
+      "terminatedPIDs": [
+        51874,
+        51875
+      ]
+    }
+  ],
+  "childPID": 51875,
+  "childNotExecuting": true,
+  "childState": "absent",
+  "success": true
+}

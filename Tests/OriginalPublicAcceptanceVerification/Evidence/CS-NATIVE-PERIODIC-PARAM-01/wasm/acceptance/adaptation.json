@@ -1,0 +1,13 @@
+{
+  "originalDriver": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalNativeConsumerIntakeVerification/Consumers.py",
+  "originalSHA256": "15ff1c1a21e0491e9cbf127d06ca904cef160a3c6ae411e4cf46085b97aa2d84",
+  "adaptedSHA256": "dc08563eeb8e48a3efec2c2bbbcad40af0f225521e47e18a38c7fc7dadd21fad",
+  "excludedUnselectedLowerInputs": [
+    "Tests/OriginalGraphRelationVerification/Package.swift",
+    "Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalFiniteBSplineChartPreparer.swift",
+    "Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalOffsetLawIssuer.swift",
+    "Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalSpatialChartIssuer.swift",
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DefaultOriginalParameterIdentityIssuer.swift",
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalParameterIdentity.swift"
+  ]
+}

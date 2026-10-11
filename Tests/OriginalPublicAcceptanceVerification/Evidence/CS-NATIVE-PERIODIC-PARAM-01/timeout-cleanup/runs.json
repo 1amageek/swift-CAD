@@ -1,0 +1,18 @@
+[
+  {
+    "label": "runtime-family",
+    "command": [
+      "python3",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/native-periodic-timeout-probe-confirmation/probe.py",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/native-periodic-timeout-probe-confirmation/child.pid"
+    ],
+    "timeoutSeconds": 1,
+    "cpuLimitSeconds": 360,
+    "elapsedSeconds": 1.0334146249806508,
+    "exitCode": -9,
+    "terminatedPIDs": [
+      51874,
+      51875
+    ]
+  }
+]

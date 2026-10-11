@@ -1,0 +1,94 @@
+{
+  "attempts": {
+    "cs-native-periodic-param-embedded-20261011-v1": {
+      "accepted": false,
+      "logs": {
+        "NativeDomainAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "SourceGeometryAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "link-family.log": "0e8e74c9b01acc7b0700cfa57461c90356dffe87d60d299b3f50055a06de884d"
+      },
+      "runsSHA256": "e09c39de96c100b7f68d0e7262f32e7f976000bdee53f3544774c8410bff056f"
+    },
+    "cs-native-periodic-param-embedded-20261011-v2": {
+      "accepted": false,
+      "logs": {
+        "NativeDomainAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "SourceGeometryAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "link-family.log": "c875b2aa67cd9e027cafe5d1197c903b4fdbd8c4296be126d5d9b567e6d2bf88"
+      },
+      "runsSHA256": "4b2a12320b92bef17d9da315a837cf5077666acbe8bf24d081e4bfb453d1d011"
+    },
+    "cs-native-periodic-param-native-20261011-v1": {
+      "accepted": false,
+      "logs": {},
+      "runsSHA256": null
+    },
+    "cs-native-periodic-param-native-20261011-v2": {
+      "accepted": false,
+      "logs": {
+        "NativeDomainAdapters.log": "9b181883946384a630124b9d51657ef5ebf2f2c894ba25e361660518123dd670",
+        "SourceGeometryAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "runsSHA256": "25a804d9f3aec69a30031b13925c0f784d7b8b7813bbc103ef0726ae4e67755c"
+    },
+    "cs-native-periodic-param-native-20261011-v3": {
+      "accepted": false,
+      "logs": {
+        "NativeDomainAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "SourceGeometryAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "link-family.log": "9d3b3e2c9c0f359e49dd7462a98e76e200bfafac160c883df3bc11839ae94cd6"
+      },
+      "runsSHA256": "d2255907fd733c8cd0d5e44d5e7cad0f2e3caa346fad17565bf0fdb22c84c3bd"
+    },
+    "cs-native-periodic-param-native-20261011-v4": {
+      "accepted": false,
+      "logs": {
+        "NativeDomainAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "SourceGeometryAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "link-family.log": "80b6b3952f4bead305183590711f4ba05e52c45e137d52b43c71add7c39ffc5b"
+      },
+      "runsSHA256": "430fc3359218588b14a9843548dc109e2055a09645bcec96efb4b879445665eb"
+    },
+    "cs-native-periodic-param-native-20261011-v5": {
+      "accepted": false,
+      "logs": {
+        "NativeDomainAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "SourceGeometryAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "link-family.log": "61d1e3a04fd521489564a9acf8fa590720af4b2d819cdb7a03aa6260e93efbf7"
+      },
+      "runsSHA256": "8ff1d24ad62d12e9d57fc56996bd5bead26511185cf385fc4122c022cbc28f04"
+    },
+    "cs-native-periodic-param-native-20261011-v6": {
+      "accepted": false,
+      "logs": {
+        "NativeDomainAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "SourceGeometryAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "link-family.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "runtime-family.log": "84a223ec37ffe5920b0b0069e9a3b50fdb1add4895b15dce1d44419e5e8e8fb6"
+      },
+      "runsSHA256": "99c54912caab3aab1fd11c545fb41f8ae435c3dae2d1e4ad3043af3365b488c8"
+    },
+    "cs-native-periodic-param-native-20261011-v7": {
+      "accepted": false,
+      "logs": {
+        "NativeDomainAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "SourceGeometryAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "link-family.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "runtime-family.log": "125e28ef81afe9c3163a17a7c2ca6e6ba08dc882951ea773550da04b40fc6e8f"
+      },
+      "runsSHA256": "946a14785d078f027d3723ed024372b6010c58a54ccbe12fa34aa2c72bd8cbcc"
+    },
+    "cs-native-periodic-param-native-20261011-v8": {
+      "accepted": false,
+      "logs": {
+        "NativeDomainAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "SourceGeometryAdapters.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "link-family.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "runtime-family.log": "085d426b0f357bd11ea09f6dd302f6fa2a782790eb7b8d3c643972b52541024f"
+      },
+      "runsSHA256": "8ef89808c539f5c82b30b403a3b28a6fb4297ad79804d6cae403274dccffc7b3"
+    }
+  },
+  "scope": "Diagnostics only; none is accepted geometric runtime evidence.",
+  "timeoutNotes": "Embedded v2 exceeded 120s wall time with CPU progress; no success accepted. An orphaned separate-session frontend exited before the attempted cleanup. Final v3 uses 360s wall/240s compiler CPU and passes the unchanged full fixture. Probe v1 had an extraction namespace missing json; the same actual execute body passes once json is supplied in the focused confirmation."
+}

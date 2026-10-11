@@ -1,0 +1,2 @@
+PASS foreign construction fields and empty family limits fail explicitly
+PASS member retains source, period-derived correspondence and L5 after family release

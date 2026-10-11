@@ -1,0 +1,14 @@
+{
+  "scope": "Reuse exact unbounded periodic public stopping input in FamilyFixtures.verifyFailures; no new execution or broad build.",
+  "acceptedReceipt": "Tests/OriginalDomainConsumerVerification/Evidence/M0M3FinalMainIntegration/receipt.json",
+  "acceptedReceiptSHA256": "35ad037bcaf63fb87d2463cf02a314e3161f0b6980eda4117e97e7cb093d0ff9",
+  "runtimeLogSHA256": "eaa0763b0d23b83ae2e47b75f99267b6027bef274d6c244f8c209e33e64f6d83",
+  "unchangedStoppingPath": {
+    "Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationFamilyResolver.swift": "fc07f4881386af3be5f4361b14f21a081dc03ab1b6ad6336a26258b25f0b971b",
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/OriginalBSplineDomainCover+SelectedMembers.swift": "be4d1ab908ad271626c39cb743c99320a8b467eec211bac5c3a649c5c493b414",
+    "Sources/CADGeometry/NativeExactRelations/DefaultCurveSurfaceIntersector+ExactRelation.swift": "053aaf3e51436e980d7d0eb8324831ec9429f9133bcbb19ba1af26decfb82303",
+    "Tests/OriginalDomainConsumerVerification/Sources/FamilyFixtures/FamilyFixtures.swift": "8d8d22211e32d436de1e0daa11e2d954a04ecef641c506103401c27e91cadc15"
+  },
+  "failure": "NativeExactRelationFailure.domain(.unsupportedSourceProof)",
+  "requiredResult": "[0,1] x {1/4+2k,7/4+2k} x {1/2+2l,3/2+2l}, k,l arbitrary integers"
+}

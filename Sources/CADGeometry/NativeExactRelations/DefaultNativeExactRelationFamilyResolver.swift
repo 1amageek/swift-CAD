@@ -91,9 +91,19 @@ public struct DefaultNativeExactRelationFamilyResolver: NativeExactRelationFamil
                 try chart.occurrence.selectedImage.equals(occurrence.selectedImage,limits:limits,using:&admission) else {
                 throw NativeExactRelationFailure.domain(.foreignOwner)
             }
+            try appendPrepared(chart, field: cover.space.frame.scalarField, maximumMaps: maximumMaps, to: &result, using: &admission)
+
+        }
+        return result
+    }
+    func appendPrepared<S: OriginalBSplineSourceReading, A: ExactScalarAdmission & ~Copyable>(
+        _ chart: OriginalDomainBoundRationalChart<S,Field>, field: Field, maximumMaps: Int,
+        to result: inout [(chart: OriginalDomainBoundRationalChart<S,Field>,map: ExactParametricMap<ExactRationalScalarDomain>)],
+        using admission: inout A
+    ) throws {
             try chart.law.admitProof(using:&admission)
-            let cells = try Cells(field:cover.space.frame.scalarField,variableCount:chart.localSelection.arity,using:&admission)
-            let roots = try ExactRealRootDomain(field:cover.space.frame.scalarField,using:&admission)
+            let cells = try Cells(field:field,variableCount:chart.localSelection.arity,using:&admission)
+            let roots = try ExactRealRootDomain(field:field,using:&admission)
             try admission.retainStorage(bytes:exactScalarPayloadBytes(count:4,of:ExactPolynomial<Field>.self))
             var laws: [ExactPolynomial<Field>] = []; laws.reserveCapacity(4)
             for law in chart.law.homogeneous {
@@ -130,7 +140,6 @@ public struct DefaultNativeExactRelationFamilyResolver: NativeExactRelationFamil
                 try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:(OriginalDomainBoundRationalChart<S,Field>,ExactParametricMap<ExactRationalScalarDomain>).self))
                 result.append((chart,map))
             }
-        }
-        return result
     }
+
 }

@@ -947,3 +947,50 @@ all closed incidents, exact singleton/open/disconnected/empty selections and sam
 caller resource/cancel/lifetime. A diagnosed legacy nested lifted-traversal point
 failure remains separate from this parameter-domain proof and blocks that caller's
 full acceptance; this additive source/DI handoff does not claim M7 publication.
+
+#### CS-NATIVE-PERIODIC-PARAM-01: unbounded independent Native cycles
+
+This cell owns the existing explicit public source-bound CS parameter query;
+ordinary `intersectionResult`, final XYZ/image/fiber publication and other
+family/consumer combinations remain separate mandatory cells. The constructor
+is `FamilyFixtures.stationary()` and `FamilyFixtures.periodicSurface()` in
+OriginalDomainConsumerVerification: degree-one curve knots `[0,0,1,1]`, repeated
+control `(1/4,1/2,0)`; degree-one tensor surface knots `[-1,0,1,2,3]` on both
+axes, controls `(x,y,0)` for rows/columns `[0,1,0]`, both axes periodic. The source
+bindings, original domain spaces and full requests are issued by the existing
+Native issuers in one exact rational/algebraic field. Curve support is `[0,1]`;
+surface support and request are all R squared, with independent authored periods 2.
+
+The independent complete result is all original tuples
+`T in [0,1]`, `U in {1/4+2k,7/4+2k}`,
+`V in {1/2+2l,3/2+2l}`, `k,l in Z`. The source image is the constant
+`(1/4,1/2,0)`; parameter dimension is 1 per component. Distinct U/V, every
+closed incident owner and arbitrary-size signed cycles survive. The oracle is
+derived from the two exact affine laws on each Native fundamental axis, with
+all integer translates, not a sampled cycle window.
+
+The initial call is `DefaultCurveSurfaceIntersector.exactParameterRelations`
+with those full covers, the existing FamilyFixtures domain/cell/topology/count
+limits and caller ledger. Its finite occurrence consumer reaches
+`OriginalBSplineDomainCover.selectedMembers` and rejects the unbounded periodic
+axis with `domain(.unsupportedSourceProof)`. The accepted M0-M3 production proof
+already exercises this exact input. Reuse requires the unchanged constructor,
+public entry, resolver, selected-members body and bound runtime log; the receipt
+in Evidence/CS-NATIVE-PERIODIC-PARAM-01/stop.json records their match.
+
+The missing public capability is a complete symbolic parameter family. Preserve
+the finite collection API and add the explicit `exactParameterRelationFamily`
+entry, rather than presenting a finite array as the unbounded result. Its sealed
+family retains both whole source/request covers, fundamental L5 relations,
+original template owners, exact integer periods and per-member request predicates.
+Member queries transport original tuples with the retained DI correspondence
+and consume the already-resolved L5 relation. No chart-law regeneration, source
+repreparation, solve replay, integer enumeration or fixed-width cycle conversion
+is a prerequisite. M5 identity exclusion is unnecessary for this cell: all
+structurally distinct UV tuples remain in the public relation.
+
+Completion requires the actual public family entry, the independent whole-cell
+fundamental oracle and symbolic all-integer coverage, exact request restrictions,
+seam incidents/huge signed cycles, typed failure/resource/depth/cancel/lifetime
+checks, four fixed target lanes, one scoped review and coherent latest-main
+integration. This cell does not complete general M7 dispatch or M4-M8 aggregates.

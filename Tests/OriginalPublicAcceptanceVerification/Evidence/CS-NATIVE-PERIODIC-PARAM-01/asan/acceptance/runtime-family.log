@@ -1,0 +1,25 @@
+PASS unchanged finite API explicitly refuses unbounded collection
+PASS complete four-template TUV oracle and continuous T coverage
+PASS original UV and independent zero/positive/negative 2^100 cycles without solve replay
+PASS exact/one-less invocation and query resources, depth/count/layout and entry/mid/final cancellation
+PASS exact partial/empty requests, retained exclusion, foreign query field and final empty cancellation
+PASS all four seam owners and complete public SSI UVUV sheet oracle
+PASS detached source/field lifetime, COW and independent concurrent readers
+PASS public symbolic Native CS family
+PASS M2 Native CS mode=0 pieces=4 work=309665 bytes=18385051
+PASS M2 Native CS mode=1 pieces=4 work=135515 bytes=7780727
+PASS M2 Native CS mode=2 pieces=4 work=217957 bytes=12784743
+PASS M2 Native CS mode=3 pieces=4 work=330937 bytes=19381263
+PASS M2 Native CS mode=4 pieces=0 work=9190 bytes=556247
+PASS M2 Native CS mode=5 pieces=0 work=9102 bytes=550647
+PASS M2 Native CS mode=6 pieces=4 work=338698 bytes=20000801
+PASS M2 disconnected chart-local selection
+PASS M2 independent periodic axes (true, false) owners=4
+PASS M2 independent periodic axes (false, true) owners=4
+PASS M2 independent periodic axes (true, true) owners=8
+PASS M2 periodic SSI full UVUV seam/lift owners=16
+PASS M2 Native SSI separation=false chart-side owners=4 work=252390
+PASS M2 Native SSI separation=true chart-side owners=4 work=173155
+PASS M2 unchanged folded SSI limits cells=45 attachments=108
+PASS M2 caller work/storage/depth/cell/component/cancel and unbounded failure
+PASS shared finite Native CS/SSI regression

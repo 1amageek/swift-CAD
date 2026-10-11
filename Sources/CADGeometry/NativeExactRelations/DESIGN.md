@@ -465,3 +465,58 @@ proves exclusion through the existing predicate. This avoids projecting a varyin
 polynomial over a parameter already proved fixed, without a second solve or a
 larger admission. The existing identity-domain restriction is reused rather than
 duplicated, and non-singleton queries do not allocate a substitution array.
+
+## Symbolic Native Parameter Family
+
+The concrete acceptance input and stop are owned by
+[CS-NATIVE-PERIODIC-PARAM-01](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#cs-native-periodic-param-01-unbounded-independent-native-cycles).
+This additive public entry preserves the finite collection API. The new protocol
+`NativeExactSymbolicRelationFamilyResolving` accepts the same source-bound Native
+covers, caller admission and map/pair/cell/topology limits. The default intersector
+composition roots expose `exactParameterRelationFamily` for CS and SSI. The
+family owns parameter correspondence and complete symbolic coverage; it does not
+assert geometric image/fiber dimensions or ordinary numerical dispatch readiness.
+
+```text
+Whole Native covers / retained original periods and selected requests
+  -> each fundamental original law once, using the existing chart/map preparation
+  -> every fundamental CS/SSI pair resolved once by existing L5
+  -> immutable template family + original whole covers and integer index domains
+  -> member(original cycles): selected-image conjunction and retained local L5
+  -> exact original-tuple membership, with an independent query admission
+```
+
+Only the resolver constructs family/template/member receipts. Each template
+retains its original first/second source chart indices and the complete
+fundamental relation. The family retains the original source/frame, authored
+support, request/effective set and period proofs; integer indices have the
+existing arbitrary-size OriginalParameterCycle representation. Each member's
+selection is exactly the conjunction of its retained L5 fundamental relation
+and both selected-image predicates. Exposing a fundamental relation alone does
+not assert that every one of its cells survives a partial member request.
+
+Preparation issues full-support covers from the retained domain spaces without
+source rebinding or domain decomposition. It prepares exactly the zero-cycle
+fundamental template of each source, retaining all closed chart sides. A source
+with empty effective selection may publish a family with no templates only
+because the retained effective domain proves complete exclusion. Every other
+pair must resolve successfully; a resource, coverage or cancel failure is atomic.
+
+At member creation, DI `member` supplies exact original integer lifts and
+`selectedImage = lifted chart intersect effective request`. Its full inverse is
+retained for coordinate transport. Membership first validates original arities,
+field ownership, retained source/transport/value/coefficient depths and owner
+limits even for empty selections, then tests both selected images and the
+already-resolved fundamental L5 predicate. No inverse is inferred from XYZ;
+only the existing proven affine Native DI inverse is consumed. Every query has
+entry and terminal checkpoints, including exclusion. Original periods/scopes are
+never widened, and no structural identity removes distinct tuples.
+
+Published owners are immutable Sendable with identical target declarations.
+Invocation-local arrays and exclusive admissions are the only mutable state.
+Checked counts/bytes precede allocations; maps/pairs and source/transport/value/
+coefficient depths remain independent. New buffers and member transports are
+charged; retained relation arrays are shared. NativeExactRelationFailure preserves
+original causes. Foreign fields/templates/cycle layouts fail explicitly. Four
+fixed target changed-path checks and finite-family regression own this delta;
+unchanged lower/DTO evidence is reused under admitted receipts, not rebuilt.

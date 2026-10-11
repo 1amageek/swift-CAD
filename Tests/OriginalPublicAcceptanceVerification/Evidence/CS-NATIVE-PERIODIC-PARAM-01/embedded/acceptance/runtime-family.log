@@ -1,0 +1,27 @@
+PASS unchanged finite API explicitly refuses unbounded collection
+PASS complete four-template TUV oracle and continuous T coverage
+PASS original UV and independent zero/positive/negative 2^100 cycles without solve replay
+PASS exact/one-less invocation and query resources, depth/count/layout and entry/mid/final cancellation
+PASS exact partial/empty requests, retained exclusion, foreign query field and final empty cancellation
+PASS all four seam owners and complete public SSI UVUV sheet oracle
+PASS detached source/field lifetime, COW and independent concurrent readers
+PASS public symbolic Native CS family
+PASS M2 Native CS mode=0 pieces=4 work=308793 bytes=9238435
+PASS M2 Native CS mode=1 pieces=4 work=135073 bytes=3906999
+PASS M2 Native CS mode=2 pieces=4 work=217318 bytes=6424419
+PASS M2 Native CS mode=3 pieces=4 work=330070 bytes=9745643
+PASS M2 Native CS mode=4 pieces=0 work=9149 bytes=278903
+PASS M2 Native CS mode=5 pieces=0 work=9065 bytes=276103
+PASS M2 Native CS mode=6 pieces=4 work=337810 bytes=10049509
+PASS M2 disconnected chart-local selection
+PASS M2 independent periodic axes (cannot print value in embedded Swift) owners=4
+PASS M2 independent periodic axes (cannot print value in embedded Swift) owners=4
+PASS M2 independent periodic axes (cannot print value in embedded Swift) owners=8
+PASS M2 periodic SSI full UVUV seam/lift owners=16
+PASS M2 Native SSI separation=false chart-side owners=4 work=251498
+PASS M2 Native SSI separation=true chart-side owners=4 work=172527
+PASS M2 unchanged folded SSI limits cells=45 attachments=108
+PASS M2 caller work/storage/depth/cell/component/cancel and unbounded failure
+PASS shared finite Native CS/SSI regression
+(node:51690) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
