@@ -1,0 +1,5 @@
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+METRIC independentPreparedQueryBoundary 4794448 171176828
+METRIC completeRaw 45 completeRefined 693 included 15 work 29329 bytes 1528756
+PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning
+PASS independent retained-raw prepared-query exact work/storage N and separate workN-1/storageN-1 typed refusal; oracle ledger excluded

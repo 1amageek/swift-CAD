@@ -1,0 +1,19 @@
+(node:92820) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+METRIC independentPreparedQuery 4763811 86376364 storageCalls 850240
+METRIC completeRaw 45 completeRefined 693 included 15 work 29328 bytes 765240
+PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning
+PASS complete oracle after source/frame/construction/query admission scope release
+PASS directed exclusion and retained reverse edge at both closed V corners and interior
+PASS prepared-query zero work/storage causes and entry/final-publication cancellation; whole-cost N/N-1 unmeasured
+PASS V reversal rejected by whole-law issuer; exact opposite Gu proves position receipt cannot establish common derivative/normal germ
+METRIC completeRaw 45 completeRefined 957 included 17 work 6313728 bytes 109741872
+PASS complete half-scope oracle preserves undeclared positive-V forward edge
+PASS complete out-of-support empty publication and its final cancellation
+START S-NATIVE-DECLARED-WHOLE-EDGE-01 actual Native whole-edge query
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+METRIC preparation 8108084 124477576
+METRIC publicReturn 12871895 210853940
+METRIC completeRaw 45 completeRefined 693 included 15 work 12901223 bytes 211619180
+PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning

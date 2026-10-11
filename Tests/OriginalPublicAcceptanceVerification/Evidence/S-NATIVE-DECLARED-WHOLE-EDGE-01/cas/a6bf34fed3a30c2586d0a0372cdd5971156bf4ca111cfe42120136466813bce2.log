@@ -1,0 +1,7 @@
+(node:93748) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+METRIC independentPreparedQueryBoundary 4763811 86376364
+METRIC completeRaw 45 completeRefined 693 included 15 work 29328 bytes 765240
+PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning
+PASS independent retained-raw prepared-query exact work/storage N and separate workN-1/storageN-1 typed refusal; oracle ledger excluded

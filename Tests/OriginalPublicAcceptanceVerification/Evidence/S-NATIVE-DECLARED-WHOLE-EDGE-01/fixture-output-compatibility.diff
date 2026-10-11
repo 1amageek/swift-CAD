@@ -1,0 +1,72 @@
+--- accepted-native-v4-fixture
++++ final-embedded-v2-fixture
+@@ -28,9 +28,18 @@
+     typealias Result = NativeDeclaredWholeEdgeSelf.OriginalExactNativeSelfContacts
+     enum Failure: Error { case assertion(Int), unexpectedSuccess }
+     static func require(_ value: Bool, _ line: Int = #line) throws {
+-        guard value else { print("FAIL S-NATIVE-DECLARED-WHOLE-EDGE-01", line); throw Failure.assertion(line) }
+-    }
+-    static func marker(_ text: String) { print(text); fflush(nil) }
++        guard value else { metric("FAIL S-NATIVE-DECLARED-WHOLE-EDGE-01",[line]); throw Failure.assertion(line) }
++    }
++    static func marker(_ text: StaticString) { print(text); fflush(nil) }
++    static func digits(_ value:Int) {
++        if value >= 10 { digits(value/10) }
++        _ = putchar(Int32(48+value%10))
++    }
++    static func metric(_ text:StaticString,_ values:[Int]) {
++        print(text,terminator:" ")
++        for value in values { digits(value);_ = putchar(32) }
++        _ = putchar(10);fflush(nil)
++    }
+     static func limits() throws -> OriginalDomainIdentityLimits {
+         try .init(source:.init(remainingSourceDepth:0),maximumTransportDepth:16,maximumCharts:64,maximumFamilies:2,maximumIdentityProofs:64)
+     }
+@@ -100,7 +109,7 @@
+         if half { laws.append(v) }
+         var proofs:[ExactRealCellSignInvariant<Base>] = []
+         for (i,law) in laws.enumerated() {
+-            guard let proof = try c.signInvariant(for:law,in:p,using:&a) else { print("MISSING whole-cell invariant",refined,i);throw Failure.assertion(#line) }
++            guard let proof = try c.signInvariant(for:law,in:p,using:&a) else { metric("MISSING whole-cell invariant",[refined ? 1:0,i]);throw Failure.assertion(#line) }
+             proofs.append(proof)
+         }
+         return (c,proofs)
+@@ -136,7 +145,7 @@
+             checked += 1
+         }
+         try require(checked == region.cells.count && included > 0 && dimension == 2)
+-        print("METRIC completeRaw",rawCount,"completeRefined",checked,"included",included,"work",a.work,"bytes",a.storageBytes)
++        metric("METRIC raw/refined/included/work/bytes",[rawCount,checked,included,a.work,a.storageBytes])
+         marker(half ? "PASS complete half-scope oracle preserves undeclared positive-V forward edge" : "PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning")
+     }
+     struct PublicationAdmission: ~Copyable, ExactScalarAdmission {
+@@ -162,7 +171,7 @@
+         let (raw,proof) = try prepare(&preparation)
+         var admission = try PublicationAdmission()
+         let result = try query(raw,proof,&admission)
+-        print("METRIC independentPreparedQuery",admission.ledger.work,admission.ledger.storageBytes,"storageCalls",admission.storageCalls)
++        metric("METRIC independentPreparedQuery work/bytes/storageCalls",[admission.ledger.work,admission.ledger.storageBytes,admission.storageCalls])
+         return (result,admission.storageCalls)
+     }
+     static func controls() throws {
+@@ -233,7 +242,7 @@
+         let calibrated = try query(raw,proof,&calibration)
+         let n = calibration.work,bytes = calibration.storageBytes
+         try require(n > 0 && bytes > 0 && calibrated.refinements.count == 1)
+-        print("METRIC independentPreparedQueryBoundary",n,bytes)
++        metric("METRIC independentPreparedQueryBoundary",[n,bytes])
+         var exact = ExactScalarLedger(limits:try .init(work:n,storageBytes:bytes,valueDepth:32,coefficientDepth:32))
+         let result = try query(raw,proof,&exact)
+         try require(exact.work == n && exact.storageBytes == bytes)
+@@ -264,9 +273,9 @@
+             var a = try ledger()
+             marker("START S-NATIVE-DECLARED-WHOLE-EDGE-01 actual Native whole-edge query")
+             let (raw,proof) = try prepare(&a)
+-            print("METRIC preparation",a.work,a.storageBytes)
++            metric("METRIC preparation",[a.work,a.storageBytes])
+             let result = try query(raw,proof,&a)
+-            print("METRIC publicReturn",a.work,a.storageBytes)
++            metric("METRIC publicReturn",[a.work,a.storageBytes])
+             try oracle(result,&a)
+         }
+         try require(["complete","controls","resources","all"].contains(group))

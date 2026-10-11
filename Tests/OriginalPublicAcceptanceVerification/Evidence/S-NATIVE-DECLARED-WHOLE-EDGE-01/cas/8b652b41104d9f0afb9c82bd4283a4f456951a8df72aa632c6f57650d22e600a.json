@@ -1,0 +1,55 @@
+{
+  "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/CertifiedSphereConeIntersectionCurve.swift",
+  "currentSHA256": "585f163d5424e7a7ce978469067dcd8c7f24596800d7e1beec62466dafdc8351",
+  "cachedBase": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/df15cecad78b967d08a07862cc57459d581c5cbe142f1c5915fed8582faca967.swift",
+    "sha256": "df15cecad78b967d08a07862cc57459d581c5cbe142f1c5915fed8582faca967",
+    "bytes": 151505,
+    "kind": "exact-retained-cached-base-source"
+  },
+  "scope": "Cached declaration, storage, constructors and all original spatial/helper bodies are exact unchanged base bytes. Only additive current snapshot port and actual original private helper ranges compile as same-type extension; cached Curve3D associated nominal is preserved.",
+  "selectedRanges": [
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/f1aee46c1e050ccd77c31be111bc5a2d8a80bd7aead280ada191d09140d3e5b2.json",
+      "sha256": "f1aee46c1e050ccd77c31be111bc5a2d8a80bd7aead280ada191d09140d3e5b2",
+      "bytes": 1789,
+      "kind": "command-receipt-log-or-fixture"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/f674c7994107b05c4e170597429afec3588f4c53c7a8f2bbea7881c85d5dc8e9.json",
+      "sha256": "f674c7994107b05c4e170597429afec3588f4c53c7a8f2bbea7881c85d5dc8e9",
+      "bytes": 1789,
+      "kind": "command-receipt-log-or-fixture"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e1b1450d4545188bac8e66028be43421f7170ef05af02a0e51a50cf1a7b4e972.json",
+      "sha256": "e1b1450d4545188bac8e66028be43421f7170ef05af02a0e51a50cf1a7b4e972",
+      "bytes": 1789,
+      "kind": "command-receipt-log-or-fixture"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/943ef65645d0a3d319b60c59dc147f01a9e5748f197df6b193c679b98c03ab66.json",
+      "sha256": "943ef65645d0a3d319b60c59dc147f01a9e5748f197df6b193c679b98c03ab66",
+      "bytes": 1787,
+      "kind": "command-receipt-log-or-fixture"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/74d895457f79bebe782c00476f3adeac876b5cf853b17b396ae3ee960f353d58.json",
+      "sha256": "74d895457f79bebe782c00476f3adeac876b5cf853b17b396ae3ee960f353d58",
+      "bytes": 1787,
+      "kind": "command-receipt-log-or-fixture"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/a716e72f3ba6d1e861f6e4cf0cc6c71780c62e2b6a0950df469a585b29d1938e.json",
+      "sha256": "a716e72f3ba6d1e861f6e4cf0cc6c71780c62e2b6a0950df469a585b29d1938e",
+      "bytes": 1787,
+      "kind": "command-receipt-log-or-fixture"
+    },
+    {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/daf91e9759d0e06727f67a2d67a44dc4e3e2f5b976abec9f942cfa030872a13b.json",
+      "sha256": "daf91e9759d0e06727f67a2d67a44dc4e3e2f5b976abec9f942cfa030872a13b",
+      "bytes": 1791,
+      "kind": "command-receipt-log-or-fixture"
+    }
+  ]
+}

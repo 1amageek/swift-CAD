@@ -1,0 +1,26 @@
+(node:94223) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+warning: data race detected: actor-isolated function at WholeEdge/NativeDeclaredWholeEdgeAcceptance.swift:266 was not called on the same actor
+
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+METRIC independentPreparedQuery work/bytes/storageCalls 4763811 86376364 850240 
+METRIC raw/refined/included/work/bytes 45 693 15 29328 765240 
+PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning
+PASS complete oracle after source/frame/construction/query admission scope release
+PASS directed exclusion and retained reverse edge at both closed V corners and interior
+PASS prepared-query zero work/storage causes and entry/final-publication cancellation; whole-cost N/N-1 unmeasured
+PASS V reversal rejected by whole-law issuer; exact opposite Gu proves position receipt cannot establish common derivative/normal germ
+METRIC raw/refined/included/work/bytes 45 957 17 6313728 109741872 
+PASS complete half-scope oracle preserves undeclared positive-V forward edge
+PASS complete out-of-support empty publication and its final cancellation
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+METRIC independentPreparedQueryBoundary 4763811 86376364 
+METRIC raw/refined/included/work/bytes 45 693 15 29328 765240 
+PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning
+PASS independent retained-raw prepared-query exact work/storage N and separate workN-1/storageN-1 typed refusal; oracle ledger excluded
+START S-NATIVE-DECLARED-WHOLE-EDGE-01 actual Native whole-edge query
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+METRIC preparation 8108084 124477576 
+METRIC publicReturn 12871895 210853940 
+METRIC raw/refined/included/work/bytes 45 693 15 12901223 211619180 
+PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning

@@ -1,0 +1,1020 @@
+{
+  "cell": "S-NATIVE-DECLARED-WHOLE-EDGE-01",
+  "files": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/afbf70885f335b26157aca52f43e3d5fee649a3abf0bc489a8e5e7cb0e7eebc3.py",
+      "sha256": "afbf70885f335b26157aca52f43e3d5fee649a3abf0bc489a8e5e7cb0e7eebc3",
+      "bytes": 11762,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/946637d352fc1af92ddd442604702075ef14d7256c7d7c1522f841f5378f107e.swift",
+      "sha256": "946637d352fc1af92ddd442604702075ef14d7256c7d7c1522f841f5378f107e",
+      "bytes": 17469,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/bb6acde0575ad6e2b671def95f48e12aec81677b7ef97f050f6ccc1e8b5bfad2.json",
+      "sha256": "bb6acde0575ad6e2b671def95f48e12aec81677b7ef97f050f6ccc1e8b5bfad2",
+      "bytes": 104614,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/a06331d738abc5eef24311689b31f16338463b9a0289226a76c5998e2541619b.json",
+      "sha256": "a06331d738abc5eef24311689b31f16338463b9a0289226a76c5998e2541619b",
+      "bytes": 2295,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/compile-self4.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/module-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/16188efd7d7a9f7d5eb30aae176f4d600c285d3930f5f6792c7c6298aa900e56.json",
+      "sha256": "16188efd7d7a9f7d5eb30aae176f4d600c285d3930f5f6792c7c6298aa900e56",
+      "bytes": 198313,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/ready-to-run.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/f43e4a3d6c9f145ca9efe054c9ddb4729c152c84b48b2b0e28b773d1bdc54d04.json",
+      "sha256": "f43e4a3d6c9f145ca9efe054c9ddb4729c152c84b48b2b0e28b773d1bdc54d04",
+      "bytes": 307295,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/599a369110d7531f16e426e4d38e7b015d0a25af2366bfd3a9c2ed2cbc842a79.json",
+      "sha256": "599a369110d7531f16e426e4d38e7b015d0a25af2366bfd3a9c2ed2cbc842a79",
+      "bytes": 389098,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/09cabfa97af981cee3518d5bd10c68ea83af2467f2ef658a450daeeeae258974.json",
+      "sha256": "09cabfa97af981cee3518d5bd10c68ea83af2467f2ef658a450daeeeae258974",
+      "bytes": 110834,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v1/runtime-all.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/4140e7de709afc11f3719b7f97744aa06183a48870b6533f10e97f61da2ef15b.log",
+      "sha256": "4140e7de709afc11f3719b7f97744aa06183a48870b6533f10e97f61da2ef15b",
+      "bytes": 1475,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85.py",
+      "sha256": "ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85",
+      "bytes": 11774,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947.swift",
+      "sha256": "22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947",
+      "bytes": 19143,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/e861f6bb2c73e95adbc2d4045742b742eb9b9af506c1d74ef07ebe8efafe96e7.json",
+      "sha256": "e861f6bb2c73e95adbc2d4045742b742eb9b9af506c1d74ef07ebe8efafe96e7",
+      "bytes": 104723,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b2fbac0f5f4a71319d09858226a5263c735badec588a75cc597725f2e8e186ab.json",
+      "sha256": "b2fbac0f5f4a71319d09858226a5263c735badec588a75cc597725f2e8e186ab",
+      "bytes": 2295,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/ready-to-run.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/62545063aafe87f958b127ce4b2074ba3528b0b0959f99bfbd24dd096943ae14.json",
+      "sha256": "62545063aafe87f958b127ce4b2074ba3528b0b0959f99bfbd24dd096943ae14",
+      "bytes": 305844,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/adecc63b90e8d3bf99fccc9cd2031b3673781f9c79bbe1cdfcfce1e2e6e75f5e.json",
+      "sha256": "adecc63b90e8d3bf99fccc9cd2031b3673781f9c79bbe1cdfcfce1e2e6e75f5e",
+      "bytes": 388414,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/63002c811e2b07c5177e69990ea51abd16df4c1cbdc02d7df4f24fcb6d9e62d8.json",
+      "sha256": "63002c811e2b07c5177e69990ea51abd16df4c1cbdc02d7df4f24fcb6d9e62d8",
+      "bytes": 108038,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-asan-20261013-v2/runtime-resources.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/01eb90e3605cfc84078f807d7001935044ec5f4a3e61ec5281d633fb6b363b12.log",
+      "sha256": "01eb90e3605cfc84078f807d7001935044ec5f4a3e61ec5281d633fb6b363b12",
+      "bytes": 494,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85.py",
+      "sha256": "ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85",
+      "bytes": 11774,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947.swift",
+      "sha256": "22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947",
+      "bytes": 19143,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/c3d5a755be1f371897bf41c09ce0288a00b8a8a6af75d3c783d770d8cbc75e67.json",
+      "sha256": "c3d5a755be1f371897bf41c09ce0288a00b8a8a6af75d3c783d770d8cbc75e67",
+      "bytes": 432582,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/244aa61c4247190995390b2d424ae36b33bf4960e838e3000fd201435ca1465b.log",
+      "sha256": "244aa61c4247190995390b2d424ae36b33bf4960e838e3000fd201435ca1465b",
+      "bytes": 9938,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/4d60114bc65a98a511153ddf14046f7f0c331e181248b85239c6230eeaa34400.json",
+      "sha256": "4d60114bc65a98a511153ddf14046f7f0c331e181248b85239c6230eeaa34400",
+      "bytes": 3400,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/compile-self4.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/failure-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/c8bfc918e3b75114eff10cd5838f1c1797ec422ad5f8bdaf9c749eae343f7659.json",
+      "sha256": "c8bfc918e3b75114eff10cd5838f1c1797ec422ad5f8bdaf9c749eae343f7659",
+      "bytes": 1120230,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/module-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/bf02d0c7a2a86ef990f34ff4703b6629f0bb691c624f156310323e384b589aca.json",
+      "sha256": "bf02d0c7a2a86ef990f34ff4703b6629f0bb691c624f156310323e384b589aca",
+      "bytes": 671465,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v1/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ff565e0e5b05996d0407653b380711648e3bb1651c0cf91398cf68b9bf0b851a.json",
+      "sha256": "ff565e0e5b05996d0407653b380711648e3bb1651c0cf91398cf68b9bf0b851a",
+      "bytes": 447375,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85.py",
+      "sha256": "ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85",
+      "bytes": 11774,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/31465df33eff019fddbf742d7b9d64154a7afd91a7b68b6ee9c5b08a3ac3bb86.swift",
+      "sha256": "31465df33eff019fddbf742d7b9d64154a7afd91a7b68b6ee9c5b08a3ac3bb86",
+      "bytes": 19488,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/32cba60733effc98776b80edfdaa6bfa731173b5a0a29ab62257703c7904f340.json",
+      "sha256": "32cba60733effc98776b80edfdaa6bfa731173b5a0a29ab62257703c7904f340",
+      "bytes": 432695,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/4b999bc47e995937db0b3b2e8e3ba6520eddbe91809e5d855b317f9da10049d5.json",
+      "sha256": "4b999bc47e995937db0b3b2e8e3ba6520eddbe91809e5d855b317f9da10049d5",
+      "bytes": 3400,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/ready-to-run.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/c4975a9a2fb4315ce6257d2eacd427626587e350bbcfa3199c5ce145ceca3901.json",
+      "sha256": "c4975a9a2fb4315ce6257d2eacd427626587e350bbcfa3199c5ce145ceca3901",
+      "bytes": 1117934,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b6bd5c1f38376810a53fed9e7a0b50450012e9606495935f7788a3a05c0e2eee.json",
+      "sha256": "b6bd5c1f38376810a53fed9e7a0b50450012e9606495935f7788a3a05c0e2eee",
+      "bytes": 1194314,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/22290c010106368cc598a42f90895d39288a00ee2961b27826c0f09944d9f1ea.json",
+      "sha256": "22290c010106368cc598a42f90895d39288a00ee2961b27826c0f09944d9f1ea",
+      "bytes": 444136,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v2/runtime-all.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/163fb2395e3a505b9ae01a58c2375ffb00d553357db356e07e3de4e5b7e6e6ed.log",
+      "sha256": "163fb2395e3a505b9ae01a58c2375ffb00d553357db356e07e3de4e5b7e6e6ed",
+      "bytes": 2231,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85.py",
+      "sha256": "ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85",
+      "bytes": 11774,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/4eb2e46e53ed0fc417d33f0036d70064a5556db4ec9f6e8ea3dfb7175cb1e0b9.swift",
+      "sha256": "4eb2e46e53ed0fc417d33f0036d70064a5556db4ec9f6e8ea3dfb7175cb1e0b9",
+      "bytes": 19545,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/d76681e28873b8570d4b28447900ccf8487f6a07de0635a66b8d58a413b34411.json",
+      "sha256": "d76681e28873b8570d4b28447900ccf8487f6a07de0635a66b8d58a413b34411",
+      "bytes": 432695,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/66c7aca41b9868cc4be9fc9ef8b9d38a1be3c3080cc9c78953c5b85159594765.json",
+      "sha256": "66c7aca41b9868cc4be9fc9ef8b9d38a1be3c3080cc9c78953c5b85159594765",
+      "bytes": 3400,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/ready-to-run.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/d7ab5d731a1f603137900159e450ce66efadebc207d22a0e60cf46b745a894b6.json",
+      "sha256": "d7ab5d731a1f603137900159e450ce66efadebc207d22a0e60cf46b745a894b6",
+      "bytes": 1117934,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/16b981c743b02a6337f6d2c4440b130d0a72e9acff76a557c4f9d99253cd1ac4.json",
+      "sha256": "16b981c743b02a6337f6d2c4440b130d0a72e9acff76a557c4f9d99253cd1ac4",
+      "bytes": 1194315,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/1bbbdd5130bae4a0c839e04e513976297fabca75054c5efa7a91e87f8b7d863b.json",
+      "sha256": "1bbbdd5130bae4a0c839e04e513976297fabca75054c5efa7a91e87f8b7d863b",
+      "bytes": 444137,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-embedded-20261013-v3/runtime-all.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/c2dbb0e1efb43b67c64e8f930561a65b622a88665741a616af1c64df9cc83dbf.log",
+      "sha256": "c2dbb0e1efb43b67c64e8f930561a65b622a88665741a616af1c64df9cc83dbf",
+      "bytes": 2087,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/3b0995f043bf0d20904fb6b96ff90cefe1f3949d8e997f45c5f5eab020e16035.py",
+      "sha256": "3b0995f043bf0d20904fb6b96ff90cefe1f3949d8e997f45c5f5eab020e16035",
+      "bytes": 10903,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/002c6f50e2ee1b8ce2dfd493c447b0fb8c74880e2c52e3a336c9f219e3d9860d.swift",
+      "sha256": "002c6f50e2ee1b8ce2dfd493c447b0fb8c74880e2c52e3a336c9f219e3d9860d",
+      "bytes": 10056,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ae8d76cda9c29619776112a245b8d99170e278f1e737cd78e1e8e6ff66fdc1d7.json",
+      "sha256": "ae8d76cda9c29619776112a245b8d99170e278f1e737cd78e1e8e6ff66fdc1d7",
+      "bytes": 105637,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/04733c818aaffdde7e4e2221c2e363837035e1cb74b695e470c584c7e8ba65b1.log",
+      "sha256": "04733c818aaffdde7e4e2221c2e363837035e1cb74b695e470c584c7e8ba65b1",
+      "bytes": 2603,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/7f17167d25530abecfbc62115dad61b8bc2689ca9956a869d191fcda23b26468.json",
+      "sha256": "7f17167d25530abecfbc62115dad61b8bc2689ca9956a869d191fcda23b26468",
+      "bytes": 2282,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/compile-self4.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/failure-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/488df4bc8ea9ae435ae61a04fa96c51f9166b06d1476057e743a324ef0e45aaa.json",
+      "sha256": "488df4bc8ea9ae435ae61a04fa96c51f9166b06d1476057e743a324ef0e45aaa",
+      "bytes": 320824,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/module-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea39dee5e610be285bd4ced06d6a568e8b004bda0260501adb5a6abdccb69346.json",
+      "sha256": "ea39dee5e610be285bd4ced06d6a568e8b004bda0260501adb5a6abdccb69346",
+      "bytes": 209166,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v1/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b744e00e74d2309b876eb1ddb41fa10a85dcda422d3261fc85e2df3879b2e88e.json",
+      "sha256": "b744e00e74d2309b876eb1ddb41fa10a85dcda422d3261fc85e2df3879b2e88e",
+      "bytes": 111243,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/d568f3980c8e22e4e331dd923306ee5b94ae47f5bbf249d2677343c779bed885.py",
+      "sha256": "d568f3980c8e22e4e331dd923306ee5b94ae47f5bbf249d2677343c779bed885",
+      "bytes": 11640,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea5e5c9199b03b00f9dcbfd1aefcce5ec70a5b431b3dbc53995247c2bbdc7a79.swift",
+      "sha256": "ea5e5c9199b03b00f9dcbfd1aefcce5ec70a5b431b3dbc53995247c2bbdc7a79",
+      "bytes": 10188,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/96ed77c57ecedd51c72ea11d30b218e720a11d347e9c479564e5b0df1b74de09.json",
+      "sha256": "96ed77c57ecedd51c72ea11d30b218e720a11d347e9c479564e5b0df1b74de09",
+      "bytes": 105748,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/841be2c9d00b249b989d52575e41b9de5d7a29c04ef41c01e9d74a981e134dcc.json",
+      "sha256": "841be2c9d00b249b989d52575e41b9de5d7a29c04ef41c01e9d74a981e134dcc",
+      "bytes": 2282,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/ready-to-run.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/c362a69ecf5217b5b4b8222db148ac87cff36b7d5f2da86f77166cadecc80c8d.json",
+      "sha256": "c362a69ecf5217b5b4b8222db148ac87cff36b7d5f2da86f77166cadecc80c8d",
+      "bytes": 317736,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89802eb97e01c8b19a2708fe962c505eba06384c2f352ccf5177f29f93b674e9.json",
+      "sha256": "89802eb97e01c8b19a2708fe962c505eba06384c2f352ccf5177f29f93b674e9",
+      "bytes": 397833,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/9e7e9d422f36c4d754d75f89b6f8f637bc9124230599401c810e756f3ebe993e.json",
+      "sha256": "9e7e9d422f36c4d754d75f89b6f8f637bc9124230599401c810e756f3ebe993e",
+      "bytes": 109035,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v2/runtime-complete.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/cf36b7ccd39243ee87b13418b5d56aded94fd9b4c5dcef84880b7ccb859f7e9e.log",
+      "sha256": "cf36b7ccd39243ee87b13418b5d56aded94fd9b4c5dcef84880b7ccb859f7e9e",
+      "bytes": 450,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/afbf70885f335b26157aca52f43e3d5fee649a3abf0bc489a8e5e7cb0e7eebc3.py",
+      "sha256": "afbf70885f335b26157aca52f43e3d5fee649a3abf0bc489a8e5e7cb0e7eebc3",
+      "bytes": 11762,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/946637d352fc1af92ddd442604702075ef14d7256c7d7c1522f841f5378f107e.swift",
+      "sha256": "946637d352fc1af92ddd442604702075ef14d7256c7d7c1522f841f5378f107e",
+      "bytes": 17469,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/584098ba07d017f3931d3a11e2f4430f4c8b6eedc665eb8f61dab5edae837dba.json",
+      "sha256": "584098ba07d017f3931d3a11e2f4430f4c8b6eedc665eb8f61dab5edae837dba",
+      "bytes": 105748,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/9fd10aebfa2c648d79d48a4afbaf2384e5bbb5f854915b483a2630858b78a033.json",
+      "sha256": "9fd10aebfa2c648d79d48a4afbaf2384e5bbb5f854915b483a2630858b78a033",
+      "bytes": 2282,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/ready-to-run.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/65933c759bf0e323c05d826c09cc2130dc488b9836eca3313ce0eaa3725752ef.json",
+      "sha256": "65933c759bf0e323c05d826c09cc2130dc488b9836eca3313ce0eaa3725752ef",
+      "bytes": 317766,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/d96921dccb24725fc2a8470e7543bbf6542148a2c90d75f22dd168b57815b86c.json",
+      "sha256": "d96921dccb24725fc2a8470e7543bbf6542148a2c90d75f22dd168b57815b86c",
+      "bytes": 397903,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/74ba7b85f9ddb931da9ca9dd8b0f0c16c4801c2441abd3d937e3a4f11039f5a2.json",
+      "sha256": "74ba7b85f9ddb931da9ca9dd8b0f0c16c4801c2441abd3d937e3a4f11039f5a2",
+      "bytes": 109069,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v3/runtime-controls.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/59c7d352f797b7b01b4c88ef7e932976c2ea04bd3dea55c81e03fd938a4dc367.log",
+      "sha256": "59c7d352f797b7b01b4c88ef7e932976c2ea04bd3dea55c81e03fd938a4dc367",
+      "bytes": 1025,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85.py",
+      "sha256": "ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85",
+      "bytes": 11774,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947.swift",
+      "sha256": "22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947",
+      "bytes": 19143,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/bceb99f4842b3d0b53660794efae78a42d290311fd9ef1d081575ed4739839a7.json",
+      "sha256": "bceb99f4842b3d0b53660794efae78a42d290311fd9ef1d081575ed4739839a7",
+      "bytes": 105748,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/223497b7663b41ffe3b4deb9cb519757999a2adbc0b76db6b4af262bae20105c.json",
+      "sha256": "223497b7663b41ffe3b4deb9cb519757999a2adbc0b76db6b4af262bae20105c",
+      "bytes": 2282,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/ready-to-run.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/37df0bb0942a5a8dcec951959b1a860f667bcde33e4ebdf21d6e368ee3272032.json",
+      "sha256": "37df0bb0942a5a8dcec951959b1a860f667bcde33e4ebdf21d6e368ee3272032",
+      "bytes": 317753,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ccd0ac0dc847ed6762f4fe0f70a376516421dd7e05777d101fa843a9f720bc62.json",
+      "sha256": "ccd0ac0dc847ed6762f4fe0f70a376516421dd7e05777d101fa843a9f720bc62",
+      "bytes": 397893,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/eba7a5802e8ea193f6c417434a062854d005622d685b508f9cb3f66444132171.json",
+      "sha256": "eba7a5802e8ea193f6c417434a062854d005622d685b508f9cb3f66444132171",
+      "bytes": 109057,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-native-20261013-v4/runtime-resources.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/01eb90e3605cfc84078f807d7001935044ec5f4a3e61ec5281d633fb6b363b12.log",
+      "sha256": "01eb90e3605cfc84078f807d7001935044ec5f4a3e61ec5281d633fb6b363b12",
+      "bytes": 494,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/afbf70885f335b26157aca52f43e3d5fee649a3abf0bc489a8e5e7cb0e7eebc3.py",
+      "sha256": "afbf70885f335b26157aca52f43e3d5fee649a3abf0bc489a8e5e7cb0e7eebc3",
+      "bytes": 11762,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/946637d352fc1af92ddd442604702075ef14d7256c7d7c1522f841f5378f107e.swift",
+      "sha256": "946637d352fc1af92ddd442604702075ef14d7256c7d7c1522f841f5378f107e",
+      "bytes": 17469,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/69e521a1bccd2342ce5cff5b358b73dfa5d2c88338d957edb7003fec08739d95.json",
+      "sha256": "69e521a1bccd2342ce5cff5b358b73dfa5d2c88338d957edb7003fec08739d95",
+      "bytes": 422061,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/e472a41ef98409a49c9e9b838e0c24a428510d1dc8536fdc4390f340b4380fcb.json",
+      "sha256": "e472a41ef98409a49c9e9b838e0c24a428510d1dc8536fdc4390f340b4380fcb",
+      "bytes": 2956,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/compile-self4.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/module-receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/9ddd206f3f690a23a5b66c05929d31cf407d5073312fcc71134feaba05aabea7.json",
+      "sha256": "9ddd206f3f690a23a5b66c05929d31cf407d5073312fcc71134feaba05aabea7",
+      "bytes": 651249,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/ready-to-run.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/52ab18f050ac7d9dd3ce00f4f9fe70a3648462911c656226a4852a1ebe8f460c.json",
+      "sha256": "52ab18f050ac7d9dd3ce00f4f9fe70a3648462911c656226a4852a1ebe8f460c",
+      "bytes": 1089723,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/e65e77417d4c765e175006614867fdf6675f1c2f692349d367b6b289009c98a8.json",
+      "sha256": "e65e77417d4c765e175006614867fdf6675f1c2f692349d367b6b289009c98a8",
+      "bytes": 1170905,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/1473ade10937258e61f8c33a14821eccb2a5aa3a84afaefc5087dd30dad9ae8c.json",
+      "sha256": "1473ade10937258e61f8c33a14821eccb2a5aa3a84afaefc5087dd30dad9ae8c",
+      "bytes": 437037,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v1/runtime-all.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/25a9ffcba289bdb62c83ade48907e172d5f9cad2c8ce47df31a4bd260123f108.log",
+      "sha256": "25a9ffcba289bdb62c83ade48907e172d5f9cad2c8ce47df31a4bd260123f108",
+      "bytes": 1640,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d.swift",
+      "sha256": "89a72c0f269d346bc70ea2941bd7e0ea3c9e5103b31c000967056abdef7b807d",
+      "bytes": 5551,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85.py",
+      "sha256": "ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85",
+      "bytes": 11774,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947.swift",
+      "sha256": "22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947",
+      "bytes": 19143,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb.swift",
+      "sha256": "2522761de0117b0250608f74a24b0648ea929a6fd34ee2aae71fd498112e5ccb",
+      "bytes": 1078,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3.swift",
+      "sha256": "b7c930cbd53ae14450b2258e24ed3efdae650e796dd7fbb151351629beadb1e3",
+      "bytes": 3952,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877.swift",
+      "sha256": "973203a85577a055eca8febd6dc2a9f4f34f8ac919ccc52d9a2055e8dba4f877",
+      "bytes": 7086,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/cached-certified-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a.json",
+      "sha256": "8b652b41104d9f0afb9c82bd4283a4f456951a8df72aa632c6f57650d22e600a",
+      "bytes": 3352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/compile-link.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/960c350fca1c620d2b1d818c007d4dbbcbb0b117f7a619968aac8aea611c31fb.json",
+      "sha256": "960c350fca1c620d2b1d818c007d4dbbcbb0b117f7a619968aac8aea611c31fb",
+      "bytes": 422170,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/compile-link.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-CERT-SPHERECONE-APEX-EMPTY-01/acceptance/cas/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/compile-self4.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/359d362feda631a33665053db8b3a49f4ab74260e053e266026455de9616e05f.json",
+      "sha256": "359d362feda631a33665053db8b3a49f4ab74260e053e266026455de9616e05f",
+      "bytes": 2956,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/ready-to-run.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/7932c04f7568af569bd4f8180427584e0040c5f7a08bd3157016d332cfd9cf77.json",
+      "sha256": "7932c04f7568af569bd4f8180427584e0040c5f7a08bd3157016d332cfd9cf77",
+      "bytes": 1087579,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/receipt.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/fa0258d425d4c622d91450cd4632b21bfccc0a4e0eeb22cd1217223332075065.json",
+      "sha256": "fa0258d425d4c622d91450cd4632b21bfccc0a4e0eeb22cd1217223332075065",
+      "bytes": 1169530,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/runs.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/7150380dae723c62aec170987b5a215ae06a0e28cdc2069cc346f7a39270c82b.json",
+      "sha256": "7150380dae723c62aec170987b5a215ae06a0e28cdc2069cc346f7a39270c82b",
+      "bytes": 433560,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-native-declared-whole-edge-wasm-20261013-v2/runtime-resources.log": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/a6bf34fed3a30c2586d0a0372cdd5971156bf4ca111cfe42120136466813bce2.log",
+      "sha256": "a6bf34fed3a30c2586d0a0372cdd5971156bf4ca111cfe42120136466813bce2",
+      "bytes": 659,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/4eb2e46e53ed0fc417d33f0036d70064a5556db4ec9f6e8ea3dfb7175cb1e0b9.swift",
+      "sha256": "4eb2e46e53ed0fc417d33f0036d70064a5556db4ec9f6e8ea3dfb7175cb1e0b9",
+      "bytes": 19545,
+      "kind": "final-fixture"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.py": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85.py",
+      "sha256": "ea76599b1ac512fb405b841853cd39954d9823bea302752c5f60a34a5ba00f85",
+      "bytes": 11774,
+      "kind": "final-runner"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalExactNativeSelfContactQuery.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d.swift",
+      "sha256": "75090cdbe799970c72357400e7fc3574932b6ceaaa1244e4136c1de4236f2a4d",
+      "bytes": 5513,
+      "kind": "exact-current-selected-original-source"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContactQuerying.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262.swift",
+      "sha256": "01c98fc7ee3ac3423dbdaf000c5c5e76653cff93b368cc6264029c257bb81262",
+      "bytes": 1040,
+      "kind": "exact-current-selected-original-source"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactNativeSelfContacts.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6.swift",
+      "sha256": "55885a5fe627001afc9f90567ac351341fd476d7e209f4b39ffb0aeec24613d6",
+      "bytes": 3914,
+      "kind": "exact-current-selected-original-source"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalExactSelfIdentityCompiler.swift": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c.swift",
+      "sha256": "e6ca3b5f508e5ff118550b4e0d0a57ff07efec051ad33453149dd6722722a31c",
+      "bytes": 7048,
+      "kind": "exact-current-selected-original-source"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/fixture-output-compatibility.diff": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/043dbacc0fe5821e853f16f6e6ad5f04e5c6e879506b788dff036cf4ef621e01.diff",
+      "sha256": "043dbacc0fe5821e853f16f6e6ad5f04e5c6e879506b788dff036cf4ef621e01",
+      "bytes": 4275,
+      "kind": "exact-output-only-fixture-diff"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/fixture-output-compatibility.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/18035c339307a3cf59995f66943a48b090d7d5d04521a8e42464f08f2b38fcb5.json",
+      "sha256": "18035c339307a3cf59995f66943a48b090d7d5d04521a8e42464f08f2b38fcb5",
+      "bytes": 1352,
+      "kind": "exact-retained-text"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/fixture-entry-F1.diff": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ff0f87cb60dca15755a4cf7777619bacb2927d66adde159d1e5c9e65d594715b.diff",
+      "sha256": "ff0f87cb60dca15755a4cf7777619bacb2927d66adde159d1e5c9e65d594715b",
+      "bytes": 504,
+      "kind": "exact-F1-entry-diff"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/fixture-entry-F1.json": {
+      "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/f2a33c525189e1cde12db98f18b6641f0710bacca4257fb1a223f3719774cd5c.json",
+      "sha256": "f2a33c525189e1cde12db98f18b6641f0710bacca4257fb1a223f3719774cd5c",
+      "bytes": 1307,
+      "kind": "exact-retained-text"
+    }
+  },
+  "fileEntries": 168,
+  "casFiles": 91,
+  "casBytes": 21729330,
+  "ownCASFiles": 90,
+  "ownCASBytes": 21729330,
+  "externalCASFiles": 1,
+  "scope": "Immutable text only; unique counts include inherited exact prior CAS references. Executable/module/archive products stay at admitted immutable paths and are hash-bound by raw receipts, not copied into this manifest."
+}

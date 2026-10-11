@@ -1,0 +1,29 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:46:58: error: 'zero' is inaccessible due to 'internal' protection level
+ 44 |     static func interval(_ lo:Int,_ hi:Int,_ f:Field,_ a:inout ExactScalarLedger) throws -> ExactParameterInterval<Field.Value> {
+ 45 |         try .checked(field:f,lower:.finite(f.integer(lo,using:&a)),upper:.finite(f.integer(hi,using:&a)),
+ 46 |             includesLower:true,includesUpper:true,depth:.zero,using:&a)
+    |                                                          `- error: 'zero' is inaccessible due to 'internal' protection level
+ 47 |     }
+ 48 |     static func prepare(_ a:inout ExactScalarLedger) throws -> (Raw,OriginalParameterIdentity<BSplineSurface3D,Field>) {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m6-refinement-repair/native/65f7d95a6ab64322a1c41b8e1cdd8816/package/Sources/L0/ExactScalarDepth.swift:9:16: note: 'zero' declared here
+ 7 |         self.value = value; self.coefficient = coefficient
+ 8 |     }
+ 9 |     static let zero = Self(uncheckedValue: 0, coefficient: 0)
+   |                `- note: 'zero' declared here
+10 |     init(uncheckedValue: Int, coefficient: Int) {
+11 |         self.value = uncheckedValue; self.coefficient = coefficient
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:121:70: error: referencing operator function '==' on 'Equatable' requires that 'ExactRealCellView<ExactRationalScalarDomain>' conform to 'Equatable'
+119 |         for cell in selected.cells { rawSignatures.append(try proofs.map { try c.sign(of:$0,at:cell,using:&a) }) }
+120 |         let pb = result.refinements[0].pullback,region = pb.region
+121 |         try require(pb.coordinateMap == [0,1,2,3] && pb.source.cells == selected.cells)
+    |                                                                      `- error: referencing operator function '==' on 'Equatable' requires that 'ExactRealCellView<ExactRationalScalarDomain>' conform to 'Equatable'
+122 |         try require(region.cells.count == region.included.count && region.cells.count == pb.sourceCellOrdinals.count)
+123 |         let (rc,rp) = try invariants(region.partition,refined:true,&a)
+
+Swift.Equatable:1:17: note: where 'Self' = 'ExactRealCellView<ExactRationalScalarDomain>'
+1 | public protocol Equatable : ~Copyable, ~Escapable {
+  |                 `- note: where 'Self' = 'ExactRealCellView<ExactRationalScalarDomain>'
+2 |     static func == (lhs: borrowing Self, rhs: borrowing Self) -> Bool
+3 | }

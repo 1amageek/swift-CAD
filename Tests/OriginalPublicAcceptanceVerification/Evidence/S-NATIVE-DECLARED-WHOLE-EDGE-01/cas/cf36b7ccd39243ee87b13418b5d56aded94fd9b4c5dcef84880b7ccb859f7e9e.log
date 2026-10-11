@@ -1,0 +1,6 @@
+START S-NATIVE-DECLARED-WHOLE-EDGE-01 actual Native whole-edge query
+PASS exact original fold, once-bound same owner, one chart/pair and checked whole closed directed edge
+METRIC preparation 8142205 243476900
+METRIC publicReturn 12936653 414653728
+METRIC completeRaw 45 completeRefined 693 included 15 work 12965982 bytes 416182484
+PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning

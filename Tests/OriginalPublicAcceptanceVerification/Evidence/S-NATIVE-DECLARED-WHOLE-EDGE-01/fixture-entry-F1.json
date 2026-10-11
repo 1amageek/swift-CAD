@@ -1,0 +1,27 @@
+{
+  "finding": "F1",
+  "before": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/31465df33eff019fddbf742d7b9d64154a7afd91a7b68b6ee9c5b08a3ac3bb86.swift",
+    "sha256": "31465df33eff019fddbf742d7b9d64154a7afd91a7b68b6ee9c5b08a3ac3bb86",
+    "bytes": 19488,
+    "kind": "exact-retained-text"
+  },
+  "after": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/4eb2e46e53ed0fc417d33f0036d70064a5556db4ec9f6e8ea3dfb7175cb1e0b9.swift",
+    "sha256": "4eb2e46e53ed0fc417d33f0036d70064a5556db4ec9f6e8ea3dfb7175cb1e0b9",
+    "bytes": 19545,
+    "kind": "final-fixture"
+  },
+  "diff": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/ff0f87cb60dca15755a4cf7777619bacb2927d66adde159d1e5c9e65d594715b.diff",
+    "sha256": "ff0f87cb60dca15755a4cf7777619bacb2927d66adde159d1e5c9e65d594715b",
+    "bytes": 504,
+    "kind": "exact-F1-entry-diff"
+  },
+  "scope": "Only Embedded group decode changes: remove Optional.map actor-isolated callback and decode with direct if-let. Geometry, queries, admission, oracle, resources and other target branches are byte-unchanged.",
+  "replayedTargets": [
+    "embedded"
+  ],
+  "reusedSelf4": true,
+  "warningAbsent": true
+}

@@ -1,0 +1,22 @@
+{
+  "before": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947.swift",
+    "sha256": "22c35a161e4e52958ce96cb3fc5f2e14966dc729beee19cb429ab5636a504947",
+    "bytes": 19143,
+    "kind": "exact-retained-text"
+  },
+  "after": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/31465df33eff019fddbf742d7b9d64154a7afd91a7b68b6ee9c5b08a3ac3bb86.swift",
+    "sha256": "31465df33eff019fddbf742d7b9d64154a7afd91a7b68b6ee9c5b08a3ac3bb86",
+    "bytes": 19488,
+    "kind": "final-fixture"
+  },
+  "diff": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-NATIVE-DECLARED-WHOLE-EDGE-01/cas/043dbacc0fe5821e853f16f6e6ad5f04e5c6e879506b788dff036cf4ef621e01.diff",
+    "sha256": "043dbacc0fe5821e853f16f6e6ad5f04e5c6e879506b788dff036cf4ef621e01",
+    "bytes": 4275,
+    "kind": "exact-output-only-fixture-diff"
+  },
+  "scope": "StaticString marker/metric diagnostics and integer output via putchar replace variadic String print. Query, exact input, admission, oracle, controls and group selection bodies are unchanged. Earlier complete/controls parts have their own exact snapshots; no claim that their entire fixtures differ only in output.",
+  "runtimeRepeated": false
+}

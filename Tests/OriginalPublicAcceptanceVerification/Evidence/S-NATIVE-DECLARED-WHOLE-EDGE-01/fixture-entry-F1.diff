@@ -1,0 +1,13 @@
+--- embedded-v2-rejected-isolation-entry
++++ embedded-v3-callback-free-entry
+@@ -263,7 +263,9 @@
+     }
+     static func main() throws {
+ #if hasFeature(Embedded)
+-        let group = getenv("CAD_PROOF_GROUP").map { String(cString:$0) } ?? "complete"
++        let group:String
++        if let value = getenv("CAD_PROOF_GROUP") { group = String(cString:value) }
++        else { group = "complete" }
+ #else
+         let group = CommandLine.arguments.count > 1 ? CommandLine.arguments[1]:"complete"
+ #endif

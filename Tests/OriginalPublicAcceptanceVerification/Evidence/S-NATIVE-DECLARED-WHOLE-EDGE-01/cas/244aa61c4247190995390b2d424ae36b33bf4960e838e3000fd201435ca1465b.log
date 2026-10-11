@@ -1,0 +1,119 @@
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:31:33: error: missing argument label 'terminator:' in call
+ 29 |     enum Failure: Error { case assertion(Int), unexpectedSuccess }
+ 30 |     static func require(_ value: Bool, _ line: Int = #line) throws {
+ 31 |         guard value else { print("FAIL S-NATIVE-DECLARED-WHOLE-EDGE-01", line); throw Failure.assertion(line) }
+    |                                 `- error: missing argument label 'terminator:' in call
+ 32 |     }
+ 33 |     static func marker(_ text: String) { print(text); fflush(nil) }
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:31:74: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+ 29 |     enum Failure: Error { case assertion(Int), unexpectedSuccess }
+ 30 |     static func require(_ value: Bool, _ line: Int = #line) throws {
+ 31 |         guard value else { print("FAIL S-NATIVE-DECLARED-WHOLE-EDGE-01", line); throw Failure.assertion(line) }
+    |                                                                          `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+ 32 |     }
+ 33 |     static func marker(_ text: String) { print(text); fflush(nil) }
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:103:126: error: extra argument in call
+101 |         var proofs:[ExactRealCellSignInvariant<Base>] = []
+102 |         for (i,law) in laws.enumerated() {
+103 |             guard let proof = try c.signInvariant(for:law,in:p,using:&a) else { print("MISSING whole-cell invariant",refined,i);throw Failure.assertion(#line) }
+    |                                                                                                                              `- error: extra argument in call
+104 |             proofs.append(proof)
+105 |         }
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:103:118: error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+101 |         var proofs:[ExactRealCellSignInvariant<Base>] = []
+102 |         for (i,law) in laws.enumerated() {
+103 |             guard let proof = try c.signInvariant(for:law,in:p,using:&a) else { print("MISSING whole-cell invariant",refined,i);throw Failure.assertion(#line) }
+    |                                                                                                                      `- error: cannot convert value of type 'Bool' to expected argument type 'StaticString'
+104 |             proofs.append(proof)
+105 |         }
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:139:14: error: extra arguments at positions #3, #4, #5, #6, #7, #8, #9, #10 in call
+137 |         }
+138 |         try require(checked == region.cells.count && included > 0 && dimension == 2)
+139 |         print("METRIC completeRaw",rawCount,"completeRefined",checked,"included",included,"work",a.work,"bytes",a.storageBytes)
+    |              `- error: extra arguments at positions #3, #4, #5, #6, #7, #8, #9, #10 in call
+140 |         marker(half ? "PASS complete half-scope oracle preserves undeclared positive-V forward edge" : "PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning")
+141 |     }
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:139:36: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+137 |         }
+138 |         try require(checked == region.cells.count && included > 0 && dimension == 2)
+139 |         print("METRIC completeRaw",rawCount,"completeRefined",checked,"included",included,"work",a.work,"bytes",a.storageBytes)
+    |                                    `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+140 |         marker(half ? "PASS complete half-scope oracle preserves undeclared positive-V forward edge" : "PASS complete raw/refined iff and every ordinal: (u,v,-u,v), -1<u<=1, u!=0, closed V; image2/fiber0 is oracle meaning")
+141 |     }
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:165:14: error: extra arguments at positions #3, #4, #5 in call
+163 |         var admission = try PublicationAdmission()
+164 |         let result = try query(raw,proof,&admission)
+165 |         print("METRIC independentPreparedQuery",admission.ledger.work,admission.ledger.storageBytes,"storageCalls",admission.storageCalls)
+    |              `- error: extra arguments at positions #3, #4, #5 in call
+166 |         return (result,admission.storageCalls)
+167 |     }
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:165:66: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+163 |         var admission = try PublicationAdmission()
+164 |         let result = try query(raw,proof,&admission)
+165 |         print("METRIC independentPreparedQuery",admission.ledger.work,admission.ledger.storageBytes,"storageCalls",admission.storageCalls)
+    |                                                                  `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+166 |         return (result,admission.storageCalls)
+167 |     }
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:236:59: error: extra argument in call
+234 |         let n = calibration.work,bytes = calibration.storageBytes
+235 |         try require(n > 0 && bytes > 0 && calibrated.refinements.count == 1)
+236 |         print("METRIC independentPreparedQueryBoundary",n,bytes)
+    |                                                           `- error: extra argument in call
+237 |         var exact = ExactScalarLedger(limits:try .init(work:n,storageBytes:bytes,valueDepth:32,coefficientDepth:32))
+238 |         let result = try query(raw,proof,&exact)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:236:57: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+234 |         let n = calibration.work,bytes = calibration.storageBytes
+235 |         try require(n > 0 && bytes > 0 && calibrated.refinements.count == 1)
+236 |         print("METRIC independentPreparedQueryBoundary",n,bytes)
+    |                                                         `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+237 |         var exact = ExactScalarLedger(limits:try .init(work:n,storageBytes:bytes,valueDepth:32,coefficientDepth:32))
+238 |         let result = try query(raw,proof,&exact)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:267:49: error: extra argument in call
+265 |             marker("START S-NATIVE-DECLARED-WHOLE-EDGE-01 actual Native whole-edge query")
+266 |             let (raw,proof) = try prepare(&a)
+267 |             print("METRIC preparation",a.work,a.storageBytes)
+    |                                                 `- error: extra argument in call
+268 |             let result = try query(raw,proof,&a)
+269 |             print("METRIC publicReturn",a.work,a.storageBytes)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:267:42: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+265 |             marker("START S-NATIVE-DECLARED-WHOLE-EDGE-01 actual Native whole-edge query")
+266 |             let (raw,proof) = try prepare(&a)
+267 |             print("METRIC preparation",a.work,a.storageBytes)
+    |                                          `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+268 |             let result = try query(raw,proof,&a)
+269 |             print("METRIC publicReturn",a.work,a.storageBytes)
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:269:50: error: extra argument in call
+267 |             print("METRIC preparation",a.work,a.storageBytes)
+268 |             let result = try query(raw,proof,&a)
+269 |             print("METRIC publicReturn",a.work,a.storageBytes)
+    |                                                  `- error: extra argument in call
+270 |             try oracle(result,&a)
+271 |         }
+
+/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/NativeDeclaredWholeEdgeAcceptance.swift:269:43: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+267 |             print("METRIC preparation",a.work,a.storageBytes)
+268 |             let result = try query(raw,proof,&a)
+269 |             print("METRIC publicReturn",a.work,a.storageBytes)
+    |                                           `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+270 |             try oracle(result,&a)
+271 |         }
