@@ -2,8 +2,8 @@
 
 The fixed ordinary corrected-polyline-lift/plane cell passes all ten groups on
 Native, ASan, ordinary WASM and Embedded WASM. One comprehensive
-[review](REVIEW.md) approves the cell with no finding. Coherent commit and
-independent main delivery remain pending. Terminal acceptance and historical
+[review](REVIEW.md) approves the cell with no finding. Implementation commit `b4bfb2bef42a1254e39d5ae8ae800cbf1063e70a` is main-integrated
+through a normal fast-forward after independent latest-main comparison. Terminal acceptance and historical
 failed attempts are preserved separately.
 
 | Accepted lane | Terminal receipt | Runtime groups | Exact storage success / one byte less |
@@ -116,3 +116,12 @@ mutable verification/integration/review records. `package-manifest.json` retains
 original-to-packaged paths and product hashes without binary/archive bytes;
 hashes without an admitted historical comparator are explicitly limited to
 packaging-time observations. Raw receipts, commands and logs remain unchanged.
+
+Independent delivery matches 2,125 source premises, 204 immutable evidence files,
+17,328 prerequisite checks and eight fresh production checks. Six historical
+fixture/driver comparisons retain their exact compiled snapshots and reviewed
+nonEmbedded reconstruction; they are not current-root byte-equality claims.
+[integration.json](integration.json) records those comparators and unchanged
+protected source/consumer drafts, index/status and publisher patch. Accepted
+runtime evidence was reused without a broad build or repeated execution.
+General correction families, other M4-M8 cells, whole-seven and full87 remain open.
