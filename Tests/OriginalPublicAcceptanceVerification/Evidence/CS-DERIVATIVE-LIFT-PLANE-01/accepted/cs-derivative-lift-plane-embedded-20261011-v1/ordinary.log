@@ -1,0 +1,5 @@
+(node:3375) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+ordinaryCallbackWork: 370218
+ordinaryCallbackBytes: 4121220
+PASS derivative ordinary standard/callback bare/rich; sole T=.5; exact5/32 XYZ/planeUV; sourceUV and all8 incidents

@@ -180,7 +180,7 @@ changed-path checks own the full public oracle, boundaries, failure, exact/one-l
 resources, cancellation, COW and detached lifetime. Existing point paths are
 regressions, not evidence for continuous-family completion.
 
-### Ordinary retained polyline lift against an axis plane
+### Ordinary retained lift against an axis plane
 
 The ordinary CS selector recognizes a retained rational Coons or original boundary-corrected host with an
 authored Euclidean polyline pcurve and an N+origin plane whose normal has one
@@ -189,6 +189,38 @@ axis-plane capability supplies exact positive basis lengths without a rounded
 square root. Other shape/basis capabilities retain their existing dispatch;
 failure after selection never retries a legacy solver. General plane bases and
 remaining lift families stay mandatory open cells.
+
+CS-DERIVATIVE-LIFT-PLANE-01 additionally selects an original plane-derivative
+host with an authored Native B-spline pcurve. It consumes the existing
+`OriginalNativePcurveRetainedAtlasLiftSnapshotProvider` and
+`OriginalPlaneDerivativeSurfaceSnapshotProvider`; these providers retain the
+original positional atlas, rational denominators, source constraints and closed
+chart incidents. Derivative constraints are construction inputs, not extra
+intersection equations. No formula, host reconstruction or derivative equality
+authority is introduced by this public routing.
+
+The private generic preparation closure returns the source-owned finite lift
+family under the same admission created by the common producer. Polyline host
+preparation and Native derivative-host preparation then share the unchanged
+curve/plane DI selection, guarded polynomial UV reduction, L5/L6 solve and exact
+numerical publication. The original three-axis graph and forward-restored
+`(T,U,V)` remain retained. A rational/nonlinear pcurve that the checked reducer
+cannot eliminate fails explicitly; general derivative hosts and pcurve families
+remain open capabilities. Applicability never bypasses an unavailable position
+atlas, unsupported graph layout or exhausted caller allowance.
+
+| Frozen cell | Public input and complete independent oracle |
+|---|---|
+| CS-DERIVATIVE-LIFT-PLANE-01 | Existing `DerivativeHostShape.shape(weighted:true,projected:true)`, mode0 Native diagonal pcurve, full T=[0,1], whole plane x=1/2 with raw normal unitX. The sole root T=1/2 has host UV=(1/2,1/2), XYZ=(1/2,1/2,5/32), plane UV=(5/32,-1/2), all eight closed source incidents, and image/fiber dimensions zero. |
+
+The admitted selected-entry decline is the red evidence. Acceptance owns actual
+ordinary and callback bare/rich entries, exact incident/parameter/image/fiber
+correspondence, authored selections and complete empty results, typed failure,
+existing work/storage/depth ceilings, cancellation and detached/COW lifetime on
+fixed Native/ASAN/normal-WASM/Embedded lanes. Existing Coons and corrected
+polyline public cells are regressions. Unchanged source/DI and algebra contracts
+are reused by admitted products; verification module namespace adaptation does
+not create a production source prerequisite or require a broad lower rebuild.
 
 CS-POLY-CORRECTION-01 consumes the existing
 `OriginalBoundaryCorrectionSnapshotProvider` through

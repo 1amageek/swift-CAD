@@ -1,0 +1,15 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-native-20261011-v1/generated/DefaultOriginalIssuedGraphCompiler.swift:5:18: error: no such module 'PublicLiftPlane'
+  3 | @testable import RetainedHostAdapters
+  4 | @testable import DerivativePayloadAccess
+  5 | @testable import PublicLiftPlane
+    |                  `- error: no such module 'PublicLiftPlane'
+  6 | import struct RetainedHostAdapters.DefaultOriginalAnalyticCoordinateIssuer
+  7 | import struct RetainedHostAdapters.DefaultOriginalBSplineChartIssuer
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-native-20261011-v1/generated/DefaultOriginalIssuedGraphCompiler.swift:5:18: error: no such module 'PublicLiftPlane'
+  3 | @testable import RetainedHostAdapters
+  4 | @testable import DerivativePayloadAccess
+  5 | @testable import PublicLiftPlane
+    |                  `- error: no such module 'PublicLiftPlane'
+  6 | import struct RetainedHostAdapters.DefaultOriginalAnalyticCoordinateIssuer
+  7 | import struct RetainedHostAdapters.DefaultOriginalBSplineChartIssuer

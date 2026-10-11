@@ -1,0 +1,4 @@
+(node:2523) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+successfulWork 370218 successfulBytes 4121220
+PASS derivative finite allowance success; fixed work caps1/100000 forward typed refusal at exact callback cap

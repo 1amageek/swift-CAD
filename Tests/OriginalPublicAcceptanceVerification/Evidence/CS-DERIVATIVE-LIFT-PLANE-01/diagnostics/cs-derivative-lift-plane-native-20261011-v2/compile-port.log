@@ -1,0 +1,79 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-native-20261011-v2/generated/DefaultOriginalIssuedGraphCompiler.swift:475:93: error: 'OriginalSourceProofAdmission' is ambiguous for type lookup in this context
+473 |     }
+474 |     private func compileTracked<A: ExactScalarAdmission & ~Copyable>(binding: borrowing OriginalDomainBoundParametricGraph<S,Base,E>,
+475 |         field: borrowing Field, limits: OriginalDomainIdentityLimits, using admission:inout OriginalSourceProofAdmission<A>)
+    |                                                                                             `- error: 'OriginalSourceProofAdmission' is ambiguous for type lookup in this context
+476 |         throws -> OriginalIssuedGraphPreparation<S,E> {
+477 |             try admission.checkpoint();try binding.admitProof(limits:limits,using:&admission)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceProofAdmission.swift:10:8: note: found this candidate
+ 8 | /// Its pointee is initialized A with matching alignment; no allocation, rebinding,
+ 9 | /// deallocation, Sendable crossing or concurrent access is performed.
+10 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+   |        `- note: found this candidate
+11 |     private let ledger: UnsafeMutablePointer<A>
+12 |     private(set) var valueDepth = 0
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/173-OriginalSourceProofAdmission.swift:12:8: note: found this candidate
+10 | /// Its pointee is initialized A with matching alignment; no allocation, rebinding,
+11 | /// deallocation, Sendable crossing or concurrent access is performed.
+12 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+   |        `- note: found this candidate
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-native-20261011-v2/generated/DefaultOriginalIssuedGraphCompiler.swift:475:93: error: 'OriginalSourceProofAdmission' is ambiguous for type lookup in this context
+473 |     }
+474 |     private func compileTracked<A: ExactScalarAdmission & ~Copyable>(binding: borrowing OriginalDomainBoundParametricGraph<S,Base,E>,
+475 |         field: borrowing Field, limits: OriginalDomainIdentityLimits, using admission:inout OriginalSourceProofAdmission<A>)
+    |                                                                                             `- error: 'OriginalSourceProofAdmission' is ambiguous for type lookup in this context
+476 |         throws -> OriginalIssuedGraphPreparation<S,E> {
+477 |             try admission.checkpoint();try binding.admitProof(limits:limits,using:&admission)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceProofAdmission.swift:10:8: note: found this candidate
+ 8 | /// Its pointee is initialized A with matching alignment; no allocation, rebinding,
+ 9 | /// deallocation, Sendable crossing or concurrent access is performed.
+10 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+   |        `- note: found this candidate
+11 |     private let ledger: UnsafeMutablePointer<A>
+12 |     private(set) var valueDepth = 0
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/173-OriginalSourceProofAdmission.swift:12:8: note: found this candidate
+10 | /// Its pointee is initialized A with matching alignment; no allocation, rebinding,
+11 | /// deallocation, Sendable crossing or concurrent access is performed.
+12 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+   |        `- note: found this candidate
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-native-20261011-v2/generated/DefaultOriginalPlaneGraphCompiler.swift:468:24: error: ambiguous use of 'OriginalSourceProofAdmission'
+466 |         let original = copy cover, field = copy field
+467 |         do {
+468 |             return try OriginalSourceProofAdmission<A>.withBorrow(&admission) { a in
+    |                        `- error: ambiguous use of 'OriginalSourceProofAdmission'
+469 |                 try a.checkpoint(); try original.source.require(limits.source)
+470 |                 guard limits.maximumCharts >= 1 else { throw OriginalDomainIdentityFailure.chartLimit }
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalSourceProofAdmission.swift:10:8: note: found this candidate in module 'CADGeometry'
+ 8 | /// Its pointee is initialized A with matching alignment; no allocation, rebinding,
+ 9 | /// deallocation, Sendable crossing or concurrent access is performed.
+10 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+   |        `- note: found this candidate in module 'CADGeometry'
+11 |     private let ledger: UnsafeMutablePointer<A>
+12 |     private(set) var valueDepth = 0
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef/173-OriginalSourceProofAdmission.swift:12:8: note: found this candidate in module 'RetainedHostAdapters'
+10 | /// Its pointee is initialized A with matching alignment; no allocation, rebinding,
+11 | /// deallocation, Sendable crossing or concurrent access is performed.
+12 | struct OriginalSourceProofAdmission<A: ExactScalarAdmission & ~Copyable>: ~Copyable, ExactScalarAdmission {
+   |        `- note: found this candidate in module 'RetainedHostAdapters'
+13 |     private let ledger: UnsafeMutablePointer<A>
+14 |     private(set) var valueDepth = 0
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-native-20261011-v2/generated/OriginalLiftPlanePointPublisher.swift:449:26: error: type 'OriginalPlaneSnapshot' does not conform to protocol 'OriginalPlaneSourceReading'
+447 | struct OriginalLiftPlanePointPublisher<S: OriginalLiftGraphSourceReading> {
+448 |     typealias F = OriginalExactScalarDomain
+449 |     typealias Geometry = OriginalLiftPlaneGeometricRelations<S,OriginalPlaneSnapshot>
+    |                          `- error: type 'OriginalPlaneSnapshot' does not conform to protocol 'OriginalPlaneSourceReading'
+450 | 
+451 |     func publish<A: ExactScalarAdmission & ~Copyable>(_ geometry: Geometry,

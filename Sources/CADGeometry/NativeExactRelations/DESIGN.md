@@ -440,10 +440,18 @@ the whole requested graph. A nonzero constant proves exclusion. A nonconstant
 linear equation has exactly one candidate, derived by field division and retained
 with its coefficients. This restriction currently applies only when the retained
 original T transport is exactly identity; other transports keep the original
-query. Higher-degree equations also keep the original complete L5 query.
+query. For an identity T transport and a higher-degree equation, one exact
+division by the full nonconstant homogeneous weight may expose a constant or
+linear necessary equation. The existing L5 map retains `Hw != 0`; therefore
+`P = Hw * Q` has exactly the same plane preimage on that guarded map. Only an
+exactly zero division remainder and a quotient of degree at most one permit this
+preselection. A nonzero remainder or higher-degree quotient keeps the original
+complete L5 query. Division/resource/cancellation failures propagate.
 
 The sealed restriction receipt retains the original binding, selected binding,
-equation, original plane owner and attained depths. Original request/support
+raw equation, original plane owner and attained depths. The quotient is only a
+candidate restriction law: the original homogeneous weight, conditions and
+binding remain unchanged. Original request/support
 intersection and every source guard remain authoritative; a candidate is not a
 contact proof. L5 still proves contact, absence or positive-dimensional fibers.
 No failed calculation becomes exclusion. Excluded chart queries retain these

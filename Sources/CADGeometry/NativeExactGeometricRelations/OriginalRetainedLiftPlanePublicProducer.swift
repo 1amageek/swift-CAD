@@ -2,11 +2,11 @@ import CADCore
 
 /// One original lift/plane solve under the composing public caller allowance.
 struct OriginalRetainedLiftPlanePublicProducer {
+    private typealias Admission = NativeExactPublicAdmission<NativeCurveSurfacePointAllowance>
     func resolve(curve: Curve3D, surface: Surface3D, options: CurveSurfaceIntersectionOptions,
         tolerance: ModelingTolerance, invocation: CurveSurfaceQueryInvocation? = nil,
         retainingRelations: Bool = false) throws -> CurveSurfaceIntersectionResult? {
-        guard case .surfaceLift(let input) = curve, input.exactBSplineImage == nil,
-            case .polyline = input.parameterCurve else { return nil }
+        guard case .surfaceLift(let input) = curve, input.exactBSplineImage == nil else { return nil }
         let normal: Vector3D
         switch surface {
         case .plane(let plane) where plane.uDirection == nil: normal = plane.normal
@@ -21,15 +21,25 @@ struct OriginalRetainedLiftPlanePublicProducer {
         else if normal.y != 0 && normal.x == 0 && normal.z == 0 { length = abs(normal.y) }
         else if normal.z != 0 && normal.x == 0 && normal.y == 0 { length = abs(normal.z) }
         else { return nil }
-        switch input.surface {
-        case .procedural(.originalCoons):
+        switch (input.parameterCurve,input.surface) {
+        case (.polyline,.procedural(.originalCoons)):
             return try resolve(input:input,surface:surface,options:options,tolerance:tolerance,
                 invocation:invocation,retainingRelations:retainingRelations,length:length,
                 host:{ OriginalCoonsAtlasSnapshotProvider(field:$0,tolerance:tolerance) })
-        case .procedural(.originalBoundaryCorrected):
+        case (.polyline,.procedural(.originalBoundaryCorrected)):
             return try resolve(input:input,surface:surface,options:options,tolerance:tolerance,
                 invocation:invocation,retainingRelations:retainingRelations,length:length,
                 host:{ OriginalBoundaryCorrectionSnapshotProvider(field:$0,tolerance:tolerance) })
+        case (.bSpline,.procedural(.originalPlaneDerivative)):
+            return try resolve(input:input,surface:surface,options:options,tolerance:tolerance,
+                invocation:invocation,retainingRelations:retainingRelations,length:length,
+                prepare:{ depth,limits,charts,a in
+                    try prepareDerivative(input:input,tolerance:tolerance,depth:depth,
+                        limits:limits,charts:charts,using:&a)
+                })
+        // FIXME(INCOMPLETE_IMPLEMENTATION): Other retained host/pcurve combinations
+        // require their complete original source and checked UV reduction before
+        // this public entry may accept and publish their whole requested domain.
         default: return nil
         }
     }
@@ -38,7 +48,47 @@ struct OriginalRetainedLiftPlanePublicProducer {
         surface:Surface3D,options:CurveSurfaceIntersectionOptions,tolerance:ModelingTolerance,
         invocation:CurveSurfaceQueryInvocation?,retainingRelations:Bool,length:Double,
         host makeHost:(OriginalExactScalarDomain) -> P) throws -> CurveSurfaceIntersectionResult {
-        typealias Source = OriginalPolylineRetainedAtlasLiftSnapshot<P.Source>
+        try resolve(input:input,surface:surface,options:options,tolerance:tolerance,
+            invocation:invocation,retainingRelations:retainingRelations,length:length,
+            prepare:{ depth,sourceLimits,charts,a in
+                typealias Source = OriginalPolylineRetainedAtlasLiftSnapshot<P.Source>
+                let pcurve = try DefaultOriginalSourceBindingIssuer(provider:OriginalPolylinePcurveSnapshotProvider(
+                    maximumValueDepth:depth,maximumCoefficientDepth:depth))
+                    .bind(input.parameterCurve,limits:sourceLimits,using:&a)
+                let f = pcurve.original.originalField
+                let provider = OriginalPolylineRetainedAtlasLiftSnapshotProvider(
+                    host:makeHost(f),pcurve:pcurve)
+                let source = try DefaultOriginalSourceBindingIssuer(provider:provider).bind(input,limits:sourceLimits,using:&a)
+                let host = try DefaultOriginalFiniteRetainedSurfaceChartPreparer<P.Source>()
+                    .prepare(source:source.original.originalSurface,maximumCharts:charts,limits:sourceLimits,using:&a)
+                let pc = try DefaultOriginalFiniteRetainedCurveChartPreparer<OriginalPolylinePcurveSnapshot>()
+                    .prepare(source:pcurve,maximumCharts:charts,limits:sourceLimits,using:&a)
+                return try DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<Source>()
+                    .prepare(source:source,surface:host,pcurve:pc,maximumCharts:charts,limits:sourceLimits,using:&a)
+            })
+    }
+
+    private func prepareDerivative(input:SurfaceLiftCurve3D,tolerance:ModelingTolerance,depth:Int,
+        limits:OriginalSourceIssuanceLimits,charts:Int,using a:inout Admission)
+        throws -> OriginalFiniteRetainedSurfaceLiftGraphs<OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalPlaneDerivativeSurfaceSnapshot>> {
+        typealias Source = OriginalNativePcurveRetainedAtlasLiftSnapshot<OriginalPlaneDerivativeSurfaceSnapshot>
+        let f = try OriginalExactScalarDomain(maximumValueDepth:depth,maximumCoefficientDepth:depth,using:&a)
+        let provider = OriginalNativePcurveRetainedAtlasLiftSnapshotProvider(
+            host:OriginalPlaneDerivativeSurfaceSnapshotProvider(field:f,tolerance:tolerance),tolerance:tolerance)
+        let source = try DefaultOriginalSourceBindingIssuer(provider:provider).bind(input,limits:limits,using:&a)
+        let host = try DefaultOriginalFiniteRetainedSurfaceChartPreparer<OriginalPlaneDerivativeSurfaceSnapshot>()
+            .prepare(source:source.original.originalSurface,maximumCharts:charts,limits:limits,using:&a)
+        let pcurve = try DefaultOriginalFiniteBSplineChartPreparer<BSplineCurve2D>()
+            .prepare(source:source.original.originalPcurve,field:f,maximumCharts:charts,limits:limits,using:&a)
+        return try DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<Source>()
+            .prepare(source:source,surface:host,pcurve:pcurve,maximumCharts:charts,limits:limits,using:&a)
+    }
+
+    private func resolve<Source:OriginalLiftGraphSourceReading>(input:SurfaceLiftCurve3D,
+        surface:Surface3D,options:CurveSurfaceIntersectionOptions,tolerance:ModelingTolerance,
+        invocation:CurveSurfaceQueryInvocation?,retainingRelations:Bool,length:Double,
+        prepare:(Int,OriginalSourceIssuanceLimits,Int,inout Admission) throws -> OriginalFiniteRetainedSurfaceLiftGraphs<Source>)
+        throws -> CurveSurfaceIntersectionResult {
         do {
             try options.validate(tolerance:tolerance)
             let usage = try NativeCurveSurfacePointAllowance(options:options,invocation:invocation)
@@ -51,19 +101,8 @@ struct OriginalRetainedLiftPlanePublicProducer {
                 options.maximumSubdivisionCells)
             let limits = try OriginalDomainIdentityLimits(source:sourceLimits,maximumTransportDepth:depth,
                 maximumCharts:charts,maximumFamilies:2,maximumIdentityProofs:0)
-            let pcurve = try DefaultOriginalSourceBindingIssuer(provider:OriginalPolylinePcurveSnapshotProvider(
-                maximumValueDepth:depth,maximumCoefficientDepth:depth))
-                .bind(input.parameterCurve,limits:sourceLimits,using:&a)
-            let f = pcurve.original.originalField
-            let provider = OriginalPolylineRetainedAtlasLiftSnapshotProvider(
-                host:makeHost(f),pcurve:pcurve)
-            let source = try DefaultOriginalSourceBindingIssuer(provider:provider).bind(input,limits:sourceLimits,using:&a)
-            let host = try DefaultOriginalFiniteRetainedSurfaceChartPreparer<P.Source>()
-                .prepare(source:source.original.originalSurface,maximumCharts:charts,limits:sourceLimits,using:&a)
-            let pc = try DefaultOriginalFiniteRetainedCurveChartPreparer<OriginalPolylinePcurveSnapshot>()
-                .prepare(source:pcurve,maximumCharts:charts,limits:sourceLimits,using:&a)
-            let family = try DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer<Source>()
-                .prepare(source:source,surface:host,pcurve:pc,maximumCharts:charts,limits:sourceLimits,using:&a)
+            let family = try prepare(depth,sourceLimits,charts,&a)
+            let f = family.field
             for graph in family.graphs {
                 for law in graph.homogeneous {
                     for term in law.terms {

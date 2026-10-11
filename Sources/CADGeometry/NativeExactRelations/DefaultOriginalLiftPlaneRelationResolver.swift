@@ -73,17 +73,27 @@ public struct DefaultOriginalLiftPlaneRelationResolver: OriginalLiftPlaneRelatio
             }
             var kind: OriginalLiftPlaneParameterRestriction<S,P>.Kind = .unchanged
             var request = binding.request
-            let degree = try r.degree(of:equation,in:0,using:&a)
+            var candidate = equation
+            var degree = try r.degree(of:equation,in:0,using:&a)
             let parameterRing = try ExactPolynomialDomain(field:f,variableCount:1,using:&a)
             let identity = try parameterRing.equals(parameterRing.importing(g.parameterTransport.numerators[0],using:&a),parameterRing.variable(0,using:&a),using:&a)
                 && parameterRing.equals(parameterRing.importing(g.parameterTransport.denominators[0],using:&a),parameterRing.constant(f.integer(1,using:&a),using:&a),using:&a)
+            if identity,let originalDegree = degree,originalDegree > 1,
+                let weightDegree = try r.degree(of:g.homogeneous[3],in:0,using:&a),weightDegree > 0 {
+                // The existing L5 map retains Hw != 0; P = Hw * Q preserves its plane preimage.
+                let division = try r.divided(equation,by:g.homogeneous[3],using:&a)
+                if try r.isZero(division.remainder,using:&a),
+                    let quotientDegree = try r.degree(of:division.quotient,in:0,using:&a),quotientDegree <= 1 {
+                    candidate = division.quotient;degree = quotientDegree
+                }
+            }
             if identity,let degree,degree <= 1 {
                 if degree == 0 {
                     kind = .excluded
                     request = try request.frame.selection(intervals:[[]],limits:limits,using:&a)
                 } else {
                     var constant = try f.integer(0,using:&a),slope = try f.integer(0,using:&a)
-                    for term in equation.terms {
+                    for term in candidate.terms {
                         try a.consumeWork(1)
                         guard term.powers.count == 1 else { throw NativeExactRelationFailure.invalidDomain }
                         if term.powers[0] == 0 { constant = term.coefficient }
