@@ -153,7 +153,7 @@ def audit():
                 check(path, digest)
                 immutable_inputs[digest] = path
 
-    def inspect(metadata, receipt_key='receiptSHA256', successful_runs=True):
+    def inspect(metadata, receipt_key='receiptSHA256', successful_runs=True, historical_observation=False):
         path = locate(metadata['receipt'])
         check(path, metadata[receipt_key])
         record = read(path)
@@ -176,7 +176,14 @@ def audit():
             labels[label] = run
             saved_log = metadata.get('logPaths', {}).get(label)
             check(locate(saved_log) if saved_log else path.parent / f'{label}.log', run['logSHA256'])
-            require(not run['ownedDescendantsRemaining'], f'owned process remains: {path}: {label}')
+            if 'ownedDescendantsRemaining' in run:
+                require(not run['ownedDescendantsRemaining'], f'owned process remains: {path}: {label}')
+            else:
+                require(historical_observation and
+                        metadata[receipt_key] == '434c08d8240e60d2971fa0e053d94833206644d0ba2290dcea87acf46efe7446' and
+                        path == EVIDENCE / 'native-observation-v1/receipt.json' and
+                        record.get('state') == 'observed-public-unsupportedCoverage',
+                        f'owned process observation missing: {path}: {label}')
             if successful_runs:
                 require(run['exitCode'] == 0 and not run['timedOut'], f'run failed: {path}: {label}')
         return record, labels
@@ -273,7 +280,7 @@ def audit():
     require(all(value == groups for value in covered.values()), 'four-lane group coverage incomplete')
 
     for observation in summary['observations']:
-        record, labels = inspect(observation)
+        record, labels = inspect(observation, historical_observation=True)
         require(record['state'] == 'observed-public-unsupportedCoverage' and
                 record['typedStop'] == 'NativeExactRelationFailure.unsupportedCoverage' and
                 record['noClippedSuccess'] is True, 'historical public stop was relabeled')
@@ -425,6 +432,7 @@ def audit():
                   inheritedIntegrationSHA256=sha(ROOT / PRIOR), sourcePremises=sources, premiseUpdates=updates,
                   changedInputs=changed, deletedInputs=deleted, acceptedScopedReceipts=accepted,
                   observations=summary['observations'], diagnostics=diagnostics, issued=issued_metadata,
+                  historicalObservationLimits='Original unsupported observation records timeout/CPU/exit/log/RSS, not owned-descendant cleanup; it supplies no accepted owner-lifetime evidence.',
                   nativeSelectedBodies=37, issuedSelectedBodies=17, uniqueCurrentSourceBodies=len(current),
                   durableEvidence=durable, protectedDrafts=protected,
                   auditReferences=references, uniqueArtifacts=len(cache), independentSeconds=independent_seconds,
