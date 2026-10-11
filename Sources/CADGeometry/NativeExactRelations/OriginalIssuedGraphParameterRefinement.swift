@@ -13,12 +13,18 @@ public struct OriginalIssuedGraphParameterRefinement<S: Sendable,E: Sendable,C: 
     public let raw: OriginalIssuedGraphRelations<S,E,C,T,F,D>
     public let pairOrdinal: Int
     public let pullback: ExactRealCellPullback<OriginalExactScalarDomain>
+    public let predicateEquivalence: OriginalIssuedGraphPredicateEquivalence?
+    let predicateDecisionDepth: ExactScalarDepth?
 
     init(raw: OriginalIssuedGraphRelations<S,E,C,T,F,D>, pairOrdinal: Int,
-         pullback: ExactRealCellPullback<OriginalExactScalarDomain>) {
+         pullback: ExactRealCellPullback<OriginalExactScalarDomain>,
+         predicateEquivalence: OriginalIssuedGraphPredicateEquivalence? = nil,
+         predicateDecisionDepth: ExactScalarDepth? = nil) {
         self.raw = raw
         self.pairOrdinal = pairOrdinal
         self.pullback = pullback
+        self.predicateEquivalence = predicateEquivalence
+        self.predicateDecisionDepth = predicateDecisionDepth
     }
 
     public func contains<A: ExactScalarAdmission & ~Copyable>(
@@ -29,6 +35,8 @@ public struct OriginalIssuedGraphParameterRefinement<S: Sendable,E: Sendable,C: 
         do {
             try admission.checkpoint()
             try raw.admitProof(limits: limits, using: &admission)
+            if let predicateEquivalence { try predicateEquivalence.admitProof(using: &admission) }
+            if let predicateDecisionDepth { try admission.admitDepth(value: predicateDecisionDepth.value, coefficient: predicateDecisionDepth.coefficient) }
             let region = pullback.region
             try admission.admitDepth(value: region.depth.value, coefficient: region.depth.coefficient)
             let cells = try ExactRealCellDomain<OriginalExactScalarDomain>(retaining: region.partition.source, using: &admission)

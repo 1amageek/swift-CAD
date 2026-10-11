@@ -1,0 +1,39 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v8/Proof.swift:1897:29: error: value of optional type 'ExactScalarDepth?' must be unwrapped to refer to member 'value' of wrapped base type 'ExactScalarDepth'
+1895 |         // The actual rational-only guide source has zero inherited algebraic depth.
+1896 |         let inherited = 9
+1897 |         try require(laws[0].proofDepth.value == 0 && laws[0].proofDepth.coefficient == 0)
+     |                             |- error: value of optional type 'ExactScalarDepth?' must be unwrapped to refer to member 'value' of wrapped base type 'ExactScalarDepth'
+     |                             |- note: chain the optional using '?' to access member 'value' only for non-'nil' base values
+     |                             `- note: force-unwrap using '!' to abort execution if the optional value contains 'nil'
+1898 |         try require(laws[6].proofDepth.value == 0 && laws[6].proofDepth.coefficient == 0)
+1899 |         func retainingHistory(_ law:Law) throws -> Law {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v8/Proof.swift:1897:62: error: value of optional type 'ExactScalarDepth?' must be unwrapped to refer to member 'coefficient' of wrapped base type 'ExactScalarDepth'
+1895 |         // The actual rational-only guide source has zero inherited algebraic depth.
+1896 |         let inherited = 9
+1897 |         try require(laws[0].proofDepth.value == 0 && laws[0].proofDepth.coefficient == 0)
+     |                                                              |- error: value of optional type 'ExactScalarDepth?' must be unwrapped to refer to member 'coefficient' of wrapped base type 'ExactScalarDepth'
+     |                                                              |- note: chain the optional using '?' to access member 'coefficient' only for non-'nil' base values
+     |                                                              `- note: force-unwrap using '!' to abort execution if the optional value contains 'nil'
+1898 |         try require(laws[6].proofDepth.value == 0 && laws[6].proofDepth.coefficient == 0)
+1899 |         func retainingHistory(_ law:Law) throws -> Law {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v8/Proof.swift:1898:29: error: value of optional type 'ExactScalarDepth?' must be unwrapped to refer to member 'value' of wrapped base type 'ExactScalarDepth'
+1896 |         let inherited = 9
+1897 |         try require(laws[0].proofDepth.value == 0 && laws[0].proofDepth.coefficient == 0)
+1898 |         try require(laws[6].proofDepth.value == 0 && laws[6].proofDepth.coefficient == 0)
+     |                             |- error: value of optional type 'ExactScalarDepth?' must be unwrapped to refer to member 'value' of wrapped base type 'ExactScalarDepth'
+     |                             |- note: chain the optional using '?' to access member 'value' only for non-'nil' base values
+     |                             `- note: force-unwrap using '!' to abort execution if the optional value contains 'nil'
+1899 |         func retainingHistory(_ law:Law) throws -> Law {
+1900 |             .init(chart:law.chart,field:law.field,polynomials:law.polynomials,homogeneous:law.homogeneous,
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v8/Proof.swift:1898:62: error: value of optional type 'ExactScalarDepth?' must be unwrapped to refer to member 'coefficient' of wrapped base type 'ExactScalarDepth'
+1896 |         let inherited = 9
+1897 |         try require(laws[0].proofDepth.value == 0 && laws[0].proofDepth.coefficient == 0)
+1898 |         try require(laws[6].proofDepth.value == 0 && laws[6].proofDepth.coefficient == 0)
+     |                                                              |- error: value of optional type 'ExactScalarDepth?' must be unwrapped to refer to member 'coefficient' of wrapped base type 'ExactScalarDepth'
+     |                                                              |- note: chain the optional using '?' to access member 'coefficient' only for non-'nil' base values
+     |                                                              `- note: force-unwrap using '!' to abort execution if the optional value contains 'nil'
+1899 |         func retainingHistory(_ law:Law) throws -> Law {
+1900 |             .init(chart:law.chart,field:law.field,polynomials:law.polynomials,homogeneous:law.homogeneous,

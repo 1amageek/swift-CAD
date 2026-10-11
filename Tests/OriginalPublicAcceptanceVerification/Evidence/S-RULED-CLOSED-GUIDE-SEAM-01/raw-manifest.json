@@ -1,0 +1,817 @@
+{
+  "schema": 1,
+  "scope": "Immutable Native observation text, exact current selected source, generated compiler inputs, successful two-body module receipt, admitted reused port premises, and historical comparators. Product binaries remain at recorded original paths and their pre/post digests remain in raw receipts. No complete raw-product acceptance.",
+  "cellComplete": false,
+  "files": {
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/OriginalRuledSurfaceSnapshot.swift": {
+      "sha256": "eb440523556f920e7879316509b214cb3871eae19a4298a92e9df38e28a32f18",
+      "bytes": 30359,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/OriginalRuledSurfaceSnapshot.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/OriginalRuledSurfaceSnapshotProvider.swift": {
+      "sha256": "355d7d750ae11a8d2566ed80ca6d86a5a36f83b18f0a399a8986208a06143ca4",
+      "bytes": 32476,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/OriginalRuledSurfaceSnapshotProvider.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/Proof.swift": {
+      "sha256": "09f42fbe86b3e1426abe3402c54eadb05bf14ce7fa4b8485093c7bcb765a862c",
+      "bytes": 43206,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/Proof.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/compile-module.json": {
+      "sha256": "60778a4c4d1c5a5b518bd632038e6d1975dc12f893debe3330cd4b534929a669",
+      "bytes": 3449,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/compile-module.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/compile-module.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/compile-module.log"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/compile-proof.json": {
+      "sha256": "892f19c26ccf2d2bae575fd001b50eb2b0f4000946117a20876fa8c01a713d0a",
+      "bytes": 4874,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/compile-proof.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/compile-proof.log": {
+      "sha256": "11eecca2dd9138fe9a7c5d4f047680dc9d67eea999f23fc826c43ca6bb979bfb",
+      "bytes": 10011,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/compile-proof.log"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/driver.py": {
+      "sha256": "9bc6db5aa88b4a55ff1164880965ba1eed651c342255a934304755c80a0e61b6",
+      "bytes": 10000,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/driver.py"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/failure-receipt.json": {
+      "sha256": "caf335799d749345332716a0b2a759a2517cb00726d398674185303b58064c80",
+      "bytes": 789866,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/failure-receipt.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift": {
+      "sha256": "cab66e3ebf70627220b9eacee371886bb4fbaa78b42c0c26d273744ce91b0a50",
+      "bytes": 1724,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": {
+      "sha256": "c1471838a8f4a65fe1c0f01cafb9bb02fc8042c2a910b58e9f20be3cca87b9e9",
+      "bytes": 206053,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift": {
+      "sha256": "7409f6b78518d3c7d558e952d458238ffeddae31129dd9176452c8f318b885fa",
+      "bytes": 38014,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalHigherCurveJets/OriginalParameterCurveHigherTaylor.swift": {
+      "sha256": "0d22875318734aef4495d68c36085dcdc19edd4bad08aed1b06a6ec11006c0ec",
+      "bytes": 16543,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalHigherCurveJets/OriginalParameterCurveHigherTaylor.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRollingBallCurveGraphPreparer.swift": {
+      "sha256": "8b6451e072c2081d3c24b9988d4338274b3a1c8d13b5ff18573180056a35626a",
+      "bytes": 12713,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRollingBallCurveGraphPreparer.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalSpatialChartIssuer.swift": {
+      "sha256": "07db5406f9993dd6dbd324b38e0d6b6879d1012fc02b9505242817476ecd7f0c",
+      "bytes": 6017,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalSpatialChartIssuer.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveGraphCoverage.swift": {
+      "sha256": "6f3032525579f61bd10bd21ab70fbd29c6e2706f544f94040f87e786755c7e6f",
+      "bytes": 1471,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveGraphCoverage.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveGraphEvidence.swift": {
+      "sha256": "064f41b21a276ec1bec720a4f63b0920930607fbb68dc3e626cda01154dae283",
+      "bytes": 1624,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveGraphEvidence.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveSnapshot.swift": {
+      "sha256": "4a6c1ad887b7f3370f45b8e9127133ad095ac8937605c6440e73b4a2165fc852",
+      "bytes": 1544,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveSnapshot.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveSnapshotProvider.swift": {
+      "sha256": "c05ce67e5c2296772010dedd70d3a937475f5ccbbc8dcb9d365e769d1a18c764",
+      "bytes": 7142,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveSnapshotProvider.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallGraphProducer.swift": {
+      "sha256": "3914b0706451a7b902315cd919e153854e9ba97dd0abf7cc53ac79284103c434",
+      "bytes": 13681,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallGraphProducer.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/RationalBivariateAlgebra/OriginalEuclideanPolylineParameterLaw.swift": {
+      "sha256": "a6f29571e6b6a606a847af53ceceed1ef8aea43adf993674a215485c680f5f43",
+      "bytes": 12407,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/RationalBivariateAlgebra/OriginalEuclideanPolylineParameterLaw.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalProceduralSurfaceHigherTaylor.swift": {
+      "sha256": "4bcbd17f2e7fba44d84b7d228982b7c5444b7ca813aa7b603005da7fb711497a",
+      "bytes": 8019,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalProceduralSurfaceHigherTaylor.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift": {
+      "sha256": "dad44bcfb8e9aa237a7b8e1128175030b44cb359eb242b891d30f93a1178039f",
+      "bytes": 6109,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceHigherJetProvider.swift": {
+      "sha256": "27c5c1b2bf604fb3fc32cab63f1384e3783d0fcb73066d8a7b1a90c9b599ed10",
+      "bytes": 15516,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceHigherJetProvider.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/module-receipt.json": {
+      "sha256": "cc938e8484cb04b484c7c46335f3763ce4770543c9c5748f4712e3a26d8f2d58",
+      "bytes": 775623,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/module-receipt.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/premises-before.json": {
+      "sha256": "f9888c064ecdb38847634306e4fc88f3819e44b25210d34e363b53b5c73abb8a",
+      "bytes": 180,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/premises-before.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v1/runs.json": {
+      "sha256": "592f6b8070b25f7a837247d2d851abddb9b7c8b7889457c326b0d3d135d47c69",
+      "bytes": 9777,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/runs.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/Proof.swift": {
+      "sha256": "59d8a1acfd73425593d7bd9e7d1de31767a48a609c3f1a92e0111d9237560088",
+      "bytes": 43212,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/Proof.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/compile-proof.json": {
+      "sha256": "e5b48f5377c31dac9c0889f3f005875162e5ac91dcd9fd678631f39ffbd94e33",
+      "bytes": 4874,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/compile-proof.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/compile-proof.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/compile-proof.log"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/driver.py": {
+      "sha256": "9bc6db5aa88b4a55ff1164880965ba1eed651c342255a934304755c80a0e61b6",
+      "bytes": 10000,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/driver.py"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/failure-receipt.json": {
+      "sha256": "800faa60aec909d547c239122de89fd9ca3e3bfc4d206979e49d4f70e8c7864a",
+      "bytes": 790700,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/failure-receipt.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift": {
+      "sha256": "cab66e3ebf70627220b9eacee371886bb4fbaa78b42c0c26d273744ce91b0a50",
+      "bytes": 1724,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": {
+      "sha256": "c1471838a8f4a65fe1c0f01cafb9bb02fc8042c2a910b58e9f20be3cca87b9e9",
+      "bytes": 206053,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift": {
+      "sha256": "7409f6b78518d3c7d558e952d458238ffeddae31129dd9176452c8f318b885fa",
+      "bytes": 38014,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalHigherCurveJets/OriginalParameterCurveHigherTaylor.swift": {
+      "sha256": "0d22875318734aef4495d68c36085dcdc19edd4bad08aed1b06a6ec11006c0ec",
+      "bytes": 16543,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalHigherCurveJets/OriginalParameterCurveHigherTaylor.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRollingBallCurveGraphPreparer.swift": {
+      "sha256": "8b6451e072c2081d3c24b9988d4338274b3a1c8d13b5ff18573180056a35626a",
+      "bytes": 12713,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRollingBallCurveGraphPreparer.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalSpatialChartIssuer.swift": {
+      "sha256": "07db5406f9993dd6dbd324b38e0d6b6879d1012fc02b9505242817476ecd7f0c",
+      "bytes": 6017,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalSpatialChartIssuer.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveGraphCoverage.swift": {
+      "sha256": "6f3032525579f61bd10bd21ab70fbd29c6e2706f544f94040f87e786755c7e6f",
+      "bytes": 1471,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveGraphCoverage.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveGraphEvidence.swift": {
+      "sha256": "064f41b21a276ec1bec720a4f63b0920930607fbb68dc3e626cda01154dae283",
+      "bytes": 1624,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveGraphEvidence.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveSnapshot.swift": {
+      "sha256": "4a6c1ad887b7f3370f45b8e9127133ad095ac8937605c6440e73b4a2165fc852",
+      "bytes": 1544,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveSnapshot.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveSnapshotProvider.swift": {
+      "sha256": "c05ce67e5c2296772010dedd70d3a937475f5ccbbc8dcb9d365e769d1a18c764",
+      "bytes": 7142,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveSnapshotProvider.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallGraphProducer.swift": {
+      "sha256": "3914b0706451a7b902315cd919e153854e9ba97dd0abf7cc53ac79284103c434",
+      "bytes": 13681,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallGraphProducer.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/RationalBivariateAlgebra/OriginalEuclideanPolylineParameterLaw.swift": {
+      "sha256": "a6f29571e6b6a606a847af53ceceed1ef8aea43adf993674a215485c680f5f43",
+      "bytes": 12407,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/RationalBivariateAlgebra/OriginalEuclideanPolylineParameterLaw.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalProceduralSurfaceHigherTaylor.swift": {
+      "sha256": "4bcbd17f2e7fba44d84b7d228982b7c5444b7ca813aa7b603005da7fb711497a",
+      "bytes": 8019,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalProceduralSurfaceHigherTaylor.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift": {
+      "sha256": "dad44bcfb8e9aa237a7b8e1128175030b44cb359eb242b891d30f93a1178039f",
+      "bytes": 6109,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceHigherJetProvider.swift": {
+      "sha256": "27c5c1b2bf604fb3fc32cab63f1384e3783d0fcb73066d8a7b1a90c9b599ed10",
+      "bytes": 15516,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceHigherJetProvider.swift"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/premises-before.json": {
+      "sha256": "f9888c064ecdb38847634306e4fc88f3819e44b25210d34e363b53b5c73abb8a",
+      "bytes": 180,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/premises-before.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/raw-observation.log": {
+      "sha256": "fc17d6e1dfe834b6e1b43ef875dff03c98a058079eac94a8a5f26b74360198f7",
+      "bytes": 428,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/raw-observation.log"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/reused-module.json": {
+      "sha256": "21acf88c37c96c11d34d425b1968fe486630e3ef95bab6107194cb6c17192b12",
+      "bytes": 211,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/reused-module.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/runs.json": {
+      "sha256": "8c35a571c293652a532b9016349ffeab40d55833b9000be9aea07b0104876274",
+      "bytes": 6150,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/runs.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v2/runtime-admission.json": {
+      "sha256": "6107a7fbacf1ac83a517f47b78e948f10bddf3a6a0be31c76cbaafae8a818d07",
+      "bytes": 784044,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v2/runtime-admission.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v3/admission.json": {
+      "sha256": "b822ffeb3d46dd850001fbd495cd5cd7db1186966894c8c827b7a0dce42b6035",
+      "bytes": 784816,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v3/admission.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v3/compile-boundary-stop.json": {
+      "sha256": "79c1a962aa989ad1889dbdf73ab29d6b08a9923f04d7ec58b70de6ef008e93e5",
+      "bytes": 3390,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v3/compile-boundary-stop.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v3/compile-boundary-stop.log": {
+      "sha256": "8b9d5536eee7733bb9d53fbaac268c07c65523b646e03328417c0f924d596d97",
+      "bytes": 4339,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v3/compile-boundary-stop.log"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v3/receipt.json": {
+      "sha256": "5babb15fc7270bac1fc4f09f65e03e78dd77553073fc1f852b5915846cac9ba7",
+      "bytes": 789769,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v3/receipt.json"
+    },
+    "raw/.build/s-ruled-closed-guide-seam-native-20261012-v3/runs.json": {
+      "sha256": "a470012b00e9db0c65d5e1c25caeabde91eaf6cd07994deb95544f52d2de8f4f",
+      "bytes": 4103,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v3/runs.json"
+    },
+    "current-source/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/OriginalGuideTraversalChain3D.swift": {
+      "sha256": "e3882fc35dd0dc5f888619ccc2dc3f5c09daee2716af075295f0447a730bb919",
+      "bytes": 11066,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/OriginalGuideTraversalChain3D.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalRootSpan/OriginalCurveRootSpan3D.swift": {
+      "sha256": "b7b6a594c1e0ed4961eadc45b202ac7f9be33f05d462cd2c463501995e91e372",
+      "bytes": 65896,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalRootSpan/OriginalCurveRootSpan3D.swift"
+    },
+    "current-source/Sources/CADGeometry/RuledSurface3D.swift": {
+      "sha256": "1ce0b3bc39ab834da8359f6af8150889d66413621d90f8349685955a7d7fbc3f",
+      "bytes": 11289,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/RuledSurface3D.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRetainedGuideCurveSnapshot.swift": {
+      "sha256": "daa7398b1dd2147b0df76a702dd5bf29ff0b7f2ee373d64affb68dfc582d1b65",
+      "bytes": 1410,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRetainedGuideCurveSnapshot.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRetainedGuideCurveSnapshotProvider.swift": {
+      "sha256": "8d1ad288e5c31f70a52f19be6378dffaebb557a689cc8153d15a4dfe9b04c3a0",
+      "bytes": 4382,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRetainedGuideCurveSnapshotProvider.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRuledSurfaceSnapshot.swift": {
+      "sha256": "b454a2cd256f2bb246596c5cee186e5f98683d38d08a6e41bd7cf7503c59e6e3",
+      "bytes": 859,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRuledSurfaceSnapshot.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRuledSurfaceSnapshotProvider.swift": {
+      "sha256": "45126f6c26a320e52ec1d1457cce508cd5ca4289ad6fee0dc2b17b9f933edbb0",
+      "bytes": 2976,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRuledSurfaceSnapshotProvider.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalFiniteRetainedCurveChartPreparer.swift": {
+      "sha256": "89da9ca2d2bd7ac3908be8a0e88ad56a3cff3d85069940e25d90e0bf682b2e5b",
+      "bytes": 4900,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalFiniteRetainedCurveChartPreparer.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalFiniteRuledChartPreparer.swift": {
+      "sha256": "a13aa745b56350d4efdfffd5f2de7eb99d34de95b889913e1991b3c5c522ba2b",
+      "bytes": 5012,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalFiniteRuledChartPreparer.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRuledChartSelection.swift": {
+      "sha256": "2ae74964e5388bd2838203e1ee936b01e7579d0eace44bc1fdb8a2059cfeaa05",
+      "bytes": 759,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRuledChartSelection.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalSourceBoundaryDeclaration.swift": {
+      "sha256": "a5a09b6f1e69744b5a39b6dd9635ea67b0d74f001b9f92313d4d099ad06b640d",
+      "bytes": 948,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalSourceBoundaryDeclaration.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalRationalParameterIdentityIssuing.swift": {
+      "sha256": "d5d51081867bddb31a3f16eaf11fbb0c2a2e56606d883ffb1ac00d11767a7fc5",
+      "bytes": 1826,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalRationalParameterIdentityIssuing.swift"
+    },
+    "current-source/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DefaultOriginalParameterIdentityIssuer+SourceLaws.swift": {
+      "sha256": "685448bce3b59cf2e6a4620acb8d9654cee6f5bdf83958467cc96dcd9153c95f",
+      "bytes": 13358,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DefaultOriginalParameterIdentityIssuer+SourceLaws.swift"
+    },
+    "raw/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamObservation.swift": {
+      "sha256": "434322d00746b6d0178dbc360f396d441a8392006ac37ddf3bf1ff9c7cb10b76",
+      "bytes": 13745,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamObservation.swift"
+    },
+    "raw/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamObservation.py": {
+      "sha256": "9bc6db5aa88b4a55ff1164880965ba1eed651c342255a934304755c80a0e61b6",
+      "bytes": 10000,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamObservation.py"
+    },
+    "raw/.build/finish-guide-seam-observation.py": {
+      "sha256": "eae7dc5c8c080d72044c20c68c5088d65480213109499266746855778c93b4e1",
+      "bytes": 2759,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/finish-guide-seam-observation.py"
+    },
+    "raw/.build/cs-draft-zero-selected-piece-admission-20261012.json": {
+      "sha256": "fac42232a2eb8a1535ae52ea965a0f486d91a8d3384f2d8f5e5341eaffa2d6e1",
+      "bytes": 731,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-selected-piece-admission-20261012.json"
+    },
+    "raw/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift": {
+      "sha256": "aab336598a4a8d36d4a8d7bc07160ad0a0d75bcea5fdf173b63986364127cf99",
+      "bytes": 40677,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift"
+    },
+    "raw/Tests/OriginalGuideCurveRollingBallVerification/Evidence/native/receipt.json": {
+      "sha256": "23ea165f0ef42bf85b70e25628b23bab59f688d812717df9eb1ff5bde5d64ff9",
+      "bytes": 572619,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalGuideCurveRollingBallVerification/Evidence/native/receipt.json"
+    },
+    "raw/Tests/OriginalDerivativeLiftHostVerification/Evidence/native/receipt.json": {
+      "sha256": "89ade935da2b7c36f62ec6a627aa09f8eae85173fecc15f7a65538f56f00c8e5",
+      "bytes": 624200,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalDerivativeLiftHostVerification/Evidence/native/receipt.json"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/port-receipt.json": {
+      "sha256": "a9d83d188563ec595d032aa4951ad31ede6bc2434b10b94459ae97932e40cfdb",
+      "bytes": 784967,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/port-receipt.json"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/FixtureAtFailure.swift": {
+      "sha256": "d7c0a7029a4eca5a1b4fc265c76001fc90994189b77f01d9d8523f7aaa001c55",
+      "bytes": 26707,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/FixtureAtFailure.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/compile-port.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/compile-port.log"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/driver.py": {
+      "sha256": "715b33c15060e9ce5a424ad1ad49e231a5663436c78f41060e19a8ae029e86bb",
+      "bytes": 19077,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/driver.py"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/CurveSurfaceIntersectionResolving.swift": {
+      "sha256": "97a4139e933da356ca65c8fb3009d08f7040fe37c5aaef7c9775078573de2e8e",
+      "bytes": 31257,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/CurveSurfaceIntersectionResolving.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/CurveSurfaceIntersectionResult.swift": {
+      "sha256": "7f06d27d5fb4774adb128148a7f575cc5df8bce5841e39b255796185313ef8b8",
+      "bytes": 33468,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/CurveSurfaceIntersectionResult.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultCurveSurfaceIntersector+Overlap.swift": {
+      "sha256": "e3e0318a7fa32773ea0a663e1391292f170c5ed052933654db8a6c14e539305e",
+      "bytes": 32026,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultCurveSurfaceIntersector+Overlap.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift": {
+      "sha256": "daf5aa6b0b6eb39c1e881472638223eb9cdd37282c05e7fa1c62d68d557b4460",
+      "bytes": 31530,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultCurveSurfaceIntersector.swift": {
+      "sha256": "9f97f82136cfc217c7a7c69bd302821091bad4b2d9a9bdb798d13339de865da2",
+      "bytes": 236294,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultCurveSurfaceIntersector.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultExactPolynomialCurveMapCertifier.swift": {
+      "sha256": "eb8e9010fe3416836f8a0e01a0d86f31bdaed88581cc9471f26d0b2d43cd7555",
+      "bytes": 31793,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultExactPolynomialCurveMapCertifier.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalContainedLiftPlaneResolver.swift": {
+      "sha256": "237f43de47298e34f16f9a65423107d04e9572c07348460686961aaa316887b8",
+      "bytes": 40932,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalContainedLiftPlaneResolver.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalIssuedGeometricRelationResolver.swift": {
+      "sha256": "60a1c29108555b5e946681ba97c30153b439db27db92860e4d872b08ee058581",
+      "bytes": 31189,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalIssuedGeometricRelationResolver.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalIssuedGraphCompiler.swift": {
+      "sha256": "dd61fdd01cc4cd6b9c86d74609aa475b5992d11a4c95a4f9a8e8c4fc219fb042",
+      "bytes": 43256,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalIssuedGraphCompiler.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalIssuedGraphParameterRefiner.swift": {
+      "sha256": "25c397a2501a6a1bfcbc2a5f8ff6c014e07e91e8bb0dc3c895b6bfeaf08e9d8c",
+      "bytes": 32447,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalIssuedGraphParameterRefiner.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalIssuedGraphRelationResolver.swift": {
+      "sha256": "eaab1db9763a3f61205b661f65682ec27e3e42b805f5e4ff51222877acefe64c",
+      "bytes": 32489,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalIssuedGraphRelationResolver.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalLiftPlaneRelationResolver.swift": {
+      "sha256": "0dee53c87d9f57a329f6400eacc679ccd3f950eee1c3da3a1d2045920b5d098c",
+      "bytes": 38649,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalLiftPlaneRelationResolver.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalPlaneGraphCompiler.swift": {
+      "sha256": "e24fd32bd36516924b89bfa4ac20a98d195c2d0bc9ec0c36a45d9dd5615c6cd9",
+      "bytes": 36368,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalPlaneGraphCompiler.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalPolynomialSurfaceLiftGraphReducer.swift": {
+      "sha256": "c6c69ca025e3a11ac537aa889e2c8b244a0ee8cd1348e4e0de4bbb667d1e6679",
+      "bytes": 36141,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalPolynomialSurfaceLiftGraphReducer.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalRationalGraphFamilyPreparer.swift": {
+      "sha256": "7b78ccf9d6aaee076c221b64b1c31baaab6b7298e9b7d2de000d56dc7eda6fb5",
+      "bytes": 33254,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/DefaultOriginalRationalGraphFamilyPreparer.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/ExactIntersectionResultRepresentation.swift": {
+      "sha256": "d82b1f231c826d8902b3acb10c94d7171edebe64379a2712c1e5e5b65f04992f",
+      "bytes": 29840,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/ExactIntersectionResultRepresentation.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/ExactPolynomialCurveMapCertifying.swift": {
+      "sha256": "a7f1209d35c8d44598a08a976f37c5d5b33bc9d61d10784c7e3a7c081f4de899",
+      "bytes": 29940,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/ExactPolynomialCurveMapCertifying.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/ExactPolynomialCurveMapEvidence.swift": {
+      "sha256": "d4fada0243e4861113836d175390db163bdab3f69f95fac482665696149ac334",
+      "bytes": 30404,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/ExactPolynomialCurveMapEvidence.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/GeometryExactScalarFailure.swift": {
+      "sha256": "768b25b3b4e18677d13a85ac546df5701622e099ad793557e9d962e8b252bb57",
+      "bytes": 30826,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/GeometryExactScalarFailure.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactGeometricRelationFailure.swift": {
+      "sha256": "018a754f8ed23aea2807c287692c34fe3aa1982070d5b4790f618f88d05fcf66",
+      "bytes": 30146,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactGeometricRelationFailure.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactGeometryPublicationFailure.swift": {
+      "sha256": "2a5507e159f7d025f0a3a3ac75a3e0a97b24692dceab97e9a67eb79d8d092c7f",
+      "bytes": 38773,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactGeometryPublicationFailure.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicAdmission.swift": {
+      "sha256": "cafe23c2840c94d75999094a2cc7ae9bf0d247254a508ea40a1a4e8c30b0dde7",
+      "bytes": 32410,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicAdmission.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift": {
+      "sha256": "681933520e95b6bb994d8db5d2f663e47092541e6d8a98ec643dde4671a4bad3",
+      "bytes": 30193,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactPublicLimits.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactRelationFailure.swift": {
+      "sha256": "8e8fd158ed26a81729cfdcfea1be2c48c89966e352a6e09878bff3e6bf6341ba",
+      "bytes": 31820,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactRelationFailure.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalContainedLiftPlaneFamily.swift": {
+      "sha256": "e5e4affcb36da94fe697f21468d3ef27bd2f7f48a96739984926132fc7bf113f",
+      "bytes": 30178,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalContainedLiftPlaneFamily.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalContainedLiftPlaneFamilyReading.swift": {
+      "sha256": "8c4d9f772e0e312c6fcf0918765a462f6d8d60fa94161ca253c4e7b97fbc96c7",
+      "bytes": 29804,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalContainedLiftPlaneFamilyReading.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalContainedLiftPlanePiece.swift": {
+      "sha256": "38009f373c8603534136c87bc34fcf56a4cd8b51e51b3f57aae6db57be0b48be",
+      "bytes": 32017,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalContainedLiftPlanePiece.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalDraftedRuledSurfaceSnapshot.swift": {
+      "sha256": "4cf50846edfd35f3a3250ded4d3c1c9f87197cc9e5fc495c7f53cdb2a2917a1c",
+      "bytes": 32085,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalDraftedRuledSurfaceSnapshot.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalDraftedRuledSurfaceSnapshotProvider.swift": {
+      "sha256": "3236023c4a485d2381c5326ff1bdc5c5cfdde96f6f78d5918b0a344df8906f38",
+      "bytes": 34177,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalDraftedRuledSurfaceSnapshotProvider.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalDraftedZeroLinePublicProducer.swift": {
+      "sha256": "f6c54bdf0f34a7a3c2f9bfdf3abacb8a820df3a35857a35f3708891196e3d7b0",
+      "bytes": 40157,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalDraftedZeroLinePublicProducer.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalDraftedZeroTranslationRationalAtlas.swift": {
+      "sha256": "9733b6e528c85b4447d2b335ce2062a2c0aedc90acdf94727c4eadf6ddcb1356",
+      "bytes": 35382,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalDraftedZeroTranslationRationalAtlas.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalEuclideanPolylineParameterLaw.swift": {
+      "sha256": "a800f9500a6040840ec25717f650af27f28fc9237790581d0bd4ace48fa3a2c4",
+      "bytes": 42342,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalEuclideanPolylineParameterLaw.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedExactIntersectionPoint.swift": {
+      "sha256": "a80aa68f3bbd1c1bd4f7b1d701aeea379d3a1f5870ef2eef2582b88b757e4699",
+      "bytes": 31042,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedExactIntersectionPoint.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricPublication.swift": {
+      "sha256": "1539a2295e73f826eaff96748d755f5e815fad53608d01869db31e0a74c5c491",
+      "bytes": 37963,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricPublication.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelationPair.swift": {
+      "sha256": "ec37fd249a250b9902415598973d123f9dd2923e7b03c4c4f3302ca2f2df5827",
+      "bytes": 30018,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelationPair.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelationReading.swift": {
+      "sha256": "d0053caf6ca3bb5d2171ca7c377bad6dadbe0cd8fc2e7b736fd647d856bf37c9",
+      "bytes": 30100,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelationReading.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelationResolving.swift": {
+      "sha256": "56172eb20cae02d06d11651b1023cce04b69b22cf342c76f630e012b63e49289",
+      "bytes": 30146,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelationResolving.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelations.swift": {
+      "sha256": "492b9d7cc25742bd3bfbca67e06e3a5a048a1645ede0829a53ae471d70beb32f",
+      "bytes": 30720,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGeometricRelations.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphCompiling.swift": {
+      "sha256": "068184be62866bd9e1017554474c3318d082aa1688769c3ac70500b018c8528d",
+      "bytes": 30127,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphCompiling.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphFamily.swift": {
+      "sha256": "245271b228a8af23dcf70c777bf254c81941c3b84e677cac53e54125a77657e5",
+      "bytes": 31217,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphFamily.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphFamilyPreparing.swift": {
+      "sha256": "e551548efdfe3542d5b60e8dbdcf0b8f6c91be5a1e3ca17d5b567d0b55cf2516",
+      "bytes": 30109,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphFamilyPreparing.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphParameterRefinement.swift": {
+      "sha256": "ca8637df17ec2ca2eecb35b6feec9add3e8b92ac6c10796bd68343ae0ae038ef",
+      "bytes": 32035,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphParameterRefinement.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphParameterRefining.swift": {
+      "sha256": "2d947e536f3b8925d667507185591c8a53beef8867457eb2d7c156925de18491",
+      "bytes": 30515,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphParameterRefining.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphPreparation.swift": {
+      "sha256": "7bb2b422345699ba089bbe0662246267e100791983842eecb2e3a65e3846e619",
+      "bytes": 30655,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphPreparation.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelationOwning.swift": {
+      "sha256": "57e593a3b615e0a8673700a977d7e404daf5c698774820ab229d2d988ed1c242",
+      "bytes": 29770,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelationOwning.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelationPair.swift": {
+      "sha256": "b47a8307a59397762d402ee13f2d2e0e958be2575798997c9c27df6fdb315ab8",
+      "bytes": 30046,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelationPair.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelationResolving.swift": {
+      "sha256": "d9b6eacd21f1b0ef6cc7bbf14abf441bfadcaa84679358cbdfe4127bb9854585",
+      "bytes": 30456,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelationResolving.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelations.swift": {
+      "sha256": "bd57a0c86c3fea3a55dafd6ee9cc0f08cfa6968801c0a485fbc8e583aadb6e80",
+      "bytes": 30756,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedGraphRelations.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedNumericalCurveSurfacePoints.swift": {
+      "sha256": "b0ead449c80103c8b32404809df9d5c8920c30b7eeadcecb4148db0c35b94102",
+      "bytes": 30264,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedNumericalCurveSurfacePoints.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedPlaneGraph.swift": {
+      "sha256": "df667f19f11589baa19043c37caa2ed9a5dda4723e7504e39a1732c90c97d46f",
+      "bytes": 30927,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalIssuedPlaneGraph.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlaneGeometricRelations.swift": {
+      "sha256": "2bd2aaf2d6f06e8e1eaf8981261b2487fe14666e2d3b3d6b4234476ce27cd97e",
+      "bytes": 30684,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlaneGeometricRelations.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlaneParameterRestriction.swift": {
+      "sha256": "4d2271d6a8121dd06229efb8ed26bb0f1ea85dae0cfc676948d6a2619a5ca73d",
+      "bytes": 30610,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlaneParameterRestriction.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlanePointPublisher.swift": {
+      "sha256": "1fd8d86af9aed3814acf3d3afae97c7efaf021a304dc7fc2b1acc44c510b05e2",
+      "bytes": 46528,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlanePointPublisher.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlaneRelationResolving.swift": {
+      "sha256": "108e7e14b009c9bc4ba5476242bcff39346e26494348bb4a6bc8d35a9acf9c66",
+      "bytes": 30145,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlaneRelationResolving.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlaneRelations.swift": {
+      "sha256": "87a6d0e56de96fc51de4ded21b55f15bbbc3ade8c003668251a01931b0ca2fe1",
+      "bytes": 31623,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLiftPlaneRelations.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLinearCurveSnapshot.swift": {
+      "sha256": "ab85790dc871eba9cddbc1ac45b5cad8168fe70340e706592cb00400e1feebae",
+      "bytes": 30246,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLinearCurveSnapshot.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLinearCurveSnapshotProvider.swift": {
+      "sha256": "fddf0937a4db98558fc35138814e8abebd017f48b01b54d3dda28b7fbaf17e1b",
+      "bytes": 31093,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalLinearCurveSnapshotProvider.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPlaneGraphCompiling.swift": {
+      "sha256": "5535a4d4fce654f46969273fde60bed18ebeb903ff115a4b33b69e2b421f7d25",
+      "bytes": 30148,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPlaneGraphCompiling.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPlaneSnapshot.swift": {
+      "sha256": "ff006f219a41cc2e5c767a8114544908f4701116b7cb275e067fb5f63c842c95",
+      "bytes": 30060,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPlaneSnapshot.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPlaneSnapshotProvider.swift": {
+      "sha256": "517f69d5b31a15085b946844acbd40a35d199b3c5b96c8c6111840c61470fd44",
+      "bytes": 31144,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPlaneSnapshotProvider.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolylinePcurveSnapshot.swift": {
+      "sha256": "032c0b1a578b68f4a3431f2262adc583f788007d85f2882f081517b728656a88",
+      "bytes": 30993,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolylinePcurveSnapshot.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolylinePcurveSnapshotProvider.swift": {
+      "sha256": "0ac872007d2ed2dab72c8eb50cc7a16b193691bf5f5ed61c58dfd5776d98acda",
+      "bytes": 34708,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolylinePcurveSnapshotProvider.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolylineRetainedAtlasLiftSnapshot.swift": {
+      "sha256": "a9d4dcfa5f590e3658ec0f33eeea20f53a5451737ea1f1ae51f1c02d283b163c",
+      "bytes": 30140,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolylineRetainedAtlasLiftSnapshot.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolylineRetainedAtlasLiftSnapshotProvider.swift": {
+      "sha256": "cf8b6b712adcc40ed015b06dd6f949067e5b747f222be63946cdd2fab07413b4",
+      "bytes": 33396,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolylineRetainedAtlasLiftSnapshotProvider.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolynomialSurfaceLiftGraphReducing.swift": {
+      "sha256": "02d1cbf17e2cdb4a90d3fc674a85aec930f300c21313328f8830cdd0f0d3d87e",
+      "bytes": 29964,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolynomialSurfaceLiftGraphReducing.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolynomialSurfaceLiftGraphReduction.swift": {
+      "sha256": "5ad3113d90ec1ced25c099a2c3200b26492520b853363f82b997b0ca0b5d1e27",
+      "bytes": 30195,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalPolynomialSurfaceLiftGraphReduction.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalRationalGraphPointPublisher.swift": {
+      "sha256": "21cda45aacb9b35b3ffc4e4d8f96739e3dd3ba57f4ebec914a2d7478988598f2",
+      "bytes": 49029,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalRationalGraphPointPublisher.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalRetainedLiftPlaneIntersecting.swift": {
+      "sha256": "930b8033cc1fb7c1f312ac3e92565bf9629c695272bc44cbcaebba89f0ca5456",
+      "bytes": 30187,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalRetainedLiftPlaneIntersecting.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalRetainedLiftPlanePublicProducer.swift": {
+      "sha256": "924320e31854d84142e319954bfe8585552db6b48f6b15889283d5435eb5c822",
+      "bytes": 46145,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/OriginalRetainedLiftPlanePublicProducer.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift": {
+      "sha256": "8e8a2891fa01382d38c3b236da0fcd0de02b50dcfa2b757aec59af118a38fdec",
+      "bytes": 2149,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": {
+      "sha256": "c3f1a1aa7ed427e5e135e53e1b99967f4b98db70a98375df7009c42ea6f78ee4",
+      "bytes": 206452,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedNumericalCurveSurfacePoints.swift": {
+      "sha256": "0201a8bea04bd0a5f3dffebe77fe8329c68d168bf665533fdcb7aacfeebc8af2",
+      "bytes": 811,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedNumericalCurveSurfacePoints.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/NativeExactRelations/DefaultOriginalLiftPlaneRelationResolver.swift": {
+      "sha256": "208c46b028d60431128d222c1718cc64821ee5653450a228aa641b090cf17dc8",
+      "bytes": 8525,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/NativeExactRelations/DefaultOriginalLiftPlaneRelationResolver.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift": {
+      "sha256": "7409f6b78518d3c7d558e952d458238ffeddae31129dd9176452c8f318b885fa",
+      "bytes": 38014,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/OriginalHigherCurveJets/OriginalParameterCurveHigherTaylor.swift": {
+      "sha256": "0d22875318734aef4495d68c36085dcdc19edd4bad08aed1b06a6ec11006c0ec",
+      "bytes": 16543,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/OriginalHigherCurveJets/OriginalParameterCurveHigherTaylor.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalSpatialChartIssuer.swift": {
+      "sha256": "07db5406f9993dd6dbd324b38e0d6b6879d1012fc02b9505242817476ecd7f0c",
+      "bytes": 6017,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalSpatialChartIssuer.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallGraphProducer.swift": {
+      "sha256": "3914b0706451a7b902315cd919e153854e9ba97dd0abf7cc53ac79284103c434",
+      "bytes": 13681,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallGraphProducer.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/RationalBivariateAlgebra/OriginalEuclideanPolylineParameterLaw.swift": {
+      "sha256": "a6f29571e6b6a606a847af53ceceed1ef8aea43adf993674a215485c680f5f43",
+      "bytes": 12407,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/RationalBivariateAlgebra/OriginalEuclideanPolylineParameterLaw.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalProceduralSurfaceHigherTaylor.swift": {
+      "sha256": "4bcbd17f2e7fba44d84b7d228982b7c5444b7ca813aa7b603005da7fb711497a",
+      "bytes": 8019,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalProceduralSurfaceHigherTaylor.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift": {
+      "sha256": "dad44bcfb8e9aa237a7b8e1128175030b44cb359eb242b891d30f93a1178039f",
+      "bytes": 6109,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift"
+    },
+    "raw/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceHigherJetProvider.swift": {
+      "sha256": "27c5c1b2bf604fb3fc32cab63f1384e3783d0fcb73066d8a7b1a90c9b599ed10",
+      "bytes": 15516,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceHigherJetProvider.swift"
+    }
+  }
+}

@@ -1,0 +1,71 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/Proof.swift:563:131: error: ambiguous use of 'NativeExactRelationFailure'
+561 |         do {
+562 |             try admission.checkpoint();try first.admitProof(limits:limits,using:&admission);try second.admitProof(limits:limits,using:&admission)
+563 |             guard maximumPairs >= 0,first.parameterCount == (kind == .curveSurface ? 1:2),second.parameterCount == 2 else { throw NativeExactRelationFailure.invalidDomain }
+    |                                                                                                                                   `- error: ambiguous use of 'NativeExactRelationFailure'
+564 |             _=try first.field.importing(second.field.integer(0,using:&admission),using:&admission)
+565 |             let count=first.graphs.count.multipliedReportingOverflow(by:second.graphs.count)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/NativeExactRelations/NativeExactRelationFailure.swift:29:13: note: found this candidate in module 'CADGeometry'
+27 | import SourceGeometryAdapters
+28 | #endif
+29 | public enum NativeExactRelationFailure: Error {
+   |             `- note: found this candidate in module 'CADGeometry'
+30 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+31 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/NativeExactRelationFailure.swift:99:13: note: found this candidate in module 'PublicLiftPlane'
+ 97 | import SourceGeometryAdapters
+ 98 | #endif
+ 99 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'PublicLiftPlane'
+100 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+101 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactRelationFailure.swift:473:13: note: found this candidate in module 'DraftZeroRuledPort'
+471 | import SourceGeometryAdapters
+472 | #endif
+473 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'DraftZeroRuledPort'
+474 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+475 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/Proof.swift:602:64: error: cannot find type 'Base' in scope
+600 |                 cellLimits: cellLimits, topologyLimits: topologyLimits, using: &a)
+601 |             trace("project-done",using:a); a.stage = "result-storage"
+602 |             try domain.storage(1, ExactParametricGraphRelation<Base>.self, &a)
+    |                                                                `- error: cannot find type 'Base' in scope
+603 |             let result = ExactParametricGraphRelation(original: copy source, projection: projection, depth:try domain.graphDepth(source.depth,projection.depth))
+604 |             try a.checkpoint(); return result
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/Proof.swift:563:131: error: ambiguous use of 'NativeExactRelationFailure'
+561 |         do {
+562 |             try admission.checkpoint();try first.admitProof(limits:limits,using:&admission);try second.admitProof(limits:limits,using:&admission)
+563 |             guard maximumPairs >= 0,first.parameterCount == (kind == .curveSurface ? 1:2),second.parameterCount == 2 else { throw NativeExactRelationFailure.invalidDomain }
+    |                                                                                                                                   `- error: ambiguous use of 'NativeExactRelationFailure'
+564 |             _=try first.field.importing(second.field.integer(0,using:&admission),using:&admission)
+565 |             let count=first.graphs.count.multipliedReportingOverflow(by:second.graphs.count)
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/NativeExactRelations/NativeExactRelationFailure.swift:29:13: note: found this candidate in module 'CADGeometry'
+27 | import SourceGeometryAdapters
+28 | #endif
+29 | public enum NativeExactRelationFailure: Error {
+   |             `- note: found this candidate in module 'CADGeometry'
+30 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+31 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/generated/NativeExactRelationFailure.swift:99:13: note: found this candidate in module 'PublicLiftPlane'
+ 97 | import SourceGeometryAdapters
+ 98 | #endif
+ 99 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'PublicLiftPlane'
+100 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+101 |     case scalar(ExactScalarFailure)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/cs-draft-zero-ruled-native-20261011-v2/generated/NativeExactRelationFailure.swift:473:13: note: found this candidate in module 'DraftZeroRuledPort'
+471 | import SourceGeometryAdapters
+472 | #endif
+473 | public enum NativeExactRelationFailure: Error {
+    |             `- note: found this candidate in module 'DraftZeroRuledPort'
+474 |     case unsupportedCoverage, invalidDomain, invalidDegree, nonDiscreteIntersection, resultLimit
+475 |     case scalar(ExactScalarFailure)

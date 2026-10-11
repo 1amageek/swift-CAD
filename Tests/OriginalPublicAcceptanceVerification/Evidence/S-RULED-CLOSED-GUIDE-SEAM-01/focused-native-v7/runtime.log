@@ -1,0 +1,19 @@
+PASS exact constant/affine enclosures, singleton/open/unbounded/nonlinear guards, Boolean pruning and conservative history
+PASS actual closed-guide and ruled constructors
+PASS depth3 single parent, two retained depth2 guides, all seven closed ruled laws and exact authored UV/XYZ
+PASS complete fullUV issued cover and seven two-axis original graphs
+PASS complete ordered raw self product, 49 original chart pairs
+PASS 49 actual pair ordinals retain checked aliases of 25 canonical solver pairs; rawWork 6176493 rawBytes 197274989
+productionBeforeIdentity 6176493 197274989
+PASS actual law-bound directed whole seam under original ledger
+productionAfterIdentityBeforeSelf 6179996 197298821
+preparedQueryBeforeSelf 0 0
+preparedQueryAfterSelf 7068697 212593418
+nonemptyRawPairs 33
+PASS every full raw cell equals authored diagonal plus both directed whole endpoint seams
+reusedRefinements 24
+PASS reverse membership and forward/diagonal/wrongV/outside-authored-V refusal
+PASS pruned actual forward seam retains injected history9 and rejects later depth8 empty membership
+PASS sealed-owner nil refusal and full predicate transport/scope/guard/near-coefficient/closure nonreuse
+PASS separate explicit raw and prepared-query operations; reverse seam sole residual pair; preparationWork 6179996 totalBytes 197298821
+verificationOnlyWork 470325 verificationOnlyBytes 11838923

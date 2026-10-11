@@ -141,6 +141,52 @@ These constraints are independent of source-coordinate scope restriction.
 
 ## Protocol Composition and Consumer Responsibility
 
+### Law-bound declared rational boundaries
+
+The Native declaration remains compatible and keeps its checked Native chart
+binding. An additive `OriginalLawBoundParameterIdentityIssuing` capability accepts
+`OriginalRationalSourceBoundaryDeclaration`, a candidate that directly retains its
+actual left/right rational receipts and declared axis/side roles. It has no separate
+substitutable chart/law arguments. The candidate is not a certificate; issuance
+performs the existing owner/support/frame, exact affine map and whole-polynomial
+position checks before returning a normal `OriginalParameterIdentity`.
+
+```text
+actual retained left/right laws + declared sides
+  -> checked source/scope/authored transport and whole-scope guards
+  -> existing affine substitution and exact homogeneous equality
+  -> retained positional identity and inherited depth
+  -> unchanged relation view and scoped self-contact exclusion
+```
+
+This additive port interprets scope coordinates as authored source parameters only
+after proving N_i-q_i D_i=0 on each selected scope. It proves every position W and
+transport D_i is a nonzero constant on that entire scope using the existing exact
+polynomial-zero operation. An exact selected anchor may obtain the candidate
+constant; equality over the whole scope is the proof. Anchor evaluation depth is
+retained. Nonconstant or otherwise unproved guards throw `unsupportedSourceProof`
+and never authorize exclusion. This bounded guard capability does not claim all
+guarded/nonlinear families; the original guards and parameter slots survive.
+
+The issuer shares existing frame/support, affine mapping and polynomial checking
+operations. Both complete rational receipts, selected transport/guard polynomials,
+original side roles and inherited `proofDepth` remain owned by immutable evidence.
+Issuance admits inherited depth before proof; every later query, view, restriction
+or composition re-admits it through the existing readmission owner. Final receipt
+allocation and its cancellation checkpoint belong to the same caller ledger.
+No unchecked certificate constructor, Boolean authorization callback, source formula
+or Native surrogate is added. The identity means positional shared boundary only;
+unequal one-sided germs remain distinct.
+
+Verification owns the actual same-parent ruled closed-guide cell in the
+[public acceptance matrix](../OriginalDomainCoverage/DESIGN.md#s-ruled-closed-guide-seam-01-directed-whole-boundary-identity-candidate),
+including false/partial declarations, foreign owners/frames, guard and inherited
+depth failures, whole-scope direction, resource/cancel and detached lifetime. The
+complete source product's independent work failure and its repair belong to the
+graph/public-cell owner, not to this identity theorem. Native API/behavior changes
+are not required by this additive port; their unchanged admitted proof remains a
+compatibility premise and is checked by the applicable changed-path assembly.
+
 The concrete identity issuer implements only its supported theorem protocols.
 Source issuance owns authored period/pole laws; this component also owns exact
 whole-scope rational boundary/collapse verification using those retained local

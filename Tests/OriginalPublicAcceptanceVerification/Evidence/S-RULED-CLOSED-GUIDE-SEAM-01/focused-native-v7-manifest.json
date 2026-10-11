@@ -1,0 +1,15 @@
+{
+  "focused-native-v7/ClosedGuideSeamAcceptance.py": "f97f769187c1f98b9b5620bd41479355b22e4a6a82a469179b764040ae2fabf5",
+  "focused-native-v7/ClosedGuideSeamAcceptance.swift": "ad967bc0c506db13bdcebb8bb84eba780d679a944916e1aa2ca60bc72a5ac2d7",
+  "focused-native-v7/Proof.swift": "6d4ccced000591e14364f8bbe98f325c3210068a0747aec87b7062e23ab6cac8",
+  "focused-native-v7/admission.json": "57bbcd05b5184a6eeb79fcddb6714b68cb5c4cd6be4d80e660fdeae452c25d6c",
+  "focused-native-v7/compile-proof.json": "8d13df6a66f83e79e1405272c8d8eb59fc07e2170cd82effbd5734abc0b97b49",
+  "focused-native-v7/compile-proof.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "focused-native-v7/historical-source/DefaultOriginalIssuedGraphRelationResolver.swift": "af7c518a028cb2fd5fb527893491ef1c7758a77985a822ce16e1d4aa323bd4c3",
+  "focused-native-v7/historical-source/OriginalIssuedGraphParameterRefinement.swift": "6fe21866292c142f822e58118e0d63a888b9ecb442f8dea05b6c049b867541f3",
+  "focused-native-v7/historical-source/OriginalIssuedGraphRelationPair.swift": "60b95a2994aab164f9846c851920098b9838af78463f68e6b82a63e9738caa83",
+  "focused-native-v7/historical-source/OriginalIssuedGraphRelations.swift": "9155dbb9d64aba9c20f60a03ba1fe90ee6e796f8e75ab1d3defa09b9a956c195",
+  "focused-native-v7/receipt.json": "718a964249a9ca16d58c9c517333ae021bf8de7c53df5afb51687e82de7305d3",
+  "focused-native-v7/runs.json": "efc23188e2dfcd190c70e59a38e3680bc49a106e4c967688867af68c6b5169e8",
+  "focused-native-v7/runtime.log": "6f96b28a65b3c35f9c41d1667390b73d44ed53d1f258fb4938dc37a505c76a50"
+}

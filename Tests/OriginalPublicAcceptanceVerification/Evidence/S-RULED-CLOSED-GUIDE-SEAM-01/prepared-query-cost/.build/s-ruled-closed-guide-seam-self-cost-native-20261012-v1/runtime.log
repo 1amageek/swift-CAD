@@ -1,0 +1,208 @@
+PASS actual closed-guide and ruled constructors
+PASS depth3 single parent, two retained depth2 guides, all seven closed ruled laws and exact authored UV/XYZ
+PASS complete fullUV issued cover and seven two-axis original graphs
+PASS complete ordered raw self product, 49 original chart pairs
+PASS 49 actual pair ordinals retain checked aliases of 25 canonical solver pairs; rawWork 6176077 rawBytes 197191805
+productionBeforeIdentity 6176077 197191805
+PASS actual law-bound directed whole seam under original ledger
+productionAfterIdentityBeforeSelf 6179580 197215637
+preparedQueryBeforeSelf 0 0
+SELF_COST pair= -1 stage= query-entry work= 0 storage= 0
+SELF_COST pair= -1 stage= initial-raw-admit-done work= 133 storage= 0
+SELF_PAIR 0 canonical 0 0 rawSelected 9
+SELF_COST pair= 0 stage= before-diagonal work= 296 storage= 34640
+SELF_COST pair= 0 stage= after-diagonal work= 5066 storage= 58676
+SELF_COST pair= 0 stage= after-identity-compile-before-refine work= 8532 storage= 132808
+SELF_COST pair= 0 stage= refiner-before-raw-admit work= 8532 storage= 132808
+SELF_COST pair= 0 stage= refiner-after-raw-admit work= 8665 storage= 132808
+SELF_COST pair= 0 stage= after-refine work= 772144 storage= 23914080
+SELF_PAIR 1 canonical 0 1 rawSelected 3
+SELF_COST pair= 1 stage= before-diagonal work= 772145 storage= 23914080
+SELF_COST pair= 1 stage= after-diagonal work= 776915 storage= 23938116
+SELF_COST pair= 1 stage= after-identity-compile-before-refine work= 780399 storage= 24012252
+SELF_COST pair= 1 stage= refiner-before-raw-admit work= 780399 storage= 24012252
+SELF_COST pair= 1 stage= refiner-after-raw-admit work= 780532 storage= 24012252
+SELF_COST pair= 1 stage= after-refine work= 1009008 storage= 31230703
+SELF_PAIR 2 canonical 0 1 rawSelected 3
+SELF_COST pair= 2 stage= before-diagonal work= 1009009 storage= 31230703
+SELF_COST pair= 2 stage= after-diagonal work= 1013779 storage= 31254739
+SELF_COST pair= 2 stage= after-identity-compile-before-refine work= 1017263 storage= 31328875
+SELF_COST pair= 2 stage= refiner-before-raw-admit work= 1017263 storage= 31328875
+SELF_COST pair= 2 stage= refiner-after-raw-admit work= 1017396 storage= 31328875
+SELF_COST pair= 2 stage= after-refine work= 1245872 storage= 38547326
+SELF_PAIR 3 canonical 0 3 rawSelected 3
+SELF_COST pair= 3 stage= before-diagonal work= 1245873 storage= 38547326
+SELF_COST pair= 3 stage= after-diagonal work= 1250643 storage= 38571362
+SELF_COST pair= 3 stage= after-identity-compile-before-refine work= 1254132 storage= 38645546
+SELF_COST pair= 3 stage= refiner-before-raw-admit work= 1254132 storage= 38645546
+SELF_COST pair= 3 stage= refiner-after-raw-admit work= 1254265 storage= 38645546
+SELF_COST pair= 3 stage= after-refine work= 2190420 storage= 65251536
+SELF_PAIR 4 canonical 0 4 rawSelected 0
+SELF_COST pair= 4 stage= before-diagonal work= 2190421 storage= 65251536
+SELF_COST pair= 4 stage= after-diagonal work= 2195191 storage= 65275572
+SELF_COST pair= 4 stage= after-identity-compile-before-refine work= 2198675 storage= 65349708
+SELF_COST pair= 4 stage= refiner-before-raw-admit work= 2198675 storage= 65349708
+SELF_COST pair= 4 stage= refiner-after-raw-admit work= 2198808 storage= 65349708
+SELF_COST pair= 4 stage= after-refine work= 2392488 storage= 71511855
+SELF_PAIR 5 canonical 0 4 rawSelected 0
+SELF_COST pair= 5 stage= before-diagonal work= 2392489 storage= 71511855
+SELF_COST pair= 5 stage= after-diagonal work= 2397259 storage= 71535891
+SELF_COST pair= 5 stage= after-identity-compile-before-refine work= 2400743 storage= 71610027
+SELF_COST pair= 5 stage= refiner-before-raw-admit work= 2400743 storage= 71610027
+SELF_COST pair= 5 stage= refiner-after-raw-admit work= 2400876 storage= 71610027
+SELF_COST pair= 5 stage= after-refine work= 2594556 storage= 77772174
+SELF_PAIR 6 canonical 0 6 rawSelected 3
+SELF_COST pair= 6 stage= before-diagonal work= 2594557 storage= 77772174
+SELF_COST pair= 6 stage= after-diagonal work= 2599327 storage= 77796210
+SELF_COST pair= 6 stage= after-identity-compile-before-refine work= 2602813 storage= 77870402
+SELF_COST pair= 6 stage= refiner-before-raw-admit work= 2602813 storage= 77870402
+SELF_COST pair= 6 stage= refiner-after-raw-admit work= 2602946 storage= 77870402
+SELF_COST pair= 6 stage= after-refine work= 3194127 storage= 96224474
+SELF_PAIR 7 canonical 1 0 rawSelected 3
+SELF_COST pair= 7 stage= before-diagonal work= 3194128 storage= 96224474
+SELF_COST pair= 7 stage= after-diagonal work= 3198898 storage= 96248510
+SELF_COST pair= 7 stage= after-identity-compile-before-refine work= 3202382 storage= 96322646
+SELF_COST pair= 7 stage= refiner-before-raw-admit work= 3202382 storage= 96322646
+SELF_COST pair= 7 stage= refiner-after-raw-admit work= 3202515 storage= 96322646
+SELF_COST pair= 7 stage= after-refine work= 3403534 storage= 102578456
+SELF_PAIR 8 canonical 1 1 rawSelected 3
+SELF_COST pair= 8 stage= before-diagonal work= 3403535 storage= 102578456
+SELF_COST pair= 8 stage= after-diagonal work= 3408305 storage= 102602492
+SELF_COST pair= 8 stage= after-identity-compile-before-refine work= 3411807 storage= 102676632
+SELF_COST pair= 8 stage= refiner-before-raw-admit work= 3411807 storage= 102676632
+SELF_COST pair= 8 stage= refiner-after-raw-admit work= 3411940 storage= 102676632
+SELF_COST pair= 8 stage= after-refine work= 3502641 storage= 105556275
+SELF_PAIR 9 canonical 1 1 rawSelected 3
+SELF_COST pair= 9 stage= before-diagonal work= 3502642 storage= 105556275
+SELF_COST pair= 9 stage= after-diagonal work= 3507412 storage= 105580311
+SELF_COST pair= 9 stage= after-identity-compile-before-refine work= 3510914 storage= 105654451
+SELF_COST pair= 9 stage= refiner-before-raw-admit work= 3510914 storage= 105654451
+SELF_COST pair= 9 stage= refiner-after-raw-admit work= 3511047 storage= 105654451
+SELF_COST pair= 9 stage= after-refine work= 3601748 storage= 108534094
+SELF_PAIR 10 canonical 1 3 rawSelected 3
+SELF_COST pair= 10 stage= before-diagonal work= 3601749 storage= 108534094
+SELF_COST pair= 10 stage= after-diagonal work= 3606519 storage= 108558130
+SELF_COST pair= 10 stage= after-identity-compile-before-refine work= 3610026 storage= 108632318
+SELF_COST pair= 10 stage= refiner-before-raw-admit work= 3610026 storage= 108632318
+SELF_COST pair= 10 stage= refiner-after-raw-admit work= 3610159 storage= 108632318
+SELF_COST pair= 10 stage= after-refine work= 3825334 storage= 115106510
+SELF_PAIR 11 canonical 1 4 rawSelected 0
+SELF_COST pair= 11 stage= before-diagonal work= 3825335 storage= 115106510
+SELF_COST pair= 11 stage= after-diagonal work= 3830105 storage= 115130546
+SELF_COST pair= 11 stage= after-identity-compile-before-refine work= 3833607 storage= 115204686
+SELF_COST pair= 11 stage= refiner-before-raw-admit work= 3833607 storage= 115204686
+SELF_COST pair= 11 stage= refiner-after-raw-admit work= 3833740 storage= 115204686
+SELF_COST pair= 11 stage= after-refine work= 3895599 storage= 117161745
+SELF_PAIR 12 canonical 1 4 rawSelected 0
+SELF_COST pair= 12 stage= before-diagonal work= 3895600 storage= 117161745
+SELF_COST pair= 12 stage= after-diagonal work= 3900370 storage= 117185781
+SELF_COST pair= 12 stage= after-identity-compile-before-refine work= 3903872 storage= 117259921
+SELF_COST pair= 12 stage= refiner-before-raw-admit work= 3903872 storage= 117259921
+SELF_COST pair= 12 stage= refiner-after-raw-admit work= 3904005 storage= 117259921
+SELF_COST pair= 12 stage= after-refine work= 3965864 storage= 119216980
+SELF_PAIR 13 canonical 1 6 rawSelected 0
+SELF_COST pair= 13 stage= before-diagonal work= 3965865 storage= 119216980
+SELF_COST pair= 13 stage= after-diagonal work= 3970635 storage= 119241016
+SELF_COST pair= 13 stage= after-identity-compile-before-refine work= 3974139 storage= 119315212
+SELF_COST pair= 13 stage= refiner-before-raw-admit work= 3974139 storage= 119315212
+SELF_COST pair= 13 stage= refiner-after-raw-admit work= 3974272 storage= 119315212
+SELF_COST pair= 13 stage= after-refine work= 4146449 storage= 124558083
+SELF_PAIR 14 canonical 1 0 rawSelected 3
+SELF_COST pair= 14 stage= before-diagonal work= 4146450 storage= 124558083
+SELF_COST pair= 14 stage= after-diagonal work= 4151220 storage= 124582119
+SELF_COST pair= 14 stage= after-identity-compile-before-refine work= 4154704 storage= 124656255
+SELF_COST pair= 14 stage= refiner-before-raw-admit work= 4154704 storage= 124656255
+SELF_COST pair= 14 stage= refiner-after-raw-admit work= 4154837 storage= 124656255
+SELF_COST pair= 14 stage= after-refine work= 4355856 storage= 130912065
+SELF_PAIR 15 canonical 1 1 rawSelected 3
+SELF_COST pair= 15 stage= before-diagonal work= 4355857 storage= 130912065
+SELF_COST pair= 15 stage= after-diagonal work= 4360627 storage= 130936101
+SELF_COST pair= 15 stage= after-identity-compile-before-refine work= 4364129 storage= 131010241
+SELF_COST pair= 15 stage= refiner-before-raw-admit work= 4364129 storage= 131010241
+SELF_COST pair= 15 stage= refiner-after-raw-admit work= 4364262 storage= 131010241
+SELF_COST pair= 15 stage= after-refine work= 4454963 storage= 133889884
+SELF_PAIR 16 canonical 1 1 rawSelected 3
+SELF_COST pair= 16 stage= before-diagonal work= 4454964 storage= 133889884
+SELF_COST pair= 16 stage= after-diagonal work= 4459734 storage= 133913920
+SELF_COST pair= 16 stage= after-identity-compile-before-refine work= 4463236 storage= 133988060
+SELF_COST pair= 16 stage= refiner-before-raw-admit work= 4463236 storage= 133988060
+SELF_COST pair= 16 stage= refiner-after-raw-admit work= 4463369 storage= 133988060
+SELF_COST pair= 16 stage= after-refine work= 4554070 storage= 136867703
+SELF_PAIR 17 canonical 1 3 rawSelected 3
+SELF_COST pair= 17 stage= before-diagonal work= 4554071 storage= 136867703
+SELF_COST pair= 17 stage= after-diagonal work= 4558841 storage= 136891739
+SELF_COST pair= 17 stage= after-identity-compile-before-refine work= 4562348 storage= 136965927
+SELF_COST pair= 17 stage= refiner-before-raw-admit work= 4562348 storage= 136965927
+SELF_COST pair= 17 stage= refiner-after-raw-admit work= 4562481 storage= 136965927
+SELF_COST pair= 17 stage= after-refine work= 4777656 storage= 143440119
+SELF_PAIR 18 canonical 1 4 rawSelected 0
+SELF_COST pair= 18 stage= before-diagonal work= 4777657 storage= 143440119
+SELF_COST pair= 18 stage= after-diagonal work= 4782427 storage= 143464155
+SELF_COST pair= 18 stage= after-identity-compile-before-refine work= 4785929 storage= 143538295
+SELF_COST pair= 18 stage= refiner-before-raw-admit work= 4785929 storage= 143538295
+SELF_COST pair= 18 stage= refiner-after-raw-admit work= 4786062 storage= 143538295
+SELF_COST pair= 18 stage= after-refine work= 4847921 storage= 145495354
+SELF_PAIR 19 canonical 1 4 rawSelected 0
+SELF_COST pair= 19 stage= before-diagonal work= 4847922 storage= 145495354
+SELF_COST pair= 19 stage= after-diagonal work= 4852692 storage= 145519390
+SELF_COST pair= 19 stage= after-identity-compile-before-refine work= 4856194 storage= 145593530
+SELF_COST pair= 19 stage= refiner-before-raw-admit work= 4856194 storage= 145593530
+SELF_COST pair= 19 stage= refiner-after-raw-admit work= 4856327 storage= 145593530
+SELF_COST pair= 19 stage= after-refine work= 4918186 storage= 147550589
+SELF_PAIR 20 canonical 1 6 rawSelected 0
+SELF_COST pair= 20 stage= before-diagonal work= 4918187 storage= 147550589
+SELF_COST pair= 20 stage= after-diagonal work= 4922957 storage= 147574625
+SELF_COST pair= 20 stage= after-identity-compile-before-refine work= 4926461 storage= 147648821
+SELF_COST pair= 20 stage= refiner-before-raw-admit work= 4926461 storage= 147648821
+SELF_COST pair= 20 stage= refiner-after-raw-admit work= 4926594 storage= 147648821
+SELF_COST pair= 20 stage= after-refine work= 5098771 storage= 152891692
+SELF_PAIR 21 canonical 3 0 rawSelected 3
+SELF_COST pair= 21 stage= before-diagonal work= 5098772 storage= 152891692
+SELF_COST pair= 21 stage= after-diagonal work= 5103542 storage= 152915728
+SELF_COST pair= 21 stage= after-identity-compile-before-refine work= 5107031 storage= 152989912
+SELF_COST pair= 21 stage= refiner-before-raw-admit work= 5107031 storage= 152989912
+SELF_COST pair= 21 stage= refiner-after-raw-admit work= 5107164 storage= 152989912
+SELF_COST pair= 21 stage= after-refine work= 6002322 storage= 178682588
+SELF_PAIR 22 canonical 3 1 rawSelected 3
+SELF_COST pair= 22 stage= before-diagonal work= 6002323 storage= 178682588
+SELF_COST pair= 22 stage= after-diagonal work= 6007093 storage= 178706624
+SELF_COST pair= 22 stage= after-identity-compile-before-refine work= 6010600 storage= 178780812
+SELF_COST pair= 22 stage= refiner-before-raw-admit work= 6010600 storage= 178780812
+SELF_COST pair= 22 stage= refiner-after-raw-admit work= 6010733 storage= 178780812
+SELF_COST pair= 22 stage= after-refine work= 6275910 storage= 186737098
+SELF_PAIR 23 canonical 3 1 rawSelected 3
+SELF_COST pair= 23 stage= before-diagonal work= 6275911 storage= 186737098
+SELF_COST pair= 23 stage= after-diagonal work= 6280681 storage= 186761134
+SELF_COST pair= 23 stage= after-identity-compile-before-refine work= 6284188 storage= 186835322
+SELF_COST pair= 23 stage= refiner-before-raw-admit work= 6284188 storage= 186835322
+SELF_COST pair= 23 stage= refiner-after-raw-admit work= 6284321 storage= 186835322
+SELF_COST pair= 23 stage= after-refine work= 6549498 storage= 194791608
+SELF_PAIR 24 canonical 3 3 rawSelected 9
+SELF_COST pair= 24 stage= before-diagonal work= 6549499 storage= 194791608
+SELF_COST pair= 24 stage= after-diagonal work= 6554269 storage= 194815644
+SELF_COST pair= 24 stage= after-identity-compile-before-refine work= 6557781 storage= 194889880
+SELF_COST pair= 24 stage= refiner-before-raw-admit work= 6557781 storage= 194889880
+SELF_COST pair= 24 stage= refiner-after-raw-admit work= 6557914 storage= 194889880
+SELF_COST pair= 24 stage= after-refine work= 7461116 storage= 221357635
+SELF_PAIR 25 canonical 3 4 rawSelected 3
+SELF_COST pair= 25 stage= before-diagonal work= 7461117 storage= 221357635
+SELF_COST pair= 25 stage= after-diagonal work= 7465887 storage= 221381671
+SELF_COST pair= 25 stage= after-identity-compile-before-refine work= 7469394 storage= 221455859
+SELF_COST pair= 25 stage= refiner-before-raw-admit work= 7469394 storage= 221455859
+SELF_COST pair= 25 stage= refiner-after-raw-admit work= 7469527 storage= 221455859
+SELF_COST pair= 25 stage= after-refine work= 7734372 storage= 229407212
+SELF_PAIR 26 canonical 3 4 rawSelected 3
+SELF_COST pair= 26 stage= before-diagonal work= 7734373 storage= 229407212
+SELF_COST pair= 26 stage= after-diagonal work= 7739143 storage= 229431248
+SELF_COST pair= 26 stage= after-identity-compile-before-refine work= 7742650 storage= 229505436
+SELF_COST pair= 26 stage= refiner-before-raw-admit work= 7742650 storage= 229505436
+SELF_COST pair= 26 stage= refiner-after-raw-admit work= 7742783 storage= 229505436
+SELF_COST pair= 26 stage= after-refine work= 8007628 storage= 237456789
+SELF_PAIR 27 canonical 3 6 rawSelected 3
+SELF_COST pair= 27 stage= before-diagonal work= 8007629 storage= 237456789
+SELF_COST pair= 27 stage= after-diagonal work= 8012399 storage= 237480825
+SELF_COST pair= 27 stage= after-identity-compile-before-refine work= 8015908 storage= 237555069
+SELF_COST pair= 27 stage= refiner-before-raw-admit work= 8015908 storage= 237555069
+SELF_COST pair= 27 stage= refiner-after-raw-admit work= 8016041 storage= 237555069
+SELF_EXHAUSTED pair= 27 stage= refine-pullback work= 8388608 requested= 1 storage= 246489419
+OBSERVATION_STOP geometry(PublicLiftPlane.ExactRealTopologyFailure.cell(PublicLiftPlane.ExactRealCellFailure.root(PublicLiftPlane.ExactRealRootFailure.polynomial(CADGeometry.ExactPolynomialFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work))))))

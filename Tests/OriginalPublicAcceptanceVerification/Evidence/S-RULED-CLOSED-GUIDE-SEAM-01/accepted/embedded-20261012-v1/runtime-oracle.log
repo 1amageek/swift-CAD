@@ -1,0 +1,14 @@
+(node:44250) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS exact constant/affine enclosures, singleton/open/unbounded/nonlinear guards, Boolean pruning and conservative history
+PASS actual closed-guide and ruled constructors
+PASS depth3 single parent, two retained depth2 guides, all seven closed ruled laws and exact authored UV/XYZ
+PASS complete fullUV issued cover and seven two-axis original graphs
+PASS complete ordered raw self product, 49 original chart pairs
+PASS actual law-bound directed whole seam under original ledger
+QUERY_WORK: 7060763
+QUERY_STORAGE: 106890094
+PASS every full raw cell equals authored diagonal plus both directed whole endpoint seams
+PASS reverse membership and forward/diagonal/wrongV/outside-authored-V refusal
+PASS pruned actual forward seam retains injected history9 and rejects later depth8 empty membership
+PASS sealed-owner nil refusal and full predicate transport/scope/guard/near-coefficient/closure nonreuse

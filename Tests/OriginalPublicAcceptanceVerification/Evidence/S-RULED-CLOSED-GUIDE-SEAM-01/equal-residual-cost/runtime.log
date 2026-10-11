@@ -1,0 +1,356 @@
+PASS actual closed-guide and ruled constructors
+PASS depth3 single parent, two retained depth2 guides, all seven closed ruled laws and exact authored UV/XYZ
+PASS complete fullUV issued cover and seven two-axis original graphs
+PASS complete ordered raw self product, 49 original chart pairs
+PASS 49 actual pair ordinals retain checked aliases of 25 canonical solver pairs; rawWork 6176493 rawBytes 197274989
+productionBeforeIdentity 6176493 197274989
+PASS actual law-bound directed whole seam under original ledger
+productionAfterIdentityBeforeSelf 6179996 197298821
+preparedQueryBeforeSelf 0 0
+SELF_COST pair= -1 stage= query-entry work= 0 storage= 0 candidates= 0 matches= 0 reuses= 0 unique= 0 refineStart= 0
+SELF_COST pair= -1 stage= initial-raw-admit-done work= 133 storage= 0 candidates= 0 matches= 0 reuses= 0 unique= 0 refineStart= 0
+SELF_PAIR 0 canonical 0 0 rawSelected 9
+SELF_COST pair= 0 stage= before-diagonal work= 296 storage= 40128 candidates= 0 matches= 0 reuses= 0 unique= 0 refineStart= 0
+SELF_COST pair= 0 stage= after-diagonal work= 5066 storage= 64164 candidates= 0 matches= 0 reuses= 0 unique= 0 refineStart= 0
+SELF_COST pair= 0 stage= after-identity-compile-before-compare work= 8532 storage= 138296 candidates= 0 matches= 0 reuses= 0 unique= 0 refineStart= 0
+SELF_COST pair= 0 stage= before-unique-refine work= 8532 storage= 138296 candidates= 0 matches= 0 reuses= 0 unique= 1 refineStart= 8532
+SELF_COST pair= 0 stage= refiner-before-raw-admit work= 8532 storage= 138296 candidates= 0 matches= 0 reuses= 0 unique= 1 refineStart= 8532
+SELF_COST pair= 0 stage= refiner-after-raw-admit work= 8665 storage= 138296 candidates= 0 matches= 0 reuses= 0 unique= 1 refineStart= 8532
+SELF_COST pair= 0 stage= after-refine work= 772144 storage= 23919648 candidates= 0 matches= 0 reuses= 0 unique= 1 refineStart= 8532
+SELF_PAIR 1 canonical 0 1 rawSelected 3
+SELF_COST pair= 1 stage= before-diagonal work= 772145 storage= 23919648 candidates= 0 matches= 0 reuses= 0 unique= 1 refineStart= 8532
+SELF_COST pair= 1 stage= after-diagonal work= 776915 storage= 23943684 candidates= 0 matches= 0 reuses= 0 unique= 1 refineStart= 8532
+SELF_COST pair= 1 stage= after-identity-compile-before-compare work= 780399 storage= 24017820 candidates= 0 matches= 0 reuses= 0 unique= 1 refineStart= 8532
+SELF_COST pair= 1 stage= before-unique-refine work= 780400 storage= 24017820 candidates= 0 matches= 0 reuses= 0 unique= 2 refineStart= 780400
+SELF_COST pair= 1 stage= refiner-before-raw-admit work= 780400 storage= 24017820 candidates= 0 matches= 0 reuses= 0 unique= 2 refineStart= 780400
+SELF_COST pair= 1 stage= refiner-after-raw-admit work= 780533 storage= 24017820 candidates= 0 matches= 0 reuses= 0 unique= 2 refineStart= 780400
+SELF_COST pair= 1 stage= after-refine work= 1009009 storage= 31236351 candidates= 0 matches= 0 reuses= 0 unique= 2 refineStart= 780400
+SELF_PAIR 2 canonical 0 1 rawSelected 3
+SELF_COST pair= 2 stage= before-diagonal work= 1009010 storage= 31236351 candidates= 0 matches= 0 reuses= 0 unique= 2 refineStart= 780400
+SELF_COST pair= 2 stage= after-diagonal work= 1013780 storage= 31260387 candidates= 0 matches= 0 reuses= 0 unique= 2 refineStart= 780400
+SELF_COST pair= 2 stage= after-identity-compile-before-compare work= 1017264 storage= 31334523 candidates= 0 matches= 0 reuses= 0 unique= 2 refineStart= 780400
+SELF_CANDIDATE 2 1 work 1017266
+SELF_MATCH 2 1 work 1018364
+SELF_COST pair= 2 stage= reuse-done work= 1018364 storage= 31358703 candidates= 1 matches= 1 reuses= 1 unique= 2 refineStart= 780400
+SELF_COST pair= 2 stage= after-refine work= 1018364 storage= 31358703 candidates= 1 matches= 1 reuses= 1 unique= 2 refineStart= 780400
+SELF_PAIR 3 canonical 0 3 rawSelected 3
+SELF_COST pair= 3 stage= before-diagonal work= 1018365 storage= 31358703 candidates= 1 matches= 1 reuses= 1 unique= 2 refineStart= 780400
+SELF_COST pair= 3 stage= after-diagonal work= 1023135 storage= 31382739 candidates= 1 matches= 1 reuses= 1 unique= 2 refineStart= 780400
+SELF_COST pair= 3 stage= after-identity-compile-before-compare work= 1026624 storage= 31456923 candidates= 1 matches= 1 reuses= 1 unique= 2 refineStart= 780400
+SELF_COST pair= 3 stage= before-unique-refine work= 1026627 storage= 31456923 candidates= 1 matches= 1 reuses= 1 unique= 3 refineStart= 1026627
+SELF_COST pair= 3 stage= refiner-before-raw-admit work= 1026627 storage= 31456923 candidates= 1 matches= 1 reuses= 1 unique= 3 refineStart= 1026627
+SELF_COST pair= 3 stage= refiner-after-raw-admit work= 1026760 storage= 31456923 candidates= 1 matches= 1 reuses= 1 unique= 3 refineStart= 1026627
+SELF_COST pair= 3 stage= after-refine work= 1962915 storage= 58062993 candidates= 1 matches= 1 reuses= 1 unique= 3 refineStart= 1026627
+SELF_PAIR 4 canonical 0 4 rawSelected 0
+SELF_COST pair= 4 stage= before-diagonal work= 1962916 storage= 58062993 candidates= 1 matches= 1 reuses= 1 unique= 3 refineStart= 1026627
+SELF_COST pair= 4 stage= after-diagonal work= 1967686 storage= 58087029 candidates= 1 matches= 1 reuses= 1 unique= 3 refineStart= 1026627
+SELF_COST pair= 4 stage= after-identity-compile-before-compare work= 1971170 storage= 58161165 candidates= 1 matches= 1 reuses= 1 unique= 3 refineStart= 1026627
+SELF_COST pair= 4 stage= before-unique-refine work= 1971174 storage= 58161165 candidates= 1 matches= 1 reuses= 1 unique= 4 refineStart= 1971174
+SELF_COST pair= 4 stage= refiner-before-raw-admit work= 1971174 storage= 58161165 candidates= 1 matches= 1 reuses= 1 unique= 4 refineStart= 1971174
+SELF_COST pair= 4 stage= refiner-after-raw-admit work= 1971307 storage= 58161165 candidates= 1 matches= 1 reuses= 1 unique= 4 refineStart= 1971174
+SELF_COST pair= 4 stage= after-refine work= 2164987 storage= 64323392 candidates= 1 matches= 1 reuses= 1 unique= 4 refineStart= 1971174
+SELF_PAIR 5 canonical 0 4 rawSelected 0
+SELF_COST pair= 5 stage= before-diagonal work= 2164988 storage= 64323392 candidates= 1 matches= 1 reuses= 1 unique= 4 refineStart= 1971174
+SELF_COST pair= 5 stage= after-diagonal work= 2169758 storage= 64347428 candidates= 1 matches= 1 reuses= 1 unique= 4 refineStart= 1971174
+SELF_COST pair= 5 stage= after-identity-compile-before-compare work= 2173242 storage= 64421564 candidates= 1 matches= 1 reuses= 1 unique= 4 refineStart= 1971174
+SELF_CANDIDATE 5 4 work 2173247
+SELF_MATCH 5 4 work 2174345
+SELF_COST pair= 5 stage= reuse-done work= 2174345 storage= 64445744 candidates= 2 matches= 2 reuses= 2 unique= 4 refineStart= 1971174
+SELF_COST pair= 5 stage= after-refine work= 2174345 storage= 64445744 candidates= 2 matches= 2 reuses= 2 unique= 4 refineStart= 1971174
+SELF_PAIR 6 canonical 0 6 rawSelected 3
+SELF_COST pair= 6 stage= before-diagonal work= 2174346 storage= 64445744 candidates= 2 matches= 2 reuses= 2 unique= 4 refineStart= 1971174
+SELF_COST pair= 6 stage= after-diagonal work= 2179116 storage= 64469780 candidates= 2 matches= 2 reuses= 2 unique= 4 refineStart= 1971174
+SELF_COST pair= 6 stage= after-identity-compile-before-compare work= 2182602 storage= 64543972 candidates= 2 matches= 2 reuses= 2 unique= 4 refineStart= 1971174
+SELF_COST pair= 6 stage= before-unique-refine work= 2182608 storage= 64543972 candidates= 2 matches= 2 reuses= 2 unique= 5 refineStart= 2182608
+SELF_COST pair= 6 stage= refiner-before-raw-admit work= 2182608 storage= 64543972 candidates= 2 matches= 2 reuses= 2 unique= 5 refineStart= 2182608
+SELF_COST pair= 6 stage= refiner-after-raw-admit work= 2182741 storage= 64543972 candidates= 2 matches= 2 reuses= 2 unique= 5 refineStart= 2182608
+SELF_COST pair= 6 stage= after-refine work= 2773922 storage= 82898124 candidates= 2 matches= 2 reuses= 2 unique= 5 refineStart= 2182608
+SELF_PAIR 7 canonical 1 0 rawSelected 3
+SELF_COST pair= 7 stage= before-diagonal work= 2773923 storage= 82898124 candidates= 2 matches= 2 reuses= 2 unique= 5 refineStart= 2182608
+SELF_COST pair= 7 stage= after-diagonal work= 2778693 storage= 82922160 candidates= 2 matches= 2 reuses= 2 unique= 5 refineStart= 2182608
+SELF_COST pair= 7 stage= after-identity-compile-before-compare work= 2782177 storage= 82996296 candidates= 2 matches= 2 reuses= 2 unique= 5 refineStart= 2182608
+SELF_COST pair= 7 stage= before-unique-refine work= 2782184 storage= 82996296 candidates= 2 matches= 2 reuses= 2 unique= 6 refineStart= 2782184
+SELF_COST pair= 7 stage= refiner-before-raw-admit work= 2782184 storage= 82996296 candidates= 2 matches= 2 reuses= 2 unique= 6 refineStart= 2782184
+SELF_COST pair= 7 stage= refiner-after-raw-admit work= 2782317 storage= 82996296 candidates= 2 matches= 2 reuses= 2 unique= 6 refineStart= 2782184
+SELF_COST pair= 7 stage= after-refine work= 2983336 storage= 89252186 candidates= 2 matches= 2 reuses= 2 unique= 6 refineStart= 2782184
+SELF_PAIR 8 canonical 1 1 rawSelected 3
+SELF_COST pair= 8 stage= before-diagonal work= 2983337 storage= 89252186 candidates= 2 matches= 2 reuses= 2 unique= 6 refineStart= 2782184
+SELF_COST pair= 8 stage= after-diagonal work= 2988107 storage= 89276222 candidates= 2 matches= 2 reuses= 2 unique= 6 refineStart= 2782184
+SELF_COST pair= 8 stage= after-identity-compile-before-compare work= 2991609 storage= 89350362 candidates= 2 matches= 2 reuses= 2 unique= 6 refineStart= 2782184
+SELF_COST pair= 8 stage= before-unique-refine work= 2991617 storage= 89350362 candidates= 2 matches= 2 reuses= 2 unique= 7 refineStart= 2991617
+SELF_COST pair= 8 stage= refiner-before-raw-admit work= 2991617 storage= 89350362 candidates= 2 matches= 2 reuses= 2 unique= 7 refineStart= 2991617
+SELF_COST pair= 8 stage= refiner-after-raw-admit work= 2991750 storage= 89350362 candidates= 2 matches= 2 reuses= 2 unique= 7 refineStart= 2991617
+SELF_COST pair= 8 stage= after-refine work= 3082451 storage= 92230085 candidates= 2 matches= 2 reuses= 2 unique= 7 refineStart= 2991617
+SELF_PAIR 9 canonical 1 1 rawSelected 3
+SELF_COST pair= 9 stage= before-diagonal work= 3082452 storage= 92230085 candidates= 2 matches= 2 reuses= 2 unique= 7 refineStart= 2991617
+SELF_COST pair= 9 stage= after-diagonal work= 3087222 storage= 92254121 candidates= 2 matches= 2 reuses= 2 unique= 7 refineStart= 2991617
+SELF_COST pair= 9 stage= after-identity-compile-before-compare work= 3090724 storage= 92328261 candidates= 2 matches= 2 reuses= 2 unique= 7 refineStart= 2991617
+SELF_CANDIDATE 9 8 work 3090733
+SELF_MATCH 9 8 work 3091854
+SELF_COST pair= 9 stage= reuse-done work= 3091854 storage= 92352525 candidates= 3 matches= 3 reuses= 3 unique= 7 refineStart= 2991617
+SELF_COST pair= 9 stage= after-refine work= 3091854 storage= 92352525 candidates= 3 matches= 3 reuses= 3 unique= 7 refineStart= 2991617
+SELF_PAIR 10 canonical 1 3 rawSelected 3
+SELF_COST pair= 10 stage= before-diagonal work= 3091855 storage= 92352525 candidates= 3 matches= 3 reuses= 3 unique= 7 refineStart= 2991617
+SELF_COST pair= 10 stage= after-diagonal work= 3096625 storage= 92376561 candidates= 3 matches= 3 reuses= 3 unique= 7 refineStart= 2991617
+SELF_COST pair= 10 stage= after-identity-compile-before-compare work= 3100132 storage= 92450749 candidates= 3 matches= 3 reuses= 3 unique= 7 refineStart= 2991617
+SELF_COST pair= 10 stage= before-unique-refine work= 3100142 storage= 92450749 candidates= 3 matches= 3 reuses= 3 unique= 8 refineStart= 3100142
+SELF_COST pair= 10 stage= refiner-before-raw-admit work= 3100142 storage= 92450749 candidates= 3 matches= 3 reuses= 3 unique= 8 refineStart= 3100142
+SELF_COST pair= 10 stage= refiner-after-raw-admit work= 3100275 storage= 92450749 candidates= 3 matches= 3 reuses= 3 unique= 8 refineStart= 3100142
+SELF_COST pair= 10 stage= after-refine work= 3315450 storage= 98925021 candidates= 3 matches= 3 reuses= 3 unique= 8 refineStart= 3100142
+SELF_PAIR 11 canonical 1 4 rawSelected 0
+SELF_COST pair= 11 stage= before-diagonal work= 3315451 storage= 98925021 candidates= 3 matches= 3 reuses= 3 unique= 8 refineStart= 3100142
+SELF_COST pair= 11 stage= after-diagonal work= 3320221 storage= 98949057 candidates= 3 matches= 3 reuses= 3 unique= 8 refineStart= 3100142
+SELF_COST pair= 11 stage= after-identity-compile-before-compare work= 3323723 storage= 99023197 candidates= 3 matches= 3 reuses= 3 unique= 8 refineStart= 3100142
+SELF_COST pair= 11 stage= before-unique-refine work= 3323734 storage= 99023197 candidates= 3 matches= 3 reuses= 3 unique= 9 refineStart= 3323734
+SELF_COST pair= 11 stage= refiner-before-raw-admit work= 3323734 storage= 99023197 candidates= 3 matches= 3 reuses= 3 unique= 9 refineStart= 3323734
+SELF_COST pair= 11 stage= refiner-after-raw-admit work= 3323867 storage= 99023197 candidates= 3 matches= 3 reuses= 3 unique= 9 refineStart= 3323734
+SELF_COST pair= 11 stage= after-refine work= 3385726 storage= 100980336 candidates= 3 matches= 3 reuses= 3 unique= 9 refineStart= 3323734
+SELF_PAIR 12 canonical 1 4 rawSelected 0
+SELF_COST pair= 12 stage= before-diagonal work= 3385727 storage= 100980336 candidates= 3 matches= 3 reuses= 3 unique= 9 refineStart= 3323734
+SELF_COST pair= 12 stage= after-diagonal work= 3390497 storage= 101004372 candidates= 3 matches= 3 reuses= 3 unique= 9 refineStart= 3323734
+SELF_COST pair= 12 stage= after-identity-compile-before-compare work= 3393999 storage= 101078512 candidates= 3 matches= 3 reuses= 3 unique= 9 refineStart= 3323734
+SELF_CANDIDATE 12 11 work 3394011
+SELF_MATCH 12 11 work 3395132
+SELF_COST pair= 12 stage= reuse-done work= 3395132 storage= 101102776 candidates= 4 matches= 4 reuses= 4 unique= 9 refineStart= 3323734
+SELF_COST pair= 12 stage= after-refine work= 3395132 storage= 101102776 candidates= 4 matches= 4 reuses= 4 unique= 9 refineStart= 3323734
+SELF_PAIR 13 canonical 1 6 rawSelected 0
+SELF_COST pair= 13 stage= before-diagonal work= 3395133 storage= 101102776 candidates= 4 matches= 4 reuses= 4 unique= 9 refineStart= 3323734
+SELF_COST pair= 13 stage= after-diagonal work= 3399903 storage= 101126812 candidates= 4 matches= 4 reuses= 4 unique= 9 refineStart= 3323734
+SELF_COST pair= 13 stage= after-identity-compile-before-compare work= 3403407 storage= 101201008 candidates= 4 matches= 4 reuses= 4 unique= 9 refineStart= 3323734
+SELF_COST pair= 13 stage= before-unique-refine work= 3403420 storage= 101201008 candidates= 4 matches= 4 reuses= 4 unique= 10 refineStart= 3403420
+SELF_COST pair= 13 stage= refiner-before-raw-admit work= 3403420 storage= 101201008 candidates= 4 matches= 4 reuses= 4 unique= 10 refineStart= 3403420
+SELF_COST pair= 13 stage= refiner-after-raw-admit work= 3403553 storage= 101201008 candidates= 4 matches= 4 reuses= 4 unique= 10 refineStart= 3403420
+SELF_COST pair= 13 stage= after-refine work= 3575730 storage= 106443959 candidates= 4 matches= 4 reuses= 4 unique= 10 refineStart= 3403420
+SELF_PAIR 14 canonical 1 0 rawSelected 3
+SELF_COST pair= 14 stage= before-diagonal work= 3575731 storage= 106443959 candidates= 4 matches= 4 reuses= 4 unique= 10 refineStart= 3403420
+SELF_COST pair= 14 stage= after-diagonal work= 3580501 storage= 106467995 candidates= 4 matches= 4 reuses= 4 unique= 10 refineStart= 3403420
+SELF_COST pair= 14 stage= after-identity-compile-before-compare work= 3583985 storage= 106542131 candidates= 4 matches= 4 reuses= 4 unique= 10 refineStart= 3403420
+SELF_CANDIDATE 14 7 work 3583993
+SELF_MATCH 14 7 work 3585091
+SELF_COST pair= 14 stage= reuse-done work= 3585091 storage= 106566311 candidates= 5 matches= 5 reuses= 5 unique= 10 refineStart= 3403420
+SELF_COST pair= 14 stage= after-refine work= 3585091 storage= 106566311 candidates= 5 matches= 5 reuses= 5 unique= 10 refineStart= 3403420
+SELF_PAIR 15 canonical 1 1 rawSelected 3
+SELF_COST pair= 15 stage= before-diagonal work= 3585092 storage= 106566311 candidates= 5 matches= 5 reuses= 5 unique= 10 refineStart= 3403420
+SELF_COST pair= 15 stage= after-diagonal work= 3589862 storage= 106590347 candidates= 5 matches= 5 reuses= 5 unique= 10 refineStart= 3403420
+SELF_COST pair= 15 stage= after-identity-compile-before-compare work= 3593364 storage= 106664487 candidates= 5 matches= 5 reuses= 5 unique= 10 refineStart= 3403420
+SELF_CANDIDATE 15 8 work 3593373
+SELF_MATCH 15 8 work 3594494
+SELF_COST pair= 15 stage= reuse-done work= 3594494 storage= 106688751 candidates= 6 matches= 6 reuses= 6 unique= 10 refineStart= 3403420
+SELF_COST pair= 15 stage= after-refine work= 3594494 storage= 106688751 candidates= 6 matches= 6 reuses= 6 unique= 10 refineStart= 3403420
+SELF_PAIR 16 canonical 1 1 rawSelected 3
+SELF_COST pair= 16 stage= before-diagonal work= 3594495 storage= 106688751 candidates= 6 matches= 6 reuses= 6 unique= 10 refineStart= 3403420
+SELF_COST pair= 16 stage= after-diagonal work= 3599265 storage= 106712787 candidates= 6 matches= 6 reuses= 6 unique= 10 refineStart= 3403420
+SELF_COST pair= 16 stage= after-identity-compile-before-compare work= 3602767 storage= 106786927 candidates= 6 matches= 6 reuses= 6 unique= 10 refineStart= 3403420
+SELF_CANDIDATE 16 8 work 3602776
+SELF_MATCH 16 8 work 3603897
+SELF_COST pair= 16 stage= reuse-done work= 3603897 storage= 106811191 candidates= 7 matches= 7 reuses= 7 unique= 10 refineStart= 3403420
+SELF_COST pair= 16 stage= after-refine work= 3603897 storage= 106811191 candidates= 7 matches= 7 reuses= 7 unique= 10 refineStart= 3403420
+SELF_PAIR 17 canonical 1 3 rawSelected 3
+SELF_COST pair= 17 stage= before-diagonal work= 3603898 storage= 106811191 candidates= 7 matches= 7 reuses= 7 unique= 10 refineStart= 3403420
+SELF_COST pair= 17 stage= after-diagonal work= 3608668 storage= 106835227 candidates= 7 matches= 7 reuses= 7 unique= 10 refineStart= 3403420
+SELF_COST pair= 17 stage= after-identity-compile-before-compare work= 3612175 storage= 106909415 candidates= 7 matches= 7 reuses= 7 unique= 10 refineStart= 3403420
+SELF_CANDIDATE 17 10 work 3612186
+SELF_MATCH 17 10 work 3613307
+SELF_COST pair= 17 stage= reuse-done work= 3613307 storage= 106933679 candidates= 8 matches= 8 reuses= 8 unique= 10 refineStart= 3403420
+SELF_COST pair= 17 stage= after-refine work= 3613307 storage= 106933679 candidates= 8 matches= 8 reuses= 8 unique= 10 refineStart= 3403420
+SELF_PAIR 18 canonical 1 4 rawSelected 0
+SELF_COST pair= 18 stage= before-diagonal work= 3613308 storage= 106933679 candidates= 8 matches= 8 reuses= 8 unique= 10 refineStart= 3403420
+SELF_COST pair= 18 stage= after-diagonal work= 3618078 storage= 106957715 candidates= 8 matches= 8 reuses= 8 unique= 10 refineStart= 3403420
+SELF_COST pair= 18 stage= after-identity-compile-before-compare work= 3621580 storage= 107031855 candidates= 8 matches= 8 reuses= 8 unique= 10 refineStart= 3403420
+SELF_CANDIDATE 18 11 work 3621592
+SELF_MATCH 18 11 work 3622713
+SELF_COST pair= 18 stage= reuse-done work= 3622713 storage= 107056119 candidates= 9 matches= 9 reuses= 9 unique= 10 refineStart= 3403420
+SELF_COST pair= 18 stage= after-refine work= 3622713 storage= 107056119 candidates= 9 matches= 9 reuses= 9 unique= 10 refineStart= 3403420
+SELF_PAIR 19 canonical 1 4 rawSelected 0
+SELF_COST pair= 19 stage= before-diagonal work= 3622714 storage= 107056119 candidates= 9 matches= 9 reuses= 9 unique= 10 refineStart= 3403420
+SELF_COST pair= 19 stage= after-diagonal work= 3627484 storage= 107080155 candidates= 9 matches= 9 reuses= 9 unique= 10 refineStart= 3403420
+SELF_COST pair= 19 stage= after-identity-compile-before-compare work= 3630986 storage= 107154295 candidates= 9 matches= 9 reuses= 9 unique= 10 refineStart= 3403420
+SELF_CANDIDATE 19 11 work 3630998
+SELF_MATCH 19 11 work 3632119
+SELF_COST pair= 19 stage= reuse-done work= 3632119 storage= 107178559 candidates= 10 matches= 10 reuses= 10 unique= 10 refineStart= 3403420
+SELF_COST pair= 19 stage= after-refine work= 3632119 storage= 107178559 candidates= 10 matches= 10 reuses= 10 unique= 10 refineStart= 3403420
+SELF_PAIR 20 canonical 1 6 rawSelected 0
+SELF_COST pair= 20 stage= before-diagonal work= 3632120 storage= 107178559 candidates= 10 matches= 10 reuses= 10 unique= 10 refineStart= 3403420
+SELF_COST pair= 20 stage= after-diagonal work= 3636890 storage= 107202595 candidates= 10 matches= 10 reuses= 10 unique= 10 refineStart= 3403420
+SELF_COST pair= 20 stage= after-identity-compile-before-compare work= 3640394 storage= 107276791 candidates= 10 matches= 10 reuses= 10 unique= 10 refineStart= 3403420
+SELF_CANDIDATE 20 13 work 3640408
+SELF_MATCH 20 13 work 3641529
+SELF_COST pair= 20 stage= reuse-done work= 3641529 storage= 107301055 candidates= 11 matches= 11 reuses= 11 unique= 10 refineStart= 3403420
+SELF_COST pair= 20 stage= after-refine work= 3641529 storage= 107301055 candidates= 11 matches= 11 reuses= 11 unique= 10 refineStart= 3403420
+SELF_PAIR 21 canonical 3 0 rawSelected 3
+SELF_COST pair= 21 stage= before-diagonal work= 3641530 storage= 107301055 candidates= 11 matches= 11 reuses= 11 unique= 10 refineStart= 3403420
+SELF_COST pair= 21 stage= after-diagonal work= 3646300 storage= 107325091 candidates= 11 matches= 11 reuses= 11 unique= 10 refineStart= 3403420
+SELF_COST pair= 21 stage= after-identity-compile-before-compare work= 3649789 storage= 107399275 candidates= 11 matches= 11 reuses= 11 unique= 10 refineStart= 3403420
+SELF_COST pair= 21 stage= before-unique-refine work= 3649810 storage= 107399275 candidates= 11 matches= 11 reuses= 11 unique= 11 refineStart= 3649810
+SELF_COST pair= 21 stage= refiner-before-raw-admit work= 3649810 storage= 107399275 candidates= 11 matches= 11 reuses= 11 unique= 11 refineStart= 3649810
+SELF_COST pair= 21 stage= refiner-after-raw-admit work= 3649943 storage= 107399275 candidates= 11 matches= 11 reuses= 11 unique= 11 refineStart= 3649810
+SELF_COST pair= 21 stage= after-refine work= 4545101 storage= 133092031 candidates= 11 matches= 11 reuses= 11 unique= 11 refineStart= 3649810
+SELF_PAIR 22 canonical 3 1 rawSelected 3
+SELF_COST pair= 22 stage= before-diagonal work= 4545102 storage= 133092031 candidates= 11 matches= 11 reuses= 11 unique= 11 refineStart= 3649810
+SELF_COST pair= 22 stage= after-diagonal work= 4549872 storage= 133116067 candidates= 11 matches= 11 reuses= 11 unique= 11 refineStart= 3649810
+SELF_COST pair= 22 stage= after-identity-compile-before-compare work= 4553379 storage= 133190255 candidates= 11 matches= 11 reuses= 11 unique= 11 refineStart= 3649810
+SELF_COST pair= 22 stage= before-unique-refine work= 4553401 storage= 133190255 candidates= 11 matches= 11 reuses= 11 unique= 12 refineStart= 4553401
+SELF_COST pair= 22 stage= refiner-before-raw-admit work= 4553401 storage= 133190255 candidates= 11 matches= 11 reuses= 11 unique= 12 refineStart= 4553401
+SELF_COST pair= 22 stage= refiner-after-raw-admit work= 4553534 storage= 133190255 candidates= 11 matches= 11 reuses= 11 unique= 12 refineStart= 4553401
+SELF_COST pair= 22 stage= after-refine work= 4818711 storage= 141146621 candidates= 11 matches= 11 reuses= 11 unique= 12 refineStart= 4553401
+SELF_PAIR 23 canonical 3 1 rawSelected 3
+SELF_COST pair= 23 stage= before-diagonal work= 4818712 storage= 141146621 candidates= 11 matches= 11 reuses= 11 unique= 12 refineStart= 4553401
+SELF_COST pair= 23 stage= after-diagonal work= 4823482 storage= 141170657 candidates= 11 matches= 11 reuses= 11 unique= 12 refineStart= 4553401
+SELF_COST pair= 23 stage= after-identity-compile-before-compare work= 4826989 storage= 141244845 candidates= 11 matches= 11 reuses= 11 unique= 12 refineStart= 4553401
+SELF_CANDIDATE 23 22 work 4827012
+SELF_MATCH 23 22 work 4828133
+SELF_COST pair= 23 stage= reuse-done work= 4828133 storage= 141269109 candidates= 12 matches= 12 reuses= 12 unique= 12 refineStart= 4553401
+SELF_COST pair= 23 stage= after-refine work= 4828133 storage= 141269109 candidates= 12 matches= 12 reuses= 12 unique= 12 refineStart= 4553401
+SELF_PAIR 24 canonical 3 3 rawSelected 9
+SELF_COST pair= 24 stage= before-diagonal work= 4828134 storage= 141269109 candidates= 12 matches= 12 reuses= 12 unique= 12 refineStart= 4553401
+SELF_COST pair= 24 stage= after-diagonal work= 4832904 storage= 141293145 candidates= 12 matches= 12 reuses= 12 unique= 12 refineStart= 4553401
+SELF_COST pair= 24 stage= after-identity-compile-before-compare work= 4836416 storage= 141367381 candidates= 12 matches= 12 reuses= 12 unique= 12 refineStart= 4553401
+SELF_COST pair= 24 stage= before-unique-refine work= 4836440 storage= 141367381 candidates= 12 matches= 12 reuses= 12 unique= 13 refineStart= 4836440
+SELF_COST pair= 24 stage= refiner-before-raw-admit work= 4836440 storage= 141367381 candidates= 12 matches= 12 reuses= 12 unique= 13 refineStart= 4836440
+SELF_COST pair= 24 stage= refiner-after-raw-admit work= 4836573 storage= 141367381 candidates= 12 matches= 12 reuses= 12 unique= 13 refineStart= 4836440
+SELF_COST pair= 24 stage= after-refine work= 5739775 storage= 167835216 candidates= 12 matches= 12 reuses= 12 unique= 13 refineStart= 4836440
+SELF_PAIR 25 canonical 3 4 rawSelected 3
+SELF_COST pair= 25 stage= before-diagonal work= 5739776 storage= 167835216 candidates= 12 matches= 12 reuses= 12 unique= 13 refineStart= 4836440
+SELF_COST pair= 25 stage= after-diagonal work= 5744546 storage= 167859252 candidates= 12 matches= 12 reuses= 12 unique= 13 refineStart= 4836440
+SELF_COST pair= 25 stage= after-identity-compile-before-compare work= 5748053 storage= 167933440 candidates= 12 matches= 12 reuses= 12 unique= 13 refineStart= 4836440
+SELF_COST pair= 25 stage= before-unique-refine work= 5748078 storage= 167933440 candidates= 12 matches= 12 reuses= 12 unique= 14 refineStart= 5748078
+SELF_COST pair= 25 stage= refiner-before-raw-admit work= 5748078 storage= 167933440 candidates= 12 matches= 12 reuses= 12 unique= 14 refineStart= 5748078
+SELF_COST pair= 25 stage= refiner-after-raw-admit work= 5748211 storage= 167933440 candidates= 12 matches= 12 reuses= 12 unique= 14 refineStart= 5748078
+SELF_COST pair= 25 stage= after-refine work= 6013056 storage= 175884873 candidates= 12 matches= 12 reuses= 12 unique= 14 refineStart= 5748078
+SELF_PAIR 26 canonical 3 4 rawSelected 3
+SELF_COST pair= 26 stage= before-diagonal work= 6013057 storage= 175884873 candidates= 12 matches= 12 reuses= 12 unique= 14 refineStart= 5748078
+SELF_COST pair= 26 stage= after-diagonal work= 6017827 storage= 175908909 candidates= 12 matches= 12 reuses= 12 unique= 14 refineStart= 5748078
+SELF_COST pair= 26 stage= after-identity-compile-before-compare work= 6021334 storage= 175983097 candidates= 12 matches= 12 reuses= 12 unique= 14 refineStart= 5748078
+SELF_CANDIDATE 26 25 work 6021360
+SELF_MATCH 26 25 work 6022481
+SELF_COST pair= 26 stage= reuse-done work= 6022481 storage= 176007361 candidates= 13 matches= 13 reuses= 13 unique= 14 refineStart= 5748078
+SELF_COST pair= 26 stage= after-refine work= 6022481 storage= 176007361 candidates= 13 matches= 13 reuses= 13 unique= 14 refineStart= 5748078
+SELF_PAIR 27 canonical 3 6 rawSelected 3
+SELF_COST pair= 27 stage= before-diagonal work= 6022482 storage= 176007361 candidates= 13 matches= 13 reuses= 13 unique= 14 refineStart= 5748078
+SELF_COST pair= 27 stage= after-diagonal work= 6027252 storage= 176031397 candidates= 13 matches= 13 reuses= 13 unique= 14 refineStart= 5748078
+SELF_COST pair= 27 stage= after-identity-compile-before-compare work= 6030761 storage= 176105641 candidates= 13 matches= 13 reuses= 13 unique= 14 refineStart= 5748078
+SELF_COST pair= 27 stage= before-unique-refine work= 6030788 storage= 176105641 candidates= 13 matches= 13 reuses= 13 unique= 15 refineStart= 6030788
+SELF_COST pair= 27 stage= refiner-before-raw-admit work= 6030788 storage= 176105641 candidates= 13 matches= 13 reuses= 13 unique= 15 refineStart= 6030788
+SELF_COST pair= 27 stage= refiner-after-raw-admit work= 6030921 storage= 176105641 candidates= 13 matches= 13 reuses= 13 unique= 15 refineStart= 6030788
+SELF_COST pair= 27 stage= after-refine work= 6944866 storage= 202419122 candidates= 13 matches= 13 reuses= 13 unique= 15 refineStart= 6030788
+SELF_PAIR 28 canonical 4 0 rawSelected 0
+SELF_COST pair= 28 stage= before-diagonal work= 6944867 storage= 202419122 candidates= 13 matches= 13 reuses= 13 unique= 15 refineStart= 6030788
+SELF_COST pair= 28 stage= after-diagonal work= 6949637 storage= 202443158 candidates= 13 matches= 13 reuses= 13 unique= 15 refineStart= 6030788
+SELF_COST pair= 28 stage= after-identity-compile-before-compare work= 6953121 storage= 202517294 candidates= 13 matches= 13 reuses= 13 unique= 15 refineStart= 6030788
+SELF_COST pair= 28 stage= before-unique-refine work= 6953149 storage= 202517294 candidates= 13 matches= 13 reuses= 13 unique= 16 refineStart= 6953149
+SELF_COST pair= 28 stage= refiner-before-raw-admit work= 6953149 storage= 202517294 candidates= 13 matches= 13 reuses= 13 unique= 16 refineStart= 6953149
+SELF_COST pair= 28 stage= refiner-after-raw-admit work= 6953282 storage= 202517294 candidates= 13 matches= 13 reuses= 13 unique= 16 refineStart= 6953149
+SELF_COST pair= 28 stage= after-refine work= 7122199 storage= 207749745 candidates= 13 matches= 13 reuses= 13 unique= 16 refineStart= 6953149
+SELF_PAIR 29 canonical 4 1 rawSelected 0
+SELF_COST pair= 29 stage= before-diagonal work= 7122200 storage= 207749745 candidates= 13 matches= 13 reuses= 13 unique= 16 refineStart= 6953149
+SELF_COST pair= 29 stage= after-diagonal work= 7126970 storage= 207773781 candidates= 13 matches= 13 reuses= 13 unique= 16 refineStart= 6953149
+SELF_COST pair= 29 stage= after-identity-compile-before-compare work= 7130472 storage= 207847921 candidates= 13 matches= 13 reuses= 13 unique= 16 refineStart= 6953149
+SELF_COST pair= 29 stage= before-unique-refine work= 7130501 storage= 207847921 candidates= 13 matches= 13 reuses= 13 unique= 17 refineStart= 7130501
+SELF_COST pair= 29 stage= refiner-before-raw-admit work= 7130501 storage= 207847921 candidates= 13 matches= 13 reuses= 13 unique= 17 refineStart= 7130501
+SELF_COST pair= 29 stage= refiner-after-raw-admit work= 7130634 storage= 207847921 candidates= 13 matches= 13 reuses= 13 unique= 17 refineStart= 7130501
+SELF_COST pair= 29 stage= after-refine work= 7192526 storage= 209805856 candidates= 13 matches= 13 reuses= 13 unique= 17 refineStart= 7130501
+SELF_PAIR 30 canonical 4 1 rawSelected 0
+SELF_COST pair= 30 stage= before-diagonal work= 7192527 storage= 209805856 candidates= 13 matches= 13 reuses= 13 unique= 17 refineStart= 7130501
+SELF_COST pair= 30 stage= after-diagonal work= 7197297 storage= 209829892 candidates= 13 matches= 13 reuses= 13 unique= 17 refineStart= 7130501
+SELF_COST pair= 30 stage= after-identity-compile-before-compare work= 7200799 storage= 209904032 candidates= 13 matches= 13 reuses= 13 unique= 17 refineStart= 7130501
+SELF_CANDIDATE 30 29 work 7200829
+SELF_MATCH 30 29 work 7201950
+SELF_COST pair= 30 stage= reuse-done work= 7201950 storage= 209928296 candidates= 14 matches= 14 reuses= 14 unique= 17 refineStart= 7130501
+SELF_COST pair= 30 stage= after-refine work= 7201950 storage= 209928296 candidates= 14 matches= 14 reuses= 14 unique= 17 refineStart= 7130501
+SELF_PAIR 31 canonical 4 3 rawSelected 3
+SELF_COST pair= 31 stage= before-diagonal work= 7201951 storage= 209928296 candidates= 14 matches= 14 reuses= 14 unique= 17 refineStart= 7130501
+SELF_COST pair= 31 stage= after-diagonal work= 7206721 storage= 209952332 candidates= 14 matches= 14 reuses= 14 unique= 17 refineStart= 7130501
+SELF_COST pair= 31 stage= after-identity-compile-before-compare work= 7210228 storage= 210026520 candidates= 14 matches= 14 reuses= 14 unique= 17 refineStart= 7130501
+SELF_COST pair= 31 stage= before-unique-refine work= 7210259 storage= 210026520 candidates= 14 matches= 14 reuses= 14 unique= 18 refineStart= 7210259
+SELF_COST pair= 31 stage= refiner-before-raw-admit work= 7210259 storage= 210026520 candidates= 14 matches= 14 reuses= 14 unique= 18 refineStart= 7210259
+SELF_COST pair= 31 stage= refiner-after-raw-admit work= 7210392 storage= 210026520 candidates= 14 matches= 14 reuses= 14 unique= 18 refineStart= 7210259
+SELF_COST pair= 31 stage= after-refine work= 7425772 storage= 216501104 candidates= 14 matches= 14 reuses= 14 unique= 18 refineStart= 7210259
+SELF_PAIR 32 canonical 4 4 rawSelected 3
+SELF_COST pair= 32 stage= before-diagonal work= 7425773 storage= 216501104 candidates= 14 matches= 14 reuses= 14 unique= 18 refineStart= 7210259
+SELF_COST pair= 32 stage= after-diagonal work= 7430543 storage= 216525140 candidates= 14 matches= 14 reuses= 14 unique= 18 refineStart= 7210259
+SELF_COST pair= 32 stage= after-identity-compile-before-compare work= 7434045 storage= 216599280 candidates= 14 matches= 14 reuses= 14 unique= 18 refineStart= 7210259
+SELF_COST pair= 32 stage= before-unique-refine work= 7434077 storage= 216599280 candidates= 14 matches= 14 reuses= 14 unique= 19 refineStart= 7434077
+SELF_COST pair= 32 stage= refiner-before-raw-admit work= 7434077 storage= 216599280 candidates= 14 matches= 14 reuses= 14 unique= 19 refineStart= 7434077
+SELF_COST pair= 32 stage= refiner-after-raw-admit work= 7434210 storage= 216599280 candidates= 14 matches= 14 reuses= 14 unique= 19 refineStart= 7434077
+SELF_COST pair= 32 stage= after-refine work= 7524927 storage= 219479083 candidates= 14 matches= 14 reuses= 14 unique= 19 refineStart= 7434077
+SELF_PAIR 33 canonical 4 4 rawSelected 3
+SELF_COST pair= 33 stage= before-diagonal work= 7524928 storage= 219479083 candidates= 14 matches= 14 reuses= 14 unique= 19 refineStart= 7434077
+SELF_COST pair= 33 stage= after-diagonal work= 7529698 storage= 219503119 candidates= 14 matches= 14 reuses= 14 unique= 19 refineStart= 7434077
+SELF_COST pair= 33 stage= after-identity-compile-before-compare work= 7533200 storage= 219577259 candidates= 14 matches= 14 reuses= 14 unique= 19 refineStart= 7434077
+SELF_CANDIDATE 33 32 work 7533233
+SELF_MATCH 33 32 work 7534354
+SELF_COST pair= 33 stage= reuse-done work= 7534354 storage= 219601523 candidates= 15 matches= 15 reuses= 15 unique= 19 refineStart= 7434077
+SELF_COST pair= 33 stage= after-refine work= 7534354 storage= 219601523 candidates= 15 matches= 15 reuses= 15 unique= 19 refineStart= 7434077
+SELF_PAIR 34 canonical 4 6 rawSelected 3
+SELF_COST pair= 34 stage= before-diagonal work= 7534355 storage= 219601523 candidates= 15 matches= 15 reuses= 15 unique= 19 refineStart= 7434077
+SELF_COST pair= 34 stage= after-diagonal work= 7539125 storage= 219625559 candidates= 15 matches= 15 reuses= 15 unique= 19 refineStart= 7434077
+SELF_COST pair= 34 stage= after-identity-compile-before-compare work= 7542629 storage= 219699755 candidates= 15 matches= 15 reuses= 15 unique= 19 refineStart= 7434077
+SELF_COST pair= 34 stage= before-unique-refine work= 7542663 storage= 219699755 candidates= 15 matches= 15 reuses= 15 unique= 20 refineStart= 7542663
+SELF_COST pair= 34 stage= refiner-before-raw-admit work= 7542663 storage= 219699755 candidates= 15 matches= 15 reuses= 15 unique= 20 refineStart= 7542663
+SELF_COST pair= 34 stage= refiner-after-raw-admit work= 7542796 storage= 219699755 candidates= 15 matches= 15 reuses= 15 unique= 20 refineStart= 7542663
+SELF_COST pair= 34 stage= after-refine work= 7731215 storage= 225562584 candidates= 15 matches= 15 reuses= 15 unique= 20 refineStart= 7542663
+SELF_PAIR 35 canonical 4 0 rawSelected 0
+SELF_COST pair= 35 stage= before-diagonal work= 7731216 storage= 225562584 candidates= 15 matches= 15 reuses= 15 unique= 20 refineStart= 7542663
+SELF_COST pair= 35 stage= after-diagonal work= 7735986 storage= 225586620 candidates= 15 matches= 15 reuses= 15 unique= 20 refineStart= 7542663
+SELF_COST pair= 35 stage= after-identity-compile-before-compare work= 7739470 storage= 225660756 candidates= 15 matches= 15 reuses= 15 unique= 20 refineStart= 7542663
+SELF_CANDIDATE 35 28 work 7739499
+SELF_MATCH 35 28 work 7740597
+SELF_COST pair= 35 stage= reuse-done work= 7740597 storage= 225684936 candidates= 16 matches= 16 reuses= 16 unique= 20 refineStart= 7542663
+SELF_COST pair= 35 stage= after-refine work= 7740597 storage= 225684936 candidates= 16 matches= 16 reuses= 16 unique= 20 refineStart= 7542663
+SELF_PAIR 36 canonical 4 1 rawSelected 0
+SELF_COST pair= 36 stage= before-diagonal work= 7740598 storage= 225684936 candidates= 16 matches= 16 reuses= 16 unique= 20 refineStart= 7542663
+SELF_COST pair= 36 stage= after-diagonal work= 7745368 storage= 225708972 candidates= 16 matches= 16 reuses= 16 unique= 20 refineStart= 7542663
+SELF_COST pair= 36 stage= after-identity-compile-before-compare work= 7748870 storage= 225783112 candidates= 16 matches= 16 reuses= 16 unique= 20 refineStart= 7542663
+SELF_CANDIDATE 36 29 work 7748900
+SELF_MATCH 36 29 work 7750021
+SELF_COST pair= 36 stage= reuse-done work= 7750021 storage= 225807376 candidates= 17 matches= 17 reuses= 17 unique= 20 refineStart= 7542663
+SELF_COST pair= 36 stage= after-refine work= 7750021 storage= 225807376 candidates= 17 matches= 17 reuses= 17 unique= 20 refineStart= 7542663
+SELF_PAIR 37 canonical 4 1 rawSelected 0
+SELF_COST pair= 37 stage= before-diagonal work= 7750022 storage= 225807376 candidates= 17 matches= 17 reuses= 17 unique= 20 refineStart= 7542663
+SELF_COST pair= 37 stage= after-diagonal work= 7754792 storage= 225831412 candidates= 17 matches= 17 reuses= 17 unique= 20 refineStart= 7542663
+SELF_COST pair= 37 stage= after-identity-compile-before-compare work= 7758294 storage= 225905552 candidates= 17 matches= 17 reuses= 17 unique= 20 refineStart= 7542663
+SELF_CANDIDATE 37 29 work 7758324
+SELF_MATCH 37 29 work 7759445
+SELF_COST pair= 37 stage= reuse-done work= 7759445 storage= 225929816 candidates= 18 matches= 18 reuses= 18 unique= 20 refineStart= 7542663
+SELF_COST pair= 37 stage= after-refine work= 7759445 storage= 225929816 candidates= 18 matches= 18 reuses= 18 unique= 20 refineStart= 7542663
+SELF_PAIR 38 canonical 4 3 rawSelected 3
+SELF_COST pair= 38 stage= before-diagonal work= 7759446 storage= 225929816 candidates= 18 matches= 18 reuses= 18 unique= 20 refineStart= 7542663
+SELF_COST pair= 38 stage= after-diagonal work= 7764216 storage= 225953852 candidates= 18 matches= 18 reuses= 18 unique= 20 refineStart= 7542663
+SELF_COST pair= 38 stage= after-identity-compile-before-compare work= 7767723 storage= 226028040 candidates= 18 matches= 18 reuses= 18 unique= 20 refineStart= 7542663
+SELF_CANDIDATE 38 31 work 7767755
+SELF_MATCH 38 31 work 7768876
+SELF_COST pair= 38 stage= reuse-done work= 7768876 storage= 226052304 candidates= 19 matches= 19 reuses= 19 unique= 20 refineStart= 7542663
+SELF_COST pair= 38 stage= after-refine work= 7768876 storage= 226052304 candidates= 19 matches= 19 reuses= 19 unique= 20 refineStart= 7542663
+SELF_PAIR 39 canonical 4 4 rawSelected 3
+SELF_COST pair= 39 stage= before-diagonal work= 7768877 storage= 226052304 candidates= 19 matches= 19 reuses= 19 unique= 20 refineStart= 7542663
+SELF_COST pair= 39 stage= after-diagonal work= 7773647 storage= 226076340 candidates= 19 matches= 19 reuses= 19 unique= 20 refineStart= 7542663
+SELF_COST pair= 39 stage= after-identity-compile-before-compare work= 7777149 storage= 226150480 candidates= 19 matches= 19 reuses= 19 unique= 20 refineStart= 7542663
+SELF_CANDIDATE 39 32 work 7777182
+SELF_MATCH 39 32 work 7778303
+SELF_COST pair= 39 stage= reuse-done work= 7778303 storage= 226174744 candidates= 20 matches= 20 reuses= 20 unique= 20 refineStart= 7542663
+SELF_COST pair= 39 stage= after-refine work= 7778303 storage= 226174744 candidates= 20 matches= 20 reuses= 20 unique= 20 refineStart= 7542663
+SELF_PAIR 40 canonical 4 4 rawSelected 3
+SELF_COST pair= 40 stage= before-diagonal work= 7778304 storage= 226174744 candidates= 20 matches= 20 reuses= 20 unique= 20 refineStart= 7542663
+SELF_COST pair= 40 stage= after-diagonal work= 7783074 storage= 226198780 candidates= 20 matches= 20 reuses= 20 unique= 20 refineStart= 7542663
+SELF_COST pair= 40 stage= after-identity-compile-before-compare work= 7786576 storage= 226272920 candidates= 20 matches= 20 reuses= 20 unique= 20 refineStart= 7542663
+SELF_CANDIDATE 40 32 work 7786609
+SELF_MATCH 40 32 work 7787730
+SELF_COST pair= 40 stage= reuse-done work= 7787730 storage= 226297184 candidates= 21 matches= 21 reuses= 21 unique= 20 refineStart= 7542663
+SELF_COST pair= 40 stage= after-refine work= 7787730 storage= 226297184 candidates= 21 matches= 21 reuses= 21 unique= 20 refineStart= 7542663
+SELF_PAIR 41 canonical 4 6 rawSelected 3
+SELF_COST pair= 41 stage= before-diagonal work= 7787731 storage= 226297184 candidates= 21 matches= 21 reuses= 21 unique= 20 refineStart= 7542663
+SELF_COST pair= 41 stage= after-diagonal work= 7792501 storage= 226321220 candidates= 21 matches= 21 reuses= 21 unique= 20 refineStart= 7542663
+SELF_COST pair= 41 stage= after-identity-compile-before-compare work= 7796005 storage= 226395416 candidates= 21 matches= 21 reuses= 21 unique= 20 refineStart= 7542663
+SELF_CANDIDATE 41 34 work 7796040
+SELF_MATCH 41 34 work 7797161
+SELF_COST pair= 41 stage= reuse-done work= 7797161 storage= 226419680 candidates= 22 matches= 22 reuses= 22 unique= 20 refineStart= 7542663
+SELF_COST pair= 41 stage= after-refine work= 7797161 storage= 226419680 candidates= 22 matches= 22 reuses= 22 unique= 20 refineStart= 7542663
+SELF_PAIR 42 canonical 6 0 rawSelected 3
+SELF_COST pair= 42 stage= before-diagonal work= 7797162 storage= 226419680 candidates= 22 matches= 22 reuses= 22 unique= 20 refineStart= 7542663
+SELF_COST pair= 42 stage= after-diagonal work= 7801932 storage= 226443716 candidates= 22 matches= 22 reuses= 22 unique= 20 refineStart= 7542663
+SELF_COST pair= 42 stage= after-identity-compile-before-compare work= 7805418 storage= 226517908 candidates= 22 matches= 22 reuses= 22 unique= 20 refineStart= 7542663
+SELF_COST pair= 42 stage= before-unique-refine work= 7805460 storage= 226517908 candidates= 22 matches= 22 reuses= 22 unique= 21 refineStart= 7805460
+SELF_COST pair= 42 stage= refiner-before-raw-admit work= 7805460 storage= 226517908 candidates= 22 matches= 22 reuses= 22 unique= 21 refineStart= 7805460
+SELF_COST pair= 42 stage= refiner-after-raw-admit work= 7805593 storage= 226517908 candidates= 22 matches= 22 reuses= 22 unique= 21 refineStart= 7805460
+SELF_EXHAUSTED pair= 42 stage= refine-pullback work= 8388608 requested= 1 storage= 245113515 candidates= 22 matches= 22 reuses= 22 unique= 21 refineStart= 7805460
+OBSERVATION_STOP geometry(PublicLiftPlane.ExactRealTopologyFailure.cell(PublicLiftPlane.ExactRealCellFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.work))))

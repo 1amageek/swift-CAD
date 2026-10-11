@@ -31,17 +31,47 @@ public struct DefaultOriginalIssuedGraphRelationResolver<S: Sendable,E: Sendable
             guard count.partialValue <= maximumPairs else { throw OriginalDomainIdentityFailure.chartLimit }
             try admission.retainStorage(bytes:exactScalarPayloadBytes(count:count.partialValue,of:OriginalIssuedGraphRelationPair.self))
             var pairs:[OriginalIssuedGraphRelationPair]=[];pairs.reserveCapacity(count.partialValue)
+            let left=try classes(first,using:&admission),right=try classes(second,using:&admission)
             typealias Cells=ExactRealCellDomain<OriginalExactScalarDomain>
             let domain=ExactParametricRelationDomain<OriginalExactScalarDomain,Cells,ExactRealTopology<OriginalExactScalarDomain>>(cells:Cells.self,topology:.init(cells:Cells.self))
             for i in first.graphs.indices { for j in second.graphs.indices {
                 try admission.consumeWork(1)
-                let input=try domain.compile(kind:kind,first:first.graphs[i].graph,second:second.graphs[j].graph,using:&admission)
-                let relation=try domain.resolve(input,cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
-                pairs.append(.init(firstGraphIndex:i,secondGraphIndex:j,relation:relation))
+                let ci=left[i].0,cj=right[j].0
+                if ci == i && cj == j {
+                    let input=try domain.compile(kind:kind,first:first.graphs[i].graph,second:second.graphs[j].graph,using:&admission)
+                    let relation=try domain.resolve(input,cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
+                    pairs.append(try .solved(firstGraphIndex:i,secondGraphIndex:j,relation:relation,using:&admission))
+                } else {
+                    let canonical=ci*second.graphs.count+cj
+                    guard canonical >= 0,canonical < pairs.count else { throw NativeExactRelationFailure.invalidDomain }
+                    pairs.append(try pairs[canonical].alias(firstGraphIndex:i,secondGraphIndex:j,
+                        firstEquivalence:left[i].1,secondEquivalence:right[j].1))
+                }
             } }
             try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalIssuedGraphRelations<S,E,C,T,F,D>.self))
             let result=OriginalIssuedGraphRelations(first:copy first,second:copy second,kind:kind,pairs:pairs)
             try admission.checkpoint();return result
+        } catch { throw .preserving(error) }
+    }
+
+    private func classes<U: Sendable,V: Sendable,W: Sendable,A: ExactScalarAdmission & ~Copyable>(
+        _ family:borrowing OriginalIssuedGraphFamily<U,V,W>,using a:inout A)
+        throws(NativeExactRelationFailure) -> [(Int,OriginalIssuedGraphSolverEquivalence?)] {
+        do {
+            try a.retainStorage(bytes:exactScalarPayloadBytes(count:family.graphs.count,of:(Int,OriginalIssuedGraphSolverEquivalence?).self))
+            var result:[(Int,OriginalIssuedGraphSolverEquivalence?)]=[];result.reserveCapacity(family.graphs.count)
+            for i in family.graphs.indices {
+                try a.consumeWork(1)
+                var entry:(Int,OriginalIssuedGraphSolverEquivalence?)=(i,nil)
+                for j in result.indices where result[j].0 == j {
+                    try a.consumeWork(1)
+                    if let proof=try OriginalIssuedGraphSolverEquivalence.checked(family.graphs[i],family.graphs[j],using:&a) {
+                        entry=(j,proof);break
+                    }
+                }
+                result.append(entry)
+            }
+            try a.checkpoint();return result
         } catch { throw .preserving(error) }
     }
 }

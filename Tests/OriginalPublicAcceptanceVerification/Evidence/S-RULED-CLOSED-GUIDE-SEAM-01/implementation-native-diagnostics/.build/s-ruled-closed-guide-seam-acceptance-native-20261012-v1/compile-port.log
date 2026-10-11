@@ -1,0 +1,24 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSolverEquivalence.swift:489:11: error: 'second' is borrowed and cannot be consumed
+487 |     static func checked<S: Sendable,E: Sendable,T: Sendable,F: Sendable,A: ExactScalarAdmission & ~Copyable>(
+488 |         _ first: borrowing OriginalIssuedGraphPreparation<S,E>,
+489 |         _ second: borrowing OriginalIssuedGraphPreparation<T,F>,using admission: inout A)
+    |           `- error: 'second' is borrowed and cannot be consumed
+490 |         throws(NativeExactRelationFailure) -> Self? {
+491 |         do {
+492 |             return try OriginalSourceProofAdmission.withBorrow(&admission) { a in
+    |                                                                            `- note: consumed here
+493 |                 try a.checkpoint();try a.consumeWork(1)
+494 |                 let left=first.graph,right=second.graph
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSolverEquivalence.swift:488:11: error: 'first' is borrowed and cannot be consumed
+486 | 
+487 |     static func checked<S: Sendable,E: Sendable,T: Sendable,F: Sendable,A: ExactScalarAdmission & ~Copyable>(
+488 |         _ first: borrowing OriginalIssuedGraphPreparation<S,E>,
+    |           `- error: 'first' is borrowed and cannot be consumed
+489 |         _ second: borrowing OriginalIssuedGraphPreparation<T,F>,using admission: inout A)
+490 |         throws(NativeExactRelationFailure) -> Self? {
+491 |         do {
+492 |             return try OriginalSourceProofAdmission.withBorrow(&admission) { a in
+    |                                                                            `- note: consumed here
+493 |                 try a.checkpoint();try a.consumeWork(1)
+494 |                 let left=first.graph,right=second.graph

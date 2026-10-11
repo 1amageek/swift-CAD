@@ -1,0 +1,423 @@
+{
+  "cell": "S-RULED-CLOSED-GUIDE-SEAM-01",
+  "cellComplete": false,
+  "groups": [
+    "oracle",
+    "graphs",
+    "empty",
+    "work",
+    "storage",
+    "cancel",
+    "cancel-final",
+    "lifetime",
+    "identity",
+    "coons"
+  ],
+  "upperSources": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/NativeExactRelationFailure.swift": "f6c37d3ffcaf438c04d7c4c09ae042ab70fbb9f02bffe307c703196207dffaaa",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphPreparation.swift": "e1ecf203859214e7c462ffc7865c552fc17fc2af93cb3f5e5f34a5d72d7bc3ed",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphFamily.swift": "573a8a7683c3df7ac66e8632838075953fc643891830e74cabddb906b2063c78",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphCompiling.swift": "6109092679e143ecdeda8067c328a75b102ee57e5ee0a2a24395b6e08329193e",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphFamilyPreparing.swift": "db13e736c4f1ccfff60ff70c21a01f5cd3d83c626ffb7c45a1c0f4d22452a631",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphCompiler.swift": "0c1d3fcce4fb9b1beaec542709ffccf0b504c828470423b3f8dd8f76b393889a",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultOriginalRationalGraphFamilyPreparer.swift": "361a1e46e5c0ebaf3116943a2a0847ee2e2aabc520e74216697cadc299b0a4d0",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelationResolving.swift": "4421ca335ee8ac2bd4bbc6a91908ab03a876992f6bdec540799a58ee7456a990",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelationOwning.swift": "c38aeb0188c8159837cb05b2f184a02aeb3b90adf304d51092f0b0a6dd5c8fac",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelationPair.swift": "3d2c53628519cc4b731258e31242fea829a21bcbf44e74c23eb3385b06eacc6c",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphRelations.swift": "03fceb6f181eb87a84544ac0ed4587f8fa8522b079dd9315d5477d43591b30fb",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphPredicateEquivalence.swift": "dd14b13a36e106f47ac80c42d31f839b557df6e95816b43650945114df382648",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphSolverEquivalence.swift": "15bea549ddc9a482ba4bda51b47ef3575402edb8949f06ecad358c8bf77bfe7c",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphRelationResolver.swift": "22c5d10d25687366599910f803c4b173be6e454cce1ef36d0d0f0f453bfe5557",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphParameterRefining.swift": "6dfe61716f2ba9a974d30abf307183328f4ada4e30ceac898bae07ea1de56518",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/OriginalIssuedGraphParameterRefinement.swift": "1cfecb639a1086bb582a29b1faf1c368b65f714d952f7e188fc5cd34343a76aa",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphParameterRefiner.swift": "b82f6916437334ac4131c4e8bf32b1ce2375c62ccc9df00f5f1edfc4befd6b7c",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalRationalSourceBoundaryDeclaration.swift": "e7aa926a98ee7d893d5d78518290dc6aa366eab03dd356f7ce9a97bc438a6491",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalLawBoundParameterIdentityIssuing.swift": "7ee5765dea12d8bd44d8cd662ebff522cb923221920f93063a9ca065d0154625",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DefaultOriginalParameterIdentityIssuer+LawBoundBoundary.swift": "32a1ce0f096b58e33d16e40bfbe90a6b387fddffebaaa56848ee170109468500",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContactQuerying.swift": "763320f9ea18806fb215d9912c2df552d616d0ed81c9c6c03b31627f4dce1590",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContacts.swift": "164c20bb7dd95fd0eebbdde36899886f49993fc79c109cdfc51c5609500a1b77",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalIssuedGraphSelfContactQuery.swift": "58d362f518edb65eaa3e0e5b1505df0fa5c0a4ed395fce9182fded0283253a6a",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfIdentityCompiler.swift": "4e4ccb80171832f621d7ce90ed5c9cb2cc317da0592dc6d064248f9d3131ab0e",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfPredicateSimplifier.swift": "070f45ddc851b88953b81514f0c499210cb30f5a93262503da294eeebae111c6",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContactRequestReading.swift": "5bd0ee3e56d3afa10b978b7254e46f9ebdc524beb8988dfc15231cf73786c25e",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedDomainCover+SelfContactRequest.swift": "bac7c6efe6983ea854d5dbb4831c503bef57aeb282de98f17ac427f75b807372"
+  },
+  "sourcePremises": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalCoons/GuideTraversalChain/OriginalGuideTraversalChain3D.swift": "e3882fc35dd0dc5f888619ccc2dc3f5c09daee2716af075295f0447a730bb919",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalRootSpan/OriginalCurveRootSpan3D.swift": "b7b6a594c1e0ed4961eadc45b202ac7f9be33f05d462cd2c463501995e91e372",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/RuledSurface3D.swift": "1ce0b3bc39ab834da8359f6af8150889d66413621d90f8349685955a7d7fbc3f",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRetainedGuideCurveSnapshot.swift": "daa7398b1dd2147b0df76a702dd5bf29ff0b7f2ee373d64affb68dfc582d1b65",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRetainedGuideCurveSnapshotProvider.swift": "8d1ad288e5c31f70a52f19be6378dffaebb557a689cc8153d15a4dfe9b04c3a0",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRuledSurfaceSnapshot.swift": "b454a2cd256f2bb246596c5cee186e5f98683d38d08a6e41bd7cf7503c59e6e3",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRuledSurfaceSnapshotProvider.swift": "45126f6c26a320e52ec1d1457cce508cd5ca4289ad6fee0dc2b17b9f933edbb0",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalFiniteRetainedCurveChartPreparer.swift": "89da9ca2d2bd7ac3908be8a0e88ad56a3cff3d85069940e25d90e0bf682b2e5b",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalFiniteRuledChartPreparer.swift": "a13aa745b56350d4efdfffd5f2de7eb99d34de95b889913e1991b3c5c522ba2b",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRuledChartSelection.swift": "2ae74964e5388bd2838203e1ee936b01e7579d0eace44bc1fdb8a2059cfeaa05",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalSourceBoundaryDeclaration.swift": "a5a09b6f1e69744b5a39b6dd9635ea67b0d74f001b9f92313d4d099ad06b640d",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalRationalParameterIdentityIssuing.swift": "d5d51081867bddb31a3f16eaf11fbb0c2a2e56606d883ffb1ac00d11767a7fc5",
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DefaultOriginalParameterIdentityIssuer+SourceLaws.swift": "685448bce3b59cf2e6a4620acb8d9654cee6f5bdf83958467cc96dcd9153c95f"
+  },
+  "lanes": {
+    "native": {
+      "receiptParts": [
+        {
+          "path": "accepted/native-20261012-v9/failure-receipt.json",
+          "sha256": "7b878c8e30aec0630b8e3d4ddf4b162dd6e229c78cbbf63bdba7789e54d13719",
+          "groups": [
+            "oracle",
+            "graphs",
+            "empty",
+            "work",
+            "storage",
+            "cancel",
+            "cancel-final",
+            "lifetime"
+          ],
+          "success": false,
+          "successRunLabels": [
+            "runtime-oracle",
+            "runtime-graphs",
+            "runtime-empty",
+            "runtime-work",
+            "runtime-storage",
+            "runtime-cancel",
+            "runtime-cancel-final",
+            "runtime-lifetime"
+          ],
+          "preserveFailure": true,
+          "historicalComparators": {
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.py",
+              "sha256": "a00828f81298cbcd27ac7448888c9cb7d5207ac5b5ae4c541fc527b1c7ad995f",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            },
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.swift",
+              "sha256": "190eb8310e42882546ee025364f1bf8219c44320ec5432a64a18bcaf0308849e",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            },
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/LawBoundGuideSeamIdentity.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/LawBoundGuideSeamIdentity.swift",
+              "sha256": "9d53fe290159d5dacfd05020ce516606936be35e117b5193dd01f749822db81e",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            }
+          }
+        },
+        {
+          "path": "accepted/native-20261012-v10/receipt.json",
+          "sha256": "5218d922273c8d64ba60a929ecefef5842f80bcec41e9bfd7ba5f72020af6090",
+          "groups": [
+            "identity",
+            "coons"
+          ],
+          "success": true,
+          "successRunLabels": [
+            "runtime-identity",
+            "runtime-coons"
+          ],
+          "historicalComparators": {
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.py",
+              "sha256": "a00828f81298cbcd27ac7448888c9cb7d5207ac5b5ae4c541fc527b1c7ad995f",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            },
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.swift",
+              "sha256": "190eb8310e42882546ee025364f1bf8219c44320ec5432a64a18bcaf0308849e",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            }
+          }
+        }
+      ],
+      "compiledUpper": "reused-v6-admitted27",
+      "compilerReceipts": [
+        {
+          "path": "simplifier-native-v6/port-receipt.json",
+          "sha256": "f109a125f6810e9eeee1760ca6abdfb1e5861987f1852723ff66c17ca95925c0",
+          "kind": "upper",
+          "historicalComparators": {
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/focused-native-v7/ClosedGuideSeamAcceptance.py",
+              "sha256": "f97f769187c1f98b9b5620bd41479355b22e4a6a82a469179b764040ae2fabf5",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            },
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/simplifier-native-v6/ClosedGuideSeamAcceptance.swift",
+              "sha256": "e7fc1099ba67174c0e92c76d7ea69616713b92c3d7c80e95470efb639daaa001",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            }
+          }
+        },
+        {
+          "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-native-20261012-v1/module-receipt.json",
+          "sha256": "cc938e8484cb04b484c7c46335f3763ce4770543c9c5748f4712e3a26d8f2d58",
+          "kind": "ruled",
+          "historicalComparators": {
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamObservation.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/final-diagnostics/ruled-module-unselected-fixture.swift",
+              "sha256": "d8f3a22305aa3c9ed4edb68954b7cf831403ac494a8c47f4afa0720faabafba8",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            }
+          }
+        }
+      ]
+    },
+    "asan": {
+      "receiptParts": [
+        {
+          "path": "accepted/asan-20261012-v3/receipt.json",
+          "sha256": "1553e2ea615ce46fca08216ca9335f7dcdafc2d544e20a4e416b3d32bcd4d0db",
+          "groups": [
+            "oracle",
+            "graphs",
+            "empty",
+            "work",
+            "storage",
+            "cancel",
+            "cancel-final",
+            "lifetime",
+            "identity",
+            "coons"
+          ],
+          "success": true,
+          "successRunLabels": [
+            "runtime-oracle",
+            "runtime-graphs",
+            "runtime-empty",
+            "runtime-work",
+            "runtime-storage",
+            "runtime-cancel",
+            "runtime-cancel-final",
+            "runtime-lifetime",
+            "runtime-identity",
+            "runtime-coons"
+          ]
+        }
+      ],
+      "compiledUpper": "fresh27",
+      "compiledExistingRuledBodies": 2,
+      "compilerReceipts": [
+        {
+          "path": "compiler/asan-20261012-v2/port-receipt.json",
+          "sha256": "6692a4af8faaf90e981b19d9206960b5c8b144169b0907a865e32e4e2822e8bb",
+          "kind": "upper",
+          "historicalComparators": {
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/wasm-20261012-v2/fixture-snapshot/ClosedGuideSeamAcceptance.py",
+              "sha256": "47a4326c1358ab83b82edb622881f3bccb22e79d9c5c154be7fb44363cb00376",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            },
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.swift",
+              "sha256": "190eb8310e42882546ee025364f1bf8219c44320ec5432a64a18bcaf0308849e",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            }
+          }
+        },
+        {
+          "path": "compiler/asan-20261012-v2/ruled-receipt.json",
+          "sha256": "e838f5b083e629f31035eb0b6916efc4d8b5e97cd3037461bc68f58d0ab89b0c",
+          "kind": "ruled",
+          "historicalComparators": {
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/wasm-20261012-v2/fixture-snapshot/ClosedGuideSeamAcceptance.py",
+              "sha256": "47a4326c1358ab83b82edb622881f3bccb22e79d9c5c154be7fb44363cb00376",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            },
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.swift",
+              "sha256": "190eb8310e42882546ee025364f1bf8219c44320ec5432a64a18bcaf0308849e",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            }
+          }
+        }
+      ]
+    },
+    "wasm": {
+      "receiptParts": [
+        {
+          "path": "accepted/wasm-20261012-v2/receipt.json",
+          "sha256": "052441751eeab071420904f6a1fae9ee5c4458987ac82f17ff88081a682f8244",
+          "groups": [
+            "oracle",
+            "graphs",
+            "empty",
+            "work",
+            "storage",
+            "cancel",
+            "cancel-final",
+            "lifetime",
+            "identity",
+            "coons"
+          ],
+          "success": true,
+          "successRunLabels": [
+            "runtime-oracle",
+            "runtime-graphs",
+            "runtime-empty",
+            "runtime-work",
+            "runtime-storage",
+            "runtime-cancel",
+            "runtime-cancel-final",
+            "runtime-lifetime",
+            "runtime-identity",
+            "runtime-coons"
+          ],
+          "historicalComparators": {
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/wasm-20261012-v2/fixture-snapshot/ClosedGuideSeamAcceptance.py",
+              "sha256": "47a4326c1358ab83b82edb622881f3bccb22e79d9c5c154be7fb44363cb00376",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            },
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.swift",
+              "sha256": "190eb8310e42882546ee025364f1bf8219c44320ec5432a64a18bcaf0308849e",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            }
+          }
+        }
+      ],
+      "compiledUpper": "fresh27",
+      "compiledExistingRuledBodies": 2,
+      "compilerReceipts": [
+        {
+          "path": "compiler/wasm-20261012-v2/port-receipt.json",
+          "sha256": "7e41583f06d4142cfd54765a0fac72f897f13177365ed34607efdf3cdda19af5",
+          "kind": "upper",
+          "historicalComparators": {
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/wasm-20261012-v2/fixture-snapshot/ClosedGuideSeamAcceptance.py",
+              "sha256": "47a4326c1358ab83b82edb622881f3bccb22e79d9c5c154be7fb44363cb00376",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            },
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.swift",
+              "sha256": "190eb8310e42882546ee025364f1bf8219c44320ec5432a64a18bcaf0308849e",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            }
+          }
+        },
+        {
+          "path": "compiler/wasm-20261012-v2/ruled-receipt.json",
+          "sha256": "c326b24f256347de437d352b7abf8397d8cfcd4c21558aa413d9f800bfc1e320",
+          "kind": "ruled",
+          "historicalComparators": {
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/wasm-20261012-v2/fixture-snapshot/ClosedGuideSeamAcceptance.py",
+              "sha256": "47a4326c1358ab83b82edb622881f3bccb22e79d9c5c154be7fb44363cb00376",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            },
+            "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift": {
+              "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.swift",
+              "sha256": "190eb8310e42882546ee025364f1bf8219c44320ec5432a64a18bcaf0308849e",
+              "scope": "Historical fixture/driver version only; no current-byte identity claim."
+            }
+          }
+        }
+      ]
+    },
+    "embedded": {
+      "receiptParts": [
+        {
+          "path": "accepted/embedded-20261012-v1/receipt.json",
+          "sha256": "27ab9187428c0b3da74c64a61e45ca47f4d545e6d712d8d55019b9e2bdb33321",
+          "groups": [
+            "oracle",
+            "graphs",
+            "empty",
+            "work",
+            "storage",
+            "cancel",
+            "cancel-final",
+            "lifetime",
+            "identity",
+            "coons"
+          ],
+          "success": true,
+          "successRunLabels": [
+            "runtime-oracle",
+            "runtime-graphs",
+            "runtime-empty",
+            "runtime-work",
+            "runtime-storage",
+            "runtime-cancel",
+            "runtime-cancel-final",
+            "runtime-lifetime",
+            "runtime-identity",
+            "runtime-coons"
+          ]
+        }
+      ],
+      "compiledUpper": "fresh27",
+      "compiledExistingRuledBodies": 2,
+      "compilerReceipts": [
+        {
+          "path": "compiler/embedded-20261012-v1/port-receipt.json",
+          "sha256": "83744418795e043e2f976f98b503e274a3e586c77ff70111c9b767e6918b8fac",
+          "kind": "upper"
+        },
+        {
+          "path": "compiler/embedded-20261012-v1/ruled-receipt.json",
+          "sha256": "2a52d84229d4e76263e395e3ff03ddd1a8995f48bc4defe4cb1971dda8061b9a",
+          "kind": "ruled"
+        }
+      ]
+    }
+  },
+  "diagnostics": [
+    {
+      "path": "final-diagnostics/native-20261012-v8/failure-receipt.json",
+      "sha256": "a6239388d13796e6c54ecaa74c4ef731e35b9feb2c286bd7e80cae3da9e53d56",
+      "scope": "Verification-only optional proofDepth access compile error; no runtime.",
+      "admissionScope": "preservedDiagnosticOnly"
+    },
+    {
+      "path": "final-diagnostics/asan-20261012-v1/admission-failure.json",
+      "sha256": "689622cb79f43d859de743a4aba5249b1fc916b961979247cad90b13c7c99896",
+      "scope": "Archived/unselected rolling-ball source original hash missing from current-body comparators; no compile/runtime.",
+      "admissionScope": "preservedDiagnosticOnly"
+    },
+    {
+      "path": "final-diagnostics/wasm-20261012-v1/admission-failure.json",
+      "sha256": "42aaa990334d834c211c955ecfd724b3f1f5a4b3f7d162456ab9db2cda696597",
+      "scope": "Same archived/unselected rolling-ball source admission stop; no compile/runtime.",
+      "admissionScope": "preservedDiagnosticOnly"
+    },
+    {
+      "path": "final-diagnostics/asan-20261012-v2/failure-receipt.json",
+      "sha256": "a571a47f975f0a415b7e4fd2f02758bfefde1bf0f9f64c9dcbec84ba0160be42",
+      "scope": "ASAN fixture static enum-array concatenation overflow before source/query; changed only ordered instruction construction.",
+      "admissionScope": "preservedDiagnosticOnly"
+    }
+  ],
+  "historicalDiagnostics": {
+    "scope": "Earlier O, cost attribution, stronger combined-admission and rejected fixture-premise failures remain immutable under their original named manifests; not current acceptance.",
+    "manifests": [
+      "focused-native-v7-manifest.json",
+      "simplifier-native-v6-manifest.json",
+      "prepared-query-cost-manifest.json",
+      "production-pipeline-stop-manifest.json",
+      "cost-diagnostic-manifest.json",
+      "raw-manifest.json",
+      "equal-residual-cost-manifest.json",
+      "implementation-native-diagnostics-manifest.json",
+      "equal-residual-native-stop-manifest.json",
+      "prepared-query-stop-manifest.json"
+    ]
+  },
+  "fixtureVersions": {
+    "finalMainSHA256": "af2d55e7a61f3ead157a8646a7cb0b1d97d744a6f2b79e26c3ab5ede60134127",
+    "finalDriverSHA256": "a8250366278e8f06adec745b385e5e4f42ff338a6efe6ac787c89e2dd50a860f",
+    "identityHelperSHA256": "a323c6fbf490fc091470b7521c878dcab4113fcafe5a2601d929b72cbc18d1de",
+    "coonsHelperSHA256": "87f4d560d1862df927ecddb4dcf3b9830382803a21c4ded059b71f666fbf143d",
+    "scope": "Native v9 first8 and v10 last2 retain exact immutable snapshots. WASM v2 retains original instruction-array construction. ASANv3/Embedded use element append with identical ordered instructions/assertions. No byte identity across versions is claimed."
+  },
+  "manifest": {
+    "path": "acceptance-manifest.json",
+    "sha256": "41e4ac39b2adce4bfb063ed7279af86753b0a218261c66c51db9edb188322a27"
+  },
+  "verification": {
+    "path": "VERIFICATION.md",
+    "sha256": "30df662df7ff06cda159b127ff849d152d32a11f83b74d3f855acf090de4d953"
+  }
+}

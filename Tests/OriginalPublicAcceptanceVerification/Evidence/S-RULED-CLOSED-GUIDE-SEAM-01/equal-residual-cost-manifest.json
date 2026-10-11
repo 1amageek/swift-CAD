@@ -1,0 +1,15 @@
+{
+  "equal-residual-cost/Proof.swift": "3c5969fb1a0b4b552c1a5620a94d58ab0548516fcd7859ab59bb0bf783e7371f",
+  "equal-residual-cost/QueryInstrumentation.diff": "ae8a0740b282578a21ed1f5f26bbf51e1567f1b47b505fcffcdac4ac424f69f8",
+  "equal-residual-cost/QueryOriginalBody.txt": "6763f84363ba21ed7ce57173f0d03e03002014841035ddcd25ce187d59468261",
+  "equal-residual-cost/RefinerInstrumentation.diff": "cd177e903df15696ab874a5c3a5b27dc098390ca0ca0400ab38673630d10629d",
+  "equal-residual-cost/RefinerOriginalBody.txt": "2ddbfaa370dc530241994e583af4a73b66c838435ac7ba7d08f16fedcef353a4",
+  "equal-residual-cost/admission.json": "48d5f39a8ae11ad361dd32cf6061441ae13f1f5587910f31025a7cf15b9096ad",
+  "equal-residual-cost/compile-proof.json": "c4996b2fc7cb5ca6c760d7514ead3628a7ec6c556eef43d6a03bd5596154ecd5",
+  "equal-residual-cost/compile-proof.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "equal-residual-cost/guide-seam-self-cost-v5.py": "79b20e1dca96a30534cee7ad2cefda2c1a87edc0dafa5d0ef154db9cf8842e89",
+  "equal-residual-cost/proof-receipt.json": "ce4cd139f9624df07b503ff75e2d7da4c0c0a6c0970bd526d1860b6f63ab9306",
+  "equal-residual-cost/receipt.json": "9a83842d4fa1d4077b9787a37d89d794fcfc55ada299d35c3e7e75aa229a073f",
+  "equal-residual-cost/runs.json": "1ca3680363d4baf775d5f6003fa9e0371986a5e11f8192a3b2eb980ab9fd54ee",
+  "equal-residual-cost/runtime.log": "75f1539820fb16a3b678048b9236e6f51a46a3626270e031a7172abf8f874e64"
+}

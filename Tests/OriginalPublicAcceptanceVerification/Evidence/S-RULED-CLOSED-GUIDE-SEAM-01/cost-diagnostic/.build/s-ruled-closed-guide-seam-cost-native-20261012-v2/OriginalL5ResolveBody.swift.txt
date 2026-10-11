@@ -1,0 +1,12 @@
+        do {
+            try a.checkpoint()
+            try a.admitDepth(value:source.depth.value,coefficient:source.depth.coefficient)
+            let cells = try Cells(retaining: source.predicate.source, using: &a)
+            let partition = try cells.decompose(source.predicate.source, limits: cellLimits, using: &a)
+            let selection = try cells.select(partition, matching: source.predicate, using: &a)
+            let projection = try topology.project(selection, retainingPrefix: source.parameterCount,
+                cellLimits: cellLimits, topologyLimits: topologyLimits, using: &a)
+            try storage(1, ExactParametricGraphRelation<Base>.self, &a)
+            let result = ExactParametricGraphRelation(original: copy source, projection: projection, depth:try graphDepth(source.depth,projection.depth))
+            try a.checkpoint(); return result
+        } catch { throw .init(error) }

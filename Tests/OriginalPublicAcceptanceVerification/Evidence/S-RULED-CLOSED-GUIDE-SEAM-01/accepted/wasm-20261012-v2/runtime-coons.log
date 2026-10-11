@@ -1,0 +1,4 @@
+(node:43261) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS S-COONS-PLANE-01 all 16 chart pairs equal the complete independent closed-domain diagonal oracle
+PASS current Coons self regression: original four charts, whole ordered16 diagonal and complete empty residual

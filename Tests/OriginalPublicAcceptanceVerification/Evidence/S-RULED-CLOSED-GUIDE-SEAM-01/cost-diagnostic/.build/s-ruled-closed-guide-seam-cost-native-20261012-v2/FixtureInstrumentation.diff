@@ -1,0 +1,108 @@
+--- frozen-O-fixture
++++ diagnostic-fixture
+@@ -8,7 +8,7 @@
+ @testable import RuledObservationAdapters
+ 
+ /// Observes the actual single-parent closed guide source before checked seam issuance.
+-@main struct ClosedGuideSeamObservation {
++@main struct ClosedGuideSeamCostObservation {
+     typealias F = OriginalExactScalarDomain
+     typealias G = CallerAdapters.OriginalRetainedGuideCurveSnapshot
+     typealias S = RuledObservationAdapters.OriginalRuledSurfaceSnapshot<G,G>
+@@ -18,10 +18,15 @@
+     typealias Raw = DraftZeroRuledPort.OriginalIssuedGraphRelations<S,Law,Cover,S,Law,Cover>
+     typealias Cells = PublicLiftPlane.ExactRealCellDomain<F>
+     struct Admission: ~Copyable, ExactScalarAdmission {
++        var pair = "preparation"
++        var stage = "preparation"
+         var ledger: ExactScalarLedger
+         init() throws { ledger = .init(limits:try .init(work:8_388_608,storageBytes:400_000_000,valueDepth:32,coefficientDepth:32)) }
+         mutating func checkpoint() throws(ExactScalarFailure) { try ledger.checkpoint() }
+-        mutating func consumeWork(_ n:Int) throws(ExactScalarFailure) { try ledger.consumeWork(n) }
++        mutating func consumeWork(_ n:Int) throws(ExactScalarFailure) {
++            do { try ledger.consumeWork(n) }
++            catch { print("COST_EXHAUSTED pair=",pair,"stage=",stage,"work=",ledger.work,"requested=",n,"storage=",ledger.storageBytes);fflush(nil);throw error }
++        }
+         mutating func retainStorage(bytes:Int) throws(ExactScalarFailure) { try ledger.retainStorage(bytes:bytes) }
+         mutating func visitCell(axis:ExactScalarRootAxis,depth:Int) throws(ExactScalarFailure) { try ledger.visitCell(axis:axis,depth:depth) }
+         mutating func admitDepth(value:Int,coefficient:Int) throws(ExactScalarFailure) { try ledger.admitDepth(value:value,coefficient:coefficient) }
+@@ -97,6 +102,61 @@
+         }
+         marker("PASS depth3 single parent, two retained depth2 guides, all seven closed ruled laws and exact authored UV/XYZ")
+         return (binding,f,limits,laws)
++    }
++    typealias Family = DraftZeroRuledPort.OriginalIssuedGraphFamily<S,Law,Cover>
++    typealias Domain = PublicLiftPlane.ExactParametricRelationDomain<F,Cells,PublicLiftPlane.ExactRealTopology<F>>
++    static func trace(_ stage:String,using a:borrowing Admission) {
++        print("COST pair=",a.pair,"stage=",stage,"work=",a.ledger.work,"storage=",a.ledger.storageBytes);fflush(nil)
++    }
++    // Diagnostic-only transcription of the admitted original resolver body.
++    static func costResolve(kind:ExactParametricRelationKind,first:borrowing Family,second:borrowing Family,
++        maximumPairs:Int,limits:OriginalDomainIdentityLimits,cellLimits:ExactRealCellLimits,topologyLimits:ExactRealTopologyLimits,
++        using admission:inout Admission) throws(DraftZeroRuledPort.NativeExactRelationFailure) -> Raw {
++        do {
++            try admission.checkpoint();try first.admitProof(limits:limits,using:&admission);try second.admitProof(limits:limits,using:&admission)
++            guard maximumPairs >= 0,first.parameterCount == (kind == .curveSurface ? 1:2),second.parameterCount == 2 else { throw DraftZeroRuledPort.NativeExactRelationFailure.invalidDomain }
++            _=try first.field.importing(second.field.integer(0,using:&admission),using:&admission)
++            let count=first.graphs.count.multipliedReportingOverflow(by:second.graphs.count)
++            guard !count.overflow else { throw ExactScalarFailure.countOverflow }
++            guard count.partialValue <= maximumPairs else { throw OriginalDomainIdentityFailure.chartLimit }
++            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:count.partialValue,of:DraftZeroRuledPort.OriginalIssuedGraphRelationPair.self))
++            var pairs:[DraftZeroRuledPort.OriginalIssuedGraphRelationPair]=[];pairs.reserveCapacity(count.partialValue)
++            typealias Cells=ExactRealCellDomain<OriginalExactScalarDomain>
++            let domain=ExactParametricRelationDomain<OriginalExactScalarDomain,Cells,ExactRealTopology<OriginalExactScalarDomain>>(cells:Cells.self,topology:.init(cells:Cells.self))
++            for i in first.graphs.indices { for j in second.graphs.indices {
++                admission.pair = "\(i),\(j)"; admission.stage = "compile"; trace("pair-start",using:admission)
++                try admission.consumeWork(1)
++                let input=try domain.compile(kind:kind,first:first.graphs[i].graph,second:second.graphs[j].graph,using:&admission)
++                trace("compile-done",using:admission)
++                let relation=try costRelation(input,domain:domain,cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
++                pairs.append(.init(firstGraphIndex:i,secondGraphIndex:j,relation:relation))
++            } }
++            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Raw.self))
++            let result=Raw(first:copy first,second:copy second,kind:kind,pairs:pairs)
++            try admission.checkpoint();return result
++        } catch { throw .preserving(error) }
++    }
++    // Diagnostic-only transcription of the admitted L5 graph resolution body.
++    static func costRelation(_ source:borrowing PublicLiftPlane.ExactParametricGraphRelationSource<F>,domain:Domain,
++        cellLimits:ExactRealCellLimits,topologyLimits:ExactRealTopologyLimits,using a:inout Admission)
++        throws(PublicLiftPlane.ExactParametricRelationFailure) -> PublicLiftPlane.ExactParametricGraphRelation<F> {
++        do {
++            try a.checkpoint()
++            try a.admitDepth(value:source.depth.value,coefficient:source.depth.coefficient)
++            a.stage = "retaining-cells"
++            let cells = try Cells(retaining: source.predicate.source, using: &a)
++            a.stage = "decompose"
++            let partition = try cells.decompose(source.predicate.source, limits: cellLimits, using: &a)
++            trace("decompose-done",using:a); a.stage = "select"
++            let selection = try cells.select(partition, matching: source.predicate, using: &a)
++            trace("select-done",using:a); a.stage = "project"
++            let projection = try domain.topology.project(selection, retainingPrefix: source.parameterCount,
++                cellLimits: cellLimits, topologyLimits: topologyLimits, using: &a)
++            trace("project-done",using:a); a.stage = "result-storage"
++            try domain.storage(1, PublicLiftPlane.ExactParametricGraphRelation<F>.self, &a)
++            let result = ExactParametricGraphRelation(original: copy source, projection: projection, depth:try domain.graphDepth(source.depth,projection.depth))
++            try a.checkpoint(); return result
++        } catch { throw .init(error) }
+     }
+     static func observe() throws {
+         var a = try Admission()
+@@ -125,7 +185,7 @@
+             ranges.append(interval)
+         }
+         marker("PASS complete fullUV issued cover and seven two-axis original graphs")
+-        let raw:Raw = try DraftZeroRuledPort.DefaultOriginalIssuedGraphRelationResolver().resolve(kind:.surfaceSurface,
++        let raw:Raw = try costResolve(kind:.surfaceSurface,
+             first:family,second:family,maximumPairs:256,limits:limits,
+             cellLimits:.init(maximumStoredCells:20_000,maximumRootsPerStack:100),
+             topologyLimits:.init(maximumGeneratedCells:20_000,maximumRootsPerStack:100,maximumClosures:20_000,
+@@ -184,7 +244,7 @@
+     }
+ }
+ #if GUIDE_SEAM_CHECKED_BOUNDARY_STOP
+-func checkedBoundaryStop(_ left:ClosedGuideSeamObservation.Law,_ right:ClosedGuideSeamObservation.Law) {
++func checkedBoundaryStop(_ left:ClosedGuideSeamCostObservation.Law,_ right:ClosedGuideSeamCostObservation.Law) {
+     _ = OriginalSourceBoundaryDeclaration(left:left.chart,right:right.chart,leftAxis:0,rightAxis:0,leftSide:.lower,rightSide:.upper)
+ }
+ #endif

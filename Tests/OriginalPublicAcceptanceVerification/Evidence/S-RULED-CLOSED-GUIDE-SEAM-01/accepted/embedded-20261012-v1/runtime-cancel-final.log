@@ -1,0 +1,5 @@
+(node:44442) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS actual closed-guide and ruled constructors
+PASS depth3 single parent, two retained depth2 guides, all seven closed ruled laws and exact authored UV/XYZ
+PASS prepared-query entry/processing or final-publication cancellation

@@ -1,0 +1,36 @@
+--- admitted-Refiner
++++ diagnostic-Refiner
+@@ -1,10 +1,12 @@
+         do {
+             try admission.checkpoint()
+-            guard raw.pairs.indices.contains(pairOrdinal) else { throw NativeExactRelationFailure.invalidDomain }
++            guard raw.pairs.indices.contains(pairOrdinal) else { throw GuideSeamPort.NativeExactRelationFailure.invalidDomain }
++            trace("refiner-before-raw-admit",using:admission);admission.stage="refiner-raw-admission"
+             try raw.admitProof(limits: limits, using: &admission)
++            trace("refiner-after-raw-admit",using:admission);admission.stage="refine-pullback"
+             let lifted = raw.pairs[pairOrdinal].relation.projection.original
+             let count = lifted.partition.source.variableCount
+-            guard predicate.source.variableCount == count else { throw NativeExactRelationFailure.invalidDomain }
++            guard predicate.source.variableCount == count else { throw GuideSeamPort.NativeExactRelationFailure.invalidDomain }
+             try admission.retainStorage(bytes: exactScalarPayloadBytes(count: count, of: Int.self))
+             var coordinates: [Int] = []
+             coordinates.reserveCapacity(count)
+@@ -19,13 +21,13 @@
+                 pullback = try topology.refinePullback(of: lifted, onto: predicate,
+                     coordinateMap: coordinates, cellLimits: cellLimits, topologyLimits: topologyLimits, using: &admission)
+             } catch {
+-                if case .scalar(let cause) = error { throw NativeExactRelationFailure.scalar(cause) }
+-                throw NativeExactRelationFailure.geometry(error)
++                if case .scalar(let cause) = error { throw GuideSeamPort.NativeExactRelationFailure.scalar(cause) }
++                throw GuideSeamPort.NativeExactRelationFailure.geometry(error)
+             }
+             try admission.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
+-                of: OriginalIssuedGraphParameterRefinement<S,E,C,T,F,D>.self))
+-            let result = OriginalIssuedGraphParameterRefinement(raw: copy raw, pairOrdinal: pairOrdinal, pullback: pullback)
++                of: GuideSeamPort.OriginalIssuedGraphParameterRefinement<S,Law,Cover,S,Law,Cover>.self))
++            let result = GuideSeamPort.OriginalIssuedGraphParameterRefinement(raw: copy raw, pairOrdinal: pairOrdinal, pullback: pullback)
+             try admission.checkpoint()
+             return result
+-        } catch let failure as NativeExactRelationFailure { throw failure }
++        } catch let failure as GuideSeamPort.NativeExactRelationFailure { throw failure }
+         catch { throw .preserving(error) }

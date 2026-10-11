@@ -1,0 +1,33 @@
+--- Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/LawBoundGuideSeamIdentity.swift
++++ Tests/OriginalPublicAcceptanceVerification/LawBoundGuideSeamIdentity.swift
+@@ -42,7 +42,7 @@
+     }
+     struct Failure: Error { let line: Int }
+     static func require(_ condition:Bool,line:Int = #line) throws { if !condition { throw Failure(line:line) } }
+-    static func prepare(weighted:Bool = false,using a:inout Admission) throws
++    static func prepare(weighted:Bool = false,field:F? = nil,using a:inout Admission) throws
+         -> (F,OriginalDomainIdentityLimits,OriginalParameterFrame<S,F>,[Law]) {
+         let parent = try ExactScalarNumericAccess.withAdmission(&a) { usage in
+             func guide(_ z:Double) throws -> Curve3D {
+@@ -61,7 +61,9 @@
+             }
+             return RuledSurface3D(startBoundary:try guide(0),endBoundary:try guide(1),uDomain:.closed(0,1))
+         }.value
+-        let f = try F(maximumValueDepth:32,maximumCoefficientDepth:32,using:&a)
++        let f:F
++        if let field { f = field }
++        else { f = try F(maximumValueDepth:32,maximumCoefficientDepth:32,using:&a) }
+         let limits = try OriginalDomainIdentityLimits(source:.init(remainingSourceDepth:3),maximumTransportDepth:32,
+             maximumCharts:16,maximumFamilies:2,maximumIdentityProofs:8)
+         let guide = CallerAdapters.OriginalRetainedGuideCurveSnapshotProvider(field:f,tolerance:.standard)
+@@ -107,7 +109,9 @@
+         try require(issuer.decide(receipt,left:[zero,half],right:[one,half],limits:limits,using:&a) == .proven)
+         try require(issuer.decide(receipt,left:[zero,threeQuarters],right:[one,threeQuarters],limits:limits,using:&a) == .notEstablished)
+         var foreignAdmission = try Admission()
+-        let (_,_,foreignFrame,foreignLaws) = try prepare(using:&foreignAdmission)
++        // Isolate source ownership: a different exact-field context would reject
++        // the coordinate image before the right-law owner check is reached.
++        let (_,_,foreignFrame,foreignLaws) = try prepare(field:f,using:&foreignAdmission)
+         let foreignRight = Declaration(left:declaration.left,right:foreignLaws[6],leftAxis:0,rightAxis:0,leftSide:.lower,rightSide:.upper)
+         do {
+             _ = try issue(issuer,declaration:foreignRight,scope:scope,frame:frame,

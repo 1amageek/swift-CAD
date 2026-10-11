@@ -149,6 +149,76 @@ Entry, processing, final empty publication and subsequent query cancellation are
 observable failures. Foreign source/field, wrong roles, exhausted limits and lower
 failures propagate `NativeExactRelationFailure`; no partial result is published.
 
+### Reuse of equal residual refinements
+
+The closed-guide seam's prepared query exhausts8,388,608work during ordinal27.
+Its single stage trace attributes7,780,513work to27 completed refinements and
+only3,724work to repeated raw proof admission. Duplicate canonical raw pairs
+repeat full refinement; empty raw selections also reach the existing L4 target
+decomposition. No new empty-pullback certificate or lower solver is introduced.
+
+Invocation-local reuse requires both the same sealed canonical raw relation
+and a checked equality witness for the entire compiled residual predicate,
+consuming the [predicate equality contract](../NativeExactRelations/DESIGN.md#checked-equality-of-complete-compiled-predicates).
+The same raw relation is established by the private immutable solver owner
+retained by checked canonical/alias pairs; canonical indices alone grant no
+reuse. Legacy pairs without that owner continue through the existing refiner.
+Original parameter transports, requests and identity scopes participate in
+residual compilation. Compile every
+actual pair's diagonal/residual and compare its complete laws, instruction
+program and domains before reuse. Changed transport or scope therefore cannot
+silently inherit another pair's exclusion.
+
+For a proved match, retain the existing immutable L4 pullback in a new wrapper
+with the actual raw pair ordinal and raw owner. Keep every original diagonal,
+refinement and raw-cell correspondence in original order. Retain the checked
+predicate witness and re-admit its depth during later membership. Nonmatching
+predicates use the existing refiner under the same caller ledger and lower caps.
+No UV tuple, chart incident or nonstructural contact is removed by sharing work.
+Charge all comparisons, scratch, witnesses and result wrappers with checked
+counts; terminal cancellation or any required refinement failure aborts the
+whole result. Complete independent raw/residual/incident oracles and changed
+transport/guard/domain/layout controls falsify unsound reuse.
+
+### Domain-proved residual simplification
+
+The changed-algorithm trace confirms all22 same-owner candidates have equal
+complete predicates and reuse their pullback. It still exhausts8,388,608work
+inside the21st distinct refinement, actual pair42/canonical(6,0), whose original
+selection contains3cells. Before that refinement the query uses7,805,460work
+and226,517,908bytes. Reuse is therefore insufficient for this fixed caller.
+
+Compile the complete checked identity formula first. An internal simplifier
+may prove a constant or affine sign atom over the retained source Cartesian
+domains using exact coefficient signs and finite endpoint arithmetic. Its
+closed interval enclosure is conservative for open endpoints. Prove an atom
+true or false only when its relation holds or fails over that entire enclosure;
+non-affine, unbounded or inconclusive atoms retain their original laws. No
+selected-cell sample, XYZ comparison, inverse transport or identity outside its
+scope participates in this proof. Denominator guards follow the same rule and
+remain unless their truth is proved on the whole retained domain.
+
+Fold Boolean literals in the checked postfix formula and omit only laws no
+longer referenced by the equivalent formula. Preserve the domains, parameter
+and auxiliary slots, raw partition, selection, all49pair ordinals and checked
+identity owners. Raw source guards and original equality remain in the retained
+L5 relation. The simplified predicate still enters the existing checked L4
+refiner; this does not issue an empty-pullback certificate or skip raw admission.
+Charge exact arithmetic, comparisons, traversal, scratch and output storage
+through the same live caller admission and propagate every failure/cancel.
+Record the maximum attained decision depth through a forwarding admission
+borrow covering the complete residual compilation and simplification. Each
+refinement wrapper, including a reused pullback, retains its actual decision
+depth and re-admits it before later membership or an empty return. A pruned
+high-depth law must not weaken later admission. This internal history does not
+grant an identity or a public unchecked proof initializer.
+
+Direct controls cover exact constant and affine decisions, ambiguous ranges,
+open/singleton domains, unbounded and nonlinear preservation, denominator
+guards and Boolean dead-law pruning. The complete independent reverse-seam
+oracle must then pass under the unchanged8,388,608work/400,000,000byte query
+ceiling before changed-path target verification or review begins.
+
 Verification owns the actual original Coons all16-pair diagonal oracle, complete
 empty residual, retained raw/refined ordinals, nonstructural folded and auxiliary
 controls, scoped/foreign-owner/field refusal, exact and one-less caller resources,

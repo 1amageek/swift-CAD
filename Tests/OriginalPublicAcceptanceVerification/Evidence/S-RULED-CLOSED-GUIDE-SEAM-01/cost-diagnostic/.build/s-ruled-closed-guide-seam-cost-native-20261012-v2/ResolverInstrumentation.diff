@@ -1,0 +1,32 @@
+--- admitted-resolver
++++ diagnostic-resolver
+@@ -1,21 +1,23 @@
+         do {
+             try admission.checkpoint();try first.admitProof(limits:limits,using:&admission);try second.admitProof(limits:limits,using:&admission)
+-            guard maximumPairs >= 0,first.parameterCount == (kind == .curveSurface ? 1:2),second.parameterCount == 2 else { throw NativeExactRelationFailure.invalidDomain }
++            guard maximumPairs >= 0,first.parameterCount == (kind == .curveSurface ? 1:2),second.parameterCount == 2 else { throw DraftZeroRuledPort.NativeExactRelationFailure.invalidDomain }
+             _=try first.field.importing(second.field.integer(0,using:&admission),using:&admission)
+             let count=first.graphs.count.multipliedReportingOverflow(by:second.graphs.count)
+             guard !count.overflow else { throw ExactScalarFailure.countOverflow }
+             guard count.partialValue <= maximumPairs else { throw OriginalDomainIdentityFailure.chartLimit }
+-            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:count.partialValue,of:OriginalIssuedGraphRelationPair.self))
+-            var pairs:[OriginalIssuedGraphRelationPair]=[];pairs.reserveCapacity(count.partialValue)
++            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:count.partialValue,of:DraftZeroRuledPort.OriginalIssuedGraphRelationPair.self))
++            var pairs:[DraftZeroRuledPort.OriginalIssuedGraphRelationPair]=[];pairs.reserveCapacity(count.partialValue)
+             typealias Cells=ExactRealCellDomain<OriginalExactScalarDomain>
+             let domain=ExactParametricRelationDomain<OriginalExactScalarDomain,Cells,ExactRealTopology<OriginalExactScalarDomain>>(cells:Cells.self,topology:.init(cells:Cells.self))
+             for i in first.graphs.indices { for j in second.graphs.indices {
++                admission.pair = "\(i),\(j)"; admission.stage = "compile"; trace("pair-start",using:admission)
+                 try admission.consumeWork(1)
+                 let input=try domain.compile(kind:kind,first:first.graphs[i].graph,second:second.graphs[j].graph,using:&admission)
+-                let relation=try domain.resolve(input,cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
++                trace("compile-done",using:admission)
++                let relation=try costRelation(input,domain:domain,cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
+                 pairs.append(.init(firstGraphIndex:i,secondGraphIndex:j,relation:relation))
+             } }
+-            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalIssuedGraphRelations<S,E,C,T,F,D>.self))
+-            let result=OriginalIssuedGraphRelations(first:copy first,second:copy second,kind:kind,pairs:pairs)
++            try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Raw.self))
++            let result=Raw(first:copy first,second:copy second,kind:kind,pairs:pairs)
+             try admission.checkpoint();return result
+         } catch { throw .preserving(error) }

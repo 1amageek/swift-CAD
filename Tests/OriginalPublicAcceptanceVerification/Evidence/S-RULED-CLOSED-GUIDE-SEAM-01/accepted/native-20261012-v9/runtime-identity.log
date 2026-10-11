@@ -1,0 +1,3 @@
+PASS actual same-parent closed-guide directed whole seam through generic capability; reverse remains outside scope
+PASS false whole boundary rejected
+ACCEPTANCE_STOP scalar(CADGeometry.ExactScalarFailure.incompatibleDomain)

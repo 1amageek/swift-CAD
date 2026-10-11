@@ -1,0 +1,437 @@
+{
+  "schema": 1,
+  "cellComplete": false,
+  "scope": "Exact duplicate counts and first Native implementation full raw success, followed by same-ledger self work stop with intervening raw oracle verification charged. No completed cell.",
+  "files": {
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/DriverAtFailure.py": {
+      "sha256": "3add205afc3c33a1fa99a4c9c208a354398d4e4ebb8577513753dafc7b66676c",
+      "bytes": 4974,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/DriverAtFailure.py"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/Proof.swift": {
+      "sha256": "205ff6e935a6ab021b17c3c6fa94dafdb061d98e3218e921d5673f72e52fac09",
+      "bytes": 42324,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/Proof.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/compile-proof.json": {
+      "sha256": "bfa1c1b4c6dd5d4dc9e4f80b8d80b3df1bde982fb34951a4b496b06528e9abe3",
+      "bytes": 4905,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/compile-proof.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/compile-proof.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/compile-proof.log"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/failure-receipt.json": {
+      "sha256": "bad07c930976a510848edaa78ac2f94f40b955d02714dd355554c8e10bca759b",
+      "bytes": 784009,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/failure-receipt.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/run.log": {
+      "sha256": "e2d4e88e79e7fbf1915d4bbea35fdda419a319d538bfe503dfb1324fe478c13c",
+      "bytes": 262,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/run.log"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/runs.json": {
+      "sha256": "106618ae62c290a8d9082fcaa0975299e99fcd61d6adbdf5e862319b07f8654b",
+      "bytes": 6201,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v1/runs.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/Proof.swift": {
+      "sha256": "047b77653a4c64100220f3037fb6dad9c79e9c6834e2def667b2d8d3adb7886d",
+      "bytes": 42880,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/Proof.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/compile-proof.json": {
+      "sha256": "be2a6b603b1dc1268d23776384e59d58b1a6451d79221539be8a6688a156c65d",
+      "bytes": 4905,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/compile-proof.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/compile-proof.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/compile-proof.log"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/receipt.json": {
+      "sha256": "d861d0bfe53cd53b20c306346706d8881cfbf1e40838746466e032e03bd91626",
+      "bytes": 784042,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/receipt.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/run.log": {
+      "sha256": "d8dee9ce063644448bd7bc16aae1ae024221647d9df9870af955ccc327fbfea2",
+      "bytes": 325,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/run.log"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/runs.json": {
+      "sha256": "e1f9b29f689f203ff4015fefef8d8565aa5d2bd369b744a116493a84f35b4451",
+      "bytes": 6184,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-duplicates-native-20261012-v2/runs.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalIssuedGraphCompiler.swift": {
+      "sha256": "e9c9c404f804e19c8d74708e14193ba46753f8654d4b5861dea1dd13273e5824",
+      "bytes": 43566,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalIssuedGraphCompiler.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalIssuedGraphParameterRefiner.swift": {
+      "sha256": "2dd46c5753b96db610cdb710d146ca27f2a08ca0424af248149c8d8004a58985",
+      "bytes": 32757,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalIssuedGraphParameterRefiner.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalIssuedGraphRelationResolver.swift": {
+      "sha256": "3fe46d61adfaef11e84eede7e2e96b95cd738d6fe7e79356422032e9a527c07d",
+      "bytes": 34678,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalIssuedGraphRelationResolver.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalIssuedGraphSelfContactQuery.swift": {
+      "sha256": "89521dd9528a8cc2dda143aab6769bde0af98cbbdc5fef4acc6bd5088d6db38e",
+      "bytes": 36425,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalIssuedGraphSelfContactQuery.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalParameterIdentityIssuer+LawBoundBoundary.swift": {
+      "sha256": "963da15eab42bd02f40d6ef7164c3760ce019e21b2912f762e99d1651d960e85",
+      "bytes": 39710,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalParameterIdentityIssuer+LawBoundBoundary.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalRationalGraphFamilyPreparer.swift": {
+      "sha256": "090ff825797bb829cfa1246aaa4d62e19d2e6d6cbf780a14c641d12d89312df5",
+      "bytes": 33564,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/DefaultOriginalRationalGraphFamilyPreparer.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/NativeExactRelationFailure.swift": {
+      "sha256": "8f1d89b838006b8d4c7be032717695a3415bba14ac2eeb0883ac1f4622c95e44",
+      "bytes": 32130,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/NativeExactRelationFailure.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedDomainCover+SelfContactRequest.swift": {
+      "sha256": "966254946a1fee405862c6bf8d05b3abc8c7b7ba8c22496f4eb62f55627b5347",
+      "bytes": 30005,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedDomainCover+SelfContactRequest.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphCompiling.swift": {
+      "sha256": "10a65183c8b09e88b91c812f8f0c4aa08c3cd7a6a7affda8ca27b81f7873f023",
+      "bytes": 30437,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphCompiling.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphFamily.swift": {
+      "sha256": "78a8a0515e80ad5d2f10106cec28233aaaa3480b2550fc26cbd7ddc57f7c05f9",
+      "bytes": 31527,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphFamily.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphFamilyPreparing.swift": {
+      "sha256": "a21366c9b2d02d20316d0dbb028aeb224ebd189da523cae56ba2a15dd89384fb",
+      "bytes": 30419,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphFamilyPreparing.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphParameterRefinement.swift": {
+      "sha256": "28982d23c99e3ab7ab32ec862fd5da03b32274829a0ac577fbcee20aea8cd63a",
+      "bytes": 32345,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphParameterRefinement.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphParameterRefining.swift": {
+      "sha256": "c5a013caa74af6e6de55bee7c8a1b83b5b27bb84c3b648695b28e27579d86dd3",
+      "bytes": 30825,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphParameterRefining.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphPreparation.swift": {
+      "sha256": "c575d2776f3457ca0b62d2aad43e8f7e6f3d48c97d28ea31bbc44c99ce8f4a80",
+      "bytes": 30965,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphPreparation.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphRelationOwning.swift": {
+      "sha256": "9f8b0a96231409c48d322fbe61862509e314498583cc2192cee907700286a888",
+      "bytes": 30080,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphRelationOwning.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphRelationPair.swift": {
+      "sha256": "f098e44e6095f28b2fbb471f9976fa9e3d8da8dc83b817e20e6cd80cdd0d8624",
+      "bytes": 31055,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphRelationPair.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphRelationResolving.swift": {
+      "sha256": "1ee00c3d2fd35c0e6593093ac739b320d53e6613ca87dc4cedbd63c0fc322420",
+      "bytes": 30766,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphRelationResolving.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphRelations.swift": {
+      "sha256": "53e6f5574fd4c2c255e3c6b9a2d429f5a176d9c748cad125f8ff2bc813dd0c47",
+      "bytes": 31267,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphRelations.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSelfContactQuerying.swift": {
+      "sha256": "8e203bb66d0ca656f25252e47fb96cc709d4301ca0b40125abea0d9d8c8df2ad",
+      "bytes": 30819,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSelfContactQuerying.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSelfContactRequestReading.swift": {
+      "sha256": "013e9969cce6a5244ccac083dd6c8508ec9fbf1769d4b8728e12448546c009b9",
+      "bytes": 30049,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSelfContactRequestReading.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSelfContacts.swift": {
+      "sha256": "d3c3ddfd891aab58c0deb4d135a2de083c282bc4d985bf70a43ba196d0910b46",
+      "bytes": 31702,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSelfContacts.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSelfIdentityCompiler.swift": {
+      "sha256": "570b368209cc7bfd4ecf3097d7b48d233fb89e0fc4d4abe0fe9ebca989243bbc",
+      "bytes": 38912,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSelfIdentityCompiler.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSolverEquivalence.swift": {
+      "sha256": "91a4bdbc47214ea60eb66fca00308e92ef1c3ea602b25db3004be06cee6f71c5",
+      "bytes": 36607,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalIssuedGraphSolverEquivalence.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalLawBoundParameterIdentityIssuing.swift": {
+      "sha256": "06f809a9722744a5bfb1aeff0ab1d65a11167f1bce0e75b05959e65c4004ca54",
+      "bytes": 30529,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalLawBoundParameterIdentityIssuing.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalRationalSourceBoundaryDeclaration.swift": {
+      "sha256": "a4978121deaca8d3c2f0b202e8142c027e00a3f166695af8c40ceaa234f9b5bb",
+      "bytes": 30770,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/OriginalRationalSourceBoundaryDeclaration.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/admission.json": {
+      "sha256": "1fbc8e6b94443c5a4565f12a988e0a0db47f23639bce50b87325cf2cd3761c4f",
+      "bytes": 791635,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/admission.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/compile-port.json": {
+      "sha256": "40b55d17e5d99e475a22a4ee17c57fea7a66442e7bb3214b68b47944cea93de7",
+      "bytes": 7025,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/compile-port.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/compile-port.log": {
+      "sha256": "6165084962d19fe9bd6eab621943eeea4f10c1453995f756859db8889f83ad86",
+      "bytes": 1916,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/compile-port.log"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/failure-receipt.json": {
+      "sha256": "46b132d91fe54f3849506e673490f43243cf97e13ddb60894a2169a6196b477d",
+      "bytes": 805527,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/failure-receipt.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/historical-source/DefaultOriginalIssuedGraphRelationResolver.swift": {
+      "sha256": "af7c518a028cb2fd5fb527893491ef1c7758a77985a822ce16e1d4aa323bd4c3",
+      "bytes": 3038,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/historical-source/DefaultOriginalIssuedGraphRelationResolver.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/historical-source/OriginalIssuedGraphRelationPair.swift": {
+      "sha256": "60b95a2994aab164f9846c851920098b9838af78463f68e6b82a63e9738caa83",
+      "bytes": 595,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/historical-source/OriginalIssuedGraphRelationPair.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/historical-source/OriginalIssuedGraphRelations.swift": {
+      "sha256": "9155dbb9d64aba9c20f60a03ba1fe90ee6e796f8e75ab1d3defa09b9a956c195",
+      "bytes": 1305,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/historical-source/OriginalIssuedGraphRelations.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/runs.json": {
+      "sha256": "2c3db5e6aedc8126bba850b073aa6d30f2ddebd0e50aa8aba848247abe60ac6d",
+      "bytes": 7822,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v1/runs.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalIssuedGraphCompiler.swift": {
+      "sha256": "e9c9c404f804e19c8d74708e14193ba46753f8654d4b5861dea1dd13273e5824",
+      "bytes": 43566,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalIssuedGraphCompiler.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalIssuedGraphParameterRefiner.swift": {
+      "sha256": "2dd46c5753b96db610cdb710d146ca27f2a08ca0424af248149c8d8004a58985",
+      "bytes": 32757,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalIssuedGraphParameterRefiner.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalIssuedGraphRelationResolver.swift": {
+      "sha256": "3fe46d61adfaef11e84eede7e2e96b95cd738d6fe7e79356422032e9a527c07d",
+      "bytes": 34678,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalIssuedGraphRelationResolver.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalIssuedGraphSelfContactQuery.swift": {
+      "sha256": "89521dd9528a8cc2dda143aab6769bde0af98cbbdc5fef4acc6bd5088d6db38e",
+      "bytes": 36425,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalIssuedGraphSelfContactQuery.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalParameterIdentityIssuer+LawBoundBoundary.swift": {
+      "sha256": "963da15eab42bd02f40d6ef7164c3760ce019e21b2912f762e99d1651d960e85",
+      "bytes": 39710,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalParameterIdentityIssuer+LawBoundBoundary.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalRationalGraphFamilyPreparer.swift": {
+      "sha256": "090ff825797bb829cfa1246aaa4d62e19d2e6d6cbf780a14c641d12d89312df5",
+      "bytes": 33564,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/DefaultOriginalRationalGraphFamilyPreparer.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/NativeExactRelationFailure.swift": {
+      "sha256": "8f1d89b838006b8d4c7be032717695a3415bba14ac2eeb0883ac1f4622c95e44",
+      "bytes": 32130,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/NativeExactRelationFailure.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedDomainCover+SelfContactRequest.swift": {
+      "sha256": "966254946a1fee405862c6bf8d05b3abc8c7b7ba8c22496f4eb62f55627b5347",
+      "bytes": 30005,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedDomainCover+SelfContactRequest.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphCompiling.swift": {
+      "sha256": "10a65183c8b09e88b91c812f8f0c4aa08c3cd7a6a7affda8ca27b81f7873f023",
+      "bytes": 30437,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphCompiling.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphFamily.swift": {
+      "sha256": "78a8a0515e80ad5d2f10106cec28233aaaa3480b2550fc26cbd7ddc57f7c05f9",
+      "bytes": 31527,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphFamily.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphFamilyPreparing.swift": {
+      "sha256": "a21366c9b2d02d20316d0dbb028aeb224ebd189da523cae56ba2a15dd89384fb",
+      "bytes": 30419,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphFamilyPreparing.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphParameterRefinement.swift": {
+      "sha256": "28982d23c99e3ab7ab32ec862fd5da03b32274829a0ac577fbcee20aea8cd63a",
+      "bytes": 32345,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphParameterRefinement.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphParameterRefining.swift": {
+      "sha256": "c5a013caa74af6e6de55bee7c8a1b83b5b27bb84c3b648695b28e27579d86dd3",
+      "bytes": 30825,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphParameterRefining.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphPreparation.swift": {
+      "sha256": "c575d2776f3457ca0b62d2aad43e8f7e6f3d48c97d28ea31bbc44c99ce8f4a80",
+      "bytes": 30965,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphPreparation.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphRelationOwning.swift": {
+      "sha256": "9f8b0a96231409c48d322fbe61862509e314498583cc2192cee907700286a888",
+      "bytes": 30080,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphRelationOwning.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphRelationPair.swift": {
+      "sha256": "f098e44e6095f28b2fbb471f9976fa9e3d8da8dc83b817e20e6cd80cdd0d8624",
+      "bytes": 31055,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphRelationPair.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphRelationResolving.swift": {
+      "sha256": "1ee00c3d2fd35c0e6593093ac739b320d53e6613ca87dc4cedbd63c0fc322420",
+      "bytes": 30766,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphRelationResolving.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphRelations.swift": {
+      "sha256": "53e6f5574fd4c2c255e3c6b9a2d429f5a176d9c748cad125f8ff2bc813dd0c47",
+      "bytes": 31267,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphRelations.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSelfContactQuerying.swift": {
+      "sha256": "8e203bb66d0ca656f25252e47fb96cc709d4301ca0b40125abea0d9d8c8df2ad",
+      "bytes": 30819,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSelfContactQuerying.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSelfContactRequestReading.swift": {
+      "sha256": "013e9969cce6a5244ccac083dd6c8508ec9fbf1769d4b8728e12448546c009b9",
+      "bytes": 30049,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSelfContactRequestReading.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSelfContacts.swift": {
+      "sha256": "d3c3ddfd891aab58c0deb4d135a2de083c282bc4d985bf70a43ba196d0910b46",
+      "bytes": 31702,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSelfContacts.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSelfIdentityCompiler.swift": {
+      "sha256": "570b368209cc7bfd4ecf3097d7b48d233fb89e0fc4d4abe0fe9ebca989243bbc",
+      "bytes": 38912,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSelfIdentityCompiler.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSolverEquivalence.swift": {
+      "sha256": "04da43da17576d9c86ade9b0e97d50603134cea66639b741c0bf72f2bdc3697f",
+      "bytes": 36655,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalIssuedGraphSolverEquivalence.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalLawBoundParameterIdentityIssuing.swift": {
+      "sha256": "06f809a9722744a5bfb1aeff0ab1d65a11167f1bce0e75b05959e65c4004ca54",
+      "bytes": 30529,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalLawBoundParameterIdentityIssuing.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalRationalSourceBoundaryDeclaration.swift": {
+      "sha256": "a4978121deaca8d3c2f0b202e8142c027e00a3f166695af8c40ceaa234f9b5bb",
+      "bytes": 30770,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/OriginalRationalSourceBoundaryDeclaration.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/Proof.swift": {
+      "sha256": "d318f0d34e79e9fe409718825c9fc0b9dd695f367db1c0f2c0af19b4c41eae79",
+      "bytes": 46442,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/Proof.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/admission.json": {
+      "sha256": "22729cdc79ec76f41212a17261212fe8ee2a7d247cd014169bbdae1d4f91f2cb",
+      "bytes": 791635,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/admission.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/compile-port.json": {
+      "sha256": "cdcabbfe4cf91e155018fb18fb0603948da5c28ac6e7022d74846b774e5436d8",
+      "bytes": 7025,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/compile-port.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/compile-port.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/compile-port.log"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/compile-proof.json": {
+      "sha256": "fa203c45515d0a70943823c7c1877330402076b86591daf816213fc3356ff9f9",
+      "bytes": 5032,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/compile-proof.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/compile-proof.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/compile-proof.log"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/failure-receipt.json": {
+      "sha256": "3aaf24162dc2b76ee6ec120190d41087543d2f0146e56f6384864fdaf1a73430",
+      "bytes": 813464,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/failure-receipt.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/historical-source/DefaultOriginalIssuedGraphRelationResolver.swift": {
+      "sha256": "af7c518a028cb2fd5fb527893491ef1c7758a77985a822ce16e1d4aa323bd4c3",
+      "bytes": 3038,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/historical-source/DefaultOriginalIssuedGraphRelationResolver.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/historical-source/OriginalIssuedGraphRelationPair.swift": {
+      "sha256": "60b95a2994aab164f9846c851920098b9838af78463f68e6b82a63e9738caa83",
+      "bytes": 595,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/historical-source/OriginalIssuedGraphRelationPair.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/historical-source/OriginalIssuedGraphRelations.swift": {
+      "sha256": "9155dbb9d64aba9c20f60a03ba1fe90ee6e796f8e75ab1d3defa09b9a956c195",
+      "bytes": 1305,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/historical-source/OriginalIssuedGraphRelations.swift"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/port-receipt.json": {
+      "sha256": "83a8729ef757871a9adbee6652d9666e4df51bd66bcc864ab71de1a05b3d87b2",
+      "bytes": 796581,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/port-receipt.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/runs.json": {
+      "sha256": "7a4a39f22530f6b657bc96842855d0f14b906c18384b08b177821768bb6f433d",
+      "bytes": 14142,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/runs.json"
+    },
+    "implementation-native-diagnostics/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/runtime.log": {
+      "sha256": "96346bda2e3d1f8805827908feb0f4825a011dc76c1e573dfcf632295a70a76b",
+      "bytes": 777,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v2/runtime.log"
+    },
+    "implementation-native-diagnostics/frozen-fixture/ClosedGuideSeamAcceptance.swift": {
+      "sha256": "39632758a0209d6f258fd8d0b696ae9a87e43e018cea8d675ba1672d2d2ea34b",
+      "bytes": 16681,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift"
+    },
+    "implementation-native-diagnostics/frozen-fixture/ClosedGuideSeamAcceptance.py": {
+      "sha256": "5c16a49d13366f955573a4b7dc068025e400c9ee22ed578ea24c44b15caf68a6",
+      "bytes": 6151,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py"
+    }
+  }
+}

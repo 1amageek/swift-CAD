@@ -296,7 +296,7 @@ flowchart LR
 | DI | Source graph, original request, same limits/admission | Sealed local binding; source provenance and inherited depth, no whole-cover claim |
 | Graph compiler | Local binding, explicit L2 field | One canonical graph with parameters before auxiliaries; exact coefficient import, source guards, chart boundaries and forward request pullback |
 | Family preparers | Existing complete issued rational/guarded offset cover | Every required chart compiled once; empty selection retains its complete cover |
-| Family resolver | Two complete preparations, query kind/limits | Every chart pair resolved once; projected parameter topology and all lifted correspondence, no partial publication |
+| Family resolver | Two complete preparations, query kind/limits | Every original chart pair retained; identical complete solver inputs may share one checked L5 result, preserving projected topology and all lifted correspondence |
 
 The compiler accepts OriginalExactScalarDomain coefficients through checked L2
 import. Physical-angle fields and XYZ-only implicit receipts do not satisfy this
@@ -339,6 +339,64 @@ Unchanged lower evidence is reused. Main integration checks the exact verified
 inputs against latest main in a separate worktree. Full-seven completion and new
 shape publication remain separate.
 
+### Checked equality of complete compiled predicates
+
+A sealed OriginalIssuedGraphPredicateEquivalence retains both complete predicate
+owners and the attained exact-comparison depth. Its checked internal issuer
+compares variable count, every ordered polynomial term/power/exact coefficient,
+every predicate instruction and every domain bound, infinity tag, closure and
+emptiness under compatible coefficient fields and the live caller admission.
+No public unchecked initializer is provided. Solver-graph equality also compares
+parameter/auxiliary layout before consuming this predicate witness. A reused
+parameter refinement retains its predicate witness and re-admits its depth on
+later membership queries, including empty selection. Arrays and witness owners
+are caller-accounted; immutable retained storage and Sendable are uniform across
+targets. This contract changes no L3/L4 construction or decomposition operation.
+
+### Invocation-local reuse of identical complete graph inputs
+
+The observed [closed-guide seam cell](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#s-ruled-closed-guide-seam-01-directed-whole-boundary-identity-candidate)
+prepares seven graphs and attempts all 49 ordered pairs. Under its unchanged
+caller ledger, 48 pairs complete and the final pair exhausts work during L5
+decomposition. Closed station charts include identical prepared solver inputs.
+This stop permits a local reuse change in this resolver; it does not change the
+source cover, M5 identity, requested pairs, lower solver or caller ceilings.
+
+Reuse requires a checked witness of equality of the entire prepared solver
+input: parameter and variable layout, ordered polynomial coefficients, complete
+predicate instruction program and every domain endpoint, infinity tag, closure
+and emptiness. Every comparison uses the exact coefficient field, with checked
+field compatibility and caller admission. Equal XYZ samples, residuals, chart
+names, hashes or equal parameter images do not establish this witness. A changed
+guard, domain, auxiliary layout or coefficient prevents reuse.
+
+The resolver may solve each ordered class of equal inputs once through the
+existing L5 compiler and resolver. Its published pair array still has every
+original pair in original order, retaining the actual original preparations,
+their maps and all chart incidents. A reused pair retains its checked equality
+witness, canonical solver indices and immutable L5 owner; later admission
+re-admits the attained comparison depth as well as all source and relation
+proofs. Sharing solver work establishes no structural parameter identity and
+does not remove UV tuples or chart sides. Each canonical solve has a private
+immutable Sendable owner containing its actual L5 relation; checked aliases take
+their relation from that same owner. Owner identity is an internal proof of the
+same retained solver result. Canonical indices are correspondence metadata only.
+Legacy pair construction has no such owner and cannot authorize residual reuse.
+Charge the owner payload and allocation header before construction; aliases
+retain it without copying lower arrays.
+The resolver and a later prepared consumer query are separate explicit caller
+operations. Each retains its supplied admission throughout; later queries
+re-admit the immutable result rather than resetting a live resolver ledger.
+
+Equivalence scratch, witnesses, output buffers and all comparisons are charged
+with checked counts under the same invocation ledger. No global cache or shared
+mutable state is introduced. Cancellation, resource exhaustion or failure of a
+required pair aborts publication. Focused verification compares the complete
+49-pair residual and incident oracle, falsifies reuse with changed guard/domain/
+layout/coefficient inputs, and checks retained owners, readmission and terminal
+cancellation on the selected Native/ASAN/WASM/Embedded paths. It reuses unchanged
+lower artifacts and does not authorize a broad rebuild.
+
 `OriginalIssuedGraphRelationOwning` exposes immutable kind/pair requirements while
 retaining the concrete family/source/DI value. Upper exact point values keep this
 owner after extraction from a result. This additive protocol changes no relation
@@ -367,6 +425,11 @@ incompatible fields fail explicitly; coordinates are never rounded or rebuilt.
 All source/proof admission, coordinate-map/output storage, work and terminal
 cancellation use that admission. COW copies share the original buffers. There is
 no shared mutable state or target-specific isolation/Sendable branch.
+
+The self consumer may attach an internal attained decision depth to this
+wrapper, under its [domain-proved residual simplification contract](../OriginalSurfaceEmbedding/DESIGN.md#domain-proved-residual-simplification).
+Membership re-admits that history before any return, including empty results;
+legacy/general refinements without that history retain their existing behavior.
 
 This port owns parameter refinement only. Boundary consumers must separately
 prove face binding and compile exact material/pcurve conditions; self consumers

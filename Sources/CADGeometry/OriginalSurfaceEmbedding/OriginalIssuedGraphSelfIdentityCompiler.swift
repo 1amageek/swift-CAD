@@ -9,6 +9,7 @@ struct OriginalIssuedGraphSelfIdentityCompiler {
     private let selection: ExactRealCellSelection<Base>
     private var laws: [Polynomial] = []
     private var instructions: [ExactRealCellInstruction] = []
+    private(set) var predicateDecisionDepth: ExactScalarDepth?
     init<A: ExactScalarAdmission & ~Copyable>(_ selection: ExactRealCellSelection<Base>, using a: inout A) throws {
         self.selection = selection
         cells = try .init(retaining: selection.predicate.source, using: &a)
@@ -112,6 +113,23 @@ struct OriginalIssuedGraphSelfIdentityCompiler {
         firstPlacement: [Int], secondPlacement: [Int], diagonal: OriginalParameterIdentityRelation<S,Base>,
         identities: [OriginalParameterIdentityRelation<S,Base>], using a: inout A
     ) throws -> ExactRealCellPredicate<Base> {
+        try OriginalSourceProofAdmission.withBorrow(&a) { tracked in
+            try tracked.admitDepth(value: diagonal.evidenceDepth.value, coefficient: diagonal.evidenceDepth.coefficient)
+            for identity in identities {
+                try tracked.consumeWork(1)
+                try tracked.admitDepth(value: identity.evidenceDepth.value, coefficient: identity.evidenceDepth.coefficient)
+            }
+            let result = try compiledResidual(first: first, second: second, firstPlacement: firstPlacement,
+                secondPlacement: secondPlacement, diagonal: diagonal, identities: identities, using: &tracked)
+            predicateDecisionDepth = try tracked.depth
+            return result
+        }
+    }
+    private mutating func compiledResidual<S: Sendable,E: Sendable,F: Sendable,A: ExactScalarAdmission & ~Copyable>(
+        first: OriginalIssuedGraphPreparation<S,E>, second: OriginalIssuedGraphPreparation<S,F>,
+        firstPlacement: [Int], secondPlacement: [Int], diagonal: OriginalParameterIdentityRelation<S,Base>,
+        identities: [OriginalParameterIdentityRelation<S,Base>], using a: inout A
+    ) throws -> ExactRealCellPredicate<Base> {
         let left = try coordinates(first, placement: firstPlacement, using: &a)
         let right = try coordinates(second, placement: secondPlacement, using: &a), ring = cells.polynomials
         let total = identities.count.addingReportingOverflow(1)
@@ -142,6 +160,9 @@ struct OriginalIssuedGraphSelfIdentityCompiler {
         }
         try append(.not, &a)
         let source = try cells.bind(polynomials: laws, domains: selection.predicate.source.domains, using: &a)
-        return try cells.predicate(instructions: instructions, for: source, using: &a)
+        let complete = try cells.predicate(instructions: instructions, for: source, using: &a)
+        let simplified = try OriginalIssuedGraphSelfPredicateSimplifier.simplify(complete, cells: cells, using: &a)
+        predicateDecisionDepth = simplified.depth
+        return simplified.predicate
     }
 }

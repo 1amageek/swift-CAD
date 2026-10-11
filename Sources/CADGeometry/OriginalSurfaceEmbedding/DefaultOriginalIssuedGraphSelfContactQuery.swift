@@ -47,6 +47,10 @@ public struct DefaultOriginalIssuedGraphSelfContactQuery<S: Sendable,E: Sendable
                 of: OriginalParameterIdentity<S,OriginalExactScalarDomain>.self))
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: raw.pairs.count,
                 of: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>.self))
+            try a.retainStorage(bytes: exactScalarPayloadBytes(count: raw.pairs.count,
+                of: ExactRealCellPredicate<OriginalExactScalarDomain>.self))
+            var predicates: [ExactRealCellPredicate<OriginalExactScalarDomain>] = []
+            predicates.reserveCapacity(raw.pairs.count)
             var diagonals: [OriginalParameterIdentity<S,OriginalExactScalarDomain>] = []
             var refinements: [OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>] = []
             diagonals.reserveCapacity(raw.pairs.count); refinements.reserveCapacity(raw.pairs.count)
@@ -71,9 +75,30 @@ public struct DefaultOriginalIssuedGraphSelfContactQuery<S: Sendable,E: Sendable
                 let predicate = try compiler.residual(first: first, second: second,
                     firstPlacement: pair.relation.original.firstCoordinates, secondPlacement: pair.relation.original.secondCoordinates,
                     diagonal: view, identities: views, using: &a)
-                let refined = try DefaultOriginalIssuedGraphParameterRefiner().refine(in: raw, pairOrdinal: ordinal,
-                    matching: predicate, limits: domainLimits, cellLimits: cellLimits, topologyLimits: topologyLimits, using: &a)
-                diagonals.append(diagonal); refinements.append(refined)
+                var reused: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>?
+                for previous in refinements.indices {
+                    try a.consumeWork(1)
+                    guard pair.sharesSolver(with: raw.pairs[previous]) else { continue }
+                    if let proof = try OriginalIssuedGraphPredicateEquivalence.checked(predicate, predicates[previous],
+                        field: compiler.field, using: &a) {
+                        try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
+                            of: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>.self))
+                        reused = .init(raw: raw, pairOrdinal: ordinal, pullback: refinements[previous].pullback,
+                            predicateEquivalence: proof, predicateDecisionDepth: compiler.predicateDecisionDepth)
+                        break
+                    }
+                }
+                let refined: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>
+                if let reused { refined = reused }
+                else {
+                    let original = try DefaultOriginalIssuedGraphParameterRefiner().refine(in: raw, pairOrdinal: ordinal,
+                        matching: predicate, limits: domainLimits, cellLimits: cellLimits, topologyLimits: topologyLimits, using: &a)
+                    try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
+                        of: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>.self))
+                    refined = .init(raw: raw, pairOrdinal: ordinal, pullback: original.pullback,
+                        predicateDecisionDepth: compiler.predicateDecisionDepth)
+                }
+                predicates.append(predicate); diagonals.append(diagonal); refinements.append(refined)
             }
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalIssuedGraphSelfContacts<S,E,C,F,D>.self))
             let result = OriginalIssuedGraphSelfContacts(raw: raw, authoredDiagonals: diagonals,

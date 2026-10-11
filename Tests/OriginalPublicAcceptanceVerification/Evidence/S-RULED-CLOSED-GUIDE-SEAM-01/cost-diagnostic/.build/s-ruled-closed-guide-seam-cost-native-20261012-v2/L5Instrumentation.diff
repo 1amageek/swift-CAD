@@ -1,0 +1,23 @@
+--- admitted-L5-resolve
++++ diagnostic-L5-resolve
+@@ -1,12 +1,17 @@
+         do {
+             try a.checkpoint()
+             try a.admitDepth(value:source.depth.value,coefficient:source.depth.coefficient)
++            a.stage = "retaining-cells"
+             let cells = try Cells(retaining: source.predicate.source, using: &a)
++            a.stage = "decompose"
+             let partition = try cells.decompose(source.predicate.source, limits: cellLimits, using: &a)
++            trace("decompose-done",using:a); a.stage = "select"
+             let selection = try cells.select(partition, matching: source.predicate, using: &a)
+-            let projection = try topology.project(selection, retainingPrefix: source.parameterCount,
++            trace("select-done",using:a); a.stage = "project"
++            let projection = try domain.topology.project(selection, retainingPrefix: source.parameterCount,
+                 cellLimits: cellLimits, topologyLimits: topologyLimits, using: &a)
+-            try storage(1, ExactParametricGraphRelation<Base>.self, &a)
+-            let result = ExactParametricGraphRelation(original: copy source, projection: projection, depth:try graphDepth(source.depth,projection.depth))
++            trace("project-done",using:a); a.stage = "result-storage"
++            try domain.storage(1, PublicLiftPlane.ExactParametricGraphRelation<F>.self, &a)
++            let result = ExactParametricGraphRelation(original: copy source, projection: projection, depth:try domain.graphDepth(source.depth,projection.depth))
+             try a.checkpoint(); return result
+         } catch { throw .init(error) }

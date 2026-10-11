@@ -1,0 +1,90 @@
+--- admitted-Query
++++ diagnostic-Query
+@@ -1,7 +1,9 @@
+         do {
++            a.stage="initial-raw-admission"; trace("query-entry",using:a)
+             try a.checkpoint(); try raw.admitProof(limits: domainLimits, using: &a)
++            trace("initial-raw-admit-done",using:a)
+             guard raw.kind == .surfaceSurface, raw.first.parameterCount == 2, raw.second.parameterCount == 2 else {
+-                throw NativeExactRelationFailure.invalidDomain
++                throw GuideSeamPort.NativeExactRelationFailure.invalidDomain
+             }
+             let anchor = try raw.first.source.chart(0, limits: domainLimits.source, using: &a)
+             guard raw.second.source.owns(anchor) else { throw OriginalDomainIdentityFailure.foreignOwner }
+@@ -32,20 +34,22 @@
+             try a.retainStorage(bytes: exactScalarPayloadBytes(count: raw.pairs.count,
+                 of: OriginalParameterIdentity<S,OriginalExactScalarDomain>.self))
+             try a.retainStorage(bytes: exactScalarPayloadBytes(count: raw.pairs.count,
+-                of: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>.self))
++                of: GuideSeamPort.OriginalIssuedGraphParameterRefinement<S,Law,Cover,S,Law,Cover>.self))
+             try a.retainStorage(bytes: exactScalarPayloadBytes(count: raw.pairs.count,
+                 of: ExactRealCellPredicate<OriginalExactScalarDomain>.self))
+             var predicates: [ExactRealCellPredicate<OriginalExactScalarDomain>] = []
+             predicates.reserveCapacity(raw.pairs.count)
+             var diagonals: [OriginalParameterIdentity<S,OriginalExactScalarDomain>] = []
+-            var refinements: [OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>] = []
++            var refinements: [GuideSeamPort.OriginalIssuedGraphParameterRefinement<S,Law,Cover,S,Law,Cover>] = []
+             diagonals.reserveCapacity(raw.pairs.count); refinements.reserveCapacity(raw.pairs.count)
+             let transporter = DefaultOriginalParameterTransporter<S,OriginalExactScalarDomain>()
+             for ordinal in raw.pairs.indices {
+                 try a.consumeWork(1)
+                 let pair = raw.pairs[ordinal]
++                a.pair=ordinal;a.stage="diagonal"
++                print("SELF_PAIR",ordinal,"canonical",pair.canonicalFirstGraphIndex,pair.canonicalSecondGraphIndex,"rawSelected",pair.relation.projection.original.cells.count);trace("before-diagonal",using:a)
+                 guard raw.first.graphs.indices.contains(pair.firstGraphIndex),
+-                    raw.second.graphs.indices.contains(pair.secondGraphIndex) else { throw NativeExactRelationFailure.invalidDomain }
++                    raw.second.graphs.indices.contains(pair.secondGraphIndex) else { throw GuideSeamPort.NativeExactRelationFailure.invalidDomain }
+                 let first = raw.first.graphs[pair.firstGraphIndex], second = raw.second.graphs[pair.secondGraphIndex]
+                 let lhs = first.original.request, rhs = second.original.request, field = lhs.frame.scalarField
+                 let zero = try field.integer(0, using: &a), one = try field.integer(1, using: &a)
+@@ -57,33 +61,41 @@
+                     gains: [one,one], offsets: [zero,zero], limits: domainLimits, using: &a)
+                 let diagonal = try issuer.authored(left: left, right: right, limits: domainLimits, using: &a)
+                 let view = try issuer.relation(of: diagonal, limits: domainLimits, using: &a)
+-                var compiler = try OriginalIssuedGraphSelfIdentityCompiler(pair.relation.projection.original, using: &a)
++                trace("after-diagonal",using:a);a.stage="identity-compile"
++                var compiler = try GuideSeamPort.OriginalIssuedGraphSelfIdentityCompiler(pair.relation.projection.original, using: &a)
+                 let predicate = try compiler.residual(first: first, second: second,
+                     firstPlacement: pair.relation.original.firstCoordinates, secondPlacement: pair.relation.original.secondCoordinates,
+                     diagonal: view, identities: views, using: &a)
+-                var reused: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>?
++                trace("after-identity-compile-before-compare",using:a);a.stage="predicate-comparison"
++                var reused: GuideSeamPort.OriginalIssuedGraphParameterRefinement<S,Law,Cover,S,Law,Cover>?
+                 for previous in refinements.indices {
+                     try a.consumeWork(1)
+                     guard pair.sharesSolver(with: raw.pairs[previous]) else { continue }
+-                    if let proof = try OriginalIssuedGraphPredicateEquivalence.checked(predicate, predicates[previous],
++                    a.candidates += 1
++                    print("SELF_CANDIDATE",ordinal,previous,"work",a.ledger.work);fflush(nil)
++                    if let proof = try GuideSeamPort.OriginalIssuedGraphPredicateEquivalence.checked(predicate, predicates[previous],
+                         field: compiler.field, using: &a) {
++                        a.matches += 1
++                        print("SELF_MATCH",ordinal,previous,"work",a.ledger.work);fflush(nil)
+                         try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1,
+-                            of: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>.self))
++                            of: GuideSeamPort.OriginalIssuedGraphParameterRefinement<S,Law,Cover,S,Law,Cover>.self))
+                         reused = .init(raw: raw, pairOrdinal: ordinal, pullback: refinements[previous].pullback,
+                             predicateEquivalence: proof)
+                         break
+                     }
+                 }
+-                let refined: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>
+-                if let reused { refined = reused }
++                let refined: GuideSeamPort.OriginalIssuedGraphParameterRefinement<S,Law,Cover,S,Law,Cover>
++                if let reused { refined = reused;a.reuses += 1;trace("reuse-done",using:a) }
+                 else {
+-                    refined = try DefaultOriginalIssuedGraphParameterRefiner().refine(in: raw, pairOrdinal: ordinal,
++                    a.unique += 1;a.stage="refine";a.refineStart=a.ledger.work;trace("before-unique-refine",using:a)
++                    refined = try costRefine(in: raw, pairOrdinal: ordinal,
+                         matching: predicate, limits: domainLimits, cellLimits: cellLimits, topologyLimits: topologyLimits, using: &a)
+                 }
++                trace("after-refine",using:a)
+                 predicates.append(predicate); diagonals.append(diagonal); refinements.append(refined)
+             }
+-            try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalIssuedGraphSelfContacts<S,E,C,F,D>.self))
+-            let result = OriginalIssuedGraphSelfContacts(raw: raw, authoredDiagonals: diagonals,
++            try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: GuideSeamPort.OriginalIssuedGraphSelfContacts<S,Law,Cover,Law,Cover>.self))
++            let result = GuideSeamPort.OriginalIssuedGraphSelfContacts(raw: raw, authoredDiagonals: diagonals,
+                 identities: identities, refinements: refinements)
+             try a.checkpoint(); return result
+         } catch { throw .preserving(error) }

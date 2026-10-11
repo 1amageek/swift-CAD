@@ -1,0 +1,49 @@
+--- Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/accepted/native-20261012-v9/fixture-snapshot/ClosedGuideSeamAcceptance.swift
++++ Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift
+@@ -140,9 +140,13 @@
+         let x = try ring.variable(0,using:&a),c0=try ring.constant(zero,using:&a),c1=try ring.constant(one,using:&a)
+         func simplify(_ law:ExactPolynomial<PublicLiftPlane.ExactAlgebraicScalarDomain<F>>,
+             _ relation:ExactRealCellSignRelation,_ domain:ExactRealRootInterval<PublicLiftPlane.ExactAlgebraicScalarDomain<F>.Value>,
+-            _ prefix:[ExactRealCellInstruction] = [],_ suffix:[ExactRealCellInstruction] = []) throws -> GuideSeamPort.OriginalIssuedGraphSelfPredicateSimplifier.Result {
++            _ prefix:ExactRealCellInstruction? = nil,_ suffix:ExactRealCellInstruction? = nil) throws -> GuideSeamPort.OriginalIssuedGraphSelfPredicateSimplifier.Result {
+             let source=try cells.bind(polynomials:[law],domains:[domain],using:&a)
+-            let predicate=try cells.predicate(instructions:prefix+[.sign(polynomial:0,relation:relation)]+suffix,for:source,using:&a)
++            var instructions:[ExactRealCellInstruction]=[]
++            if let prefix { instructions.append(prefix) }
++            instructions.append(.sign(polynomial:0,relation:relation))
++            if let suffix { instructions.append(suffix) }
++            let predicate=try cells.predicate(instructions:instructions,for:source,using:&a)
+             return try GuideSeamPort.OriginalIssuedGraphSelfPredicateSimplifier.simplify(predicate,cells:cells,using:&a)
+         }
+         func literal(_ result:GuideSeamPort.OriginalIssuedGraphSelfPredicateSimplifier.Result,_ value:Bool) throws {
+@@ -171,8 +175,8 @@
+         try require(simplify(nonlinear,.greater,unit).predicate.source.polynomials.count == 1)
+         try literal(simplify(positive,.notEqual,unit),true)
+         try require(simplify(x,.notEqual,unit).predicate.source.polynomials.count == 1)
+-        try literal(simplify(nonlinear,.greater,unit,[.literal(false)],[.and]),false)
+-        try literal(simplify(nonlinear,.greater,unit,[.literal(true)],[.or]),true)
++        try literal(simplify(nonlinear,.greater,unit,.literal(false),.and),false)
++        try literal(simplify(nonlinear,.greater,unit,.literal(true),.or),true)
+         // Conservative injected history strengthens only depth; the rational law remains identical.
+         let history=ExactPolynomial(context:c1.context,terms:c1.terms,depth:try .init(value:9,coefficient:7))
+         let pruned=try simplify(history,.greater,unit)
+@@ -433,7 +437,8 @@
+             let source=try comparisonCells.bind(polynomials:laws,domains:domains,using:&verification)
+             return try comparisonCells.predicate(instructions:instructions,for:source,using:&verification)
+         }
+-        let guardChanged=try altered(baseline.source.polynomials,baseline.instructions+[.not],baseline.source.domains)
++        var changedProgram=baseline.instructions;changedProgram.append(.not)
++        let guardChanged=try altered(baseline.source.polynomials,changedProgram,baseline.source.domains)
+         try require(GuideSeamPort.OriginalIssuedGraphPredicateEquivalence.checked(baseline,guardChanged,field:field,using:&verification) == nil)
+         var coefficients=baseline.source.polynomials
+         try require(!coefficients.isEmpty)
+@@ -546,7 +551,8 @@
+         var laws=predicate.source.polynomials
+         laws[0]=try ring.adding(laws[0],ring.constant(p.field.integer(1,using:&a),using:&a),using:&a)
+         let coefficient=try changed(laws,predicate.instructions,predicate.source.domains)
+-        let guardChange=try changed(predicate.source.polynomials,predicate.instructions+[.not],predicate.source.domains)
++        var changedProgram=predicate.instructions;changedProgram.append(.not)
++        let guardChange=try changed(predicate.source.polynomials,changedProgram,predicate.source.domains)
+         let roots=try ExactRealRootDomain(field:p.field,using:&a)
+         var intervals=predicate.source.domains
+         intervals[0]=try roots.domain(lower:intervals[0].lower,upper:intervals[0].upper,includesLower:false,using:&a)

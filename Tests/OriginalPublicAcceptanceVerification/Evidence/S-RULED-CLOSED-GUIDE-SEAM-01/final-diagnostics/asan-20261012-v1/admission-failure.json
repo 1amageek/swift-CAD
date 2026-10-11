@@ -1,0 +1,11 @@
+{
+  "success": false,
+  "cellComplete": false,
+  "lane": "asan",
+  "stage": "receipt-admission-before-any-compile",
+  "missingOriginalComparator": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallCurveSnapshot.swift",
+  "expectedOriginalSHA256": "4a6c1ad887b7f3370f45b8e9127133ad095ac8937605c6440e73b4a2165fc852",
+  "runs": [],
+  "runtimeExecuted": false,
+  "scope": "Driver comparator-list omission; actual generated cached original body retained by guide receipt."
+}

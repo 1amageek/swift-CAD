@@ -1,0 +1,158 @@
+{
+  "schema": 1,
+  "diagnosticOnly": true,
+  "cellComplete": false,
+  "scope": "Separate same-ledger original49pair diagnostic; immutable O raw manifest and STOP unchanged. v1 transcription compile-only failure, v2 sole diagnostic runtime, matching original resolver/L5 bodies and exact instrumentation diff.",
+  "files": {
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/FixtureAtCompileFailure.py": {
+      "sha256": "20d794cd5283f61f1c423fed78c0ae07562190c64d71bf7d9a16918fd87c0ac0",
+      "bytes": 4082,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/FixtureAtCompileFailure.py"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/FixtureAtCompileFailure.swift": {
+      "sha256": "b62ab7b2f24636029b940ed520040a08984bd209cad4dbe0941a26d312f4255e",
+      "bytes": 18577,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/FixtureAtCompileFailure.swift"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/FixtureInstrumentation.diff": {
+      "sha256": "85558464f07e3ba95e29468fb8fec278dca6562813e3bb0d5a7c08dd680796db",
+      "bytes": 7841,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/FixtureInstrumentation.diff"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/GeneratorAtCompileFailure.py": {
+      "sha256": "d812e58f437f6ff77f51371a0644d9315885940204b20506ba86358c3c1aafcd",
+      "bytes": 5328,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/GeneratorAtCompileFailure.py"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/L5Instrumentation.diff": {
+      "sha256": "fa16b22943830ebfcf84b41cfbbf40c0633a5c4b7e3f0050bfb10e410283ea14",
+      "bytes": 1616,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/L5Instrumentation.diff"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/OriginalL5ResolveBody.swift.txt": {
+      "sha256": "6093604475c9bd5857a49b5db34ec92681ab3dcd73a3b0a3b6f63dcc0b6ebdca",
+      "bytes": 910,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/OriginalL5ResolveBody.swift.txt"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/OriginalResolverBody.swift.txt": {
+      "sha256": "0311e4bfc0aefeaaf756b94b72ffc7d6e75d2f49faaee2c8447ee3400cb829d5",
+      "bytes": 2033,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/OriginalResolverBody.swift.txt"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/Proof.swift": {
+      "sha256": "38696bd835a40ea1b0fd2f6d95dc9c21d3fab473c3ec4a58b94bed558de2c95c",
+      "bytes": 48044,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/Proof.swift"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/ResolverInstrumentation.diff": {
+      "sha256": "b4db2e8ee4106bd7442eff8ddc150fb3379fb09a1076b2116078686a1ac5c577",
+      "bytes": 2445,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/ResolverInstrumentation.diff"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/admission.json": {
+      "sha256": "aef56401b8df5a338f8a91df3319e673897cd47c88c8272559594597d4de3c82",
+      "bytes": 786417,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/admission.json"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/compile-proof.json": {
+      "sha256": "34196bddd227104a9ff4041bd5f261be6ef116cbad88b53978295dd18e53acac",
+      "bytes": 4894,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/compile-proof.json"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/compile-proof.log": {
+      "sha256": "984dad7076ca3504c1fdf6350326d29ed0054a0d12c9fcc203c6567935f1ea28",
+      "bytes": 5702,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/compile-proof.log"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/failure-receipt.json": {
+      "sha256": "fcc7f05a025fa9c98e064adf6c8f1bbb954107b6e1f4a37e8fb785daa2d82e2b",
+      "bytes": 792335,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/failure-receipt.json"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/runs.json": {
+      "sha256": "ef071f62d4d69a9502445e38761ecee1f590bd35dce6f90f4e21a8e53226707c",
+      "bytes": 5649,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v1/runs.json"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/FixtureInstrumentation.diff": {
+      "sha256": "a9230eb3a691b1611a918739369574ddf6948309fd21370cd9743989b16856eb",
+      "bytes": 7873,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/FixtureInstrumentation.diff"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/L5Instrumentation.diff": {
+      "sha256": "f7e39e4a69af2f4ba97921ea46bbd2b970843c5b2c785aa0621a2e76ebdbc8d4",
+      "bytes": 1629,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/L5Instrumentation.diff"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/OriginalL5ResolveBody.swift.txt": {
+      "sha256": "6093604475c9bd5857a49b5db34ec92681ab3dcd73a3b0a3b6f63dcc0b6ebdca",
+      "bytes": 910,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/OriginalL5ResolveBody.swift.txt"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/OriginalResolverBody.swift.txt": {
+      "sha256": "0311e4bfc0aefeaaf756b94b72ffc7d6e75d2f49faaee2c8447ee3400cb829d5",
+      "bytes": 2033,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/OriginalResolverBody.swift.txt"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/Proof.swift": {
+      "sha256": "c8635a361762d0223cf51d92a7044cb097b9a9add1841cd64626b8b72bf376b3",
+      "bytes": 48076,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/Proof.swift"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/ResolverInstrumentation.diff": {
+      "sha256": "df7e88dc3ee3c8e1011e97d9ad9ac76817324fd5641a2d92d90c3f1d5d41b27b",
+      "bytes": 3073,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/ResolverInstrumentation.diff"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/admission.json": {
+      "sha256": "361e94d4bb3799fb6c1d4a8c985404ec52873aff85821b58d4546735ecdc1ebb",
+      "bytes": 786417,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/admission.json"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/compile-proof.json": {
+      "sha256": "fb32bc96410bb7a2412ae05a61105575a27b837e1930a85d079dc27cb1ad25c1",
+      "bytes": 4894,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/compile-proof.json"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/compile-proof.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/compile-proof.log"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/cost-observation.log": {
+      "sha256": "5dbeef19a2c2780f7d310bc7f6223bba0fc7f753d4c938a4b007aef1c9ff5e89",
+      "bytes": 16797,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/cost-observation.log"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/proof-receipt.json": {
+      "sha256": "ceecf74843addfbf05a1728944acc07d90d23a71ae43fb6fbc9086bbf2aec57e",
+      "bytes": 781931,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/proof-receipt.json"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/receipt.json": {
+      "sha256": "132aa29f03276bcd9b0cdd1d66a055c156a51fb8c525ab983ec41159c55d2da2",
+      "bytes": 794036,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/receipt.json"
+    },
+    "cost-diagnostic/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/runs.json": {
+      "sha256": "95b2f14248b95fbfb70a0b3130aee86229d69f9f7e6c988d87a58fc03b9c1480",
+      "bytes": 6197,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-cost-native-20261012-v2/runs.json"
+    },
+    "cost-diagnostic/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamCostObservation.swift": {
+      "sha256": "60496407daaeff617133ef0c52e6877c047dca6bb75728c6ac52e8e5a7eb255f",
+      "bytes": 18609,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamCostObservation.swift"
+    },
+    "cost-diagnostic/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamCostObservation.py": {
+      "sha256": "c7d48883f7a0b3e5e4100611eef9d7f7a870d5f201afcb25a235f3f6c48e2c5c",
+      "bytes": 4082,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamCostObservation.py"
+    },
+    "cost-diagnostic/.build/create-guide-cost-observation.py": {
+      "sha256": "15704581284ff28536ff057d7a3f0660b757ebb0a233f28769c195675ec82d01",
+      "bytes": 5552,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/create-guide-cost-observation.py"
+    }
+  }
+}

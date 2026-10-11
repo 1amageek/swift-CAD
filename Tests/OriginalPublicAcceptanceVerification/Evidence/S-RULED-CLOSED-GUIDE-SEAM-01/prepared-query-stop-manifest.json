@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "cellComplete": false,
+  "scope": "Existing separate prepared query operation with caller-owned independent unchanged allowance, failed before publication. All earlier observations remain immutable.",
+  "files": {
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/compile-proof.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/compile-proof.log"
+    },
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/compile-proof.json": {
+      "sha256": "3ab677d185c4ab6fdd1afada29fd3568c389aa662c3a025d703a4623b325ed29",
+      "bytes": 5032,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/compile-proof.json"
+    },
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/Proof.swift": {
+      "sha256": "46b66cd50033f18d1ae1f14199c632129d30d4b508634d076b94459133bd197e",
+      "bytes": 49145,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/Proof.swift"
+    },
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/runtime.log": {
+      "sha256": "ee95599352abe81c147eeb52c3a313d419410645b3d69410c816f19f7cd7a776",
+      "bytes": 880,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/runtime.log"
+    },
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/failure-receipt.json": {
+      "sha256": "7a4f64e970395cb7b18f72536a0657da217e0815e6a41550f826e25d79b3781c",
+      "bytes": 806143,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/failure-receipt.json"
+    },
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/runs.json": {
+      "sha256": "3948cd88363c150a1210fbe9dbd426c17bf6a0b1fa472836904c8644819c57c3",
+      "bytes": 6324,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/runs.json"
+    },
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/admission.json": {
+      "sha256": "3458aa026fa74476b7861faec00ef985d8952f1d25c9dc10d5497ad5c7941cb7",
+      "bytes": 791635,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/admission.json"
+    },
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/historical-source/OriginalIssuedGraphRelationPair.swift": {
+      "sha256": "60b95a2994aab164f9846c851920098b9838af78463f68e6b82a63e9738caa83",
+      "bytes": 595,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/historical-source/OriginalIssuedGraphRelationPair.swift"
+    },
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/historical-source/DefaultOriginalIssuedGraphRelationResolver.swift": {
+      "sha256": "af7c518a028cb2fd5fb527893491ef1c7758a77985a822ce16e1d4aa323bd4c3",
+      "bytes": 3038,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/historical-source/DefaultOriginalIssuedGraphRelationResolver.swift"
+    },
+    "prepared-query-stop/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/historical-source/OriginalIssuedGraphRelations.swift": {
+      "sha256": "9155dbb9d64aba9c20f60a03ba1fe90ee6e796f8e75ab1d3defa09b9a956c195",
+      "bytes": 1305,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/s-ruled-closed-guide-seam-acceptance-native-20261012-v4/historical-source/OriginalIssuedGraphRelations.swift"
+    },
+    "prepared-query-stop/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift": {
+      "sha256": "42edc37d7870bbc9de918917fcc43a9028e7ceb8a2e3416e0025e3b6da528156",
+      "bytes": 19384,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.swift"
+    },
+    "prepared-query-stop/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py": {
+      "sha256": "5c16a49d13366f955573a4b7dc068025e400c9ee22ed578ea24c44b15caf68a6",
+      "bytes": 6151,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/ClosedGuideSeamAcceptance.py"
+    }
+  }
+}

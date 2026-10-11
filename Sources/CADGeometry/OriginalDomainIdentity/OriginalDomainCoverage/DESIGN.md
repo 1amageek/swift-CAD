@@ -607,7 +607,7 @@ PROGRESS.md and their named receipts; this index is not a second queue.
 |---|---|---|
 | 5-C1 | [Affine child identity](../OriginalParameterIdentity/DESIGN.md#affine-child-identity-transport), [paired transport](../OriginalParameterIdentity/DESIGN.md#paired-affine-child-identity-transport) | Existing paired child issuer/view receipts have no corresponding Parent-source public boundary/self consumption receipt, as described under S-NATIVE-DECLARED-SINGLETON-01. General child-to-parent consumption remains unmapped. |
 | 5-C2 | [Identity composition](../OriginalParameterIdentity/DESIGN.md#protocol-composition-and-consumer-responsibility) | Nonlinear/singular relation consumption has no frozen public cell. |
-| 5-C3 | [Identity contracts](../OriginalParameterIdentity/DESIGN.md#contracts-and-invariants) | S-RULED-CLOSED-GUIDE-SEAM-01 fixes one same-parent whole seam, public query and complete directed residual; actual checked issuance/observation remains open. Other joins remain unmapped. |
+| 5-C3 | [Identity contracts](../OriginalParameterIdentity/DESIGN.md#contracts-and-invariants) | S-RULED-CLOSED-GUIDE-SEAM-01 fixes one same-parent whole seam and complete directed residual. Its initial work/Native-type stops are retained diagnostics. Current checked solver reuse completes all49 original raw pairs and law-bound directed issuance succeeds. The subsequent exact domain-wide residual simplifier lets the focused Native prepared query pass its complete reverse-only residual oracle under the unchanged work cap. Final Native/ASAN/ordinaryWASM/Embedded each pass the10 bounded oracle/resource/cancel/lifetime/identity/Coons groups; review and main delivery remain open; recorded earlier work failures stay historical diagnostics. Other joins remain unmapped. |
 | 5-C4 | [Identity contracts](../OriginalParameterIdentity/DESIGN.md#contracts-and-invariants) | Closed germs retained by existing cells; positional identity must not authorize differential/normal equality. General germ consumer remains unmapped. |
 | 5-C5 | [Whole relation view](../OriginalParameterIdentity/DESIGN.md#checked-whole-relation-view) | S-NATIVE-DECLARED-SINGLETON-01 fixes the existing directed Native singleton and its unobserved complete oracle; whole paired-boundary and general child consumers remain unmapped. |
 | 5-C6 | [Analytic theorem consumption](../OriginalParameterIdentity/DESIGN.md#analytic-source-theorem-consumption), [revolution periods](../OriginalParameterIdentity/DESIGN.md#source-owned-revolution-period-consumption) | Period receipts exist; transported period identity in a concrete boundary/self public cell remains unmapped. |
@@ -629,7 +629,7 @@ PROGRESS.md and their named receipts; this index is not a second queue.
 | 6-B1 | [Issued boundary handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#issued-graph-boundary-handoff) | Three B-COONS-HOLE cells consume issued graphs; other source families and auxiliary layouts remain unmapped. |
 | 6-B2 | [Issued boundary handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#issued-graph-boundary-handoff) | Existing validated Coons face/source correspondence; general exact face authorities remain unmapped. |
 | 6-B3 | [Concrete boundary cells](#concrete-boundary-cells-using-existing-coons-receipts) | Existing outer/inner loops, coedges and directed constant-U/V spans; other loop/span constructions remain unmapped. |
-| 6-B4 | [Required source families](#required-source-family-obligations) | Rational/implicit/certified/nonrational pcurves each need their own exact constructor, request, material oracle and public stop; unmapped beyond existing constant pcurves. |
+| 6-B4 | [Required source families](#required-source-family-obligations) | B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01 below fixes one genuine rational quadratic and complete material oracle; its runtime remains unobserved. Other rational/implicit/certified/nonrational pcurve branches remain unmapped. |
 | 6-B5 | [Issued boundary handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#issued-graph-boundary-handoff) | Existing retained pcurves are consumed. Missing-pcurve producer branches remain unmapped; no reconstructed placeholder is authorized. |
 | 6-B6 | [Native M6 handoff](../../../CADKernel/OriginalBoundaryClipping/DESIGN.md#m6-exact-family-handoff) | B-NATIVE-COLLAPSED-CLOSED-01 below has a scoped four-lane whole-cell parameter/material comparison with exact raw ordinals, all bottom/corner incidents and retained owner. Existing seam/collapse membership receipts remain historical premises only. General pole/apex/multicycle cells remain unmapped. |
 | 6-B7 | [Concrete boundary cells](#concrete-boundary-cells-using-existing-coons-receipts) | Exact hole material over every retained raw cell; other material predicates remain unmapped. |
@@ -676,6 +676,39 @@ cancellation, whole-query N/N-1 and concurrency are not new claims. Review/main
 execution state remains solely in PROGRESS.md; historical membership is not the
 current complete oracle or a new prerequisite.
 
+##### B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01: directed curved trim candidate
+
+Use the existing [Native boundary fixture constructors](../../../../Tests/OriginalDomainConsumerVerification/Sources/M6BoundaryFixtures/M6ExactBoundaryFixtures.swift)
+for G(u,v)=(u,v,0), C(t)=(t,7/32,0), the full original T/U/V[0,1]^3,
+the exact-validated lifted-edge face and public Kernel `.closed` clip. One
+forward outer loop traverses bottom(0,0)->(1/2,0), right->(1/2,1/4),
+then a genuine rational quadratic pcurve back to(0,0). Its actual public
+`BSplineCurve2D` constructor has degree2, knots[0,0,0,1,1,1], controls
+[(1/2,1/4),(1/4,1/4),(0,0)] and weights[1,3,1]. This is a new input
+recipe; the existing graph-band fixture's unit weights are not its evidence.
+No coedge orientation reversal is applied to the already directed pcurve.
+
+Its original s[0,1] law is D=1+4s-4s^2>=1,
+u=(1/2+s/2-s^2)/D, v=(1/4+s-5s^2/4)/D. The closed material is exactly
+0<=u<=1/2, 0<=v<=1/4 and
+F=9(1-4v)(u-v)-(2v-u)^2>=0. Equality with the original line gives
+u=t,v=7/32, and F(t,7/32)=(t-1/4)(7/4-t). The complete tuple oracle is
+{(t,t,7/32):1/4<=t<=1/2}, XYZ=(t,7/32,0), image1/fiber0. Boundary
+incidents occur only at t=1/4 on curved coedge2, original s=1/2, and
+t=1/2 on right coedge1, original affine parameter7/8. Interior tuples
+have no boundary incident. Strict and boundary policies would be separate
+cells with the open interval and its two endpoints respectively.
+
+The current [boundary compiler](../../OriginalBoundaryClipping/OriginalExactBoundaryCompiler.swift)
+does not compile the `.bSpline` pcurve case and its default throws
+`NativeExactRelationFailure.unsupportedCoverage`. This is a static limit:
+the new face's validation and public clip runtime have not been observed.
+The missing consumer authority is the complete directed rational-pcurve
+winding law, not another intersection solve or polygonal approximation.
+The delivered collapsed Native receipt can supply unchanged lower premises
+only. Observe this exact validated input before selecting an implementation
+or introducing a prerequisite; this definition does not complete6-B4.
+
 ##### Self-contact, public output and integration requirements
 
 | Accepted ID | Canonical contract | Public cell / explicitly unmapped remainder |
@@ -710,16 +743,16 @@ producer boundaries, not a proposal to regenerate their original equations.
 | Rolling-ball: Native, mixed retained graph rails, periodic/non-Native rails, actual offset pullback contacts | [RollingBallBlendSurface3D](../../RollingBall/RollingBallBlendSurface3D.swift), public [RollingBallSectionEvaluator](../../RollingBall/RollingBallSectionEvaluator.swift); actual contactCurve emits offsetSurfaceImage pcurves. [Child source dispatcher](../../OriginalSourceIssuance/OriginalRollingBallCurveSnapshotProvider.swift) has an explicit unmatched-lift refusal. | SSI-ROLLING-BALL-PLANE-01 defines one all-lift child input and complete oracle, with public stop unobserved. Existing supported child receipts do not cover automatic polyline/offsetSurfaceImage dispatch or all periodic rails; those public cells remain unmapped. |
 | Plane-derivative curve and surface: rational versus angular/algebraic child | [Curve constructor](../../OriginalCoons/PlaneDerivatives/OriginalPlaneDerivativeCurve3D.swift), [surface constructor](../../OriginalCoons/PlaneDerivatives/OriginalPlaneDerivativeSurface3D.swift); [curve provider](../../OriginalSourceIssuance/OriginalPlaneDerivativeCurveSnapshotProvider.swift) and [surface provider](../../OriginalSourceIssuance/OriginalPlaneDerivativeSurfaceSnapshotProvider.swift) reuse the original rational producer. | CS-DERIVATIVE-LIFT-PLANE-01 fixes the weighted/projected rational host and Native diagonal pcurve; existing source/DI/lift/rolling child premises remain scoped. General ordered-field sources and other ordinary public cells remain unmapped. |
 | Boundary correction: rational versus angular/algebraic boundary | [OriginalBoundaryCorrectedSurface3D](../../OriginalCoons/BoundaryCorrection/OriginalBoundaryCorrectedSurface3D.swift); [provider](../../OriginalSourceIssuance/OriginalBoundaryCorrectionSnapshotProvider.swift) refuses unavailable original rational atlas authority. | CS-POLY-CORRECTION-01 defines one rational-host input/oracle, historical selected-entry decline and scoped public acceptance receipt. General boundary variants remain unmapped. |
-| Draft curve; drafted ruled surface | [OriginalDraftedCurve3D](../../OriginalDraftedSection/OriginalDraftedCurve3D.swift), [OriginalDraftedRuledSurface3D](../../OriginalDraftedSection/OriginalDraftedRuledSurface3D.swift). | CS-DRAFT-ZERO-RULED-01 defines one exact-zero wall input and complete oracle; actual constructor/real fallback return a numerical contact, with the complete original publication receipt missing. Its scoped [source-to-public acceptance](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-DRAFT-ZERO-RULED-01/VERIFICATION.md) consumes the original source-owned zero-translation atlas and retained DI/L5/L6. Nonzero-angle/root variants, draft-curve publication and other public requests remain unmapped. |
+| Draft curve; drafted ruled surface | [OriginalDraftedCurve3D](../../OriginalDraftedSection/OriginalDraftedCurve3D.swift), [OriginalDraftedRuledSurface3D](../../OriginalDraftedSection/OriginalDraftedRuledSurface3D.swift). | CS-DRAFT-ZERO-RULED-01 defines one exact-zero wall input and complete oracle; actual constructor/real fallback return a numerical contact, with the complete original publication receipt missing. Its scoped [source-to-public acceptance](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-DRAFT-ZERO-RULED-01/VERIFICATION.md) consumes the original source-owned zero-translation atlas and retained DI/L5/L6. CS-DRAFT-POSITIVE-PLANE-01 and SSI-DRAFT-POSITIVE-PLANE-01 below fix one nonzero physical-angle curve/wall recipe and complete oracles; ordinary runtime remains unobserved and the retained physical-sine/selected-root coefficient receipt is absent. Negative-angle/other-root branches and other public requests remain unmapped. |
 | Angular curve; angular surface: intrinsic, physicalRadians, physicalRadianArc | [Curve constructor](../../CanonicalSphereChart/OriginalAngularTransportCurve3D.swift), [surface constructor](../../CanonicalSphereChart/OriginalAngularTransportSurface3D.swift), [source maps](../../OriginalSourceIssuance/OriginalSourceAngularMap.swift). Physical maps require the actual pi-capable field; the intrinsic [coordinate issuer](../../OriginalSourceIssuance/DefaultOriginalAnalyticCoordinateIssuer.swift) explicitly refuses absent mathematical pi. | Source-coordinate/DI capabilities are separate from public geometric consumption. CS-ANGULAR-PHYSICAL-ARC-PLANE-01 fixes one positive-turn normalized circle arc and complete physical-phase oracle; its ordinary observation and other primitive/map branches remain unmapped. |
 | Implicit stored graph curve | [CertifiedImplicitIntersectionCurve](../../CertifiedImplicitIntersectionCurve.swift) retains source surfaces, validated graph cells, connections and closure. | Its ordinary analytic/rational fallback exists. Complete authored-T/source correspondence and public acceptance input/oracle/observation remain unmapped. |
 | Certified sphereCone | [CertifiedSphereConeIntersectionCurve](../../CertifiedSphereConeIntersectionCurve.swift): negativeFullBranch, positiveFullBranch, boundedAngularInterval, negativeOpenAngularInterval, positiveOpenAngularInterval, apexReducedAngularInterval. | CS-CERT-SPHERECONE-POSITIVE-PLANE-01 identifies one actual positiveFullBranch constructor/target and the exact original-pair coefficient/T-binding gaps below. It has no complete stored-curve oracle or observed stop. Other five branch mappings remain open; existing CS reduction/fallback is not whole-family proof. |
-| Certified coneCone | [CertifiedConeConeIntersectionCurve](../../CertifiedConeConeIntersectionCurve.swift): negativeFullBranch, positiveFullBranch, boundedAngularInterval, apexReducedAngularInterval. | Exact source pair, component interval, public target/request/oracle and observation remain unmapped per applicable branch. |
-| Certified coneCylinder | [CertifiedConeCylinderIntersectionCurve](../../CertifiedConeCylinderIntersectionCurve.swift): negativeFullBranch, positiveFullBranch, boundedAngularInterval, apexLowerNodeInterval, apexUpperNodeInterval, rulingParallelLinear. | The actual rulingParallelLinear construction and its original-pair oracle gap are identified below. Complete source/request/oracle/observation remains unmapped for each applicable branch; numerical differential tests do not close them. |
-| Certified coneTorus regular certificate; apexReduction constructor | [CertifiedGeneralConeTorusIntersectionCurve](../../CertifiedGeneralConeTorusIntersectionCurve.swift) has the branchIndex/certificate constructor and a separate branchCount/apexReduction constructor. | Keep both constructions visible. Neither inherits another certified variant's source correspondence or public evidence; required concrete source/request/oracle/observation remain unmapped. |
-| Certified parallelTorusTorus | [CertifiedParallelTorusTorusIntersectionCurve](../../CertifiedParallelTorusTorusIntersectionCurve.swift): certificate-owned regularClosed, nodalSelfLoop and nearNodalClosedLoop. | Each kind needs its actual source pair/branch and complete public oracle/observation. The dedicated ordinary plane solver exists; its existence is neither a stop nor general acceptance. |
+| Certified coneCone | [CertifiedConeConeIntersectionCurve](../../CertifiedConeConeIntersectionCurve.swift): negativeFullBranch, positiveFullBranch, boundedAngularInterval, apexReducedAngularInterval. | CS-CERT-CONECONE-POSITIVE-PLANE-01 below identifies one actual positiveFullBranch input/target and its unresolved exact coefficient/branch/T-to-UV oracle. Other three branch inputs remain unmapped; no runtime stop is claimed. |
+| Certified coneCylinder | [CertifiedConeCylinderIntersectionCurve](../../CertifiedConeCylinderIntersectionCurve.swift): negativeFullBranch, positiveFullBranch, boundedAngularInterval, apexLowerNodeInterval, apexUpperNodeInterval, rulingParallelLinear. | The actual rulingParallelLinear construction and its original-pair oracle gap are identified below. CS-CERT-CONECYLINDER-POSITIVE-PLANE-01 below separately identifies an actual positiveFullBranch input/target and unresolved coefficient/T/UV oracle. Other branches retain their own unmapped fields; numerical differential tests do not close them. |
+| Certified coneTorus regular certificate; apexReduction constructor | [CertifiedGeneralConeTorusIntersectionCurve](../../CertifiedGeneralConeTorusIntersectionCurve.swift) has the branchIndex/certificate constructor and a separate branchCount/apexReduction constructor. | CS-CERT-CONETORUS-REGULAR-PLANE-01 below identifies one regular branch0 pair/target and its exact coefficient/root/T/UV definition gaps. Keep apexReduction and other branches visible and unmapped; no public runtime acceptance is inferred. |
+| Certified parallelTorusTorus | [CertifiedParallelTorusTorusIntersectionCurve](../../CertifiedParallelTorusTorusIntersectionCurve.swift): certificate-owned regularClosed, nodalSelfLoop and nearNodalClosedLoop. | CS-CERT-PARALLELTORI-REGULAR-EMPTY-01 below fixes one regularClosed branch0 input with a whole-T height exclusion oracle; ordinary runtime is unobserved. Positive contact/T-to-UV and nodalSelfLoop/nearNodalClosedLoop remain unmapped. The dedicated plane solver is neither a reproduced stop nor general acceptance. |
 | Lift: Native finite/periodic; retained Coons/correction/derivative hosts; Native/affine/constant/prepared polyline pcurves; other hosts/pcurves, priority images and clamp correspondence | [SurfaceLiftCurve3D](../../SurfaceLiftCurve3D.swift), [retained-host polyline provider](../../OriginalSourceIssuance/OriginalPolylineRetainedAtlasLiftSnapshotProvider.swift); priority image and out-of-support clamp inputs explicitly refuse at this source port. | Existing CS-POLY cells cover their Coons/polyline input; correction is its separately named cell. Remaining host/pcurve combinations and general rational/nonlinear UV elimination stay unmapped. |
-| Join/guide: traversal chain, guide endpoint connector, original endpoint connector, affine/nonaffine construction chart | [Guide chain](../../OriginalCoons/GuideTraversalChain/OriginalGuideTraversalChain3D.swift), [guide correction](../../OriginalCoons/EndpointConnector/GuideCorrection/OriginalGuideEndpointConnectorCurve3D.swift), [endpoint connector](../../OriginalCoons/EndpointConnector/OriginalEndpointConnectorCurve3D.swift), [rational admission](../../OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift). | S-RULED-CLOSED-GUIDE-SEAM-01 fixes one closed rational guide and directed positional seam residual; its actual issuance/public observation is open. Nonrational/algebraic joins, nonaffine charts and other consumers remain unmapped. |
+| Join/guide: traversal chain, guide endpoint connector, original endpoint connector, affine/nonaffine construction chart | [Guide chain](../../OriginalCoons/GuideTraversalChain/OriginalGuideTraversalChain3D.swift), [guide correction](../../OriginalCoons/EndpointConnector/GuideCorrection/OriginalGuideEndpointConnectorCurve3D.swift), [endpoint connector](../../OriginalCoons/EndpointConnector/OriginalEndpointConnectorCurve3D.swift), [rational admission](../../OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift). | S-RULED-CLOSED-GUIDE-SEAM-01 observes the actual closed rational guide/ruled source,7 laws/cover/graphs, all49 raw pairs with checked solver reuse and checked law-bound directed seam issuance. Its focused Native prepared query now proves the complete reverse-only residual with exact domain-wide simplification under the original cap. Final4lane10group acceptance passes; review and main delivery remain open. Earlier raw/query-work and Native-only declaration diagnostics remain historical. Nonrational/algebraic joins, nonaffine charts and other consumers remain unmapped. |
 | Ruled; Coons: rational, angular/algebraic, discontinuous boundaries | [RuledSurface3D](../../RuledSurface3D.swift), [OriginalCoonsSurface3D](../../OriginalCoons/OriginalCoonsSurface3D.swift), [Coons atlas provider](../../OriginalSourceIssuance/OriginalCoonsAtlasSnapshotProvider.swift). | Existing Coons boundary/self/CS cells retain their exact rational inputs. SSI-COONS-PLANE-01 is unobserved; other ruled/Coons source/public branches remain unmapped. |
 | Spatial words; parameter images; directed traversal: finite affine versus nonlinear/singular/infinite correspondence | [Affine child composition](#m4-affine-child-domain-composition), [parameter/traversal graphs](#finite-parameter-image-and-traversal-graph-consumption). | Existing source/DI receipts remain premises. No representative receipt closes the general nonlinear/singular/infinite public branch; missing exact input/oracle/observation remains explicit. |
 
@@ -748,7 +781,47 @@ and M7/M8. It does not close intrinsic/physicalRadians maps, negative or multipl
 additional turns, surfaces, transported periodic identity or nonlinear image
 consumers. Execution state remains solely in PROGRESS.md.
 
-##### S-RULED-CLOSED-GUIDE-SEAM-01: directed whole-boundary identity candidate
+##### Positive physical-angle draft curve and wall candidates
+
+CS-DRAFT-POSITIVE-PLANE-01 and SSI-DRAFT-POSITIVE-PLANE-01 reuse the actual
+[input(angle:1e-12) constructor](../../../../Tests/OriginalPublicAcceptanceVerification/DraftZeroRuledAcceptance.swift#L108)
+from the delivered zero-angle fixture. Its Native degree1 generator has
+knots[0,0,1,1], controls[origin,X], weights[1,2] and reversed authored traversal
+[0,1]. The raw normal is2Z, raw axis=pull=4Z, curve height1 and wall endHeight3.
+The authored angle theta is the exact stored binary64 value1e-12, in physical
+radians. The original constructor's zero branch uses angle==0; this input is
+nonzero and is not clamped.
+
+Let s=sin(theta) with the canonical physical meaning, and let tau be the positive
+root of (1-s^2)*tau^2=s^2. Since0<theta<pi/4, 0<tau<1. The original selected
+negative quadratic root is k=-tau and the ruling is Z-tau*Y. The evaluator's
+[certified sine enclosure](../../CertifiedRotationTrigonometry.swift) and point
+midpoint are numerical evaluation facilities; neither a midpoint nor a rounded
+libm coefficient supplies exact source authority. Preserve the original speed,
+positive quadratic coefficient, positive radicand and selected-root guards.
+The [wall](../../OriginalDraftedSection/OriginalDraftedRuledSurface3D.swift)
+uses the same start rulingJet at height h=1+2v, without reconstructing a new root.
+
+| Cell field | CS-DRAFT-POSITIVE-PLANE-01 | SSI-DRAFT-POSITIVE-PLANE-01 |
+|---|---|---|
+| Ordinary public input | Curve3D.originalDrafted(wall.start) against plane(origin:X/2,normal:X), curveT[0,1], planeUV[0,2]x[0,1] | Surface3D.procedural.originalDrafted(wall) against the same plane, wallUV[0,1]^2, planeUV[1,3]x[0,3] |
+| Complete independent oracle | Unique(T,planeU,planeV)=(2/3,1,tau), XYZ=(1/2,-tau,1), original generator parameter1/3 | Every(u,v,planeU,planeV)=(2/3,v,1+2v,(1+2v)*tau), v in[0,1], XYZ=(1/2,-(1+2v)*tau,1+2v), original generator parameter1/3 |
+| Dimensions | Parameter0/image0/fiber0 | Parameter1/image1/fiber0 |
+| Completeness | x(u)=2(1-u)/(2-u) is strictly decreasing, derivative-2/(2-u)^2; the unique x=1/2 preimage is2/3 | The same unique u; every closed v is retained and z=1+2v makes each image fiber singleton |
+| Current stop/evidence scope | The existing nonzero capability-decline control and the static angle==0 gate reject this input from the rational zero atlas; ordinary adaptive/public result runtime is unobserved | The bounded parametric ordinary route remains; its actual runtime/result is unobserved |
+| Required receipt / causal gap | Source-owned original theta/sine/selected-root constant-ruling receipt plus exact traversal/domain/point publication | The same retained root/ruling authority plus wall domain, complete continuous relation and image/fiber publication |
+
+The plane basis is U=Z,V=-Y under the existing
+[stored plane basis rule](../../OriginalSourceIssuance/OriginalStoredPlaneBasis.swift).
+The current rational-only snapshot cannot represent this physical-sine/root
+coefficient. The missing receipt is not permission to round it, sample the ruling,
+fit a Native curve or add a new intersection solver. Constructor knowledge and
+static decline are scoped premises; observing each ordinary input is still
+required before adding implementation prerequisites. These two cells do not
+cover negative angles, stationary generators, other selected roots, zero-angle
+regression or drafted-sheet self-contact callers.
+
+##### S-RULED-CLOSED-GUIDE-SEAM-01: directed whole-boundary identity cell
 
 Use the existing original guide and ruled constructors rather than a new aggregate
 parent API. At each z in{0,1}, form three degree1 Native segments with knots[0,0,1,1]
@@ -759,23 +832,29 @@ maximumSpanCount4, remainingSourceDepth0, maximumAlgebraicDepth0 and UInt32 stor
 stride under the existing rational caller admission. OriginalGuideTraversalChain3D
 uses exact-rational stations[0,1/4,3/4,1], segment ordinals[0,1,2], sourceDepth2 and
 standard tolerance. Wrap each as Curve3D.originalGuideTraversalChain. The one parent
-is RuledSurface3D(startBoundary:z0Guide,endBoundary:z1Guide,uDomain:closed(0,1)),
-wrapped as Surface3D.procedural.ruled; its source preparation depth is3.
+is RuledSurface3D(startBoundary:z0Guide,endBoundary:z1Guide,uDomain:closed(0,1));
+the observed provider binds this concrete parent directly at source depth3. Its
+ordinary Surface3D.procedural.ruled dispatch is a separate unobserved entry.
 
 | Cell field | Fixed value or explicit definition gap |
 |---|---|
-| Public input | Bind the parent once in OriginalExactScalarDomain, issue its complete rational ruled laws/fullUV[0,1]^2 cover and complete ordered self graph product. Call DefaultOriginalIssuedGraphSelfContactQuery.contacts with the authored diagonal plus a checked directed whole seam identity, original domain/cell/topology limits and one caller admission. Both frames and all scopes retain that one parent owner. |
+| Public input | Bind the parent once in OriginalExactScalarDomain, issue its complete rational ruled laws/fullUV[0,1]^2 cover and complete ordered self graph product. Call DefaultOriginalIssuedGraphSelfContactQuery.contacts with the authored diagonal plus a checked directed whole seam identity, original domain/cell/topology limits and one caller admission throughout that query. Preparation/raw resolution and the prepared contacts(in:raw) query are separate explicit public operations, as in S-COONS-PLANE-01; each keeps its caller ledger and the same fixed ceilings. Both frames and all scopes retain that one parent owner. |
 | Required identity | Position-only relation(0,v)->(1,v) for everyv in[0,1], exact paired whole-boundary laws and affine map(U,V)->(U+1,V) restricted toU=0. The reverse relation needs its own checked proof. Closed guide endpoints alone are declarations, not a receipt. |
 | Independent complete residual | The ruled source G(u,v)=(gx(u),gy(u),v) is injective except its closed seamu=0/1. After subtracting the authored diagonal and only the directed forward seam, the complete residual is{(1,v,0,v):v in[0,1]}. Every interior station's duplicate chart incidents represent the same authored UV and remain covered by the diagonal proof. |
 | Germ counterexample | Endpoint U derivatives are(4,0,0) and(0,-4,0). The whole positional seam receipt cannot authorize derivative/normal continuity, equality of germs or a reverse/global identity. |
-| First static restriction | OriginalSourceBoundaryDeclaration and OriginalRationalParameterIdentityIssuing.declaredBoundary/chartBoundary require OriginalBSplineChartSelection. Actual ruled laws carry OriginalRuledChartSelection with retained guide child selections Int. The existing checked boundary issuer therefore cannot be called with these laws. This is a source-level type restriction; the closed recipe, exact law family, compiler diagnostic and runtime residual are not yet observed. |
-| Necessary change | First observe the actual constructor/source product and this checked issuance boundary. If confirmed, preserve source-owner whole-boundary authority while admitting the existing ruled law selection through the checked identity contract, then consume the receipt in the existing generic self query. Do not introduce an unchecked initializer/Boolean proof or infer identity from endpoint samples. |
-| Receipt dependencies / evidence | Existing retained guide provider and FiniteRetainedCurveChartPreparer, FiniteRuledChartPreparer, original request binder, complete L5 graph product and same-owner OriginalExactScalarDomain self query. Existing open-guide and paired two-owner exact-rational fixtures do not prove this whole same-parent seam. The actual closed input/receipt/public residual and four-lane review/main evidence remain definition/acceptance gaps. |
+| Historical initial restriction | OriginalSourceBoundaryDeclaration and OriginalRationalParameterIdentityIssuing.declaredBoundary/chartBoundary require OriginalBSplineChartSelection. Actual ruled laws carry OriginalRuledChartSelection with retained guide child selections Int. The existing checked boundary issuer therefore cannot be called with these laws. The separate negative typecheck now reproduces this restriction with both actual ruled laws. Original constructors, all7 exact laws/full cover/graphs succeed; the full49 ordered raw-product attempt separately hits the original8,388,608 work allowance before returning a raw result. These initial diagnostics do not describe the completed changed path. |
+| Implemented causal change | The owning [relation design](../../NativeExactRelations/DESIGN.md), [identity design](../OriginalParameterIdentity/DESIGN.md) and [self design](../../OriginalSurfaceEmbedding/DESIGN.md) define checked whole-input/predicate sharing, law-bound whole-boundary issuance and exact full-domain residual simplification. All49 original pairs/ordinals/guards/owners remain retained under the fixed ceilings. No identity is inferred from samples. |
+| Receipt dependencies / evidence | Existing retained guide provider and FiniteRetainedCurveChartPreparer, FiniteRuledChartPreparer, original request binder, complete L5 graph product and same-owner OriginalExactScalarDomain self query. Existing open-guide and paired two-owner exact-rational fixtures do not prove this whole same-parent seam. [Native observation evidence](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/STOP.md) retains the successful source/cover and both distinct stops, original failed bytes and immutable selected inputs. [Final scoped verification](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/S-RULED-CLOSED-GUIDE-SEAM-01/VERIFICATION.md) records complete49 raw/reverse-only residual, all10groups in Native/ASAN/ordinaryWASM/Embedded, original resources/cancel/lifetime, checked identity counterexamples and fresh16pair Coons regression. Native partial receipts and fixture/admission diagnostics keep their original status. Review/main delivery remain open; other source families, ordinary ruled dispatch, embedding and M7 geometry publication are unproved. |
 
 This fixes a concrete remaining5-C1/C3/C4/C5/C8/C9/C10/C11/C12 and6-S1/S2/S3/S4/S7
 candidate. It does not close nonlinear transport, arbitrary joins, periodic or
 collapsed identities, embedding certification or trimmed self contact. An absent
 seam receipt leaves both seam directions selected; it never proves absence.
+The observed combined preparation/raw/identity/self call with one8,388,608-work
+ledger fails explicitly after rawwork6,176,077 and identitywork6,179,580; it is
+a retained resource-failure control, not a successful result. Independent prepared
+query admission follows the existing public API boundary and must re-admit every
+retained proof. No operation may create or reset an allowance internally.
 
 ##### CS-CERT-SPHERECONE-POSITIVE-PLANE-01: original-pair authority gap
 
@@ -799,6 +878,34 @@ correspondence remains missing before this definition can become acceptance.
 The public curve result, complete T fibers/incidents, source UV, failure/resource/
 cancel/lifetime targets and main delivery remain open. The selected definition
 maps only positiveFullBranch; it does not complete the other five sphereCone kinds.
+
+##### Remaining certified-construction input candidates
+
+The following recipes use existing direct certified constructors and the ordinary
+DefaultCurveSurfaceIntersector.intersections entry through Curve3D.certifiedIntersection,
+authoredT[0,1], whole target planeUV, default options and standard tolerance.
+Each is one limited branch; its runtime is unobserved. Stored atan/normalize and
+2*Double.pi below mean their actual binary64 outputs, not exact inverse
+trigonometric identities or mathematical periods.
+
+| Candidate / original branch | Existing reproducible pair and request | Complete oracle or explicit definition gap |
+|---|---|---|
+| CS-CERT-CONECONE-POSITIVE-PLANE-01 / positiveFullBranch | [Existing input](../../../../Tests/CADGeometryTests/CertifiedConeConeSpatialDifferentialBoundsTests.swift): reference cone(apex:0,axis:Z,halfAngle:stored atan(.5)), parameterized cone(apex:4Z,axis:Y,halfAngle:stored atan(.375)), lowerAngle0/upperAngle stored2*Double.pi; target planeY0. | Definition gap: rounded-cos metric/directions and stored-period T are not bound to exact physical-angle coefficients, the selected positive root and all source UV. Reference UV is numerical projection. An ideal source-pair root set cannot assign public T/incident labels. |
+| CS-CERT-CONECYLINDER-POSITIVE-PLANE-01 / positiveFullBranch | [Existing direct input](../../../../Tests/CADGeometryTests/CertifiedConeCylinderSpatialDifferentialBoundsTests.swift): cone(apex:0,axis:Z,halfAngle:stored atan(.5)), cylinder(origin:0,axis:Z,radius1), lowerAngle0/upperAngle stored2*Double.pi; target planeY0. | Definition gap: rounded-cos cone metric, radialV constructed from the stored Double.pi/2 evaluation point, stored-period T and all sourceUV have no exact original-pair correspondence. Neither tan(atan(.5))=.5 nor rootsT1/4,3/4 is justified. This branch is separate from rulingParallelLinear. |
+| CS-CERT-CONETORUS-REGULAR-PLANE-01 / regular certificate branchIndex0 | [Existing input](../../../../Tests/CADGeometryTests/CertifiedGeneralConeTorusSpatialDifferentialBoundsTests.swift): cone(apex:0,axis:stored normalize(.05,0,1),halfAngle:stored atan(6)), torus(center:0,axis:Z,R3,r1), certificate constructor maximumSubdivisionDepth24/maximumCellCount65536; target planeY0. | Definition gap: rounded sin/cos cone direction, certificate-interpolated root initialization/refinement and apex guard do not retain exact original-pair branch selection, whole T correspondence or allUV. Point projection supplies current UV. The apexReduction construction is not covered. |
+| CS-CERT-PARALLELTORI-REGULAR-EMPTY-01 / regularClosed branchIndex0 | [Existing input](../../../../Tests/CADGeometryTests/CertifiedParallelTorusTorusSpatialDifferentialBoundsTests.swift): primary torus(center:0,axis:Z,R3,r1/2), secondary torus(center:(stored2.2,0,0),axis:Z,R3,r3/2), certificate constructor maximumSubdivisionDepth24/maximumCellCount65536; target planeZ2. | Complete exclusion oracle for this request: primary height is in[-1/2,1/2]; the stored curve position also has Z=(1/2)*sin(angle) throughout its domain. Thus all T are excluded, and roots/XYZ/sourceUV/targetUV/incidents/fibers are all empty. This does not prove positive-contact or original-pair T/UV correspondence. |
+
+The actual [ordinary dispatcher](../../DefaultCurveSurfaceIntersector.swift)
+selects certified reduction for the three cone families and the dedicated plane
+solver for parallel tori. The spatial-disjointness resolver does not use plane
+bounds. These facts select the next observation; they are not observed failures
+or accepted empty-publication evidence. For the parallel empty cell, observe
+constructor success, certificate-owned kind/branch and the final public complete
+exclusion receipt or actual stop. For the cone candidates, first resolve the
+exact source/branch/T-to-allUV authority needed to define their complete oracle.
+Existing primitive image receipts prove their own image laws only. No new solver
+prerequisite is justified by these definition gaps, and none of the other listed
+certified variants is removed or marked complete.
 
 ##### Certified cone-cylinder ruling-parallel definition gap
 
