@@ -1,0 +1,11 @@
+[
+  {
+    "stage": "port",
+    "command": [
+      "/usr/local/bin/python3",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/port.py"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 82.81706729205325
+  }
+]

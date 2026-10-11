@@ -100,6 +100,29 @@ public struct DefaultOriginalIssuedGraphCompiler<S: Sendable,E: Sendable>: Origi
                 }
                 try append(.and,to:&program,&admission)
             }
+            // Specialize only on the proved domain; keep every guard and parameter slot.
+            var replacements:[Polynomial]=[]
+            for axis in 0..<p {
+                let selected=domains[axis]
+                guard selected.includesLower,selected.includesUpper,
+                    case .finite(let lower)=selected.lower,case .finite(let upper)=selected.upper,
+                    try field.compare(lower,upper,using:&admission) == .equal else { continue }
+                if replacements.isEmpty {
+                    try admission.retainStorage(bytes:exactScalarPayloadBytes(count:n,of:Polynomial.self))
+                    replacements.reserveCapacity(n)
+                    for index in 0..<n {
+                        try admission.consumeWork(1)
+                        replacements.append(try ring.variable(index,using:&admission))
+                    }
+                }
+                replacements[axis]=try ring.constant(lower,using:&admission)
+            }
+            if !replacements.isEmpty {
+                for index in laws.indices {
+                    try admission.consumeWork(1)
+                    laws[index]=try ring.substituted(laws[index],with:replacements,using:&admission)
+                }
+            }
             let source=try cells.bind(polynomials:laws,domains:domains,using:&admission)
             let predicate=try cells.predicate(instructions:program,for:source,using:&admission)
             let domain=ExactParametricRelationDomain<Base,Cells,ExactRealTopology<Base>>(cells:Cells.self,topology:.init(cells:Cells.self))

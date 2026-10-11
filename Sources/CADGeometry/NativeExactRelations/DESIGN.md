@@ -47,6 +47,31 @@ flowchart LR
 ```
 
 ## Contracts and Invariants
+
+### Retained lift against the whole original plane
+
+CS-POLY-01's observed public stop and acceptance are owned by
+[the coverage cell](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#public-acceptance-cell-execution).
+The additive prepared route consumes an OriginalRetainedSurfaceLiftDomainCover
+and an OriginalPrimitiveDomainCover retaining the issued original plane basis.
+OriginalPlaneGraphCompiling translates that basis and the exact effective UV set
+to an L5 graph with genuinely unbounded UV support. It retains the original
+plane cover; it does not fabricate a finite OriginalParametricGraphReceipt.
+OriginalLiftPlaneRelationResolving compiles every retained lift template through
+the existing graph compiler and solves every selected pair with that plane graph.
+It preserves all lift auxiliary equations, guards and original T transport.
+
+Only the sealed issuers construct the new immutable preparations and relation.
+The caller supplies the shared coefficient field and the same admission and
+existing domain/cell/topology/count limits. Foreign fields, source depth,
+missing coverage, cancellation and resource failure propagate atomically.
+Disconnected, open, singleton and empty plane selections remain exact. Empty
+results retain both source covers and L5 exclusion; there is no legacy retry.
+Every new buffer and receipt is charged before allocation, including checked
+template counts. Owners and Sendable contracts are identical across targets.
+This route's public result and ordinary entry migration are owned by
+[geometric publication](../NativeExactGeometricRelations/DESIGN.md).
+
 - Validate input and degree before indexed source access. Count every visited knot
   with the same admission; require one positive span on each entire native axis.
 - Import original rational coefficients directly into one shared L2 coefficient
@@ -397,3 +422,46 @@ and result against current L0-L5 contracts. It checks algebraic membership and
 exclusion, foreign fields, exact work/storage boundaries, raw/refined ordinals,
 entry/terminal cancellation and retained-depth refusal. This evidence owns the
 shared adapter only; actual face/self and Topology integration remain separate.
+
+
+The retained polynomial lift/plane resolver consumes the source-owned checked
+polynomial witness reduction described in
+[source issuance](../OriginalSourceIssuance/DESIGN.md#polynomial-lift-witness-reduction-for-a-retained-public-query).
+Each raw pair retains the original cover, reduced graph preparation and forward
+original-coordinate map. Reducing uniquely determined UV is exact transport,
+not removal of original UV or a second solve of the same intersection problem.
+
+
+### Exact affine plane-incidence restriction
+
+A polynomial lift/plane query may restrict local T before L5 only from the exact
+necessary plane equation `N dot (Hxyz - origin * Hw) = 0`. A zero equation keeps
+the whole requested graph. A nonzero constant proves exclusion. A nonconstant
+linear equation has exactly one candidate, derived by field division and retained
+with its coefficients. This restriction currently applies only when the retained
+original T transport is exactly identity; other transports keep the original
+query. Higher-degree equations also keep the original complete L5 query.
+
+The sealed restriction receipt retains the original binding, selected binding,
+equation, original plane owner and attained depths. Original request/support
+intersection and every source guard remain authoritative; a candidate is not a
+contact proof. L5 still proves contact, absence or positive-dimensional fibers.
+No failed calculation becomes exclusion. Excluded chart queries retain these
+complete exclusion receipts even when they generate no raw relation pair.
+
+The existing graph compiler may use an exact selected singleton as its root
+domain only after proving identity transport and inclusion in the original local
+support with the original endpoint policy. It retains all request and guard
+predicates. The whole plane UV support is unchanged. The public-cell verification
+must keep the same work/storage/depth/cancel ceilings; this is the causal response
+to CS-POLY-01 exhausting work in template 1 after polynomial witness reduction.
+
+After exact domain restriction, the compiler substitutes any closed singleton
+parameter into every imported position and predicate law. The substitution is
+valid only on that retained domain; it does not assert global source equality.
+All predicate instructions, original parameter slots, auxiliary slots, binding
+owners and endpoint policies remain present. A guard that becomes false still
+proves exclusion through the existing predicate. This avoids projecting a varying
+polynomial over a parameter already proved fixed, without a second solve or a
+larger admission. The existing identity-domain restriction is reused rather than
+duplicated, and non-singleton queries do not allocate a substitution array.

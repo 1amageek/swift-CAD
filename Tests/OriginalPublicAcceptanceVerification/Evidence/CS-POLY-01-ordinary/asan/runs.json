@@ -1,0 +1,96 @@
+[
+  {
+    "runtime": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/proof",
+      "ordinary"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 6.948874167050235,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/asan/proof-ordinary",
+    "mode": "ordinary",
+    "productSHA256": "d6188913cfda79943add2d92244c39d716450ca807509bf5d15dd96f02a11e3c",
+    "runtimeLogSHA256": "bd9140ee211d98ff7958b9b45dc2f33198d79327091497e4c7fa05bebefb2823",
+    "compileCommandFile": "compile-ordinary.json",
+    "compileCommandSHA256": "f38d1a8ad0db8d913ec9799e6bc4eb8fd311304d07620a2e59c3f9d8635960da"
+  },
+  {
+    "runtime": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/proof",
+      "selections"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 5.039797417004593,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/asan/proof-ordinary",
+    "mode": "selections",
+    "productSHA256": "d6188913cfda79943add2d92244c39d716450ca807509bf5d15dd96f02a11e3c",
+    "runtimeLogSHA256": "400b8be5d0197c94c826ba38005c1df3c1fe37d98ed62ed37c5b19b10136ec89"
+  },
+  {
+    "runtime": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/proof",
+      "resources"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 26.79015400004573,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/asan/proof-ordinary",
+    "mode": "resources",
+    "productSHA256": "d6188913cfda79943add2d92244c39d716450ca807509bf5d15dd96f02a11e3c",
+    "runtimeLogSHA256": "d97ebe833240ee3401ec183235c71737254c7e1d3c65e0e4a7db02fe6773136e"
+  },
+  {
+    "runtime": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/proof",
+      "cancel-entry"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 0.3090062909759581,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/asan/proof-ordinary",
+    "mode": "cancel-entry",
+    "productSHA256": "d6188913cfda79943add2d92244c39d716450ca807509bf5d15dd96f02a11e3c",
+    "runtimeLogSHA256": "1469d5cb78f245a836d11a65358280daa516b89631b63639314088d8343aca4d"
+  },
+  {
+    "runtime": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/proof",
+      "cancel-final"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 8.964526625000872,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/asan/proof-ordinary",
+    "mode": "cancel-final",
+    "productSHA256": "d6188913cfda79943add2d92244c39d716450ca807509bf5d15dd96f02a11e3c",
+    "runtimeLogSHA256": "42496d5f37290f9d8e1b9a084610e538e836cfd72f6c4179d2f096fea3fe4836"
+  },
+  {
+    "runtime": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/proof",
+      "gp"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 1.5415559170069173,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/asan/proof-ordinary",
+    "mode": "gp",
+    "productSHA256": "d6188913cfda79943add2d92244c39d716450ca807509bf5d15dd96f02a11e3c",
+    "runtimeLogSHA256": "2fb19465f4e22d42ef7451f43028f22192c78d725834b6556dc79908ae848ea5"
+  },
+  {
+    "mode": "prepared-port",
+    "runtime": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/proof",
+      "prepared-port"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 9.123318708967417,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/asan/prepared-port/proof",
+    "productSHA256": "c730a494b17727cba30d7f4c66e7b8025c83484684c4c65edba2c3cc39eef38c",
+    "compileCommandFile": "prepared-command.json",
+    "compileCommandSHA256": "f9d4c879985b454762ca55ee70da17b8b01e9736eb6688084b0cc038379343f9"
+  }
+]

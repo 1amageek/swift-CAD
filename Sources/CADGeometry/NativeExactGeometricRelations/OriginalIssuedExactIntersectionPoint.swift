@@ -19,9 +19,13 @@ public struct OriginalIssuedExactIntersectionPoint: Sendable {
     public let local: ExactGeometricGraphPoint<OriginalExactScalarDomain>
     public let firstParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>]
     public let secondParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>]
+    /// Forward-restored source coordinates when a checked source reduction removes auxiliaries.
+    public let originalFirstCoordinates: [ExactAlgebraicScalar<OriginalExactScalarDomain>]?
     public var position: ExactXYZ<OriginalExactScalarDomain> { local.position }
     init(sourceRelation: any OriginalIssuedGraphRelationOwning, pairOrdinal: Int, local: ExactGeometricGraphPoint<OriginalExactScalarDomain>,
-        firstParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>], secondParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>]) {
+        firstParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>], secondParameters: [ExactAlgebraicScalar<OriginalExactScalarDomain>],
+        originalFirstCoordinates: [ExactAlgebraicScalar<OriginalExactScalarDomain>]? = nil) {
         self.sourceRelation = sourceRelation; self.pairOrdinal = pairOrdinal; self.local = local; self.firstParameters = firstParameters; self.secondParameters = secondParameters
+        self.originalFirstCoordinates = originalFirstCoordinates
     }
 }

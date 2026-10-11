@@ -223,6 +223,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
         maximumSpanCount: maximumSpanCount, remainingSourceDepth: remainingSourceDepth,
         consumeWork: consumeWork, consumeStorage: consumeStorage,
         maximumAlgebraicDepth: maximumAlgebraicDepth)
+      if let lift = try OriginalRetainedLiftPlanePublicProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: context) { return lift.points }
       if let exact = try NativeExactPublicCurveSurfaceProducer().resolve(curve: curve, surface: surface,
         options: options, tolerance: tolerance, invocation: context) { return exact.points }
       if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,
@@ -263,6 +265,8 @@ public struct DefaultCurveSurfaceIntersector: CurveSurfaceIntersecting {
     tolerance: ModelingTolerance
   ) throws -> [CurveSurfaceIntersection] {
     return try GeometryExactScalarFailure.withPublication {
+      if let lift = try OriginalRetainedLiftPlanePublicProducer().resolve(curve: curve, surface: surface,
+        options: options, tolerance: tolerance, invocation: invocation) { return lift.points }
       if let exact = try NativeExactPublicCurveSurfaceProducer().resolve(curve: curve, surface: surface,
         options: options, tolerance: tolerance, invocation: invocation) { return exact.points }
       if let native = try NativeCurveSurfacePointProducer().resolve(curve: curve, surface: surface,

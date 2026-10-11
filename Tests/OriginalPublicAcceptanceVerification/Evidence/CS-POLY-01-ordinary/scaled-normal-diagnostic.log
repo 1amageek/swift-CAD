@@ -1,0 +1,7 @@
+BEGIN saved-normal diagnostic 2.0
+END saved-normal diagnostic 2.0
+BEGIN saved-normal diagnostic -2.0
+END saved-normal diagnostic -2.0
+BEGIN saved-normal diagnostic 5e-324
+FAIL ordinary lift/plane
+Native point work allowance exhausted.

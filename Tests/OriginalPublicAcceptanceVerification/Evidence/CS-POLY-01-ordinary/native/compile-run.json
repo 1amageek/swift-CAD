@@ -1,0 +1,7 @@
+{
+  "timeoutSeconds": 240,
+  "elapsedSeconds": 107.85253408399876,
+  "exitCode": 0,
+  "commandFile": "command.json",
+  "commandSHA256": "f3ab6b7679f00c9c70c4beffe3d0431760eb148940b8f9ad22b1dcb4f8eb48d3"
+}

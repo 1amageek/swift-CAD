@@ -1835,6 +1835,13 @@ legacy source/algebra resource failures as well as successful original tuples.
 source-bound L5/L6 geometric receipt and public CS/SSI assembly. Its component
 contract preserves source preparation and the existing numerical failure boundary.
 
+Ordinary CS entries first consult this component's
+[retained polyline-lift axis-plane capability](NativeExactGeometricRelations/DESIGN.md#ordinary-retained-polyline-lift-against-an-axis-plane).
+It composes existing original Coons/lift and plane receipts and retains exact
+incident correspondence behind numerical points. Other inputs continue through
+the existing applicability chain; an admitted failure propagates. The component
+contract and public acceptance cell own the capability's scope and evidence.
+
 
 ### Composition Consumer Handoff
 

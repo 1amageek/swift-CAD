@@ -1,0 +1,3 @@
+(node:24197) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS ordinary public exact/one-less work 2511539 bytes 7948648 entry/last callback cancel, candidate/degree/source-depth ceilings, retained result after independent failed queries

@@ -1,0 +1,69 @@
+[
+  {
+    "runtime": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/proof",
+      "ordinary"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 1.7914802909363061,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/proof-ordinary",
+    "mode": "ordinary",
+    "productSHA256": "b84a89a101e6b7fb5043b2a86cce18371870bbd4cc38be38f30e04eefb9d35d4",
+    "runtimeLogSHA256": "6542c9f6fe8cd1fb3c8d1164c5c57c05b2c9f34c5f77ed24257463e908a30ddb",
+    "compileCommandFile": "compile-ordinary.json",
+    "compileCommandSHA256": "e155c5828dc807dda26819ce129ae0f2c2d5603ba3c5e279f16855de9b093402"
+  },
+  {
+    "runtime": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/proof",
+      "selections"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 1.2559556670021266,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/proof-selections",
+    "mode": "selections",
+    "productSHA256": "55b40b7e162e48e9cbb71b02b1a8ee798f5cc0abba76b0cb710464e7fdbfb899",
+    "runtimeLogSHA256": "0ee1fb7f901fbb9f38b3e6f7256f2d72cd8f2876676b053059bfb491d32fe06a",
+    "compileCommandFile": "compile-selections.json",
+    "compileCommandSHA256": "fd513fb97ee4fb16db0110f1857a48d399979a79bfa24f755a151320f3f5eb49"
+  },
+  {
+    "runtime": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/proof",
+      "resources"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 14.369469250086695,
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/proof-resources",
+    "mode": "resources",
+    "productSHA256": "9c5410073b54c279247a94dafee9f6096310b2dbcb9b7c88cdf9c4d515cae699",
+    "runtimeLogSHA256": "44015e4f8c24b0f680fbebb916bc2a1d40cee3a3644375408d8eab7a1593eddf",
+    "compileCommandFile": "compile-resources.json",
+    "compileCommandSHA256": "fd1ac9352ac4f9a61f92cb32521652c33e6ab1658b82dbf149544d98531228b6"
+  },
+  {
+    "mode": "remaining-cancel-entry-cancel-final-gp-prepared",
+    "runtime": [
+      "/usr/local/bin/node",
+      "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/RunWASI.mjs",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/remaining-proof"
+    ],
+    "timeoutSeconds": 120,
+    "exitCode": 0,
+    "elapsedSeconds": 3.6325440419605,
+    "productSHA256": "7b15c0e3ef918b3cfdc4389c3383ccf73eb7ee3e33413419b08fe2e2a77666c6",
+    "retainedProduct": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/embedded/proof-remaining",
+    "runtimeLogSHA256": "f1b80b8469e128453365f1f02d20cc55a9828ca8d0f839622f6b349dcb2677ef",
+    "compileCommandFile": "remaining-command.json",
+    "compileCommandSHA256": "088b4676f3299d4f31cf8f3939468303816bb17bc7559ebcbfebf617db01dca3"
+  }
+]

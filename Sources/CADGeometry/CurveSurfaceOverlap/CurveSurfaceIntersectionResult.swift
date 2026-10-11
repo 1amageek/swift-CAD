@@ -24,9 +24,12 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Complete source/DI-bound graph contacts, all auxiliary lifts and L6 image/fiber evidence.
     public let originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)?
 
+    /// Exact tuple grouping and every incident behind ordinary numerical points.
+    public let originalIssuedNumericalPoints: OriginalIssuedNumericalCurveSurfacePoints?
+
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
-        originalIssuedGeometricRelation == nil ? .numericalRepresentatives : .exactRelation
+        originalIssuedGeometricRelation != nil && originalIssuedNumericalPoints == nil ? .exactRelation : .numericalRepresentatives
     }
 
 
@@ -43,7 +46,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalAffinePoints: OriginalAffineCurveSurfacePoints? = nil,
         originalCoonsPoints: OriginalCoonsCurveSurfacePoints? = nil,
         originalExactGeometricRelation: NativeExactGeometricRelation? = nil,
-        originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil) {
+        originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil,
+        originalIssuedNumericalPoints: OriginalIssuedNumericalCurveSurfacePoints? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
@@ -53,5 +57,6 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalCoonsPoints = originalCoonsPoints
         self.originalExactGeometricRelation = originalExactGeometricRelation
         self.originalIssuedGeometricRelation = originalIssuedGeometricRelation
+        self.originalIssuedNumericalPoints = originalIssuedNumericalPoints
     }
 }

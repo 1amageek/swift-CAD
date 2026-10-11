@@ -430,6 +430,32 @@ the distinct-polyline shared-field prerequisite is not needed by this input.
 The trace proves this Native cached branch/stop only. It is not a current full
 module build, a repair, four-target acceptance or completion of the cell.
 
+CS-POLY-COINC-01 uses the same authored lift and full request, changing only the
+target to the whole plane at the origin with normal unitZ. The independent oracle
+is all T in [0,1], retaining the original polyline correspondence (x(T),y(T)),
+target UV=(y(T),-x(T)) in the original plane basis, a one-dimensional image and
+zero-dimensional station fibers. The bare public API must refuse a non-discrete
+intersection; the rich API must retain the complete relation. The ordinary Native
+diagnostic currently exhausts the unchanged 8,388,608 work ceiling before this
+publication. This is an unresolved public-cell stop, not empty or partial success.
+Its next change must be justified by the stopping relation/chart and consumed
+source/plane incidence receipts. Raising the ceiling or replacing the continuous
+T domain by samples cannot close this cell. Execution and evidence status belong
+to PROGRESS.md; it does not gate supported point or boundary cells.
+
+CS-POLY-NORMAL-SUBNORMAL-01 uses the CS-POLY-01 constructor and full request,
+with target origin (1/2,0,0) and authored normal
+(Double.leastNonzeroMagnitude,0,0). This positive axis scale preserves the exact
+plane basis and independent two-root TUV/XYZ oracle; the raw saved normal remains
+source authority. A retained, hash-admitted Native ordinary public probe returns two points and
+twelve incidents for scales 2 and -2, then reports work allowance exhausted for the
+subnormal input under the unchanged 8,388,608 ceiling. The stopping internal
+operation remains unlocalized. This cell requires localization before a new
+prerequisite or coefficient optimization is admitted; it must preserve the raw
+normal, every original guard/UV and caller budgets. Its diagnostic is separate
+from acceptance of the unit-normal input. Evidence and execution state belong to
+PROGRESS.md and the corresponding retained public diagnostic receipt.
+
 Cell readiness is local. A cell may enter production implementation when its own
 input, oracle, observed stop, causal change and consumed receipt dependencies are
 fixed; it does not wait for completion of the catalog or unrelated cells. The
@@ -495,7 +521,7 @@ lanes, followed by scoped review and latest-main delivery.
 
 PROGRESS.md remains the sole execution/status record. The finite catalog is not
 yet exhaustive: remaining family/variant/consumer definitions belong to its
-mapping item. These four explicit cells do not stand in for missing inputs.
+mapping item. These six explicit cells do not stand in for missing inputs.
 M7/M8 closure requires every applicable cell and the cumulative integration
 evidence; historical source-only completions remain internal premises.
 

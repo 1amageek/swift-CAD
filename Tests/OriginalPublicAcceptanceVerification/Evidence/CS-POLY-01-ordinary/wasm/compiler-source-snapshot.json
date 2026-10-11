@@ -1,0 +1,1294 @@
+{
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactTopologyFormula+Composition.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3de9769a48cb-ExactTopologyFormula+Composition.swift",
+    "sha256": "25a0e715f2a46ccf0fd511f4891a3c6fcd9df10f51ae4292419b143cd97f2043"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphRelations.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/369cd2c874ca-OriginalIssuedGraphRelations.swift",
+    "sha256": "d56cc1224fc85ddcd494432011c2cc7e6fd6edfb259b135eee36b273d288d52a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellSource.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/741927e88fe8-ExactRealCellSource.swift",
+    "sha256": "002f9247a11d94ce2d8e4dd43d112d64e0255d2c64e54dc1e1f7d7d5473f1cb0"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopology.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ac2d2e369d02-ExactRealTopology.swift",
+    "sha256": "96eae0ea9826988e3c575c3826991b8316f885009b3995eef18d4831d3a3d2fc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteRetainedSurfaceLiftGraphPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/526446f40da5-OriginalFiniteRetainedSurfaceLiftGraphPreparing.swift",
+    "sha256": "9ec7e60824dab0ce09a71486ea0681eeff400cc92972c9ebcade7d2658be79dc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+Transport.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/1587509335a5-ExactRealRootDomain+Transport.swift",
+    "sha256": "6e3ec2fb1ceef45877cb1a4a3d1991e90563b1eb2f163749cf7f36ee6e8e05e1"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+FactoredCount.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/1fc4eace8812-ExactRealRootDomain+FactoredCount.swift",
+    "sha256": "ae032d89ebd8d07bcb38241499a8e88cb6ffc71ad8bb1d354b32bf0d8afac441"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRoot.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b362896a5246-ExactRealRoot.swift",
+    "sha256": "c3c1d712cd9f585d7e25efa8a951e9085b1b0f7d5a73d09521441673f69946cf"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyReduction.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c7728c6db7eb-ExactRealTopologyReduction.swift",
+    "sha256": "cc783659657e742c473e088547c72e6a4e8696640f80d9d4326739438e512756"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellLimits.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e2e4ef8d141d-ExactRealCellLimits.swift",
+    "sha256": "a4a5d56686a029633359cfd624b6367bfa02b3fc49834f5da000f83633632260"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootClassification.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ddb9441c2ced-ExactRealRootClassification.swift",
+    "sha256": "7c3b5eccad29a5f17e2a1b22d2b878731a22c568f71fc16303612c15db0d2453"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactCurveParameterBoundary.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/abea01531042-ExactCurveParameterBoundary.swift",
+    "sha256": "19797a9acc40c04540859ba7942c8af9a937f962704736a1e2ec224cc15b53de"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactTopologyAccess.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/617fb7c57bb9-ExactTopologyAccess.swift",
+    "sha256": "be6599396df2943329b7e7add34c77b8b94e290e052c3e26f614e06841b948b8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Closure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/560be4fdc624-ExactRealTopologyDomain+Closure.swift",
+    "sha256": "1723576f9f50e0655df78535fa9ebf8fe58e010a371b2a1baeae4eab9e13ec2a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricStratumRecord.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/da7a10179ece-ExactGeometricStratumRecord.swift",
+    "sha256": "bcfda65ba7766fce26ab8b3161d1d318b85eb81be54794cf8a89b9ebe155a334"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPolylineSurfaceLiftSnapshotProvider.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e200eb5ec6af-OriginalPolylineSurfaceLiftSnapshotProvider.swift",
+    "sha256": "cafc5c67bb9eefe48d89a2fe8d676d6547df0e2d2deb93acd1ed94b75db331c9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactTopologyFormula+BoundaryOrder.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/61d87489c685-ExactTopologyFormula+BoundaryOrder.swift",
+    "sha256": "2bc6f7b34574e5acd07009b23f67a34d446bef972d46bb969f0f074b170c42b8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalPeriodicNativeSurfaceLiftGraphPreparer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ba70c82fbac6-DefaultOriginalPeriodicNativeSurfaceLiftGraphPreparer.swift",
+    "sha256": "cd586e90b96ecce75e3c3f04e3065ae5885e7cbcbed713f7ffa0fe40559efff0"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGeometricRelationResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/011aa1b02b6f-OriginalIssuedGeometricRelationResolving.swift",
+    "sha256": "6ed3e4004930963199786e51f7e9abc507423d32cd5b8d80dcc42501b7c45f06"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricGraphConstructing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/cb57fce2a29d-ExactParametricGraphConstructing.swift",
+    "sha256": "027875d2323e2b7f913f392a27eece17bacdc308d611ba872412ecc581828717"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/lift-source/OriginalPolynomialSurfaceLiftGraphReducing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7b305290ec9a-OriginalPolynomialSurfaceLiftGraphReducing.swift",
+    "sha256": "51fa65ef6b846dbf2238c0875d5343e739857427c3a876b2baaae728b27d8f7e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationDomain+GuardRemainders.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/21c7e5a85d80-ExactParametricRelationDomain+GuardRemainders.swift",
+    "sha256": "0b4fd5801d856a053cd92b4cc8a1b70ba6cd29a92e1f9771436c90499c96cbb6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Reuse.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/666d2723c214-ExactRealTopologyDomain+Reuse.swift",
+    "sha256": "a6ba5b1838b867e65b828bd58023a45eee4f3467be78ca3ab1c00e91510505a0"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/NativeExactRelationFailure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/2b7e91aa7bca-NativeExactRelationFailure.swift",
+    "sha256": "b4f03735e1e2b95bf6dc360dc404cc20362a9cfaeb12f045202a3703a12bc7a2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealComponentsProducing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a1766e44f9e5-ExactRealComponentsProducing.swift",
+    "sha256": "b6344c1cd5f35d28081e4c97a4db5c6361ac6c3d0eb2e82cf2f355569650b1b4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/NativeExactPublicAdmission.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/cbc7e65c447d-NativeExactPublicAdmission.swift",
+    "sha256": "6d3f3a5722dc22da44f892b65b0ebebaf8269a5e6e86abd27459b67fbd459505"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellPartition.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/898b49034ef6-ExactRealCellPartition.swift",
+    "sha256": "69696dc4c1e52da7493be4494c8100182a456e3a8adab4c66ef579f452e42389"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/952c28c03790-ExactParametricRelationResolving.swift",
+    "sha256": "9ac609fb0509b036fdf445270ef1118359aeafc6c4b6692eda1452639d01c9e3"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactOriginalScalarTransporter.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/aee603cf6b18-DefaultExactOriginalScalarTransporter.swift",
+    "sha256": "6471dbe8f00c348e0c1c622e056e213634ef2853b05018917df1c94b789b8843"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricGraph.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/95aeeb4977c7-ExactParametricGraph.swift",
+    "sha256": "7d6a655a5588c679954b5c0efb2cf68f07e9654b7e9373549d832e646752f98b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPeriodicRetainedSurfaceLiftGraphPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c1272c01abcf-OriginalPeriodicRetainedSurfaceLiftGraphPreparing.swift",
+    "sha256": "5e8dedf27737af41ea649942d0bd2f15f5730718890649e0f36244fbaf03b6cf"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteRetainedCurveCharts.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/81a7b1d49326-OriginalFiniteRetainedCurveCharts.swift",
+    "sha256": "3dd8979604e0b6033e408ddd8fb1475c8893b697d781350497002baac2bcbc2d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalFiniteRetainedCurveChartPreparer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/355c63d02c46-DefaultOriginalFiniteRetainedCurveChartPreparer.swift",
+    "sha256": "ee0f749f920f079c3e39c6b94fcf20aa43bf398b0bd436bfefe5c23e6e9085a5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalSurfaceLiftGraphEvidence.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e1566918e720-OriginalSurfaceLiftGraphEvidence.swift",
+    "sha256": "44c4f65fe988d632c4c469ac71abb980eaeb47d3751943b29008c06b78f5c80f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationDomain+Construction.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/87d4b6183279-ExactParametricRelationDomain+Construction.swift",
+    "sha256": "7c6538e3d55de496196b3c0c0c9870ccd6c3b34acfb12b1d0d829110959e6683"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedExactIntersectionPoint.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/050331997fc2-OriginalIssuedExactIntersectionPoint.swift",
+    "sha256": "ee199a5230d47fa55d4e4d735d3768d264accad8e7bfb64ab31304cf8e104cfa"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPreparedPolylinePcurves.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c7f9e847b242-OriginalPreparedPolylinePcurves.swift",
+    "sha256": "dfe47dc47aaa206d3554b8e7ffe40974edfa93097db58de95199cc76a09cd2a8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationConstructing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/68cf68fa9739-ExactParametricRelationConstructing.swift",
+    "sha256": "f21148bd1e82c835d102913404f047ef59beac92716eccee42bad7653f6513fc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyLimits.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ce3505266dde-ExactRealTopologyLimits.swift",
+    "sha256": "8d986a29d4c623fa908b16229822c03c64ef8a56a422f8b031ab5b63538ee77a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicContext.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/226548ec1211-ExactAlgebraicContext.swift",
+    "sha256": "e5e7e9aad67f691fc3fae8236728318dbb9d39296e758e2125310c5ad5543e1c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedCurveSourceReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/554d75d1765b-OriginalRetainedCurveSourceReading.swift",
+    "sha256": "59904e9df946038d5127df021b399633373f66dbb71f2652355852ca8897127f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Projection.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/194139512f36-ExactRealTopologyDomain+Projection.swift",
+    "sha256": "05d83241865e01fdd1d55f808d84e6e91bf7b936539a8eb728486235337aae8b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootFailure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7ad80e529f69-ExactRealRootFailure.swift",
+    "sha256": "bf8f8198bdffb887697f8de28976291bac5bcdc523154ae61df1cd0567094eec"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellTraversing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/64e3c6e78a85-ExactRealCellTraversing.swift",
+    "sha256": "bef73ceee7e9bc7214e16c50cd1a06d88386b8f3fd0dfba9c65f767ecc7eb058"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealProjectionLifts.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/99508474f5bc-ExactRealProjectionLifts.swift",
+    "sha256": "f4e08deab044089c3d46e796a4c62ecb716a645cf6364f237da4ef3d2835d092"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedPcurveLiftSourceReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/044984f549cb-OriginalRetainedPcurveLiftSourceReading.swift",
+    "sha256": "43b601ebc7553306c4c329a208250a3234b2a70439aa100aa805560de12f0a7f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyQuerying.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3d6afd51ee9d-ExactRealTopologyQuerying.swift",
+    "sha256": "c8758bbb329de6b32be473c6156a0e97cdf281ee21aa5cdf7a909339b1d67d7c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicScalarDomain.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0dff5b8079d6-ExactAlgebraicScalarDomain.swift",
+    "sha256": "a326c43a4bfce9aee7588f191f081e58549ef8d709e38e607997da20c6c0f558"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealClosure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/fcb8e2ded881-ExactRealClosure.swift",
+    "sha256": "8463488034e676a62f5a568f632ab1824ae0fd1749d7dfbb810bc56dfac4536c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalRetainedSurfaceLiftDomainIssuer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0bf19edebd65-DefaultOriginalRetainedSurfaceLiftDomainIssuer.swift",
+    "sha256": "6879748e35595defa05bc6b055817b9165ab21387f00d6907ccbb313bcb19ea0"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometryAccess.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4b9a1733d9a1-ExactGeometryAccess.swift",
+    "sha256": "33358e3e9728889885fa5a892fe7c001e1c1eb3a58e680ebcec4546586e869eb"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealComponents.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/528f2bdde8c9-ExactRealComponents.swift",
+    "sha256": "0a8e9b4a6a667c3cf4e622e4ca3140711fac5c7523211325c38af2f3f9dc8235"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricGraphRelationResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/043a04dccabe-ExactGeometricGraphRelationResolving.swift",
+    "sha256": "825ffd3d576b9fa7b557f3abd813b93bdb9e1b8688fcc459e8571d0e1f266abc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyFactor.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/86131753e638-ExactRealTopologyFactor.swift",
+    "sha256": "5a1ba4d6694d758ab65c8647d5d24fca7c7b100bbbe8f8eabfb2efcf65613472"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedSurfaceLiftSourceReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/42e6c6f5710a-OriginalRetainedSurfaceLiftSourceReading.swift",
+    "sha256": "9ade31b04963c7c0d58a4344b714ac466cd37c1d9335863f155b41f616960274"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteRetainedCurveChartPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/9ad0562cd317-OriginalFiniteRetainedCurveChartPreparing.swift",
+    "sha256": "548efb9ded83c9731a8a8295cd9e6e47cb967db2b6318c5e742b1c08f548bbe9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellSignRelation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/34c97f389816-ExactRealCellSignRelation.swift",
+    "sha256": "7f78ac28bc68db410a236a1ea09a7d023d551a6a692244f7b01e7700634d027a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalParametricGraphReceipt.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/52a77e0b9669-OriginalParametricGraphReceipt.swift",
+    "sha256": "de49a68bbbac7192434a69416043a082c9f15eed0b25ba9e0f67f5aa2cf0e613"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteRetainedAtlasLiftGraphPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/9cfe24b6cabe-OriginalFiniteRetainedAtlasLiftGraphPreparing.swift",
+    "sha256": "be27ecb57f4a97c2ad90ab0f6b8aca9d36988d9eed7e6346dfac1d6d10560fc1"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/CurveSurfaceIntersectionResult.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7dc343d44673-CurveSurfaceIntersectionResult.swift",
+    "sha256": "d977d6639335b8d2f87fca2ae8945d18e51b77908aead4a085a939df3638ed53"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricRelationStorage.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6e611e34ecc5-ExactGeometricRelationStorage.swift",
+    "sha256": "799990c1131c9effdf85ecf35356eef1b238e9f729555ffc24549f98ce274bcd"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricRelationResolver+Maps.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3d1f2975f556-DefaultExactGeometricRelationResolver+Maps.swift",
+    "sha256": "6affa655f849da5da7af34ba731a914ade85c79a3dead4a090e8edef1ff7326d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPolylinePcurveSnapshot.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/fec794307a17-OriginalPolylinePcurveSnapshot.swift",
+    "sha256": "b837d8283630e06e3c70bb9c50b1b3bccda5b4ee621c0dc0791a5d67cd0e3935"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteRetainedSurfaceChartPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e3930415305c-OriginalFiniteRetainedSurfaceChartPreparing.swift",
+    "sha256": "fff6632d9dc410314ad72b8077a8b74defecdf22bfb75c350cc17671e80f32f2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Elimination.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4758658fe0be-ExactRealTopologyDomain+Elimination.swift",
+    "sha256": "97c6ad66b1d23bc8088736b52f4cc58fa7de48ed2c10e0fc8109884862bd22af"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalLiftPlaneRelationResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/74db4453904f-OriginalLiftPlaneRelationResolving.swift",
+    "sha256": "5126284fb7d957cf1a8e849e92d4efc6428b56f057871392d0579df4ad8baf6f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-PreparedGraphPublicationRegression.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d9a5efe022e0-Regression-PreparedGraphPublicationRegression.swift",
+    "sha256": "5b4ee77fc14b86383ca1467793ec23d78617619b5bdd4b51baf256549cef47b4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphRelationResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/df2d447404e5-OriginalIssuedGraphRelationResolving.swift",
+    "sha256": "b6187dd7c1c0245e26795f8d3fa7dfaff6564f05ea508a0b09c3a5bd1cf1a922"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellFailure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/904391608978-ExactRealCellFailure.swift",
+    "sha256": "8e8b88cc137ed6cca05fe7683b80aa81582fb6610a413409f6df562dbda01271"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealIncidencePair.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/51355ffd82fc-ExactRealIncidencePair.swift",
+    "sha256": "c273ea33584a80f1d758872e9d63541622b76ec76aaf46a278effd7764f5dd23"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellSample.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/1e45659e6d93-ExactRealCellSample.swift",
+    "sha256": "6bb778901583f6f1297744f38d059babb8451ecb3ed6981a98fe7610dd35d2cc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricConstraintDivision.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8bac37d0ed04-ExactParametricConstraintDivision.swift",
+    "sha256": "1130048b2c537b12cbe822b0ad9d2e0ae63a28298da30d342c56656cde2e0f9b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+Separation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7f68667ae521-ExactRealRootDomain+Separation.swift",
+    "sha256": "2a55907c27ad9f086bbd296f826bd354788f5e743e332672fc3cc9f2364db830"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+Lifting.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0c6a8306b709-ExactRealCellDomain+Lifting.swift",
+    "sha256": "a77cb2fa77d06e6483d610960c5fca309c20dd1837b989a9c8d877ab5c051ed5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationDomain+SquareReduction.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7994e17b9f6b-ExactParametricRelationDomain+SquareReduction.swift",
+    "sha256": "75147ec013b85fc824acc95dd796277dd336f5b0012556eb815e82f4fac105ef"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationKind.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ea4c7592e1b8-ExactParametricRelationKind.swift",
+    "sha256": "fe454755301c42eb72320204f0bd5b3d50194fb77a10e3cce0075cdc13cb5fae"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellRecord.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d25224789d63-ExactRealCellRecord.swift",
+    "sha256": "43184b2810ec74d07f27c050a5c2379da18497cfb33cccc79bf02a13763f302f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactTopologyCounts.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/59845c8873f8-ExactTopologyCounts.swift",
+    "sha256": "e47bb10a87383963dab308303c927582fbba39cf350eee50054677a830703603"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6c0dda15d751-ExactParametricRelation.swift",
+    "sha256": "8a7c5240e2e7ab0c00202260b0413f956cf4d49c25e9f871ce18b5d315e5ca4f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphParameterRefining.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/f29dbae2ee59-OriginalIssuedGraphParameterRefining.swift",
+    "sha256": "368edad0f772545abc663bafe67c5efde426846735c5192061566d91e995182a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalParametricVariableLayout.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/37df9fff9347-OriginalParametricVariableLayout.swift",
+    "sha256": "63afd0c4eeed41c0873ade0ecff624511ee02f3ed367b16b3e05c62c923bb617"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPeriodicNativeSurfaceLiftDomainQuerying.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ec88b47746ab-OriginalPeriodicNativeSurfaceLiftDomainQuerying.swift",
+    "sha256": "fa1bd2a871205808e045602342a141f37bc4665513437fac81c7b116f2e543a0"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalLiftPlanePointPublisher.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/468fd3ff4e58-OriginalLiftPlanePointPublisher.swift",
+    "sha256": "3b63429bb510f7d530782037be81287090c5ce7807c7ae9f523540f424c0ec3e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricSquareReduction.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/1a5c9d4b10ae-ExactParametricSquareReduction.swift",
+    "sha256": "73c41957ef1e4f1ef125abd536a35a4ed1d15f64a3160e3082c9479124e663f7"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootInterval.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/51a0e7191680-ExactRealRootInterval.swift",
+    "sha256": "69c0bc3f51ce5c1af7992427f9969e31b7a8a0e3a5b1e14efba73ab535bef109"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalPolylinePcurveFamilyPreparer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/993333ad850d-DefaultOriginalPolylinePcurveFamilyPreparer.swift",
+    "sha256": "520e333c23b7ffd83c17f79c47b44dd802eb57bef1c041ac0ff3c1a40eb1df9c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRootInvocation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/848e67375682-ExactRootInvocation.swift",
+    "sha256": "631c805eca4c341174e8ccd852da496452a647ee3d0c1f77349f5ff3309d12e3"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphRelationPair.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d3b7128da277-OriginalIssuedGraphRelationPair.swift",
+    "sha256": "f34db74df28e051fcd2c6a1b482fab722d94d2798c806759de8ebddcb37ab548"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalBSplineFundamentalChartPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/954d2765ad43-OriginalBSplineFundamentalChartPreparing.swift",
+    "sha256": "cdd0d72a93d06af71f27619847bf67b32de306b38cdc7f959717d527b392bc83"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellKind.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/17546b21dce6-ExactRealCellKind.swift",
+    "sha256": "cedfd842dbc5e2b498fc77f3ac6838fe30d101ab97be44503a3cf3aa594d4109"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteBSplineCharts.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/020cfedecd83-OriginalFiniteBSplineCharts.swift",
+    "sha256": "5d9cac7a3f858cf26bf36b3bbecfc0cf2f2dc9d3c4b462784bbd8cbe39664def"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicScalar.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e4debdb2ed84-ExactAlgebraicScalar.swift",
+    "sha256": "1521a96504c2e38de38f137782339e8b9f4851a9a18502f425f1e468c4d01610"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPeriodicNativeSurfaceLiftGraphPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/f3eee17c8012-OriginalPeriodicNativeSurfaceLiftGraphPreparing.swift",
+    "sha256": "8ee912279988609351ab265be867c21df0616dc4d67f77cd80745f3673753803"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationFailure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7eecc54b0994-ExactParametricRelationFailure.swift",
+    "sha256": "6e43fc7daa765e3ae1e6122d20b63f0b722011414082f178a950891923b11ff2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealIncidenceProducing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/86f9e8b983ea-ExactRealIncidenceProducing.swift",
+    "sha256": "4914814c2ff3a3721c587721d4e8190359edf4d0f03cc632b997a544f2f6f0fe"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricGuardDivision.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b46512c84cf3-ExactParametricGuardDivision.swift",
+    "sha256": "26f3981adadce68688f76fe100bd8731a24f133e6c3c0cfc931bfc97d1dda54c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellPartitionStorage.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c0156274c7f6-ExactRealCellPartitionStorage.swift",
+    "sha256": "706581b35ebac7f60c9d0b60f6a03a9898866b96d3f83096671d5bf7f162c92c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricGuardRemainder.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/af865b900bb9-ExactParametricGuardRemainder.swift",
+    "sha256": "5e23cd7dc2d531758154813bfef74c7c9d051a055d965f261b3bf3b686197330"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactCellInvocationOwner.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4a409e8d1f4e-ExactCellInvocationOwner.swift",
+    "sha256": "01ebdf65076604833eee8556c20dac3442adfa930333345c3c15df31998ee069"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/UnselectedOverlapTripwire.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/20bf72952143-UnselectedOverlapTripwire.swift",
+    "sha256": "d0f1c2ed62f1a90d0efa2d93cfdd981dd91d41ffeb454b35223afeeef43ce09f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDefinition.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/5e9fe3a5da35-ExactRealCellDefinition.swift",
+    "sha256": "d6fea9de21fa2d7e4935ffe06f3978ea19d6ec4c0802b38fe01e21e1e48f12ea"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellProjectionEvidence.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7ebe51dfb385-ExactRealCellProjectionEvidence.swift",
+    "sha256": "fc97a7015a9f273bed20bf9f35c675e8bf9903dbc6c64347106c196c7200bf59"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Proof.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ca1c6bf8ec30-Proof.swift",
+    "sha256": "f7f53f2fea197a0a91d6849b892855268ef944690dbce94d1dd6b0fafc4b09fc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPeriodicNativeSurfaceLiftDomainCover.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a1feab6b7b35-OriginalPeriodicNativeSurfaceLiftDomainCover.swift",
+    "sha256": "5ddaec0a298859851b650278a28dc16484b64af6d533cde2468f57a71db13ae9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactXYZ.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/dfccf15ef3e4-ExactXYZ.swift",
+    "sha256": "8975e47201ca9a9ca951ab926b6aa8c8e03a8ba5bd00331137ccf976c79ddd29"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalCoordinateTransportState+Roots.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/86e0001db1f7-OriginalCoordinateTransportState+Roots.swift",
+    "sha256": "0d9ae2e348bdee0d2d89e52701a745583283e70a36080e005909c35c9553029d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricFiber.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8821eecef26d-ExactGeometricFiber.swift",
+    "sha256": "bbe34b1b25b938806b9a78e55c02330af88c100d6e720dda772665efe3c58de1"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-OriginalIssuedGraphResultResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/83e36db6efc0-Regression-OriginalIssuedGraphResultResolving.swift",
+    "sha256": "82f01781a845a1b7fd1c4307e664ca94d6202013a1e8320e777752694f57ae62"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellContext.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3c8f5c1ebb29-ExactRealCellContext.swift",
+    "sha256": "cae2b3c6cd29983ca0818421760eb132a10da143c4dad4f1462057802887b871"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/lift-source/OriginalPolynomialSurfaceLiftGraphReduction.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c1be8b993ab8-OriginalPolynomialSurfaceLiftGraphReduction.swift",
+    "sha256": "0ec2ab351998efb562f4011763d80879dc1c60fbf94fd3e5de138a4454fda53d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicStorage.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6868ddcfe871-ExactAlgebraicStorage.swift",
+    "sha256": "a0003af6784cb90e962da8faeaa18c267fa4afa8484ad9ed06c925ad2136deaa"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPolylineRetainedAtlasLiftSnapshot.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/77e29f2035b9-OriginalPolylineRetainedAtlasLiftSnapshot.swift",
+    "sha256": "4d8da98cd2000aab43e050d2bf34bbe0e0c6f3dee20088bef12a3bc869e1f7cb"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultOriginalIssuedGraphRelationResolver.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/bb6af334036e-DefaultOriginalIssuedGraphRelationResolver.swift",
+    "sha256": "d456963f0a3709fb88ab50695bd1928b28b6259b15a583afd90cdef491cb0693"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootSeparation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/767bd36c1197-ExactRealRootSeparation.swift",
+    "sha256": "455dc767bef004e29420464a6d08c697a89c6012c53f9056090f3e4f5509214e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalCoonsRationalDifferentialAtlas.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/fc6002edf3fd-OriginalCoonsRationalDifferentialAtlas.swift",
+    "sha256": "b4f8272a1613a71dd040bad0898219c6c1b5b3dde0dfd05fde3fd8154006d5ba"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootSource.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/9aaaccdeec0e-ExactRealRootSource.swift",
+    "sha256": "49cdf37d17307b4395025536fda193e605b6770f8a0dea5e6bdd2a70313d8160"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Reduction.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/f3084c1ae2d3-ExactRealTopologyDomain+Reduction.swift",
+    "sha256": "7b1a87d0a7a75aa1e2bedef4746da618ad00636c01a72d8539bac081c30120ed"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalCoonsAtlasSnapshot.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/abd79cc0cd1b-OriginalCoonsAtlasSnapshot.swift",
+    "sha256": "d3aef7d1ab5852b5bda4d89897c48fafa8d981018df69b52dfa48086e4a48376"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGeometricRelationReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4e16ca42bb25-OriginalIssuedGeometricRelationReading.swift",
+    "sha256": "bbed3d9a2d4144c3d1bf9889f1be7e17032311ef119c4e2b5e2b92ba077cad77"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/NativeExactPublicLimits.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/81ad3251f4ce-NativeExactPublicLimits.swift",
+    "sha256": "fd657de5dad3ef68c8de08d74b401fafa0a1dd862d2207a1db6f14aa160be878"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalParametricGraphCondition.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ff7dd0e3b8ba-OriginalParametricGraphCondition.swift",
+    "sha256": "7e74dc6fa11972daba16c5e6ff69b7c1441d96fca4e4d21416d7a7bf892484b5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+Query.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4338e3109d8f-ExactRealCellDomain+Query.swift",
+    "sha256": "e432cb070dbe626ffbada6efc4b1c3d85d1a41ca5f692434960d9c1c27ed3257"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Incidence.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b3bad4903546-ExactRealTopologyDomain+Incidence.swift",
+    "sha256": "6b6e75a32ba7719e863bea8d5e4e13ebcc933e92058ea40f507452290d184ba5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicScalarDomain+UnitInverse.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6974710555d9-ExactAlgebraicScalarDomain+UnitInverse.swift",
+    "sha256": "19c88e60109e2fb846f94226cf6bc472574e487f95577dcd2d58130a2b0e51a5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootCount.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b78b167fe699-ExactRealRootCount.swift",
+    "sha256": "e5a43cdf14d8425ea2d306af3129d9183da4335ba75c3cfee0bd00207173446b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalSurfaceLiftGraphProducer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/23e2e1891909-OriginalSurfaceLiftGraphProducer.swift",
+    "sha256": "ce13bac60b230fea2c8ea10c0775d82164f70022ceb6a00bcf91ca3edc4d4be7"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+SignedRemainder.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6b7fe020503c-ExactRealRootDomain+SignedRemainder.swift",
+    "sha256": "82666a8885136e9f7f824651264af4f08354ce9802f88f738e39c73d7a62ac74"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealAttachment.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/552ae7796987-ExactRealAttachment.swift",
+    "sha256": "d2dbfb763e7d375b1db5123a0e2592fa4b7564597f49887e301bd2ae7b1cfb20"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+FactorCancellation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a0e4d06c09b3-ExactRealTopologyDomain+FactorCancellation.swift",
+    "sha256": "da038956970fe8a2ad2fea4934899c155065608c643d9d86d5f5a7afe2672f47"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/2d7e907c18e9-ExactRealCellPreparing.swift",
+    "sha256": "2aaaffec8fe4074f249de824ece5f1cda85f54892b90a19c97a28fe6bf32c52e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedLiftHostSnapshotting.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/469bbcab353d-OriginalRetainedLiftHostSnapshotting.swift",
+    "sha256": "2d2e3a88307307284ce7341d2036b9576d88512b7cb9ee3370b40189a1e813bb"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellProducing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/45a72fd328a8-ExactRealCellProducing.swift",
+    "sha256": "73a96a84a230f8a3df6149df4ffe0d596b84e709a378a8822e6e957bbe90b8af"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultOriginalIssuedGraphCompiler.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8d6bec225913-DefaultOriginalIssuedGraphCompiler.swift",
+    "sha256": "aaa679b1deaacf344590869a337ba2f8940980e8461efa1c912629e81e543e14"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPolylinePcurveFamilyPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a736e6162534-OriginalPolylinePcurveFamilyPreparing.swift",
+    "sha256": "d01c46c0e428a835eeec528f81e4cbaba23d647ef8cc8a4464a814c19532a4e6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedAtlasLiftSourceReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/5442c4b1454b-OriginalRetainedAtlasLiftSourceReading.swift",
+    "sha256": "fc7176412c2f3b291b0b01d042d0d3cee7ea7c0bcba9596ad0cb250b86c06d37"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellPullbackResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8a286cace196-ExactRealCellPullbackResolving.swift",
+    "sha256": "372abf3aa72a34a80111932f09dd31c797b04bd472b051002b2bc9db8051bad4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalBoundaryCorrectionSnapshotProvider.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/9054f20ea7fa-OriginalBoundaryCorrectionSnapshotProvider.swift",
+    "sha256": "56f0f765691d8529673268388a965b1aa7b481b96b4bef0892588625d9311f7f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGeometricRelations.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/2f584174e004-OriginalIssuedGeometricRelations.swift",
+    "sha256": "374e91a77a210552e38a5178702bb59e009a6f9bf2432bcde7feb9ff9097ab72"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalRetainedLiftPlaneIntersecting.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/42f368933b6b-OriginalRetainedLiftPlaneIntersecting.swift",
+    "sha256": "dcd717231cddd7c625a7f103aee45e8e4bb7f757fdcefcffa0fd73dc5ef968c3"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Fixture0.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d1fe705c8a0b-Fixture0.swift",
+    "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGeometricRelationPair.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/85af7b250a31-OriginalIssuedGeometricRelationPair.swift",
+    "sha256": "1d3bf834b4591cf94845503d99ae4a674c1f93e7a9529589a22f4ff2d6e93313"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootLimits.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b67c4aac1705-ExactRealRootLimits.swift",
+    "sha256": "cf38b5c545e0f88186cc310f372cb2afed328c48eca1a3ecfdb3b8cf445322d4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPolylinePcurveSnapshotProvider.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/9a78125ba98c-OriginalPolylinePcurveSnapshotProvider.swift",
+    "sha256": "e0d5d9d4cf61e197c5d4f41ccc4ae77d826dc743d59526a2e6c65946ff024ff7"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedNumericalCurveSurfacePoints.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/fab6e06f475f-OriginalIssuedNumericalCurveSurfacePoints.swift",
+    "sha256": "a1f0bd2dca5fd581439c2381f22f398e4465cd72708305273ec456bc81aa4a96"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootContext.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7d0bba5c26e9-ExactRealRootContext.swift",
+    "sha256": "014b1c792576da2f41f29ad4bc17112ae57ed3c71d70af5f7c41723c81b4d143"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPeriodicNativeSurfaceLiftGraphQuerying.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/9c8021e656ca-OriginalPeriodicNativeSurfaceLiftGraphQuerying.swift",
+    "sha256": "ac7ebf7d77cdb551aebedb7b40fa58ea3351ac66e609d39223a58f687c5f06a6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/be93ad506d33-Regression-DefaultOriginalRationalGraphIssuer.swift",
+    "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-OriginalParametricGraphIssuing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/00697c9096dd-Regression-OriginalParametricGraphIssuing.swift",
+    "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphParameterRefinement.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/923deab3e6d7-OriginalIssuedGraphParameterRefinement.swift",
+    "sha256": "26316c1a9f161b0e9d832744756a0e5e738b75ec543001d54df62af160c2a35f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRootAccess.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/43dd63e81f0e-ExactRootAccess.swift",
+    "sha256": "701826a2e006bc8e5c4b906d70af66bf0a2c8d578256441159659e2e36e8ece2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPeriodicNativeSurfaceLiftChartOccurrence.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8c79ce41fbc6-OriginalPeriodicNativeSurfaceLiftChartOccurrence.swift",
+    "sha256": "7224525c3f10d464baced5524773769efc49da494d2f33ff360e26c76e19cf93"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Components.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c1ef97a1f6a9-ExactRealTopologyDomain+Components.swift",
+    "sha256": "6f33fde80e0cdb2c01b70ec5a5258b8e3035fecae89c61ee81d9ff03fc732723"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologySignInvariant.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/cc55183965d3-ExactRealTopologySignInvariant.swift",
+    "sha256": "29358cd64fca113fda9fa45bcb6fe5f2d1d95eee430e59ce9f70c63dc64eb0d3"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellSelecting.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/9375a86cff8d-ExactRealCellSelecting.swift",
+    "sha256": "c8811fba53d09fd0da9e14cdeb2e3183b0f49369ce0f8a874ea63f6cb1c95874"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactCurveParameterSpan.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3a62e3afbad1-ExactCurveParameterSpan.swift",
+    "sha256": "26389df7d3b8a9d1ee666e34713ae5ae9a94e4eb3526c38c9a6ea242262b8f02"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedSurfaceLiftDomainCover.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d38706e03531-OriginalRetainedSurfaceLiftDomainCover.swift",
+    "sha256": "1ee60422a872926ac4801bf85e5cf1a0beb23124bbdf7311e86388784a18022c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPeriodicNativeSurfaceLiftDomainIssuing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7c4f2c78b277-OriginalPeriodicNativeSurfaceLiftDomainIssuing.swift",
+    "sha256": "cadef4a933638b754ae8646257e4b274daaad86a79a3e20c7ce822f9b4eb5df5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricGraphRelationResolver+Graphs.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/bb3f2c64decc-DefaultExactGeometricGraphRelationResolver+Graphs.swift",
+    "sha256": "a5ef058feaae672a78a16fc2d48f0267a4f0cdd750bef023a8db76f7a37e2d88"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0b167b0a298d-ExactRealRootDomain.swift",
+    "sha256": "a5cb9fe5b53dd7ca21b79cf5c129d2c94ae41043bd9170c3c12b504a199a146f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellCondition.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/421e1afc8d07-ExactRealCellCondition.swift",
+    "sha256": "999ddb374fb41f3209fc0f0d6bb6c132aeb4ea8c41f2eb70af4f50a91aa1680a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricRelationQuerying.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/2974a689e6f7-ExactGeometricRelationQuerying.swift",
+    "sha256": "f50693e17229f2926cc1c767055743e3ec83d297764126578dacf70329f307b5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricGraphResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/075a6bd994dc-ExactParametricGraphResolving.swift",
+    "sha256": "f94fa426604f6c7758643bc8765694b3e372ed7c0ab742ab69438e25efa2b6ed"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultOriginalIssuedGeometricRelationResolver.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d139d45a656f-DefaultOriginalIssuedGeometricRelationResolver.swift",
+    "sha256": "f610d220ca2d66ff6ca7d6fbf44e72e04a073be5473f67f8052bae6a831b8f9d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/61b031e589b0-DefaultOriginalFiniteRetainedSurfaceLiftGraphPreparer.swift",
+    "sha256": "636bbb58433691f7f5b4e1f5f816bb88ed0557001f05cccda318803524bba305"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/45f271dc530b-ExactRealRootPreparing.swift",
+    "sha256": "fc65d028c94160726e466b2db3978744e29d04b3dcb26fde829a74dc4650ba3e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellID.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/1fd985c96535-ExactRealCellID.swift",
+    "sha256": "26f8f9224dc371fe8218f9fce65907a298a37b43261e3079c4a2018c93c4961c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellProjectionLevel.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/dce037f7d495-ExactRealCellProjectionLevel.swift",
+    "sha256": "bad35d223b521eefccfedaca2825643ab00eadc87f3d69156bb3e5d88dee59d4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/CurveSurfaceIntersectionResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b4814549f903-CurveSurfaceIntersectionResolving.swift",
+    "sha256": "9c848791aca59130b5981d79a97a6c0b996c1f5f9c098ddb71ff2f001bf30767"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalFiniteBSplineChartPreparer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/832d9c0d961b-DefaultOriginalFiniteBSplineChartPreparer.swift",
+    "sha256": "775ae0821f48830e559d65c675c32861c45c42129d012b617362040abe46335d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricRelationResolver+Queries.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ca6f96d01dd8-DefaultExactGeometricRelationResolver+Queries.swift",
+    "sha256": "255c1572d5729b948860afab00daeb8ed6ca51297464eab8bd138c8729edff4f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellInstruction.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6c715cc879ed-ExactRealCellInstruction.swift",
+    "sha256": "1105a625567199548d5b729228b50ae81cada2cb4dada3844de7a05801e0f240"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellPullback.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3aa1b63460c7-ExactRealCellPullback.swift",
+    "sha256": "f9adb18c74fd437ef286eddc584eb9e2a5782bd66f49779b8e380737be3401ee"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalBSplineFundamentalChartPreparer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d8150e069bfa-DefaultOriginalBSplineFundamentalChartPreparer.swift",
+    "sha256": "686bada8d883578072e06b4a51affb3c89bafca9082eec20bb53fc9c9ff364dc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactOriginalScalarTransferReceipt.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/90a9eeda6e18-ExactOriginalScalarTransferReceipt.swift",
+    "sha256": "5d795c4dda6b23f1e17849651ac5d573f09f8e4b4cadf68efde04e6490172186"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultOriginalLiftPlaneRelationResolver.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/436fe3a78da6-DefaultOriginalLiftPlaneRelationResolver.swift",
+    "sha256": "a33c9a79f0ca2043a7a749b9c5447f6b1ab7a77534da209dfebd59028b8c673e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphFamilyPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6acccbd37c4c-OriginalIssuedGraphFamilyPreparing.swift",
+    "sha256": "8cbc39d560c874c34b15228b2f49b77c75072936a0f52bdf2940154ef6a15081"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealClosureProof.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/131483f58fae-ExactRealClosureProof.swift",
+    "sha256": "b421ec4427a61f4dd8d8c425ae6733d31436642a5388de17eb707ea418d93c8c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricMap.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/530732b913ff-ExactParametricMap.swift",
+    "sha256": "e7e2a882b23005ae6cc34331ca93e0e536abb079448ef6078274b55cde1037f1"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteNativePcurveRetainedAtlasLiftGraphPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3a1fbc87a9d8-OriginalFiniteNativePcurveRetainedAtlasLiftGraphPreparing.swift",
+    "sha256": "5946d68d7e48a0825742a192dcb7f37bc24ad965ad0abd4acca8f1317f4eb585"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Factors.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/450bbbe7c6d2-ExactRealTopologyDomain+Factors.swift",
+    "sha256": "9cea937551c6c02999b29368b99ae0ef9afa53d3760cb88ab1378ab53e351c9e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricGraphRelationResolver+Maps.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/f3e5251d1d5e-DefaultExactGeometricGraphRelationResolver+Maps.swift",
+    "sha256": "75f40e510813edffcf8e5bd5943846fcf9c1f68aa6b405647dcb4b45dd70c316"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellBoundaryRoot.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/891da1e3460c-ExactRealCellBoundaryRoot.swift",
+    "sha256": "dea786bb272293bdd54ff432ad87f4c5f07d19740941f3b4fc3c97a5db466bfc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalParametricGraphDomainBinder.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/01a3e456e79f-DefaultOriginalParametricGraphDomainBinder.swift",
+    "sha256": "b5056d86f11a5e03a5150e6ed33b54578e7ba6cd140bddaf3e5a813446ac0510"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricRelationLimits.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/09a109284d91-ExactGeometricRelationLimits.swift",
+    "sha256": "8405c8ccc9c66236bf1f3cec35bf4e10eb507d946b9d71c92f024e6bb4d51490"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyRegion.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c04da7d0dc72-ExactRealTopologyRegion.swift",
+    "sha256": "8c5408b7f358246368b4c6f4de55472f855aa5c670b1a116f24730b312178de8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteBSplineChartPreparing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/eb3e7572d09c-OriginalFiniteBSplineChartPreparing.swift",
+    "sha256": "3a51e04664ef2ba26f1bb32f14e81c4005c55943ab4c0f19e764d47631860078"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+DefiningDivisor.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/1e3cfee612f9-ExactRealRootDomain+DefiningDivisor.swift",
+    "sha256": "059d311041ecfe5d3d43209c951a3084e10e7732a103dc0cb5b1d7729699c4a7"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellStack.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8f61d404eec2-ExactRealCellStack.swift",
+    "sha256": "32435f655df195e956ef29bd11626a5e0007a2e7c8620b7bddf1c3eb7b11b74f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphFamily.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7c1bc450ea4c-OriginalIssuedGraphFamily.swift",
+    "sha256": "9d4a32ae890934c6adf16f91cf20465606216363f749ceaf6747f84d468c566e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactTopologyFormula.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e2f2c256baa2-ExactTopologyFormula.swift",
+    "sha256": "707f7350a68341c1e9072e6241d040e718627ae933b86969d3ed24a74190c347"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+ExactCandidates.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/9a55ffe12709-ExactRealRootDomain+ExactCandidates.swift",
+    "sha256": "a015419d67da1cc2af3dbd989232446df01a69f9a2ea34de01993b40ca38f65a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+Selection.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3e58dfe388d7-ExactRealCellDomain+Selection.swift",
+    "sha256": "781c3f2137d0e3811a7d3c321fa513036c68d6742fbdc28a3eb82a564f7b8428"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyFailure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7adbbffc447a-ExactRealTopologyFailure.swift",
+    "sha256": "c9c782251c2b43110ac802cb98d45e1406ce2048dd827d4a82706060d20d3f42"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationDomain+Graphs.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/1ba99ca00611-ExactParametricRelationDomain+Graphs.swift",
+    "sha256": "68b69bcf491762b653dd4c4decb49dbabe7a026508fa192566c3b85cbb9052ea"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalRetainedLiftPlanePublicProducer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/34e07565f9b4-OriginalRetainedLiftPlanePublicProducer.swift",
+    "sha256": "7d41459ae27df9fb55fa1ec79620802c1db3d55ed9530f1882d607637fb1755b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricEvidenceKind.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/38741c0ef8dd-ExactGeometricEvidenceKind.swift",
+    "sha256": "28d831a29ec1a4606cbe9126a959296d0fcbdf06412a40b0f874085091b8de7a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicEmbedding.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/917d229914b0-ExactAlgebraicEmbedding.swift",
+    "sha256": "d9f3699b25a967a1a60c54e54ed2aef73d0a96de37d1518846c09ef60e13a75a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultOriginalPlaneGraphCompiler.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d499f31cd1df-DefaultOriginalPlaneGraphCompiler.swift",
+    "sha256": "2d4ca7ff7943b0d730d21cd00669c7dd5a2d328e9ea14266bbb499dd27b57186"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGeometricPublication.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/f82aaeeaaa6e-OriginalIssuedGeometricPublication.swift",
+    "sha256": "03f45d50f9a13aca5d29e65e6a891c8627228fbaaae61d50178e7c59836db0b8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricGraphRelationResolver+Queries.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4fe17a2b4875-DefaultExactGeometricGraphRelationResolver+Queries.swift",
+    "sha256": "39b087c66c6048971140dc889c0e6fb0c1b2793ab7cb8429e603f35aee4e6470"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactIntersectionResultRepresentation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/09f1e4124164-ExactIntersectionResultRepresentation.swift",
+    "sha256": "b8675064710b008bff44a9275cf0d984459a89ceacd9d72094e5e7a3932f0083"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/PreparedPortProof.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0224c5129923-PreparedPortProof.swift",
+    "sha256": "28f7b5f5d5351104cd456ebcba85cbc1bb908caf1be9aa3bbf2003849aef32a4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactCellBorrowedAdmission.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/85f4f7eb8e43-ExactCellBorrowedAdmission.swift",
+    "sha256": "91e425c29a790c90a06d9cc31e377ffe5d792085c49f0fe40770f5f3dd3218ca"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRootInvocationOwner.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b7664f435208-ExactRootInvocationOwner.swift",
+    "sha256": "2cc9d4dcd6b47f94ede531fb543d4026eecdb5f4ddf92892ed25d256e9ef229c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalLiftSourceReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/29820ccdd1d7-OriginalLiftSourceReading.swift",
+    "sha256": "ab14cdf444d905a454ac5b786e6f9c418fd8fdeb1289677fba84662641023d40"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/daab074950f8-ExactRealTopologyDomain.swift",
+    "sha256": "7e234fe4091b91d51a09c75216f5f6b147a6b3e05ad9a3fd8715ae45dd91e707"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultCurveSurfaceIntersector+Overlap.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/96cadf1aa3aa-DefaultCurveSurfaceIntersector+Overlap.swift",
+    "sha256": "db5f78dd26060f231eb99be658d0c5d5143360a74003dacb65dc5cf761315e04"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationDomain.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/416568a2447a-ExactParametricRelationDomain.swift",
+    "sha256": "be90f67e605a1f85182478b98122d08071e3b0efd0b54838b6f76d562882ae22"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+ProofViews.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8bb827456341-ExactRealCellDomain+ProofViews.swift",
+    "sha256": "ab2d6bf269ae910d1a3891ef659757fcf00af7165c0cc0612f7f8f5618299b93"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Formula.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/20276834cf38-ExactRealTopologyDomain+Formula.swift",
+    "sha256": "74f9f45bc86551063690a78c2ab62ddba0fd03d776ac70982c1c43b3f7a5d8b5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactUV.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/942d9ff3183b-ExactUV.swift",
+    "sha256": "81de45d54e9624823146f3b1079209e2525d5a940893d798c94331f9ca92d76a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+Query.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/68380d734ccb-ExactRealRootDomain+Query.swift",
+    "sha256": "50a2a99552a536a92fd948c15208e4d4ed938aadab37c2307694e13eb1dc3050"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphPreparation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b4e3ddac58c0-OriginalIssuedGraphPreparation.swift",
+    "sha256": "1ab0058ef1b3ecaad50de7aaf5629265796a8bef966ff5109f546f7b12b19b03"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+BranchProof.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e4b5f0812654-ExactRealCellDomain+BranchProof.swift",
+    "sha256": "bb31a06b46022ad7588b39ad991a58a7c7c98bf6e4d8290c99612cad3c2f52ee"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootTransport.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e96f572dc026-ExactRealRootTransport.swift",
+    "sha256": "abb5920da7dfcef1c0af89a5d0548624fcf1e07f4e4f3f26732e0e4c756c56f4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricRelationResolver+Coverage.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a9dcde0ed5c0-DefaultExactGeometricRelationResolver+Coverage.swift",
+    "sha256": "87093b323cb26632132573b8f436800fa47421427db21c5cdd02b968a3aaedf8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+Producing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a52c3efac305-ExactRealRootDomain+Producing.swift",
+    "sha256": "c371e67a91c08fc3c54b46bdffc282598298ff092d7aa1b229eee082bf386e85"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellSourceStorage.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/08e344d9610b-ExactRealCellSourceStorage.swift",
+    "sha256": "7c5961a7319dbd5532ddce1167c019905918d4ffccf771d0ffb9d422b1f6c0d2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootBound.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/f81d4ee66c2e-ExactRealRootBound.swift",
+    "sha256": "03bdd566af44459c032aec3670922b4316cf5990105f1316786e90d4e9078903"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalLiftPlaneParameterRestriction.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3f443b799a46-OriginalLiftPlaneParameterRestriction.swift",
+    "sha256": "18d35dd63be22a395bfcb11acf7072790cd1552dbae0f7a6d79e3a55b095f63f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalBSplineFundamentalCharts.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d623e370b423-OriginalBSplineFundamentalCharts.swift",
+    "sha256": "de1a8c4d9c5aa17dbd04dbab42e7e829b8790a95684bd8a7a0477cefa911513a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedSurfaceLiftDomainIssuing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/fadc8a3d7dc0-OriginalRetainedSurfaceLiftDomainIssuing.swift",
+    "sha256": "84ccf80a8324fd891d3c0f7da16cc364d6b4a4e1f1683640f85a8ce3c704f429"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+Specialization.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/2b722a0084ed-ExactRealCellDomain+Specialization.swift",
+    "sha256": "1ffc5c06530577faec6b96a74a520834b8e38d1d9f7f97d057c90892ed4731cf"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalEuclideanPolylineParameterLaw.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/424e298f6183-OriginalEuclideanPolylineParameterLaw.swift",
+    "sha256": "b0de6b133cf669f92c1b41cc00cfb8f86f7112115422f39ff8cc5d352a270cee"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalBoundaryCorrectedRationalAtlas.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/121e338838f2-OriginalBoundaryCorrectedRationalAtlas.swift",
+    "sha256": "366d50fb82521bf164cae85fbcb084d3bb7219494edac6b691b65e0f39e40c32"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealClosureProducing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ef1c4a62948a-ExactRealClosureProducing.swift",
+    "sha256": "5f81becd97b4180fdd8ed80a1274e0e7e771ad8895b23c99c146883a533d24ee"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRootSturm.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c8f07772e7eb-ExactRootSturm.swift",
+    "sha256": "e26eacda1bb7e66e198b2d1cec26e74b771ccf43ad6635d8b5e6feb75a3cbde6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDescribing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d4b16a08039d-ExactRealCellDescribing.swift",
+    "sha256": "c49bc502252586bf99ed2a71952ac52b50638d8e7bbb75a38bc356874ae5bed2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalBSplineSurfaceSnapshotProvider.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b52c661913e6-OriginalBSplineSurfaceSnapshotProvider.swift",
+    "sha256": "58ec14eaaae6a6e11498897ac1512200f7a5d23367d4ac37c5491d1b6bfdc293"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedSurfaceCell.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0d7e7012d9f5-OriginalRetainedSurfaceCell.swift",
+    "sha256": "c015b0c641e0e76cc97eb7620f70ab3fa640fb4473457d0d69d40f6d17f1250b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootSet.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/95d84eea6eae-ExactRealRootSet.swift",
+    "sha256": "57fb725d2cafd8fcdf2e8e84142a7f629bcd5384b770dc98a16ea59a9a8c7d05"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPolylineSurfaceLiftSnapshot.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/5d829c7b5cea-OriginalPolylineSurfaceLiftSnapshot.swift",
+    "sha256": "d8db4c2ab673a3291c588397b7ab973af98916e9759ec8523378fc5be48b08b6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricGraphRelationResolver+Points.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7d013fdbdff1-DefaultExactGeometricGraphRelationResolver+Points.swift",
+    "sha256": "1e98b6c53125c61020af5ca8869d0e2795942a8fcc4cc614e242cc1e9ec7d720"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRootBorrowedAdmission.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3715b4afc761-ExactRootBorrowedAdmission.swift",
+    "sha256": "ed2c08ffdabd9b21451e8ee4119e0b5b842d9106f35723233d83a06fc82ddb7e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultCurveSurfaceIntersector.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6c801380eed4-DefaultCurveSurfaceIntersector.swift",
+    "sha256": "721ac967caedd152d368767f723a9f2b7b273289ca89e321a1f63e99f8ee3062"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootSigns.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/240580e15019-ExactRealRootSigns.swift",
+    "sha256": "8029c50a2a19f587244fed264d4e8d32f988425089f0981ed8b72a4161b30855"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellPredicate.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c743c3cc0350-ExactRealCellPredicate.swift",
+    "sha256": "8d4dadb23e21291ea4ba9595df9b5788bf1407307dd4c2a869c244e8605c8d06"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-DefaultCurveSurfaceIntersector+IssuedGraphs.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4fca6419313b-Regression-DefaultCurveSurfaceIntersector+IssuedGraphs.swift",
+    "sha256": "6ae3b90a081de8d23ccd31dae9c7f5ea9081d89fcef9e426747780d84624254b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalCoonsHomogeneousAtlas.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d68eec9e2d6d-OriginalCoonsHomogeneousAtlas.swift",
+    "sha256": "98f8c169131ed60bb772403c4ebc43bcfacf0be4f2e8e288e766cb84fc090d42"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteRetainedSurfaceCharts.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3b63d2ec7424-OriginalFiniteRetainedSurfaceCharts.swift",
+    "sha256": "f5c9ece38789a3fbe2b40a72437ab6419defb9d24bc7dfcce0240232368ef6b1"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+Pullback.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ae01ed9f12be-ExactRealTopologyDomain+Pullback.swift",
+    "sha256": "31b726070b7eab0c60e7af48c4111c92f36b9d68c524022f854c0866208dcac5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricStratumID.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4ee1f293b5d1-ExactGeometricStratumID.swift",
+    "sha256": "20044cc6d14a182e10c97508f5868e619f43ea956a7598133b143a736c430f30"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/GeometryExactScalarFailure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e9090309cc0a-GeometryExactScalarFailure.swift",
+    "sha256": "e523ae8b978d8550b6fe7af021773910ab64d42698579fb5943ae0eb4306f8f5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphRelationOwning.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6bf5db11e610-OriginalIssuedGraphRelationOwning.swift",
+    "sha256": "99a68e45fbeb4652218a71988d4d80c47c34288302f62ebcbb2b920b8ac74a9c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+RetainedClosure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/192cb2f0d915-ExactRealTopologyDomain+RetainedClosure.swift",
+    "sha256": "ab8b2d2fc7831eed7082340f3bb15e3d7606f3072141f88c18f95445637704b9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+Inspection.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a0bb6bdcd42b-ExactRealCellDomain+Inspection.swift",
+    "sha256": "8f1652d749197f5c869bae6665cda284ca886fa834949ee8bece28da3b1f68d2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricGraphRelationResolver.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/cc1c5900759f-DefaultExactGeometricGraphRelationResolver.swift",
+    "sha256": "95878d597aae12006accca940b9305863234ec92638d34ecae6797c11d4651be"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootTransporting.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a926e647a40a-ExactRealRootTransporting.swift",
+    "sha256": "5f20127be7257e4dc298cc8856c639728158c4e1b3552ab3a11cbb58cf35e989"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricStratumView.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/1a38b1979e58-ExactGeometricStratumView.swift",
+    "sha256": "d2a68b80369576a8e80f152332d7fcf6ad496b49c86dce5c4253940ac12c7471"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactTopologyDecision.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d895625c7aa8-ExactTopologyDecision.swift",
+    "sha256": "20c9109d6923e7ad1102c9b9da67751d93d5bbe3c2ec744f2148c10ff37542e8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDefinitionStep.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8974cd5e7792-ExactRealCellDefinitionStep.swift",
+    "sha256": "760c88b24630b93fc0d88c0fa44d3c47e6abe7c8db890c3953ff880fb1ddf8f7"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricGraphFiber.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/2b32cdf2f64c-ExactGeometricGraphFiber.swift",
+    "sha256": "459d660c10d4bf161c3918258592e130715817c20919521bf9ef9569e9f99eb2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalBoundaryCorrectionSnapshot.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/69afc855b303-OriginalBoundaryCorrectionSnapshot.swift",
+    "sha256": "b2c4cd9ca707130ee020f5c3d735c39df07655e674d4fd3a315de00a213c334f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealProjection.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/49a036841bf5-ExactRealProjection.swift",
+    "sha256": "8223003f698f1b19adc21ccb6b13de2cce51b6230050879ec492b047a4103d3c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+Sturm.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a8a2a7e24186-ExactRealRootDomain+Sturm.swift",
+    "sha256": "ebbf36ddd23aeee291add2f9ae477467c19cb278167e44a6ddde8ee49daef7b9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicScalarDomain+Arithmetic.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/85dec8093f87-ExactAlgebraicScalarDomain+Arithmetic.swift",
+    "sha256": "b9dde749c626722db23218d92f291709017fa96a65a69ee2c53cb859cc1e51b8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactOriginalScalarTransferring.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/572111f879d4-ExactOriginalScalarTransferring.swift",
+    "sha256": "9cc5b333ba81bb5253e57e12f6c03c1f338b2d0ee95121a498d266d9bb5a6cc8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/NativeExactGeometryPublicationFailure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/209c4c5b6254-NativeExactGeometryPublicationFailure.swift",
+    "sha256": "3b232f75f9737992af7b824296f2d543eacfaaa15515a3a65a22a23cfc37357c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/NativeExactGeometricRelationFailure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b5f9fbaa3f4c-NativeExactGeometricRelationFailure.swift",
+    "sha256": "28c405beaec060e24f4f878401c8c714e4ad159dc1e999bb0cb481dff65ae64a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+PolynomialGraph.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/04b5a165daed-ExactRealTopologyDomain+PolynomialGraph.swift",
+    "sha256": "b9c5726d92e93bbb553f2261aa729aa126ec7ae1fea1798079344e8bd168b1b3"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalCoonsAtlasSnapshotProvider.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7a6f62fd809f-OriginalCoonsAtlasSnapshotProvider.swift",
+    "sha256": "c64e373b690a5503be5e1fcbcbb0cbd09ceb6173672905b8eebcc8f027a5cabf"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealClosureStrategy.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/291b280ca94c-ExactRealClosureStrategy.swift",
+    "sha256": "5debd528a2b17cd3a0d80b29a87219e770f013fccb5afda9fc13e8ce25d20c1f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricGraphRelation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/02326f4f324e-ExactParametricGraphRelation.swift",
+    "sha256": "c47a06e26741e88e147ae406f9aa3fc2731b14a7c32f30514d910c279a9d972e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellProjectionWitness.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/632129560bd6-ExactRealCellProjectionWitness.swift",
+    "sha256": "a07ebcf3560a46b73edc42b94fec8e4492cf754689d610e82b4cdcaeedeffefe"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactCellInvocation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/29ff95fb9cb3-ExactCellInvocation.swift",
+    "sha256": "3633d7df280f41814deedaf4688609406932196f89364b0c96c298b37757113b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalLiftGraphSourceReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/527837b0d320-OriginalLiftGraphSourceReading.swift",
+    "sha256": "666738756f31eeec00b226fe42ac5721cd5badc2ef6abd554dada334ab6c6f8d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalDomainBoundParametricGraph.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/af33c4ca8587-OriginalDomainBoundParametricGraph.swift",
+    "sha256": "aba43d0e38f1ed21a2aa17338a95976bee774309bac2e66330d3e7bcc449d2a8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalLiftPlaneGeometricRelations.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6df22374d164-OriginalLiftPlaneGeometricRelations.swift",
+    "sha256": "07f1fc75aca562f5a823f3803620d9624b6a99e0dfc2a750485602bb9161f7cf"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+Projection.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3a780d506ad8-ExactRealCellDomain+Projection.swift",
+    "sha256": "2fc42d5feee65bfc12d3433aebba31097449d8c345e1d3dcccfbd8038ef7a193"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPeriodicNativeSurfaceLiftGraphs.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4bcc63025132-OriginalPeriodicNativeSurfaceLiftGraphs.swift",
+    "sha256": "2279476eb785a2de32f69210e095364e8313cb7f5d93cdf97596f397464e4d33"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationDomain+Resolution.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ac16979f1ab1-ExactParametricRelationDomain+Resolution.swift",
+    "sha256": "b756ba9f10e5b10782ff9bb6269f9fb352a6d5ecb89787b7dc95d9374bc42352"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellSignInvariant.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/e02a6dbcda54-ExactRealCellSignInvariant.swift",
+    "sha256": "2d7addd9b0448c8241543002f9c062c0052d5ed60a572c714d431113afd08e39"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8bfa494364ca-DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift",
+    "sha256": "6956e8989123c79ad5175e999832a8ad6af9c7f79e4a0b37da0e065439bf2d07"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedPlaneGraph.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ed07e16b9462-OriginalIssuedPlaneGraph.swift",
+    "sha256": "10a4ddb86ebfeb3f1e0d39bdedcac1bb28fa035174f1204bd2a12e70a0c436a2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+AffineIncidence.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/67fdd306e5e2-ExactRealTopologyDomain+AffineIncidence.swift",
+    "sha256": "e425363ead9e1c169cc788bdf7ea05d26e978aa0650bf395a64f270011f9415a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicCalculation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/dbc6d6ec1180-ExactAlgebraicCalculation.swift",
+    "sha256": "1477d453365cb9de2d3680f22e69b8ac5aa78703905743dba50b83cb5a2d9004"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/lift-source/DefaultOriginalPolynomialSurfaceLiftGraphReducer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/1175c43b7bde-DefaultOriginalPolynomialSurfaceLiftGraphReducer.swift",
+    "sha256": "d73d648aa55a72456d3409bf95580f1b8aab8fb4e7b2e8aa9e816ae7bdd84fb4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicExtension.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/f43eff9508b1-ExactAlgebraicExtension.swift",
+    "sha256": "b71eec751b59dc98941f2b6fc063b957672301c63a4a5a81031edc3f23b4dbf8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalPeriodicNativeSurfaceLiftDomainIssuer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/fda6fec41d67-DefaultOriginalPeriodicNativeSurfaceLiftDomainIssuer.swift",
+    "sha256": "cff9c71fed759abea4271c7aaecdf9b19080e02adabf070a54ab048987d74d4c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellSelection.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d8864f3aafeb-ExactRealCellSelection.swift",
+    "sha256": "1a5f15c8f9302468a1ee82706a8cb68e6917357428e564f058e984c011f04a5c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyDomain+RetainedPolynomialGraph.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c99296e0de66-ExactRealTopologyDomain+RetainedPolynomialGraph.swift",
+    "sha256": "c1702837166d77a63f2786a526e669f5ecb3a3cfe7c4a1d4748b541e5e9d68f6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPolylineRetainedAtlasLiftSnapshotProvider.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/2919b579df4d-OriginalPolylineRetainedAtlasLiftSnapshotProvider.swift",
+    "sha256": "bd9cec5d7189ea767ad28332ae29334664ee02cfb48180c9df55b39e61ad6165"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalPlaneGraphCompiling.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ed1e2ce4be42-OriginalPlaneGraphCompiling.swift",
+    "sha256": "32edf4a556ffe6136e72f7c9eea0590dd40b76277cbed4691d2bde51d40d6a83"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricRelationSource.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7df0823b37fd-ExactParametricRelationSource.swift",
+    "sha256": "5555aaf51229cd85aa1dc62f9ffe6aca6b000c5231dee983ddf80371bf8c9a8e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalParametricGraphDomainBinding.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/28d565e56228-OriginalParametricGraphDomainBinding.swift",
+    "sha256": "0fcdb4429ab90746cdfef4d71c3a1aa8e54951e7ba2ffdc62ba87452981ba02e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricGraphRelationResolver+Affine.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/35cbedecc63b-DefaultExactGeometricGraphRelationResolver+Affine.swift",
+    "sha256": "445b54b4d457607d922bbf787248c6ce37bb375b349c026dbcd0a579aaef4075"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalNativeSurfaceFamilySnapshotProvider.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/dbc018b9ef31-OriginalNativeSurfaceFamilySnapshotProvider.swift",
+    "sha256": "6a564a55221b17967c47007649f9e92743a1f28b457d9c64bb3bff757774e79b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c219e7a7bc77-ExactRealCellDomain.swift",
+    "sha256": "900e0435dde61f74dd107fdb4720924614451021d260230f2f4db07d789c47c4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactCellAccess.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6de190e1d310-ExactCellAccess.swift",
+    "sha256": "fbd7b880584164dede21e795dff64306cb405ad02b1cbd2992069f501c32ad9a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactParametricGraphRelationSource.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ec6bf13e9b46-ExactParametricGraphRelationSource.swift",
+    "sha256": "6b9fe24f4ce84457cdc762b7a4840e827593384887de4d19029556cf69150410"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootDomain+LawSource.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/283a6033bc13-ExactRealRootDomain+LawSource.swift",
+    "sha256": "b8977108c267dd28f2c9e7f632f3f26d15d77b671b470c72ff165efda9aefe3f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootQuerying.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d54c445366a9-ExactRealRootQuerying.swift",
+    "sha256": "397d97e6aa8d43495cf7a168deb4e7e5b92d944d313d83ae03d9b1682f9a00e6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealTopologyElimination.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/7e138c51509b-ExactRealTopologyElimination.swift",
+    "sha256": "151baebcd67b24286d0612f6ca0c2e3cdcdac4fd9ea0dea59fb2123567d20ab1"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalIssuedGraphCompiling.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0f4077945685-OriginalIssuedGraphCompiling.swift",
+    "sha256": "bfea708ebd84208d867d52b6d8b9ce4c532c27e606f82b4200ca3d0337a060ee"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricGraphPoint.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/76af7fd229d6-ExactGeometricGraphPoint.swift",
+    "sha256": "b2997b6591e3da71e829b89d277fd68b6800e15ab2af964f0489b631812d89c5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedSurfaceSourceReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/49a2c91a66d5-OriginalRetainedSurfaceSourceReading.swift",
+    "sha256": "cbc417923820d3a470258c2720774c74fb23d2cb587a5a9c5848ae5fa2dfbadd"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricRelation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/dc49689b54ae-ExactGeometricRelation.swift",
+    "sha256": "27794068b3b101f63a2c7d7b42547ecc08659630b3fd008f139e93f1810a20cd"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultExactGeometricRelationResolver.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0976898b6462-DefaultExactGeometricRelationResolver.swift",
+    "sha256": "adbedea536617bf9d0f902a1b41af0cf4ee428fe53515ce55b06197e5168a7b9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalNativePcurveRetainedAtlasLiftSourceReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c4ee648a131b-OriginalNativePcurveRetainedAtlasLiftSourceReading.swift",
+    "sha256": "5d4570e0f7445f95a8431287e35b1c4016a06e2c67cd1bd41e9c096a6da8cdc9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalFiniteRetainedSurfaceLiftGraphs.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/3817a6ba1907-OriginalFiniteRetainedSurfaceLiftGraphs.swift",
+    "sha256": "54ca65ce48d97cfc004e95132018a23d6d9c67d5ea6f65927e873100f9c57461"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricRelationResolving.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/97d29b26fddd-ExactGeometricRelationResolving.swift",
+    "sha256": "0d0ada5e28ee9363e294e255ffd3a299d8419736e35fedd3ce385c462319dcb7"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellQuerying.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/143dd03d7c85-ExactRealCellQuerying.swift",
+    "sha256": "c5ee699e4004c7918d09e6ff6de3168a546cd18c3d241934701ac8edc4d3dc16"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0ea32d025cc6-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+    "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalSurfaceLiftSourceReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/f8e9d50ceb3f-OriginalSurfaceLiftSourceReading.swift",
+    "sha256": "ac27c892ea63805f5902d7307bb94dd5f29498c44baa9ce0b30711480cc44f37"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalLiftPlaneRelations.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0e6ef5e9cbfa-OriginalLiftPlaneRelations.swift",
+    "sha256": "4699a98bbb890cd289489f05c907e1f7599b5558b816e95ced9ccf3b36aa0867"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+SignInvariant.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/a56de867e1d5-ExactRealCellDomain+SignInvariant.swift",
+    "sha256": "affb11117904cd783f4c8d3a98c6713ec835b0ff4f81a365d4d64a01d7869937"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellDomain+RootUnion.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/20d201176737-ExactRealCellDomain+RootUnion.swift",
+    "sha256": "d9c68d4b3caa90d587f1d52945431be9d79855b1a62bc599fe6f9f0f948e10f0"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellStackEvidence.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4a5de95357b2-ExactRealCellStackEvidence.swift",
+    "sha256": "fbf52bb2c66cbc1cae60eee0ef4881a28a91e53bc1897ee6eb021b6354b3ae18"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellView.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/14091a7d2945-ExactRealCellView.swift",
+    "sha256": "774d4ac040fc735f4e0b78ffb7d585bbd3c01c9669dc9ae233f5c364efb4572a"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/DefaultOriginalIssuedGraphParameterRefiner.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/22ce50cdf539-DefaultOriginalIssuedGraphParameterRefiner.swift",
+    "sha256": "1ec554a4ce8d868354860cdb1b9c61efcf9e3daf5fcb139ba80d438383edb7d6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealRootProducing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/2d7367a21edc-ExactRealRootProducing.swift",
+    "sha256": "1e29831f2c0170b60aab3318cf8987f514adb5281611f21a9d6c71271ad3ea2d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealProjectionProducing.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ee74bd30933b-ExactRealProjectionProducing.swift",
+    "sha256": "ff63d0598b38c4d3b69f064bce1dd8b7677b8ae78605f03aed1d9a73e1b1d586"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricRelationFailure.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/d3a02b243339-ExactGeometricRelationFailure.swift",
+    "sha256": "4766edc3a509fd088f226d26d9f495a9f67aae0f3aae28a73b32ed95d7a19961"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalRetainedBSplinePeriodIssuer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/fde7998b6070-OriginalRetainedBSplinePeriodIssuer.swift",
+    "sha256": "7a39cf9c3b0cc9b81875b897dabed03f659d09d849355cbf4c7478320fefc0be"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactAlgebraicExtending.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/27086a04e44f-ExactAlgebraicExtending.swift",
+    "sha256": "40997e8d96944f924116dfe5b74e1fd794f07984bf481342d86d0d16cc74c856"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricGraphRelation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/30b71d2e026a-ExactGeometricGraphRelation.swift",
+    "sha256": "f5634c6830c8a2d4aa525d4744b4899f2bff5d4887bc8cc57dc4f6e32b1a11dc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactGeometricStation.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/98e67bc72f3c-ExactGeometricStation.swift",
+    "sha256": "1dc43f2c715e339fc09945bac55be00b6fb20874a88f8d1cd47a5989ac989ff8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealCellProjectionBinding.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/c71481d602e0-ExactRealCellProjectionBinding.swift",
+    "sha256": "7df3cf1f7c4df0026a3d2da3be237a2e2c12871d7d4234f28adddfbbd59ee8a6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Fixture1.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/739b404c5367-Fixture1.swift",
+    "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/OriginalPeriodicNativeSurfaceLiftDomainSpace.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/4d8243d5cb6a-OriginalPeriodicNativeSurfaceLiftDomainSpace.swift",
+    "sha256": "8ccf19cde91ea42bf5bca0c6580292d99d0887f7c124db3c602f66fbb3ff02c8"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/ExactRealIncidence.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/978cc6b53542-ExactRealIncidence.swift",
+    "sha256": "ad1dfe7176cea7a7b117c3db1fcad6676f683485482a4c63922d08eda73874e1"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/generated/OriginalCoordinateTransportState.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/0cf6644e240f-OriginalCoordinateTransportState.swift",
+    "sha256": "01b594600622059c9751e5f2f847da692e066bd480e5207fb9102d19313156a2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/wasm/df808b188a684bdc8145107b76d00d20/DefaultOriginalFiniteRetainedSurfaceChartPreparer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/ed2f6cb7bdaa-DefaultOriginalFiniteRetainedSurfaceChartPreparer.swift",
+    "sha256": "985f1765d640396320b56ee1d635d0eb9acf6442eaa2c754190464a818a02307"
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "command": [
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/native/proof-ordinary",
+    "scaled-normals"
+  ],
+  "exitCode": 1,
+  "elapsedSeconds": 12.90025187493302,
+  "timeoutSeconds": 120,
+  "productSHA256": "faca59639af47a56656ec9c06db7324197cdf4a685dc037834ac2a27ed0289ca",
+  "logSHA256": "b2246be2a70bee066dd13cee48ff1d59f4d31382e8d5480f3edf9a8742db2e32",
+  "accepted": false
+}

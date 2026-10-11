@@ -1,0 +1,140 @@
+{
+  "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift": {
+    "sha256": "6234ca3fb5144b6070fe4ed674a14e820f449cf3a6cc8d09b2a7dd8e31454aaf",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/CurveSurfaceIntersectionResult.swift"
+    ]
+  },
+  "Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift": {
+    "sha256": "8e8a2891fa01382d38c3b236da0fcd0de02b50dcfa2b757aec59af118a38fdec",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/DefaultCurveSurfaceIntersector+Overlap.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneRelations.swift": {
+    "sha256": "247bff416ac005f2ca01f97dda1b1c955d6552707ea37d0c905ac65b323b70cd",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalLiftPlaneRelations.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedLiftPlanePublicProducer.swift": {
+    "sha256": "1599dcb5093d49d8621fd87b161f827362323c2dd57d647ef022504a9554f3d2",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalRetainedLiftPlanePublicProducer.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedNumericalCurveSurfacePoints.swift": {
+    "sha256": "0201a8bea04bd0a5f3dffebe77fe8329c68d168bf665533fdcb7aacfeebc8af2",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalIssuedNumericalCurveSurfacePoints.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactRelations/DefaultOriginalIssuedGraphCompiler.swift": {
+    "sha256": "0c1d3fcce4fb9b1beaec542709ffccf0b504c828470423b3f8dd8f76b393889a",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/DefaultOriginalIssuedGraphCompiler.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneParameterRestriction.swift": {
+    "sha256": "08fe18d431463e065cff67c18efcc83e0b752dc559786f201aac398181797cc0",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalLiftPlaneParameterRestriction.swift"
+    ]
+  },
+  "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialSurfaceLiftGraphReducing.swift": {
+    "sha256": "ff7fa8964d33abdc2e46a69abf36546bb9f8aeb8c6ff8430c8461d3b05ff63d6",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/lift-source/OriginalPolynomialSurfaceLiftGraphReducing.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedGeometricPublication.swift": {
+    "sha256": "b7d324b9b101fafb670e655cb2c0d9e45eaa8505f40624b9297d1d9ef8124e44",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalIssuedGeometricPublication.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactRelations/DefaultOriginalPlaneGraphCompiler.swift": {
+    "sha256": "c792ab29320dc8ea5c38348b6d710458941f0532e6d01aa58eb9b4c988795160",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/DefaultOriginalPlaneGraphCompiler.swift"
+    ]
+  },
+  "Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalPolynomialSurfaceLiftGraphReducer.swift": {
+    "sha256": "5d4d0cc166fae22998d992810d63d6aa28e309d4dcd505d6f9a18a1bdcfa936f",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/lift-source/DefaultOriginalPolynomialSurfaceLiftGraphReducer.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactRelations/DefaultOriginalLiftPlaneRelationResolver.swift": {
+    "sha256": "208c46b028d60431128d222c1718cc64821ee5653450a228aa641b090cf17dc8",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/DefaultOriginalLiftPlaneRelationResolver.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift": {
+    "sha256": "a74e6183338df39f1a2e2de3aa680574622594a585a9bc52c392bcd91836736e",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedLiftPlaneIntersecting.swift": {
+    "sha256": "3c0b2fa6c0c1cf636e265a75786df97dcad0ff417facfefb293a6552183c0035",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalRetainedLiftPlaneIntersecting.swift"
+    ]
+  },
+  "Sources/CADGeometry/OriginalSourceIssuance/OriginalPolynomialSurfaceLiftGraphReduction.swift": {
+    "sha256": "29951bba7f4b6185e0e2750ee8c6a2f34675eb6ef345b967f666975f6f0ac7ec",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/lift-source/OriginalPolynomialSurfaceLiftGraphReduction.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactRelations/OriginalIssuedPlaneGraph.swift": {
+    "sha256": "9cd33dff547932ef3b9918303d8eb1594f6396d45dd7fdedf0ffe590d77d2305",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalIssuedPlaneGraph.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlaneGeometricRelations.swift": {
+    "sha256": "9d50e1878015e762a9516910f47b68347a42cd32fc2726ee448458ebe14d1523",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalLiftPlaneGeometricRelations.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactRelations/OriginalLiftPlaneRelationResolving.swift": {
+    "sha256": "43e803bd0677a1632dc7ec46109a1f2b14b16c63eff5bd612c3cf033dde81d1a",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalLiftPlaneRelationResolving.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalIssuedExactIntersectionPoint.swift": {
+    "sha256": "8e952ba577b9fa876f4020a4fcee3e8db685fe22c58b21c068b403bc6b7c64c6",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalIssuedExactIntersectionPoint.swift"
+    ]
+  },
+  "Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": {
+    "sha256": "c3f1a1aa7ed427e5e135e53e1b99967f4b98db70a98375df7009c42ea6f78ee4",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/DefaultCurveSurfaceIntersector.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactRelations/OriginalPlaneGraphCompiling.swift": {
+    "sha256": "b67ef43b2a96cad1e00f9ccbab2296ea86cfd2d3368be92df8090df1b1068fb2",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalPlaneGraphCompiling.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlanePointPublisher.swift": {
+    "sha256": "d2ba2e06bf35f2988046f4d39f8fe853128b3e3b21abc8e11e09a28667a1499d",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/OriginalLiftPlanePointPublisher.swift"
+    ]
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/DefaultOriginalIssuedGeometricRelationResolver.swift": {
+    "sha256": "58ee764d4aef928b70c81249efb6fc188319e0b1b4d3a204f76a9ac67fbea2f3",
+    "compiledAs": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-embedded/generated/DefaultOriginalIssuedGeometricRelationResolver.swift"
+    ]
+  }
+}

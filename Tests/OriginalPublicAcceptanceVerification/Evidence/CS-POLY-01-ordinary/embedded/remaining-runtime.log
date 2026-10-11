@@ -1,0 +1,7 @@
+(node:25355) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS ordinary public entry Task cancellation before work/storage
+PASS ordinary public final callback cancellation
+PASS existing prepared GP public regression: exact TUV/XYZ, unchanged exact representation, full exclusion and point limit
+PASS prepared lift/whole-plane public entry: exact twelve incidents and original UV; numerical mapping absent; point cap and cancellation preserve failures
+PASS remaining Embedded public modes under independent Tasks and admissions

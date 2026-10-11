@@ -1,0 +1,29 @@
+[
+  {
+    "stage": "adapter",
+    "command": [
+      "/usr/local/bin/python3",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/adapter.py"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 70.73188379209023
+  },
+  {
+    "stage": "compile",
+    "command": [
+      "/usr/local/bin/python3",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/compile.py"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 186.49964720907155
+  },
+  {
+    "stage": "port",
+    "command": [
+      "/usr/local/bin/python3",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-asan/port.py"
+    ],
+    "exitCode": 0,
+    "elapsedSeconds": 37.13530533295125
+  }
+]

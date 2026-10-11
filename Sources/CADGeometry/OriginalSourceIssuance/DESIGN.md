@@ -2168,3 +2168,31 @@ stations/folded traversals, all chart products and incident sides, exact origina
 XYZ/UV and public point regression, selected domains, owner/field/resource/depth/
 cancel/lifetime counterexamples and four fixed lanes. Unchanged Native finite and
 periodic prepared-polyline lift evidence remains the lower regression authority.
+
+
+### Polynomial lift witness reduction for a retained public query
+
+The lift/whole-plane public cell consumes a sealed reduction of an already issued
+lift graph when each auxiliary coordinate has a retained equality of the form
+`a * auxiliary + p(T) = 0` with exact nonzero constant `a`. The source reducer
+checks the complete one-parameter/two-auxiliary layout and derives both forward
+polynomials from those equations. It substitutes them into every original position
+law and every guard through existing polynomial operations. It retains the original
+graph and the complete forward coordinate map; no inverse, new geometric formula,
+chart sampling, guard deletion or enlarged caller allowance is involved.
+
+| Authority | Guarantee |
+|---|---|
+| Original sealed graph | Original source, chart sides, authored T and full guarded UV relation |
+| Checked equality coefficients | Every admitted original tuple has exactly the supplied UV at that T |
+| Reduced graph plus forward coordinates | Exact two-way correspondence with the original guarded graph, including empty/constant/singleton subsets |
+| Public lift/plane owner | Retains both graph forms and exposes the coordinate correspondence for points and continuous fibers |
+
+An unavailable constant-coefficient elimination is an explicit unsupported
+capability of this reducer. It does not establish empty contact and does not
+silently select another solver. General rational/implicit source obligations stay
+unchanged. The concrete need is the CS-POLY-01 prepared query exhausting its
+existing 8,388,608 work allowance when solving two uniquely determined auxiliary
+UV variables as independent variables. Verification must run that original input
+under the same ceiling, compare all original guards and lifted tuples, and retain
+failure/depth/cancel/lifetime checks before public-cell completion.

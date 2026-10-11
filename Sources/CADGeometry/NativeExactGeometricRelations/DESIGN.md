@@ -115,6 +115,59 @@ once and recheck only concrete findings. Source/domain expansion has its own tes
 
 ## Public Migration Boundary
 
+The prepared retained-lift/plane public overload consumes the sealed complete
+relation from [NativeExactRelations](../NativeExactRelations/DESIGN.md#retained-lift-against-the-whole-original-plane).
+It reuses L6 and the existing exact public point/image/fiber representation.
+The common publication algorithm retains the supplied immutable relation owner,
+maps local parameters through the proved original transport, and publishes all
+auxiliary lifts; it performs no additional decomposition or XYZ deduplication.
+The plane graph's two coordinates already are the original basis UV.
+Source preparation and every later query use explicit independent admissions.
+The prepared port and the ordinary Curve3D selector share this publication.
+[CS-POLY-01 verification](../../../Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-ordinary/VERIFICATION.md)
+binds the frozen ordinary input to both distinct authored T roots and all exact
+incidents. This input does not establish general lift/plane family coverage.
+The changed path requires focused real-source success/exclusion, exact domains,
+wrong-owner/field and resource/cancel/lifetime checks on the fixed target lanes.
+
+### Ordinary retained polyline lift against an axis plane
+
+The ordinary CS selector recognizes a retained rational Coons host with an
+authored Euclidean polyline pcurve and an N+origin plane whose normal has one
+nonzero component. Applicability is decided before spending its allowance. This
+axis-plane capability supplies exact positive basis lengths without a rounded
+square root. Other shape/basis capabilities retain their existing dispatch;
+failure after selection never retries a legacy solver. General plane bases and
+remaining lift families stay mandatory open cells.
+
+The producer uses the existing Native caller allowance for source issuance,
+domain selection, one retained L5/L6 solve and numerical publication. Authored
+curve and plane requests restrict their exact domains; the plane is never given
+a guessed finite support. Original polynomial degree, source depth, chart/cell,
+candidate, storage and cancellation ceilings remain authoritative.
+
+The numerical publisher transfers the retained exact T/plane-UV/XYZ values once
+through the existing original-scalar transporter. An in-place index heap orders
+exact authored TUV tuples, preserving distinct T at equal XYZ. Group ranges map
+each numerical representative to every original exact point ordinal. The sealed
+`OriginalIssuedNumericalCurveSurfacePoints` retains that transfer, grouping and
+geometric owner; the rich result shares its immutable owners and buffers.
+
+Existing persistent scalar isolations refine numerical representatives. Every
+candidate must have a source chart whose original guards hold, and exact
+squared-distance predicates certify source/target/point mismatch and parameter
+error under the same ledger. These numerical predicates do not establish contact.
+Every incident extension must agree on the published angular classification;
+disagreement remains an explicit unsupported germ-selection case until actual
+one-sided germ receipts are consumed. All incidents remain in the exact result.
+
+Ordinary rich results may carry both numerical points and the exact graph owner.
+Their representation is numerical when the sealed numerical mapping is present;
+prepared exact-only results retain their existing representation. Positive
+relations remain available to rich consumers, while discrete array calls reject
+them atomically. The changed ordinary entry and its callback-admitted overload
+must be executed before this selector is counted as public-cell completion.
+
 BSpline caller-ledger and existing Curve3D/Surface3D ordinary/callback-admitted
 intersectionResult/intersections requirements use one L5/L6 relation for the
 finite closed nonperiodic positive-weight single-span Native family. Multi-span
@@ -221,3 +274,14 @@ parameter transport, and XYZ/fiber witnesses through the retained pair. They are
 not XYZ-deduplicated. Positive-dimensional relations remain available through the
 rich receipt and cannot become discrete/empty success. Native/ASAN and matching
 ordinary/Embedded tests exercise actual result constructors and public methods.
+
+
+Checked polynomial lift reductions restore each isolated point's full original
+`(T,U,V)` in `OriginalIssuedExactIntersectionPoint.originalFirstCoordinates`.
+The shared publication algorithm evaluates the source-issued forward laws in the
+retained witness field. Existing unreduced producers keep this optional field
+nil and retain their original auxiliary witnesses as before. Continuous fibers
+retain the same forward laws and original graphs in the lift/plane relation owner.
+Other ordinary lifted-curve and plane capabilities still require explicit
+migration. Neither this prepared capability nor CS-POLY-01 establishes complete
+family coverage; continuous and subnormal-normal public cells remain separate.

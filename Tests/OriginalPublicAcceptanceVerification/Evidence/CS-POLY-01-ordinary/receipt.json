@@ -1,0 +1,43 @@
+{
+  "cell": "CS-POLY-01",
+  "status": "verified-awaiting-main-delivery",
+  "base": "4d2de9b1",
+  "lanes": {
+    "native": {
+      "receiptSHA256": "2ff419dc21f8079e92d14a98d6137957e7f137344f66b98eb7e071240b45b88d",
+      "inputs": 3292,
+      "compiledProductionBodies": 23,
+      "runs": 7,
+      "products": 14,
+      "recordedDeltaInputs": 325
+    },
+    "asan": {
+      "receiptSHA256": "b10f3ca9519587b7f490d6b17d1f7632c6d854f15e03e755589427010797e35b",
+      "inputs": 3292,
+      "compiledProductionBodies": 23,
+      "runs": 7,
+      "products": 14,
+      "recordedDeltaInputs": 325
+    },
+    "wasm": {
+      "receiptSHA256": "50b99626ae34c2e95754a91374e323259474cc7c91b5c2d03af057e12a2693ec",
+      "inputs": 5124,
+      "compiledProductionBodies": 23,
+      "runs": 7,
+      "products": 14,
+      "recordedDeltaInputs": 326
+    },
+    "embedded": {
+      "receiptSHA256": "e1426e1b798b5bf36fe9523c1f2b1d79d5ed1183db99f3f93b2fb0592bcdf99e",
+      "inputs": 5122,
+      "compiledProductionBodies": 23,
+      "runs": 4,
+      "products": 16,
+      "recordedDeltaInputs": 325
+    }
+  },
+  "productionSnapshotSHA256": "933d5888e3a012cb63acfdf923878656e59b45384fe122abdf763f08cfcd183b",
+  "diagnosticScope": "Subnormal saved-normal failure is a separate open cell, not accepted coverage. Continuous overlap and all other mandatory cells remain open.",
+  "reviewSHA256": "15316d37630af8b2ff7e31a788595ee1ba459228e9056af455534cc0757d39b4",
+  "verificationSHA256": "472584deb8ac40e8d630e017b3b84d18f1beb241c39aaef08f92f5be40e49cce"
+}
