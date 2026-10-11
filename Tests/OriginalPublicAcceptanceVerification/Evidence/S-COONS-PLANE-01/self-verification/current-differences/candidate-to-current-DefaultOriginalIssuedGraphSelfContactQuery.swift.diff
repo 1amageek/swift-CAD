@@ -1,0 +1,31 @@
+--- verified-candidate/DefaultOriginalIssuedGraphSelfContactQuery.swift
++++ current-root/DefaultOriginalIssuedGraphSelfContactQuery.swift
+@@ -1,5 +1,5 @@
+ /// Consumes original graph laws and checked M5 views without repeating equality solving.
+-public struct DefaultOriginalIssuedGraphSelfContactQuery<S: Sendable,E: Sendable,C: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphSelfContactQuerying {
++public struct DefaultOriginalIssuedGraphSelfContactQuery<S: Sendable,E: Sendable,C: OriginalIssuedGraphSelfContactRequestReading,F: Sendable,D: OriginalIssuedGraphSelfContactRequestReading>: OriginalIssuedGraphSelfContactQuerying where C.Source == S, D.Source == S {
+     public typealias Source = S
+     public typealias FirstEvidence = E
+     public typealias FirstCover = C
+@@ -20,15 +20,16 @@
+             let anchor = try raw.first.source.chart(0, limits: domainLimits.source, using: &a)
+             guard raw.second.source.owns(anchor) else { throw OriginalDomainIdentityFailure.foreignOwner }
+             let reference = raw.first.graphs.first?.original.request ?? raw.second.graphs.first?.original.request
++                ?? raw.first.coverage.selfContactRequest
+             func validate(_ scope: OriginalParameterSelection<S,OriginalExactScalarDomain>) throws {
+                 guard scope.arity == 2, scope.frame.source.owns(anchor) else { throw OriginalDomainIdentityFailure.foreignOwner }
+-                if let reference {
+-                    guard scope.frame.coordinateSemantics.elementsEqual(reference.frame.coordinateSemantics) else {
+-                        throw OriginalDomainIdentityFailure.incompatibleCoordinateSemantics
+-                    }
+-                    _ = try reference.frame.scalarField.sign(of: scope.frame.scalarField.integer(0, using: &a), using: &a)
++                guard scope.frame.coordinateSemantics.elementsEqual(reference.frame.coordinateSemantics) else {
++                    throw OriginalDomainIdentityFailure.incompatibleCoordinateSemantics
+                 }
++                _ = try reference.frame.scalarField.sign(of: scope.frame.scalarField.integer(0, using: &a), using: &a)
+             }
++            if raw.first.graphs.isEmpty { try validate(raw.first.coverage.selfContactRequest) }
++            if raw.second.graphs.isEmpty { try validate(raw.second.coverage.selfContactRequest) }
+             for graph in raw.first.graphs { try a.consumeWork(1); try validate(graph.original.request) }
+             for graph in raw.second.graphs { try a.consumeWork(1); try validate(graph.original.request) }
+             let issuer = DefaultOriginalParameterIdentityIssuer<S,OriginalExactScalarDomain>()

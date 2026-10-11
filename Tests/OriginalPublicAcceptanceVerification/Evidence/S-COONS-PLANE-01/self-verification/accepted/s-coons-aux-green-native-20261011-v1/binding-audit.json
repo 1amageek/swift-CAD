@@ -1,0 +1,22 @@
+{
+  "scope": "auxiliary-candidate",
+  "state": "historical-scoped-success",
+  "receiptSHA256": "402afc1aa4247e25946f36606c058c2ccc6edb9081f7f0e7c502344940551c5a",
+  "entriesChecked": 3362,
+  "currentDifferences": [
+    {
+      "section": "freshProduction",
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContactQuerying.swift",
+      "expected": "59b202a6e0bca10684e7d266c77a880c26a5f37158412a9acb9ebb1bdbf7fe5d",
+      "current": "763320f9ea18806fb215d9912c2df552d616d0ed81c9c6c03b31627f4dce1590"
+    },
+    {
+      "section": "freshProduction",
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalIssuedGraphSelfContactQuery.swift",
+      "expected": "bc82cc8b885696ccb3b49dc473c91e6a28ff89d5c131feeb93ec79dfac734b84",
+      "current": "efb733e08bf2760e56f3b4ed8f173dd8c2446153fba80b402c339ed86c038557"
+    }
+  ],
+  "runLogsBound": true,
+  "currentSourceAcceptance": false
+}

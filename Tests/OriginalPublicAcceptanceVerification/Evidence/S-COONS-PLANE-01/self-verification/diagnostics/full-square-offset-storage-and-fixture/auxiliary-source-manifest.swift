@@ -1,0 +1,43 @@
+// Verification-only current-source manifest for the actual Native offset placement control.
+// The driver checks each source hash and assembles these unmodified files with its admitted import prefix.
+import CADCore
+@testable import CADGeometry
+@testable import PolylineLiftAdapters
+@testable import PublicLiftPlane
+import struct PolylineLiftAdapters.OriginalFiniteBSplineCharts
+import struct PolylineLiftAdapters.OriginalBSplineSurfaceSnapshotProvider
+
+// Source: Sources/CADGeometry/OriginalSourceIssuance/OriginalOffsetSourceReading.swift
+// SHA256: 42670c44b4a126652b744b986d2304d48a5885d08647d6a2eea2b367d929cd07
+// Source: Sources/CADGeometry/OriginalSourceIssuance/OriginalOffsetSnapshot.swift
+// SHA256: e8d3398098e9896d8dde1495a066daf7d5a490254c0619338d1c82e2e15fdddd
+// Source: Sources/CADGeometry/OriginalSourceIssuance/OriginalOffsetSnapshotProvider.swift
+// SHA256: aaa1121e5d4d51e8427324d7b9803cf67e3a7b0951014f132c2a26e73181ab5a
+// Source: Sources/CADGeometry/OriginalSourceIssuance/OriginalNativeSurfaceFamilySnapshotProvider.swift
+// SHA256: b2d72b838f70785bf55f24f874991c904aa4188ff2bd41711da8f392f271a010
+// Source: Sources/CADGeometry/OriginalSourceIssuance/OriginalOffsetLawIssuing.swift
+// SHA256: 9983296758f094097be147f23a592dc3e53bda0f9609f23358899e5f5a069717
+// Source: Sources/CADGeometry/OriginalSourceIssuance/OriginalOffsetLawReceipt.swift
+// SHA256: ce46139bc9ef071550e87ed8fd15597684fafb63a2cb8f20c29a79f28abd4338
+// Source: Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalOffsetLawIssuer.swift
+// SHA256: b107181e438fb81b91566de133f95159494f8624a6ed9cbb6444736390b844bf
+// Source: Sources/CADGeometry/OriginalSourceIssuance/OriginalFiniteNativeOffsetLawFamily.swift
+// SHA256: e1f2228a9111395acc31ce8654264fe71decc787e6160673ab4b68c4d1901be5
+// Source: Sources/CADGeometry/OriginalSourceIssuance/OriginalFiniteNativeOffsetLawPreparing.swift
+// SHA256: 705b2be1d86ed1627b2f64f8b0ccc28514cbb74b553479085da8dcfc26d8605d
+// Source: Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalFiniteNativeOffsetLawPreparer.swift
+// SHA256: baf654eba55b763de1e650a6176539468879d36052ea017f3d1465c9a5088dd8
+// Source: Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalOffsetGraphIssuer.swift
+// SHA256: 97377284379ba4f5281bf7d6806f15cb6ae77391fae8db45fa2638f3d7db3065
+// Source: Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/OriginalNativeOffsetChartOccurrence.swift
+// SHA256: a55ac028cbccacf07c685532584e38a99e883fe566c1c781176a613207b6fc46
+// Source: Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/OriginalNativeOffsetDomainCover.swift
+// SHA256: e370fc775058e01fb34602d8d82ef9dc6ef024cfb98bbd682b83b5fabb71a108
+// Source: Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/OriginalNativeOffsetDomainIssuing.swift
+// SHA256: c6ac085e515de559c60043be7fab3e1bb845e2b3455c16eeced59d0f6076f181
+// Source: Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DefaultOriginalNativeOffsetDomainIssuer.swift
+// SHA256: 3e99d9c8274b996e3a3935cb7b31f68ee4933adb21375f67e2f3e9324fa3e863
+// Source: Sources/CADGeometry/NativeExactRelations/DefaultOriginalOffsetGraphFamilyPreparer.swift
+// SHA256: 5199abd4145a13d5dc4fa863ee23a02db5e75b14ddd21d1f48e67d40d3f839c8
+// Source: Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/OriginalGuardedChartFamilyQuerying.swift
+// SHA256: d8e8e96b50e4235ce10f244e463d58236f9152ae58c07eba0992514bf3c7cc4f

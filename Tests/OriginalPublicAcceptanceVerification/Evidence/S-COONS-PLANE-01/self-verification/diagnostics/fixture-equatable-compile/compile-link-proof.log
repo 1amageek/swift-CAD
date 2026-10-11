@@ -1,0 +1,13 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-native-20261011-v1/CoonsGraphSelfContactAcceptance.swift:182:65: error: referencing operator function '==' on 'Equatable' requires that 'ExactRealCellView<OriginalExactScalarDomain>' conform to 'Equatable'
+180 |             let refined = result.refinements[ordinal], pullback = refined.pullback
+181 |             try PolylineLiftProof.require(refined.pairOrdinal == ordinal && pullback.coordinateMap == [0,1,2,3])
+182 |             try PolylineLiftProof.require(pullback.source.cells == raw.pairs[ordinal].relation.projection.original.cells)
+    |                                                                 `- error: referencing operator function '==' on 'Equatable' requires that 'ExactRealCellView<OriginalExactScalarDomain>' conform to 'Equatable'
+183 |             try PolylineLiftProof.require(pullback.region.included.allSatisfy { !$0 })
+184 |             for sourceOrdinal in pullback.sourceCellOrdinals { try PolylineLiftProof.require(sourceOrdinal == -1) }
+
+Swift.Equatable:1:17: note: where 'Self' = 'ExactRealCellView<OriginalExactScalarDomain>'
+1 | public protocol Equatable : ~Copyable, ~Escapable {
+  |                 `- note: where 'Self' = 'ExactRealCellView<OriginalExactScalarDomain>'
+2 |     static func == (lhs: borrowing Self, rhs: borrowing Self) -> Bool
+3 | }

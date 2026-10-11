@@ -1,0 +1,90 @@
+{
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-wasm-20261011-v1/OriginalIssuedGraphSelfContactQuerying.swift": {
+    "sha256": "315fff1e3843163f11a08eef40741942d02f683ace593eea0c7c9126e9c2dc4c",
+    "saved": "compiler-inputs/315fff1e3843163f-OriginalIssuedGraphSelfContactQuerying.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-wasm-20261011-v1/OriginalIssuedGraphSelfContacts.swift": {
+    "sha256": "fd726732d2162b6d015880d3bcd56b1c5ed82a254313e79497753a1aeba73e68",
+    "saved": "compiler-inputs/fd726732d2162b6d-OriginalIssuedGraphSelfContacts.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-wasm-20261011-v1/DefaultOriginalIssuedGraphSelfContactQuery.swift": {
+    "sha256": "03969b1bc564993c96d378679d8106bc353d5e7c84a3f8b084c397860ab68590",
+    "saved": "compiler-inputs/03969b1bc564993c-DefaultOriginalIssuedGraphSelfContactQuery.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-wasm-20261011-v1/OriginalIssuedGraphSelfIdentityCompiler.swift": {
+    "sha256": "bf8de511e6ddbc79a61aa6521051828a0c4f21703faf9be3adbed336ce428cfd",
+    "saved": "compiler-inputs/bf8de511e6ddbc79-OriginalIssuedGraphSelfIdentityCompiler.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-wasm-20261011-v1/Support.swift": {
+    "sha256": "c0d274ddabe084977c658d319344ef82d68f4aa41bcc755d9184930c087422b6",
+    "saved": "compiler-inputs/c0d274ddabe08497-Support.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-wasm-20261011-v1/CoonsGraphSelfContactAcceptance.swift": {
+    "sha256": "cbaa9390a7777f3cfeb93b35c07c66c6ffbebbefebaeb3ec0899cad05e2f67e9",
+    "saved": "compiler-inputs/cbaa9390a7777f3c-CoonsGraphSelfContactAcceptance.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Fixture0.swift": {
+    "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447",
+    "saved": "compiler-inputs/416a142e005f2eab-Fixture0.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Fixture1.swift": {
+    "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c",
+    "saved": "compiler-inputs/368a7d865f8dc0df-Fixture1.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-OriginalParametricGraphIssuing.swift": {
+    "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2",
+    "saved": "compiler-inputs/2cd7caf3b0cb54d1-Regression-OriginalParametricGraphIssuing.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+    "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2",
+    "saved": "compiler-inputs/6f79def02d8efedb-Regression-DefaultOriginalRationalGraphIssuer.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-wasm/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+    "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565",
+    "saved": "compiler-inputs/0adcfd8ed15ce460-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContactQuerying.swift": {
+    "sha256": "59b202a6e0bca10684e7d266c77a880c26a5f37158412a9acb9ebb1bdbf7fe5d",
+    "saved": "compiler-inputs/59b202a6e0bca106-OriginalIssuedGraphSelfContactQuerying.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContacts.swift": {
+    "sha256": "164c20bb7dd95fd0eebbdde36899886f49993fc79c109cdfc51c5609500a1b77",
+    "saved": "compiler-inputs/164c20bb7dd95fd0-OriginalIssuedGraphSelfContacts.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalIssuedGraphSelfContactQuery.swift": {
+    "sha256": "bc82cc8b885696ccb3b49dc473c91e6a28ff89d5c131feeb93ec79dfac734b84",
+    "saved": "compiler-inputs/bc82cc8b885696cc-DefaultOriginalIssuedGraphSelfContactQuery.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfIdentityCompiler.swift": {
+    "sha256": "da28f17a55f5ecee5c938eea9134149648cd0292184a3ea4c08f7e2467f44ee4",
+    "saved": "compiler-inputs/da28f17a55f5ecee-OriginalIssuedGraphSelfIdentityCompiler.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/DefaultOriginalParameterIdentityIssuer.swift": {
+    "sha256": "71589c394b50fd0d564e0639e65c96e22bed5345fcd36146be4137713ec70efa",
+    "saved": "compiler-inputs/71589c394b50fd0d-DefaultOriginalParameterIdentityIssuer.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalParameterIdentity.swift": {
+    "sha256": "b53ca18b3b033871081632e228a20c3ee469994c1444f5b3c4548577164c9ede",
+    "saved": "compiler-inputs/b53ca18b3b033871-OriginalParameterIdentity.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalDomainIdentity/OriginalParameterIdentity/OriginalParameterIdentityRelation.swift": {
+    "sha256": "f8b757c16f806ee25c91a6d9c38a0a156ac37f09591ba1d9cc24fb8f7b5a87a1",
+    "saved": "compiler-inputs/f8b757c16f806ee2-OriginalParameterIdentityRelation.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/PreparedGraphPublicationRegression.swift": {
+    "sha256": "5182119af065707301931a2beddbbafaf94975a870ac35bd41f3fee26618d2eb",
+    "saved": "compiler-inputs/5182119af0657073-PreparedGraphPublicationRegression.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/PreparedRetainedLiftPlanePortProbe.swift": {
+    "sha256": "e24c289d81b15ce9afb561e7391d10e44f85cbe41fd44515cecf89b93ea4458a",
+    "saved": "compiler-inputs/e24c289d81b15ce9-PreparedRetainedLiftPlanePortProbe.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsGraphSelfContactProbe.swift": {
+    "sha256": "43dc459ff0eeff8334b7b4deac195c014effb3768914c76f08179a66f97f0924",
+    "saved": "compiler-inputs/43dc459ff0eeff83-CoonsGraphSelfContactProbe.swift"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsGraphSelfContactAcceptance.swift": {
+    "sha256": "25619779b7b8327e9b824628b53e20606a9de5bb7a6fae03131e9a4b20cdc484",
+    "saved": "compiler-inputs/25619779b7b8327e-CoonsGraphSelfContactAcceptance.swift"
+  }
+}

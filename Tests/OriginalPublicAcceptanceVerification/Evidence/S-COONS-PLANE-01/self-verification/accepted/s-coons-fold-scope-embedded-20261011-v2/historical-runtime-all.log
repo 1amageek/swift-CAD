@@ -1,0 +1,14 @@
+(node:69403) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+RUN S-COONS-PLANE-01 bounded Native fold/scoped-collapse producer
+PASS S-COONS-PLANE-01 Native source law and authored UV verified before self solving
+RUN S-COONS-PLANE-01 public residual query
+PASS S-COONS-PLANE-01 independent whole-cell folded oracle all4 pairs
+PASS S-COONS-PLANE-01 public membership agrees at fold/domain/open-scope boundaries
+PASS S-COONS-PLANE-01 bounded Native group complete
+RUN S-COONS-PLANE-01 bounded Native fold/scoped-collapse producer
+PASS S-COONS-PLANE-01 Native source law and authored UV verified before self solving
+RUN S-COONS-PLANE-01 public residual query
+PASS S-COONS-PLANE-01 independent whole-cell scoped-collapse oracle
+PASS S-COONS-PLANE-01 public membership agrees at fold/domain/open-scope boundaries
+PASS S-COONS-PLANE-01 bounded Native group complete

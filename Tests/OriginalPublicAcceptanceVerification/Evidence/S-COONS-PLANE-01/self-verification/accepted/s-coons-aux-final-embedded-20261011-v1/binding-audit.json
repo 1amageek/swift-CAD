@@ -1,0 +1,9 @@
+{
+  "scope": "final-source-auxiliary-singleton",
+  "state": "scoped-changed-path-success",
+  "receiptSHA256": "c8c81d5af8ce3dbbe01ace75408948ca88dada3d422fc583a1b6822c73a59250",
+  "entriesChecked": 5208,
+  "currentDifferences": [],
+  "runLogsBound": true,
+  "currentSourceAcceptance": "only this recorded scope; no cell/review/delivery closure"
+}

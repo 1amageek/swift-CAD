@@ -87,3 +87,73 @@ field supplies DI membership, inverse transport and retained refinement lookup.
 The folded u=+/-sqrt(2)/2 fixture refutes treating new algebraic coordinates as
 foreign ancestor-field values; unrelated fields and insufficient query depth must
 still fail. Retained identity scope and original pair ordinals are unchanged.
+
+
+## Issued-graph residual self-contact port
+
+`OriginalIssuedGraphSelfContactQuerying` and its default implementation consume
+complete `OriginalIssuedGraphRelations<S,E,C,S,F,D>` of one immutable source.
+They return `OriginalIssuedGraphSelfContacts`, retaining the raw relation, checked
+identity receipts and every `OriginalIssuedGraphParameterRefinement` ordinal.
+The finite S-COONS-PLANE-01 acceptance contract is owned by
+[Original Domain Coverage](../OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md#s-coons-plane-01-complete-issued-graph-self-product).
+This additive port does not certify embedding or migrate interval callers.
+
+```text
+complete issued graph product + scoped original-parameter identity receipts
+  -> source/field/role/depth admission
+  -> authored-coordinate diagonal on retained original request scopes
+  -> exact forward rational UV laws in each actual lifted variable placement
+  -> NOT(scope AND proved relation), with nonzero-denominator guards
+  -> retained L5 whole-cell refinement for each original pair ordinal
+  -> immutable residual parameter result; later lifted-tuple membership queries
+```
+
+The selected graph parameter roles must be two original surface coordinates;
+auxiliary witnesses keep their actual placement and do not change UV dimension.
+Import every retained forward-law term in the ordered local-parameter ring,
+using the first parameterCount entries of the compiled graph placement, as
+DefaultOriginalIssuedGraphCompiler does. Auxiliary coordinates keep their full
+lifted placement and raw guards; they are not extra axes of the authored UV
+transport polynomial. Never infer an inverse, recover UV from XYZ, assume four
+lifted variables or re-solve source equality. Rational scope inequalities multiply by the denominator with its sign
+accounted for; identities require all denominators nonzero. Exact affine identity
+constraints use cross multiplication. Complete-product constraints apply only
+inside their two proved scopes. Missing structural identity leaves contact selected.
+
+Automatically issue the original-coordinate diagonal using each graph's retained
+request frame, through the existing checked M5 issuer. Verify source, coordinate
+semantics and exact scalar-field agreement for every graph and supplied identity,
+including empty scopes. Graph requests remain scoped; no global identity is inferred
+from local chart membership. For an empty complete family, still admit raw proofs
+and supplied identities before atomic empty publication. Every nonempty graph pair
+uses its own diagonal receipt; differing request frames therefore cannot widen scope.
+
+`OriginalIssuedGraphSelfContactRequestReading` exposes the retained cover request
+as a protocol requirement. Rational issued covers and guarded Native-offset covers
+return their existing immutable request owner. When a family has no graph, validate
+this request against the source anchor and reference frame; when both families are
+empty, the first cover supplies that reference. Supplied identities therefore keep
+the same field and coordinate-semantics checks even without a graph witness.
+Nonempty-family admission remains unchanged. This consumer requirement does not
+alter source issuing, graph-family storage or the retained L5 relation contract.
+
+All new arrays, imported terms/powers, predicate instructions and result owners
+are caller-accounted; the same noncopyable admission and lower cell/topology caps
+remain binding. Compile/query scratch is invocation-local; result backing is
+immutable Sendable on Native/WASM/Embedded without platform-conditioned storage.
+L4 refinement and membership retain their checked raw-cell pullbacks. A membership
+query takes a raw pair ordinal and the full lifted tuple, preserving all witnesses.
+It validates ordinal, field, dimensionality and proof depth even for empty results.
+Entry, processing, final empty publication and subsequent query cancellation are
+observable failures. Foreign source/field, wrong roles, exhausted limits and lower
+failures propagate `NativeExactRelationFailure`; no partial result is published.
+
+Verification owns the actual original Coons all16-pair diagonal oracle, complete
+empty residual, retained raw/refined ordinals, nonstructural folded and auxiliary
+controls, scoped/foreign-owner/field refusal, exact and one-less caller resources,
+depth/count boundaries, entry/mid/final/query cancellation and detached/COW reader
+lifetime on fixed Native/ASAN/ordinary-WASM/Embedded changed-path assemblies.
+Receipt-matched existing source/DI/M5/L5/L4 proofs are reused. Changes to the forward
+law, M5 view or refinement contracts require only affected upstream checks. Existing
+Native and interval paths remain live; their completion is not inferred here.

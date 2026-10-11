@@ -1,0 +1,135 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:312:22: error: extra arguments at positions #3, #4, #5 in call
+310 |         for (index, law) in laws.enumerated() {
+311 |             guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+312 |                 print("FAIL folded independent full-cell sign invariant", first, second, residual, index)
+    |                      `- error: extra arguments at positions #3, #4, #5 in call
+313 |                 throw ExactScalarFailure.invalidEvidence
+314 |             }
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:312:75: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+310 |         for (index, law) in laws.enumerated() {
+311 |             guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+312 |                 print("FAIL folded independent full-cell sign invariant", first, second, residual, index)
+    |                                                                           `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+313 |                 throw ExactScalarFailure.invalidEvidence
+314 |             }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:381:14: error: extra arguments at positions #3, #4, #5, #6, #7, #8 in call
+379 |         }
+380 |         try PolylineLiftProof.require(seen.count == 4 && emptyPairs == 2 && retainedCells > 0)
+381 |         print("PASS S-COONS-PLANE-01 independent whole-cell folded oracle all4 pairs; raw", rawCells,
+    |              `- error: extra arguments at positions #3, #4, #5, #6, #7, #8 in call
+382 |             "refined", refinedCells, "retained", retainedCells, "emptySameChartPairs", emptyPairs)
+383 |         fflush(nil)
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:381:93: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+379 |         }
+380 |         try PolylineLiftProof.require(seen.count == 4 && emptyPairs == 2 && retainedCells > 0)
+381 |         print("PASS S-COONS-PLANE-01 independent whole-cell folded oracle all4 pairs; raw", rawCells,
+    |                                                                                             `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+382 |             "refined", refinedCells, "retained", retainedCells, "emptySameChartPairs", emptyPairs)
+383 |         fflush(nil)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:422:22: error: missing argument label 'terminator:' in call
+420 |         for (index, law) in laws.enumerated() {
+421 |             guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+422 |                 print("FAIL independent full-cell oracle has no sign invariant", index)
+    |                      `- error: missing argument label 'terminator:' in call
+423 |                 throw ExactScalarFailure.invalidEvidence
+424 |             }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:422:82: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+420 |         for (index, law) in laws.enumerated() {
+421 |             guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+422 |                 print("FAIL independent full-cell oracle has no sign invariant", index)
+    |                                                                                  `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+423 |                 throw ExactScalarFailure.invalidEvidence
+424 |             }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:470:14: error: extra arguments at positions #3, #4, #5, #6, #7, #8 in call
+468 |         if collapsed { try PolylineLiftProof.require(scopedOffDiagonal > 0 && openBoundaryResidual > 0) }
+469 |         else { try PolylineLiftProof.require(negativeFold > 0 && positiveFold > 0) }
+470 |         print("PASS S-COONS-PLANE-01 independent whole-cell oracle", collapsed ? "collapse" : "folded",
+    |              `- error: extra arguments at positions #3, #4, #5, #6, #7, #8 in call
+471 |             "checked", checked, "included", included, "excluded", excluded)
+472 |         fflush(nil)
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:312:22: error: extra arguments at positions #3, #4, #5 in call
+310 |         for (index, law) in laws.enumerated() {
+311 |             guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+312 |                 print("FAIL folded independent full-cell sign invariant", first, second, residual, index)
+    |                      `- error: extra arguments at positions #3, #4, #5 in call
+313 |                 throw ExactScalarFailure.invalidEvidence
+314 |             }
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:312:75: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+310 |         for (index, law) in laws.enumerated() {
+311 |             guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+312 |                 print("FAIL folded independent full-cell sign invariant", first, second, residual, index)
+    |                                                                           `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+313 |                 throw ExactScalarFailure.invalidEvidence
+314 |             }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:381:14: error: extra arguments at positions #3, #4, #5, #6, #7, #8 in call
+379 |         }
+380 |         try PolylineLiftProof.require(seen.count == 4 && emptyPairs == 2 && retainedCells > 0)
+381 |         print("PASS S-COONS-PLANE-01 independent whole-cell folded oracle all4 pairs; raw", rawCells,
+    |              `- error: extra arguments at positions #3, #4, #5, #6, #7, #8 in call
+382 |             "refined", refinedCells, "retained", retainedCells, "emptySameChartPairs", emptyPairs)
+383 |         fflush(nil)
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:381:93: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+379 |         }
+380 |         try PolylineLiftProof.require(seen.count == 4 && emptyPairs == 2 && retainedCells > 0)
+381 |         print("PASS S-COONS-PLANE-01 independent whole-cell folded oracle all4 pairs; raw", rawCells,
+    |                                                                                             `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+382 |             "refined", refinedCells, "retained", retainedCells, "emptySameChartPairs", emptyPairs)
+383 |         fflush(nil)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:422:22: error: missing argument label 'terminator:' in call
+420 |         for (index, law) in laws.enumerated() {
+421 |             guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+422 |                 print("FAIL independent full-cell oracle has no sign invariant", index)
+    |                      `- error: missing argument label 'terminator:' in call
+423 |                 throw ExactScalarFailure.invalidEvidence
+424 |             }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:422:82: error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+420 |         for (index, law) in laws.enumerated() {
+421 |             guard let invariant = try cells.signInvariant(for: law, in: partition, using: &a) else {
+422 |                 print("FAIL independent full-cell oracle has no sign invariant", index)
+    |                                                                                  `- error: cannot convert value of type 'Int' to expected argument type 'StaticString'
+423 |                 throw ExactScalarFailure.invalidEvidence
+424 |             }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-fold-scope-embedded-20261011-v1/CoonsGraphSelfContactFoldScope.swift:470:14: error: extra arguments at positions #3, #4, #5, #6, #7, #8 in call
+468 |         if collapsed { try PolylineLiftProof.require(scopedOffDiagonal > 0 && openBoundaryResidual > 0) }
+469 |         else { try PolylineLiftProof.require(negativeFold > 0 && positiveFold > 0) }
+470 |         print("PASS S-COONS-PLANE-01 independent whole-cell oracle", collapsed ? "collapse" : "folded",
+    |              `- error: extra arguments at positions #3, #4, #5, #6, #7, #8 in call
+471 |             "checked", checked, "included", included, "excluded", excluded)
+472 |         fflush(nil)
+
+Swift.print:1:13: note: 'print(_:terminator:)' declared here
+1 | public func print(_ string: StaticString, terminator: StaticString = "\n")
+  |             `- note: 'print(_:terminator:)' declared here

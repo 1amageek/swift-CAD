@@ -1,0 +1,24 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliary.swift:164:24: error: cannot find type 'OriginalOffsetSnapshot' in scope
+162 | @main struct CoonsGraphSelfContactAuxiliary {
+163 |     typealias Base = OriginalExactScalarDomain
+164 |     typealias Source = OriginalOffsetSnapshot<BSplineSurface3D>
+    |                        `- error: cannot find type 'OriginalOffsetSnapshot' in scope
+165 |     typealias Evidence = OriginalOffsetLawReceipt<Source, OriginalBSplineChartSelection, Base>
+166 |     typealias Cover = OriginalNativeOffsetDomainCover<Source>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliary.swift:165:26: error: cannot find type 'OriginalOffsetLawReceipt' in scope
+163 |     typealias Base = OriginalExactScalarDomain
+164 |     typealias Source = OriginalOffsetSnapshot<BSplineSurface3D>
+165 |     typealias Evidence = OriginalOffsetLawReceipt<Source, OriginalBSplineChartSelection, Base>
+    |                          `- error: cannot find type 'OriginalOffsetLawReceipt' in scope
+166 |     typealias Cover = OriginalNativeOffsetDomainCover<Source>
+167 |     typealias Raw = PublicLiftPlane.OriginalIssuedGraphRelations<Source, Evidence, Cover, Source, Evidence, Cover>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliary.swift:166:23: error: cannot find type 'OriginalNativeOffsetDomainCover' in scope
+164 |     typealias Source = OriginalOffsetSnapshot<BSplineSurface3D>
+165 |     typealias Evidence = OriginalOffsetLawReceipt<Source, OriginalBSplineChartSelection, Base>
+166 |     typealias Cover = OriginalNativeOffsetDomainCover<Source>
+    |                       `- error: cannot find type 'OriginalNativeOffsetDomainCover' in scope
+167 |     typealias Raw = PublicLiftPlane.OriginalIssuedGraphRelations<Source, Evidence, Cover, Source, Evidence, Cover>
+168 |     typealias Result = OriginalIssuedGraphSelfContacts<Source, Evidence, Cover, Evidence, Cover>

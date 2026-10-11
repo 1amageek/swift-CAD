@@ -1,0 +1,6 @@
+RUN S-COONS-PLANE-01 bounded Native fold/scoped-collapse producer
+PASS S-COONS-PLANE-01 Native source law and authored UV verified before self solving
+RUN S-COONS-PLANE-01 public residual query
+PASS S-COONS-PLANE-01 independent whole-cell oracle collapse checked 1595 included 1544 excluded 51
+PASS S-COONS-PLANE-01 public membership agrees at fold/domain/open-scope boundaries
+PASS S-COONS-PLANE-01 bounded Native group complete

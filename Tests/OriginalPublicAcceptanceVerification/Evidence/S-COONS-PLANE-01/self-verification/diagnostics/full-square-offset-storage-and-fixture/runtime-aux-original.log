@@ -1,0 +1,1 @@
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: PublicLiftPlane.NativeExactRelationFailure.relation(PublicLiftPlane.ExactParametricRelationFailure.cell(PublicLiftPlane.ExactRealCellFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.storage))))

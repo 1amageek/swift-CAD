@@ -1,0 +1,46 @@
+{
+  "state": "complete-parent-reported-focused-pass",
+  "reportOrigin": "Parent/root message in this delegated task; packaging agent performed no new review",
+  "scope": "Single F1 finding confirmation after the one aggregate review; four final F1 empty-family receipts only",
+  "result": "PASS",
+  "checks": {
+    "receiptState": "changed-path-verified in all four lanes",
+    "checkEntries": 17079,
+    "uniqueFiles": 11165,
+    "fileAndRunLogHashMismatches": 0,
+    "compileLinkRuntimeExitCodes": 0,
+    "currentRootSixBodyHashesMatch": true
+  },
+  "reviewCycles": {
+    "aggregate": 1,
+    "F1TargetedConfirmation": 1
+  },
+  "sourceSHA256": {
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContactQuerying.swift": {
+      "sha256": "763320f9ea18806fb215d9912c2df552d616d0ed81c9c6c03b31627f4dce1590",
+      "saved": "compiler-inputs/763320f9ea18806f-OriginalIssuedGraphSelfContactQuerying.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContacts.swift": {
+      "sha256": "164c20bb7dd95fd0eebbdde36899886f49993fc79c109cdfc51c5609500a1b77",
+      "saved": "compiler-inputs/164c20bb7dd95fd0-OriginalIssuedGraphSelfContacts.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalIssuedGraphSelfContactQuery.swift": {
+      "sha256": "efb733e08bf2760e56f3b4ed8f173dd8c2446153fba80b402c339ed86c038557",
+      "saved": "compiler-inputs/efb733e08bf2760e-DefaultOriginalIssuedGraphSelfContactQuery.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfIdentityCompiler.swift": {
+      "sha256": "f723194c317b21dc3b0cf7ba41f464dab1ebdebdcf538254f17f4d3b1bdfd4b9",
+      "saved": "compiler-inputs/f723194c317b21dc-OriginalIssuedGraphSelfIdentityCompiler.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContactRequestReading.swift": {
+      "sha256": "5bd0ee3e56d3afa10b978b7254e46f9ebdc524beb8988dfc15231cf73786c25e",
+      "saved": "compiler-inputs/5bd0ee3e56d3afa1-OriginalIssuedGraphSelfContactRequestReading.swift"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedDomainCover+SelfContactRequest.swift": {
+      "sha256": "bac7c6efe6983ea854d5dbb4831c503bef57aeb282de98f17ac427f75b807372",
+      "saved": "compiler-inputs/bac7c6efe6983ea8-OriginalIssuedDomainCover+SelfContactRequest.swift"
+    }
+  },
+  "cellClosure": "verification/review evidence ready; commit and delivery pending",
+  "latestMainDelivery": null
+}

@@ -1,0 +1,3 @@
+RUN S-COONS-PLANE-01 bounded Native fold/scoped-collapse producer
+PASS S-COONS-PLANE-01 Native source law and authored UV verified before self solving
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: PublicLiftPlane.NativeExactRelationFailure.relation(PublicLiftPlane.ExactParametricRelationFailure.topology(PublicLiftPlane.ExactRealTopologyFailure.cell(PublicLiftPlane.ExactRealCellFailure.root(PublicLiftPlane.ExactRealRootFailure.scalar(CADGeometry.ExactScalarFailure.resourceLimit(CADGeometry.ExactResource.storage))))))

@@ -1,0 +1,14 @@
+--- verified-candidate/OriginalIssuedGraphSelfContactQuerying.swift
++++ current-root/OriginalIssuedGraphSelfContactQuerying.swift
+@@ -2,9 +2,9 @@
+ public protocol OriginalIssuedGraphSelfContactQuerying: Sendable {
+     associatedtype Source: Sendable
+     associatedtype FirstEvidence: Sendable
+-    associatedtype FirstCover: Sendable
++    associatedtype FirstCover: OriginalIssuedGraphSelfContactRequestReading where FirstCover.Source == Source
+     associatedtype SecondEvidence: Sendable
+-    associatedtype SecondCover: Sendable
++    associatedtype SecondCover: OriginalIssuedGraphSelfContactRequestReading where SecondCover.Source == Source
+     func contacts<A: ExactScalarAdmission & ~Copyable>(
+         in raw: OriginalIssuedGraphRelations<Source,FirstEvidence,FirstCover,Source,SecondEvidence,SecondCover>,
+         excluding identities: [OriginalParameterIdentity<Source,OriginalExactScalarDomain>],

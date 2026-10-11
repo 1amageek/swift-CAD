@@ -1,0 +1,28 @@
+{
+  "scope": "fold-scope",
+  "state": "historical-scoped-success",
+  "receiptSHA256": "412343a22e83e37b0c65d04d830731bc0a378d6b505e6160224bdd4f5a911807",
+  "entriesChecked": 5196,
+  "currentDifferences": [
+    {
+      "section": "checks",
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsGraphSelfContactFoldScope.swift",
+      "expected": "48389ecb24b87b0623dcd4316c0b0af470375c3786984ac2102bcfee4474bbf9",
+      "current": "c25a04e48b9b3dc29442f156d39cc6f7a8d174a4cbeb2f453f1dddc6284dc92c"
+    },
+    {
+      "section": "freshProduction",
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContactQuerying.swift",
+      "expected": "59b202a6e0bca10684e7d266c77a880c26a5f37158412a9acb9ebb1bdbf7fe5d",
+      "current": "763320f9ea18806fb215d9912c2df552d616d0ed81c9c6c03b31627f4dce1590"
+    },
+    {
+      "section": "freshProduction",
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalIssuedGraphSelfContactQuery.swift",
+      "expected": "bc82cc8b885696ccb3b49dc473c91e6a28ff89d5c131feeb93ec79dfac734b84",
+      "current": "efb733e08bf2760e56f3b4ed8f173dd8c2446153fba80b402c339ed86c038557"
+    }
+  ],
+  "runLogsBound": true,
+  "currentSourceAcceptance": false
+}

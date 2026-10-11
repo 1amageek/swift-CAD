@@ -1,0 +1,163 @@
+[
+  {
+    "label": "compile-link-proof",
+    "command": [
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/lift-source",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-derivative-lift-host/native/a0f471629a0347cc80a505e20dea0037",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-coons-lift-actual/native/06feaa5f83dd4efd888ffb953c7acaef",
+      "-I",
+      "/private/tmp/cad-di-m6-consumers-20261009/.build/m6-native-production/out/Products/Debug",
+      "-parse-as-library",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift/native/3fd59e6671374e4cb50b92e8d4948be9/build/arm64-apple-macosx/debug/Modules",
+      "-target",
+      "arm64-apple-macos15.0",
+      "-Onone",
+      "-enable-testing",
+      "-j2",
+      "-DSWIFT_PACKAGE",
+      "-DDEBUG",
+      "-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE",
+      "-parse-as-library",
+      "-swift-version",
+      "6",
+      "-I",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/macosx/testing",
+      "-L",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/macosx/testing",
+      "-plugin-path",
+      "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/lib/swift/host/plugins/testing",
+      "-sdk",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-F",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-I",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-L",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/usr/lib",
+      "-g",
+      "-Xcc",
+      "-isysroot",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX27.0.sdk",
+      "-Xcc",
+      "-F",
+      "-Xcc",
+      "/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/Library/Frameworks",
+      "-Xcc",
+      "-fPIC",
+      "-Xcc",
+      "-g",
+      "-package-name",
+      "nativeexactrelationverification",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-parameter-curve-graphs/native/6ac72d917f8d4afd89fd104f4172c2f8",
+      "-enable-testing",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/native/fc189efb85ed436b9d81f933ca433580",
+      "-parse-as-library",
+      "-I",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-native-20261011-v1",
+      "-emit-executable",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-controls-native-20261011-v2/Support.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-controls-native-20261011-v2/CoonsGraphSelfContactControls.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture0.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture1.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-OriginalParametricGraphIssuing.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphIssuer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-native-20261011-v1/libPublicCoonsSelf.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/libPublicLiftPlane.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/lift-source/libPolylineLiftAdapters.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/native/673714ba1ddd434ba70aa1029f32e360/libCachedCADCore.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/native/673714ba1ddd434ba70aa1029f32e360/libCachedHashTreeCollections.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/native/673714ba1ddd434ba70aa1029f32e360/libCachedInternalCollectionsUtilities.a",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/m4-periodic-lift-actual/native/673714ba1ddd434ba70aa1029f32e360/libCachedCADGeometry.a",
+      "-o",
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-controls-native-20261011-v2/Proof"
+    ],
+    "timeoutSeconds": 240,
+    "cpuLimitSeconds": 240,
+    "exitCode": 0,
+    "elapsedSeconds": 16.067130250041373,
+    "logSHA256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "label": "runtime-query-work",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-controls-native-20261011-v2/Proof",
+      "query-work"
+    ],
+    "timeoutSeconds": 360,
+    "cpuLimitSeconds": 360,
+    "exitCode": 0,
+    "elapsedSeconds": 132.8073456659913,
+    "logSHA256": "5e55439adce45fda937b872c83180e51038a105d58625032a22303fa66d0f922"
+  },
+  {
+    "label": "runtime-query-storage",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-controls-native-20261011-v2/Proof",
+      "query-storage"
+    ],
+    "timeoutSeconds": 360,
+    "cpuLimitSeconds": 360,
+    "exitCode": 0,
+    "elapsedSeconds": 148.01282654097304,
+    "logSHA256": "5e55439adce45fda937b872c83180e51038a105d58625032a22303fa66d0f922"
+  },
+  {
+    "label": "runtime-query-cancel",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-controls-native-20261011-v2/Proof",
+      "query-cancel"
+    ],
+    "timeoutSeconds": 360,
+    "cpuLimitSeconds": 360,
+    "exitCode": 0,
+    "elapsedSeconds": 126.81044662510976,
+    "logSHA256": "6710577e59e2c8ab14adfa2171d2305266fd080b3708dc9f9b5f9fc9d0c1696c"
+  },
+  {
+    "label": "runtime-identities",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-controls-native-20261011-v2/Proof",
+      "identities"
+    ],
+    "timeoutSeconds": 360,
+    "cpuLimitSeconds": 360,
+    "exitCode": 0,
+    "elapsedSeconds": 26.85381983302068,
+    "logSHA256": "5c3360a2a3bca362d4fb6632022c1708e7d7dacc84170814b4fe6353312a30f5"
+  },
+  {
+    "label": "runtime-membership",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-controls-native-20261011-v2/Proof",
+      "membership"
+    ],
+    "timeoutSeconds": 360,
+    "cpuLimitSeconds": 360,
+    "exitCode": 0,
+    "elapsedSeconds": 70.55887595901731,
+    "logSHA256": "ccf4ff144b4c0d63f4320aa81611fb565cd8e6ccc02ad0672697e06d3700cb08"
+  },
+  {
+    "label": "runtime-lifetime",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-controls-native-20261011-v2/Proof",
+      "lifetime"
+    ],
+    "timeoutSeconds": 360,
+    "cpuLimitSeconds": 360,
+    "exitCode": 0,
+    "elapsedSeconds": 64.96137554198503,
+    "logSHA256": "c85f151c4e0ac0dd936c78a4db0e3916e4eaf7ccd7d96d2e86af80e35f55b5b7"
+  }
+]

@@ -1,0 +1,198 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:598:80: error: cannot find type 'OriginalGuardedChartFamilyQuerying' in scope
+596 | 
+597 | /// Complete requested guarded domain retaining every original child chart.
+598 | public struct OriginalNativeOffsetDomainCover<S: OriginalOffsetSourceReading>: OriginalGuardedChartFamilyQuerying where S.Child: OriginalBSplineSourceReading {
+    |                                                                                `- error: cannot find type 'OriginalGuardedChartFamilyQuerying' in scope
+599 |     public typealias Source = S
+600 |     public typealias Field = OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:444:22: error: 'OriginalFiniteBSplineCharts' is ambiguous for type lookup in this context
+442 | public struct OriginalFiniteNativeOffsetLawFamily<S:OriginalOffsetSourceReading>:Sendable where S.Child:OriginalBSplineSourceReading {
+443 |     public let source:OriginalSourceBinding<S>
+444 |     public let child:OriginalFiniteBSplineCharts<S.Child>
+    |                      `- error: 'OriginalFiniteBSplineCharts' is ambiguous for type lookup in this context
+445 |     public let laws:[OriginalOffsetLawReceipt<S,OriginalBSplineChartSelection,OriginalExactScalarDomain>]
+446 |     public let proofDepth:ExactScalarDepth
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalFiniteBSplineCharts.swift:7:15: note: found this candidate
+ 5 | 
+ 6 | /// Authoritative native support and all span laws share the original binding owner.
+ 7 | public struct OriginalFiniteBSplineCharts<Source: OriginalBSplineSourceReading>: Sendable {
+   |               `- note: found this candidate
+ 8 |     public let source: OriginalSourceBinding<Source>
+ 9 |     public let field: OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/native/fc189efb85ed436b9d81f933ca433580/OriginalFiniteBSplineCharts.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// Authoritative native support and all span laws share the original binding owner.
+ 9 | public struct OriginalFiniteBSplineCharts<Source: OriginalBSplineSourceReading>: Sendable {
+   |               `- note: found this candidate
+10 |     public let source: OriginalSourceBinding<Source>
+11 |     public let field: OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliary.swift:167:15: error: type 'CoonsGraphSelfContactAuxiliary.Cover' (aka 'OriginalNativeOffsetDomainCover<OriginalOffsetSnapshot<BSplineSurface3D>>') does not conform to the 'Sendable' protocol
+165 |     typealias Evidence = OriginalOffsetLawReceipt<Source, OriginalBSplineChartSelection, Base>
+166 |     typealias Cover = OriginalNativeOffsetDomainCover<Source>
+167 |     typealias Raw = PublicLiftPlane.OriginalIssuedGraphRelations<Source, Evidence, Cover, Source, Evidence, Cover>
+    |               `- error: type 'CoonsGraphSelfContactAuxiliary.Cover' (aka 'OriginalNativeOffsetDomainCover<OriginalOffsetSnapshot<BSplineSurface3D>>') does not conform to the 'Sendable' protocol
+168 |     typealias Result = OriginalIssuedGraphSelfContacts<Source, Evidence, Cover, Evidence, Cover>
+169 |     typealias Admission = PolylineLiftProof.Admission
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:598:15: note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+596 | 
+597 | /// Complete requested guarded domain retaining every original child chart.
+598 | public struct OriginalNativeOffsetDomainCover<S: OriginalOffsetSourceReading>: OriginalGuardedChartFamilyQuerying where S.Child: OriginalBSplineSourceReading {
+    |               `- note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+599 |     public typealias Source = S
+600 |     public typealias Field = OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliary.swift:167:15: error: type 'CoonsGraphSelfContactAuxiliary.Cover' (aka 'OriginalNativeOffsetDomainCover<OriginalOffsetSnapshot<BSplineSurface3D>>') does not conform to the 'Sendable' protocol
+165 |     typealias Evidence = OriginalOffsetLawReceipt<Source, OriginalBSplineChartSelection, Base>
+166 |     typealias Cover = OriginalNativeOffsetDomainCover<Source>
+167 |     typealias Raw = PublicLiftPlane.OriginalIssuedGraphRelations<Source, Evidence, Cover, Source, Evidence, Cover>
+    |               `- error: type 'CoonsGraphSelfContactAuxiliary.Cover' (aka 'OriginalNativeOffsetDomainCover<OriginalOffsetSnapshot<BSplineSurface3D>>') does not conform to the 'Sendable' protocol
+168 |     typealias Result = OriginalIssuedGraphSelfContacts<Source, Evidence, Cover, Evidence, Cover>
+169 |     typealias Admission = PolylineLiftProof.Admission
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:598:15: note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+596 | 
+597 | /// Complete requested guarded domain retaining every original child chart.
+598 | public struct OriginalNativeOffsetDomainCover<S: OriginalOffsetSourceReading>: OriginalGuardedChartFamilyQuerying where S.Child: OriginalBSplineSourceReading {
+    |               `- note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+599 |     public typealias Source = S
+600 |     public typealias Field = OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliary.swift:168:15: error: type 'CoonsGraphSelfContactAuxiliary.Cover' (aka 'OriginalNativeOffsetDomainCover<OriginalOffsetSnapshot<BSplineSurface3D>>') does not conform to the 'Sendable' protocol
+166 |     typealias Cover = OriginalNativeOffsetDomainCover<Source>
+167 |     typealias Raw = PublicLiftPlane.OriginalIssuedGraphRelations<Source, Evidence, Cover, Source, Evidence, Cover>
+168 |     typealias Result = OriginalIssuedGraphSelfContacts<Source, Evidence, Cover, Evidence, Cover>
+    |               `- error: type 'CoonsGraphSelfContactAuxiliary.Cover' (aka 'OriginalNativeOffsetDomainCover<OriginalOffsetSnapshot<BSplineSurface3D>>') does not conform to the 'Sendable' protocol
+169 |     typealias Admission = PolylineLiftProof.Admission
+170 |     typealias Cells = PublicLiftPlane.ExactRealCellDomain<Base>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:598:15: note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+596 | 
+597 | /// Complete requested guarded domain retaining every original child chart.
+598 | public struct OriginalNativeOffsetDomainCover<S: OriginalOffsetSourceReading>: OriginalGuardedChartFamilyQuerying where S.Child: OriginalBSplineSourceReading {
+    |               `- note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+599 |     public typealias Source = S
+600 |     public typealias Field = OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliary.swift:168:15: error: type 'CoonsGraphSelfContactAuxiliary.Cover' (aka 'OriginalNativeOffsetDomainCover<OriginalOffsetSnapshot<BSplineSurface3D>>') does not conform to the 'Sendable' protocol
+166 |     typealias Cover = OriginalNativeOffsetDomainCover<Source>
+167 |     typealias Raw = PublicLiftPlane.OriginalIssuedGraphRelations<Source, Evidence, Cover, Source, Evidence, Cover>
+168 |     typealias Result = OriginalIssuedGraphSelfContacts<Source, Evidence, Cover, Evidence, Cover>
+    |               `- error: type 'CoonsGraphSelfContactAuxiliary.Cover' (aka 'OriginalNativeOffsetDomainCover<OriginalOffsetSnapshot<BSplineSurface3D>>') does not conform to the 'Sendable' protocol
+169 |     typealias Admission = PolylineLiftProof.Admission
+170 |     typealias Cells = PublicLiftPlane.ExactRealCellDomain<Base>
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:598:15: note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+596 | 
+597 | /// Complete requested guarded domain retaining every original child chart.
+598 | public struct OriginalNativeOffsetDomainCover<S: OriginalOffsetSourceReading>: OriginalGuardedChartFamilyQuerying where S.Child: OriginalBSplineSourceReading {
+    |               `- note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+599 |     public typealias Source = S
+600 |     public typealias Field = OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:450:48: error: 'OriginalFiniteBSplineCharts' is ambiguous for type lookup in this context
+448 |     /// Full child extent, not a Cartesian assertion about offset position support.
+449 |     public var enclosingSupport:[OriginalSourceParameterInterval<OriginalExactScalar>] { child.support }
+450 |     init(source:OriginalSourceBinding<S>,child:OriginalFiniteBSplineCharts<S.Child>,
+    |                                                `- error: 'OriginalFiniteBSplineCharts' is ambiguous for type lookup in this context
+451 |         laws:[OriginalOffsetLawReceipt<S,OriginalBSplineChartSelection,OriginalExactScalarDomain>],proofDepth:ExactScalarDepth) {
+452 |         self.source=source;self.child=child;self.laws=laws;self.proofDepth=proofDepth
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalFiniteBSplineCharts.swift:7:15: note: found this candidate
+ 5 | 
+ 6 | /// Authoritative native support and all span laws share the original binding owner.
+ 7 | public struct OriginalFiniteBSplineCharts<Source: OriginalBSplineSourceReading>: Sendable {
+   |               `- note: found this candidate
+ 8 |     public let source: OriginalSourceBinding<Source>
+ 9 |     public let field: OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/native/fc189efb85ed436b9d81f933ca433580/OriginalFiniteBSplineCharts.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// Authoritative native support and all span laws share the original binding owner.
+ 9 | public struct OriginalFiniteBSplineCharts<Source: OriginalBSplineSourceReading>: Sendable {
+   |               `- note: found this candidate
+10 |     public let source: OriginalSourceBinding<Source>
+11 |     public let field: OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:475:25: error: 'OriginalFiniteBSplineCharts' is ambiguous for type lookup in this context
+473 |     associatedtype Source:OriginalOffsetSourceReading where Source.Child:OriginalBSplineSourceReading
+474 |     func prepare<A:ExactScalarAdmission & ~Copyable>(source:borrowing OriginalSourceBinding<Source>,
+475 |         child:borrowing OriginalFiniteBSplineCharts<Source.Child>,maximumCharts:Int,
+    |                         `- error: 'OriginalFiniteBSplineCharts' is ambiguous for type lookup in this context
+476 |         limits:OriginalSourceIssuanceLimits,using a:inout A) throws(OriginalSourceIssuanceFailure)
+477 |         -> OriginalFiniteNativeOffsetLawFamily<Source>
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalFiniteBSplineCharts.swift:7:15: note: found this candidate
+ 5 | 
+ 6 | /// Authoritative native support and all span laws share the original binding owner.
+ 7 | public struct OriginalFiniteBSplineCharts<Source: OriginalBSplineSourceReading>: Sendable {
+   |               `- note: found this candidate
+ 8 |     public let source: OriginalSourceBinding<Source>
+ 9 |     public let field: OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/native/fc189efb85ed436b9d81f933ca433580/OriginalFiniteBSplineCharts.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// Authoritative native support and all span laws share the original binding owner.
+ 9 | public struct OriginalFiniteBSplineCharts<Source: OriginalBSplineSourceReading>: Sendable {
+   |               `- note: found this candidate
+10 |     public let source: OriginalSourceBinding<Source>
+11 |     public let field: OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:491:25: error: 'OriginalFiniteBSplineCharts' is ambiguous for type lookup in this context
+489 |     public init() {}
+490 |     public func prepare<A:ExactScalarAdmission & ~Copyable>(source:borrowing OriginalSourceBinding<S>,
+491 |         child:borrowing OriginalFiniteBSplineCharts<S.Child>,maximumCharts:Int,limits:OriginalSourceIssuanceLimits,
+    |                         `- error: 'OriginalFiniteBSplineCharts' is ambiguous for type lookup in this context
+492 |         using a:inout A) throws(OriginalSourceIssuanceFailure) -> OriginalFiniteNativeOffsetLawFamily<S> {
+493 |         let source=copy source,child=copy child
+
+/private/tmp/cad-di-m6-consumers-20261009/Sources/CADGeometry/OriginalSourceIssuance/OriginalFiniteBSplineCharts.swift:7:15: note: found this candidate
+ 5 | 
+ 6 | /// Authoritative native support and all span laws share the original binding owner.
+ 7 | public struct OriginalFiniteBSplineCharts<Source: OriginalBSplineSourceReading>: Sendable {
+   |               `- note: found this candidate
+ 8 |     public let source: OriginalSourceBinding<Source>
+ 9 |     public let field: OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/m4-polyline-field-family/native/fc189efb85ed436b9d81f933ca433580/OriginalFiniteBSplineCharts.swift:9:15: note: found this candidate
+ 7 | 
+ 8 | /// Authoritative native support and all span laws share the original binding owner.
+ 9 | public struct OriginalFiniteBSplineCharts<Source: OriginalBSplineSourceReading>: Sendable {
+   |               `- note: found this candidate
+10 |     public let source: OriginalSourceBinding<Source>
+11 |     public let field: OriginalExactScalarDomain
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:763:17: error: type 'DefaultOriginalOffsetGraphFamilyPreparer<S>.Cover' (aka 'OriginalNativeOffsetDomainCover<S>') does not conform to the 'Sendable' protocol
+596 | 
+597 | /// Complete requested guarded domain retaining every original child chart.
+598 | public struct OriginalNativeOffsetDomainCover<S: OriginalOffsetSourceReading>: OriginalGuardedChartFamilyQuerying where S.Child: OriginalBSplineSourceReading {
+    |               `- note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+599 |     public typealias Source = S
+600 |     public typealias Field = OriginalExactScalarDomain
+    :
+761 |     public typealias Cover=OriginalNativeOffsetDomainCover<S>
+762 |     public init() {}
+763 |     public func prepare<A:ExactScalarAdmission & ~Copyable>(cover:borrowing Cover,field:borrowing ExactAlgebraicScalarDomain<OriginalExactScalarDomain>,
+    |                 `- error: type 'DefaultOriginalOffsetGraphFamilyPreparer<S>.Cover' (aka 'OriginalNativeOffsetDomainCover<S>') does not conform to the 'Sendable' protocol
+764 |         maximumGraphs:Int,limits:OriginalDomainIdentityLimits,using admission:inout A)
+765 |         throws(NativeExactRelationFailure) -> OriginalIssuedGraphFamily<S,Evidence,Cover> {
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/CoonsGraphSelfContactAuxiliaryAdapters.swift:758:15: error: type 'DefaultOriginalOffsetGraphFamilyPreparer<S>.Cover' (aka 'OriginalNativeOffsetDomainCover<S>') does not conform to the 'Sendable' protocol
+596 | 
+597 | /// Complete requested guarded domain retaining every original child chart.
+598 | public struct OriginalNativeOffsetDomainCover<S: OriginalOffsetSourceReading>: OriginalGuardedChartFamilyQuerying where S.Child: OriginalBSplineSourceReading {
+    |               `- note: consider making generic struct 'OriginalNativeOffsetDomainCover' conform to the 'Sendable' protocol
+599 |     public typealias Source = S
+600 |     public typealias Field = OriginalExactScalarDomain
+    :
+756 | #endif
+757 | 
+758 | public struct DefaultOriginalOffsetGraphFamilyPreparer<S:OriginalOffsetSourceReading>:OriginalIssuedGraphFamilyPreparing where S.Child:OriginalBSplineSourceReading {
+    |               `- error: type 'DefaultOriginalOffsetGraphFamilyPreparer<S>.Cover' (aka 'OriginalNativeOffsetDomainCover<S>') does not conform to the 'Sendable' protocol
+759 |     public typealias Source=S
+760 |     public typealias Evidence=OriginalOffsetLawReceipt<S,OriginalBSplineChartSelection,OriginalExactScalarDomain>

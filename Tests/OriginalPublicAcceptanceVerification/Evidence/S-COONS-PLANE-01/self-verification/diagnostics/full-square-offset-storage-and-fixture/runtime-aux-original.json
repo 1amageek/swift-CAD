@@ -1,0 +1,9 @@
+{
+  "command": [
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-self-aux-native-20261011-v1/Proof",
+    "all"
+  ],
+  "exitCode": -5,
+  "elapsedSeconds": 210.95141691702884,
+  "timeoutSeconds": 360
+}

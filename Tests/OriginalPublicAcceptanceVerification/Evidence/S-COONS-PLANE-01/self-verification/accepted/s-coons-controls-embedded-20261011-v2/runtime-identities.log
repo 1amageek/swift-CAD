@@ -1,0 +1,3 @@
+(node:66224) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS equal-valued foreign-owner identity including empty scope, foreign field and semantic role refusal

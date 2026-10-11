@@ -1,0 +1,92 @@
+(node:67103) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+BEGIN actual Native offset source/DI six-variable raw construction
+PASS actual Native offset source/DI raw construction
+PASS real Native offset singleton control raw equals complete UV0=UV1=(0,0) plus q0=q1=1 oracle in six lifted variables
+BEGIN actual auxiliary public self consumer
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:279 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/CoonsGraphSelfContactAuxiliary.swift:280 was not called on the same actor
+
+PASS real Native offset singleton control raw equals complete UV0=UV1=(0,0) plus q0=q1=1 oracle in six lifted variables
+PASS real Native offset self query complete empty residual retains source cells and both positive normal-root auxiliaries

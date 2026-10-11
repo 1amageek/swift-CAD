@@ -1,0 +1,9 @@
+{
+  "scope": "final-source-planar-Coons",
+  "state": "scoped-changed-path-success",
+  "receiptSHA256": "d84135c0a4af08cbb6902426af544ba058ae8cbe01799ab5eb48dbbf8ec9b29a",
+  "entriesChecked": 3369,
+  "currentDifferences": [],
+  "runLogsBound": true,
+  "currentSourceAcceptance": "only this recorded scope; no cell/review/delivery closure"
+}

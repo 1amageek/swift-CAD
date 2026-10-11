@@ -1,0 +1,28 @@
+{
+  "state": "historical-candidate-runtime-verified",
+  "scope": "Pre-F1 candidate, nonempty issued Native folded and scoped-collapse graph families only; no empty-family claim.",
+  "entriesChecked": 5200,
+  "fileAndRunLogHashMismatches": 0,
+  "receiptSHA256": "6e8286d30726bc63a04cda9c9bed547397283324f71c2d0f5d0d9fee028d3792",
+  "currentRootAccepted": false,
+  "currentRootDifferences": [
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContactQuerying.swift",
+      "historicalSHA256": "59b202a6e0bca10684e7d266c77a880c26a5f37158412a9acb9ebb1bdbf7fe5d",
+      "currentSHA256": "763320f9ea18806fb215d9912c2df552d616d0ed81c9c6c03b31627f4dce1590",
+      "diff": "--- historical/OriginalIssuedGraphSelfContactQuerying.swift\n+++ current/OriginalIssuedGraphSelfContactQuerying.swift\n@@ -2,9 +2,9 @@\n public protocol OriginalIssuedGraphSelfContactQuerying: Sendable {\n     associatedtype Source: Sendable\n     associatedtype FirstEvidence: Sendable\n-    associatedtype FirstCover: Sendable\n+    associatedtype FirstCover: OriginalIssuedGraphSelfContactRequestReading where FirstCover.Source == Source\n     associatedtype SecondEvidence: Sendable\n-    associatedtype SecondCover: Sendable\n+    associatedtype SecondCover: OriginalIssuedGraphSelfContactRequestReading where SecondCover.Source == Source\n     func contacts<A: ExactScalarAdmission & ~Copyable>(\n         in raw: OriginalIssuedGraphRelations<Source,FirstEvidence,FirstCover,Source,SecondEvidence,SecondCover>,\n         excluding identities: [OriginalParameterIdentity<Source,OriginalExactScalarDomain>],\n"
+    },
+    {
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalIssuedGraphSelfContactQuery.swift",
+      "historicalSHA256": "bc82cc8b885696ccb3b49dc473c91e6a28ff89d5c131feeb93ec79dfac734b84",
+      "currentSHA256": "efb733e08bf2760e56f3b4ed8f173dd8c2446153fba80b402c339ed86c038557",
+      "diff": "--- historical/DefaultOriginalIssuedGraphSelfContactQuery.swift\n+++ current/DefaultOriginalIssuedGraphSelfContactQuery.swift\n@@ -1,5 +1,5 @@\n /// Consumes original graph laws and checked M5 views without repeating equality solving.\n-public struct DefaultOriginalIssuedGraphSelfContactQuery<S: Sendable,E: Sendable,C: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphSelfContactQuerying {\n+public struct DefaultOriginalIssuedGraphSelfContactQuery<S: Sendable,E: Sendable,C: OriginalIssuedGraphSelfContactRequestReading,F: Sendable,D: OriginalIssuedGraphSelfContactRequestReading>: OriginalIssuedGraphSelfContactQuerying where C.Source == S, D.Source == S {\n     public typealias Source = S\n     public typealias FirstEvidence = E\n     public typealias FirstCover = C\n@@ -20,15 +20,16 @@\n             let anchor = try raw.first.source.chart(0, limits: domainLimits.source, using: &a)\n             guard raw.second.source.owns(anchor) else { throw OriginalDomainIdentityFailure.foreignOwner }\n             let reference = raw.first.graphs.first?.original.request ?? raw.second.graphs.first?.original.request\n+                ?? raw.first.coverage.selfContactRequest\n             func validate(_ scope: OriginalParameterSelection<S,OriginalExactScalarDomain>) throws {\n                 guard scope.arity == 2, scope.frame.source.owns(anchor) else { throw OriginalDomainIdentityFailure.foreignOwner }\n-                if let reference {\n-                    guard scope.frame.coordinateSemantics.elementsEqual(reference.frame.coordinateSemantics) else {\n-                        throw OriginalDomainIdentityFailure.incompatibleCoordinateSemantics\n-                    }\n-                    _ = try reference.frame.scalarField.sign(of: scope.frame.scalarField.integer(0, using: &a), using: &a)\n+                guard scope.frame.coordinateSemantics.elementsEqual(reference.frame.coordinateSemantics) else {\n+                    throw OriginalDomainIdentityFailure.incompatibleCoordinateSemantics\n                 }\n+                _ = try reference.frame.scalarField.sign(of: scope.frame.scalarField.integer(0, using: &a), using: &a)\n             }\n+            if raw.first.graphs.isEmpty { try validate(raw.first.coverage.selfContactRequest) }\n+            if raw.second.graphs.isEmpty { try validate(raw.second.coverage.selfContactRequest) }\n             for graph in raw.first.graphs { try a.consumeWork(1); try validate(graph.original.request) }\n             for graph in raw.second.graphs { try a.consumeWork(1); try validate(graph.original.request) }\n             let issuer = DefaultOriginalParameterIdentityIssuer<S,OriginalExactScalarDomain>()\n"
+    }
+  ],
+  "compositionalReuse": {
+    "reason": "F1 adds cover authority and admission for empty graph families. Both fixture families are the same nonempty family; the existing graph request supplies the reference and empty-family branches are not executed.",
+    "fixture": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/CoonsGraphSelfContactFoldScope.swift",
+    "assertion": "try PolylineLiftProof.require(family.graphs.count == (collapsed ? 1 : 2))",
+    "sameFamilyCall": "first: family, second: family, maximumPairs: collapsed ? 1 : 4"
+  }
+}

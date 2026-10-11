@@ -1,0 +1,695 @@
+{
+  "state": "verification-evidence-ready; commit and latest-main delivery pending",
+  "acceptedScopes": [
+    {
+      "scope": "nonaux-planar",
+      "directory": "accepted/s-coons-self-native-20261011-v2",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 46.45056966692209
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 53.44061533396598
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 3363
+    },
+    {
+      "scope": "nonaux-planar",
+      "directory": "accepted/s-coons-self-asan-20261011-v1",
+      "lane": "asan",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 2.5508433340582997
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 15.642426666920073
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 36.43552583397832
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 3358
+    },
+    {
+      "scope": "nonaux-planar",
+      "directory": "accepted/s-coons-self-wasm-20261011-v1",
+      "lane": "wasm",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 0.8340368330245838
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 4.553926249966025
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 49.889786583022214
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 5191
+    },
+    {
+      "scope": "nonaux-planar",
+      "directory": "accepted/s-coons-self-embedded-20261011-v1",
+      "lane": "embedded",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 1.4207332920050249
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 132.4236389999278
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 26.198077582987025
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 5192
+    },
+    {
+      "scope": "nonaux-controls-limits",
+      "directory": "accepted/s-coons-controls-native-20261011-v1",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 6.0350970410509035
+        },
+        {
+          "label": "runtime-limits",
+          "seconds": 13.705266832956113
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 3363
+    },
+    {
+      "scope": "nonaux-controls",
+      "directory": "accepted/s-coons-controls-native-20261011-v2",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 16.067130250041373
+        },
+        {
+          "label": "runtime-query-work",
+          "seconds": 132.8073456659913
+        },
+        {
+          "label": "runtime-query-storage",
+          "seconds": 148.01282654097304
+        },
+        {
+          "label": "runtime-query-cancel",
+          "seconds": 126.81044662510976
+        },
+        {
+          "label": "runtime-identities",
+          "seconds": 26.85381983302068
+        },
+        {
+          "label": "runtime-membership",
+          "seconds": 70.55887595901731
+        },
+        {
+          "label": "runtime-lifetime",
+          "seconds": 64.96137554198503
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 3363
+    },
+    {
+      "scope": "nonaux-controls",
+      "directory": "accepted/s-coons-controls-asan-20261011-v1",
+      "lane": "asan",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 26.324988582986407
+        },
+        {
+          "label": "runtime-query-work",
+          "seconds": 137.05135762505233
+        },
+        {
+          "label": "runtime-query-storage",
+          "seconds": 140.49258520803414
+        },
+        {
+          "label": "runtime-query-cancel",
+          "seconds": 124.39480862498749
+        },
+        {
+          "label": "runtime-limits",
+          "seconds": 29.90390066697728
+        },
+        {
+          "label": "runtime-identities",
+          "seconds": 27.699086959008127
+        },
+        {
+          "label": "runtime-membership",
+          "seconds": 68.71974862506613
+        },
+        {
+          "label": "runtime-lifetime",
+          "seconds": 53.89931683393661
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 3363
+    },
+    {
+      "scope": "nonaux-controls",
+      "directory": "accepted/s-coons-controls-wasm-20261011-v1",
+      "lane": "wasm",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 8.195833874982782
+        },
+        {
+          "label": "runtime-query-work",
+          "seconds": 193.2327730419347
+        },
+        {
+          "label": "runtime-query-storage",
+          "seconds": 206.98351699998602
+        },
+        {
+          "label": "runtime-query-cancel",
+          "seconds": 176.79176858405117
+        },
+        {
+          "label": "runtime-limits",
+          "seconds": 24.07472754199989
+        },
+        {
+          "label": "runtime-identities",
+          "seconds": 19.9871505839983
+        },
+        {
+          "label": "runtime-membership",
+          "seconds": 53.92124791594688
+        },
+        {
+          "label": "runtime-lifetime",
+          "seconds": 59.61935712501872
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 5196
+    },
+    {
+      "scope": "nonaux-controls",
+      "directory": "accepted/s-coons-controls-embedded-20261011-v2",
+      "lane": "embedded",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 264.5454101660289
+        },
+        {
+          "label": "runtime-query-work",
+          "seconds": 61.44514279102441
+        },
+        {
+          "label": "runtime-query-storage",
+          "seconds": 59.39537791709881
+        },
+        {
+          "label": "runtime-query-cancel",
+          "seconds": 49.26273141603451
+        },
+        {
+          "label": "runtime-limits",
+          "seconds": 7.215075999964029
+        },
+        {
+          "label": "runtime-identities",
+          "seconds": 7.266252583009191
+        },
+        {
+          "label": "runtime-membership",
+          "seconds": 22.80664712493308
+        },
+        {
+          "label": "runtime-lifetime",
+          "seconds": 54.03359820798505
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 5197
+    },
+    {
+      "scope": "fold-scope",
+      "directory": "accepted/s-coons-fold-scope-native-20261011-v2",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 19.271867334027775
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 58.32603083306458
+        }
+      ],
+      "currentDifferences": 4,
+      "entriesChecked": 3363
+    },
+    {
+      "scope": "fold-scope",
+      "directory": "accepted/s-coons-fold-scope-asan-20261011-v1",
+      "lane": "asan",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 20.845204832963645
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 34.83113387506455
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 3363
+    },
+    {
+      "scope": "fold-scope",
+      "directory": "accepted/s-coons-fold-scope-wasm-20261011-v1",
+      "lane": "wasm",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 5.825123916962184
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 49.36946574994363
+        }
+      ],
+      "currentDifferences": 3,
+      "entriesChecked": 5196
+    },
+    {
+      "scope": "collapse-control",
+      "directory": "accepted/s-coons-fold-scope-collapse-native-20261011-v1",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 16.42321004194673
+        },
+        {
+          "label": "runtime-collapse",
+          "seconds": 42.77038791694213
+        }
+      ],
+      "currentDifferences": 4,
+      "entriesChecked": 3363
+    },
+    {
+      "scope": "auxiliary-candidate-planar",
+      "directory": "accepted/s-coons-current-native-20261011-v1",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 21.866847791010514
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 51.48223349999171
+        }
+      ],
+      "currentDifferences": 2,
+      "entriesChecked": 3363
+    },
+    {
+      "scope": "auxiliary-candidate",
+      "directory": "accepted/s-coons-aux-green-native-20261011-v1",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 3.918901624972932
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 10.833132041967474
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 4.517790292040445
+        }
+      ],
+      "currentDifferences": 2,
+      "entriesChecked": 3362
+    },
+    {
+      "scope": "auxiliary-candidate",
+      "directory": "accepted/s-coons-aux-green-asan-20261011-v1",
+      "lane": "asan",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 7.929859083960764
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 44.78314462502021
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 4.981984707992524
+        }
+      ],
+      "currentDifferences": 2,
+      "entriesChecked": 3362
+    },
+    {
+      "scope": "auxiliary-candidate",
+      "directory": "accepted/s-coons-aux-green-wasm-20261011-v1",
+      "lane": "wasm",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 3.4423901250120252
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 16.905034249997698
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 8.182428124942817
+        }
+      ],
+      "currentDifferences": 2,
+      "entriesChecked": 5195
+    },
+    {
+      "scope": "auxiliary-candidate",
+      "directory": "accepted/s-coons-aux-green-embedded-20261011-v1",
+      "lane": "embedded",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 2.861018707975745
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 145.0377166250255
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 1.3787980419583619
+        }
+      ],
+      "currentDifferences": 2,
+      "entriesChecked": 5196
+    },
+    {
+      "scope": "F1-empty-family-final-source",
+      "directory": "accepted/s-coons-f1-green-native-20261011-v1",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 5.439189750002697
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 24.27588812506292
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 1.2383571669925004
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 3362
+    },
+    {
+      "scope": "F1-empty-family-final-source",
+      "directory": "accepted/s-coons-f1-green-asan-20261011-v1",
+      "lane": "asan",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 8.011645499966107
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 37.177400124957785
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 1.9959987079491839
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 3362
+    },
+    {
+      "scope": "F1-empty-family-final-source",
+      "directory": "accepted/s-coons-f1-green-wasm-20261011-v1",
+      "lane": "wasm",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 3.847869042074308
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 19.55308750004042
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 1.476391249918379
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 5195
+    },
+    {
+      "scope": "final-source-planar-Coons",
+      "directory": "accepted/s-coons-final-native-20261011-v1",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 17.832163083017804
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 89.09531300002709
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 3369
+    },
+    {
+      "scope": "final-source-planar-Coons",
+      "directory": "accepted/s-coons-final-asan-20261011-v1",
+      "lane": "asan",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 37.24173420807347
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 83.83861583308317
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 3369
+    },
+    {
+      "scope": "final-source-auxiliary-singleton",
+      "directory": "accepted/s-coons-aux-final-native-20261011-v1",
+      "lane": "native",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 22.939224165980704
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 9.931907874997705
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 3374
+    },
+    {
+      "scope": "final-source-auxiliary-singleton",
+      "directory": "accepted/s-coons-aux-final-asan-20261011-v1",
+      "lane": "asan",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 55.739103458006866
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 7.9823669999605045
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 3374
+    },
+    {
+      "scope": "final-source-auxiliary-singleton",
+      "directory": "accepted/s-coons-aux-final-wasm-20261011-v1",
+      "lane": "wasm",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 20.0132808330236
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 14.844004999962635
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 5207
+    },
+    {
+      "scope": "final-source-planar-Coons",
+      "directory": "accepted/s-coons-final-wasm-20261011-v1",
+      "lane": "wasm",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 9.7230759159429
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 111.99468854104634
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 5202
+    },
+    {
+      "scope": "F1-empty-family-final-source",
+      "directory": "accepted/s-coons-f1-green-embedded-20261011-v1",
+      "lane": "embedded",
+      "runs": [
+        {
+          "label": "compile-module",
+          "seconds": 5.107424792018719
+        },
+        {
+          "label": "compile-link-proof",
+          "seconds": 237.30079954105895
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 0.4551662920275703
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 5196
+    },
+    {
+      "scope": "final-source-planar-Coons",
+      "directory": "accepted/s-coons-final-embedded-20261011-v1",
+      "lane": "embedded",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 195.04409104201477
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 27.968999041011557
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 5203
+    },
+    {
+      "scope": "final-source-auxiliary-singleton",
+      "directory": "accepted/s-coons-aux-final-embedded-20261011-v1",
+      "lane": "embedded",
+      "runs": [
+        {
+          "label": "compile-link-proof",
+          "seconds": 98.79244633403141
+        },
+        {
+          "label": "runtime-all",
+          "seconds": 1.5312993749976158
+        }
+      ],
+      "currentDifferences": 0,
+      "entriesChecked": 5208
+    },
+    {
+      "scope": "historical-fold-scope-embedded-nonempty",
+      "directory": "accepted/s-coons-fold-scope-embedded-20261011-v2",
+      "lane": "embedded",
+      "runs": [
+        {
+          "label": "historical-runtime-all",
+          "seconds": 10.902908749994822
+        }
+      ],
+      "currentDifferences": 2,
+      "entriesChecked": 5200,
+      "currentRootAccepted": false
+    }
+  ],
+  "diagnostics": [
+    {
+      "label": "quadratic-full-domain-storage",
+      "buildDirectory": "s-coons-fold-scope-native-20261011-v1"
+    },
+    {
+      "label": "full-square-offset-storage-and-fixture",
+      "buildDirectory": "s-coons-self-aux-native-20261011-v1"
+    },
+    {
+      "label": "embedded-print-signature",
+      "buildDirectory": "s-coons-fold-scope-embedded-20261011-v1"
+    },
+    {
+      "label": "fixture-equatable-compile",
+      "buildDirectory": "s-coons-self-native-20261011-v1"
+    },
+    {
+      "label": "auxiliary-singleton-before-candidate",
+      "buildDirectory": "s-coons-self-aux-singleton-red-native-20261011-v1"
+    }
+  ],
+  "pending": {
+    "F1Repair": "four-lane changed-path evidence archived; cell closure not inferred",
+    "finalFourLaneAcceptance": "F1, planarCoons and offset singleton final source four lanes archived",
+    "F1TargetedRecheck": "parent-reported PASS; see review-draft.json",
+    "latestMainDelivery": null
+  },
+  "foldEmbeddedV2": "historical nonempty candidate runtime archived; not current root or empty-family acceptance",
+  "noNewBuildRuntimeReview": true
+}

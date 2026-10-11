@@ -1,0 +1,9 @@
+{
+  "scope": "F1-empty-family-final-source",
+  "state": "scoped-changed-path-success",
+  "receiptSHA256": "131989cc7264c9ab834f846b0f64b54b862cc243b07a69dfa290d0508b30e57d",
+  "entriesChecked": 5195,
+  "currentDifferences": [],
+  "runLogsBound": true,
+  "currentSourceAcceptance": "only this recorded scope; no cell/review/delivery closure"
+}

@@ -1,0 +1,4 @@
+(node:69152) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+BEGIN complete empty source-bound family; no graph/pair witness
+PASS F1 empty-family valid/foreign-field/semantic identities, exact/one-less resources and publication cancellation

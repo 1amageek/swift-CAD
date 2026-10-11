@@ -1,0 +1,3 @@
+PASS S-COONS-PLANE-01 all 16 chart pairs equal the complete independent closed-domain diagonal oracle
+PASS S-COONS-PLANE-01 public complete empty residual; all16 raw/refined owners retained
+queryWork 11417841 queryBytes 347482312 checkpoints 71175978

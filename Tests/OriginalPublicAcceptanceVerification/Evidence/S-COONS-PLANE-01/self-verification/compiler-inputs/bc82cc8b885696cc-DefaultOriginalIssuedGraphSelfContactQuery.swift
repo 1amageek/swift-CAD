@@ -1,0 +1,83 @@
+/// Consumes original graph laws and checked M5 views without repeating equality solving.
+public struct DefaultOriginalIssuedGraphSelfContactQuery<S: Sendable,E: Sendable,C: Sendable,F: Sendable,D: Sendable>: OriginalIssuedGraphSelfContactQuerying {
+    public typealias Source = S
+    public typealias FirstEvidence = E
+    public typealias FirstCover = C
+    public typealias SecondEvidence = F
+    public typealias SecondCover = D
+    public init() {}
+    public func contacts<A: ExactScalarAdmission & ~Copyable>(
+        in raw: OriginalIssuedGraphRelations<S,E,C,S,F,D>,
+        excluding identities: [OriginalParameterIdentity<S,OriginalExactScalarDomain>] = [],
+        domainLimits: OriginalDomainIdentityLimits, cellLimits: ExactRealCellLimits,
+        topologyLimits: ExactRealTopologyLimits, using a: inout A
+    ) throws(NativeExactRelationFailure) -> OriginalIssuedGraphSelfContacts<S,E,C,F,D> {
+        do {
+            try a.checkpoint(); try raw.admitProof(limits: domainLimits, using: &a)
+            guard raw.kind == .surfaceSurface, raw.first.parameterCount == 2, raw.second.parameterCount == 2 else {
+                throw NativeExactRelationFailure.invalidDomain
+            }
+            let anchor = try raw.first.source.chart(0, limits: domainLimits.source, using: &a)
+            guard raw.second.source.owns(anchor) else { throw OriginalDomainIdentityFailure.foreignOwner }
+            let reference = raw.first.graphs.first?.original.request ?? raw.second.graphs.first?.original.request
+            func validate(_ scope: OriginalParameterSelection<S,OriginalExactScalarDomain>) throws {
+                guard scope.arity == 2, scope.frame.source.owns(anchor) else { throw OriginalDomainIdentityFailure.foreignOwner }
+                if let reference {
+                    guard scope.frame.coordinateSemantics.elementsEqual(reference.frame.coordinateSemantics) else {
+                        throw OriginalDomainIdentityFailure.incompatibleCoordinateSemantics
+                    }
+                    _ = try reference.frame.scalarField.sign(of: scope.frame.scalarField.integer(0, using: &a), using: &a)
+                }
+            }
+            for graph in raw.first.graphs { try a.consumeWork(1); try validate(graph.original.request) }
+            for graph in raw.second.graphs { try a.consumeWork(1); try validate(graph.original.request) }
+            let issuer = DefaultOriginalParameterIdentityIssuer<S,OriginalExactScalarDomain>()
+            try a.retainStorage(bytes: exactScalarPayloadBytes(count: identities.count,
+                of: OriginalParameterIdentityRelation<S,OriginalExactScalarDomain>.self))
+            var views: [OriginalParameterIdentityRelation<S,OriginalExactScalarDomain>] = []
+            views.reserveCapacity(identities.count)
+            for identity in identities {
+                try a.consumeWork(1)
+                let view = try issuer.relation(of: identity, limits: domainLimits, using: &a)
+                try validate(view.left); try validate(view.right)
+                views.append(view)
+            }
+            try a.retainStorage(bytes: exactScalarPayloadBytes(count: raw.pairs.count,
+                of: OriginalParameterIdentity<S,OriginalExactScalarDomain>.self))
+            try a.retainStorage(bytes: exactScalarPayloadBytes(count: raw.pairs.count,
+                of: OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>.self))
+            var diagonals: [OriginalParameterIdentity<S,OriginalExactScalarDomain>] = []
+            var refinements: [OriginalIssuedGraphParameterRefinement<S,E,C,S,F,D>] = []
+            diagonals.reserveCapacity(raw.pairs.count); refinements.reserveCapacity(raw.pairs.count)
+            let transporter = DefaultOriginalParameterTransporter<S,OriginalExactScalarDomain>()
+            for ordinal in raw.pairs.indices {
+                try a.consumeWork(1)
+                let pair = raw.pairs[ordinal]
+                guard raw.first.graphs.indices.contains(pair.firstGraphIndex),
+                    raw.second.graphs.indices.contains(pair.secondGraphIndex) else { throw NativeExactRelationFailure.invalidDomain }
+                let first = raw.first.graphs[pair.firstGraphIndex], second = raw.second.graphs[pair.secondGraphIndex]
+                let lhs = first.original.request, rhs = second.original.request, field = lhs.frame.scalarField
+                let zero = try field.integer(0, using: &a), one = try field.integer(1, using: &a)
+                try a.retainStorage(bytes: exactScalarPayloadBytes(count: 4, of: Int.self))
+                try a.retainStorage(bytes: exactScalarPayloadBytes(count: 8, of: OriginalExactScalar.self))
+                let left = try transporter.affine(from: lhs, to: rhs.frame, permutation: [0,1],
+                    gains: [one,one], offsets: [zero,zero], limits: domainLimits, using: &a)
+                let right = try transporter.affine(from: rhs, to: rhs.frame, permutation: [0,1],
+                    gains: [one,one], offsets: [zero,zero], limits: domainLimits, using: &a)
+                let diagonal = try issuer.authored(left: left, right: right, limits: domainLimits, using: &a)
+                let view = try issuer.relation(of: diagonal, limits: domainLimits, using: &a)
+                var compiler = try OriginalIssuedGraphSelfIdentityCompiler(pair.relation.projection.original, using: &a)
+                let predicate = try compiler.residual(first: first, second: second,
+                    firstPlacement: pair.relation.original.firstCoordinates, secondPlacement: pair.relation.original.secondCoordinates,
+                    diagonal: view, identities: views, using: &a)
+                let refined = try DefaultOriginalIssuedGraphParameterRefiner().refine(in: raw, pairOrdinal: ordinal,
+                    matching: predicate, limits: domainLimits, cellLimits: cellLimits, topologyLimits: topologyLimits, using: &a)
+                diagonals.append(diagonal); refinements.append(refined)
+            }
+            try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalIssuedGraphSelfContacts<S,E,C,F,D>.self))
+            let result = OriginalIssuedGraphSelfContacts(raw: raw, authoredDiagonals: diagonals,
+                identities: identities, refinements: refinements)
+            try a.checkpoint(); return result
+        } catch { throw .preserving(error) }
+    }
+}

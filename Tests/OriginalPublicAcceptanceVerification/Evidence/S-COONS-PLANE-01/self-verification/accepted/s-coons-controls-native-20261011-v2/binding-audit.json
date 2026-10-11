@@ -1,0 +1,28 @@
+{
+  "scope": "nonaux-controls",
+  "state": "historical-scoped-success",
+  "receiptSHA256": "902c8a1b2221f16059e83d59e7b4d194befdc4962072e524bc6e7091ecd8ce73",
+  "entriesChecked": 3363,
+  "currentDifferences": [
+    {
+      "section": "freshProduction",
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfContactQuerying.swift",
+      "expected": "59b202a6e0bca10684e7d266c77a880c26a5f37158412a9acb9ebb1bdbf7fe5d",
+      "current": "763320f9ea18806fb215d9912c2df552d616d0ed81c9c6c03b31627f4dce1590"
+    },
+    {
+      "section": "freshProduction",
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/DefaultOriginalIssuedGraphSelfContactQuery.swift",
+      "expected": "bc82cc8b885696ccb3b49dc473c91e6a28ff89d5c131feeb93ec79dfac734b84",
+      "current": "efb733e08bf2760e56f3b4ed8f173dd8c2446153fba80b402c339ed86c038557"
+    },
+    {
+      "section": "freshProduction",
+      "path": "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSurfaceEmbedding/OriginalIssuedGraphSelfIdentityCompiler.swift",
+      "expected": "da28f17a55f5ecee5c938eea9134149648cd0292184a3ea4c08f7e2467f44ee4",
+      "current": "f723194c317b21dc3b0cf7ba41f464dab1ebdebdcf538254f17f4d3b1bdfd4b9"
+    }
+  ],
+  "runLogsBound": true,
+  "currentSourceAcceptance": false
+}
