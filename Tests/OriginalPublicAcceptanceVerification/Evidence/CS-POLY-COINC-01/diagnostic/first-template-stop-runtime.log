@@ -1,0 +1,15 @@
+STAGE lift source
+STAGE family
+STAGE lift domain
+STAGE plane graph
+STAGE parameter relations
+TEMPLATE 0 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+PAIR relation resolution
+L5 decompose variables 3 laws 9
+POSITIVE bare diagnostic Native point work allowance exhausted.
+FAIL ordinary lift/plane
+Failure(line: 118)

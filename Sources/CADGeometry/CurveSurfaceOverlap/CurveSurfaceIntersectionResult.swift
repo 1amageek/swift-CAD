@@ -27,9 +27,12 @@ public struct CurveSurfaceIntersectionResult: Sendable {
     /// Exact tuple grouping and every incident behind ordinary numerical points.
     public let originalIssuedNumericalPoints: OriginalIssuedNumericalCurveSurfacePoints?
 
+    /// Complete contained polynomial lifts, including every original chart and UV law.
+    public let originalContainedLiftPlaneFamily: (any OriginalContainedLiftPlaneFamilyReading)?
+
     /// Exact prepared queries retain exact contacts rather than requesting numerical arrays.
     public var representation: ExactIntersectionResultRepresentation {
-        originalIssuedGeometricRelation != nil && originalIssuedNumericalPoints == nil ? .exactRelation : .numericalRepresentatives
+        (originalContainedLiftPlaneFamily != nil || originalIssuedGeometricRelation != nil && originalIssuedNumericalPoints == nil) ? .exactRelation : .numericalRepresentatives
     }
 
 
@@ -37,6 +40,7 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         !overlaps.isEmpty || originalNativeRelations?.hasPositiveDimensionalSolutions == true
             || originalExactGeometricRelation?.hasPositiveDimensionalSolutions == true
             || originalIssuedGeometricRelation?.hasPositiveDimensionalSolutions == true
+            || originalContainedLiftPlaneFamily?.hasPositiveDimensionalSolutions == true
     }
 
     init(points: [CurveSurfaceIntersection], overlaps: [CurveSurfaceOverlap],
@@ -47,7 +51,8 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         originalCoonsPoints: OriginalCoonsCurveSurfacePoints? = nil,
         originalExactGeometricRelation: NativeExactGeometricRelation? = nil,
         originalIssuedGeometricRelation: (any OriginalIssuedGeometricRelationReading)? = nil,
-        originalIssuedNumericalPoints: OriginalIssuedNumericalCurveSurfacePoints? = nil) {
+        originalIssuedNumericalPoints: OriginalIssuedNumericalCurveSurfacePoints? = nil,
+        originalContainedLiftPlaneFamily: (any OriginalContainedLiftPlaneFamilyReading)? = nil) {
         self.points = points
         self.overlaps = overlaps
         self.originalNativePoints = originalNativePoints
@@ -58,5 +63,6 @@ public struct CurveSurfaceIntersectionResult: Sendable {
         self.originalExactGeometricRelation = originalExactGeometricRelation
         self.originalIssuedGeometricRelation = originalIssuedGeometricRelation
         self.originalIssuedNumericalPoints = originalIssuedNumericalPoints
+        self.originalContainedLiftPlaneFamily = originalContainedLiftPlaneFamily
     }
 }

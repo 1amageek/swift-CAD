@@ -1,0 +1,14 @@
+{
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalLiftPlanePointPublisher.swift": {
+    "previous": "d353dcbb423388244b094f08b678e31f127e3ef0b93ed24eb724206438362c60",
+    "current": "d353dcbb423388244b094f08b678e31f127e3ef0b93ed24eb724206438362c60"
+  },
+  "Sources/CADGeometry/NativeExactGeometricRelations/OriginalRetainedLiftPlanePublicProducer.swift": {
+    "previous": "1599dcb5093d49d8621fd87b161f827362323c2dd57d647ef022504a9554f3d2",
+    "current": "863b7989810a8f6cdccea0bcb9e3f3bd6c85bfb1c05cc00e503572b5cebfd6e5"
+  },
+  "Sources/CADGeometry/CurveSurfaceOverlap/CurveSurfaceIntersectionResult.swift": {
+    "previous": "6234ca3fb5144b6070fe4ed674a14e820f449cf3a6cc8d09b2a7dd8e31454aaf",
+    "current": "cd330b8fe7da69cf8ec7070a2246c18c6f5d3c0f8c02a1ec08a338b2e08a25d3"
+  }
+}

@@ -1,0 +1,9 @@
+(node:32005) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS affine guards: exact open/closed/equality/complement/constant/negative-slope preimages; map constant/finite and invalid weight/arity; foreign query refusal
+PASS ordinary public positive-dimensional lift/plane: bare refuses, rich retains complete image/fiber relation
+PASS contained family exact/one-less work/storage; mid/final cancel; count/degree/depth; retained query failures
+PASS contained family entry Task cancellation before work/storage
+PASS contained family final callback Task cancellation before publication
+PASS ordinary bare/rich public input: two distinct T roots; exact 8/4 incidence groups; original lift UV and plane UV; detached input/COW lifetime; concurrent independent readers
+PASS ordinary bare/rich public input: two distinct T roots; exact 8/4 incidence groups; original lift UV and plane UV; detached input/COW lifetime; concurrent independent readers

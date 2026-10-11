@@ -436,12 +436,14 @@ is all T in [0,1], retaining the original polyline correspondence (x(T),y(T)),
 target UV=(y(T),-x(T)) in the original plane basis, a one-dimensional image and
 zero-dimensional station fibers. The bare public API must refuse a non-discrete
 intersection; the rich API must retain the complete relation. The ordinary Native
-diagnostic currently exhausts the unchanged 8,388,608 work ceiling before this
-publication. This is an unresolved public-cell stop, not empty or partial success.
-Its next change must be justified by the stopping relation/chart and consumed
-source/plane incidence receipts. Raising the ceiling or replacing the continuous
-T domain by samples cannot close this cell. Execution and evidence status belong
-to PROGRESS.md; it does not gate supported point or boundary cells.
+initial diagnostic exhausted the unchanged 8,388,608 work ceiling in the first
+template's three-variable decomposition. The complete alternative proof combines
+whole-chart plane containment, source-issued UV elimination, exact affine-guard
+preimages and the existing L6 map theorem, as owned by
+[contained lift publication](../../NativeExactGeometricRelations/DESIGN.md#exactly-contained-polynomial-lift-families).
+Raising the ceiling or replacing the continuous T domain by samples cannot close
+this cell. Execution and evidence status belong to PROGRESS.md; it does not gate
+supported point or boundary cells.
 
 CS-POLY-NORMAL-SUBNORMAL-01 uses the CS-POLY-01 constructor and full request,
 with target origin (1/2,0,0) and authored normal

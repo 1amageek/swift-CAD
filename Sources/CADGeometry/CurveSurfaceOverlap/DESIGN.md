@@ -1357,6 +1357,18 @@ legacy overlaps and retained native positive-dimensional cells.
 Source-bound L0-L6 publication additionally retains originalExactGeometricRelation. Its complete positive parameter relation contributes to hasPositiveDimensionalSolutions; numerical points remain isolated component representatives. Existing producers and Codable point layout are preserved.
 See [NativeExactGeometricRelations](../NativeExactGeometricRelations/DESIGN.md).
 
+## Contained lift-plane family results
+
+`CurveSurfaceIntersectionResult.originalContainedLiftPlaneFamily` retains the
+complete immutable symbolic result selected by the ordinary retained lift-plane
+producer. It contributes to `hasPositiveDimensionalSolutions` and selects
+`representation == .exactRelation`; empty numerical arrays are not an absence
+test. Its reader exposes every original template's exact selected T intervals,
+original TUV, target UV and XYZ laws with image/fiber evidence. The bare query
+refuses positive-dimensional solutions. The additive property defaults to nil
+on other paths. Source proof, applicability, ownership and query admission are
+owned by [contained lift publication](../NativeExactGeometricRelations/DESIGN.md#exactly-contained-polynomial-lift-families).
+
 ## Prepared issued graph results
 
 The explicit `intersectionResult(exactRelations:...)` port consumes the completed

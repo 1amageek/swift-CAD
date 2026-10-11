@@ -10,10 +10,10 @@ import Synchronization
 @testable import CADGeometry
 @testable import PolylineLiftAdapters
 @testable import PublicLiftPlane
-import PublicLiftPlanePort
+@testable import PublicLiftPlanePort
 
 @main struct OrdinaryPolylineCoonsPlaneProof {
-    enum Mode: Sendable { case ordinary,selections,resources,cancelFinal,cancelEntry,positive,gp,scaledNormals }
+    enum Mode: Sendable { case ordinary,selections,resources,cancelFinal,cancelEntry,positive,gp,scaledNormals,containedResources,containedCancelEntry,containedCancelFinal }
     nonisolated static var mode:Mode {
         #if PUBLIC_PROOF_GP
         return .gp
@@ -28,6 +28,9 @@ import PublicLiftPlanePort
         #elseif hasFeature(Embedded)
         return .ordinary
         #else
+        if CommandLine.arguments.contains("contained-resources") { return .containedResources }
+        if CommandLine.arguments.contains("contained-cancel-entry") { return .containedCancelEntry }
+        if CommandLine.arguments.contains("contained-cancel-final") { return .containedCancelFinal }
         if CommandLine.arguments.contains("scaled-normals") { return .scaledNormals }
         if CommandLine.arguments.contains("gp") { return .gp }
         if CommandLine.arguments.contains("positive") { return .positive }
@@ -89,6 +92,120 @@ import PublicLiftPlanePort
             try PolylineLiftProof.require(abs(point.surfaceU) <= 1e-6 && abs(point.surfaceV+0.5) <= 1e-6)
         }
     }
+    nonisolated static func checkContainedCapabilities(_ piece:OriginalContainedLiftPlanePiece) throws {
+        var a = try PolylineLiftProof.Admission()
+        let f = piece.polynomials.field,r = piece.polynomials
+        let zero = try f.integer(0,using:&a),one = try f.integer(1,using:&a)
+        let half = try f.dividing(one,f.integer(2,using:&a),using:&a)
+        let d = try ExactParameterDomain(field:f,depth:piece.depth,using:&a)
+        let equation = try r.subtracting(r.variable(0,using:&a),r.constant(half,using:&a),using:&a)
+        for relation in [OriginalParametricGraphCondition<OriginalExactScalarDomain>.Relation.equal,.notEqual,.positive,.nonnegative] {
+            let condition = OriginalParametricGraphCondition(equation,relation)
+            let actual = try PublicLiftPlanePort.DefaultOriginalContainedLiftPlaneResolver().preimage(condition,ring:r,domain:d,using:&a)
+            let expected:ExactParameterSet<OriginalExactScalarDomain>
+            switch relation {
+            case .equal:expected = try d.set(intervals:[d.interval(lower:.finite(half),upper:.finite(half),using:&a)],using:&a)
+            case .notEqual:expected = try d.set(intervals:[d.interval(lower:.negativeInfinity,upper:.finite(half),includesUpper:false,using:&a),d.interval(lower:.finite(half),upper:.positiveInfinity,includesLower:false,using:&a)],using:&a)
+            case .positive:expected = try d.set(intervals:[d.interval(lower:.finite(half),upper:.positiveInfinity,includesLower:false,using:&a)],using:&a)
+            case .nonnegative:expected = try d.set(intervals:[d.interval(lower:.finite(half),upper:.positiveInfinity,using:&a)],using:&a)
+            }
+            try PolylineLiftProof.require(d.setEqual(actual,expected,using:&a))
+            let negative = OriginalParametricGraphCondition(try r.scaled(equation,by:f.integer(-1,using:&a),using:&a),relation)
+            let reversed = try PublicLiftPlanePort.DefaultOriginalContainedLiftPlaneResolver().preimage(negative,ring:r,domain:d,using:&a)
+            if relation == .positive || relation == .nonnegative {
+                let upper = try d.set(intervals:[d.interval(lower:.negativeInfinity,upper:.finite(half),includesUpper:relation == .nonnegative,using:&a)],using:&a)
+                try PolylineLiftProof.require(d.setEqual(reversed,upper,using:&a))
+            } else { try PolylineLiftProof.require(d.setEqual(reversed,expected,using:&a)) }
+            for value in [zero,one] {
+                let constant = OriginalParametricGraphCondition(try r.constant(value,using:&a),relation)
+                let selected = try PublicLiftPlanePort.DefaultOriginalContainedLiftPlaneResolver().preimage(constant,ring:r,domain:d,using:&a)
+                let accepted = relation == .equal ? (try f.sign(of:value,using:&a) == .zero):relation == .nonnegative ? true:(try f.sign(of:value,using:&a) == .positive)
+                let all = try d.set(intervals:[d.interval(lower:.negativeInfinity,upper:.positiveInfinity,using:&a)],using:&a)
+                try PolylineLiftProof.require(selected.isEmpty == !accepted)
+                if accepted { try PolylineLiftProof.require(d.setEqual(selected,all,using:&a)) }
+            }
+        }
+        let original = piece.mapEvidence.graph
+        let cells = try PublicLiftPlane.ExactRealCellDomain<OriginalExactScalarDomain>(retaining:original.predicate.source,using:&a)
+        let ring = cells.polynomials,field = try cells.coefficientField(of:original.predicate.source,using:&a)
+        let solver = PublicLiftPlane.ExactParametricRelationDomain<OriginalExactScalarDomain,PublicLiftPlane.ExactRealCellDomain<OriginalExactScalarDomain>,PublicLiftPlane.ExactRealTopology<OriginalExactScalarDomain>>(cells:PublicLiftPlane.ExactRealCellDomain<OriginalExactScalarDomain>.self,topology:.init(cells:PublicLiftPlane.ExactRealCellDomain<OriginalExactScalarDomain>.self))
+        var laws = original.predicate.source.polynomials
+        for index in 0..<3 { laws[index] = try ring.constant(field.integer(0,using:&a),using:&a) }
+        let constantSource = try cells.bind(polynomials:laws,domains:original.predicate.source.domains,using:&a)
+        let predicate = try cells.predicate(instructions:original.predicate.instructions,for:constantSource,using:&a)
+        let constantGraph = try solver.graph(from:predicate,parameterCount:1,using:&a)
+        let constant = try DefaultExactPolynomialCurveMapCertifier<OriginalExactScalarDomain>().certify(constantGraph,using:&a)
+        try PolylineLiftProof.require(constant.isConstant && !constant.hasFiniteFibers && constant.derivativeMinors.count == 3)
+        for weight in [try ring.constant(field.integer(0,using:&a),using:&a),try ring.variable(0,using:&a)] {
+            laws[3] = weight
+            let source = try cells.bind(polynomials:laws,domains:original.predicate.source.domains,using:&a)
+            let predicate = try cells.predicate(instructions:original.predicate.instructions,for:source,using:&a)
+            let graph = try solver.graph(from:predicate,parameterCount:1,using:&a)
+            do { _ = try DefaultExactPolynomialCurveMapCertifier<OriginalExactScalarDomain>().certify(graph,using:&a);throw ExactScalarFailure.invalidEvidence }
+            catch PublicLiftPlane.ExactGeometricRelationFailure.invalidSourceBinding {}
+        }
+        let badArity = PublicLiftPlane.ExactParametricGraph(predicate:original.predicate,parameterCount:2)
+        do { _ = try DefaultExactPolynomialCurveMapCertifier<OriginalExactScalarDomain>().certify(badArity,using:&a);throw ExactScalarFailure.invalidEvidence }
+        catch PublicLiftPlane.ExactGeometricRelationFailure.invalidSourceBinding {}
+        let foreign = try OriginalExactScalarDomain(maximumValueDepth:32,maximumCoefficientDepth:32,using:&a)
+        let foreignT = try foreign.integer(0,using:&a)
+        do { _ = try piece.contains(foreignT,using:&a);throw ExactScalarFailure.invalidEvidence }
+        catch ExactParameterDomainFailure.scalar(.incompatibleDomain) {}
+        print("PASS affine guards: exact open/closed/equality/complement/constant/negative-slope preimages; map constant/finite and invalid weight/arity; foreign query refusal")
+    }
+    nonisolated static func checkContained(_ family:any OriginalContainedLiftPlaneFamilyReading) throws {
+        var admission = try PolylineLiftProof.Admission(work:8_388_608)
+        try PolylineLiftProof.require(!family.isEmpty && family.hasPositiveDimensionalSolutions && family.hasPositiveDimensionalImage)
+        let pieces = family.pieces
+        try PolylineLiftProof.require(pieces.count == 12)
+        let f = pieces[0].polynomials.field
+        let zero = try f.integer(0,using:&admission),one = try f.integer(1,using:&admission)
+        let two = try f.integer(2,using:&admission),half = try f.dividing(one,two,using:&admission)
+        guard let first = pieces[0].domain.intervals.first,case .finite(let a) = first.upper,
+            let middle = pieces[7].domain.intervals.first,case .finite(let b) = middle.upper else { throw ExactScalarFailure.invalidEvidence }
+        // Unique positive roots give independent exact authored stations, not sampled agreement.
+        let equationA = try f.subtracting(f.adding(f.multiplying(a,a,using:&admission),f.multiplying(two,a,using:&admission),using:&admission),one,using:&admission)
+        let equationB = try f.subtracting(f.multiplying(two,f.multiplying(b,b,using:&admission),using:&admission),one,using:&admission)
+        try PolylineLiftProof.require(f.sign(of:equationA,using:&admission) == .zero && f.sign(of:equationB,using:&admission) == .zero)
+        try PolylineLiftProof.require(f.compare(zero,a,using:&admission) == .less && f.compare(a,b,using:&admission) == .less && f.compare(b,one,using:&admission) == .less)
+        let expected = [(zero,a),(a,a),(one,one),(a,a),(a,a),(one,one),(a,a),(a,b),(b,one),(a,a),(a,b),(b,one)]
+        var intervalCount = 0,singletonCount = 0
+        for (index,piece) in pieces.enumerated() {
+            try PolylineLiftProof.require(piece.templateOrdinal == index && piece.domain.intervalCount == 1)
+            guard let interval = piece.domain.intervals.first,case .finite(let lower) = interval.lower,
+                case .finite(let upper) = interval.upper else { throw ExactScalarFailure.invalidEvidence }
+            try PolylineLiftProof.require(interval.includesLower && interval.includesUpper)
+            try PolylineLiftProof.require(f.compare(lower,expected[index].0,using:&admission) == .equal && f.compare(upper,expected[index].1,using:&admission) == .equal)
+            let dimension = try f.compare(lower,upper,using:&admission) == .equal ? 0:1
+            try PolylineLiftProof.require(piece.intervalDimensions == [dimension] && piece.imageDimension(at:0) == dimension && piece.fiberDimension(at:0) == 0)
+            try PolylineLiftProof.require(piece.imageDimension(at:1) == nil && !piece.mapEvidence.isConstant && piece.mapEvidence.hasFiniteFibers)
+            if dimension == 1 { intervalCount += 1 } else { singletonCount += 1 }
+            let r = piece.polynomials,t = try r.variable(0,using:&admission)
+            let x:ExactPolynomial<OriginalExactScalarDomain>,y:ExactPolynomial<OriginalExactScalarDomain>
+            switch index % 3 {
+            case 0:
+                x = try r.scaled(t,by:f.dividing(half,a,using:&admission),using:&admission);y = x
+            case 1:
+                x = try r.adding(r.constant(half,using:&admission),r.scaled(r.subtracting(t,r.constant(a,using:&admission),using:&admission),by:f.dividing(half,f.subtracting(b,a,using:&admission),using:&admission),using:&admission),using:&admission)
+                y = try r.constant(half,using:&admission)
+            default:
+                x = try r.subtracting(r.constant(f.integer(1,using:&admission),using:&admission),r.scaled(r.subtracting(t,r.constant(b,using:&admission),using:&admission),by:f.dividing(half,f.subtracting(one,b,using:&admission),using:&admission),using:&admission),using:&admission)
+                y = try r.constant(half,using:&admission)
+            }
+            try PolylineLiftProof.require(r.equals(piece.originalCoordinates[0],t,using:&admission))
+            for (axis,law) in [x,y].enumerated() {
+                try PolylineLiftProof.require(r.equals(piece.originalCoordinates[axis+1],law,using:&admission))
+                try PolylineLiftProof.require(r.equals(piece.homogeneous[axis],r.multiplying(law,piece.homogeneous[3],using:&admission),using:&admission))
+            }
+            try PolylineLiftProof.require(r.isZero(piece.homogeneous[2],using:&admission))
+            try PolylineLiftProof.require(r.equals(piece.planeNumerators[0],r.multiplying(y,piece.homogeneous[3],using:&admission),using:&admission))
+            try PolylineLiftProof.require(r.equals(piece.planeNumerators[1],r.scaled(r.multiplying(x,piece.homogeneous[3],using:&admission),by:f.integer(-1,using:&admission),using:&admission),using:&admission))
+            try PolylineLiftProof.require(piece.contains(lower,using:&admission) && piece.contains(upper,using:&admission))
+        }
+        try PolylineLiftProof.require(intervalCount == 5 && singletonCount == 7)
+        let outside = try f.integer(2,using:&admission)
+        for piece in pieces { try PolylineLiftProof.require(!piece.contains(outside,using:&admission)) }
+    }
     nonisolated static func run(_ selected:Mode? = nil,normal:Vector3D? = nil) async throws {
         let mode = selected ?? Self.mode
         func input() throws -> (Curve3D,Surface3D) { try Self.input(normal:normal) }
@@ -107,6 +224,54 @@ import PublicLiftPlanePort
             print("PASS ordinary public entry Task cancellation before work/storage")
             return
         }
+        if mode == .containedResources || mode == .containedCancelEntry || mode == .containedCancelFinal {
+            let (curve,_) = try input(),plane = Surface3D.plane(.init(origin:.origin,normal:.unitZ))
+            func query(_ counter:Counter,options:CurveSurfaceIntersectionOptions = .init(),sourceDepth:Int = 8,algebraicDepth:Int = 32) throws -> PublicLiftPlanePort.CurveSurfaceIntersectionResult {
+                try intersector.intersectionResult(curve:curve,surface:plane,options:options,tolerance:.standard,
+                    maximumSpanCount:262_144,maximumSubdivisionDepth:8,remainingSourceDepth:sourceDepth,
+                    consumeWork:{ try counter.consume($0) },consumeStorage:{ try counter.retain($0) },maximumAlgebraicDepth:algebraicDepth)
+            }
+            if mode == .containedCancelEntry {
+                let counter = Counter();withUnsafeCurrentTask { $0?.cancel() }
+                do { _ = try query(counter);throw ExactScalarFailure.invalidEvidence } catch is CancellationError {}
+                try PolylineLiftProof.require(counter.totals.work == 0 && counter.totals.bytes == 0)
+                print("PASS contained family entry Task cancellation before work/storage");return
+            }
+            let measured = Counter(),retained = try query(measured),exact = measured.totals
+            guard let family = retained.originalContainedLiftPlaneFamily else { throw ExactScalarFailure.invalidEvidence }
+            if mode == .containedCancelFinal {
+                do { _ = try query(Counter(cancelAt:exact.work,cancelTask:true));throw ExactScalarFailure.invalidEvidence } catch is CancellationError {}
+                print("PASS contained family final callback Task cancellation before publication");return
+            }
+            try PolylineLiftProof.require(query(Counter(work:exact.work,bytes:exact.bytes)).originalContainedLiftPlaneFamily?.pieces.count == 12)
+            for counter in [Counter(work:exact.work-1),Counter(bytes:exact.bytes-1),Counter(cancelAt:1),Counter(cancelAt:exact.work/2),Counter(cancelAt:exact.work)] {
+                do { _ = try query(counter);throw ExactScalarFailure.invalidEvidence }
+                catch is CancellationError { try PolylineLiftProof.require(counter.cancelAt != nil) }
+                catch let error as KernelError { try PolylineLiftProof.require(counter.cancelAt == nil && error.code == .resourceLimitExceeded) }
+            }
+            for kind in 0..<4 {
+                var options = CurveSurfaceIntersectionOptions()
+                if kind == 0 { options.maximumCandidateCount = 11 }
+                if kind == 1 { options.maximumPolynomialDegree = 0 }
+                do { _ = try query(Counter(),options:options,sourceDepth:kind == 2 ? 0:8,algebraicDepth:kind == 3 ? 0:32);throw ExactScalarFailure.invalidEvidence }
+                catch let error as KernelError { try PolylineLiftProof.require(error.code == .resourceLimitExceeded) }
+            }
+            var values = try PolylineLiftProof.Admission()
+            let zero = try family.pieces[0].polynomials.field.integer(0,using:&values)
+            var reader = try PolylineLiftProof.Admission(work:0)
+            do { _ = try family.pieces[0].contains(zero,using:&reader);throw ExactScalarFailure.invalidEvidence }
+            catch ExactParameterDomainFailure.scalar(.resourceLimit(.work)) {}
+            var cancelled = try PolylineLiftProof.Admission(cancelAt:1)
+            do { _ = try family.pieces[0].contains(zero,using:&cancelled);throw ExactScalarFailure.invalidEvidence }
+            catch ExactScalarFailure.cancelled {}
+            try checkContained(family)
+            #if !hasFeature(Embedded)
+            print("PASS contained family exact/one-less work",exact.work,"bytes",exact.bytes,"mid/final callback cancel; candidate/degree/source/value-depth failures; retained query work/cancel")
+            #else
+            print("PASS contained family exact/one-less work/storage; mid/final cancel; count/degree/depth; retained query failures")
+            #endif
+            return
+        }
         if mode == .positive {
             let (curve,_) = try input()
             let plane = Surface3D.plane(.init(origin:.origin,normal:.unitZ))
@@ -117,9 +282,27 @@ import PublicLiftPlanePort
                 #endif
                 try PolylineLiftProof.require(error.code == .nonDiscreteIntersection)
             }
-            let result = try intersector.intersectionResult(curve:curve,surface:plane,tolerance:.standard)
+            let result:PublicLiftPlanePort.CurveSurfaceIntersectionResult
+            do {
+                let (owned,_) = try input()
+                result = try intersector.intersectionResult(curve:owned,surface:plane,tolerance:.standard)
+                guard case .surfaceLift(let lift) = owned,case .polyline(let original) = lift.parameterCurve else { throw ExactScalarFailure.invalidEvidence }
+                var changed = original;changed[2].u = 0.75
+                try PolylineLiftProof.require(original[2].u == 0.5 && changed[2].u == 0.75)
+            }
             try PolylineLiftProof.require(result.points.isEmpty && result.hasPositiveDimensionalSolutions)
-            try PolylineLiftProof.require(result.originalIssuedGeometricRelation?.hasPositiveDimensionalImage == true)
+            guard let family = result.originalContainedLiftPlaneFamily else { throw ExactScalarFailure.invalidEvidence }
+            try checkContained(family)
+            try PolylineLiftProof.require(result.representation == .exactRelation)
+            try checkContainedCapabilities(family.pieces[0])
+            let detached = family.pieces[0]
+            try await withThrowingTaskGroup(of:Void.self) { group in
+                for _ in 0..<2 { group.addTask { try checkContained(family) } }
+                try await group.waitForAll()
+            }
+            var independent = try PolylineLiftProof.Admission()
+            let zero = try detached.polynomials.field.integer(0,using:&independent)
+            try PolylineLiftProof.require(detached.contains(zero,using:&independent))
             print("PASS ordinary public positive-dimensional lift/plane: bare refuses, rich retains complete image/fiber relation")
             return
         }
@@ -272,7 +455,13 @@ import PublicLiftPlanePort
     }
     static func main() async {
         do {
-            #if PUBLIC_PROOF_ALL_MODES
+            #if PUBLIC_PROOF_CONTAINED_ALL
+            for mode in [Mode.positive,.containedResources,.containedCancelEntry,.containedCancelFinal] {
+                try await Task { try await run(mode) }.value
+            }
+            try await Task { try await run(.ordinary,normal:.unitX) }.value
+            try await Task { try await run(.ordinary) }.value
+            #elseif PUBLIC_PROOF_ALL_MODES
             try await Task { try await run(.ordinary,normal:.unitX) }.value
             for mode in [Mode.ordinary,.selections,.resources,.cancelEntry,.cancelFinal] {
                 try await Task { try await run(mode) }.value

@@ -1,0 +1,5 @@
+(node:31496) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+POSITIVE bare diagnostic KernelError(phase: CADCore.KernelPhase.geometry, code: CADCore.KernelErrorCode.nonDiscreteIntersection, featureID: nil, subshapeID: nil, residual: nil, tolerance: Optional(CADCore.ModelingTolerance(distance: 1e-06, angle: 1e-09, relative: 1e-09)), message: "The original lift lies in the plane over a positive-dimensional domain.")
+PASS affine guards: exact open/closed/equality/complement/constant/negative-slope preimages; map constant/finite and invalid weight/arity; foreign query refusal
+PASS ordinary public positive-dimensional lift/plane: bare refuses, rich retains complete image/fiber relation

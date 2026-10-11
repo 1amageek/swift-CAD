@@ -189,3 +189,16 @@ parameter predicate directly; `usesParameterProjection` records that choice.
 its intersection with the new station selection. `containsLift` checks both exact
 owned partitions and every retained guard, with final cancellation. No auxiliary problem is solved again in this case.
 Other XYZ queries solve the constrained lifted relation and project it as before.
+
+### Polynomial-curve map evidence
+
+A sealed checked receipt exposes the existing graph resolver's derivative-minor
+proof for a single-parameter, single-variable graph with constant nonzero W.
+The original graph and all derivative minors remain retained. Zero minors prove
+a constant map; otherwise a nonconstant polynomial coordinate has finite fibers.
+The issuer asserts no selected domain, contact, injectivity or image connectivity.
+The upper contained-lift publisher combines this receipt with source-issued UV
+elimination, whole-plane containment and complete affine-guard preimages; it does
+not fabricate an L5 selection or rerun intersection decomposition. Existing L5-
+backed geometric relation contracts are unchanged. The changed public path is
+verified by CS-POLY-COINC-01 in OriginalPublicAcceptanceVerification.

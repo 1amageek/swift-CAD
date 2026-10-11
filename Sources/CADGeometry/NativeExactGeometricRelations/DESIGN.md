@@ -41,8 +41,9 @@ flowchart LR
 ## Contracts and Invariants
 - Preserve every source parameter tuple, requested domain, nonzero denominator guard,
   complete selection and topology owner. Equal XYZ never merges distinct UV.
-- Geometry resolves L6 exactly once from the retained L5 relation. Station queries
-  are explicit new constrained problems with a caller-supplied query admission.
+- L5-backed publication resolves L6 exactly once from the retained L5 relation.
+  Exactly contained polynomial families use the source/DI/map proofs below instead.
+  Station queries are explicit new constrained problems with a caller-supplied query admission.
 - Positive results retain their complete exact relation. Discrete-only queries reject
   positive-dimensional solutions atomically. Empty results retain full exclusion.
 - Numerical representatives must satisfy existing position/parameter/classification
@@ -129,6 +130,55 @@ binds the frozen ordinary input to both distinct authored T roots and all exact
 incidents. This input does not establish general lift/plane family coverage.
 The changed path requires focused real-source success/exclusion, exact domains,
 wrong-owner/field and resource/cancel/lifetime checks on the fixed target lanes.
+
+### Exactly contained polynomial lift families
+
+CS-POLY-COINC-01 stops in the first template's three-variable L5 decomposition
+under the unchanged public work allowance. Its alternative complete proof is an
+identically zero original plane incidence polynomial, a constant nonzero weight,
+a source-issued bijective UV elimination, and the complete preimage of every
+affine source guard. This is a proof-selected publication path, selected before
+any intersection decomposition; a failed solver never triggers this path.
+
+```mermaid
+flowchart LR
+ S[Original lift and plane receipts] --> C[Exact whole-chart containment]
+ C --> D[DI interval algebra: every affine guard preimage]
+ D --> M[L6 polynomial-curve map evidence]
+ M --> R[Complete symbolic T / original UV / plane UV / XYZ family]
+```
+
+The initial ordinary capability requires the full curve and whole-plane request,
+identity authored T transport, affine source guards and polynomial UV elimination.
+Other requests and unproved containment use the existing selected relation path.
+The original source owner supplies all formulas; this consumer never reconstructs
+UV from XYZ. All source templates, including empty and singleton selections,
+retain their ordinals, guard proofs and owners. No cell sampling or finite plane
+window establishes coverage. A nonzero constant guard gives the whole line or
+empty set as its exact sign requires; a nonconstant affine guard has its unique
+exact root and sign-correct open/closed half-lines or singleton/complement.
+Existing DI set intersection computes their complete conjunction with support.
+
+The sealed polynomial-curve map receipt in
+[L6](../RationalBivariateAlgebra/ExactGeometricRelation/DESIGN.md#polynomial-curve-map-evidence)
+retains the existing derivative-minor proof of a constant map or a nonconstant
+coordinate with finite fibers. Each nontrivial parameter interval has dimension
+one; each singleton has dimension zero. A constant map has image dimension zero;
+a nonconstant polynomial curve has the interval's dimension and zero-dimensional
+fibers. Image connectivity and injectivity are not inferred. The public family
+preserves every original TUV and the target basis UV=(H-OW) dot basis / W.
+
+The rich CS result exposes an immutable non-generic reader requirement and exact
+pieces, separately from L5-cell-backed relations. The bare API rejects a positive-
+dimensional solution. Isolated-only numerical publication from this family is
+explicitly unfinished; it cannot return an empty successful point array. All
+operations use the same caller admission, checked chart/candidate counts, depth,
+charged buffers/owner storage and terminal cancellation. A single erased strong
+owner is shared by all pieces; detached pieces retain source, plane and reduction
+proofs. Independent readers use independent admissions. Native/ASAN/WASM/Embedded
+changed-path checks own the full public oracle, boundaries, failure, exact/one-less
+resources, cancellation, COW and detached lifetime. Existing point paths are
+regressions, not evidence for continuous-family completion.
 
 ### Ordinary retained polyline lift against an axis plane
 

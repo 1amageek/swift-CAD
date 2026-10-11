@@ -1,0 +1,9 @@
+{
+  "compilerPath": "/Users/1amageek/Library/Developer/Toolchains/swift-6.4.0-RELEASE.xctoolchain/usr/bin/swiftc",
+  "compilerSHA256": "79ae5c26645489fb783ae980f0f1bdae810f90fb180c9ac39808807b65e9fd69",
+  "version": "Apple Swift version 6.4 (swift-6.4-RELEASE)\nTarget: arm64-apple-macosx27.0.0\n",
+  "sdk": "/Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/WASI.sdk",
+  "target": "wasm32-unknown-wasip1",
+  "embedded": true,
+  "timing": "Identity recorded during final receipt assembly; command and successful compile/link/runtime identify the executed lane."
+}

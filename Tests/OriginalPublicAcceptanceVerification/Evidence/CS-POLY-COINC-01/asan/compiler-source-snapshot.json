@@ -1,0 +1,46 @@
+{
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/OriginalLiftPlanePointPublisher.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/1247c3c5353f-OriginalLiftPlanePointPublisher.swift",
+    "sha256": "1247c3c5353f73331c4607788f28165e6a466e356ebb5f0c3a1723b55b35a618"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/OriginalRetainedLiftPlanePublicProducer.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/c317ab660e50-OriginalRetainedLiftPlanePublicProducer.swift",
+    "sha256": "c317ab660e506a7db7c131a3f4e4b5d53b48ac8da6c2561a81aeae690a55fc7d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/CurveSurfaceIntersectionResult.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/2e378356b281-CurveSurfaceIntersectionResult.swift",
+    "sha256": "2e378356b2812980bbf2f982c98b8e5ed81e01643e630eb0330fe962e73d5aa5"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/DefaultOriginalContainedLiftPlaneResolver.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/2e437ff46bb8-DefaultOriginalContainedLiftPlaneResolver.swift",
+    "sha256": "2e437ff46bb88e7f1ca3ecaba60efe21827c7c22713193e02d70ad5a07a5602e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/OriginalContainedLiftPlaneFamily.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/20628bff68d3-OriginalContainedLiftPlaneFamily.swift",
+    "sha256": "20628bff68d30d6f2bdf817056ce8012280f832452de47114bdeb48372595fb1"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/OriginalContainedLiftPlaneFamilyReading.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/c4f9f3b9d7c9-OriginalContainedLiftPlaneFamilyReading.swift",
+    "sha256": "c4f9f3b9d7c9c2b51b55ac60ac24fb35abc03c148dc24714c55df347c0428505"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/OriginalContainedLiftPlanePiece.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/8cacd163a0db-OriginalContainedLiftPlanePiece.swift",
+    "sha256": "8cacd163a0dbf6e03f06a797e482d5e358733958b2fb41d340cda7ed1f1751c0"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/ExactPolynomialCurveMapEvidence.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/d7f31a8b5ceb-ExactPolynomialCurveMapEvidence.swift",
+    "sha256": "d7f31a8b5ceb4c4d850055d35123ecacecc0357e7c84f574c38d2a20e68ec04c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/ExactPolynomialCurveMapCertifying.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/c7732d5b1623-ExactPolynomialCurveMapCertifying.swift",
+    "sha256": "c7732d5b1623f7fb53389415d806c15b867e642869b0902c011c7322a826f79f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/DefaultExactPolynomialCurveMapCertifier.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/5bb0b711d781-DefaultExactPolynomialCurveMapCertifier.swift",
+    "sha256": "5bb0b711d781b59fbf6d9769d023c42d62bc486dbb977181ae7500dd4263cc67"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-asan-20261011/Proof.swift": {
+    "path": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-COINC-01/compiler-source-snapshot/0bb0364d884f-Proof.swift",
+    "sha256": "0bb0364d884f7e144b2b1e98036bc758badd529df5837810f8bcae23afdfceef"
+  }
+}

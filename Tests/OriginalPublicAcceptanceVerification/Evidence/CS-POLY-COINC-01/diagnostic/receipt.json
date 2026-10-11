@@ -1,0 +1,15 @@
+{
+  "cell": "CS-POLY-COINC-01",
+  "diagnostic": true,
+  "command": [
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-subnormal-native-20261011/proof",
+    "positive"
+  ],
+  "timeoutSeconds": 120,
+  "elapsedSeconds": 11.149732500081882,
+  "exitCode": 1,
+  "productSHA256": "35ef20cd46c6fd9477be01ae36c2542d57442594f55c9800b39bf853700c0ca5",
+  "logSHA256": "00e7735502ac6971cd6b95ede4e173397dd1f3b6ca0b62033ed1e250f2ac9b5e",
+  "parentReceipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-NORMAL-SUBNORMAL-01/native/receipt.json",
+  "parentReceiptSHA256": "e8359f633ecfe561f0060c2c9d63bb715b7cb48dea7e148ffd6a4ddcafac2116"
+}

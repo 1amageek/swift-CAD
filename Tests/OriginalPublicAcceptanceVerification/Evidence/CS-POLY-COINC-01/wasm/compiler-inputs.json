@@ -1,0 +1,22 @@
+{
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/09f1e4124164-ExactIntersectionResultRepresentation.swift": "b8675064710b008bff44a9275cf0d984459a89ceacd9d72094e5e7a3932f0083",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/fab6e06f475f-OriginalIssuedNumericalCurveSurfacePoints.swift": "a1f0bd2dca5fd581439c2381f22f398e4465cd72708305273ec456bc81aa4a96",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/OriginalLiftPlanePointPublisher.swift": "1247c3c5353f73331c4607788f28165e6a466e356ebb5f0c3a1723b55b35a618",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/OriginalRetainedLiftPlanePublicProducer.swift": "c317ab660e506a7db7c131a3f4e4b5d53b48ac8da6c2561a81aeae690a55fc7d",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/cbc7e65c447d-NativeExactPublicAdmission.swift": "6d3f3a5722dc22da44f892b65b0ebebaf8269a5e6e86abd27459b67fbd459505",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/81ad3251f4ce-NativeExactPublicLimits.swift": "fd657de5dad3ef68c8de08d74b401fafa0a1dd862d2207a1db6f14aa160be878",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/6c801380eed4-DefaultCurveSurfaceIntersector.swift": "721ac967caedd152d368767f723a9f2b7b273289ca89e321a1f63e99f8ee3062",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/96cadf1aa3aa-DefaultCurveSurfaceIntersector+Overlap.swift": "db5f78dd26060f231eb99be658d0c5d5143360a74003dacb65dc5cf761315e04",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/b4814549f903-CurveSurfaceIntersectionResolving.swift": "9c848791aca59130b5981d79a97a6c0b996c1f5f9c098ddb71ff2f001bf30767",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/CurveSurfaceIntersectionResult.swift": "2e378356b2812980bbf2f982c98b8e5ed81e01643e630eb0330fe962e73d5aa5",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/42f368933b6b-OriginalRetainedLiftPlaneIntersecting.swift": "dcd717231cddd7c625a7f103aee45e8e4bb7f757fdcefcffa0fd73dc5ef968c3",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/8bfa494364ca-DefaultCurveSurfaceIntersector+RetainedLiftPlane.swift": "6956e8989123c79ad5175e999832a8ad6af9c7f79e4a0b37da0e065439bf2d07",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-ordinary-accepted-20261011/wasm/compiler-source-snapshot/20bf72952143-UnselectedOverlapTripwire.swift": "d0f1c2ed62f1a90d0efa2d93cfdd981dd91d41ffeb454b35223afeeef43ce09f",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/DefaultOriginalContainedLiftPlaneResolver.swift": "2e437ff46bb88e7f1ca3ecaba60efe21827c7c22713193e02d70ad5a07a5602e",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/OriginalContainedLiftPlaneFamily.swift": "20628bff68d30d6f2bdf817056ce8012280f832452de47114bdeb48372595fb1",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/OriginalContainedLiftPlaneFamilyReading.swift": "c4f9f3b9d7c9c2b51b55ac60ac24fb35abc03c148dc24714c55df347c0428505",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/OriginalContainedLiftPlanePiece.swift": "8cacd163a0dbf6e03f06a797e482d5e358733958b2fb41d340cda7ed1f1751c0",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/ExactPolynomialCurveMapEvidence.swift": "d7f31a8b5ceb4c4d850055d35123ecacecc0357e7c84f574c38d2a20e68ec04c",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/ExactPolynomialCurveMapCertifying.swift": "c7732d5b1623f7fb53389415d806c15b867e642869b0902c011c7322a826f79f",
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-coinc-wasm-20261011/DefaultExactPolynomialCurveMapCertifier.swift": "5bb0b711d781b59fbf6d9769d023c42d62bc486dbb977181ae7500dd4263cc67"
+}

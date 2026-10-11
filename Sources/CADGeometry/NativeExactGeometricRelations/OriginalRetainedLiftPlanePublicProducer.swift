@@ -93,6 +93,27 @@ struct OriginalRetainedLiftPlanePublicProducer {
             let cover = try domain.issue(request:planeRequest,basis:basis,limits:limits,using:&a)
             let field = try ExactAlgebraicScalarDomain.base(field:f,maximumExtensionLevel:Int.max,using:&a)
             let target = try DefaultOriginalPlaneGraphCompiler<OriginalPlaneSnapshot>().compile(cover:cover,field:field,limits:limits,using:&a)
+            // FIXME(INCOMPLETE_IMPLEMENTATION): Contained-family publication currently
+            // accepts the full authored curve and whole plane. Clipped/singular request
+            // publication must retain every exact preimage before this branch is general.
+            if options.curveRange == nil, options.surfaceURange == nil, options.surfaceVRange == nil,
+                let contained = try DefaultOriginalContainedLiftPlaneResolver().resolve(lift:lift,plane:target,
+                    maximumPieces:options.maximumCandidateCount,limits:limits,using:&a) {
+                if !retainingRelations && contained.hasPositiveDimensionalSolutions {
+                    throw KernelError(phase:.geometry,code:.nonDiscreteIntersection,tolerance:tolerance,
+                        message:"The original lift lies in the plane over a positive-dimensional domain.")
+                }
+                // FIXME(INCOMPLETE_IMPLEMENTATION): The bare ordinary CS API needs a
+                // numerical point publisher for isolated-only contained families. Until
+                // every singleton is published it must fail, never return an empty array.
+                if !retainingRelations && !contained.isEmpty {
+                    throw KernelError(phase:.geometry,code:.unsupportedCapability,tolerance:tolerance,
+                        message:"Isolated contained-family contacts require exact point publication.")
+                }
+                try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:CurveSurfaceIntersectionResult.self))
+                let result = CurveSurfaceIntersectionResult(points:[],overlaps:[],originalContainedLiftPlaneFamily:contained)
+                try a.checkpoint();return result
+            }
             let unbounded = try NativeExactPublicLimits.unboundedStructure()
             let topology = unbounded.topology
             let geometry = try ExactGeometricRelationLimits(cells:unbounded.cells,

@@ -1,0 +1,96 @@
+STAGE lift source
+STAGE family
+STAGE lift domain
+STAGE plane graph
+STAGE parameter relations
+TEMPLATE 0 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 0 1
+SOURCE DOMAIN selected 3
+SOURCE DOMAIN components 1
+TEMPLATE 1 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 1 1
+SOURCE DOMAIN selected 1
+SOURCE DOMAIN components 1
+TEMPLATE 2 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 2 1
+SOURCE DOMAIN selected 1
+SOURCE DOMAIN components 1
+TEMPLATE 3 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 3 1
+SOURCE DOMAIN selected 1
+SOURCE DOMAIN components 1
+TEMPLATE 4 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 4 1
+SOURCE DOMAIN selected 1
+SOURCE DOMAIN components 1
+TEMPLATE 5 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 5 1
+SOURCE DOMAIN selected 1
+SOURCE DOMAIN components 1
+TEMPLATE 6 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 6 1
+SOURCE DOMAIN selected 1
+SOURCE DOMAIN components 1
+TEMPLATE 7 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 7 1
+SOURCE DOMAIN selected 3
+SOURCE DOMAIN components 1
+TEMPLATE 8 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 8 1
+SOURCE DOMAIN selected 3
+SOURCE DOMAIN components 1
+TEMPLATE 9 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 9 1
+SOURCE DOMAIN selected 1
+SOURCE DOMAIN components 1
+TEMPLATE 10 of 12
+PAIR UV reduction
+PAIR incidence restriction
+PAIR graph compilation
+PAIR relation compilation
+SOURCE DOMAIN decompose 10 1
+SOURCE DOMAIN selected 3
+RESOLVER ERROR cell(PublicLiftPlane.ExactRealCellFailure.root(PublicLiftPlane.ExactRealRootFailure.scalar(CADGeometry.ExactScalarFailure.admissionRejected(KernelError(phase: geometry, code: resourceLimitExceeded, message: Native point exact cell or algebraic depth allowance exhausted.)))))
+POSITIVE bare diagnostic Native point exact cell or algebraic depth allowance exhausted.
+FAIL ordinary lift/plane
+Failure(line: 118)

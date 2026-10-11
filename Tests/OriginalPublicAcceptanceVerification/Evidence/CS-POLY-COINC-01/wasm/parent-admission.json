@@ -1,0 +1,5 @@
+{
+  "parentReceipt": "/private/tmp/cad-m4-m8-completion-20261010/Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-NORMAL-SUBNORMAL-01/wasm/receipt.json",
+  "parentSHA256": "ebfcdeb3f96751b59c3b1dfd5cba31cfe1076c7f1c39b85917d34fc328b469be",
+  "lowerInputs": 5120
+}
