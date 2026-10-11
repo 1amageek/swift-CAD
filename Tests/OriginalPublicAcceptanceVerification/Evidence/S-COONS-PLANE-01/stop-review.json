@@ -1,0 +1,19 @@
+{
+  "scope": "One stable review of acceptance-cell definition and actual Native stop reproduction only; no production self-consumer implementation review.",
+  "inputs": {
+    "PROGRESS.md": "267f4421ba9b8e90e9f0c76cfe003c08628a01cb3839fd26ac9bea4674956df2",
+    "Sources/CADGeometry/OriginalDomainIdentity/OriginalDomainCoverage/DESIGN.md": "45997a0688ed9c46f3ee847d76d275d0f5723b612ac0439a43e7c399c226995b",
+    "Tests/OriginalPublicAcceptanceVerification/CoonsGraphSelfContactProbe.swift": "43dc459ff0eeff8334b7b4deac195c014effb3768914c76f08179a66f97f0924",
+    "Tests/OriginalPublicAcceptanceVerification/CoonsGraphSelfContactStop.py": "1235505999ef015af78d0e8630d13c495df2b30b575046630da25fc60b92db2a",
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/S-COONS-PLANE-01/STOP.md": "013ba3f9f087bd819a49238419b354939c1ef7d2f85caf82d451c135c8bfbeb4"
+  },
+  "checks": [
+    "Actual original constructor and all16 retained pairs; exact homogeneous/UV law assertions.",
+    "Independent closed-grid inclusion/exclusion oracle covers every full raw cell.",
+    "One controlled Native input-type rejection with valid isolated admission/limits.",
+    "All selected compiler inputs, compiler/frontend, products and logs receipt-bound before/after.",
+    "Five stable control IDs remain topological; only STOP complete.",
+    "No source redesign, whole-M4/M5 dependency, new prerequisite or public completion claim."
+  ],
+  "findings": []
+}

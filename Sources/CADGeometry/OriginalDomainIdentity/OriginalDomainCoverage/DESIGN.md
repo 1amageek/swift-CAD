@@ -994,3 +994,22 @@ fundamental oracle and symbolic all-integer coverage, exact request restrictions
 seam incidents/huge signed cycles, typed failure/resource/depth/cancel/lifetime
 checks, four fixed target lanes, one scoped review and coherent latest-main
 integration. This cell does not complete general M7 dispatch or M4-M8 aggregates.
+
+#### S-COONS-PLANE-01: complete issued-graph self product
+
+| Acceptance field | Frozen contract |
+|---|---|
+| Original input | `PolylineAtlasLiftProof.shape(multi: true)` supplies the original four-chart planar Coons map `S(U,V)=(U,V,0)` on `[0,1]^2`. Bind it once with OriginalCoonsAtlasSnapshotProvider; prepare its existing retained rational chart/domain/graph family once; resolve the same family against itself as surfaceSurface, all 16 chart pairs. |
+| Independent complete oracle | The complete raw original relation is `U0=U1` and `V0=V1` within both original chart domains. Every raw full cell must satisfy the corresponding sign oracle. Subtracting the scoped authored-coordinate diagonal leaves the empty relation on the entire requested product. Closed chart sides/germs remain distinct retained owners. |
+| Initial public stop | DefaultOriginalExactNativeSelfContactQuery.contacts accepts NativeExactParametricRelations of BSplineSurface3D. The actual issued Coons graph relation cannot enter that public consumer. The controlled Native compiler rejection and actual all16-pair whole-cell oracle establish this stop in [S-COONS-PLANE-01 stop evidence](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/S-COONS-PLANE-01/STOP.md). Public residual-query implementation remains open. |
+| Causal change | Add a public issued-graph self-contact consumer, consuming existing scoped identity relation views and exact forward original-parameter laws in the actual lifted variable placement; use retained L5/L4 refinement, not a second source producer or equality solve. |
+| Required receipts | Existing source/retained rational atlas, exact DI graph binding, complete graph-family relation, scoped M5 authored-coordinate identity and immutable identity relation view. Each is consumed independently of aggregate M4/M5 completion. |
+| Evidence owner | Tests/OriginalPublicAcceptanceVerification/CoonsGraphSelfContactProbe.swift and Evidence/S-COONS-PLANE-01; changed-path Native/ASAN/ordinary-WASM/Embedded compile/link/runtime, complete oracle, failure/resources/depth/cancel/lifetime and one scoped review, commit and independent main delivery. |
+
+The public result is a complete residual parameter-contact receipt. This cell
+does not certify embedding, complete trim-material selection or migrate the
+existing offset/drafted-sheet caller. Those remain separate mandatory cells;
+a query-only success cannot satisfy their acceptance. Additional nonstructural
+same-XYZ tuples must remain selected unless an applicable scoped identity proves
+their exclusion. Missing identity authority, budgets and cancellation cannot
+become an empty result. Existing Native and interval routes remain available.

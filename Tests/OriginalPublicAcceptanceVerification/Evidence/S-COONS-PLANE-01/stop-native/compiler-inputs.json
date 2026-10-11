@@ -1,0 +1,26 @@
+{
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/s-coons-plane-stop-native-20261011-v6/Probe.swift": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-COONS-PLANE-01/stop-native/compiler-inputs/f875352f0714-Probe.swift",
+    "sha256": "f875352f0714d52be9960ea038bd2c2fdbd76c3962fedddb3e3015368c486ad6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture0.swift": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-COONS-PLANE-01/stop-native/compiler-inputs/416a142e005f-Fixture0.swift",
+    "sha256": "416a142e005f2eabc86955fa07755aecec9d37c338acbdb2892715deb8d8b447"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Fixture1.swift": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-COONS-PLANE-01/stop-native/compiler-inputs/368a7d865f8d-Fixture1.swift",
+    "sha256": "368a7d865f8dc0dffae4571477f0b92114feebab7b18b969d62b5d2d1663cb8c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-OriginalParametricGraphIssuing.swift": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-COONS-PLANE-01/stop-native/compiler-inputs/2cd7caf3b0cb-Regression-OriginalParametricGraphIssuing.swift",
+    "sha256": "2cd7caf3b0cb54d1b2ebdab6b6ab17eaa14e04614bc08be6f6251bd2a7713fc2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphIssuer.swift": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-COONS-PLANE-01/stop-native/compiler-inputs/6f79def02d8e-Regression-DefaultOriginalRationalGraphIssuer.swift",
+    "sha256": "6f79def02d8efedbc70985a48f5dafe25179d025845fc2a0d646f00f3816b5e2"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-poly-01-current-native/Regression-DefaultOriginalRationalGraphFamilyPreparer.swift": {
+    "path": "Tests/OriginalPublicAcceptanceVerification/Evidence/S-COONS-PLANE-01/stop-native/compiler-inputs/0adcfd8ed15c-Regression-DefaultOriginalRationalGraphFamilyPreparer.swift",
+    "sha256": "0adcfd8ed15ce460baa6fd26fc84fb30ec77212e72359ecc12fd16534a1ce565"
+  }
+}
