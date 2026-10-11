@@ -1,0 +1,4 @@
+INPUT existing weighted/projected derivative host; native mode0 diagonal; full T=[0,1]; whole plane x=.5
+ORACLE one T=.5; hostUV=(.5,.5); XYZ=(.5,.5,65/512); planeUV=(65/512,-.5); 8 closed incidents; image/fiber dimensions0
+SELECTED_PRODUCER_DECLINED result=nil retainingRelations=true
+ASSEMBLY_STOP ordinary rich reached verification-only unselectedLegacyRoute tripwire; production fallback behavior unobserved

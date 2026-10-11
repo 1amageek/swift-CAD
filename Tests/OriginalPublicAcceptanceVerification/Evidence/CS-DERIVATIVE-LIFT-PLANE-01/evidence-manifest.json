@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "cell": "CS-DERIVATIVE-LIFT-PLANE-01",
+  "scope": "Selected exact-entry decline and verification-fallback assembly stop only; production fallback and cell acceptance remain unobserved.",
+  "files": {
+    "native-observation/Probe.swift": {
+      "sha256": "68fd3c37083d195e2ef8ee23240a5064456d539da70ca985298a01368a0522fc",
+      "bytes": 3956,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/Probe.swift"
+    },
+    "native-observation/admission.json": {
+      "sha256": "76f8197a4d70d4f579f62536fe279bf4e0ec56f8fd5dda1efe6c9b7fdbf08365",
+      "bytes": 747058,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/admission.json"
+    },
+    "native-observation/compile-command.json": {
+      "sha256": "1f396a82cad304e4aef67b51c71cd24c253a56911b54d9d16016640235ec13dc",
+      "bytes": 4089,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/compile-command.json"
+    },
+    "native-observation/compile-probe.log": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/compile-probe.log"
+    },
+    "native-observation/driver.py": {
+      "sha256": "50fa3e273c0dc14670aab8141c7278fa4f4866bb8145b93bf4ed8226483403fd",
+      "bytes": 9521,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/driver.py"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift": {
+      "sha256": "cab66e3ebf70627220b9eacee371886bb4fbaa78b42c0c26d273744ce91b0a50",
+      "bytes": 1724,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/CurveSurfaceOverlap/DefaultCurveSurfaceIntersector+Overlap.swift"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift": {
+      "sha256": "c1471838a8f4a65fe1c0f01cafb9bb02fc8042c2a910b58e9f20be3cca87b9e9",
+      "bytes": 206053,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/DefaultCurveSurfaceIntersector.swift"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift": {
+      "sha256": "7409f6b78518d3c7d558e952d458238ffeddae31129dd9176452c8f318b885fa",
+      "bytes": 38014,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/OriginalCoons/OriginalSplineTraversalPolynomialPiece.swift"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/OriginalHigherCurveJets/OriginalParameterCurveHigherTaylor.swift": {
+      "sha256": "0d22875318734aef4495d68c36085dcdc19edd4bad08aed1b06a6ec11006c0ec",
+      "bytes": 16543,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/OriginalHigherCurveJets/OriginalParameterCurveHigherTaylor.swift"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalSpatialChartIssuer.swift": {
+      "sha256": "07db5406f9993dd6dbd324b38e0d6b6879d1012fc02b9505242817476ecd7f0c",
+      "bytes": 6017,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalSpatialChartIssuer.swift"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallGraphProducer.swift": {
+      "sha256": "3914b0706451a7b902315cd919e153854e9ba97dd0abf7cc53ac79284103c434",
+      "bytes": 13681,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/OriginalSourceIssuance/OriginalRollingBallGraphProducer.swift"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/RationalBivariateAlgebra/OriginalEuclideanPolylineParameterLaw.swift": {
+      "sha256": "a6f29571e6b6a606a847af53ceceed1ef8aea43adf993674a215485c680f5f43",
+      "bytes": 12407,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/RationalBivariateAlgebra/OriginalEuclideanPolylineParameterLaw.swift"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalProceduralSurfaceHigherTaylor.swift": {
+      "sha256": "4bcbd17f2e7fba44d84b7d228982b7c5444b7ca813aa7b603005da7fb711497a",
+      "bytes": 8019,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalProceduralSurfaceHigherTaylor.swift"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift": {
+      "sha256": "dad44bcfb8e9aa237a7b8e1128175030b44cb359eb242b891d30f93a1178039f",
+      "bytes": 6109,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalRevolutionSurfaceHigherTaylor.swift"
+    },
+    "native-observation/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceHigherJetProvider.swift": {
+      "sha256": "27c5c1b2bf604fb3fc32cab63f1384e3783d0fcb73066d8a7b1a90c9b599ed10",
+      "bytes": 15516,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/historical-source/Sources/CADGeometry/SurfaceSilhouette/OriginalSurfaceHigherJetProvider.swift"
+    },
+    "native-observation/observation.log": {
+      "sha256": "7873ea4c43827c5ca92647dcc2d44b5ac312135c07e2e5f6cc126acd9920a4d7",
+      "bytes": 412,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/observation.log"
+    },
+    "native-observation/receipt.json": {
+      "sha256": "685eff6a1eec0ef4ab2e7dea13cc899c2b5820ce3c9dc16052e1046700b148eb",
+      "bytes": 752955,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/receipt.json"
+    },
+    "native-observation/runs.json": {
+      "sha256": "96e5886e2c740be2a0e740f95a9ced2baa5b61f6333e4582785b757f35580247",
+      "bytes": 5320,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/runs.json"
+    },
+    "native-observation/runtime-admission.json": {
+      "sha256": "c14c09114854f97566daf975b6aba9b4a71dbccd114614591b3e349be7d66a14",
+      "bytes": 741809,
+      "originalPath": "/private/tmp/cad-m4-m8-completion-20261010/.build/cs-derivative-lift-plane-stop-native-20261011-v1/runtime-admission.json"
+    }
+  },
+  "copiedFileCount": 19,
+  "binariesCopied": false,
+  "parentEvidenceCopied": false
+}
