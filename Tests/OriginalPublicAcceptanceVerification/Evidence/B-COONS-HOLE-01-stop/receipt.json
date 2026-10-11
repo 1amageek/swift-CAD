@@ -1,0 +1,43 @@
+{
+  "state": "reproduced-stop",
+  "mainBase": "2f88bf50",
+  "cells": [
+    "B-COONS-HOLE-CLOSED-01",
+    "B-COONS-HOLE-STRICT-01",
+    "B-COONS-HOLE-BOUNDARY-01"
+  ],
+  "sourceInputs": {
+    "Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundaryProbe.swift": "0b70c2da4644039ce59de537baed2076100fc87ceb84a85af503959816752781",
+    "Tests/OriginalPublicAcceptanceVerification/CoonsHoleBoundaryStop.py": "bf06011ef40da35a2ce26016dc3313dc60914721a284e7680c4beeadcf4d9937"
+  },
+  "parents": {
+    "Tests/OriginalPublicAcceptanceVerification/Evidence/CS-POLY-01-ordinary/native/receipt.json": "2ff419dc21f8079e92d14a98d6137957e7f137344f66b98eb7e071240b45b88d",
+    "Tests/OriginalNativeConsumerIntakeVerification/Evidence/consumer-native-stable/receipt.json": "9ce1b516d7b4bee064f4cccbe035cf6f46966e65b546e11de5fba1ef36b33d13"
+  },
+  "inputAdmission": "admission.json",
+  "inputAdmissionSHA256": "0c77cbf822aeafde0e58cfb6e78d234463f06df4fcc93193fea919732e1e25ea",
+  "checkedInputCount": 3557,
+  "generatedCompilerInput": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-stop-native-20261011-v5/Probe.swift": "f2aad80bbdb489d4f2aaddf695218342dfc863f435019dadc2921495b2b919ef"
+  },
+  "products": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-coons-hole-stop-native-20261011-v5/probe": "dd3986d945a7ee2c51d485dd88d2c612aebf310e853dcbba00eabefc7276ced6"
+  },
+  "logs": {
+    "typecheck-control.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "runtime-original-input.log": "0e24a6fd2c2569412775b91f42a9882565ffd3db413fcf1bd00129d9073adc65",
+    "compile-link-original-input.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "typecheck-public-binding-red.log": "7b8de75df3e9292c0c5ce889ba4cc7e95617e1f3f957c8b78974c0ea0ca052d8"
+  },
+  "observedStop": "OriginalExactNativeBoundarySource.curveSurface rejects the actual Native-line/OriginalCoonsAtlasSnapshot OriginalIssuedGraphRelations required by the Kernel clip entry.",
+  "missingCapability": "An issued-graph boundary source with original face-source authority and lifted-coordinate refinement, rather than the Native BSplineSurface3D-only source.",
+  "oracleByCell": {
+    "B-COONS-HOLE-CLOSED-01": "[0,1/4] union [3/4,1]",
+    "B-COONS-HOLE-STRICT-01": "(0,1/4) union (3/4,1)",
+    "B-COONS-HOLE-BOUNDARY-01": "{0,1/4,3/4,1}"
+  },
+  "scope": "Native exact original constructor/validated Coons face/complete source-DI graph input and public Native boundary binding compiler rejection. No boundary success or full-cell acceptance claim.",
+  "diagnosticCollection": "Final v5 compiles the stable fixture after the scoped checkpoint review strengthened actual validated support, loop role, directed pcurve and raw source ownership assertions. All four final compiler/runtime records correspond to these exact current sources. Earlier receipt-admission, import-ambiguity and repeated-diagnostic collection attempts are diagnostic only; they are not accepted proofs.",
+  "runsReference": "runs.json",
+  "runsSHA256": "b14b7f94e72fd6be7f55e6ee640ec7da6f5b89d74e9f27cb842f966f1a0c1bb7"
+}

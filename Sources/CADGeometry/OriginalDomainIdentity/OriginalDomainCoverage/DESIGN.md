@@ -497,13 +497,19 @@ v=1/2, with the requested inclusion policy. It is independent of the consumer's
 winding/refinement implementation. These cells own material/parameter results;
 their eventual XYZ publication remains an explicit M7 obligation.
 
-For each cell the currently confirmed connection limit is the public
+For each cell the reproduced input binding stop is the public
 [OriginalExactFaceBoundaryClipping.clip](../../../../Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryClipping.swift)
 input OriginalExactNativeBoundarySource. Its cases accept only Native B-spline
 relation collections; they cannot bind this retained Coons graph relation.
-This is a source-signature observation, not a runtime red. The exact general
-relation-to-face binding diagnostic and its receipt remain definition gaps before
-production changes for these cells.
+The Native control typecheck passes; constructing curveSurface with the actual
+issued Coons relation is rejected at compile time. The original Coons face also
+passes the actual exact Topology validator, and existing source/DI graph
+preparation returns all four pairs. The
+[binding-stop receipt](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/B-COONS-HOLE-01-stop/VERIFICATION.md)
+owns this initial diagnostic. It does not prove clipping success or any of the
+three material output oracles. The Native-only stored-support check and fixed
+rational boundary coefficient field are inspected downstream connection limits,
+not separately reproduced runtime failures.
 
 The causal path is the existing original Coons/Native curve source issuance,
 their DI-bound graph relation, the retained L5 refinement adapter, verified

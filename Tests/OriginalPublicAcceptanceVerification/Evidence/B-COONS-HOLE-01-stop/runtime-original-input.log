@@ -1,0 +1,4 @@
+RUN B-COONS original four-cell face validation
+PASS B-COONS real exact-validated Coons face; outer/inner retained pcurves and reversed coedges
+RUN B-COONS complete original Native-line/Coons graph relation 1 4
+PASS B-COONS source/DI complete raw relation 4
