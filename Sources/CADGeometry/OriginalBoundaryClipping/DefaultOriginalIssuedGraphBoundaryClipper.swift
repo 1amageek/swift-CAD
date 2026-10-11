@@ -39,7 +39,7 @@ public struct DefaultOriginalIssuedGraphBoundaryClipper<S: Sendable, E: Sendable
                     uv = try coordinates(raw.second.graphs[pair.secondGraphIndex], placement: pair.relation.original.secondCoordinates,
                         compiler: compiler, using: &a)
                 }
-                let root = try compiler.boundary(loops: boundary.loops, numerators: uv.numerators,
+                let root = try compiler.boundary(preparedLoops: boundary.preparedLoops, numerators: uv.numerators,
                     denominator: uv.denominator, selection: selection, &a)
                 let instructions = try compiler.instructions(root, &a)
                 let source = try compiler.cells.bind(polynomials: compiler.laws, domains: lifted.predicate.source.domains, using: &a)
@@ -48,7 +48,7 @@ public struct DefaultOriginalIssuedGraphBoundaryClipper<S: Sendable, E: Sendable
                     in: raw, pairOrdinal: ordinal, matching: predicate, limits: domainLimits,
                     cellLimits: cellLimits, topologyLimits: topologyLimits, using: &a)
                 let spans = try compiler.boundaryReferences(in: refined.pullback, using: &a)
-                refinements.append(.init(parameters: refined, boundarySpans: spans))
+                refinements.append(.init(parameters: refined, boundarySpans: spans, factorizations: compiler.factorizations))
             }
             try a.retainStorage(bytes: exactScalarPayloadBytes(count: 1, of: OriginalIssuedGraphClippedParameters<S, E, C, T, F, D>.self))
             let result = OriginalIssuedGraphClippedParameters(boundary: boundary, selection: selection, refinements: refinements)

@@ -1,0 +1,676 @@
+{
+  "cell": "B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01",
+  "scope": "One changed-path issued Coons-hole closed policy and OriginalExactScalar rational quadratic source authority; no full-cell delivery claim",
+  "cellComplete": false,
+  "lanes": {
+    "native": {
+      "receipt": "issued-native/receipt.json",
+      "receiptSHA256": "7191db8dd238302e5c5294795da836a13179777d9f05967b07f10542ff0eb442",
+      "success": true,
+      "runs": [
+        {
+          "label": "compile-proof",
+          "elapsedSeconds": 2.3495803750120103,
+          "peakOwnedProcessResidentSumKiB": 476064,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        },
+        {
+          "label": "runtime-issued",
+          "elapsedSeconds": 5.604445208096877,
+          "peakOwnedProcessResidentSumKiB": 28368,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        }
+      ],
+      "freshProductionCount": 17,
+      "historicalComparatorCount": 13
+    },
+    "asan": {
+      "receipt": "issued-asan/receipt.json",
+      "receiptSHA256": "8df7408608b6a1293821b962958c6750a29f6ea30ece648e606cd143158f932d",
+      "success": true,
+      "runs": [
+        {
+          "label": "compile-module",
+          "elapsedSeconds": 5.055383166996762,
+          "peakOwnedProcessResidentSumKiB": 316384,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        },
+        {
+          "label": "compile-proof",
+          "elapsedSeconds": 11.109463000087999,
+          "peakOwnedProcessResidentSumKiB": 522960,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        },
+        {
+          "label": "runtime-issued",
+          "elapsedSeconds": 5.5337464169133455,
+          "peakOwnedProcessResidentSumKiB": 523520,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        }
+      ],
+      "freshProductionCount": 17,
+      "historicalComparatorCount": 13
+    },
+    "wasm": {
+      "receipt": "issued-wasm/receipt.json",
+      "receiptSHA256": "a237d4892fe92e30bc2e1d48371b42f42f87bb922e7e45f14179cb050f0cfd67",
+      "success": true,
+      "runs": [
+        {
+          "label": "compile-module",
+          "elapsedSeconds": 1.6503362080547959,
+          "peakOwnedProcessResidentSumKiB": 171968,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        },
+        {
+          "label": "compile-proof",
+          "elapsedSeconds": 2.1682851660298184,
+          "peakOwnedProcessResidentSumKiB": 660688,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        },
+        {
+          "label": "runtime-issued",
+          "elapsedSeconds": 7.720356291974895,
+          "peakOwnedProcessResidentSumKiB": 295216,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        }
+      ],
+      "freshProductionCount": 17,
+      "historicalComparatorCount": 13
+    },
+    "embedded": {
+      "receipt": "issued-embedded/receipt.json",
+      "receiptSHA256": "466b0f5141cc98244fca1d68ef9dc771c3613ce87505474892793472f8d01d6a",
+      "success": true,
+      "runs": [
+        {
+          "label": "compile-module",
+          "elapsedSeconds": 1.0752927910070866,
+          "peakOwnedProcessResidentSumKiB": 403056,
+          "threads": [
+            "14",
+            "14"
+          ],
+          "ownedDescendantsRemaining": []
+        },
+        {
+          "label": "compile-proof",
+          "elapsedSeconds": 46.26850529201329,
+          "peakOwnedProcessResidentSumKiB": 9280080,
+          "threads": [
+            "14",
+            "14"
+          ],
+          "ownedDescendantsRemaining": []
+        },
+        {
+          "label": "runtime-issued",
+          "elapsedSeconds": 4.399181250017136,
+          "peakOwnedProcessResidentSumKiB": 454272,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        }
+      ],
+      "freshProductionCount": 17,
+      "historicalComparatorCount": 13
+    }
+  },
+  "diagnostics": {
+    "native-assembly-diagnostic": {
+      "receipt": "issued-native-assembly-diagnostic/receipt.json",
+      "receiptSHA256": "908900286ab30d9be9a294800e4946f5768b24ea8aed849e0ff77bc97f481da7",
+      "success": false,
+      "runs": [
+        {
+          "label": "compile-module",
+          "elapsedSeconds": 1.6571795410709456,
+          "peakOwnedProcessResidentSumKiB": 212224,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        },
+        {
+          "label": "compile-proof",
+          "elapsedSeconds": 0.7867413751082495,
+          "peakOwnedProcessResidentSumKiB": 147792,
+          "threads": [],
+          "ownedDescendantsRemaining": []
+        }
+      ],
+      "freshProductionCount": 17,
+      "historicalComparatorCount": 13,
+      "scope": "Fresh17 module succeeded; fixture used nonexistent multiplied API and proof failed before runtime. Native v2 reuses its immediately persisted successful module receipt."
+    }
+  },
+  "compilerInputs": {
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalExactFaceBoundaryLoops.swift": {
+      "path": "issued-compiler-inputs/afa937519de8ecd47c01-OriginalExactFaceBoundaryLoops.swift",
+      "sha256": "afa937519de8ecd47c017208a3146a49e57fffecd8353dbe9497e2c6891e2c3d"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalBSplinePcurveSnapshotProvider.swift": {
+      "path": "issued-compiler-inputs/52d6ace71283ca2b2441-OriginalBSplinePcurveSnapshotProvider.swift",
+      "sha256": "52d6ace71283ca2b2441b01800d6805535a50adcbd46e394e8ce48f11358247f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalIssuedGraphClippedParameters.swift": {
+      "path": "issued-compiler-inputs/a2d04a0f63a495edfd15-OriginalIssuedGraphClippedParameters.swift",
+      "sha256": "a2d04a0f63a495edfd155bd6b6d094b6a3908cd3736f4239674687891b3a13cf"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalIssuedGraphBoundarySource.swift": {
+      "path": "issued-compiler-inputs/3dafa2458efbfa6125eb-OriginalIssuedGraphBoundarySource.swift",
+      "sha256": "3dafa2458efbfa6125eb7db74df72aa51a6694850c8e6ae006647ee1133a4f00"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalRationalQuadraticBoundaryReceipt.swift": {
+      "path": "issued-compiler-inputs/12f862a877b2a7676f1f-OriginalRationalQuadraticBoundaryReceipt.swift",
+      "sha256": "12f862a877b2a7676f1f379f25c161ba05f1318d8d092b04c4edee14e75e7320"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalIssuedGraphFaceClippedParameters.swift": {
+      "path": "issued-compiler-inputs/fc1c325e4e500ef4c8b3-OriginalIssuedGraphFaceClippedParameters.swift",
+      "sha256": "fc1c325e4e500ef4c8b3d55944d7241fde1eb1748c73d730bfd71d1951c3f0eb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/RationalQuadraticIssuedBoundaryRegression.py": {
+      "path": "issued-compiler-inputs/0ad2051f4cb52a053712-RationalQuadraticIssuedBoundaryRegression.py",
+      "sha256": "0ad2051f4cb52a0537126c9c2bd3d7e0bababd28f7d502dbc5cf067ffa719f95"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+      "path": "issued-compiler-inputs/d79cee2a9c5dd5786f59-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+      "sha256": "d79cee2a9c5dd5786f59b1cb5ebf7e338511708bcb198430564e42e7df777fe2"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalFaceSurfaceBinding.swift": {
+      "path": "issued-compiler-inputs/849f4b13771032fabc02-OriginalFaceSurfaceBinding.swift",
+      "sha256": "849f4b13771032fabc02fa763c9031e688aaf849e4232891b4648fe7c792e8bb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalRationalQuadraticBoundaryIssuing.swift": {
+      "path": "issued-compiler-inputs/1e7d2c3c5f416c803463-OriginalRationalQuadraticBoundaryIssuing.swift",
+      "sha256": "1e7d2c3c5f416c8034634d57db072080958f0b3edc0a35013e45fffcd260b56b"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+      "path": "issued-compiler-inputs/86a0df357e9e592c0ed0-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+      "sha256": "86a0df357e9e592c0ed09300be51238f5b6021d893237b930dbf9431cea5c4af"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalIssuedGraphBoundaryRefinement.swift": {
+      "path": "issued-compiler-inputs/ba5807380c17a8e9800b-OriginalIssuedGraphBoundaryRefinement.swift",
+      "sha256": "ba5807380c17a8e9800b25137288af8f602c4ab61f8b31582cca52dc0bb21884"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalIssuedGraphBoundaryDomain.swift": {
+      "path": "issued-compiler-inputs/b1be5e86ab64a8578498-OriginalIssuedGraphBoundaryDomain.swift",
+      "sha256": "b1be5e86ab64a8578498bda154166be4297937e72c50fd616f764ae0f979d326"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/Support.swift": {
+      "path": "issued-compiler-inputs/c708bc7297884ea047d1-Support.swift",
+      "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/BSplineCurve2D+OriginalSourceReading.swift": {
+      "path": "issued-compiler-inputs/2868d26976e76bfd4997-BSplineCurve2D+OriginalSourceReading.swift",
+      "sha256": "2868d26976e76bfd499726a1d52dfe0d16c785b765fd102111d66b89b060fdae"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/Proof.swift": {
+      "path": "issued-compiler-inputs/fdef5b5a608415356afb-Proof.swift",
+      "sha256": "fdef5b5a608415356afb0abd75ef2f8a2d1425f1471a8999b552c0e5965673e3"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalIssuedGraphBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/7112e36c2fb7e4e97fad-OriginalIssuedGraphBoundaryClipping.swift",
+      "sha256": "7112e36c2fb7e4e97fad061787bd07359e796e4917143a0a21bd565d9ca0cbad"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/RationalQuadraticIssuedBoundaryRegression.swift": {
+      "path": "issued-compiler-inputs/f8a3300fdef052d496d6-RationalQuadraticIssuedBoundaryRegression.swift",
+      "sha256": "f8a3300fdef052d496d637836e41c36252c1cfc8a63476920fdda2169c12ecbb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/DefaultOriginalRationalQuadraticBoundaryIssuer.swift": {
+      "path": "issued-compiler-inputs/9bc749261d57ce8cf661-DefaultOriginalRationalQuadraticBoundaryIssuer.swift",
+      "sha256": "9bc749261d57ce8cf66183ef69d31c4d15d8d66f74a8020ab95684902382afee"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalExactBoundaryCompiler.swift": {
+      "path": "issued-compiler-inputs/1b476f43f416af8be1b1-OriginalExactBoundaryCompiler.swift",
+      "sha256": "1b476f43f416af8be1b18d81f9b976c1a6fae0af94bedc94189ccdfc15c42be3"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/AcceptanceHelper.swift": {
+      "path": "issued-compiler-inputs/b8c27352de42ea218bf5-AcceptanceHelper.swift",
+      "sha256": "b8c27352de42ea218bf54b5c9aa7c8f4e3fb1652a90e4b79a6bb9d4f91fe00af"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v2/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/50f0012c36fc5ad116bf-OriginalIssuedGraphFaceBoundaryClipping.swift",
+      "sha256": "50f0012c36fc5ad116bf4e43706ab09f0a153b1c61dc98b59ef8f45facd49a2f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalFaceSurfaceBinding.swift": {
+      "path": "issued-compiler-inputs/df57f1a1bcaa44c5c8d6-OriginalFaceSurfaceBinding.swift",
+      "sha256": "df57f1a1bcaa44c5c8d6afdff0e84ef81d64daec5c4700673e3e73b75c0ef23d"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler.swift": {
+      "path": "issued-compiler-inputs/94ec2173a4527f1c5def-OriginalExactBoundaryCompiler.swift",
+      "sha256": "94ec2173a4527f1c5def4685d1cd32a4c4a3653bfdc16c879efbcf02f64b7559"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+      "path": "issued-compiler-inputs/ad4fe7e6bdc9c25cb730-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+      "sha256": "ad4fe7e6bdc9c25cb730b65070e414955d923d0f47f78f6c0d7002511f48d77c"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/fbb1373f7833a3b8b4ab-OriginalIssuedGraphBoundaryClipping.swift",
+      "sha256": "fbb1373f7833a3b8b4ab0e283fcfd303679a3dd1a49a5e52ec0ff28d04ef8e43"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryDomain.swift": {
+      "path": "issued-compiler-inputs/959cf8e15ac202be01ac-OriginalIssuedGraphBoundaryDomain.swift",
+      "sha256": "959cf8e15ac202be01acf402a74ec8425a35f64bb43ede3716d2dd2e0bedacb8"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundaryRefinement.swift": {
+      "path": "issued-compiler-inputs/b498688d4048a61bfd2d-OriginalIssuedGraphBoundaryRefinement.swift",
+      "sha256": "b498688d4048a61bfd2da2efc43d512b9fecf44535e713f5405d9e2312795e7f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphBoundarySource.swift": {
+      "path": "issued-compiler-inputs/230deb225f495f045984-OriginalIssuedGraphBoundarySource.swift",
+      "sha256": "230deb225f495f0459845a942df32cc4466b01e0e2e8003f7d2136762ad86efc"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalIssuedGraphClippedParameters.swift": {
+      "path": "issued-compiler-inputs/13480206fe9c289a30f2-OriginalIssuedGraphClippedParameters.swift",
+      "sha256": "13480206fe9c289a30f2e9a8fded8c1b5561e4a9572ccfa2bf3519301bfbc5cc"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalExactFaceBoundaryLoops.swift": {
+      "path": "issued-compiler-inputs/e9a5c4a8798701d402dd-OriginalExactFaceBoundaryLoops.swift",
+      "sha256": "e9a5c4a8798701d402ddc2fe77d32df3733aa3ddf1a7646b9772693c469ebd79"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+      "path": "issued-compiler-inputs/07a0572eaccdb24fa7b4-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+      "sha256": "07a0572eaccdb24fa7b4742a1e8dca1ae2ceb8f0916b36719fdc9a41bda68ad4"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/5b8bb84b76b674821361-OriginalIssuedGraphFaceBoundaryClipping.swift",
+      "sha256": "5b8bb84b76b6748213611939f366be5fe516ec9ab406fdee8bc2344b45afc18c"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADKernel/OriginalBoundaryClipping/OriginalIssuedGraphFaceClippedParameters.swift": {
+      "path": "issued-compiler-inputs/8309a2fd96463f652ce0-OriginalIssuedGraphFaceClippedParameters.swift",
+      "sha256": "8309a2fd96463f652ce081b954e026dff8d1ff6397cc0941f8fdfb680a85855f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRationalQuadraticBoundaryReceipt.swift": {
+      "path": "issued-compiler-inputs/4972f5ed7ac8fb3f6eaf-OriginalRationalQuadraticBoundaryReceipt.swift",
+      "sha256": "4972f5ed7ac8fb3f6eaf78832f8954b3db229be6f99cea04e0a6d30aac591931"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalRationalQuadraticBoundaryIssuing.swift": {
+      "path": "issued-compiler-inputs/8a29271b281c5c197aff-OriginalRationalQuadraticBoundaryIssuing.swift",
+      "sha256": "8a29271b281c5c197aff25c1f3e9ddb93792c6f2e2c453374aadcef1b5f5383d"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRationalQuadraticBoundaryIssuer.swift": {
+      "path": "issued-compiler-inputs/db1d7bb8d5da05f51657-DefaultOriginalRationalQuadraticBoundaryIssuer.swift",
+      "sha256": "db1d7bb8d5da05f5165724bb18fd98e1776c25373c8d4eee5afa4aabb898c03f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/BSplineCurve2D+OriginalSourceReading.swift": {
+      "path": "issued-compiler-inputs/b05739621cfad1a757d7-BSplineCurve2D+OriginalSourceReading.swift",
+      "sha256": "b05739621cfad1a757d7eeda7fb7f8671f8a796697998c439b742616e71cb558"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/OriginalBSplinePcurveSnapshotProvider.swift": {
+      "path": "issued-compiler-inputs/93baa71271c6a8d3503e-OriginalBSplinePcurveSnapshotProvider.swift",
+      "sha256": "93baa71271c6a8d3503e4d655a23dab7de27f2cea8b933093ffa29404b9dd3f9"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalFaceSurfaceBinding.swift": {
+      "path": "issued-compiler-inputs/849f4b13771032fabc02-OriginalFaceSurfaceBinding.swift",
+      "sha256": "849f4b13771032fabc02fa763c9031e688aaf849e4232891b4648fe7c792e8bb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalExactBoundaryCompiler.swift": {
+      "path": "issued-compiler-inputs/1b476f43f416af8be1b1-OriginalExactBoundaryCompiler.swift",
+      "sha256": "1b476f43f416af8be1b18d81f9b976c1a6fae0af94bedc94189ccdfc15c42be3"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+      "path": "issued-compiler-inputs/86a0df357e9e592c0ed0-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+      "sha256": "86a0df357e9e592c0ed09300be51238f5b6021d893237b930dbf9431cea5c4af"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalIssuedGraphBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/7112e36c2fb7e4e97fad-OriginalIssuedGraphBoundaryClipping.swift",
+      "sha256": "7112e36c2fb7e4e97fad061787bd07359e796e4917143a0a21bd565d9ca0cbad"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalIssuedGraphBoundaryDomain.swift": {
+      "path": "issued-compiler-inputs/b1be5e86ab64a8578498-OriginalIssuedGraphBoundaryDomain.swift",
+      "sha256": "b1be5e86ab64a8578498bda154166be4297937e72c50fd616f764ae0f979d326"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalIssuedGraphBoundaryRefinement.swift": {
+      "path": "issued-compiler-inputs/ba5807380c17a8e9800b-OriginalIssuedGraphBoundaryRefinement.swift",
+      "sha256": "ba5807380c17a8e9800b25137288af8f602c4ab61f8b31582cca52dc0bb21884"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalIssuedGraphBoundarySource.swift": {
+      "path": "issued-compiler-inputs/3dafa2458efbfa6125eb-OriginalIssuedGraphBoundarySource.swift",
+      "sha256": "3dafa2458efbfa6125eb7db74df72aa51a6694850c8e6ae006647ee1133a4f00"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalIssuedGraphClippedParameters.swift": {
+      "path": "issued-compiler-inputs/a2d04a0f63a495edfd15-OriginalIssuedGraphClippedParameters.swift",
+      "sha256": "a2d04a0f63a495edfd155bd6b6d094b6a3908cd3736f4239674687891b3a13cf"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalExactFaceBoundaryLoops.swift": {
+      "path": "issued-compiler-inputs/afa937519de8ecd47c01-OriginalExactFaceBoundaryLoops.swift",
+      "sha256": "afa937519de8ecd47c017208a3146a49e57fffecd8353dbe9497e2c6891e2c3d"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+      "path": "issued-compiler-inputs/d79cee2a9c5dd5786f59-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+      "sha256": "d79cee2a9c5dd5786f59b1cb5ebf7e338511708bcb198430564e42e7df777fe2"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/50f0012c36fc5ad116bf-OriginalIssuedGraphFaceBoundaryClipping.swift",
+      "sha256": "50f0012c36fc5ad116bf4e43706ab09f0a153b1c61dc98b59ef8f45facd49a2f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalIssuedGraphFaceClippedParameters.swift": {
+      "path": "issued-compiler-inputs/fc1c325e4e500ef4c8b3-OriginalIssuedGraphFaceClippedParameters.swift",
+      "sha256": "fc1c325e4e500ef4c8b3d55944d7241fde1eb1748c73d730bfd71d1951c3f0eb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalRationalQuadraticBoundaryReceipt.swift": {
+      "path": "issued-compiler-inputs/12f862a877b2a7676f1f-OriginalRationalQuadraticBoundaryReceipt.swift",
+      "sha256": "12f862a877b2a7676f1f379f25c161ba05f1318d8d092b04c4edee14e75e7320"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalRationalQuadraticBoundaryIssuing.swift": {
+      "path": "issued-compiler-inputs/1e7d2c3c5f416c803463-OriginalRationalQuadraticBoundaryIssuing.swift",
+      "sha256": "1e7d2c3c5f416c8034634d57db072080958f0b3edc0a35013e45fffcd260b56b"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/DefaultOriginalRationalQuadraticBoundaryIssuer.swift": {
+      "path": "issued-compiler-inputs/9bc749261d57ce8cf661-DefaultOriginalRationalQuadraticBoundaryIssuer.swift",
+      "sha256": "9bc749261d57ce8cf66183ef69d31c4d15d8d66f74a8020ab95684902382afee"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/BSplineCurve2D+OriginalSourceReading.swift": {
+      "path": "issued-compiler-inputs/2868d26976e76bfd4997-BSplineCurve2D+OriginalSourceReading.swift",
+      "sha256": "2868d26976e76bfd499726a1d52dfe0d16c785b765fd102111d66b89b060fdae"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/OriginalBSplinePcurveSnapshotProvider.swift": {
+      "path": "issued-compiler-inputs/52d6ace71283ca2b2441-OriginalBSplinePcurveSnapshotProvider.swift",
+      "sha256": "52d6ace71283ca2b2441b01800d6805535a50adcbd46e394e8ce48f11358247f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/RationalQuadraticIssuedBoundaryRegression.swift": {
+      "path": "issued-compiler-inputs/a9a8ba07bc49ae021fb8-RationalQuadraticIssuedBoundaryRegression.swift",
+      "sha256": "a9a8ba07bc49ae021fb8431f79033168f9900402b9b269dc566191a92705b130"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/RationalQuadraticIssuedBoundaryRegression.py": {
+      "path": "issued-compiler-inputs/f3136b19565aaeb541ea-RationalQuadraticIssuedBoundaryRegression.py",
+      "sha256": "f3136b19565aaeb541ea0cd8029c3cec723cf9b1b85d43a71f2801cf6faf7726"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalExactFaceBoundaryLoops.swift": {
+      "path": "issued-compiler-inputs/afa937519de8ecd47c01-OriginalExactFaceBoundaryLoops.swift",
+      "sha256": "afa937519de8ecd47c017208a3146a49e57fffecd8353dbe9497e2c6891e2c3d"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalBSplinePcurveSnapshotProvider.swift": {
+      "path": "issued-compiler-inputs/52d6ace71283ca2b2441-OriginalBSplinePcurveSnapshotProvider.swift",
+      "sha256": "52d6ace71283ca2b2441b01800d6805535a50adcbd46e394e8ce48f11358247f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalIssuedGraphClippedParameters.swift": {
+      "path": "issued-compiler-inputs/a2d04a0f63a495edfd15-OriginalIssuedGraphClippedParameters.swift",
+      "sha256": "a2d04a0f63a495edfd155bd6b6d094b6a3908cd3736f4239674687891b3a13cf"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalIssuedGraphBoundarySource.swift": {
+      "path": "issued-compiler-inputs/3dafa2458efbfa6125eb-OriginalIssuedGraphBoundarySource.swift",
+      "sha256": "3dafa2458efbfa6125eb7db74df72aa51a6694850c8e6ae006647ee1133a4f00"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalRationalQuadraticBoundaryReceipt.swift": {
+      "path": "issued-compiler-inputs/12f862a877b2a7676f1f-OriginalRationalQuadraticBoundaryReceipt.swift",
+      "sha256": "12f862a877b2a7676f1f379f25c161ba05f1318d8d092b04c4edee14e75e7320"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalIssuedGraphFaceClippedParameters.swift": {
+      "path": "issued-compiler-inputs/fc1c325e4e500ef4c8b3-OriginalIssuedGraphFaceClippedParameters.swift",
+      "sha256": "fc1c325e4e500ef4c8b3d55944d7241fde1eb1748c73d730bfd71d1951c3f0eb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/RationalQuadraticIssuedBoundaryRegression.py": {
+      "path": "issued-compiler-inputs/0ad2051f4cb52a053712-RationalQuadraticIssuedBoundaryRegression.py",
+      "sha256": "0ad2051f4cb52a0537126c9c2bd3d7e0bababd28f7d502dbc5cf067ffa719f95"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+      "path": "issued-compiler-inputs/d79cee2a9c5dd5786f59-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+      "sha256": "d79cee2a9c5dd5786f59b1cb5ebf7e338511708bcb198430564e42e7df777fe2"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalFaceSurfaceBinding.swift": {
+      "path": "issued-compiler-inputs/849f4b13771032fabc02-OriginalFaceSurfaceBinding.swift",
+      "sha256": "849f4b13771032fabc02fa763c9031e688aaf849e4232891b4648fe7c792e8bb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalRationalQuadraticBoundaryIssuing.swift": {
+      "path": "issued-compiler-inputs/1e7d2c3c5f416c803463-OriginalRationalQuadraticBoundaryIssuing.swift",
+      "sha256": "1e7d2c3c5f416c8034634d57db072080958f0b3edc0a35013e45fffcd260b56b"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+      "path": "issued-compiler-inputs/86a0df357e9e592c0ed0-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+      "sha256": "86a0df357e9e592c0ed09300be51238f5b6021d893237b930dbf9431cea5c4af"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalIssuedGraphBoundaryRefinement.swift": {
+      "path": "issued-compiler-inputs/ba5807380c17a8e9800b-OriginalIssuedGraphBoundaryRefinement.swift",
+      "sha256": "ba5807380c17a8e9800b25137288af8f602c4ab61f8b31582cca52dc0bb21884"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalIssuedGraphBoundaryDomain.swift": {
+      "path": "issued-compiler-inputs/b1be5e86ab64a8578498-OriginalIssuedGraphBoundaryDomain.swift",
+      "sha256": "b1be5e86ab64a8578498bda154166be4297937e72c50fd616f764ae0f979d326"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/Support.swift": {
+      "path": "issued-compiler-inputs/c708bc7297884ea047d1-Support.swift",
+      "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/BSplineCurve2D+OriginalSourceReading.swift": {
+      "path": "issued-compiler-inputs/2868d26976e76bfd4997-BSplineCurve2D+OriginalSourceReading.swift",
+      "sha256": "2868d26976e76bfd499726a1d52dfe0d16c785b765fd102111d66b89b060fdae"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/Proof.swift": {
+      "path": "issued-compiler-inputs/fdef5b5a608415356afb-Proof.swift",
+      "sha256": "fdef5b5a608415356afb0abd75ef2f8a2d1425f1471a8999b552c0e5965673e3"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalIssuedGraphBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/7112e36c2fb7e4e97fad-OriginalIssuedGraphBoundaryClipping.swift",
+      "sha256": "7112e36c2fb7e4e97fad061787bd07359e796e4917143a0a21bd565d9ca0cbad"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/RationalQuadraticIssuedBoundaryRegression.swift": {
+      "path": "issued-compiler-inputs/f8a3300fdef052d496d6-RationalQuadraticIssuedBoundaryRegression.swift",
+      "sha256": "f8a3300fdef052d496d637836e41c36252c1cfc8a63476920fdda2169c12ecbb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/DefaultOriginalRationalQuadraticBoundaryIssuer.swift": {
+      "path": "issued-compiler-inputs/9bc749261d57ce8cf661-DefaultOriginalRationalQuadraticBoundaryIssuer.swift",
+      "sha256": "9bc749261d57ce8cf66183ef69d31c4d15d8d66f74a8020ab95684902382afee"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalExactBoundaryCompiler.swift": {
+      "path": "issued-compiler-inputs/1b476f43f416af8be1b1-OriginalExactBoundaryCompiler.swift",
+      "sha256": "1b476f43f416af8be1b18d81f9b976c1a6fae0af94bedc94189ccdfc15c42be3"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/AcceptanceHelper.swift": {
+      "path": "issued-compiler-inputs/b8c27352de42ea218bf5-AcceptanceHelper.swift",
+      "sha256": "b8c27352de42ea218bf54b5c9aa7c8f4e3fb1652a90e4b79a6bb9d4f91fe00af"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-asan-20261012-v1/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/50f0012c36fc5ad116bf-OriginalIssuedGraphFaceBoundaryClipping.swift",
+      "sha256": "50f0012c36fc5ad116bf4e43706ab09f0a153b1c61dc98b59ef8f45facd49a2f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalExactFaceBoundaryLoops.swift": {
+      "path": "issued-compiler-inputs/afa937519de8ecd47c01-OriginalExactFaceBoundaryLoops.swift",
+      "sha256": "afa937519de8ecd47c017208a3146a49e57fffecd8353dbe9497e2c6891e2c3d"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalBSplinePcurveSnapshotProvider.swift": {
+      "path": "issued-compiler-inputs/52d6ace71283ca2b2441-OriginalBSplinePcurveSnapshotProvider.swift",
+      "sha256": "52d6ace71283ca2b2441b01800d6805535a50adcbd46e394e8ce48f11358247f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalIssuedGraphClippedParameters.swift": {
+      "path": "issued-compiler-inputs/a2d04a0f63a495edfd15-OriginalIssuedGraphClippedParameters.swift",
+      "sha256": "a2d04a0f63a495edfd155bd6b6d094b6a3908cd3736f4239674687891b3a13cf"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalIssuedGraphBoundarySource.swift": {
+      "path": "issued-compiler-inputs/3dafa2458efbfa6125eb-OriginalIssuedGraphBoundarySource.swift",
+      "sha256": "3dafa2458efbfa6125eb7db74df72aa51a6694850c8e6ae006647ee1133a4f00"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalRationalQuadraticBoundaryReceipt.swift": {
+      "path": "issued-compiler-inputs/12f862a877b2a7676f1f-OriginalRationalQuadraticBoundaryReceipt.swift",
+      "sha256": "12f862a877b2a7676f1f379f25c161ba05f1318d8d092b04c4edee14e75e7320"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalIssuedGraphFaceClippedParameters.swift": {
+      "path": "issued-compiler-inputs/fc1c325e4e500ef4c8b3-OriginalIssuedGraphFaceClippedParameters.swift",
+      "sha256": "fc1c325e4e500ef4c8b3d55944d7241fde1eb1748c73d730bfd71d1951c3f0eb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/RationalQuadraticIssuedBoundaryRegression.py": {
+      "path": "issued-compiler-inputs/0ad2051f4cb52a053712-RationalQuadraticIssuedBoundaryRegression.py",
+      "sha256": "0ad2051f4cb52a0537126c9c2bd3d7e0bababd28f7d502dbc5cf067ffa719f95"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+      "path": "issued-compiler-inputs/d79cee2a9c5dd5786f59-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+      "sha256": "d79cee2a9c5dd5786f59b1cb5ebf7e338511708bcb198430564e42e7df777fe2"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalFaceSurfaceBinding.swift": {
+      "path": "issued-compiler-inputs/849f4b13771032fabc02-OriginalFaceSurfaceBinding.swift",
+      "sha256": "849f4b13771032fabc02fa763c9031e688aaf849e4232891b4648fe7c792e8bb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalRationalQuadraticBoundaryIssuing.swift": {
+      "path": "issued-compiler-inputs/1e7d2c3c5f416c803463-OriginalRationalQuadraticBoundaryIssuing.swift",
+      "sha256": "1e7d2c3c5f416c8034634d57db072080958f0b3edc0a35013e45fffcd260b56b"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+      "path": "issued-compiler-inputs/86a0df357e9e592c0ed0-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+      "sha256": "86a0df357e9e592c0ed09300be51238f5b6021d893237b930dbf9431cea5c4af"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalIssuedGraphBoundaryRefinement.swift": {
+      "path": "issued-compiler-inputs/ba5807380c17a8e9800b-OriginalIssuedGraphBoundaryRefinement.swift",
+      "sha256": "ba5807380c17a8e9800b25137288af8f602c4ab61f8b31582cca52dc0bb21884"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalIssuedGraphBoundaryDomain.swift": {
+      "path": "issued-compiler-inputs/b1be5e86ab64a8578498-OriginalIssuedGraphBoundaryDomain.swift",
+      "sha256": "b1be5e86ab64a8578498bda154166be4297937e72c50fd616f764ae0f979d326"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/Support.swift": {
+      "path": "issued-compiler-inputs/c708bc7297884ea047d1-Support.swift",
+      "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/BSplineCurve2D+OriginalSourceReading.swift": {
+      "path": "issued-compiler-inputs/2868d26976e76bfd4997-BSplineCurve2D+OriginalSourceReading.swift",
+      "sha256": "2868d26976e76bfd499726a1d52dfe0d16c785b765fd102111d66b89b060fdae"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/Proof.swift": {
+      "path": "issued-compiler-inputs/fdef5b5a608415356afb-Proof.swift",
+      "sha256": "fdef5b5a608415356afb0abd75ef2f8a2d1425f1471a8999b552c0e5965673e3"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalIssuedGraphBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/7112e36c2fb7e4e97fad-OriginalIssuedGraphBoundaryClipping.swift",
+      "sha256": "7112e36c2fb7e4e97fad061787bd07359e796e4917143a0a21bd565d9ca0cbad"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/RationalQuadraticIssuedBoundaryRegression.swift": {
+      "path": "issued-compiler-inputs/f8a3300fdef052d496d6-RationalQuadraticIssuedBoundaryRegression.swift",
+      "sha256": "f8a3300fdef052d496d637836e41c36252c1cfc8a63476920fdda2169c12ecbb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/DefaultOriginalRationalQuadraticBoundaryIssuer.swift": {
+      "path": "issued-compiler-inputs/9bc749261d57ce8cf661-DefaultOriginalRationalQuadraticBoundaryIssuer.swift",
+      "sha256": "9bc749261d57ce8cf66183ef69d31c4d15d8d66f74a8020ab95684902382afee"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalExactBoundaryCompiler.swift": {
+      "path": "issued-compiler-inputs/1b476f43f416af8be1b1-OriginalExactBoundaryCompiler.swift",
+      "sha256": "1b476f43f416af8be1b18d81f9b976c1a6fae0af94bedc94189ccdfc15c42be3"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/AcceptanceHelper.swift": {
+      "path": "issued-compiler-inputs/b8c27352de42ea218bf5-AcceptanceHelper.swift",
+      "sha256": "b8c27352de42ea218bf54b5c9aa7c8f4e3fb1652a90e4b79a6bb9d4f91fe00af"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-wasm-20261012-v1/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/50f0012c36fc5ad116bf-OriginalIssuedGraphFaceBoundaryClipping.swift",
+      "sha256": "50f0012c36fc5ad116bf4e43706ab09f0a153b1c61dc98b59ef8f45facd49a2f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalExactFaceBoundaryLoops.swift": {
+      "path": "issued-compiler-inputs/afa937519de8ecd47c01-OriginalExactFaceBoundaryLoops.swift",
+      "sha256": "afa937519de8ecd47c017208a3146a49e57fffecd8353dbe9497e2c6891e2c3d"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalBSplinePcurveSnapshotProvider.swift": {
+      "path": "issued-compiler-inputs/52d6ace71283ca2b2441-OriginalBSplinePcurveSnapshotProvider.swift",
+      "sha256": "52d6ace71283ca2b2441b01800d6805535a50adcbd46e394e8ce48f11358247f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalIssuedGraphClippedParameters.swift": {
+      "path": "issued-compiler-inputs/a2d04a0f63a495edfd15-OriginalIssuedGraphClippedParameters.swift",
+      "sha256": "a2d04a0f63a495edfd155bd6b6d094b6a3908cd3736f4239674687891b3a13cf"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalIssuedGraphBoundarySource.swift": {
+      "path": "issued-compiler-inputs/3dafa2458efbfa6125eb-OriginalIssuedGraphBoundarySource.swift",
+      "sha256": "3dafa2458efbfa6125eb7db74df72aa51a6694850c8e6ae006647ee1133a4f00"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalRationalQuadraticBoundaryReceipt.swift": {
+      "path": "issued-compiler-inputs/12f862a877b2a7676f1f-OriginalRationalQuadraticBoundaryReceipt.swift",
+      "sha256": "12f862a877b2a7676f1f379f25c161ba05f1318d8d092b04c4edee14e75e7320"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalIssuedGraphFaceClippedParameters.swift": {
+      "path": "issued-compiler-inputs/fc1c325e4e500ef4c8b3-OriginalIssuedGraphFaceClippedParameters.swift",
+      "sha256": "fc1c325e4e500ef4c8b3d55944d7241fde1eb1748c73d730bfd71d1951c3f0eb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/RationalQuadraticIssuedBoundaryRegression.py": {
+      "path": "issued-compiler-inputs/0ad2051f4cb52a053712-RationalQuadraticIssuedBoundaryRegression.py",
+      "sha256": "0ad2051f4cb52a0537126c9c2bd3d7e0bababd28f7d502dbc5cf067ffa719f95"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift": {
+      "path": "issued-compiler-inputs/d79cee2a9c5dd5786f59-DefaultOriginalFaceBoundaryClipper+IssuedGraph.swift",
+      "sha256": "d79cee2a9c5dd5786f59b1cb5ebf7e338511708bcb198430564e42e7df777fe2"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalFaceSurfaceBinding.swift": {
+      "path": "issued-compiler-inputs/849f4b13771032fabc02-OriginalFaceSurfaceBinding.swift",
+      "sha256": "849f4b13771032fabc02fa763c9031e688aaf849e4232891b4648fe7c792e8bb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalRationalQuadraticBoundaryIssuing.swift": {
+      "path": "issued-compiler-inputs/1e7d2c3c5f416c803463-OriginalRationalQuadraticBoundaryIssuing.swift",
+      "sha256": "1e7d2c3c5f416c8034634d57db072080958f0b3edc0a35013e45fffcd260b56b"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/DefaultOriginalIssuedGraphBoundaryClipper.swift": {
+      "path": "issued-compiler-inputs/86a0df357e9e592c0ed0-DefaultOriginalIssuedGraphBoundaryClipper.swift",
+      "sha256": "86a0df357e9e592c0ed09300be51238f5b6021d893237b930dbf9431cea5c4af"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalIssuedGraphBoundaryRefinement.swift": {
+      "path": "issued-compiler-inputs/ba5807380c17a8e9800b-OriginalIssuedGraphBoundaryRefinement.swift",
+      "sha256": "ba5807380c17a8e9800b25137288af8f602c4ab61f8b31582cca52dc0bb21884"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalIssuedGraphBoundaryDomain.swift": {
+      "path": "issued-compiler-inputs/b1be5e86ab64a8578498-OriginalIssuedGraphBoundaryDomain.swift",
+      "sha256": "b1be5e86ab64a8578498bda154166be4297937e72c50fd616f764ae0f979d326"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/Support.swift": {
+      "path": "issued-compiler-inputs/c708bc7297884ea047d1-Support.swift",
+      "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/BSplineCurve2D+OriginalSourceReading.swift": {
+      "path": "issued-compiler-inputs/2868d26976e76bfd4997-BSplineCurve2D+OriginalSourceReading.swift",
+      "sha256": "2868d26976e76bfd499726a1d52dfe0d16c785b765fd102111d66b89b060fdae"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/Proof.swift": {
+      "path": "issued-compiler-inputs/fdef5b5a608415356afb-Proof.swift",
+      "sha256": "fdef5b5a608415356afb0abd75ef2f8a2d1425f1471a8999b552c0e5965673e3"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalIssuedGraphBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/7112e36c2fb7e4e97fad-OriginalIssuedGraphBoundaryClipping.swift",
+      "sha256": "7112e36c2fb7e4e97fad061787bd07359e796e4917143a0a21bd565d9ca0cbad"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/RationalQuadraticIssuedBoundaryRegression.swift": {
+      "path": "issued-compiler-inputs/f8a3300fdef052d496d6-RationalQuadraticIssuedBoundaryRegression.swift",
+      "sha256": "f8a3300fdef052d496d637836e41c36252c1cfc8a63476920fdda2169c12ecbb"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/DefaultOriginalRationalQuadraticBoundaryIssuer.swift": {
+      "path": "issued-compiler-inputs/9bc749261d57ce8cf661-DefaultOriginalRationalQuadraticBoundaryIssuer.swift",
+      "sha256": "9bc749261d57ce8cf66183ef69d31c4d15d8d66f74a8020ab95684902382afee"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalExactBoundaryCompiler.swift": {
+      "path": "issued-compiler-inputs/1b476f43f416af8be1b1-OriginalExactBoundaryCompiler.swift",
+      "sha256": "1b476f43f416af8be1b18d81f9b976c1a6fae0af94bedc94189ccdfc15c42be3"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/AcceptanceHelper.swift": {
+      "path": "issued-compiler-inputs/b8c27352de42ea218bf5-AcceptanceHelper.swift",
+      "sha256": "b8c27352de42ea218bf54b5c9aa7c8f4e3fb1652a90e4b79a6bb9d4f91fe00af"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-embedded-20261012-v1/OriginalIssuedGraphFaceBoundaryClipping.swift": {
+      "path": "issued-compiler-inputs/50f0012c36fc5ad116bf-OriginalIssuedGraphFaceBoundaryClipping.swift",
+      "sha256": "50f0012c36fc5ad116bf4e43706ab09f0a153b1c61dc98b59ef8f45facd49a2f"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/Support.swift": {
+      "path": "issued-compiler-inputs/c708bc7297884ea047d1-Support.swift",
+      "sha256": "c708bc7297884ea047d1380fa1c317b3032deec58761e85048cb07afb1269d6a"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/Proof.swift": {
+      "path": "issued-compiler-inputs/aceec8df1e3ea01d3ec1-Proof.swift",
+      "sha256": "aceec8df1e3ea01d3ec1b124a3354d1b452381fd10e8e959efedd3a6c5b8e221"
+    },
+    "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/AcceptanceHelper.swift": {
+      "path": "issued-compiler-inputs/b8c27352de42ea218bf5-AcceptanceHelper.swift",
+      "sha256": "b8c27352de42ea218bf54b5c9aa7c8f4e3fb1652a90e4b79a6bb9d4f91fe00af"
+    }
+  },
+  "currentFixture": {
+    "path": "issued-compiler-inputs/f8a3300fdef052d496d6-RationalQuadraticIssuedBoundaryRegression.swift",
+    "sha256": "f8a3300fdef052d496d637836e41c36252c1cfc8a63476920fdda2169c12ecbb"
+  },
+  "currentDriver": {
+    "path": "issued-compiler-inputs/201bc8e4410758f2e438-RationalQuadraticIssuedBoundaryRegression.py",
+    "sha256": "201bc8e4410758f2e438ce08cfeac6e6a5036c72dbf69d508ef6291be0231d57"
+  },
+  "nativeCompilerReceipt": {
+    "path": "issued-native-assembly-diagnostic/module-receipt.json",
+    "sha256": "b55ab5eb4512e781679a46293ff783132cc0bc9a30a0fa1fd46f929eb793830c"
+  },
+  "operationalCorrection": "Embedded completed using inherited -num-threads 14, rather than the notified estimate 2. Actual120-second wall/CPU process bounds and caller limits were unchanged; root accepted the completed bounded semantic evidence without replay. Current driver normalizes future inherited -num-threads to2; it was not rerun.",
+  "historicalLowerScope": "Cached CADGeometry/PolylineLiftAdapters/PublicLiftPlane Coons source/DI/L5/refinement ABI is historical and receipt-admitted. Current generic quadratic5 and boundary12 bodies are compiled against those existing contracts; this is not a whole current-package build. Main Native quadratic module uses separate SourceIssuer nominal contracts."
+}

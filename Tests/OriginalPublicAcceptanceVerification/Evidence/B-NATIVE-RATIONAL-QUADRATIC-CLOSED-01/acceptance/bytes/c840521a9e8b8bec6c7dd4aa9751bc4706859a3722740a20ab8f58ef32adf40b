@@ -1,0 +1,32 @@
+#if NATIVE_DOMAIN_ISOLATED_VERIFICATION
+import L0
+import L1
+import L2
+import L3
+import L4
+import L5
+import DI0
+import DI
+import SourceIssuer
+import SourceGeometryAdapters
+import struct CADGeometry.BSplineCurve3D
+import struct CADGeometry.BSplineSurface3D
+import enum CADGeometry.SurfaceParameterCurve
+@testable import class CADGeometry.OriginalNativeBoundaryDomain
+#endif
+
+/// One raw pair's complete refinement and exact authored pcurve incidences.
+public struct OriginalExactBoundaryRefinement: Sendable {
+    public let parameters: NativeExactParameterRefinement
+    /// Aligned with parameters.pullback.region.cells; every corner keeps all incident spans.
+    public let boundarySpans: [[OriginalNativeBoundaryDomain.SpanReference]]
+    /// Retains the checked affine laws authorizing scoped UV pullback and target constants.
+    let rawScopeProofs: [ExactRealCellSignInvariant<ExactRationalScalarDomain>]
+    let factorizations: [OriginalExactBoundaryCompiler<ExactRationalScalarDomain>.Factorization]
+    init(parameters: NativeExactParameterRefinement,boundarySpans: [[OriginalNativeBoundaryDomain.SpanReference]],
+        rawScopeProofs: [ExactRealCellSignInvariant<ExactRationalScalarDomain>],
+        factorizations: [OriginalExactBoundaryCompiler<ExactRationalScalarDomain>.Factorization]) {
+        self.parameters = parameters;self.boundarySpans = boundarySpans;self.rawScopeProofs = rawScopeProofs
+        self.factorizations = factorizations
+    }
+}

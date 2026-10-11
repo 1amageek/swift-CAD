@@ -1,0 +1,6 @@
+error: link command failed with exit code 1 (use -v to see invocation)
+wasm-ld: error: /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswift_Concurrency.a(TaskGroup.cpp.o): undefined symbol: __cxa_pure_virtual
+wasm-ld: error: /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswift_Concurrency.a(TaskGroup.cpp.o): undefined symbol: __cxa_pure_virtual
+wasm-ld: error: /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswift_Concurrency.a(TaskGroup.cpp.o): undefined symbol: __cxa_pure_virtual
+wasm-ld: error: /Users/1amageek/Library/org.swift.swiftpm/swift-sdks/swift-6.4.0-RELEASE_wasm.artifactbundle/swift-6.4.0-RELEASE_wasm/wasm32-unknown-wasip1/swift.xctoolchain/usr/lib/swift/embedded/wasm32-unknown-wasip1/libswift_Concurrency.a(TaskGroup.cpp.o): undefined symbol: __cxa_pure_virtual
+clang: error: linker command failed with exit code 1 (use -v to see invocation)

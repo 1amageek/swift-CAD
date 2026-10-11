@@ -1,0 +1,12 @@
+RUN B-COONS complete original Native-line/Coons graph relation
+Graph counts 1 4
+ISSUED query work 7383215 storage 203223028
+PASS whole-cell oracle
+Policy closed pair 0 cells 245 included 3 boundarySpans 2
+PASS whole-cell oracle
+Policy closed pair 1 cells 245 included 3 boundarySpans 2
+PASS whole-cell oracle
+Policy closed pair 2 cells 245 included 3 boundarySpans 2
+PASS whole-cell oracle
+Policy closed pair 3 cells 245 included 3 boundarySpans 2
+PASS issued Coons closed: all four raw/refined ordinals, all terminal material iff, spans, detached lifetime

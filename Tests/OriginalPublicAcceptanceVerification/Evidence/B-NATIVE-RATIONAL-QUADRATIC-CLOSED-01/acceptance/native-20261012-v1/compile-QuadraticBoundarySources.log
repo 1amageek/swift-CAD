@@ -1,0 +1,14 @@
+/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRationalQuadraticBoundaryIssuer.swift:95:21: error: invalid redeclaration of 'sum'
+ 28 |                 guard original.parameterCount == 1 else { throw OriginalSourceIssuanceFailure.unsupportedRepresentation }
+ 29 |                 let degree=original.degree(in:0),count=original.controlCount(in:0),knotCount=original.knotCount(in:0)
+ 30 |                 let sum=count.addingReportingOverflow(degree),expected=sum.partialValue.addingReportingOverflow(1)
+    |                     `- note: 'sum' previously declared here
+ 31 |                 guard !sum.overflow,!expected.overflow else { throw OriginalSourceIssuanceFailure.countOverflow }
+ 32 |                 guard degree >= 1,count > degree,knotCount == expected.partialValue else { throw OriginalSourceIssuanceFailure.invalidSource }
+    :
+ 93 |                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:4,of:ExactPolynomial<F>.self))
+ 94 |                 var residuals:[ExactPolynomial<F>]=[];residuals.reserveCapacity(4)
+ 95 |                 var sum=try ring.zero(using:&a)
+    |                     `- error: invalid redeclaration of 'sum'
+ 96 |                 for i in 0..<3 {
+ 97 |                     try a.consumeWork(1)

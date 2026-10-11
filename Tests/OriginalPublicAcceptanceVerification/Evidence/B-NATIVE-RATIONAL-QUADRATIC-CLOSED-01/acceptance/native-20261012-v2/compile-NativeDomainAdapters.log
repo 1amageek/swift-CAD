@@ -1,0 +1,8 @@
+error: emit-module command failed with exit code 1 (use -v to see invocation)
+/private/tmp/cad-m4-m8-completion-20261010/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler.swift:31:24: error: type 'BSplineCurve2D' does not conform to protocol 'OriginalBSplineSourceReading'
+ 29 |         let first: [Field.Value],last: [Field.Value]
+ 30 |         let reference: OriginalNativeBoundaryDomain.SpanReference
+ 31 |         let quadratic: OriginalRationalQuadraticBoundaryReceipt<BSplineCurve2D,Field>?
+    |                        `- error: type 'BSplineCurve2D' does not conform to protocol 'OriginalBSplineSourceReading'
+ 32 |     }
+ 33 |     struct Loop: Sendable {

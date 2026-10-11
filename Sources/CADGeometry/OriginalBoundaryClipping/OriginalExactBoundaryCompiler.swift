@@ -9,6 +9,8 @@ import DI0
 import DI
 import SourceIssuer
 import SourceGeometryAdapters
+import QuadraticBoundarySources
+import struct CADGeometry.BSplineCurve2D
 import struct CADGeometry.BSplineCurve3D
 import struct CADGeometry.BSplineSurface3D
 import enum CADGeometry.SurfaceParameterCurve
@@ -23,13 +25,25 @@ struct OriginalExactBoundaryCompiler<Base: ExactScalarArithmetic & ExactScalarOr
     typealias Field = ExactAlgebraicScalarDomain<Base>
     typealias Polynomial = ExactPolynomial<Field>
     enum Node { case literal(Bool),sign(Int,ExactRealCellSignRelation),not(Int),and(Int,Int),or(Int,Int) }
-    struct Segment {
+    struct Segment: Sendable {
         let first: [Field.Value],last: [Field.Value]
         let reference: OriginalNativeBoundaryDomain.SpanReference
+        let quadratic: OriginalRationalQuadraticBoundaryReceipt<BSplineCurve2D,Field>?
+    }
+    struct Loop: Sendable {
+        let isInner: Bool
+        let segments: [Segment]
+    }
+    struct Factorization: Sendable {
+        let original: Polynomial
+        let factor: Polynomial
+        let quotient: Polynomial
+        let remainder: Polynomial
     }
     let cells: ExactRealCellDomain<Base>
     let field: Field
     var laws: [Polynomial] = []
+    private(set) var factorizations: [Factorization] = []
     private var nodes: [Node] = []
     private var boundaryNodes: [Int] = []
     private var references: [OriginalNativeBoundaryDomain.SpanReference] = []
@@ -45,8 +59,14 @@ struct OriginalExactBoundaryCompiler<Base: ExactScalarArithmetic & ExactScalarOr
     init<A: ExactScalarAdmission & ~Copyable>(field: Field,using a: inout A) throws {
         self.field = field;cells = try .init(field:field,variableCount:2,using:&a)
     }
-    func validate<A: ExactScalarAdmission & ~Copyable>(_ loops: [OriginalNativeBoundaryDomain.Loop],using a: inout A) throws {
-        for (index,loop) in loops.enumerated() { _ = try segments(loop,ordinal:index,&a) }
+    func prepare<A: ExactScalarAdmission & ~Copyable>(_ loops: [OriginalNativeBoundaryDomain.Loop],using a: inout A) throws -> [Loop] {
+        try a.retainStorage(bytes:exactScalarPayloadBytes(count:loops.count,of:Loop.self))
+        var prepared: [Loop] = [];prepared.reserveCapacity(loops.count)
+        for (index,loop) in loops.enumerated() {
+            try a.consumeWork(1)
+            prepared.append(.init(isInner:loop.isInner,segments:try segments(loop,ordinal:index,&a)))
+        }
+        try a.checkpoint();return prepared
     }
     mutating func node<A: ExactScalarAdmission & ~Copyable>(_ value: Node,_ a: inout A) throws -> Int {
         try a.consumeWork(1)
@@ -86,10 +106,55 @@ struct OriginalExactBoundaryCompiler<Base: ExactScalarArithmetic & ExactScalarOr
         try a.retainStorage(bytes:exactScalarPayloadBytes(count:2,of:Field.Value.self))
         return [try scalar(u,&a),try scalar(v,&a)]
     }
+    private func totalDegree<A: ExactScalarAdmission & ~Copyable>(_ polynomial: Polynomial,_ a: inout A) throws -> Int? {
+        try a.admitDepth(value:polynomial.depth.value,coefficient:polynomial.depth.coefficient)
+        var result: Int? = nil
+        for term in polynomial.terms {
+            var degree = 0
+            for power in term.powers {
+                try a.consumeWork(1)
+                let sum = degree.addingReportingOverflow(power)
+                guard !sum.overflow else { throw ExactScalarFailure.countOverflow }
+                degree = sum.partialValue
+            }
+            result = max(result ?? 0,degree)
+        }
+        return result
+    }
+    private func factorization<A: ExactScalarAdmission & ~Copyable>(of conic: Polynomial,
+        quadratic: OriginalRationalQuadraticBoundaryReceipt<BSplineCurve2D,Field>,
+        numerators uv: [Polynomial],denominator: Polynomial?,_ a: inout A) throws -> Factorization? {
+        guard try totalDegree(conic,&a) == 2 else { return nil }
+        let law = quadratic.law,ring = cells.polynomials
+        let support = law.support[0]
+        let midpoint = try field.dividing(field.adding(support.lower,support.upper,using:&a),field.integer(2,using:&a),using:&a)
+        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Field.Value.self))
+        let coordinates = [midpoint]
+        let u = try law.polynomials.evaluated(law.homogeneous[0],at:coordinates,using:&a)
+        let v = try law.polynomials.evaluated(law.homogeneous[1],at:coordinates,using:&a)
+        let w = try law.polynomials.evaluated(law.denominator,at:coordinates,using:&a)
+        for axis in 0..<2 {
+            try a.consumeWork(1)
+            let coordinate = try field.dividing(axis == 0 ? u.value:v.value,w.value,using:&a)
+            let constant = try ring.constant(coordinate,using:&a)
+            let scaled = try denominator.map { try ring.multiplying(constant,$0,using:&a) } ?? constant
+            let factor = try ring.subtracting(uv[axis],scaled,using:&a)
+            guard try totalDegree(factor,&a) == 1 else { continue }
+            let division = try ring.divided(conic,by:factor,using:&a)
+            // The midpoint supplies a candidate; the whole polynomial identity supplies authority.
+            guard try ring.isZero(division.remainder,using:&a),
+                (try totalDegree(division.quotient,&a) ?? -1) <= 1,
+                try ring.equals(conic,ring.multiplying(factor,division.quotient,using:&a),using:&a) else { continue }
+            try a.checkpoint()
+            return .init(original:conic,factor:factor,quotient:division.quotient,remainder:division.remainder)
+        }
+        try a.checkpoint();return nil
+    }
     private func segments<A: ExactScalarAdmission & ~Copyable>(_ loop: OriginalNativeBoundaryDomain.Loop,
         ordinal: Int,_ a: inout A) throws -> [Segment] {
         var result: [Segment] = []
-        func append(_ first: [Field.Value],_ last: [Field.Value],curve: Int,segment: Int) throws {
+        func append(_ first: [Field.Value],_ last: [Field.Value],curve: Int,segment: Int,
+            quadratic: OriginalRationalQuadraticBoundaryReceipt<BSplineCurve2D,Field>? = nil) throws {
             try a.consumeWork(1)
             guard try field.compare(first[0],last[0],using:&a) != .equal || field.compare(first[1],last[1],using:&a) != .equal else {
                 throw NativeExactRelationFailure.invalidDomain
@@ -100,7 +165,7 @@ struct OriginalExactBoundaryCompiler<Base: ExactScalarArithmetic & ExactScalarOr
             }
             guard !result.count.addingReportingOverflow(1).overflow else { throw ExactScalarFailure.countOverflow }
             try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Segment.self))
-            result.append(.init(first:first,last:last,reference:.init(loopOrdinal:ordinal,curveOrdinal:curve,segmentOrdinal:segment)))
+            result.append(.init(first:first,last:last,reference:.init(loopOrdinal:ordinal,curveOrdinal:curve,segmentOrdinal:segment),quadratic:quadratic))
         }
         for (index,curve) in loop.curves.enumerated() {
             try a.consumeWork(1)
@@ -121,9 +186,20 @@ struct OriginalExactBoundaryCompiler<Base: ExactScalarArithmetic & ExactScalarOr
                 for segment in 0..<(values.count-1) {
                     try append(point(values[segment].u,values[segment].v,&a),point(values[segment+1].u,values[segment+1].v,&a),curve:index,segment:segment)
                 }
+            case .bSpline(let original):
+                // FIXME(INCOMPLETE_IMPLEMENTATION): Exact Native and issued-face clipping
+                // only consumes the complete positive single-span quadratic authority here.
+                // General spline spans/degenerate arcs require their own complete winding
+                // authority before these public routes may report successful clipping.
+                let limits = try OriginalSourceIssuanceLimits(remainingSourceDepth:0)
+                let source = try DefaultOriginalSourceBindingIssuer(provider:
+                    OriginalBSplinePcurveSnapshotProvider(tolerance:.standard)).bind(original,limits:limits,using:&a)
+                let quadratic = try DefaultOriginalRationalQuadraticBoundaryIssuer<BSplineCurve2D,Field>()
+                    .issue(source:source,field:field,limits:limits,using:&a)
+                try append(quadratic.first,quadratic.last,curve:index,segment:0,quadratic:quadratic)
             default:
                 // FIXME(INCOMPLETE_IMPLEMENTATION): This additive Native L5 face consumer
-                // requires an original winding law for rational/implicit/nonrational pcurves.
+                // requires an original winding law for the remaining implicit/nonrational pcurves.
                 // It cannot report successful clipping until their whole directed cover is issued.
                 throw NativeExactRelationFailure.unsupportedCoverage
             }
@@ -134,6 +210,12 @@ struct OriginalExactBoundaryCompiler<Base: ExactScalarArithmetic & ExactScalarOr
         return result
     }
     mutating func boundary<A: ExactScalarAdmission & ~Copyable>(loops: [OriginalNativeBoundaryDomain.Loop],
+        numerators uv: [Polynomial],denominator: Polynomial?,selection: OriginalNativeBoundaryDomain.Selection,
+        _ a: inout A) throws -> Int {
+        let prepared = try prepare(loops,using:&a)
+        return try boundary(preparedLoops:prepared,numerators:uv,denominator:denominator,selection:selection,&a)
+    }
+    mutating func boundary<A: ExactScalarAdmission & ~Copyable>(preparedLoops loops: [Loop],
         numerators uv: [Polynomial],denominator: Polynomial?,selection: OriginalNativeBoundaryDomain.Selection,
         _ a: inout A) throws -> Int {
         guard uv.count == 2 else { throw NativeExactRelationFailure.invalidDomain }
@@ -148,10 +230,20 @@ struct OriginalExactBoundaryCompiler<Base: ExactScalarArithmetic & ExactScalarOr
             return numerator
         }
         var outer = try node(.literal(false),&a),inner = try node(.literal(false),&a),anyBoundary = try node(.literal(false),&a)
-        for (ordinal,loop) in loops.enumerated() {
-            let spans = try segments(loop,ordinal:ordinal,&a)
-            try a.retainStorage(bytes:exactScalarPayloadBytes(count:spans.count,of:(Int,Int).self))
+        for loop in loops {
+            let spans = loop.segments
+            var capacity = spans.count
+            for span in spans {
+                try a.consumeWork(1)
+                if span.quadratic != nil {
+                    let next = capacity.addingReportingOverflow(1)
+                    guard !next.overflow else { throw ExactScalarFailure.countOverflow }
+                    capacity = next.partialValue
+                }
+            }
+            try a.retainStorage(bytes:exactScalarPayloadBytes(count:capacity,of:(Int,Int).self))
             var crossings: [(node:Int,delta:Int)] = []
+            crossings.reserveCapacity(capacity)
             var loopBoundary = try node(.literal(false),&a)
             for span in spans {
                 try a.consumeWork(1)
@@ -159,12 +251,63 @@ struct OriginalExactBoundaryCompiler<Base: ExactScalarArithmetic & ExactScalarOr
                 let x = try difference(uv[0],span.first[0])
                 let y = try difference(uv[1],span.first[1])
                 let cross = try ring.subtracting(ring.scaled(y,by:du,using:&a),ring.scaled(x,by:dv,using:&a),using:&a)
-                let vertical = try field.sign(of:du,using:&a) == .zero
-                let coordinate = vertical ? uv[1]:uv[0],start = span.first[vertical ? 1:0],end = span.last[vertical ? 1:0]
-                let ascending = try field.compare(start,end,using:&a) != .greater
-                let lower = try signed(difference(coordinate,ascending ? start:end))
-                let upper = try signed(difference(coordinate,ascending ? end:start))
-                let on = try and(and(atom(cross,.equal,&a),atom(lower,.greaterOrEqual,&a),&a),atom(upper,.lessOrEqual,&a),&a)
+                let on: Int
+                if let quadratic = span.quadratic {
+                    try quadratic.admitProof(limits:OriginalSourceIssuanceLimits(remainingSourceDepth:0),using:&a)
+                    // Barycentric coefficients come from the retained original law proof.
+                    // With UV=H/W, lambda numerators use W and conic signs use W squared.
+                    try a.retainStorage(bytes:exactScalarPayloadBytes(count:3,of:Polynomial.self))
+                    var lambda: [Polynomial] = [];lambda.reserveCapacity(3)
+                    for row in quadratic.barycentricRows {
+                        try a.consumeWork(1)
+                        let constant = try ring.constant(row[2],using:&a)
+                        let c = try denominator.map { try ring.multiplying(constant,$0,using:&a) } ?? constant
+                        lambda.append(try ring.adding(ring.adding(ring.scaled(uv[0],by:row[0],using:&a),
+                            ring.scaled(uv[1],by:row[1],using:&a),using:&a),c,using:&a))
+                    }
+                    let four = try field.integer(4,using:&a)
+                    let firstWeight = try field.multiplying(four,field.multiplying(quadratic.weights[1],quadratic.weights[1],using:&a),using:&a)
+                    let secondWeight = try field.multiplying(quadratic.weights[0],quadratic.weights[2],using:&a)
+                    let conic = try ring.subtracting(ring.scaled(ring.multiplying(lambda[0],lambda[2],using:&a),by:firstWeight,using:&a),
+                        ring.scaled(ring.multiplying(lambda[1],lambda[1],using:&a),by:secondWeight,using:&a),using:&a)
+                    let conicEqual: Int,conicPositive: Int
+                    if let proof = try factorization(of:conic,quadratic:quadratic,numerators:uv,denominator:denominator,&a) {
+                        guard !factorizations.count.addingReportingOverflow(1).overflow else { throw ExactScalarFailure.countOverflow }
+                        try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Factorization.self))
+                        factorizations.append(proof)
+                        conicEqual = try or(atom(proof.factor,.equal,&a),atom(proof.quotient,.equal,&a),&a)
+                        let positive = try and(atom(proof.factor,.greater,&a),atom(proof.quotient,.greater,&a),&a)
+                        let negative = try and(atom(proof.factor,.less,&a),atom(proof.quotient,.less,&a),&a)
+                        conicPositive = try or(positive,negative,&a)
+                    } else {
+                        conicEqual = try atom(conic,.equal,&a)
+                        conicPositive = try atom(conic,.greater,&a)
+                    }
+                    let ends = try and(atom(signed(lambda[0]),.greaterOrEqual,&a),atom(signed(lambda[2]),.greaterOrEqual,&a),&a)
+                    let middle = try atom(signed(lambda[1]),.greaterOrEqual,&a)
+                    let triangle = try and(ends,middle,&a)
+                    on = try and(triangle,conicEqual,&a)
+                    // The chord contributes crossings only; the actual arc owns boundary
+                    // incidents. Its cap correction follows the existing half-open ray rule.
+                    let verticalDirection = try field.sign(of:dv,using:&a)
+                    let tie: Bool
+                    if verticalDirection == .zero {
+                        tie = try field.sign(of:field.multiplying(quadratic.determinant,du,using:&a),using:&a) == .negative
+                    } else {
+                        tie = try field.sign(of:field.multiplying(quadratic.determinant,dv,using:&a),using:&a) == .positive
+                    }
+                    let chordSide = tie ? middle : try atom(signed(lambda[1]),.greater,&a)
+                    let cap = try and(and(ends,chordSide,&a),conicPositive,&a)
+                    let orientation = try field.sign(of:quadratic.determinant,using:&a)
+                    crossings.append((cap,orientation == .positive ? 1:-1))
+                } else {
+                    let vertical = try field.sign(of:du,using:&a) == .zero
+                    let coordinate = vertical ? uv[1]:uv[0],start = span.first[vertical ? 1:0],end = span.last[vertical ? 1:0]
+                    let ascending = try field.compare(start,end,using:&a) != .greater
+                    let lower = try signed(difference(coordinate,ascending ? start:end))
+                    let upper = try signed(difference(coordinate,ascending ? end:start))
+                    on = try and(and(atom(cross,.equal,&a),atom(lower,.greaterOrEqual,&a),&a),atom(upper,.lessOrEqual,&a),&a)
+                }
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:Int.self))
                 try a.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalNativeBoundaryDomain.SpanReference.self))
                 boundaryNodes.append(on);references.append(span.reference)

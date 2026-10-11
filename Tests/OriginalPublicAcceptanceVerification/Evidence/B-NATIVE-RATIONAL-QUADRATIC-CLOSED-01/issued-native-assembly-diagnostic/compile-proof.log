@@ -1,0 +1,39 @@
+/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/Proof.swift:184:64: error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+182 |         try PolylineLiftProof.require(receipt.law.source.original == curve)
+183 |         let ring = receipt.law.polynomials
+184 |         let s = try ring.variable(0, using: &a), s2 = try ring.multiplied(s, s, using: &a)
+    |                                                                `- error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+185 |         func constant(_ value: Double) throws -> ExactPolynomial<Field> {
+186 |             try ring.constant(field.binary64(exactly: value, using: &a), using: &a)
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/Proof.swift:189:59: error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+187 |         }
+188 |         func linear(_ c: Double, _ gain: Double, _ square: Double) throws -> ExactPolynomial<Field> {
+189 |             try ring.adding(ring.adding(constant(c), ring.multiplied(constant(gain), s, using: &a), using: &a),
+    |                                                           `- error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+190 |                 ring.multiplied(constant(square), s2, using: &a), using: &a)
+191 |         }
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/Proof.swift:190:22: error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+188 |         func linear(_ c: Double, _ gain: Double, _ square: Double) throws -> ExactPolynomial<Field> {
+189 |             try ring.adding(ring.adding(constant(c), ring.multiplied(constant(gain), s, using: &a), using: &a),
+190 |                 ring.multiplied(constant(square), s2, using: &a), using: &a)
+    |                      `- error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+191 |         }
+192 |         let expected = try [linear(0.5, 0.5, -1), linear(0.25, 1, -1.25), constant(0), linear(1, 4, -4)]
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/Proof.swift:195:32: error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+193 |         let h = receipt.law.homogeneous
+194 |         for axis in 0..<4 {
+195 |             let lhs = try ring.multiplied(h[axis], expected[3], using: &a)
+    |                                `- error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+196 |             let rhs = try ring.multiplied(expected[axis], h[3], using: &a)
+197 |             try PolylineLiftProof.require(ring.equals(lhs, rhs, using: &a))
+
+/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-issued-native-20261012-v1/Proof.swift:196:32: error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+194 |         for axis in 0..<4 {
+195 |             let lhs = try ring.multiplied(h[axis], expected[3], using: &a)
+196 |             let rhs = try ring.multiplied(expected[axis], h[3], using: &a)
+    |                                `- error: value of type 'ExactPolynomialDomain<RationalQuadraticIssuedBoundaryRegression.Field>' (aka 'ExactPolynomialDomain<ExactAlgebraicScalarDomain<OriginalExactScalarDomain>>') has no member 'multiplied'
+197 |             try PolylineLiftProof.require(ring.equals(lhs, rhs, using: &a))
+198 |         }

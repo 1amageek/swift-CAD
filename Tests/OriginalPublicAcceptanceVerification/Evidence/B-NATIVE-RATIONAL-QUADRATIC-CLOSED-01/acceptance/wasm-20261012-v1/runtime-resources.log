@@ -1,0 +1,4 @@
+(node:59012) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+METRIC work 302661 storage 8127777 finalStorageCall 93641
+PASS changed-path exact work/storage N succeeds, N-1 typed causes, entry/processing/final cancellation

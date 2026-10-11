@@ -1,0 +1,17 @@
+(node:54552) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS OriginalExactScalarDomain rational quadratic source coefficients and complete source authority
+RUN B-COONS complete original Native-line/Coons graph relation
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+PASS whole-cell oracle
+warning: data race detected: actor-isolated function at Proof/Proof.swift:235 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/Proof.swift:235 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/Proof.swift:235 was not called on the same actor
+
+warning: data race detected: actor-isolated function at Proof/Proof.swift:235 was not called on the same actor
+
+PASS issued Coons closed: all four raw/refined ordinals, all terminal material iff, spans, detached lifetime

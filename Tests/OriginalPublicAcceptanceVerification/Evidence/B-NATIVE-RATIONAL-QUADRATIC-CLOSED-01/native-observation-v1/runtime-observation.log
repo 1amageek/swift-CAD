@@ -1,0 +1,23 @@
+REACHED exact Native raw source; full authored closed TUV; C=(t,7/32,0); G=(u,v,0)
+REACHED exact validated face; original weighted quadratic pcurve retained unchanged
+CALL DefaultOriginalFaceBoundaryClipper.clip curveSurface closed once
+OBSERVED_TYPED_STOP stage public-clip cause unsupportedCoverage
+NO_CLIPPED_SUCCESS B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01
+        0.73 real         0.08 user         0.01 sys
+            16580608  maximum resident set size
+                   0  average shared memory size
+                   0  average unshared data size
+                   0  average unshared stack size
+                1205  page reclaims
+                  37  page faults
+                   0  swaps
+                   0  block input operations
+                   0  block output operations
+                   0  messages sent
+                   0  messages received
+                   0  signals received
+                   0  voluntary context switches
+                  25  involuntary context switches
+          1338600628  instructions retired
+           290258294  cycles elapsed
+             3752488  peak memory footprint

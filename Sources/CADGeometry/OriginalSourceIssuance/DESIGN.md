@@ -2295,3 +2295,54 @@ existing 8,388,608 work allowance when solving two uniquely determined auxiliary
 UV variables as independent variables. Verification must run that original input
 under the same ceiling, compare all original guards and lifted tuples, and retain
 failure/depth/cancel/lifetime checks before public-cell completion.
+
+
+## Positive Rational Quadratic Boundary Authority
+
+The concrete [B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01 stop](../../../Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/native-observation-v1/receipt.json)
+requires the complete directed arc authority consumed by [boundary clipping](../OriginalBoundaryClipping/DESIGN.md#rational-quadratic-directed-winding).
+`OriginalRationalQuadraticBoundaryIssuing` issues a sealed receipt for one
+nonperiodic clamped degree-two source with exactly three positive-weight controls,
+six knots and a noncollinear two-coordinate control triangle. The issuer selects
+its sole actual span internally and calls the existing generic B-spline chart
+issuer once. Other degrees/spans/degenerate triangles remain explicit unsupported
+capabilities; they are not approximated or reported as successful clipping.
+
+For controls P0,P1,P2 and positive weights w0,w1,w2, the receipt retains that
+actual chart, its full closed authored support, original parameter transport,
+positive denominator theorem, exact endpoints, signed triangle determinant D,
+and three exact affine barycentric laws lambda_i(U,V). It checks the transformed
+homogeneous source laws against the normalized Bernstein weight laws over the
+original source interval. Their coefficients and zero residuals retain the
+attained scalar/polynomial proof depths. All imports, proof work, scratch and
+retained owners use the caller admission and original coefficient field.
+
+```text
+validated original source binding
+  -> existing exact sole-span B-spline law
+  -> checked barycentric Bernstein identities + positive weights + D != 0
+  -> immutable full directed arc/cap receipt
+  -> boundary consumer's forward UV substitution and winding correction
+```
+
+The whole arc is exactly lambda_i>=0 and
+E=4*w1^2*lambda0*lambda2-w0*w2*lambda1^2=0. Positive Bernstein weights
+prove nonzero denominator on the full closed interval. Conversely, for an
+interior point of this conic branch, the nonnegative ratio determined by
+lambda1/lambda0 determines the unique normalized source parameter; endpoints
+are P0/P2. This is a complete branch/preimage theorem, not an unchecked inverse
+map supplied by the consumer. The cap between that arc and directed chord
+P0->P2 has lambda_i>=0 and E>0; its oriented winding contribution is sign(D).
+Position/branch authority implies neither a surface identity nor differential
+continuity. The receipt cannot be initialized by external callers or Boolean
+approval callbacks.
+
+The result retains its original binding, actual issued chart/law, guards and
+proof coefficients until the boundary result is released. It is immutable
+Sendable on Native/WASM/Embedded; preparation has no shared mutable state.
+Independent source admission/cancellation and unsupported capability failures
+remain explicit. The dedicated public-cell fixture owns source-law equality,
+full closed support, reversal, weighted controls, exact resource/depth/cancel,
+detached/COW lifetime and the actual Kernel material result. It reuses unchanged
+B-spline and L5 evidence, rather than generating another source-position formula
+or solving the intersection again.

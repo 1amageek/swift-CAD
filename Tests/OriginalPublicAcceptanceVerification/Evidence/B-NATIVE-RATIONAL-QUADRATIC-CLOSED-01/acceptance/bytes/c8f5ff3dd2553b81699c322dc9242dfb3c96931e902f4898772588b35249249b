@@ -1,0 +1,202 @@
+#!/usr/bin/env python3
+"""Verify the fixed rational quadratic boundary over matched selected lower artifacts."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import resource
+import shutil
+import signal
+import subprocess
+import time
+
+parser = argparse.ArgumentParser()
+parser.add_argument('lane',choices=['native','asan','wasm','embedded'])
+parser.add_argument('--output',type=Path,required=True)
+parser.add_argument('--groups',default='complete')
+parser.add_argument('--reuse-domain',type=Path)
+parser.add_argument('--reuse-source',type=Path)
+args = parser.parse_args()
+root = Path(__file__).resolve().parents[2]
+out = args.output.resolve()
+out.mkdir(parents=True,exist_ok=False)
+checks,fresh,products,runs,historical = {},{},{},[],{}
+
+def sha(path):return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+def read(path):return json.loads(Path(path).read_text())
+def save(name,value):(out/name).write_text(json.dumps(value,indent=2)+'\n')
+def admit(path,expected):
+    path=Path(path)
+    assert path.is_file() and sha(path)==expected, 'Receipt premise differs: '+str(path)
+    checks[str(path)]=expected
+
+def recheck():
+    for group in [checks,fresh,products]:
+        for name,expected in group.items():assert sha(name)==expected,name
+
+def execute(label, arguments):
+    def constrain():
+        resource.setrlimit(resource.RLIMIT_CPU, (120, 120))
+    log = out / (label + '.log')
+    started = time.monotonic()
+    descendants, peak_rss, cpu_by_pid = set(), 0, {}
+    with log.open('w') as stream:
+        with subprocess.Popen(arguments, cwd=root, stdout=stream, stderr=subprocess.STDOUT,
+                start_new_session=True, preexec_fn=constrain) as process:
+            def sample():
+                nonlocal peak_rss
+                lines = subprocess.check_output(['ps', '-axo', 'pid=,ppid=,rss=,time='], text=True).splitlines()
+                rows = [line.split() for line in lines if line.strip()]
+                owners = {process.pid} | descendants
+                while True:
+                    found = {int(pid) for pid, parent, rss, cpu in rows if int(parent) in owners}
+                    if found <= owners:
+                        break
+                    owners |= found
+                descendants.update(owners - {process.pid})
+                peak_rss = max(peak_rss, sum(int(rss) for pid, parent, rss, cpu in rows if int(pid) in owners))
+                for pid, parent, rss, cpu in rows:
+                    if int(pid) in owners:
+                        seconds = sum(float(value) * 60 ** index for index, value in enumerate(reversed(cpu.split(':'))))
+                        cpu_by_pid[int(pid)] = max(cpu_by_pid.get(int(pid), 0), seconds)
+                return {int(pid) for pid, parent, rss, cpu in rows}
+            timed_out = False
+            while process.poll() is None:
+                sample()
+                if time.monotonic() - started >= 120:
+                    timed_out = True
+                    break
+                try:
+                    process.wait(timeout=0.25)
+                except subprocess.TimeoutExpired:
+                    pass
+            alive = sample()
+            survivors = descendants & alive
+            if timed_out or survivors:
+                try:
+                    os.killpg(process.pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+                for pid in survivors:
+                    try:
+                        os.kill(pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+            process.wait()
+            remaining = descendants & sample()
+    run = dict(label=label, command=arguments, exitCode=process.returncode, timedOut=timed_out,
+        elapsedSeconds=time.monotonic() - started, wallLimitSeconds=120, cpuLimitSecondsPerProcess=120,
+        sampledCPUSeconds=sum(cpu_by_pid.values()), peakOwnedProcessResidentSumKiB=peak_rss,
+        ownedDescendantsRemaining=sorted(remaining), logSHA256=sha(log))
+    runs.append(run)
+    save('runs.json', runs)
+    admit(log, run['logSHA256'])
+    print(label, process.returncode, round(run['elapsedSeconds'], 3), flush=True)
+    assert not remaining, run
+    return ('timeout' if timed_out else process.returncode), log.read_text()
+
+
+prior_dir=root/'Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-COLLAPSED-CLOSED-01/accepted'/args.lane
+prior_path=prior_dir/'receipt.json';prior=read(prior_path)
+assert prior['state']=='complete-collapsed-boundary-cell-verified' and prior['lane']==args.lane
+admit(prior_path,sha(prior_path))
+module_path=next(Path(n) for n in prior['checks'] if n.endswith('module-receipt.json'))
+module_prior=read(module_path)
+module_base=list(module_prior['runs'][0]['command'])
+selected=[Path(n) for n in module_base if n.endswith('.swift')]
+assert len(selected)==32
+snapshot_root=root/'Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-COLLAPSED-CLOSED-01/source-snapshots'
+for name,expected in prior['checks'].items():
+    path=Path(name)
+    if path.is_file() and sha(path)==expected:admit(path,expected);continue
+    try:relative=path.relative_to(root)
+    except ValueError:raise RuntimeError('Unavailable admitted lower artifact: '+name)
+    snapshot=snapshot_root/relative
+    if snapshot.is_file() and sha(snapshot)==expected:
+        admit(snapshot,expected);historical[name]=dict(path=str(snapshot),sha256=expected);continue
+    raise RuntimeError('Unavailable exact historical comparator: '+name)
+for name,expected in prior['products'].items():admit(name,expected)
+for run in prior['runs']:
+    assert run['exitCode']==0 and not run['timedOut']
+    admit(prior_dir/(run['label']+'.log'),run['logSHA256'])
+source_names=['OriginalRationalQuadraticBoundaryReceipt','OriginalRationalQuadraticBoundaryIssuing','DefaultOriginalRationalQuadraticBoundaryIssuer']
+source_files=[root/'Sources/CADGeometry/OriginalSourceIssuance'/(n+'.swift') for n in source_names]
+source_files += [root/'Sources/CADGeometry/OriginalSourceIssuance'/n for n in ['BSplineCurve2D+OriginalSourceReading.swift','OriginalBSplinePcurveSnapshotProvider.swift']]
+compiled_sources={}
+for original in source_files[-2:]:
+    generated=out/original.name
+    generated.write_text('import L0\nimport L1\n@testable import SourceIssuer\n@testable import struct CADGeometry.BSplineCurve2D\n'+original.read_text())
+    admit(generated,sha(generated));compiled_sources[str(original)]=str(generated)
+for path in selected+source_files:
+    assert path.is_file(),str(path)
+    fresh[str(path)]=sha(path)
+    target=out/'production-snapshot'/path.relative_to(root);target.parent.mkdir(parents=True,exist_ok=True);shutil.copyfile(path,target)
+    admit(target,sha(path))
+fixture=Path(__file__).with_suffix('.swift')
+for path in [fixture,Path(__file__).resolve()]:
+    admit(path,sha(path));shutil.copyfile(path,out/path.name);admit(out/path.name,sha(path))
+compiler=Path(module_base[0]);assert 'swift-6.4.0-RELEASE.xctoolchain' in str(compiler)
+for tool in [compiler,compiler.with_name('swift-frontend')]:admit(tool,sha(tool))
+head=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True,timeout=120).strip()
+old_domain=Path(module_base[module_base.index('-emit-module-path')+1]).parent
+
+def module_command(name,files,defines):
+    command=[];i=0
+    while i<len(module_base):
+        token=module_base[i]
+        if token.endswith('.swift'):i+=1;continue
+        if token in ['-module-name','-emit-module-path','-o','-D']:i+=2;continue
+        command.append(token);i+=1
+    command[1:1]=['-I',str(out),'-I',str(old_domain)]
+    command+=['-module-name',name]
+    for define in defines:command+=['-D',define]
+    return command+[compiled_sources.get(str(p),str(p)) for p in files]+['-emit-module-path',str(out/(name+'.swiftmodule')),'-o',str(out/('lib'+name+'.a'))]
+
+def compile_module(name,files,defines,reuse):
+    expected={str(p):fresh[str(p)] for p in files}
+    if reuse:
+        directory=reuse.resolve();receipt_path=directory/(name+'-receipt.json');r=read(receipt_path)
+        admit(receipt_path,sha(receipt_path));assert r['lane']==args.lane and r['freshProduction']==expected
+        for n,h in r['products'].items():admit(n,h)
+        for n,h in r['checks'].items():admit(n,h)
+        for run in r['runs']:assert run['exitCode']==0 and not run['timedOut']
+        return directory
+    command=module_command(name,files,defines);save(name+'-command.json',command)
+    recheck();code,log=execute('compile-'+name,command);assert code==0,log
+    module_products={str(out/(name+'.swiftmodule')):sha(out/(name+'.swiftmodule')),str(out/('lib'+name+'.a')):sha(out/('lib'+name+'.a'))}
+    products.update(module_products)
+    save(name+'-receipt.json',dict(lane=args.lane,freshProduction=expected,products=module_products,checks={n:h for n,h in checks.items() if n not in {str(fixture),str(Path(__file__).resolve()),str(out/fixture.name),str(out/Path(__file__).name)}},runs=[runs[-1]]))
+    return out
+
+state='assembly-unavailable'
+try:
+    source_dir=compile_module('QuadraticBoundarySources',source_files,['ORIGINAL_QUADRATIC_BOUNDARY_ISOLATED_VERIFICATION'],args.reuse_source)
+    if source_dir!=out:module_base[1:1]=['-I',str(source_dir)]
+    defines=['NATIVE_DOMAIN_ISOLATED_VERIFICATION','NATIVE_FAMILY_ISOLATED_VERIFICATION','SOURCE_ISSUED_MAP_ISOLATED_VERIFICATION','L6_ISOLATED_VERIFICATION']
+    domain_dir=compile_module('NativeDomainAdapters',selected,defines,args.reuse_domain)
+    link=list(next(r['command'] for r in prior['runs'] if r['label']=='compile-link-cell'))
+    old_fixture=root/'Tests/OriginalPublicAcceptanceVerification/NativeCollapsedBoundaryAcceptance.swift'
+    assert link.count(str(old_fixture))==1;link[link.index(str(old_fixture))]=str(fixture)
+    link[1:1]=['-I',str(domain_dir),'-I',str(source_dir)]
+    old_archive=next(n for n in link if n.endswith('/libNativeDomainAdapters.a'))
+    link[link.index(old_archive)]=str(domain_dir/'libNativeDomainAdapters.a')
+    link.append(str(source_dir/'libQuadraticBoundarySources.a'))
+    product=out/('Acceptance.wasm' if args.lane in ['wasm','embedded'] else 'Acceptance')
+    link[link.index('-o')+1]=str(product);save('compile-command.json',link)
+    recheck();code,log=execute('compile-link-cell',link);assert code==0,log
+    products[str(product)]=sha(product);state='compiled'
+    runtime=[str(product)]
+    if args.lane in ['wasm','embedded']:
+        node=Path('/usr/local/bin/node');admit(node,sha(node))
+        wasm_runner=out/'run.mjs'
+        wasm_runner.write_text('import {readFile} from "node:fs/promises";\nimport {WASI} from "node:wasi";\nconst [path,group]=process.argv.slice(2);\nconst wasi=new WASI({version:"preview1",args:[path,group],env:{CAD_PROOF_GROUP:group},preopens:{},returnOnExit:true});\nconst module=await WebAssembly.compile(await readFile(path));\nconst instance=await WebAssembly.instantiate(module,wasi.getImportObject());\nconst code=wasi.start(instance);if(code!==0)throw new Error(`WASI exit ${code}`);\n')
+        admit(wasm_runner,sha(wasm_runner));runtime=[str(node),str(wasm_runner),str(product)]
+    for group in args.groups.split(','):
+        recheck();code,log=execute('runtime-'+group,runtime+[group]);assert code==0,(group,log)
+    state='accepted-selected-current-snapshot'
+finally:
+    recheck();save('receipt.json',dict(cell='B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01',lane=args.lane,state=state,success=state=='accepted-selected-current-snapshot',cellComplete=False,
+        head=head,groups=args.groups.split(','),freshProduction=fresh,checks=checks,products=products,runs=runs,historicalComparators=historical,preAndPostAdmission=True,
+        priorReceipt=str(prior_path),priorSHA256=sha(prior_path),scope='Current generic quadratic source authority and selected Native boundary compiler over admitted lower; actual exact-validated public Kernel clipper; no lower regeneration.'))
+print(state,flush=True)

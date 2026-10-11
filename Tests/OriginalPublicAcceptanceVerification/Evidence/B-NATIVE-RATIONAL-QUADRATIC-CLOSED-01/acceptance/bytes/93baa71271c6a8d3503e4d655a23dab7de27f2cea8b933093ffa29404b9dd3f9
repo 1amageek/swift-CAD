@@ -1,0 +1,15 @@
+import CADCore
+
+public struct OriginalBSplinePcurveSnapshotProvider: OriginalSourceSnapshotting {
+    public let tolerance: ModelingTolerance
+    public init(tolerance: ModelingTolerance) { self.tolerance = tolerance }
+    public func snapshot<A: ExactScalarAdmission & ~Copyable>(_ input: borrowing BSplineCurve2D,
+        limits: OriginalSourceIssuanceLimits, using a: inout A
+    ) throws(OriginalSourceIssuanceFailure) -> OriginalSourceSnapshot<BSplineCurve2D> {
+        do {
+            try a.checkpoint()
+            try input.validate(tolerance: tolerance, consumeWork: { try a.consumeWork(1) })
+            try a.checkpoint(); return .init(original: copy input, sourceDepth: 0)
+        } catch { throw .init(preserving: error) }
+    }
+}

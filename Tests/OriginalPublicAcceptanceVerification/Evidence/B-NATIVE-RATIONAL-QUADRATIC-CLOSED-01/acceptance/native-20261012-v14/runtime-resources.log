@@ -1,0 +1,1 @@
+Swift/ErrorType.swift:254: Fatal error: Error raised at top level: NativeDomainAdapters.NativeExactRelationFailure.geometry(L4.ExactRealTopologyFailure.cell(L3.ExactRealCellFailure.scalar(L0.ExactScalarFailure.cancelled)))

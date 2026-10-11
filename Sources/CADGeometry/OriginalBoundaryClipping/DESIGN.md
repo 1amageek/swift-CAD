@@ -42,7 +42,7 @@ Preparation, Boolean compilation, Q5 refinement, correspondence and result alloc
 All receipts and backing buffers are immutable. There is no global cache, shared mutable state, conditional target storage or independent quota. A result retains its raw receipt and issued boundary domain. Query-local admissions never outlive the call.
 
 ## Failure, Concurrency, and Constraints
-Checked capacity arithmetic and storage admission precede generated buffers. Invalid source/domain binding, missing or unclosed directed trims, exhausted caller resources, independent depth failures and cancellation propagate without a success value. Rational spline and implicit/nonrational trim charts remain incomplete branches with explicit code markers and typed failures. The legacy Q5 route additionally leaves periodic/pole chart authorities and refined image/fiber strata incomplete; the additive M6 Native family route below consumes existing finite DI seam/collapse authority. General issued-family migration remains open and is not counted as whole requirement-4 acceptance.
+Checked capacity arithmetic and storage admission precede generated buffers. Invalid source/domain binding, missing or unclosed directed trims, exhausted caller resources, independent depth failures and cancellation propagate without a success value. General rational spline and implicit/nonrational trim charts remain incomplete branches with explicit code markers and typed failures; the checked positive single-span quadratic capability below is additive. The legacy Q5 route additionally leaves periodic/pole chart authorities and refined image/fiber strata incomplete; the additive M6 Native family route below consumes existing finite DI seam/collapse authority. General issued-family migration remains open and is not counted as whole requirement-4 acceptance.
 
 ## Verification and Change Impact
 [Kernel tests](../../../Tests/CADKernelTests/OriginalFaceBoundaryClippingTests.swift) execute the public raw receipt -> original face issuer -> exact consumer route for holes, nonconvex loops, corners, endpoint/boundary coincidence, strict/closed/empty selection, original raw-cell ownership, source-release lifetime, foreign binding and independent admission/cancellation failures. Native CS/SSI raw receipt behavior and Q5 are unchanged lower premises. Changes to boundary meaning require the Kernel issuer and result correspondence proofs to be revalidated. Whole source-family/domain acceptance and image clipping remain requirement-4 integration work.
@@ -177,3 +177,135 @@ The shared compiler's new denominator clearing is checked directly with
 coordinate fiber, and with `D=0` requiring complete exclusion. These probes own
 the newly introduced arithmetic branch only; they add no source producer or
 prerequisite for the three frozen Coons policy cells.
+
+
+## Rational Quadratic Directed Winding
+
+The [observed public rational-quadratic refusal](../../../Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/native-observation-v1/receipt.json)
+fixes this change to the existing winding/material consumer. The source-owned
+[positive quadratic authority](../OriginalSourceIssuance/DESIGN.md#positive-rational-quadratic-boundary-authority)
+is prepared once for each original pcurve at boundary-domain issuance. Immutable
+prepared loops retain that exact source/chart/support/proof and are shared by
+all raw-pair compilers; original directed loop buffers remain retained. Straight
+segments keep their existing predicate meanings. The same preparation and
+compiler serve exact rational-base Native relations and original-exact-base
+issued graph relations. New source/owner payloads and loop buffers are metered
+with the same caller admission before publication.
+
+```text
+face-issued original pcurves
+  -> once-prepared directed segment/checked quadratic arc owners
+  -> each raw pair's exact forward UV numerators/denominator
+  -> original arc boundary + chord crossings + signed cap correction
+  -> existing nonzero winding/policy DAG
+  -> retained L5 refinement and original span/raw ordinals
+```
+
+For a checked quadratic, substitute actual UV into its three affine barycentric
+laws and conic E. Clear lambda signs with the actual UV denominator and conic
+signs with its square; a zero denominator excludes the tuple. The actual
+boundary predicate is E=0 with all three lambda_i>=0. The replacement chord
+is used only for winding and never becomes a boundary incident. Its ordinary
+half-open ray crossings plus the checked cap contribution sign(D) reproduce
+the original directed arc's winding, so reversing traversal changes signs while
+preserving material, and inner/outer/overlapping loops retain existing nonzero
+winding semantics.
+
+The cap correction uses E>0 and lambda0,lambda2>=0. Interior lambda1>0
+contributes. On the artificial open chord lambda1=0, contribution follows the
+existing ray convention: for chord delta=(du,dv), include iff D*dv>0 when
+dv!=0, or D*du<0 for a horizontal chord. The former is the +U-side limiting
+value and the latter the above-chord lower-inclusive/upper-exclusive value.
+Arc endpoints are handled by the actual closed arc boundary. This convention
+prevents a false boundary or material gap on the artificial chord. It is checked
+with direction, chord, horizontal/vertical and rational-UV denominator controls.
+
+Original boundary span ordinals refer to the actual pcurve and its sole span;
+no fitted parameter, endpoint projection or polygon is published. Raw source
+cells, chart/lift/auxiliary layout and source owners are retained by the existing
+refinement result. Complete empty, resource/depth/coverage failure and entry,
+processing, final-publication and subsequent-query cancellation preserve their
+original cause. All new backing is immutable and query scratch stays local;
+Native/WASM/Embedded have one owner and Sendable contract.
+
+The dedicated cell verifies the complete public tuple iff [t,t,7/32] with
+1/4<=t<=1/2, exact original curved/right incidents, raw/refined ordinals,
+complete exclusion, source and material controls, budgets, cancellation and
+detached lifetime on the four fixed lanes. Strict/boundary policies are regression
+controls, not additional whole-family acceptance. General rational multispan,
+implicit/certified/nonrational pcurves, unissued surface bindings and final
+geometric image/fiber publication remain open mandatory requirements.
+
+
+### Native raw-equation scope reduction
+
+The fixed quadratic cell's first changed Native public run reaches L4 refinement
+but fails the unchanged value-depth32 allowance. Its complete UV predicate still
+contains a two-variable conic even though the retained raw equality already fixes
+V=7/32. L4 builds the ambient sign arrangement before selecting the raw cells;
+changing Boolean instruction order cannot remove this extra arrangement.
+
+The initial constant-UV substitution and target singleton restriction still fail
+at root splitting depth33. The fixed raw relation also proves U=T. Leaving the
+conic in U causes another nonlinear root-union isolation at the dependent U
+stack, after its cuts were projected onto T. For a quadratic boundary, the
+Native adapter consumes affine equations from the retained L5 source's
+`rawEquations`, choosing each equation's highest nonzero variable. It obtains L3's
+whole-cell sign invariant for the actual equation and requires zero on every
+selected raw cell. Ascending-axis substitution then expresses that coordinate
+in lower axes only, with exact nonzero division and polynomial identity. These
+acyclic correspondences pull the forward UV boundary laws into independent raw
+coordinates while preserving the full parameter layout. A nonempty selected raw
+set and the original domain containing a constant replacement also authorize
+restricting that target coordinate to the exact closed singleton.
+An absent invariant or any nonzero selected sign leaves that axis unrestricted.
+Empty raw selections do not authorize a vacuous constant. The checked invariants
+and original raw selection remain owned by the published refinement.
+
+The target singleton makes existing L4 reduction substitute the constant into
+all target atoms and raw-cell definitions before decomposition. Its retained
+reduction receipts transport the original boundary laws for incident queries.
+The compiler retains the scoped pullback of its forward UV laws, all source axes, guards,
+raw ordinals and source maps. No lower solver change, multi-variable elimination,
+approximate coordinate or model-specific constant is introduced.
+
+This equality is scoped to the retained raw relation and is never issued as a
+global surface parameterization. The resulting L4 pullback still intersects that
+same complete raw selection and retains its L5 owner, original equations and
+all source maps through the existing refinement result.
+Thus both the original source theorem and the scope authorizing substitution
+outlive every material and boundary-span query. The fixed cell reduces to
+lambda=(4U-7/8,7/4-4U,1/8) and E=16(U-1/4)(7/4-U), preserving the full original
+T/U/V layout and both actual boundary incidents under the original limits.
+The dedicated public oracle and resource/cancel/lifetime checks own this changed
+Native scope. General elimination and issued-graph constant reduction remain
+outside this change.
+
+### Checked affine factorization of a scoped conic
+
+Reversing the same complete quadratic loop exposes a second root-depth stop.
+Ordering the input laws does not close it and is not part of the implementation.
+L3's existing nonlinear root-union route requires interval splitting even when
+an exact factorization into affine cuts can supply all roots directly.
+
+For each actual quadratic arc, evaluate its retained original homogeneous law
+at the exact midpoint of its authored support using the existing polynomial
+producer's public evaluation contract. Each exact UV coordinate is only a factor
+candidate. For the actual pulled-back conic P, try L=H_axis-m_axis*W. Accept a
+factorization only if L has total degree1, exact polynomial division gives zero
+remainder and quotient Q of total degree at most1, and P=L*Q holds coefficient
+by coefficient. A failed factor identity leaves the original conic expression;
+all evaluation/admission/division failures propagate. No scalar root extraction,
+approximate candidate or additional intersection solver is introduced.
+
+With a checked factorization, compile P=0 as L=0 or Q=0 and P>0 as the two
+same-sign combinations. The original barycentric, branch and denominator guards
+remain unchanged. P is absent from active cut laws and retained in an immutable
+factorization receipt with L,Q and the checked zero remainder. Both Native and
+issued refinements retain these receipts with the original source/arc/scope owners
+for their complete lifetime. Original node and boundary-span ordinals remain
+unchanged. All buffers, exact evaluation and factor checks use the same admission.
+The fixed line passes through the exact authored arc midpoint, giving
+P=(T-1/4)*(28-16T) in either traversal direction. The complete public oracle,
+direction/artificial-chord controls and four-target changed paths verify this
+specialization; it does not claim rational factorization for other inputs.

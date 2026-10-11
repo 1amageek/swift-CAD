@@ -1,0 +1,6 @@
+(node:59717) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS original quadratic Bernstein coefficients, positive full-span W, signed barycentrics, transport and unique-preimage premises
+PASS original quadratic Bernstein coefficients, positive full-span W, signed barycentrics, transport and unique-preimage premises
+PASS original quadratic Bernstein coefficients, positive full-span W, signed barycentrics, transport and unique-preimage premises
+PASS source unsupported/malformed distinction, exact N/N-1 budgets, cancellation, attained depth and retained COW lifetime

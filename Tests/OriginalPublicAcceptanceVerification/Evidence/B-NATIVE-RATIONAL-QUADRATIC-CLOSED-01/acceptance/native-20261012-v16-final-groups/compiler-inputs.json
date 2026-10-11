@@ -1,0 +1,166 @@
+{
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/OriginalBSplinePcurveSnapshotProvider.swift": {
+    "path": "acceptance/bytes/61c5adca319a475212fcf21f19cb8ee184cf80a12ddcaad41426a45b3bb92705",
+    "sha256": "61c5adca319a475212fcf21f19cb8ee184cf80a12ddcaad41426a45b3bb92705"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/RationalQuadraticBoundaryAcceptance.swift": {
+    "path": "acceptance/bytes/24a46d45eb3d0525ca453609b3813f064f5599f886f15f08fa20f7a4025bfa84",
+    "sha256": "24a46d45eb3d0525ca453609b3813f064f5599f886f15f08fa20f7a4025bfa84"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/RationalQuadraticBoundaryAcceptance.py": {
+    "path": "acceptance/bytes/07def6789054af036c8c0cff216be9515304ac7b454283d6e3d269bca5e95d9c",
+    "sha256": "07def6789054af036c8c0cff216be9515304ac7b454283d6e3d269bca5e95d9c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/BSplineCurve2D+OriginalSourceReading.swift": {
+    "path": "acceptance/bytes/fe426419ecc8f5a34f0021aa189a3fa0fd1ff2d47768d67494b5e30e30c5dc96",
+    "sha256": "fe426419ecc8f5a34f0021aa189a3fa0fd1ff2d47768d67494b5e30e30c5dc96"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactGeometryPublicationFailure.swift": {
+    "path": "acceptance/bytes/947799e8fc5d99a8a75eb7c0d6b529f3c74a03b11b7b08ef342265d81e9bb9d1",
+    "sha256": "947799e8fc5d99a8a75eb7c0d6b529f3c74a03b11b7b08ef342265d81e9bb9d1"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactGeometricRelations/NativeExactGeometricRelationFailure.swift": {
+    "path": "acceptance/bytes/aca51e49b2564fec3d1e0c47da9d802291617c43e767974ee609284d48082024",
+    "sha256": "aca51e49b2564fec3d1e0c47da9d802291617c43e767974ee609284d48082024"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalSourceIssuance/OriginalBSplinePcurveSnapshotProvider.swift": {
+    "path": "acceptance/bytes/93baa71271c6a8d3503e4d655a23dab7de27f2cea8b933093ffa29404b9dd3f9",
+    "sha256": "93baa71271c6a8d3503e4d655a23dab7de27f2cea8b933093ffa29404b9dd3f9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalSourceIssuance/OriginalRationalQuadraticBoundaryReceipt.swift": {
+    "path": "acceptance/bytes/4972f5ed7ac8fb3f6eaf78832f8954b3db229be6f99cea04e0a6d30aac591931",
+    "sha256": "4972f5ed7ac8fb3f6eaf78832f8954b3db229be6f99cea04e0a6d30aac591931"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalSourceIssuance/OriginalRationalQuadraticBoundaryIssuing.swift": {
+    "path": "acceptance/bytes/8a29271b281c5c197aff25c1f3e9ddb93792c6f2e2c453374aadcef1b5f5383d",
+    "sha256": "8a29271b281c5c197aff25c1f3e9ddb93792c6f2e2c453374aadcef1b5f5383d"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalSourceIssuance/BSplineCurve2D+OriginalSourceReading.swift": {
+    "path": "acceptance/bytes/b05739621cfad1a757d7eeda7fb7f8671f8a796697998c439b742616e71cb558",
+    "sha256": "b05739621cfad1a757d7eeda7fb7f8671f8a796697998c439b742616e71cb558"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalSourceIssuance/DefaultOriginalRationalQuadraticBoundaryIssuer.swift": {
+    "path": "acceptance/bytes/db1d7bb8d5da05f5165724bb18fd98e1776c25373c8d4eee5afa4aabb898c03f",
+    "sha256": "db1d7bb8d5da05f5165724bb18fd98e1776c25373c8d4eee5afa4aabb898c03f"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactParametricRelation.swift": {
+    "path": "acceptance/bytes/bcbc3fb105fb49a1e26b5753d7e8e9a09f0bb60559c7210a72226fc5acba9887",
+    "sha256": "bcbc3fb105fb49a1e26b5753d7e8e9a09f0bb60559c7210a72226fc5acba9887"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationResolver+Sources.swift": {
+    "path": "acceptance/bytes/fb580aa649d7ffaf215415cb0818fbdd5e54183c4f19374f45833bf331446cbc",
+    "sha256": "fb580aa649d7ffaf215415cb0818fbdd5e54183c4f19374f45833bf331446cbc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactCurveSurfaceResolving.swift": {
+    "path": "acceptance/bytes/01bf6cff2405be4d4a44547a6e44e2866f2eab6b643a0ab450445ef2e171dfbc",
+    "sha256": "01bf6cff2405be4d4a44547a6e44e2866f2eab6b643a0ab450445ef2e171dfbc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactPreparedMap.swift": {
+    "path": "acceptance/bytes/7d8efcf9f71facfbbbfb06f0183d8a48625c76a8fc5cec295410e16cefb12711",
+    "sha256": "7d8efcf9f71facfbbbfb06f0183d8a48625c76a8fc5cec295410e16cefb12711"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactIssuedSourceLaw.swift": {
+    "path": "acceptance/bytes/50f70075a2a5d18406dd1b990432781f3963e10b697b747abf71ef241f5c5af9",
+    "sha256": "50f70075a2a5d18406dd1b990432781f3963e10b697b747abf71ef241f5c5af9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactParameterRefinement.swift": {
+    "path": "acceptance/bytes/9f39e8a34ad4588ba3f95d101a61217e0ff6eca65b87e2d5bbcc93546af8ab8c",
+    "sha256": "9f39e8a34ad4588ba3f95d101a61217e0ff6eca65b87e2d5bbcc93546af8ab8c"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactRelationDomains.swift": {
+    "path": "acceptance/bytes/ab2947ff99d00e787f056549d33bc6c6d80e1fdb8abf9638b4d27cc80d791870",
+    "sha256": "ab2947ff99d00e787f056549d33bc6c6d80e1fdb8abf9638b4d27cc80d791870"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactParametricRelations.swift": {
+    "path": "acceptance/bytes/e24b846ad8e0fb4890c6a3db3cf4419e21cfdbf4ed178bdb3b176dade82c04dc",
+    "sha256": "e24b846ad8e0fb4890c6a3db3cf4419e21cfdbf4ed178bdb3b176dade82c04dc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactRelationFailure.swift": {
+    "path": "acceptance/bytes/f6c37d3ffcaf438c04d7c4c09ae042ab70fbb9f02bffe307c703196207dffaaa",
+    "sha256": "f6c37d3ffcaf438c04d7c4c09ae042ab70fbb9f02bffe307c703196207dffaaa"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/DefaultSurfaceSurfaceIntersector+ExactRelation.swift": {
+    "path": "acceptance/bytes/8fbd2414cce34b9211298317a8460a3672c257d31283ea2f3fad5ae8680a4a85",
+    "sha256": "8fbd2414cce34b9211298317a8460a3672c257d31283ea2f3fad5ae8680a4a85"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactParametricRelationPiece.swift": {
+    "path": "acceptance/bytes/5abef846dbf9e26c5ce592cf091d0481640ec27aed46f78172575c3ae5a110ea",
+    "sha256": "5abef846dbf9e26c5ce592cf091d0481640ec27aed46f78172575c3ae5a110ea"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactSurfaceSurfaceResolving.swift": {
+    "path": "acceptance/bytes/7f400fa75bd7e409d8c29260ec9bdbe180551777031ada4117a49f750b781067",
+    "sha256": "7f400fa75bd7e409d8c29260ec9bdbe180551777031ada4117a49f750b781067"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/DefaultNativeExactParameterRefiner.swift": {
+    "path": "acceptance/bytes/6cc3d85a2492bee4800e8f77b2934cb2e33722dfd01cf2f8ce76c7a3fb81c8ab",
+    "sha256": "6cc3d85a2492bee4800e8f77b2934cb2e33722dfd01cf2f8ce76c7a3fb81c8ab"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationResolver.swift": {
+    "path": "acceptance/bytes/b835fc04271b6a874cdfcbda1ca4676e809dc3cb80a06a22c9f23593dc3e85a9",
+    "sha256": "b835fc04271b6a874cdfcbda1ca4676e809dc3cb80a06a22c9f23593dc3e85a9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactParameterRefining.swift": {
+    "path": "acceptance/bytes/1d57cc807e0876d91f18a7d74e19896ac505d7c63f506ec503d817834ae53b60",
+    "sha256": "1d57cc807e0876d91f18a7d74e19896ac505d7c63f506ec503d817834ae53b60"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactRelationFamilyResolving.swift": {
+    "path": "acceptance/bytes/7d1970c05b778429ac2245a1472eb61b68141f924299ea93bdcf3656421c2fb7",
+    "sha256": "7d1970c05b778429ac2245a1472eb61b68141f924299ea93bdcf3656421c2fb7"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/DefaultCurveSurfaceIntersector+ExactRelation.swift": {
+    "path": "acceptance/bytes/053aaf3e51436e980d7d0eb8324831ec9429f9133bcbb19ba1af26decfb82303",
+    "sha256": "053aaf3e51436e980d7d0eb8324831ec9429f9133bcbb19ba1af26decfb82303"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/DefaultNativeExactRelationFamilyResolver.swift": {
+    "path": "acceptance/bytes/0d65ef32bd2ef586f4d5e29d631640f3e7c3f317520bf464e8314fd7967d5538",
+    "sha256": "0d65ef32bd2ef586f4d5e29d631640f3e7c3f317520bf464e8314fd7967d5538"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/NativeExactRelations/NativeExactRelationSource.swift": {
+    "path": "acceptance/bytes/f76a6fbdf96e19c8847e1282d881b17919ece9fec78bdf5b8063fdbab20cc05e",
+    "sha256": "f76a6fbdf96e19c8847e1282d881b17919ece9fec78bdf5b8063fdbab20cc05e"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/RationalBivariateAlgebra/GeometryExactScalarFailure.swift": {
+    "path": "acceptance/bytes/fdec02f8013797a9b5fe41f75a42446deaae719fc0295e7f98f236f48b512401",
+    "sha256": "fdec02f8013797a9b5fe41f75a42446deaae719fc0295e7f98f236f48b512401"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryRefinement.swift": {
+    "path": "acceptance/bytes/c840521a9e8b8bec6c7dd4aa9751bc4706859a3722740a20ab8f58ef32adf40b",
+    "sha256": "c840521a9e8b8bec6c7dd4aa9751bc4706859a3722740a20ab8f58ef32adf40b"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalBoundaryClipping/DefaultOriginalExactNativeBoundaryClipper.swift": {
+    "path": "acceptance/bytes/e18bb517628f1d3ebaf72c02c3ccbe087eb8f14b01e95a6685fc9063a4b43bbc",
+    "sha256": "e18bb517628f1d3ebaf72c02c3ccbe087eb8f14b01e95a6685fc9063a4b43bbc"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactNativeBoundarySource.swift": {
+    "path": "acceptance/bytes/cdfadcef2f98d80fc78801b765436b8af12b201dcbd24c465a2d076039abc9b6",
+    "sha256": "cdfadcef2f98d80fc78801b765436b8af12b201dcbd24c465a2d076039abc9b6"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler+Native.swift": {
+    "path": "acceptance/bytes/adcb6c03f866999f3ce82f4472215bc75c2c8391300ed9d4fd1858b461560b74",
+    "sha256": "adcb6c03f866999f3ce82f4472215bc75c2c8391300ed9d4fd1858b461560b74"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryPart.swift": {
+    "path": "acceptance/bytes/61ee2aaa2d86bd0a56bf05b3babba7847796a4062baaea6ec81f69f4ce8f8fd4",
+    "sha256": "61ee2aaa2d86bd0a56bf05b3babba7847796a4062baaea6ec81f69f4ce8f8fd4"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactNativeBoundaryClipping.swift": {
+    "path": "acceptance/bytes/4bd0a801ac9ac5858ca16b0b8f236aab8891b7f3d4ebc12035b642dc45b2a775",
+    "sha256": "4bd0a801ac9ac5858ca16b0b8f236aab8891b7f3d4ebc12035b642dc45b2a775"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactNativeBoundaryDomain.swift": {
+    "path": "acceptance/bytes/232f91908a18049f699ea3c3c87035f2e0540054dae7d489baef22e4a4be3eb9",
+    "sha256": "232f91908a18049f699ea3c3c87035f2e0540054dae7d489baef22e4a4be3eb9"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactBoundaryCompiler.swift": {
+    "path": "acceptance/bytes/516422136c8f57dfb9b6a187bc678c3c0692051a6dde546edb74f9b08e06a3c0",
+    "sha256": "516422136c8f57dfb9b6a187bc678c3c0692051a6dde546edb74f9b08e06a3c0"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/OriginalBoundaryClipping/OriginalExactClippedNativeParameters.swift": {
+    "path": "acceptance/bytes/26b6f5cf6c75308442b7118a0a3097810ad64b0648d51d303ddf4a67fc669c38",
+    "sha256": "26b6f5cf6c75308442b7118a0a3097810ad64b0648d51d303ddf4a67fc669c38"
+  },
+  "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v16-final-groups/production-snapshot/Sources/CADGeometry/RationalBivariateAlgebra/ExactGeometricRelation/ExactGeometricRelationFailure.swift": {
+    "path": "acceptance/bytes/096d1cf1b6bb84dffd1aed0aed11a298c212f58df12e59d9be5bb3d6f15c5e66",
+    "sha256": "096d1cf1b6bb84dffd1aed0aed11a298c212f58df12e59d9be5bb3d6f15c5e66"
+  }
+}

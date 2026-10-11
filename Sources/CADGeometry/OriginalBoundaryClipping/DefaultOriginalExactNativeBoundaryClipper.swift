@@ -32,14 +32,15 @@ public struct DefaultOriginalExactNativeBoundaryClipper: OriginalExactNativeBoun
                 try admission.consumeWork(1)
                 let part = try boundary.source.part(at:ordinal)
                 var compiler = try OriginalExactBoundaryCompiler(part.relation,using:&admission)
-                let root = try compiler.boundary(boundary,part:part,selection:selection,limits:domainLimits,&admission)
+                let scope = try compiler.restrictedScope(for:boundary,on:part.relation,using:&admission)
+                let root = try compiler.boundary(boundary,part:part,selection:selection,limits:domainLimits,scope:scope,&admission)
                 let instructions = try compiler.instructions(root,&admission)
-                let source = try compiler.cells.bind(polynomials:compiler.laws,domains:part.relation.original.predicate.source.domains,using:&admission)
+                let source = try compiler.cells.bind(polynomials:compiler.laws,domains:scope.domains,using:&admission)
                 let predicate = try compiler.cells.predicate(instructions:instructions,for:source,using:&admission)
                 let refined = try DefaultNativeExactParameterRefiner().refine(part.relation,matching:predicate,
                     cellLimits:cellLimits,topologyLimits:topologyLimits,using:&admission)
                 let spans = try compiler.boundaryReferences(in:refined.pullback,using:&admission)
-                results.append(.init(parameters:refined,boundarySpans:spans))
+                results.append(.init(parameters:refined,boundarySpans:spans,rawScopeProofs:scope.proofs,factorizations:compiler.factorizations))
             }
             try admission.retainStorage(bytes:exactScalarPayloadBytes(count:1,of:OriginalExactClippedNativeParameters.self))
             let result = OriginalExactClippedNativeParameters(boundary:boundary,selection:selection,refinements:results)

@@ -21,6 +21,7 @@ import CADCore
 public final class OriginalExactNativeBoundaryDomain: Sendable {
     public let source: OriginalExactNativeBoundarySource
     package let loops: [OriginalNativeBoundaryDomain.Loop]
+    let preparedLoops: [OriginalExactBoundaryCompiler<ExactRationalScalarDomain>.Loop]
     package init<A: ExactScalarAdmission & ~Copyable>(source: OriginalExactNativeBoundarySource,
         loops: [OriginalNativeBoundaryDomain.Loop],using admission: inout A
     ) throws(NativeExactRelationFailure) {
@@ -28,12 +29,13 @@ public final class OriginalExactNativeBoundaryDomain: Sendable {
             try admission.checkpoint()
             guard !loops.isEmpty,loops.contains(where:{ !$0.isInner }) else { throw NativeExactRelationFailure.invalidDomain }
             let validator = try OriginalExactBoundaryCompiler(field:source.surfaceCover.space.frame.scalarField,using:&admission)
-            try validator.validate(loops,using:&admission)
+            let prepared = try validator.prepare(loops,using:&admission)
             let fields = MemoryLayout<OriginalExactNativeBoundarySource>.stride.addingReportingOverflow(MemoryLayout<[OriginalNativeBoundaryDomain.Loop]>.stride)
-            let bytes = fields.partialValue.addingReportingOverflow(2*MemoryLayout<UInt>.stride)
-            guard !fields.overflow,!bytes.overflow else { throw ExactScalarFailure.countOverflow }
+            let buffers = fields.partialValue.addingReportingOverflow(MemoryLayout<[OriginalExactBoundaryCompiler<ExactRationalScalarDomain>.Loop]>.stride)
+            let bytes = buffers.partialValue.addingReportingOverflow(2*MemoryLayout<UInt>.stride)
+            guard !fields.overflow,!buffers.overflow,!bytes.overflow else { throw ExactScalarFailure.countOverflow }
             try admission.retainStorage(bytes:bytes.partialValue)
-            self.source = source;self.loops = loops
+            self.source = source;self.loops = loops;self.preparedLoops = prepared
             try admission.checkpoint()
         } catch { throw .preserving(error) }
     }

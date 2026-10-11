@@ -1,0 +1,2 @@
+METRIC work 303106 storage 16109465 finalStorageCall 93641
+PASS changed-path exact work/storage N succeeds, N-1 typed causes, entry/processing/final cancellation

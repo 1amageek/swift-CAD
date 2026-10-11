@@ -705,7 +705,7 @@ did not compile the `.bSpline` pcurve case and its default threw
 The missing consumer authority is the complete directed rational-pcurve
 winding law, not another intersection solve or polygonal approximation.
 The delivered collapsed Native receipt can supply unchanged lower premises
-only. The causal cell change is a source-owned checked whole-arc theorem for this complete positive quadratic chart and its signed winding/material consumption in the existing compiler. The same retained L5 relation is refined; no additional intersection solve or polygonal boundary is needed. This observed stop and frozen oracle do not yet complete6-B4.
+only. The causal cell change is a source-owned checked whole-arc theorem for this complete positive quadratic chart and its signed winding/material consumption in the existing compiler. The same retained L5 relation is refined; no additional intersection solve or polygonal boundary is needed. This observed stop selects the necessary cell change. The [dedicated acceptance](../../../../Tests/OriginalPublicAcceptanceVerification/Evidence/B-NATIVE-RATIONAL-QUADRATIC-CLOSED-01/VERIFICATION.md) now verifies this complete closed tuple oracle, directed winding/guard controls, original raw/refined correspondence, resources/cancel/lifetime on the four fixed targets. Its one scoped review passes; commit/main delivery remains tracked in PROGRESS.md. General multispan/implicit/nonrational pcurves and required issued-quadratic public cells remain open, so this cell does not complete6-B4 as a whole.
 
 ##### S-NATIVE-DECLARED-WHOLE-EDGE-01: same-owner directed whole edge
 

@@ -1,0 +1,6 @@
+(node:59026) ExperimentalWarning: WASI is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+PASS rational quadratic whole-cell raw/refined iff, every source ordinal and all endpoint spans; image1/fiber0
+PASS rational quadratic whole-cell raw/refined iff, every source ordinal and all endpoint spans; image1/fiber0
+PASS rational quadratic whole-cell raw/refined iff, every source ordinal and all endpoint spans; image1/fiber0
+PASS retained original source/face after local scope and concurrent readers with independent ledgers

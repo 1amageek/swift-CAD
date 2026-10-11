@@ -1,0 +1,675 @@
+import CADCore
+import HashTreeCollections
+import L0
+import L1
+import L2
+import L3
+import L4
+import L5
+import DI0
+import DI
+import SourceIssuer
+import QuadraticBoundarySources
+import SourceGeometryAdapters
+@testable import NativeDomainAdapters
+import NativeKernelAdapters
+import CADTopology
+import struct CADGeometry.BSplineCurve2D
+import struct CADGeometry.BSplineCurve3D
+import struct CADGeometry.BSplineSurface3D
+import enum CADGeometry.SurfaceParameterCurve
+@testable import class CADGeometry.OriginalNativeBoundaryDomain
+
+#if canImport(Darwin)
+import Darwin
+#if !hasFeature(Embedded)
+import Foundation
+#endif
+#elseif canImport(WASILibc)
+import WASILibc
+#endif
+
+/// Whole-cell acceptance for the authored directed positive rational quadratic cap.
+@main struct RationalQuadraticBoundaryAcceptance {
+    typealias Fixture = M6ExactBoundaryFixtures
+    typealias Base = ExactRationalScalarDomain
+    typealias Field = Fixture.Field
+    typealias Cells = ExactRealCellDomain<Base>
+    typealias Raw = Fixture.Raw
+    typealias Result = OriginalExactFaceClippedParameters
+    enum Failure: Error { case assertion(Int), unexpectedSuccess, unknownGroup }
+
+    static func require(_ condition: Bool, line: Int = #line) throws {
+        guard condition else {
+#if !hasFeature(Embedded)
+            print("FAIL rational quadratic boundary assertion", line)
+#else
+            print("FAIL rational quadratic boundary assertion")
+#endif
+            throw Failure.assertion(line)
+        }
+    }
+    static func pcurves() -> [SurfaceParameterCurve] {
+        [.constantV(v:0,uStart:0,uEnd:0.5),
+         .constantU(u:0.5,vStart:0,vEnd:0.25),
+         .bSpline(.init(degree:2,knots:[0,0,0,1,1,1],
+             controlPoints:[.init(x:0.5,y:0.25),.init(x:0.25,y:0.25),.init(x:0,y:0)],
+             weights:[1,3,1]))]
+    }
+    static func prepare() throws -> (Raw, Fixture.FaceOwner) {
+        var a = try Fixture.ledger()
+        let field = try Field.base(field:Base(),maximumExtensionLevel:10,using:&a)
+        let surface = Fixture.plane(), curve = Fixture.line(y:7.0/32)
+        let raw = try Fixture.raw(curve,surface,field,&a)
+        let owner = try Fixture.face(surface,[(.outer,pcurves())])
+        try require(owner.0.validationLevel == .exact)
+        return (raw,owner)
+    }
+    static func checkMap(_ map: ExactParametricMap<Base>, surface: Bool,
+        using a: inout ExactScalarLedger) throws {
+        let cells = try Cells(retaining:map.original,using:&a), ring = cells.polynomials
+        let field = try cells.coefficientField(of:map.original,using:&a)
+        let zero = try ring.zero(using:&a), one = try ring.constant(field.integer(1,using:&a),using:&a)
+        let u = try ring.variable(0,using:&a)
+        let y = try ring.constant(field.dividing(field.integer(7,using:&a),field.integer(32,using:&a),using:&a),using:&a)
+        let expected = surface ? [u,try ring.variable(1,using:&a),zero,one] : [u,y,zero,one]
+        try require(map.parameterCount == (surface ? 2:1) && map.original.polynomials.count == 4)
+        for index in expected.indices { try require(ring.equals(map.original.polynomials[index],expected[index],using:&a)) }
+        for domain in map.original.domains {
+            guard case .finite(let lo) = domain.lower, case .finite(let hi) = domain.upper else { throw Failure.assertion(#line) }
+            try require(domain.includesLower && domain.includesUpper && !domain.isEmpty)
+            try require(field.compare(lo,field.integer(0,using:&a),using:&a) == .equal)
+            try require(field.compare(hi,field.integer(1,using:&a),using:&a) == .equal)
+        }
+    }
+    static func proofs(_ partition: ExactRealCellPartition<Base>, refined: Bool, chord: Bool,
+        hole: Bool, using a: inout ExactScalarLedger) throws -> (Cells,[ExactRealCellSignInvariant<Base>?]) {
+        let cells = try Cells(retaining:partition.source,using:&a), ring = cells.polynomials
+        let field = try cells.coefficientField(of:partition.source,using:&a)
+        let t = try ring.variable(0,using:&a), u = try ring.variable(1,using:&a), v = try ring.variable(2,using:&a)
+        func c(_ n:Int,_ d:Int = 1) throws -> ExactPolynomial<Field> {
+            try ring.constant(field.dividing(field.integer(n,using:&a),field.integer(d,using:&a),using:&a),using:&a)
+        }
+        let one = try c(1)
+        var laws = [t,try ring.subtracting(t,one,using:&a),u,try ring.subtracting(u,one,using:&a),
+            v,try ring.subtracting(v,one,using:&a),try ring.subtracting(u,t,using:&a),try ring.subtracting(v,c(7,32),using:&a)]
+        if refined {
+            laws.append(try ring.subtracting(t,chord ? c(7,16):c(1,4),using:&a))
+            laws.append(try ring.subtracting(t,c(1,2),using:&a))
+            if hole {
+                laws.append(try ring.subtracting(t,c(3,8),using:&a))
+                laws.append(try ring.subtracting(t,c(7,16),using:&a))
+            }
+        }
+        var result:[ExactRealCellSignInvariant<Base>?] = []
+        for (index,law) in laws.enumerated() {
+            if refined && !chord && [4,5,7].contains(index) { result.append(nil);continue }
+            guard let proof = try cells.signInvariant(for:law,in:partition,using:&a) else {
+#if !hasFeature(Embedded)
+                print("MISSING whole sign law",index,"refined",refined,"chord",chord)
+#endif
+                throw Failure.assertion(#line)
+            }
+            result.append(proof)
+        }
+        return (cells,result)
+    }
+    static func signs(_ proofs:[ExactRealCellSignInvariant<Base>?],cells:Cells,cell:ExactRealCellID<Base>,
+        using a:inout ExactScalarLedger) throws -> [ExactSign] {
+        try proofs.enumerated().map { index,proof in
+            if let proof { return try cells.sign(of:proof,at:cell,using:&a) }
+            switch index { case 4:return .positive;case 5:return .negative;case 7:return .zero
+            default:throw Failure.assertion(#line) }
+        }
+    }
+    static func scopedOracle(_ refinement:OriginalExactBoundaryRefinement,chord:Bool,
+        using a:inout ExactScalarLedger) throws {
+        let raw = refinement.parameters.raw, pullback = refinement.parameters.pullback
+        let cells = try Cells(retaining:pullback.region.partition.source,using:&a),ring = cells.polynomials
+        let field = try cells.coefficientField(of:pullback.region.partition.source,using:&a)
+        let zero = try field.integer(0,using:&a),one = try field.integer(1,using:&a)
+        let y = try field.dividing(field.integer(7,using:&a),field.integer(32,using:&a),using:&a)
+        let original = raw.original.predicate.source.domains,target = pullback.target.source.domains
+        try require(original.count == 3 && target.count == 3)
+        for index in original.indices {
+            guard case .finite(let lo) = original[index].lower,case .finite(let hi) = original[index].upper,
+                case .finite(let targetLo) = target[index].lower,case .finite(let targetHi) = target[index].upper else {
+                throw Failure.assertion(#line)
+            }
+            try require(original[index].includesLower && original[index].includesUpper && !original[index].isEmpty)
+            try require(target[index].includesLower && target[index].includesUpper && !target[index].isEmpty)
+            try require(field.compare(lo,zero,using:&a) == .equal && field.compare(hi,one,using:&a) == .equal)
+            try require(field.compare(targetLo,(!chord && index == 2) ? y:zero,using:&a) == .equal)
+            try require(field.compare(targetHi,(!chord && index == 2) ? y:one,using:&a) == .equal)
+        }
+        if chord { try require(refinement.rawScopeProofs.isEmpty && refinement.factorizations.isEmpty);return }
+        let t = try ring.variable(0,using:&a),u = try ring.variable(1,using:&a),v = try ring.variable(2,using:&a)
+        let equations = [try ring.subtracting(u,t,using:&a),try ring.subtracting(v,ring.constant(y,using:&a),using:&a)]
+        try require(refinement.rawScopeProofs.count == equations.count)
+        let rawCells = try Cells(retaining:raw.selection.partition.source,using:&a)
+        for law in equations {
+            var found = false
+            for proof in refinement.rawScopeProofs where try ring.equals(
+                ring.normalized(ring.importing(proof.polynomial,using:&a),using:&a),ring.normalized(law,using:&a),using:&a) {
+                try require(ring.isZero(ring.importing(proof.remainder,using:&a),using:&a))
+                for cell in raw.selection.cells { try require(rawCells.sign(of:proof,at:cell,using:&a) == .zero) }
+                found = true
+            }
+            try require(found)
+        }
+        try require(refinement.factorizations.count == 1)
+        let factorization = refinement.factorizations[0]
+        let originalConic = try ring.importing(factorization.original,using:&a)
+        let factor = try ring.importing(factorization.factor,using:&a)
+        let quotient = try ring.importing(factorization.quotient,using:&a)
+        let left = try ring.subtracting(t,ring.constant(field.dividing(one,field.integer(4,using:&a),using:&a),using:&a),using:&a)
+        let right = try ring.subtracting(ring.constant(field.dividing(field.integer(7,using:&a),field.integer(4,using:&a),using:&a),using:&a),t,using:&a)
+        let independentConic = try ring.multiplying(left,right,using:&a)
+        try require(ring.isZero(ring.importing(factorization.remainder,using:&a),using:&a))
+        try require(ring.equals(originalConic,ring.multiplying(factor,quotient,using:&a),using:&a))
+        try require(ring.equals(ring.normalized(originalConic,using:&a),ring.normalized(independentConic,using:&a),using:&a))
+        try require(ring.equals(ring.normalized(factor,using:&a),ring.normalized(left,using:&a),using:&a))
+        try require(ring.equals(ring.normalized(quotient,using:&a),ring.normalized(right,using:&a),using:&a))
+        let reductions = pullback.region.reductions.filter { $0.variable == 2 && $0.domainRestriction != nil }
+        try require(reductions.count == 1)
+        let reduction = reductions[0]
+        try require(reduction.originalAtoms.count == reduction.derivedAtoms.count)
+        let replacements = [t,u,try ring.constant(y,using:&a)]
+        for index in reduction.originalAtoms.indices {
+            try require(ring.equals(ring.substituted(ring.importing(reduction.originalAtoms[index],using:&a),with:replacements,using:&a),
+                ring.importing(reduction.derivedAtoms[index],using:&a),using:&a))
+        }
+        for law in pullback.target.source.polynomials {
+            var found = false
+            for originalLaw in reduction.originalAtoms {
+                if try ring.equals(ring.importing(originalLaw,using:&a),ring.importing(law,using:&a),using:&a) { found = true;break }
+            }
+            try require(found)
+        }
+    }
+    static func rawExpected(_ signs:[ExactSign]) -> Bool {
+        signs[0] != .negative && signs[1] != .positive && signs[2] != .negative && signs[3] != .positive &&
+        signs[4] != .negative && signs[5] != .positive && signs[6] == .zero && signs[7] == .zero
+    }
+    static func oracle(_ result:Result, expectedCurves:[SurfaceParameterCurve], reverseEdges:Bool = false,
+        chord:Bool = false, hole:Bool = false, leftCurve:Int = 2) throws {
+        var a = try Fixture.ledger()
+        guard case .curveSurface(let raw) = result.parameters.boundary.source else { throw Failure.assertion(#line) }
+        try require(raw.pieces.count == 1 && result.parameters.refinements.count == 1 && result.parameters.selection == .closed)
+        try checkMap(raw.pieces[0].relation.original.first,surface:false,using:&a)
+        try checkMap(raw.pieces[0].relation.original.second,surface:true,using:&a)
+        try require(result.original.validationLevel == .exact && result.loops.count == (hole ? 2:1))
+        try require(result.loops[0].role == .outer && result.loops[0].coedges.count == expectedCurves.count)
+        for index in expectedCurves.indices {
+            let edge = result.loops[0].coedges[index]
+            try require(edge.surfaceParameterCurve == expectedCurves[index] && edge.orientation == (reverseEdges ? .reversed:.forward))
+        }
+        let selected = raw.pieces[0].relation.selection
+        let (rawCells,rawProofs) = try proofs(selected.partition,refined:false,chord:false,hole:false,using:&a)
+        var signatures:[[ExactSign]] = [], rawCount = 0, rawDimension = -1
+        for cell in selected.partition.cells where cell.axis == 2 {
+            let signs = try signs(rawProofs,cells:rawCells,cell:cell,using:&a)
+            let expected = rawExpected(signs)
+            try require(selected.cells.contains(cell) == expected)
+            if expected { rawCount += 1; rawDimension = max(rawDimension,cell.dimension) }
+        }
+        try require(rawCount == selected.cells.count && rawCount > 0 && rawDimension == 1)
+        for cell in selected.cells {
+            let signs = try signs(rawProofs,cells:rawCells,cell:cell,using:&a)
+            try require(!signatures.contains(signs));signatures.append(signs)
+        }
+        let refined = result.parameters.refinements[0], pullback = refined.parameters.pullback, region = pullback.region
+        try scopedOracle(refined,chord:chord,using:&a)
+        try require(pullback.coordinateMap == [0,1,2] && region.coordinateCount == 3)
+        try require(pullback.source.cells.count == selected.cells.count)
+        for index in selected.cells.indices { try require(pullback.source.cells[index] == selected.cells[index]) }
+        try require(region.cells.count == region.included.count && region.cells.count == pullback.sourceCellOrdinals.count &&
+            region.cells.count == refined.boundarySpans.count)
+        let (cells,signProofs) = try proofs(region.partition,refined:true,chord:chord,hole:hole,using:&a)
+        var checked = 0, included = 0, left = 0, right = 0, holeLeft = 0, holeRight = 0, maximumDimension = -1
+        for cell in region.partition.cells where cell.axis == 2 {
+            let indices = region.cells.indices.filter { region.cells[$0] == cell }
+            try require(indices.count == 1)
+            let index = indices[0], signs = try signs(signProofs,cells:cells,cell:cell,using:&a)
+            let expected = rawExpected(signs) && signs[8] != .negative && signs[9] != .positive &&
+                (!hole || signs[10] != .positive || signs[11] != .negative)
+            try require(region.included[index] == expected)
+            let ordinal = pullback.sourceCellOrdinals[index]
+            try require(expected ? selected.cells.indices.contains(ordinal):ordinal == -1)
+            var spans:[OriginalNativeBoundaryDomain.SpanReference] = []
+            if expected {
+                try require(signatures[ordinal] == Array(signs.prefix(8)))
+                if signs[8] == .zero { spans.append(.init(loopOrdinal:0,curveOrdinal:leftCurve,segmentOrdinal:0));left += 1 }
+                if signs[9] == .zero { spans.append(.init(loopOrdinal:0,curveOrdinal:1,segmentOrdinal:0));right += 1 }
+                if hole && signs[10] == .zero { spans.append(.init(loopOrdinal:1,curveOrdinal:3,segmentOrdinal:0));holeLeft += 1 }
+                if hole && signs[11] == .zero { spans.append(.init(loopOrdinal:1,curveOrdinal:1,segmentOrdinal:0));holeRight += 1 }
+                included += 1;maximumDimension = max(maximumDimension,cell.dimension)
+            }
+            let actual = refined.boundarySpans[index]
+            try require(actual.count == spans.count && spans.allSatisfy { actual.contains($0) })
+            checked += 1
+        }
+        try require(checked == region.cells.count && included > 0 && maximumDimension == 1 && left == 1 && right == 1)
+        if hole { try require(holeLeft == 1 && holeRight == 1) }
+        print("PASS rational quadratic whole-cell raw/refined iff, every source ordinal and all endpoint spans; image1/fiber0")
+    }
+    static func complete() throws {
+        let (raw,owner) = try prepare()
+        var a = try Fixture.ledger()
+        let result = try Fixture.clip(.curveSurface(raw),owner,&a)
+        try oracle(result,expectedCurves:pcurves())
+        print("PASS actual exact-validated public closed clipping [1/4,1/2]")
+    }
+    static func directionControls() throws {
+        let (raw,_) = try prepare(), surface = Fixture.plane()
+        var a = try Fixture.ledger()
+        let reversed = try pcurves().reversed().map { try $0.reversed(tolerance:.standard) }
+        let reversedResult = try Fixture.clip(.curveSurface(raw),Fixture.face(surface,[(.outer,reversed)]),&a)
+        try oracle(reversedResult,expectedCurves:reversed,leftCurve:0)
+        let reverseEdges = try Fixture.clip(.curveSurface(raw),Fixture.face(surface,[(.outer,pcurves())],reversed:true),&a)
+        try oracle(reverseEdges,expectedCurves:pcurves(),reverseEdges:true)
+        var chord = pcurves()
+        chord[2] = .affine(origin:.init(x:0.5,y:0.25),direction:.init(x:-0.5,y:-0.25),startParameter:0,endParameter:1)
+        let chordResult = try Fixture.clip(.curveSurface(raw),Fixture.face(surface,[(.outer,chord)]),&a)
+        try oracle(chordResult,expectedCurves:chord,chord:true)
+        let hole = Fixture.rectangle(3.0/8,7.0/16,vLo:3.0/16,vHi:15.0/64)
+        let holeResult = try Fixture.clip(.curveSurface(raw),Fixture.face(surface,[(.outer,pcurves()),(.inner,hole)]),&a)
+        try oracle(holeResult,expectedCurves:pcurves(),hole:true)
+        print("PASS signed winding, full directed pcurve, no double reversal, chord difference and hole material")
+    }
+    struct PublicationAdmission: ~Copyable, ExactScalarAdmission {
+        var ledger:ExactScalarLedger
+        private(set) var storageCalls = 0
+        let cancellingCall:Int?
+        let cancellingWork:Int?
+        init(work:Int = 80_000_000,bytes:Int = 1_073_741_824,cancellingCall:Int? = nil,cancellingWork:Int? = nil) throws {
+            ledger = try Fixture.ledger(work:work,bytes:bytes);self.cancellingCall = cancellingCall;self.cancellingWork = cancellingWork
+        }
+        mutating func checkpoint() throws(ExactScalarFailure) { try ledger.checkpoint() }
+        mutating func consumeWork(_ units:Int) throws(ExactScalarFailure) {
+            try ledger.consumeWork(units)
+            if let cancellingWork,ledger.work>=cancellingWork { ledger.cancel() }
+        }
+        mutating func retainStorage(bytes:Int) throws(ExactScalarFailure) {
+            try ledger.retainStorage(bytes:bytes);storageCalls += 1
+            if storageCalls == cancellingCall { ledger.cancel() }
+        }
+        mutating func visitCell(axis:ExactScalarRootAxis,depth:Int) throws(ExactScalarFailure) { try ledger.visitCell(axis:axis,depth:depth) }
+        mutating func admitDepth(value:Int,coefficient:Int) throws(ExactScalarFailure) { try ledger.admitDepth(value:value,coefficient:coefficient) }
+    }
+#if canImport(Darwin) && !hasFeature(Embedded)
+    /// Forwards the unchanged query budget and records only a failed depth admission.
+    struct TraceAdmission: ~Copyable, ExactScalarAdmission {
+        var ledger:ExactScalarLedger
+        init(ledger:consuming ExactScalarLedger) { self.ledger = ledger }
+        mutating func checkpoint() throws(ExactScalarFailure) { try ledger.checkpoint() }
+        mutating func consumeWork(_ units:Int) throws(ExactScalarFailure) { try ledger.consumeWork(units) }
+        mutating func retainStorage(bytes:Int) throws(ExactScalarFailure) { try ledger.retainStorage(bytes:bytes) }
+        func record(_ request:String) {
+            fputs("FAILED ADMISSION \(request) work=\(ledger.work) storage=\(ledger.storageBytes) reachedValue=\(ledger.valueDepth) reachedCoefficient=\(ledger.coefficientDepth)\n",stderr)
+            for frame in Thread.callStackSymbols { fputs(frame+"\n",stderr) }
+        }
+        mutating func visitCell(axis:ExactScalarRootAxis,depth:Int) throws(ExactScalarFailure) {
+            do { try ledger.visitCell(axis:axis,depth:depth) }
+            catch { record("visitCell axis=\(axis) depth=\(depth)");throw error }
+        }
+        mutating func admitDepth(value:Int,coefficient:Int) throws(ExactScalarFailure) {
+            do { try ledger.admitDepth(value:value,coefficient:coefficient) }
+            catch { record("admitDepth value=\(value) coefficient=\(coefficient)");throw error }
+        }
+    }
+    static func traceDepth() throws {
+        var setup = try Fixture.ledger()
+        let field = try Field.base(field:Base(),maximumExtensionLevel:10,using:&setup)
+        let surface = Fixture.plane()
+        let raw = try Fixture.raw(Fixture.line(y:7.0/32),surface,field,&setup)
+        let owner = try Fixture.face(surface,[(.outer,pcurves())])
+        try require(owner.0.validationLevel == .exact)
+        var trace = TraceAdmission(ledger:consume setup)
+        _ = try Fixture.clip(.curveSurface(raw),owner,&trace)
+        print("DIAGNOSTIC public clip returned; complete oracle was not executed")
+    }
+#endif
+    static func resourceControls() throws {
+        let (raw,owner) = try prepare(), source = OriginalExactNativeBoundarySource.curveSurface(raw)
+        var measured = try PublicationAdmission()
+        _ = try Fixture.clip(source,owner,&measured)
+        let work = measured.ledger.work, bytes = measured.ledger.storageBytes, finalCall = measured.storageCalls
+        try require(work > 0 && bytes > 0 && finalCall > 0)
+        var exact = try PublicationAdmission(work:work,bytes:bytes)
+        _ = try Fixture.clip(source,owner,&exact)
+        try require(exact.ledger.work == work && exact.ledger.storageBytes == bytes)
+        for mode in 0..<3 {
+            var a = try Fixture.ledger(work:mode == 0 ? work-1:work,bytes:mode == 1 ? bytes-1:bytes)
+            if mode == 2 { a.cancel() }
+            do { _ = try Fixture.clip(source,owner,&a);throw Failure.unexpectedSuccess }
+            catch let failure as NativeExactRelationFailure {
+                switch (mode,failure) {
+                case (0,.scalar(.resourceLimit(.work))),(0,.domain(.scalar(.resourceLimit(.work)))),
+                     (1,.scalar(.resourceLimit(.storage))),(1,.domain(.scalar(.resourceLimit(.storage)))),
+                     (2,.scalar(.cancelled)):break
+                default:throw failure
+                }
+                let publicFailure = NativeExactGeometryPublicationFailure.published(failure,tolerance:.standard)
+                if mode == 2 { try require(publicFailure is CancellationError) }
+                else { try require((publicFailure as? KernelError)?.code == .resourceLimitExceeded) }
+            }
+        }
+        var processing = try PublicationAdmission(cancellingWork:max(1,work/2))
+        do { _ = try Fixture.clip(source,owner,&processing);throw Failure.unexpectedSuccess }
+        catch let failure as NativeExactRelationFailure {
+            try require(NativeExactGeometryPublicationFailure.published(failure,tolerance:.standard) is CancellationError)
+        }
+        var final = try PublicationAdmission(cancellingCall:finalCall)
+        do { _ = try Fixture.clip(source,owner,&final);throw Failure.unexpectedSuccess }
+        catch let failure as NativeExactRelationFailure {
+            try require(NativeExactGeometryPublicationFailure.published(failure,tolerance:.standard) is CancellationError)
+        }
+#if !hasFeature(Embedded)
+        print("METRIC work",work,"storage",bytes,"finalStorageCall",finalCall)
+#endif
+        print("PASS changed-path exact work/storage N succeeds, N-1 typed causes, entry/processing/final cancellation")
+    }
+    static func lifetimeControls() async throws {
+        let retained:Result
+        do {
+            let (raw,owner) = try prepare()
+            var a = try Fixture.ledger()
+            retained = try Fixture.clip(.curveSurface(raw),owner,&a)
+        }
+        try oracle(retained,expectedCurves:pcurves())
+        try await withThrowingTaskGroup(of:Void.self) { group in
+            for _ in 0..<2 { group.addTask { try oracle(retained,expectedCurves:pcurves()) } }
+            try await group.waitForAll()
+        }
+        print("PASS retained original source/face after local scope and concurrent readers with independent ledgers")
+    }
+    typealias Cap = OriginalRationalQuadraticBoundaryReceipt<BSplineCurve2D,Field>
+    static func sourceCurve() throws -> BSplineCurve2D {
+        guard case .bSpline(let curve) = pcurves()[2] else { throw Failure.assertion(#line) }
+        return curve
+    }
+    static func bind(_ curve:BSplineCurve2D, using a:inout ExactScalarLedger) throws -> OriginalSourceBinding<BSplineCurve2D> {
+        try DefaultOriginalSourceBindingIssuer(provider:OriginalBSplinePcurveSnapshotProvider(tolerance:.standard))
+            .bind(curve,limits:OriginalSourceIssuanceLimits(remainingSourceDepth:0),using:&a)
+    }
+    static func issue(_ source:OriginalSourceBinding<BSplineCurve2D>,field:Field,
+        using a:inout ExactScalarLedger) throws -> Cap {
+        try DefaultOriginalRationalQuadraticBoundaryIssuer<BSplineCurve2D,Field>()
+            .issue(source:source,field:field,limits:OriginalSourceIssuanceLimits(remainingSourceDepth:0),using:&a)
+    }
+    static func capOracle(_ receipt:Cap, reversed:Bool, using a:inout ExactScalarLedger) throws {
+        let law=receipt.law,field=law.field,ring=law.polynomials
+        func q(_ n:Int,_ d:Int = 1) throws -> Field.Value {
+            try field.dividing(field.integer(n,using:&a),field.integer(d,using:&a),using:&a)
+        }
+        func poly(_ coefficients:[(Int,Int)]) throws -> ExactPolynomial<Field> {
+            var terms:[ExactPolynomialTerm<Field.Value>] = []
+            for (power,value) in coefficients.enumerated() where value.0 != 0 {
+                terms.append(.init(powers:[power],coefficient:try q(value.0,value.1)))
+            }
+            return try ring.polynomial(terms:terms,using:&a)
+        }
+        let expectedX = reversed ? [(0,1),(3,2),(-1,1)] : [(1,2),(1,2),(-1,1)]
+        let expectedY = reversed ? [(0,1),(3,2),(-5,4)] : [(1,4),(1,1),(-5,4)]
+        let expected=[try poly(expectedX),try poly(expectedY),try ring.zero(using:&a),try poly([(1,1),(4,1),(-4,1)])]
+        try require(law.homogeneous.count==4 && law.support.count==1 && law.chart.selection.spans == [2])
+        for i in expected.indices { try require(ring.equals(law.homogeneous[i],expected[i],using:&a)) }
+        try require(field.compare(law.support[0].lower,q(0),using:&a) == .equal && field.compare(law.support[0].upper,q(1),using:&a) == .equal)
+        try require(law.parameterTransport.numerators.count==1 && law.parameterTransport.denominators.count==1)
+        try require(ring.equals(law.parameterTransport.numerators[0],poly([(0,1),(1,1)]),using:&a))
+        try require(ring.equals(law.parameterTransport.denominators[0],poly([(1,1)]),using:&a))
+        let rows = reversed ? [[0,-4,1],[-4,8,0],[4,-4,0]] : [[4,-4,0],[-4,8,0],[0,-4,1]]
+        try require(receipt.barycentricRows.count==3 && receipt.weights.count==3 && receipt.first.count==2 && receipt.last.count==2)
+        for i in 0..<3 {
+            try require(receipt.barycentricRows[i].count==3 && field.compare(receipt.weights[i],q(i==1 ? 3:1),using:&a) == .equal)
+            for j in 0..<3 { try require(field.compare(receipt.barycentricRows[i][j],q(rows[i][j]),using:&a) == .equal) }
+        }
+        try require(field.compare(receipt.determinant,q(reversed ? -1:1,16),using:&a) == .equal)
+        let endpoints = reversed ? [[(0,1),(0,1)],[(1,2),(1,4)]] : [[(1,2),(1,4)],[(0,1),(0,1)]]
+        for i in 0..<2 {
+            try require(field.compare(receipt.first[i],q(endpoints[0][i].0,endpoints[0][i].1),using:&a) == .equal)
+            try require(field.compare(receipt.last[i],q(endpoints[1][i].0,endpoints[1][i].1),using:&a) == .equal)
+        }
+        try require(receipt.identityResiduals.count==4)
+        for residual in receipt.identityResiduals { try require(ring.isZero(residual,using:&a)) }
+        try receipt.admitProof(limits:OriginalSourceIssuanceLimits(remainingSourceDepth:0),using:&a)
+        print("PASS original quadratic Bernstein coefficients, positive full-span W, signed barycentrics, transport and unique-preimage premises")
+    }
+    static func sourceControls() throws {
+        var setup=try Fixture.ledger()
+        let field=try Field.base(field:Base(),maximumExtensionLevel:10,using:&setup)
+        var input=try sourceCurve()
+        let source=try bind(input,using:&setup)
+        var measured=try Fixture.ledger()
+        let cap=try issue(source,field:field,using:&measured)
+        let work=measured.work,bytes=measured.storageBytes
+        try require(work>0 && bytes>0)
+        try capOracle(cap,reversed:false,using:&setup)
+        input.controlPoints[0] = .init(x:9,y:9);input.weights[1]=1
+        try capOracle(cap,reversed:false,using:&setup)
+        let reversed=try sourceCurve().reversed(tolerance:.standard)
+        let reversedSource=try bind(reversed,using:&setup)
+        let reversedCap=try issue(reversedSource,field:field,using:&setup)
+        try capOracle(reversedCap,reversed:true,using:&setup)
+        var exact=try Fixture.ledger(work:work,bytes:bytes)
+        _=try issue(source,field:field,using:&exact)
+        try require(exact.work==work && exact.storageBytes==bytes)
+        for mode in 0..<3 {
+            var refusal=try Fixture.ledger(work:mode==0 ? work-1:work,bytes:mode==1 ? bytes-1:bytes)
+            if mode==2 { refusal.cancel() }
+            do { _=try issue(source,field:field,using:&refusal);throw Failure.unexpectedSuccess }
+            catch let failure as OriginalSourceIssuanceFailure {
+                switch (mode,failure) {
+                case (0,.scalar(.resourceLimit(.work))),(0,.polynomial(.scalar(.resourceLimit(.work)))),
+                     (1,.scalar(.resourceLimit(.storage))),(1,.polynomial(.scalar(.resourceLimit(.storage)))),
+                     (2,.scalar(.cancelled)):break
+                default:throw failure
+                }
+            }
+        }
+        for mode in 0..<3 {
+            let curve:BSplineCurve2D
+            switch mode {
+            case 0:curve = .init(degree:1,knots:[0,0,1,1],controlPoints:[.init(x:0,y:0),.init(x:1,y:1)])
+            case 1:curve = .init(degree:2,knots:[0,0,0,0.5,1,1,1],controlPoints:[.init(x:0,y:0),.init(x:1,y:0),.init(x:1,y:1),.init(x:0,y:1)])
+            default:curve = .init(degree:2,knots:[0,0,0,1,1,1],controlPoints:[.init(x:0,y:0),.init(x:0.5,y:0.5),.init(x:1,y:1)],weights:[1,3,1])
+            }
+            let rejected=try bind(curve,using:&setup)
+            do { _=try issue(rejected,field:field,using:&setup);throw Failure.unexpectedSuccess }
+            catch OriginalSourceIssuanceFailure.unsupportedRepresentation {}
+        }
+        for mode in 0..<2 {
+            var malformed=try sourceCurve()
+            if mode==0 { malformed.weights[1]=0 } else { malformed.knots.removeLast() }
+            do { _=try bind(malformed,using:&setup);throw Failure.unexpectedSuccess }
+            catch OriginalSourceIssuanceFailure.sourceRejected {}
+        }
+        for axis in 0..<2 {
+            let attained = axis==0 ? cap.proofDepth.value:cap.proofDepth.coefficient
+            if attained>0 {
+                var shallow=ExactScalarLedger(limits:try .init(work:80_000_000,storageBytes:1_073_741_824,
+                    valueDepth:axis==0 ? attained-1:32,coefficientDepth:axis==1 ? attained-1:32))
+                do { try cap.admitProof(limits:OriginalSourceIssuanceLimits(remainingSourceDepth:0),using:&shallow);throw Failure.unexpectedSuccess }
+                catch let failure as OriginalSourceIssuanceFailure {
+                    switch (axis,failure) {
+                    case (0,.scalar(.resourceLimit(.valueDepth))),(1,.scalar(.resourceLimit(.coefficientDepth))):break
+                    default:throw failure
+                    }
+                }
+            }
+        }
+#if !hasFeature(Embedded)
+        print("METRIC sourceWork",work,"sourceStorage",bytes,"proofValueDepth",cap.proofDepth.value,"proofCoefficientDepth",cap.proofDepth.coefficient)
+#endif
+        print("PASS source unsupported/malformed distinction, exact N/N-1 budgets, cancellation, attained depth and retained COW lifetime")
+    }
+    static func denominatorControls() throws {
+        var a=try Fixture.ledger()
+        let field=try Field.base(field:Base(),maximumExtensionLevel:10,using:&a)
+        let arc=SurfaceParameterCurve.bSpline(.init(degree:2,knots:[0,0,0,1,1,1],
+            controlPoints:[.init(x:-1,y:0),.init(x:0,y:-1),.init(x:1,y:0)],weights:[1,3,1]))
+        let closing=SurfaceParameterCurve.constantV(v:0,uStart:1,uEnd:-1)
+        let loops=[OriginalNativeBoundaryDomain.Loop(isInner:false,curves:[arc,closing])]
+        for zeroDenominator in [false,true] {
+            var compiler=try OriginalExactBoundaryCompiler<Base>(field:field,using:&a)
+            let ring=compiler.cells.polynomials
+            let x=try ring.variable(0,using:&a), x2=try ring.multiplying(x,x,using:&a)
+            let half=try field.dividing(field.integer(1,using:&a),field.integer(2,using:&a),using:&a)
+            let w=try ring.constant(field.integer(zeroDenominator ? 0:-1,using:&a),using:&a)
+            let root=try compiler.boundary(loops:loops,numerators:[x2,ring.constant(half,using:&a)],
+                denominator:w,selection:.closed,&a)
+            let roots=try ExactRealRootDomain(field:field,using:&a)
+            let interval=try roots.domain(lower:.finite(field.integer(-1,using:&a)),upper:.finite(field.integer(1,using:&a)),using:&a)
+            let source=try compiler.cells.bind(polynomials:compiler.laws+[x],domains:[interval,interval],using:&a)
+            let predicate=try compiler.cells.predicate(instructions:compiler.instructions(root,&a),for:source,using:&a)
+            let partition=try compiler.cells.decompose(source,limits:Fixture.cells(),using:&a)
+            let selected=try compiler.cells.select(partition,matching:predicate,using:&a)
+            let expectedLaw=try ring.subtracting(ring.constant(field.integer(2,using:&a),using:&a),
+                ring.scaled(ring.multiplying(x2,x2,using:&a),by:field.integer(9,using:&a),using:&a),using:&a)
+            var proof:ExactRealCellSignInvariant<Base>? = nil
+            if !zeroDenominator { proof=try compiler.cells.signInvariant(for:expectedLaw,in:partition,using:&a);try require(proof != nil) }
+            var count=0,negative=0,positive=0,dimension = -1
+            let xProof=try compiler.cells.signInvariant(for:x,in:partition,using:&a)
+            for cell in partition.cells where cell.axis==1 {
+                let expected = zeroDenominator ? false:try compiler.cells.sign(of:proof!,at:cell,using:&a) != .negative
+                try require(selected.cells.contains(cell)==expected)
+                if expected {
+                    count += 1;dimension=max(dimension,cell.dimension)
+                    if let xProof {
+                        let sign=try compiler.cells.sign(of:xProof,at:cell,using:&a)
+                        if sign == .negative { negative += 1 }
+                        if sign == .positive { positive += 1 }
+                    }
+                }
+            }
+            if zeroDenominator { try require(count==0 && selected.cells.isEmpty) }
+            else { try require(count>0 && dimension==2 && negative>0 && positive>0) }
+        }
+        print("PASS negative UV denominator whole-cell iff 2-9*x^4>=0, both x preimages and unused-coordinate fiber; zero W fully excluded")
+    }
+    static func chordConventionControls() throws {
+        for mode in 0..<3 {
+            for materialIncludesChord in [true,false] {
+                let first:Point2D,last:Point2D,middle:Point2D,far:Point2D
+                switch mode {
+                case 0:
+                    first = .init(x:0,y:0);last = .init(x:1,y:1)
+                    middle = materialIncludesChord ? .init(x:1,y:0):.init(x:0,y:1)
+                    far = .init(x:0,y:1)
+                case 1:
+                    first = .init(x:0.25,y:0.5);last = .init(x:0.75,y:0.5)
+                    middle = .init(x:0.25,y:materialIncludesChord ? 0.75:0.25)
+                    far = .init(x:0.25,y:0.25)
+                default:
+                    first = .init(x:0.5,y:0.25);last = .init(x:0.5,y:0.75)
+                    middle = .init(x:materialIncludesChord ? 0.75:0.25,y:0.25)
+                    far = .init(x:0.25,y:0.25)
+                }
+                func segment(_ p:Point2D,_ q:Point2D) -> SurfaceParameterCurve {
+                    .affine(origin:p,direction:.init(x:q.x-p.x,y:q.y-p.y),startParameter:0,endParameter:1)
+                }
+                let arc=SurfaceParameterCurve.bSpline(.init(degree:2,knots:[0,0,0,1,1,1],controlPoints:[first,middle,last],weights:[1,1,1]))
+                let loop=[arc,segment(last,far),segment(far,first)]
+                let surface=Fixture.plane()
+                let curve=BSplineCurve3D(degree:1,knots:[0,0,1,1],controlPoints:[.init(x:first.x,y:first.y,z:0),.init(x:last.x,y:last.y,z:0)])
+                var a=try Fixture.ledger()
+                let field=try Field.base(field:Base(),maximumExtensionLevel:10,using:&a)
+                let raw=try Fixture.raw(curve,surface,field,&a)
+                for reversed in [false,true] {
+                    let directed=reversed ? try loop.reversed().map { try $0.reversed(tolerance:.standard) }:loop
+                    let result=try Fixture.clip(.curveSurface(raw),Fixture.face(surface,[(.outer,directed)]),&a)
+                    try chordOracle(result,first:first,last:last,includesChord:materialIncludesChord,reversed:reversed)
+                }
+            }
+        }
+        print("PASS oblique/horizontal/vertical artificial open chord ties, both cap sides and traversal directions; no actual boundary masks the interior")
+    }
+    static func chordOracle(_ result:Result,first:Point2D,last:Point2D,includesChord:Bool,reversed:Bool) throws {
+        var a=try Fixture.ledger()
+        guard case .curveSurface(let raw)=result.parameters.boundary.source else { throw Failure.assertion(#line) }
+        try require(raw.pieces.count==1 && result.parameters.refinements.count==1)
+        let refined=result.parameters.refinements[0],region=refined.parameters.pullback.region
+        let cells=try Cells(retaining:region.partition.source,using:&a),ring=cells.polynomials
+        let field=try cells.coefficientField(of:region.partition.source,using:&a)
+        let t=try ring.variable(0,using:&a),u=try ring.variable(1,using:&a),v=try ring.variable(2,using:&a)
+        let one=try ring.constant(field.integer(1,using:&a),using:&a)
+        func coordinate(_ first:Double,_ last:Double) throws -> ExactPolynomial<Field> {
+            try ring.adding(ring.constant(field.binary64(exactly:first,using:&a),using:&a),
+                ring.scaled(t,by:field.binary64(exactly:last-first,using:&a),using:&a),using:&a)
+        }
+        let laws=[t,try ring.subtracting(t,one,using:&a),try ring.subtracting(u,coordinate(first.x,last.x),using:&a),
+            try ring.subtracting(v,coordinate(first.y,last.y),using:&a)]
+        var proofs:[ExactRealCellSignInvariant<Base>]=[]
+        for law in laws { guard let proof=try cells.signInvariant(for:law,in:region.partition,using:&a) else { throw Failure.assertion(#line) };proofs.append(proof) }
+        var count=0,interior=0,ends=0
+        for cell in region.partition.cells where cell.axis==2 {
+            let indices=region.cells.indices.filter { region.cells[$0]==cell };try require(indices.count==1)
+            let index=indices[0],signs=try proofs.map { try cells.sign(of:$0,at:cell,using:&a) }
+            let on=signs[0] != .negative && signs[1] != .positive && signs[2] == .zero && signs[3] == .zero
+            let endpoint=on && (signs[0] == .zero || signs[1] == .zero)
+            let expected=on && (includesChord || endpoint)
+            try require(region.included[index]==expected)
+            let spans=refined.boundarySpans[index]
+            if expected {
+                count += 1
+                if endpoint {
+                    ends += 1
+                    let left=signs[0] == .zero
+                    let curve=reversed ? (left ? 0:1):(left ? 2:1)
+                    let arc=reversed ? 2:0
+                    let expectedSpans=[OriginalNativeBoundaryDomain.SpanReference(loopOrdinal:0,curveOrdinal:curve,segmentOrdinal:0),
+                        .init(loopOrdinal:0,curveOrdinal:arc,segmentOrdinal:0)]
+                    try require(spans.count==2 && expectedSpans.allSatisfy { spans.contains($0) })
+                } else { interior += 1;try require(spans.isEmpty) }
+            } else { try require(spans.isEmpty && refined.parameters.pullback.sourceCellOrdinals[index] == -1) }
+        }
+        try require(count>0 && ends==2 && (includesChord ? interior>0:interior==0))
+    }
+    static func emptyControls() throws {
+        var setup=try Fixture.ledger()
+        let field=try Field.base(field:Base(),maximumExtensionLevel:10,using:&setup)
+        let surface=Fixture.plane(),owner=try Fixture.face(surface,[(.outer,pcurves())])
+        let upperRequest=try Fixture.interval(3,4,field,&setup,denominator:4)
+        let nonemptyRaw=try Fixture.raw(Fixture.line(y:7.0/32),surface,field,curveSelection:[[upperRequest]],&setup)
+        try require(!nonemptyRaw.pieces.isEmpty)
+        var a=try Fixture.ledger()
+        let materialEmpty=try Fixture.clip(.curveSurface(nonemptyRaw),owner,&a)
+        try require(materialEmpty.parameters.refinements.count==nonemptyRaw.pieces.count)
+        for refined in materialEmpty.parameters.refinements {
+            let region=refined.parameters.pullback.region
+            try require(!region.cells.isEmpty && region.cells.count==region.included.count)
+            for i in region.cells.indices {
+                try require(!region.included[i] && refined.parameters.pullback.sourceCellOrdinals[i] == -1 && refined.boundarySpans[i].isEmpty)
+            }
+        }
+        let outside=try Fixture.interval(2,2,field,&setup)
+        let emptyRaw=try Fixture.raw(Fixture.line(y:7.0/32),surface,field,curveSelection:[[outside]],&setup)
+        try require(emptyRaw.pieces.isEmpty)
+        let empty=try Fixture.clip(.curveSurface(emptyRaw),owner,&a)
+        try require(empty.parameters.refinements.isEmpty && empty.loops.count==1)
+        print("PASS complete material exclusion T[3/4,1] and original-support empty T[2,2], with full retained loop")
+    }
+    static func main() async throws {
+        let group:String
+#if hasFeature(Embedded)
+        group = getenv("CAD_PROOF_GROUP").map { String(cString:$0) } ?? "complete"
+#else
+        group = CommandLine.arguments.dropFirst().first ?? "complete"
+#endif
+        switch group {
+#if canImport(Darwin) && !hasFeature(Embedded)
+        case "trace-depth":try traceDepth()
+#endif
+        case "complete":try complete()
+        case "empty":try emptyControls()
+        case "source":try sourceControls()
+        case "denominator":try denominatorControls()
+        case "chord":try chordConventionControls()
+        case "direction":try directionControls()
+        case "resources":try resourceControls()
+        case "lifetime":try await lifetimeControls()
+        default:throw Failure.unknownGroup
+        }
+    }
+}

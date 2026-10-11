@@ -20,7 +20,13 @@ public struct OriginalExactBoundaryRefinement: Sendable {
     public let parameters: NativeExactParameterRefinement
     /// Aligned with parameters.pullback.region.cells; every corner keeps all incident spans.
     public let boundarySpans: [[OriginalNativeBoundaryDomain.SpanReference]]
-    init(parameters: NativeExactParameterRefinement,boundarySpans: [[OriginalNativeBoundaryDomain.SpanReference]]) {
-        self.parameters = parameters;self.boundarySpans = boundarySpans
+    /// Retains the checked affine laws authorizing scoped UV pullback and target constants.
+    let rawScopeProofs: [ExactRealCellSignInvariant<ExactRationalScalarDomain>]
+    let factorizations: [OriginalExactBoundaryCompiler<ExactRationalScalarDomain>.Factorization]
+    init(parameters: NativeExactParameterRefinement,boundarySpans: [[OriginalNativeBoundaryDomain.SpanReference]],
+        rawScopeProofs: [ExactRealCellSignInvariant<ExactRationalScalarDomain>],
+        factorizations: [OriginalExactBoundaryCompiler<ExactRationalScalarDomain>.Factorization]) {
+        self.parameters = parameters;self.boundarySpans = boundarySpans;self.rawScopeProofs = rawScopeProofs
+        self.factorizations = factorizations
     }
 }

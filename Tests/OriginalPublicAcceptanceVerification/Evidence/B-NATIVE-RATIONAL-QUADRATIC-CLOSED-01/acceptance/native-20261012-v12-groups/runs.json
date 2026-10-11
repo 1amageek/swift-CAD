@@ -1,0 +1,50 @@
+[
+  {
+    "label": "runtime-empty",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v11/Acceptance",
+      "empty"
+    ],
+    "exitCode": 0,
+    "timedOut": false,
+    "elapsedSeconds": 0.31082845793571323,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledCPUSeconds": 0,
+    "peakOwnedProcessResidentSumKiB": 2800,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "0c275790ea3677c1dcd91de6bb3e6ed4b9222d4445f11f42ca27077020e11b10"
+  },
+  {
+    "label": "runtime-source",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v11/Acceptance",
+      "source"
+    ],
+    "exitCode": 0,
+    "timedOut": false,
+    "elapsedSeconds": 0.05052366608288139,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledCPUSeconds": 0,
+    "peakOwnedProcessResidentSumKiB": 1648,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "3ae92df281a45fb516382164f44188e9f5f20be6356b25ee58bb95229d9ff13d"
+  },
+  {
+    "label": "runtime-direction",
+    "command": [
+      "/private/tmp/cad-m4-m8-completion-20261010/.build/b-rational-quadratic-native-20261012-v11/Acceptance",
+      "direction"
+    ],
+    "exitCode": -5,
+    "timedOut": false,
+    "elapsedSeconds": 1.7137642500456423,
+    "wallLimitSeconds": 120,
+    "cpuLimitSecondsPerProcess": 120,
+    "sampledCPUSeconds": 1.61,
+    "peakOwnedProcessResidentSumKiB": 21872,
+    "ownedDescendantsRemaining": [],
+    "logSHA256": "b08183cce07f2057eae6fe446aba2ecdbbc63e327e6aa4fb4ce9d033b65cb31b"
+  }
+]
