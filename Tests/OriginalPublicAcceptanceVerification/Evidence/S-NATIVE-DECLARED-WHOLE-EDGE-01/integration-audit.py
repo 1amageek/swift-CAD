@@ -389,8 +389,28 @@ def audit():
         require(executable in record['products'], 'actual compiled executable product')
         for label in set(group_labels.values()):
             runtime = labels[label]['command']
-            require(executable in runtime and runtime[-1] == label.removeprefix('runtime-'),
-                    'actual executable/group runtime binding')
+            if lane == 'native' and part['version'] == 'v2' and label == 'runtime-complete':
+                direct_main = '''    static func main() throws {
+        var a = try ledger()
+        marker("START S-NATIVE-DECLARED-WHOLE-EDGE-01 actual Native whole-edge query")
+        let (raw,proof) = try prepare(&a)
+        print("METRIC preparation",a.work,a.storageBytes)
+        let result = try NativeDeclaredWholeEdgeSelf.DefaultOriginalExactNativeSelfContactQuery().contacts(in:raw,excluding:[proof],
+            domainLimits:limits(),cellLimits:cellLimits(),topologyLimits:topologyLimits(),using:&a)
+        print("METRIC publicReturn",a.work,a.storageBytes)
+        try oracle(result,&a)
+    }
+}
+'''
+                require(groups == {'complete'} and runtime == [executable] and
+                        part['receipt']['sha256'] ==
+                        '89802eb97e01c8b19a2708fe962c505eba06384c2f352ccf5177f29f93b674e9' and
+                        fixture_digest == 'ea5e5c9199b03b00f9dcbfd1aefcce5ec70a5b431b3dbc53995247c2bbdc7a79' and
+                        fixture_bytes.decode().endswith(direct_main),
+                        'exact historical Native v2 main directly executes complete query and oracle')
+            else:
+                require(executable in runtime and runtime[-1] == label.removeprefix('runtime-'),
+                        'actual executable/group runtime binding')
             for token in runtime:
                 if token.endswith('.mjs') or token == '/usr/local/bin/node':
                     saved_input(token, record['checks'][token], historical)
